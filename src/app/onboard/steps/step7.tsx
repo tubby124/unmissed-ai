@@ -1,0 +1,92 @@
+"use client";
+
+import { OnboardingData, nicheLabels } from "@/types/onboarding";
+
+interface Props {
+  data: OnboardingData;
+  onEdit: (step: number) => void;
+}
+
+function formatHoursDisplay(data: OnboardingData) {
+  const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
+  const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const lines: string[] = [];
+  days.forEach((day, i) => {
+    const h = data.hours[day];
+    if (!h.closed && h.open && h.close) {
+      lines.push(`${labels[i]}: ${h.open}–${h.close}`);
+    }
+  });
+  return lines.join(" · ") || "Not set";
+}
+
+function formatTime12(t: string) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function AgentPreview({ data }: { data: OnboardingData }) {
+  const name = data.agentName || (data.niche ? { auto_glass:"Mark",hvac:"Mike",plumbing:"Dave",dental:"Ashley",legal:"Jordan",salon:"Jamie",real_estate:"Alex",other:"Sam" }[data.niche] : "Sam");
+  const biz = data.businessName || "[Your Business]";
+  return (
+    <div className="bg-gray-900 rounded-xl p-4 text-sm font-mono">
+      <p className="text-gray-400 text-xs mb-2">Agent opening line:</p>
+      <p className="text-green-400">
+        &quot;Hi! This is {name}, an AI assistant for {biz}. How can I help you today?&quot;
+      </p>
+    </div>
+  );
+}
+
+export default function Step7({ data, onEdit }: Props) {
+  const rows: Array<{ label: string; value: string; step: number }> = [
+    { label: "Industry", value: data.niche ? nicheLabels[data.niche] : "—", step: 1 },
+    { label: "Business", value: data.businessName || "—", step: 2 },
+    { label: "Location", value: data.city && data.state ? `${data.city}, ${data.state}` : "—", step: 2 },
+    { label: "Agent name", value: data.agentName || "(using default)", step: 2 },
+    { label: "Callback #", value: data.callbackPhone || "—", step: 2 },
+    { label: "Hours", value: formatHoursDisplay(data), step: 3 },
+    { label: "Notifications", value: data.notificationMethod, step: 5 },
+    { label: "Agent tone", value: data.agentTone, step: 6 },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">Review your setup</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Everything looks right? Hit Activate to go live.
+        </p>
+      </div>
+
+      <AgentPreview data={data} />
+
+      <div className="border rounded-xl overflow-hidden">
+        {rows.map((row, i) => (
+          <div
+            key={row.label}
+            className={`flex items-center justify-between px-4 py-3 ${i < rows.length - 1 ? "border-b" : ""}`}
+          >
+            <span className="text-sm text-gray-500 w-32 shrink-0">{row.label}</span>
+            <span className="text-sm text-gray-900 flex-1 truncate">{row.value}</span>
+            <button
+              type="button"
+              onClick={() => onEdit(row.step)}
+              className="text-xs text-blue-600 hover:text-blue-800 ml-3 shrink-0"
+            >
+              Edit
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
+        <p className="font-medium">After activation — 2 quick manual steps:</p>
+        <p>1. Set up Telegram notifications (we&apos;ll send instructions)</p>
+        <p>2. Forward your business phone to your new AI number (2-min guide included)</p>
+      </div>
+    </div>
+  );
+}
