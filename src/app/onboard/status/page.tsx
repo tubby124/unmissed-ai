@@ -26,8 +26,10 @@ const STEPS: Array<{ key: ProvisionStatus; label: string; detail: string }> = [
 ];
 
 function getStepIndex(status: ProvisionStatus): number {
-  const order: ProvisionStatus[] = ["pending", "buying_number", "cloning_workflow", "wiring_creds", "active"];
-  return order.indexOf(status);
+  // Maps status to the STEPS array index (0-based, matching STEPS)
+  const order: ProvisionStatus[] = ["buying_number", "cloning_workflow", "wiring_creds", "active"];
+  const idx = order.indexOf(status);
+  return idx === -1 ? -1 : idx; // -1 for "pending" (nothing started yet)
 }
 
 function StatusContent() {

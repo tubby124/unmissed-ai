@@ -9,6 +9,22 @@ interface Props {
   onUpdate: (updates: Partial<OnboardingData>) => void;
 }
 
+const CA_PROVINCES = [
+  { code: "AB", label: "Alberta" },
+  { code: "BC", label: "British Columbia" },
+  { code: "MB", label: "Manitoba" },
+  { code: "NB", label: "New Brunswick" },
+  { code: "NL", label: "Newfoundland & Labrador" },
+  { code: "NS", label: "Nova Scotia" },
+  { code: "NT", label: "Northwest Territories" },
+  { code: "NU", label: "Nunavut" },
+  { code: "ON", label: "Ontario" },
+  { code: "PE", label: "Prince Edward Island" },
+  { code: "QC", label: "Quebec" },
+  { code: "SK", label: "Saskatchewan" },
+  { code: "YT", label: "Yukon" },
+];
+
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
   "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
@@ -47,17 +63,24 @@ export default function Step2({ data, onUpdate }: Props) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="state">State</Label>
+          <Label htmlFor="state">Province / State</Label>
           <select
             id="state"
             value={data.state}
             onChange={(e) => onUpdate({ state: e.target.value })}
             className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <option value="">Select state</option>
-            {US_STATES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            <option value="">Select province / state</option>
+            <optgroup label="Canada">
+              {CA_PROVINCES.map((p) => (
+                <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
+              ))}
+            </optgroup>
+            <optgroup label="United States">
+              {US_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </optgroup>
           </select>
         </div>
       </div>

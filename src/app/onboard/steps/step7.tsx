@@ -14,7 +14,7 @@ function formatHoursDisplay(data: OnboardingData) {
   days.forEach((day, i) => {
     const h = data.hours[day];
     if (!h.closed && h.open && h.close) {
-      lines.push(`${labels[i]}: ${h.open}–${h.close}`);
+      lines.push(`${labels[i]}: ${formatTime12(h.open)}–${formatTime12(h.close)}`);
     }
   });
   return lines.join(" · ") || "Not set";
