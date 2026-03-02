@@ -52,10 +52,10 @@ export default function Footer() {
             <div className="flex flex-col gap-2">
               <Link href="/for-auto-glass" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Auto Glass Shops</Link>
               <Link href="/for-realtors" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Real Estate Agents</Link>
-              <Link href="/#niches" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">HVAC Companies</Link>
-              <Link href="/#niches" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Plumbers</Link>
-              <Link href="/#niches" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Dental Offices</Link>
-              <Link href="/#niches" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Law Firms</Link>
+              <Link href="/for-hvac" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">HVAC Companies</Link>
+              <Link href="/for-plumbing" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Plumbers</Link>
+              <Link href="/for-dental" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Dental Offices</Link>
+              <Link href="/for-legal" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">Law Firms</Link>
             </div>
           </div>
         </div>

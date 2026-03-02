@@ -29,7 +29,7 @@ export const marqueeTestimonials = [
   {
     quote: "My agent Aisha handles 2,000+ calls a year while I'm showing properties. Never missed a lead since.",
     author: "Hasan S.",
-    business: "EXP Realty",
+    business: "eXp Realty",
     location: "Edmonton, AB",
     stars: 5,
   },

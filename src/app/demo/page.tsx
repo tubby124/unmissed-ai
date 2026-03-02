@@ -73,15 +73,18 @@ export default function DemoPage() {
               Want to talk to the agent yourself?
             </h2>
             <p className="text-gray-500 text-lg mb-6">
-              Our live demo line is being set up. Check back soon — you&apos;ll be able to
-              call and experience it firsthand.
+              Call our live auto glass agent right now. It&apos;s real — ask it anything,
+              book a quote, test it out.
             </p>
             <div
               className="inline-block px-8 py-5 rounded-2xl mb-6"
               style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
             >
               <p className="text-gray-500 text-xs mb-1">Live demo line:</p>
-              <p className="text-2xl font-black text-white">Coming Soon</p>
+              <a href="tel:+15873551834">
+                <p className="text-2xl font-black text-white hover:text-blue-400 transition-colors">(587) 355-1834</p>
+              </a>
+              <p className="text-gray-500 text-xs mt-1">Auto glass agent · Call anytime</p>
             </div>
             <div>
               <Link

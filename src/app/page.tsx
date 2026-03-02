@@ -415,11 +415,13 @@ export default function HomePage() {
               style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
             >
               <p className="text-gray-500 text-xs mb-1">Call our live demo agent:</p>
-              <p className="text-3xl font-black text-white tracking-wider">
-                Coming Soon
-              </p>
+              <a href="tel:+15873551834" className="block">
+                <p className="text-3xl font-black text-white tracking-wider hover:text-blue-400 transition-colors">
+                  (587) 355-1834
+                </p>
+              </a>
               <p className="text-gray-600 text-xs mt-1">
-                Demo line being set up — check back soon
+                Live auto glass agent · Try it right now
               </p>
             </div>
             <p className="text-gray-600 text-xs">
