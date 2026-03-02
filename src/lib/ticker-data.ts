@@ -4,16 +4,17 @@ export interface TickerEvent {
   location: string;
 }
 
+// Example activity events — representative of typical agent activity
 export const tickerEvents: TickerEvent[] = [
-  { message: "🔥 HOT LEAD captured", time: "2 min ago", location: "Auto Glass — Phoenix, AZ" },
-  { message: "📞 Call answered 24/7", time: "4 min ago", location: "HVAC — Dallas, TX" },
-  { message: "🔥 HOT LEAD captured", time: "7 min ago", location: "Plumbing — Denver, CO" },
-  { message: "📲 Lead card sent to owner", time: "11 min ago", location: "Auto Glass — Calgary, AB" },
-  { message: "🔥 HOT LEAD captured", time: "14 min ago", location: "Legal — Atlanta, GA" },
-  { message: "📞 Emergency call answered", time: "18 min ago", location: "HVAC — Nashville, TN" },
+  { message: "🔥 HOT LEAD captured", time: "2 min ago", location: "Auto Glass — Calgary, AB" },
+  { message: "📞 Call answered 24/7", time: "4 min ago", location: "Real Estate — Edmonton, AB" },
+  { message: "🔥 HOT LEAD captured", time: "7 min ago", location: "Auto Glass — Saskatoon, SK" },
+  { message: "📲 Lead card sent to owner", time: "11 min ago", location: "Real Estate — Calgary, AB" },
+  { message: "🔥 HOT LEAD captured", time: "14 min ago", location: "Auto Glass — Edmonton, AB" },
+  { message: "📞 After-hours call handled", time: "18 min ago", location: "Real Estate — Saskatoon, SK" },
   { message: "🔥 HOT LEAD captured", time: "21 min ago", location: "Auto Glass — Saskatoon, SK" },
-  { message: "📲 Lead card sent to owner", time: "25 min ago", location: "Plumbing — Charlotte, NC" },
-  { message: "📞 After-hours call handled", time: "31 min ago", location: "Dental — Columbus, OH" },
+  { message: "📲 Lead card sent to owner", time: "25 min ago", location: "Service Business — Calgary, AB" },
+  { message: "📞 After-hours call handled", time: "31 min ago", location: "Auto Glass — Calgary, AB" },
   { message: "🔥 HOT LEAD captured", time: "38 min ago", location: "Real Estate — Edmonton, AB" },
 ];
 

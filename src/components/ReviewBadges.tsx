@@ -2,14 +2,12 @@ const reviews = [
   {
     platform: "Google",
     rating: 5,
-    count: 2,
     reviewer: "Mark T.",
     text: "Best investment I've made for the shop. Stopped losing jobs to voicemail overnight.",
   },
   {
     platform: "Google",
     rating: 5,
-    count: 2,
     reviewer: "Hasan S.",
     text: "2,082 calls handled while I was out showing properties. Incredible.",
   },
@@ -57,9 +55,6 @@ export default function ReviewBadges() {
                     style={{ color: "#4285F4" }}
                   >
                     {review.platform}
-                  </p>
-                  <p className="text-gray-600 text-xs">
-                    {review.count} reviews
                   </p>
                 </div>
               </div>

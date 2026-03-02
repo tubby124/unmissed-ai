@@ -81,11 +81,15 @@ export default function Step3({ data, onUpdate }: Props) {
                       <option key={t} value={t}>{formatTime(t)}</option>
                     ))}
                   </select>
-                  <span className="text-gray-400 text-sm">–</span>
+                  <span className="text-gray-400 text-sm">--</span>
                   <select
                     value={day.close}
                     onChange={(e) => updateDay(key, { close: e.target.value })}
-                    className="h-8 px-2 text-sm rounded-md border border-input bg-background flex-1"
+                    className={`h-8 px-2 text-sm rounded-md border bg-background flex-1 ${
+                      day.open && day.close && day.close <= day.open
+                        ? "border-red-400"
+                        : "border-input"
+                    }`}
                   >
                     <option value="">Close time</option>
                     {TIME_OPTIONS.map((t) => (
@@ -93,6 +97,9 @@ export default function Step3({ data, onUpdate }: Props) {
                     ))}
                   </select>
                 </>
+              )}
+              {!day.closed && day.open && day.close && day.close <= day.open && (
+                <span className="text-xs text-red-600 shrink-0">Close must be after open</span>
               )}
             </div>
           );

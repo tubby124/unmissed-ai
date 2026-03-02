@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,12 @@ import Step4 from "./steps/step4";
 import Step5 from "./steps/step5";
 import Step6 from "./steps/step6";
 import Step7 from "./steps/step7";
+
+const STORAGE_KEY = "unmissed-onboard-draft";
+
+function countDigits(s: string): number {
+  return (s.match(/\d/g) || []).length;
+}
 
 const STEP_TITLES = [
   "Pick your industry",
@@ -28,10 +34,32 @@ const TOTAL_STEPS = 7;
 function canAdvance(step: number, data: OnboardingData): boolean {
   switch (step) {
     case 1: return !!data.niche;
-    case 2: return !!data.businessName && !!data.city && !!data.state && !!data.callbackPhone;
-    case 3: return true; // hours are pre-filled with defaults
+    case 2:
+      return !!data.businessName && !!data.city && !!data.state
+        && countDigits(data.callbackPhone) >= 10;
+    case 3: {
+      // Validate that no open day has close <= open
+      const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
+      for (const day of days) {
+        const h = data.hours[day];
+        if (!h.closed && h.open && h.close && h.close <= h.open) {
+          return false;
+        }
+      }
+      return true;
+    }
     case 4: return true; // niche questions are optional-ish
-    case 5: return !!data.notificationMethod;
+    case 5: {
+      if (!data.notificationMethod) return false;
+      const method = data.notificationMethod;
+      if ((method === "sms" || method === "both") && countDigits(data.notificationPhone) < 10) {
+        return false;
+      }
+      if ((method === "email" || method === "both") && !data.notificationEmail.trim()) {
+        return false;
+      }
+      return true;
+    }
     case 6: return true;
     case 7: return true;
     default: return true;
@@ -44,6 +72,33 @@ export default function OnboardPage() {
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(false);
+
+  // Hydrate from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.data) setData(parsed.data);
+        if (parsed.step) setStep(parsed.step);
+      }
+    } catch {
+      // Ignore malformed localStorage
+    }
+    hydrated.current = true;
+  }, []);
+
+  // Persist to localStorage on every change (after initial hydration)
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydrated.current) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }));
+    } catch {
+      // localStorage full or unavailable — silently ignore
+    }
+  }, [step, data]);
 
   const update = (updates: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...updates }));
@@ -68,6 +123,9 @@ export default function OnboardPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Provisioning failed");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
+      }
       router.push(`/onboard/status?jobId=${json.jobId}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

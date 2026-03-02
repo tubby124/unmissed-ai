@@ -27,6 +27,19 @@ function formatTime12(t: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+function camelToLabel(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
+function formatNicheValue(value: string | string[] | boolean): string {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map((v) => camelToLabel(v.replace(/_/g, " "))).join(", ");
+  return String(value);
+}
+
 function AgentPreview({ data }: { data: OnboardingData }) {
   const name = data.agentName || (data.niche ? { auto_glass:"Mark",hvac:"Mike",plumbing:"Dave",dental:"Ashley",legal:"Jordan",salon:"Jamie",real_estate:"Alex",other:"Sam" }[data.niche] : "Sam");
   const biz = data.businessName || "[Your Business]";
@@ -81,6 +94,27 @@ export default function Step7({ data, onEdit }: Props) {
           </div>
         ))}
       </div>
+
+      {Object.keys(data.nicheAnswers).length > 0 && (
+        <div className="border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 bg-gray-50 border-b">
+            <span className="text-sm font-medium text-gray-700">Industry Details</span>
+            <button
+              type="button"
+              onClick={() => onEdit(4)}
+              className="text-xs text-blue-600 hover:text-blue-800 ml-3"
+            >
+              Edit
+            </button>
+          </div>
+          {Object.entries(data.nicheAnswers).map(([key, value]) => (
+            <div key={key} className="flex items-start px-4 py-2.5 border-b last:border-b-0">
+              <span className="text-sm text-gray-500 w-40 shrink-0">{camelToLabel(key)}</span>
+              <span className="text-sm text-gray-900 flex-1">{formatNicheValue(value)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
         <p className="font-medium">After activation — 2 quick manual steps:</p>

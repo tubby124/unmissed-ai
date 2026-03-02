@@ -3,7 +3,7 @@ const integrations = [
   { name: "Telegram", description: "Instant lead alerts", icon: "📲" },
   { name: "Google Sheets", description: "Your call log lives here", icon: "📊" },
   { name: "n8n", description: "Workflow automation", icon: "⚙️" },
-  { name: "Claude AI", description: "Conversation intelligence", icon: "🧠" },
+  { name: "AI Engine", description: "Voice intelligence", icon: "🧠" },
   { name: "Ultravox", description: "Natural voice AI", icon: "🎙️" },
 ];
 

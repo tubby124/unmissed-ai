@@ -28,19 +28,6 @@ const testimonials = [
   },
 ];
 
-function PlayButton() {
-  return (
-    <div
-      className="w-14 h-14 rounded-full flex items-center justify-center"
-      style={{ backgroundColor: "rgba(59,130,246,0.9)" }}
-    >
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="white">
-        <path d="M6.5 4.5l10 5.5-10 5.5V4.5z" />
-      </svg>
-    </div>
-  );
-}
-
 export default function VideoTestimonialCarousel() {
   return (
     <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
@@ -88,11 +75,6 @@ export default function VideoTestimonialCarousel() {
                 >
                   {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                 </div>
-                {!t.cta && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <PlayButton />
-                  </div>
-                )}
                 {/* Stat badge */}
                 <div
                   className="absolute bottom-3 left-3 px-2 py-1 rounded-md text-xs font-semibold text-white"
@@ -127,7 +109,7 @@ export default function VideoTestimonialCarousel() {
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-4">
-          Video testimonials arriving Q2 2026. Onboard now and be first in line.
+          Real clients, real results. Want to be featured? Join as a founding member.
         </p>
       </div>
     </section>

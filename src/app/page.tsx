@@ -31,6 +31,7 @@ export const metadata: Metadata = {
 };
 
 const stats = [
+  // TODO: Pull from real call count API
   { value: "8,445+", label: "Calls Handled" },
   { value: "62%", label: "SMBs Miss Daily" },
   { value: "85%", label: "Won't Call Back" },
@@ -373,7 +374,7 @@ export default function HomePage() {
             </p>
             <p className="text-gray-400 text-sm mb-4">
               Price increases to $197/mo after the first 50 clients.
-              <strong className="text-white"> 23 spots remaining.</strong>
+              <strong className="text-white"> Limited spots remaining.</strong>
             </p>
             <Link
               href="/onboard"

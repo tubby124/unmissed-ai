@@ -38,18 +38,18 @@ export default function EmailCapture() {
           className="text-xs font-mono uppercase tracking-widest mb-2"
           style={{ color: "#3B82F6" }}
         >
-          Free Resource
+          Stay in the Loop
         </p>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
           Not ready to commit?
         </h2>
         <p className="text-gray-500 mb-2">
-          Get our free guide:
+          Get actionable tips on capturing more leads — plus early access to new features.
         </p>
         <p
           className="text-white font-semibold text-lg mb-6 leading-tight"
         >
-          &ldquo;7 Signs Your Business Is Losing $10,000/Month to Missed Calls&rdquo;
+          Join service business owners who never miss a call.
         </p>
 
         {status === "success" ? (
@@ -58,9 +58,9 @@ export default function EmailCapture() {
             style={{ backgroundColor: "#0D1F0D", border: "1px solid #166534" }}
           >
             <p className="text-2xl mb-2">✅</p>
-            <p className="text-green-400 font-semibold">Check your inbox!</p>
+            <p className="text-green-400 font-semibold">You&apos;re in!</p>
             <p className="text-gray-500 text-sm mt-1">
-              The PDF is on its way. Check spam if you don&apos;t see it in 2 minutes.
+              Thanks! We&apos;ll be in touch with tips to stop missing calls.
             </p>
           </div>
         ) : (
@@ -89,7 +89,7 @@ export default function EmailCapture() {
               className="flex-shrink-0 px-6 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-60"
               style={{ backgroundColor: "#3B82F6" }}
             >
-              {status === "loading" ? "Sending…" : "Send Me the PDF →"}
+              {status === "loading" ? "Sending…" : "Get Updates →"}
             </button>
           </form>
         )}
@@ -101,7 +101,7 @@ export default function EmailCapture() {
         )}
 
         <p className="text-gray-700 text-xs mt-3">
-          No spam. One email with the PDF. Unsubscribe anytime.
+          No spam. Just useful tips and updates. Unsubscribe anytime.
         </p>
       </div>
     </section>

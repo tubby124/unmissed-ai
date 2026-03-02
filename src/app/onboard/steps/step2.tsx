@@ -1,8 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OnboardingData, defaultAgentNames } from "@/types/onboarding";
+
+function countDigits(s: string): number {
+  return (s.match(/\d/g) || []).length;
+}
 
 interface Props {
   data: OnboardingData;
@@ -34,6 +39,9 @@ const US_STATES = [
 
 export default function Step2({ data, onUpdate }: Props) {
   const suggestedName = data.niche ? defaultAgentNames[data.niche] : "Sam";
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const phoneDigits = countDigits(data.callbackPhone);
+  const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
 
   return (
     <div className="space-y-5">
@@ -109,10 +117,16 @@ export default function Step2({ data, onUpdate }: Props) {
         <Input
           id="callbackPhone"
           type="tel"
-          placeholder="(555) 867-5309"
+          placeholder="(403) 555-1234"
           value={data.callbackPhone}
           onChange={(e) => onUpdate({ callbackPhone: e.target.value })}
+          onBlur={() => setPhoneTouched(true)}
         />
+        {phoneInvalid && (
+          <p className="text-xs text-red-600 mt-1">
+            Phone number must have at least 10 digits
+          </p>
+        )}
       </div>
     </div>
   );

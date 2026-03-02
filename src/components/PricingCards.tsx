@@ -9,7 +9,7 @@ const plans = [
     monthly: 147,
     annual: 122,
     description: "Perfect for solo tradespeople or small shops just getting started.",
-    cta: "Start Free Trial",
+    cta: "Get Started",
     ctaHref: "/onboard",
     highlighted: false,
     features: [
@@ -122,7 +122,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                 <span className="text-4xl font-black text-white">
                   ${annual ? plan.annual : plan.monthly}
                 </span>
-                <span className="text-gray-500 text-sm">/mo</span>
+                <span className="text-gray-500 text-sm">/mo CAD</span>
               </div>
               {annual && (
                 <p className="text-green-400 text-xs">

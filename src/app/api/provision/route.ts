@@ -21,11 +21,30 @@ const TIMEZONE_MAP: Record<string, string> = {
   NB: "America/Halifax", NS: "America/Halifax", PE: "America/Halifax",
   NL: "America/St_Johns", NT: "America/Yellowknife", YT: "America/Whitehorse",
   NU: "America/Iqaluit",
-  // US common
-  NY: "America/New_York", CA: "America/Los_Angeles", TX: "America/Chicago",
-  FL: "America/New_York", IL: "America/Chicago", WA: "America/Los_Angeles",
-  AZ: "America/Phoenix", CO: "America/Denver", GA: "America/New_York",
-  OH: "America/New_York", PA: "America/New_York", MI: "America/Detroit",
+  // US — Eastern (America/New_York)
+  CT: "America/New_York", DE: "America/New_York", GA: "America/New_York",
+  IN: "America/New_York", KY: "America/New_York", ME: "America/New_York",
+  MD: "America/New_York", MA: "America/New_York", NH: "America/New_York",
+  NJ: "America/New_York", NY: "America/New_York", NC: "America/New_York",
+  OH: "America/New_York", PA: "America/New_York", RI: "America/New_York",
+  SC: "America/New_York", VT: "America/New_York", VA: "America/New_York",
+  WV: "America/New_York", DC: "America/New_York", FL: "America/New_York",
+  // US — Central (America/Chicago)
+  AL: "America/Chicago", AR: "America/Chicago", IL: "America/Chicago",
+  IA: "America/Chicago", KS: "America/Chicago", LA: "America/Chicago",
+  MN: "America/Chicago", MS: "America/Chicago", MO: "America/Chicago",
+  NE: "America/Chicago", ND: "America/Chicago", OK: "America/Chicago",
+  SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago",
+  WI: "America/Chicago",
+  // US — Mountain (America/Denver)
+  CO: "America/Denver", ID: "America/Denver", MT: "America/Denver",
+  NM: "America/Denver", UT: "America/Denver", WY: "America/Denver",
+  // US — Pacific (America/Los_Angeles)
+  CA: "America/Los_Angeles", NV: "America/Los_Angeles",
+  OR: "America/Los_Angeles", WA: "America/Los_Angeles",
+  // US — Other
+  AZ: "America/Phoenix", HI: "America/Honolulu", AK: "America/Anchorage",
+  MI: "America/Detroit",
 };
 
 // Detect country from state/province code
@@ -75,7 +94,7 @@ function toProvisionRequest(data: OnboardingData) {
   const niche = data.niche || "other";
   const defaultName = niche ? defaultAgentNames[niche as Niche] : "Sam";
   const country = detectCountry(data.state);
-  const timezone = TIMEZONE_MAP[data.state.toUpperCase()] || "America/Edmonton";
+  const timezone = TIMEZONE_MAP[data.state.toUpperCase()] || "America/Chicago";
 
   // Map niche-specific insurance to prompt_builder preset
   const rawInsurance = (data.nicheAnswers.insurance as string) || "";

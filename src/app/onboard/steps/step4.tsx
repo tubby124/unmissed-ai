@@ -7,6 +7,7 @@ import PlumbingNiche from "./niches/plumbing";
 import DentalNiche from "./niches/dental";
 import LegalNiche from "./niches/legal";
 import SalonNiche from "./niches/salon";
+import RealEstateNiche from "./niches/real-estate";
 
 interface Props {
   data: OnboardingData;
@@ -21,6 +22,7 @@ const NICHE_COMPONENTS = {
   dental: DentalNiche,
   legal: LegalNiche,
   salon: SalonNiche,
+  real_estate: RealEstateNiche,
 } as const;
 
 export default function Step4({ data, onUpdate }: Props) {
@@ -45,7 +47,7 @@ export default function Step4({ data, onUpdate }: Props) {
     : null;
 
   if (!NicheComponent) {
-    // Fallback for "real_estate" and "other" — generic questions
+    // Fallback for "other" — generic questions
     return (
       <div className="space-y-5">
         <div>

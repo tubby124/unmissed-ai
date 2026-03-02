@@ -56,6 +56,12 @@ export default function Navbar() {
           >
             For Glass Shops
           </Link>
+          <Link
+            href="/for-realtors"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            For Realtors
+          </Link>
         </div>
 
         {/* CTA */}
@@ -118,6 +124,13 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
           >
             For Glass Shops
+          </Link>
+          <Link
+            href="/for-realtors"
+            className="text-sm text-gray-400"
+            onClick={() => setOpen(false)}
+          >
+            For Realtors
           </Link>
           <Link
             href="/onboard"

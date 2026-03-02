@@ -72,10 +72,18 @@ function StatusContent() {
   const isActive = status?.status === "active";
 
   if (isActive && status?.twilio_number) {
+    const isDemoMode = status.twilio_number === "+15551234567";
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center space-y-6">
         <div className="text-5xl">🎉</div>
         <h1 className="text-2xl font-bold text-gray-900">Your agent is live!</h1>
+
+        {isDemoMode && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm">
+            <strong>Demo Mode</strong> — This is a simulated setup. To activate a real AI agent, contact us at{" "}
+            <a href="mailto:support@unmissed.ai" className="underline font-medium">support@unmissed.ai</a>
+          </div>
+        )}
 
         <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 space-y-2">
           <p className="text-sm text-gray-500">Your AI phone number</p>
