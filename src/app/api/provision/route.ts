@@ -90,6 +90,11 @@ function toProvisionRequest(data: OnboardingData) {
     ? "open Saturdays only"
     : "open Sundays only";
 
+  // Validate callback phone — must have at least 10 digits
+  if (digits.length < 10) {
+    console.warn(`[provision] Callback phone looks invalid: "${data.callbackPhone}" (${digits.length} digits)`);
+  }
+
   return {
     business_name: data.businessName,
     niche: niche,
@@ -99,16 +104,26 @@ function toProvisionRequest(data: OnboardingData) {
     province: data.state,
     timezone,
     telegram_chat_id: "7278536150", // operator chat — will be per-client later
+    // Notification preferences (for future per-client routing)
+    notification_method: data.notificationMethod || "telegram",
+    notification_phone: data.notificationPhone || "",
+    notification_email: data.notificationEmail || "",
     intake: {
       business_name: data.businessName,
       city: data.city,
+      niche: niche,
       agent_name: data.agentName || defaultName,
       hours_weekday: hoursStr,
       insurance_preset: insurancePreset,
       weekend_policy: weekendPolicy,
       callback_phone: data.callbackPhone,
       services_not_offered: "",
-      // Pass through all niche answers for future prompt builders
+      after_hours_behavior: data.afterHoursBehavior || "take_message",
+      agent_tone: data.agentTone || "casual",
+      // Step 6 data — injected into the prompt by prompt_builder
+      caller_faq: data.callerFAQ || "",
+      agent_restrictions: data.agentRestrictions || "",
+      // Pass through all niche answers for prompt builder
       ...Object.fromEntries(
         Object.entries(data.nicheAnswers).map(([k, v]) =>
           [`niche_${k}`, Array.isArray(v) ? (v as string[]).join(", ") : String(v)]
@@ -124,6 +139,12 @@ export async function POST(req: NextRequest) {
   // Basic validation
   if (!data.businessName || !data.niche || !data.city || !data.state) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // Phone validation — must have at least 10 digits
+  const phoneDigits = (data.callbackPhone || "").replace(/\D/g, "");
+  if (phoneDigits.length < 10) {
+    return NextResponse.json({ error: "Please enter a valid phone number with area code" }, { status: 400 });
   }
 
   // Generate a job ID

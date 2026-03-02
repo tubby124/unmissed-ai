@@ -88,9 +88,9 @@ function StatusContent() {
         <div className="text-left bg-white border rounded-xl p-4 space-y-3">
           <p className="text-sm font-semibold text-gray-900">Next steps:</p>
           {[
-            "Forward your business phone to the number above",
-            "Set up Telegram notifications — check your email for instructions",
-            "Make a test call to hear your agent in action",
+            "Call the number above right now to test your agent",
+            "Forward your business phone to this number (dial *72 then the number)",
+            "We'll reach out shortly to set up your Telegram notifications",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
@@ -102,7 +102,7 @@ function StatusContent() {
         </div>
 
         <p className="text-xs text-gray-400">
-          A welcome email with detailed instructions has been sent to you.
+          Questions? Reach out to us and we&apos;ll get you sorted.
         </p>
       </div>
     );
