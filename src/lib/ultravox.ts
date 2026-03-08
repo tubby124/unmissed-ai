@@ -153,14 +153,14 @@ interface CallViaAgentOptions {
   callbackUrl?: string
   metadata?: Record<string, string>
   maxDuration?: string
-  /** Inject returning-caller context by overriding the system prompt for this call only. */
-  systemPromptOverride?: string
+  /** Inject returning-caller context as an initial hidden tool message. */
+  callerContext?: string
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, systemPromptOverride }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -169,7 +169,12 @@ export async function callViaAgent(
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
-  if (systemPromptOverride) body.systemPrompt = systemPromptOverride
+  // Inject returning-caller context via initialMessages (systemPrompt not accepted by agents call endpoint)
+  if (callerContext) {
+    body.initialMessages = [
+      { role: 'MESSAGE_ROLE_TOOL_RESULT', toolName: 'caller_lookup', text: callerContext }
+    ]
+  }
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',

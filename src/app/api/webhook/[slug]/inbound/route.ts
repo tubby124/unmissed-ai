@@ -51,7 +51,7 @@ export async function POST(
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)
 
   // ── Returning caller detection ─────────────────────────────────────────────
-  let systemPromptOverride: string | undefined
+  let callerContext: string | undefined
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
       .from('call_logs')
@@ -68,9 +68,7 @@ export async function POST(
       const lastSummary = lastCall.ai_summary
         ? ` Last call: ${(lastCall.ai_summary as string).slice(0, 120)}`
         : ''
-      const callerContext = `\n\n[RETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}]`
-      // Append at end so CRITICAL rules at top are not displaced
-      systemPromptOverride = client.system_prompt + callerContext
+      callerContext = `RETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
       console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls, context injected`)
     }
   }
@@ -86,13 +84,13 @@ export async function POST(
       console.log(`[inbound] Agents API: agentId=${client.ultravox_agent_id}`)
       ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
         metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
-        ...(systemPromptOverride ? { systemPromptOverride } : {}),
+        ...(callerContext ? { callerContext } : {}),
       })
     } else {
       // Per-call creation — fallback when no Agents API profile set up yet
       console.log(`[inbound] Per-call creation (no agentId for slug=${slug})`)
       ultravoxCall = await createCall({
-        systemPrompt: systemPromptOverride ?? client.system_prompt,
+        systemPrompt: callerContext ? client.system_prompt + `\n\n[${callerContext}]` : client.system_prompt,
         voice: client.agent_voice_id,
         tools,
         metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
