@@ -109,33 +109,73 @@ export async function POST(
         })
         .eq('ultravox_call_id', callId)
 
-      // Send Telegram alert
+      // Send Telegram alert — 4-tier intelligence routing
       if (client.telegram_bot_token && client.telegram_chat_id) {
-        const statusEmoji = {
-          HOT: '🔥',
-          WARM: '🟡',
-          COLD: '❄️',
-          JUNK: '🗑️',
-        }[classification.status] ?? '📞'
-
         const mins = Math.floor(durationSeconds / 60)
         const secs = durationSeconds % 60
         const durationStr = durationSeconds > 0
-          ? `${mins}:${String(secs).padStart(2, '0')}`
+          ? `${mins}:${String(secs).padStart(2, '0')} min`
           : 'n/a'
 
-        const message = [
-          `${statusEmoji} <b>${classification.status} LEAD</b>`,
-          `📱 ${callerPhone}`,
-          `⏱ ${durationStr}`,
-          `📝 ${classification.summary || ultravoxSummary || 'No summary'}`,
-          classification.serviceType !== 'other'
-            ? `🏷 ${classification.serviceType}`
-            : '',
-          endReason ? `📋 ${endReason}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n')
+        const bizName = client.business_name || slug
+
+        const sentimentEmoji: Record<string, string> = {
+          positive: '😊',
+          neutral: '😐',
+          negative: '😟',
+          frustrated: '😤',
+          indifferent: '😑',
+        }
+        const sentimentIcon = sentimentEmoji[classification.sentiment || ''] ?? '😐'
+        const topicsLine = classification.key_topics?.length
+          ? `🔑 ${classification.key_topics.join(', ')}`
+          : ''
+        const serviceLabel = classification.serviceType && classification.serviceType !== 'other'
+          ? `🏷 ${classification.serviceType.replace(/_/g, ' ')}`
+          : ''
+        const summary = classification.summary || ultravoxSummary || 'No summary available.'
+        const nextSteps = classification.next_steps || ''
+        const confidence = classification.confidence != null ? `🎯 ${classification.confidence}%` : ''
+
+        let message: string
+
+        if (classification.status === 'HOT') {
+          message = [
+            `⚡ <b>ACTION REQUIRED — HOT LEAD</b>`,
+            `━━━━━━━━━━━━━━━━`,
+            `🏢 <b>${bizName}</b>`,
+            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
+            ``,
+            `💬 <b>Summary:</b>`,
+            summary,
+            ``,
+            [serviceLabel, topicsLine].filter(Boolean).join(' | '),
+            nextSteps ? `\n📋 <b>NEXT:</b> ${nextSteps}` : '',
+          ].filter(s => s !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim()
+
+        } else if (classification.status === 'WARM') {
+          message = [
+            `🟡 <b>WARM LEAD — ${bizName}</b>`,
+            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
+            ``,
+            `💬 ${summary}`,
+            [serviceLabel, topicsLine].filter(Boolean).join(' | '),
+            nextSteps ? `📋 <b>NEXT:</b> ${nextSteps}` : '',
+          ].filter(Boolean).join('\n')
+
+        } else if (classification.status === 'COLD') {
+          message = [
+            `❄️ <b>COLD — ${bizName}</b>`,
+            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence}`,
+            `💬 ${summary}`,
+            nextSteps ? `📋 ${nextSteps}` : '',
+          ].filter(Boolean).join('\n')
+
+        } else {
+          // JUNK — brief one-liner, no analysis bloat
+          const junkType = classification.serviceType || 'junk'
+          message = `🗑️ <b>JUNK — ${bizName}</b> | ${callerPhone} | ⏱ ${durationStr} | ${junkType}\nNo action required.`
+        }
 
         await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message)
       }

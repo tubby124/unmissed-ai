@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   // ── /admin/* — keep Basic Auth for Hasan's internal access ─────────────────
   if (pathname.startsWith('/admin')) {
     const password = process.env.ADMIN_PASSWORD
-    if (!password) return NextResponse.next()
+    if (!password) return new NextResponse('Server misconfiguration: ADMIN_PASSWORD not set', { status: 500 })
 
     const authHeader = request.headers.get('authorization')
     const expected = `Basic ${Buffer.from(`admin:${password}`).toString('base64')}`

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+function checkBasicAuth(req: NextRequest): boolean {
+  const password = process.env.ADMIN_PASSWORD
+  if (!password) return false
+  const expected = `Basic ${Buffer.from(`admin:${password}`).toString('base64')}`
+  return req.headers.get('authorization') === expected
+}
+
 export async function GET(req: NextRequest) {
+  if (!checkBasicAuth(req)) return new NextResponse('Unauthorized', { status: 401 })
   const callId = req.nextUrl.searchParams.get('callId')
   if (!callId) return new NextResponse('Missing callId', { status: 400 })
 
