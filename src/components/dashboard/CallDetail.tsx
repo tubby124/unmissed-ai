@@ -77,6 +77,64 @@ interface CallLog {
   ended_at: string | null
   end_reason: string | null
   transcript: TranscriptMessage[] | null
+  confidence?: number | null
+  sentiment?: string | null
+  key_topics?: string[] | null
+  next_steps?: string | null
+  quality_score?: number | null
+}
+
+// Quality score semicircle gauge
+function QualityGauge({ score }: { score: number }) {
+  const R = 54, W = 140, H = 80
+  const C = Math.PI * R // half circumference
+  const clipped = Math.max(0, Math.min(100, score))
+  const fill = (clipped / 100) * C
+  const color = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444'
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        {/* Track */}
+        <path
+          d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`}
+          fill="none"
+          stroke="rgba(255,255,255,0.07)"
+          strokeWidth="10"
+          strokeLinecap="round"
+        />
+        {/* Zone tints */}
+        <path d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`} fill="none" stroke="rgba(239,68,68,0.12)" strokeWidth="10" strokeLinecap="butt" strokeDasharray={`${C * 0.4} ${C * 0.6}`} strokeDashoffset="0" />
+        <path d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`} fill="none" stroke="rgba(245,158,11,0.12)" strokeWidth="10" strokeLinecap="butt" strokeDasharray={`${C * 0.3} ${C * 0.7}`} strokeDashoffset={-(C * 0.4)} />
+        <path d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`} fill="none" stroke="rgba(34,197,94,0.12)" strokeWidth="10" strokeLinecap="butt" strokeDasharray={`${C * 0.3} ${C * 0.7}`} strokeDashoffset={-(C * 0.7)} />
+        {/* Fill */}
+        <path
+          d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={`${fill} ${C - fill}`}
+          style={{ transition: 'stroke-dasharray 0.8s ease, stroke 0.4s ease', filter: `drop-shadow(0 0 6px ${color}80)` }}
+        />
+        {/* Score text */}
+        <text x={W / 2} y={H - 6} textAnchor="middle" fill={color} fontSize="22" fontFamily="monospace" fontWeight="700" opacity={0.95}>
+          {score}
+        </text>
+        <text x={W / 2} y={H + 6} textAnchor="middle" fill="rgba(161,161,170,0.5)" fontSize="9" fontFamily="monospace">
+          QUALITY
+        </text>
+      </svg>
+    </div>
+  )
+}
+
+const SENTIMENT_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
+  positive:    { label: 'Positive',    color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/25' },
+  neutral:     { label: 'Neutral',     color: 'text-zinc-400',   bg: 'bg-white/[0.04] border-white/[0.1]' },
+  negative:    { label: 'Negative',    color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/25' },
+  frustrated:  { label: 'Frustrated',  color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/25' },
+  indifferent: { label: 'Indifferent', color: 'text-zinc-500',   bg: 'bg-white/[0.03] border-white/[0.07]' },
 }
 
 interface CallDetailProps {
@@ -210,7 +268,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
     const poll = async () => {
       const { data } = await supabase
         .from('call_logs')
-        .select('call_status, ai_summary, service_type, duration_seconds, ended_at, end_reason, transcript')
+        .select('call_status, ai_summary, service_type, duration_seconds, ended_at, end_reason, transcript, confidence, sentiment, key_topics, next_steps, quality_score')
         .eq('ultravox_call_id', call.ultravox_call_id)
         .single()
 
@@ -372,6 +430,85 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
               <p className="text-xs text-zinc-600 mt-2 capitalize">
                 Service: {displayCall.service_type.replace(/_/g, ' ')}
               </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Intelligence panels — quality, confidence, sentiment, topics, next steps */}
+      <AnimatePresence>
+        {isClassified && (displayCall.quality_score != null || displayCall.confidence != null || displayCall.key_topics?.length || displayCall.next_steps) && (
+          <motion.div
+            key="intelligence"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="space-y-3"
+          >
+            {/* Quality gauge + Confidence + Sentiment */}
+            {(displayCall.quality_score != null || displayCall.confidence != null || displayCall.sentiment) && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 flex items-center gap-5 flex-wrap">
+                {displayCall.quality_score != null && (
+                  <QualityGauge score={displayCall.quality_score} />
+                )}
+                <div className="flex-1 min-w-0 space-y-3">
+                  {displayCall.confidence != null && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Confidence</span>
+                        <span className="text-[11px] font-mono text-zinc-400">{displayCall.confidence}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${displayCall.confidence}%`,
+                            background: displayCall.confidence >= 75 ? '#ef4444' : displayCall.confidence >= 50 ? '#f59e0b' : '#60a5fa',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {displayCall.sentiment && SENTIMENT_DISPLAY[displayCall.sentiment] && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Sentiment</span>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${SENTIMENT_DISPLAY[displayCall.sentiment].bg} ${SENTIMENT_DISPLAY[displayCall.sentiment].color}`}>
+                        {SENTIMENT_DISPLAY[displayCall.sentiment].label}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Key topics */}
+            {displayCall.key_topics && displayCall.key_topics.length > 0 && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Key Topics</p>
+                <div className="flex flex-wrap gap-2">
+                  {displayCall.key_topics.map(topic => (
+                    <span
+                      key={topic}
+                      className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-zinc-300 bg-white/[0.04] border border-white/[0.08]"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Next steps */}
+            {displayCall.next_steps && (
+              <div className="flex items-start gap-3 pl-4 py-3 pr-4 rounded-xl bg-amber-500/[0.05] border border-amber-500/20">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-amber-400 mt-0.5 shrink-0">
+                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-amber-400/70 mb-0.5">Recommended Action</p>
+                  <p className="text-sm text-amber-300/90 font-medium leading-relaxed">{displayCall.next_steps}</p>
+                </div>
+              </div>
             )}
           </motion.div>
         )}

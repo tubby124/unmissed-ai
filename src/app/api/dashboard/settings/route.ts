@@ -39,6 +39,25 @@ export async function PATCH(req: NextRequest) {
     updates.status = body.status
   }
 
+  // God Mode fields — admin only
+  if (cu.role === 'admin') {
+    if (typeof body.telegram_bot_token === 'string' && body.telegram_bot_token) {
+      updates.telegram_bot_token = body.telegram_bot_token
+    }
+    if (typeof body.telegram_chat_id === 'string' && body.telegram_chat_id) {
+      updates.telegram_chat_id = body.telegram_chat_id
+    }
+    if (typeof body.twilio_number === 'string' && body.twilio_number) {
+      updates.twilio_number = body.twilio_number
+    }
+    if (typeof body.timezone === 'string' && body.timezone) {
+      updates.timezone = body.timezone
+    }
+    if (typeof body.monthly_minute_limit === 'number' && body.monthly_minute_limit > 0) {
+      updates.monthly_minute_limit = body.monthly_minute_limit
+    }
+  }
+
   if (!Object.keys(updates).length) {
     return new NextResponse('Nothing to update', { status: 400 })
   }

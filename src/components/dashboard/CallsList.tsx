@@ -22,6 +22,11 @@ interface CallLog {
   started_at: string
   client_id?: string | null
   business_name?: string | null
+  confidence?: number | null
+  sentiment?: string | null
+  key_topics?: string[] | null
+  next_steps?: string | null
+  quality_score?: number | null
 }
 
 interface ClientInfo {
@@ -58,7 +63,7 @@ function dateGroupLabel(iso: string): string {
 }
 
 function exportCsv(calls: CallLog[]) {
-  const headers = ['Date', 'Phone', 'Status', 'Service', 'Duration (s)', 'Client', 'Summary']
+  const headers = ['Date', 'Phone', 'Status', 'Service', 'Duration (s)', 'Client', 'Summary', 'Confidence', 'Sentiment', 'Key Topics', 'Next Steps', 'Quality Score']
   const rows = calls.map(c => [
     new Date(c.started_at).toISOString(),
     c.caller_phone ?? '',
@@ -67,6 +72,11 @@ function exportCsv(calls: CallLog[]) {
     String(c.duration_seconds ?? ''),
     c.business_name ?? '',
     (c.ai_summary ?? '').replace(/"/g, '""'),
+    c.confidence != null ? String(c.confidence) : '',
+    c.sentiment ?? '',
+    (c.key_topics ?? []).join('; '),
+    (c.next_steps ?? '').replace(/"/g, '""'),
+    c.quality_score != null ? String(c.quality_score) : '',
   ])
   const csv = [headers, ...rows]
     .map(row => row.map(v => `"${v}"`).join(','))
@@ -226,6 +236,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         hotLeads={stats.hotLeads}
         avgDurationSecs={stats.avgDurationSecs}
         activeNow={stats.activeNow}
+        calls={calls}
       />
 
       {/* Outcome charts with day click */}

@@ -2,19 +2,24 @@ import type { ReactNode } from 'react'
 import { createServerClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileNav from '@/components/dashboard/MobileNav'
+import ActivityFeed from '@/components/dashboard/ActivityFeed'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   let businessName: string | undefined
-  if (user) {
+  let clientId: string | null = null
+  const isAdmin = user?.email === process.env.ADMIN_EMAIL
+
+  if (user && !isAdmin) {
     const { data: cu } = await supabase
       .from('client_users')
       .select('client_id, clients(business_name)')
       .eq('user_id', user.id)
       .single()
     businessName = (cu?.clients as { business_name?: string } | null)?.business_name ?? undefined
+    clientId = (cu?.client_id as string | null) ?? null
   }
 
   return (
@@ -28,7 +33,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       {/* Mobile top bar */}
       <MobileNav businessName={businessName} />
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 relative overflow-hidden">
         {/* Desktop sidebar */}
         <Sidebar businessName={businessName} />
 
@@ -36,6 +41,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <main className="flex-1 min-w-0 overflow-y-auto">
           {children}
         </main>
+
+        {/* Activity feed — XL+ right panel */}
+        <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
       </div>
     </div>
   )

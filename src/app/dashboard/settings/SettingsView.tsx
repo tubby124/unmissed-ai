@@ -3,6 +3,20 @@
 import { useState } from 'react'
 import type { ClientConfig } from './page'
 
+const TIMEZONES = [
+  { value: 'America/Edmonton', label: 'Mountain (Edmonton)' },
+  { value: 'America/Vancouver', label: 'Pacific (Vancouver)' },
+  { value: 'America/Winnipeg', label: 'Central (Winnipeg)' },
+  { value: 'America/Toronto', label: 'Eastern (Toronto)' },
+  { value: 'America/New_York', label: 'Eastern (New York)' },
+  { value: 'America/Chicago', label: 'Central (Chicago)' },
+  { value: 'America/Denver', label: 'Mountain (Denver)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (LA)' },
+  { value: 'America/Phoenix', label: 'Arizona (no DST)' },
+  { value: 'Europe/London', label: 'GMT (London)' },
+  { value: 'UTC', label: 'UTC' },
+]
+
 const NICHE_CONFIG: Record<string, { label: string; color: string; border: string }> = {
   'auto-glass':          { label: 'Auto Glass',       color: 'text-blue-400',   border: 'border-blue-500/30' },
   'auto':                { label: 'Automotive',        color: 'text-blue-400',   border: 'border-blue-500/30' },
@@ -106,6 +120,25 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // God Mode — editable config fields (admin only)
+  const [godConfig, setGodConfig] = useState<Record<string, {
+    telegram_bot_token: string
+    telegram_chat_id: string
+    timezone: string
+    twilio_number: string
+    monthly_minute_limit: number
+  }>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, {
+      telegram_bot_token: '',  // never pre-fill secrets
+      telegram_chat_id: c.telegram_chat_id ?? '',
+      timezone: c.timezone ?? 'America/Edmonton',
+      twilio_number: c.twilio_number ?? '',
+      monthly_minute_limit: c.monthly_minute_limit ?? 500,
+    }]))
+  )
+  const [godSaving, setGodSaving] = useState(false)
+  const [godSaved, setGodSaved] = useState(false)
+
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
@@ -151,6 +184,31 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       body: JSON.stringify(body),
     })
     if (res.ok) setStatus(prev => ({ ...prev, [client.id]: next }))
+  }
+
+  async function saveGodConfig() {
+    const cfg = godConfig[client.id]
+    if (!cfg) return
+    setGodSaving(true)
+    setGodSaved(false)
+    const body: Record<string, unknown> = { client_id: client.id }
+    if (cfg.telegram_bot_token) body.telegram_bot_token = cfg.telegram_bot_token
+    if (cfg.telegram_chat_id) body.telegram_chat_id = cfg.telegram_chat_id
+    if (cfg.timezone) body.timezone = cfg.timezone
+    if (cfg.twilio_number) body.twilio_number = cfg.twilio_number
+    if (cfg.monthly_minute_limit) body.monthly_minute_limit = cfg.monthly_minute_limit
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      setGodSaved(true)
+      // Clear token field after save
+      setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], telegram_bot_token: '' } }))
+      setTimeout(() => setGodSaved(false), 3000)
+    }
+    setGodSaving(false)
   }
 
   const isActive = status[client.id] === 'active'
@@ -277,6 +335,95 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           <ConfigRow label="Telegram Chat" value={client.telegram_chat_id} copyValue={client.telegram_chat_id} />
         )}
       </div>
+
+      {/* 3b — God Mode (admin only) */}
+      {isAdmin && godConfig[client.id] && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400/80">God Mode</p>
+              <p className="text-[11px] text-zinc-600 mt-0.5">Editable infrastructure settings</p>
+            </div>
+            <button
+              onClick={saveGodConfig}
+              disabled={godSaving}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                godSaved
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+              }`}
+            >
+              {godSaving ? 'Saving…' : godSaved ? '✓ Saved' : 'Save Config'}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {/* Telegram Bot Token */}
+            <div>
+              <label className="text-[11px] text-zinc-500 block mb-1">Telegram Bot Token <span className="text-zinc-700">(write-only — current value masked)</span></label>
+              <input
+                type="password"
+                value={godConfig[client.id].telegram_bot_token}
+                onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], telegram_bot_token: e.target.value } }))}
+                placeholder="Enter new token to update…"
+                autoComplete="off"
+                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+              />
+            </div>
+
+            {/* Telegram Chat ID */}
+            <div>
+              <label className="text-[11px] text-zinc-500 block mb-1">Telegram Chat ID</label>
+              <input
+                type="text"
+                value={godConfig[client.id].telegram_chat_id}
+                onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], telegram_chat_id: e.target.value } }))}
+                placeholder="e.g. 7278536150"
+                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+              />
+            </div>
+
+            {/* Twilio Number */}
+            <div>
+              <label className="text-[11px] text-zinc-500 block mb-1">Twilio Number</label>
+              <input
+                type="text"
+                value={godConfig[client.id].twilio_number}
+                onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], twilio_number: e.target.value } }))}
+                placeholder="+15871234567"
+                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+              />
+            </div>
+
+            {/* Timezone + Monthly Limit */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-zinc-500 block mb-1">Timezone</label>
+                <select
+                  value={godConfig[client.id].timezone}
+                  onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], timezone: e.target.value } }))}
+                  className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500/40 transition-colors"
+                >
+                  {TIMEZONES.map(tz => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-zinc-500 block mb-1">Monthly Minute Limit</label>
+                <input
+                  type="number"
+                  value={godConfig[client.id].monthly_minute_limit}
+                  onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], monthly_minute_limit: Number(e.target.value) } }))}
+                  min={0}
+                  step={50}
+                  className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4 — Usage */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">

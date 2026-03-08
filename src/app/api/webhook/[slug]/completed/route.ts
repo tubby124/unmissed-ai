@@ -101,6 +101,11 @@ export async function POST(
           duration_seconds: durationSeconds,
           ended_at: endedAt,
           end_reason: endReason,
+          confidence: classification.confidence || null,
+          sentiment: classification.sentiment || null,
+          key_topics: classification.key_topics?.length ? classification.key_topics : null,
+          next_steps: classification.next_steps || null,
+          quality_score: classification.quality_score || null,
         })
         .eq('ultravox_call_id', callId)
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -54,9 +54,35 @@ interface SidebarProps {
 
 export default function Sidebar({ businessName }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [liveCount, setLiveCount] = useState(0)
+  const [processingCount, setProcessingCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
+
+  useEffect(() => {
+    async function loadCounts() {
+      const { data } = await supabase
+        .from('call_logs')
+        .select('call_status')
+        .in('call_status', ['live', 'processing'])
+      if (!data) return
+      setLiveCount(data.filter(r => r.call_status === 'live').length)
+      setProcessingCount(data.filter(r => r.call_status === 'processing').length)
+    }
+
+    loadCounts()
+
+    const channel = supabase
+      .channel('sidebar_counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_logs' }, () => {
+        loadCounts()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -101,6 +127,7 @@ export default function Sidebar({ businessName }: SidebarProps) {
       <nav className="flex-1 px-2 py-4 space-y-1">
         {NAV.map(item => {
           const active = pathname.startsWith(item.href)
+          const isCalls = item.href === '/dashboard/calls'
           return (
             <Link
               key={item.href}
@@ -112,7 +139,16 @@ export default function Sidebar({ businessName }: SidebarProps) {
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
               }`}
             >
-              <span className="shrink-0">{item.icon}</span>
+              <span className="shrink-0 relative">
+                {item.icon}
+                {/* Pulsing green dot when a call is live */}
+                {isCalls && liveCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex w-2 h-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                )}
+              </span>
               <AnimatePresence>
                 {!collapsed && (
                   <motion.span
@@ -120,9 +156,15 @@ export default function Sidebar({ businessName }: SidebarProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.1 }}
-                    className="whitespace-nowrap overflow-hidden"
+                    className="whitespace-nowrap overflow-hidden flex-1 flex items-center gap-2"
                   >
                     {item.label}
+                    {/* Amber processing count pill */}
+                    {isCalls && processingCount > 0 && (
+                      <span className="ml-auto text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                        {processingCount}
+                      </span>
+                    )}
                   </motion.span>
                 )}
               </AnimatePresence>

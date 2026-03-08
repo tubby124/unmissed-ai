@@ -14,6 +14,8 @@ export interface ClientConfig {
   agent_voice_id: string | null
   twilio_number: string | null
   telegram_chat_id: string | null
+  telegram_bot_token: string | null
+  timezone: string | null
   minutes_used_this_month: number | null
   monthly_minute_limit: number | null
   updated_at: string | null
@@ -35,7 +37,7 @@ export default async function SettingsPage() {
   const isAdmin = cu.role === 'admin'
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
 
-  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, twilio_number, telegram_chat_id, minutes_used_this_month, monthly_minute_limit, updated_at'
+  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, twilio_number, telegram_chat_id, telegram_bot_token, timezone, minutes_used_this_month, monthly_minute_limit, updated_at'
 
   if (isAdmin) {
     const { data: clients } = await supabase

@@ -36,11 +36,23 @@ export default async function CallsPage() {
     }
   }
 
-  const { data: calls } = await supabase
+  let q = supabase
     .from('call_logs')
-    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, clients(business_name, slug)')
+    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, confidence, sentiment, key_topics, next_steps, quality_score, clients(business_name, slug)')
     .order('started_at', { ascending: false })
     .limit(200)
+
+  // Non-admin users see only their client's calls
+  if (!isAdmin && user) {
+    const { data: cu2 } = await supabase
+      .from('client_users')
+      .select('client_id')
+      .eq('user_id', user.id)
+      .single()
+    if (cu2?.client_id) q = q.eq('client_id', cu2.client_id)
+  }
+
+  const { data: calls } = await q
 
   const allCalls = (calls ?? []).map(c => ({
     ...c,
