@@ -50,11 +50,16 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl }:
 }
 
 export async function getTranscript(callId: string) {
+  console.log(`[ultravox] getTranscript: fetching callId=${callId}`)
   const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}/messages?pageSize=200`, {
     headers: ultravoxHeaders(),
   })
 
-  if (!res.ok) return []
+  if (!res.ok) {
+    const body = await res.text().catch(() => '(unreadable)')
+    console.error(`[ultravox] getTranscript: HTTP ${res.status} for callId=${callId} — ${body}`)
+    return []
+  }
 
   const data = await res.json()
   const messages: Array<{
@@ -65,7 +70,7 @@ export async function getTranscript(callId: string) {
     timespan?: { startTime?: string; endTime?: string }
   }> = data.results || []
 
-  return messages
+  const filtered = messages
     .filter(m =>
       (m.role === 'MESSAGE_ROLE_AGENT' || m.role === 'MESSAGE_ROLE_USER') &&
       typeof m.text === 'string' && m.text.trim()
@@ -80,11 +85,17 @@ export async function getTranscript(callId: string) {
         ? { endTime: parseFloat(m.timespan.endTime) }
         : {}),
     }))
+
+  console.log(`[ultravox] getTranscript: callId=${callId} — ${messages.length} total messages, ${filtered.length} agent/user messages`)
+  return filtered
 }
 
 export async function getRecordingStream(callId: string) {
-  return fetch(`${ULTRAVOX_BASE}/calls/${callId}/recording`, {
+  console.log(`[ultravox] getRecordingStream: fetching callId=${callId}`)
+  const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}/recording`, {
     headers: ultravoxHeaders(),
     redirect: 'follow',
   })
+  console.log(`[ultravox] getRecordingStream: callId=${callId} status=${res.status} ok=${res.ok}`)
+  return res
 }

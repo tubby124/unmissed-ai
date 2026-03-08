@@ -46,6 +46,7 @@ export async function POST(
 
   // Return 200 IMMEDIATELY — Ultravox fires this up to 10x with exponential backoff
   after(async () => {
+    console.log(`[completed] Processing start: callId=${callId} slug=${slug} duration=${durationSeconds}s callerPhone=${callerPhone}`)
     try {
       const supabase = createServiceClient()
 
@@ -59,6 +60,7 @@ export async function POST(
         .select('id')
 
       if (!locked?.length) {
+        console.warn(`[completed] No live row found for callId=${callId} — attempting fresh insert (may be duplicate)`)
         // No 'live' row found — either already processed OR inbound insert failed
         // Try a fresh insert as fallback
         const { error: insertError } = await supabase.from('call_logs').insert({
@@ -67,30 +69,38 @@ export async function POST(
           call_status: 'processing',
           started_at: new Date().toISOString(),
         })
-        if (insertError) return // 23505 = already handled by another callback
+        if (insertError) {
+          console.error(`[completed] Insert fallback failed for callId=${callId}: ${insertError.message} — likely duplicate callback, bailing`)
+          return // 23505 = already handled by another callback
+        }
+      } else {
+        console.log(`[completed] Lock acquired: callId=${callId} rowId=${locked[0].id}`)
       }
 
       // Fetch client
-      const { data: client } = await supabase
+      const { data: client, error: clientError } = await supabase
         .from('clients')
         .select('id, business_name, niche, telegram_bot_token, telegram_chat_id')
         .eq('slug', slug)
         .single()
 
       if (!client) {
-        console.error('[completed] Client not found for slug:', slug)
+        console.error(`[completed] Client not found for slug=${slug} error=${clientError?.message || 'null row'}`)
         return
       }
+      console.log(`[completed] Client: slug=${slug} id=${client.id} business="${client.business_name}" hasTelegram=${!!(client.telegram_bot_token && client.telegram_chat_id)}`)
 
       // Fetch transcript from Ultravox
       const transcript = await getTranscript(callId)
+      console.log(`[completed] Transcript: callId=${callId} messages=${transcript.length}`)
 
       // Classify with Claude Haiku via OpenRouter — pass client context for accurate classification
       const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
       const classification = await classifyCall(transcript, businessContext || undefined)
+      console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
 
       // Update call_log with full data
-      await supabase
+      const { error: updateError } = await supabase
         .from('call_logs')
         .update({
           client_id: client.id,
@@ -108,6 +118,8 @@ export async function POST(
           quality_score: classification.quality_score || null,
         })
         .eq('ultravox_call_id', callId)
+      if (updateError) console.error(`[completed] DB update failed for callId=${callId}: ${updateError.message}`)
+      else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
 
       // Send Telegram alert — 4-tier intelligence routing
       if (client.telegram_bot_token && client.telegram_chat_id) {
@@ -177,7 +189,10 @@ export async function POST(
           message = `🗑️ <b>JUNK — ${bizName}</b> | ${callerPhone} | ⏱ ${durationStr} | ${junkType}\nNo action required.`
         }
 
-        await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message)
+        const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message)
+        if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
+      } else {
+        console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
       }
 
       // Increment minutes used (billing foundation)
@@ -188,6 +203,7 @@ export async function POST(
           p_minutes: minutesUsed,
         })
         if (rpcError) console.error('[completed] Minute increment failed:', rpcError.message)
+        else console.log(`[completed] Minutes incremented: clientId=${client.id} +${minutesUsed}min`)
       }
 
       // Download and persist recording to Supabase Storage
@@ -201,7 +217,9 @@ export async function POST(
               contentType: 'audio/mpeg',
               upsert: true,
             })
-          if (!uploadError) {
+          if (uploadError) {
+            console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
+          } else {
             const { data: urlData } = supabase.storage
               .from('recordings')
               .getPublicUrl(`${callId}.mp3`)
@@ -209,11 +227,16 @@ export async function POST(
               .from('call_logs')
               .update({ recording_url: urlData.publicUrl })
               .eq('ultravox_call_id', callId)
+            console.log(`[completed] Recording uploaded: callId=${callId} url=${urlData.publicUrl}`)
           }
+        } else {
+          console.warn(`[completed] Recording not available for callId=${callId} status=${recordingRes.status}`)
         }
       } catch (storageErr) {
         console.error('[completed] Recording storage failed:', storageErr)
       }
+
+      console.log(`[completed] Done: callId=${callId} slug=${slug}`)
     } catch (err) {
       console.error('[completed] Processing error:', err)
       // Alert operator via Telegram when webhook crashes

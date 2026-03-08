@@ -73,13 +73,24 @@ export async function classifyCall(
     quality_score: 0,
   }
 
-  if (!transcriptText.trim()) return fallback
+  if (!transcriptText.trim()) {
+    console.warn('[openrouter] classifyCall: empty transcript — returning fallback')
+    return fallback
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) {
+    console.error('[openrouter] OPENROUTER_API_KEY is not set — cannot classify call. Add it to Railway env vars.')
+    return fallback
+  }
+
+  console.log(`[openrouter] classifyCall: starting — ${transcript.length} messages, context="${businessContext || 'none'}"`)
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://unmissed.ai',
         'X-Title': 'unmissed.ai call classifier',
@@ -96,27 +107,47 @@ export async function classifyCall(
       }),
     })
 
-    if (!res.ok) return fallback
+    if (!res.ok) {
+      const body = await res.text().catch(() => '(unreadable)')
+      console.error(`[openrouter] classifyCall: HTTP ${res.status} — ${body}`)
+      return fallback
+    }
 
     const data = await res.json()
     const content = data.choices?.[0]?.message?.content?.trim() || ''
-    const parsed = JSON.parse(content)
 
-    return {
-      status: (['HOT', 'WARM', 'COLD', 'JUNK'] as const).includes(parsed.status) ? parsed.status : 'COLD',
+    if (!content) {
+      console.error('[openrouter] classifyCall: empty content in response — data:', JSON.stringify(data).slice(0, 300))
+      return fallback
+    }
+
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(content)
+    } catch (parseErr) {
+      console.error('[openrouter] classifyCall: JSON.parse failed — raw content:', content.slice(0, 300), 'error:', parseErr)
+      return fallback
+    }
+
+    const result: CallClassification = {
+      status: (['HOT', 'WARM', 'COLD', 'JUNK'] as const).includes(parsed.status as string) ? parsed.status as CallClassification['status'] : 'COLD',
       summary: typeof parsed.summary === 'string' ? parsed.summary : fallback.summary,
-      serviceType: (['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as const).includes(parsed.serviceType)
-        ? parsed.serviceType
+      serviceType: (['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as const).includes(parsed.serviceType as string)
+        ? parsed.serviceType as CallClassification['serviceType']
         : 'other',
       confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.confidence))) : 0,
-      sentiment: (['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as const).includes(parsed.sentiment)
-        ? parsed.sentiment
+      sentiment: (['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as const).includes(parsed.sentiment as string)
+        ? parsed.sentiment as CallClassification['sentiment']
         : 'neutral',
-      key_topics: Array.isArray(parsed.key_topics) ? parsed.key_topics.slice(0, 4).map(String) : [],
+      key_topics: Array.isArray(parsed.key_topics) ? (parsed.key_topics as unknown[]).slice(0, 4).map(String) : [],
       next_steps: typeof parsed.next_steps === 'string' ? parsed.next_steps : 'Review call manually.',
       quality_score: typeof parsed.quality_score === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.quality_score))) : 0,
     }
-  } catch {
+
+    console.log(`[openrouter] classifyCall: success — status=${result.status} confidence=${result.confidence} sentiment=${result.sentiment}`)
+    return result
+  } catch (err) {
+    console.error('[openrouter] classifyCall: unexpected error —', err)
     return fallback
   }
 }

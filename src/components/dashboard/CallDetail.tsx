@@ -222,10 +222,22 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
   const handleEndCall = async () => {
     if (ending) return
     setEnding(true)
-    await fetch(`/api/dashboard/calls/${call.ultravox_call_id}/whisper`, {
-      method: 'DELETE',
-    })
-    // Status polling will pick up the transition automatically
+    try {
+      const res = await fetch(`/api/dashboard/calls/${call.ultravox_call_id}/whisper`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        // Optimistically show processing state — hides End Call button, shows amber classifying banner
+        setCallStatus('processing')
+      } else {
+        const err = await res.json().catch(() => ({ error: res.status }))
+        console.error('[end-call] Server returned error:', err)
+        setEnding(false)
+      }
+    } catch (err) {
+      console.error('[end-call] Network error:', err)
+      setEnding(false)
+    }
   }
 
   // TRANSCRIPT POLLING — reactive to callStatus; starts when 'live', stops otherwise

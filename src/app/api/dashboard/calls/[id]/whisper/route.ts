@@ -13,7 +13,10 @@ export async function POST(
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) {
+    console.warn(`[whisper] Unauthorized attempt for callId=${id}`)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const body = await req.json().catch(() => ({}))
   const text = typeof body.text === 'string' ? body.text.trim() : ''
@@ -22,6 +25,7 @@ export async function POST(
   const apiKey = process.env.ULTRAVOX_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
+  console.log(`[whisper] Injecting to callId=${id} textLen=${text.length}`)
   const res = await fetch(`https://api.ultravox.ai/api/calls/${id}/messages`, {
     method: 'POST',
     headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
@@ -34,10 +38,11 @@ export async function POST(
 
   if (!res.ok) {
     const err = await res.text()
-    console.error('[whisper] Ultravox error:', res.status, err)
+    console.error(`[whisper] Ultravox error: HTTP ${res.status} for callId=${id} — ${err}`)
     return NextResponse.json({ error: 'Ultravox inject failed', detail: err }, { status: 502 })
   }
 
+  console.log(`[whisper] Injected OK for callId=${id}`)
   return NextResponse.json({ ok: true })
 }
 
@@ -50,22 +55,32 @@ export async function DELETE(
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) {
+    console.warn(`[end-call] Unauthorized attempt for callId=${id}`)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const apiKey = process.env.ULTRAVOX_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
+  console.log(`[end-call] Terminating callId=${id} userId=${user.id}`)
   const res = await fetch(`https://api.ultravox.ai/api/calls/${id}`, {
     method: 'DELETE',
     headers: { 'X-API-Key': apiKey },
   })
 
   // 204 = deleted, 404 = already ended — both are fine
-  if (!res.ok && res.status !== 404) {
+  if (res.status === 404) {
+    console.log(`[end-call] callId=${id} already ended (404) — OK`)
+    return NextResponse.json({ ok: true })
+  }
+
+  if (!res.ok) {
     const err = await res.text()
-    console.error('[end-call] Ultravox error:', res.status, err)
+    console.error(`[end-call] Ultravox error: HTTP ${res.status} for callId=${id} — ${err}`)
     return NextResponse.json({ error: 'End call failed', detail: err }, { status: 502 })
   }
 
+  console.log(`[end-call] Terminated OK: callId=${id}`)
   return NextResponse.json({ ok: true })
 }
