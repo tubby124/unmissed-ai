@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getTranscript, getRecordingStream } from '@/lib/ultravox'
+import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
+import twilio from 'twilio'
 
 export const maxDuration = 120
 
@@ -20,7 +21,6 @@ export async function POST(
     return new NextResponse('Bad Request', { status: 400 })
   }
 
-  // Ultravox webhook payload: { event: "call.ended", call: { callId, created, joined, ended, endReason, shortSummary, metadata } }
   const callData = payload.call as Record<string, unknown> | undefined
   const callId = (callData?.callId || payload.callId || payload.call_id) as string | undefined
 
@@ -29,7 +29,16 @@ export async function POST(
     return new NextResponse('Missing callId', { status: 400 })
   }
 
-  // Duration from Ultravox timestamps (no separate duration field)
+  // ── HMAC signature verification ────────────────────────────────────────────
+  // sig is appended by inbound route after call creation. Absent on legacy calls — still accepted.
+  const sig = req.nextUrl.searchParams.get('sig')
+  if (sig && !verifyCallbackSig(callId, sig)) {
+    console.error(`[completed] HMAC sig FAILED for callId=${callId} — forged webhook rejected`)
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+  if (sig) console.log(`[completed] HMAC sig verified for callId=${callId}`)
+
+  // Duration from Ultravox timestamps
   let durationSeconds = 0
   if (callData?.joined && callData?.ended) {
     durationSeconds = Math.round(
@@ -37,21 +46,19 @@ export async function POST(
     )
   }
 
-  // Metadata we injected at call creation: { caller_phone, client_slug, client_id }
   const metadata = (callData?.metadata || payload.metadata || {}) as Record<string, string>
   const callerPhone = metadata.caller_phone || 'unknown'
   const endReason = (callData?.endReason as string | undefined) || null
   const ultravoxSummary = (callData?.shortSummary as string | undefined) || null
   const endedAt = (callData?.ended as string | undefined) || new Date().toISOString()
 
-  // Return 200 IMMEDIATELY — Ultravox fires this up to 10x with exponential backoff
+  // Return 200 immediately — Ultravox retries up to 10x with exponential backoff
   after(async () => {
-    console.log(`[completed] Processing start: callId=${callId} slug=${slug} duration=${durationSeconds}s callerPhone=${callerPhone}`)
+    console.log(`[completed] Processing: callId=${callId} slug=${slug} duration=${durationSeconds}s callerPhone=${callerPhone}`)
     try {
       const supabase = createServiceClient()
 
       // Atomic dedup: transition 'live' → 'processing'
-      // Only the first callback wins; subsequent ones see a non-live status and bail
       const { data: locked } = await supabase
         .from('call_logs')
         .update({ call_status: 'processing' })
@@ -60,9 +67,7 @@ export async function POST(
         .select('id')
 
       if (!locked?.length) {
-        console.warn(`[completed] No live row found for callId=${callId} — attempting fresh insert (may be duplicate)`)
-        // No 'live' row found — either already processed OR inbound insert failed
-        // Try a fresh insert as fallback
+        console.warn(`[completed] No live row for callId=${callId} — attempting fresh insert`)
         const { error: insertError } = await supabase.from('call_logs').insert({
           ultravox_call_id: callId,
           caller_phone: callerPhone,
@@ -70,17 +75,17 @@ export async function POST(
           started_at: new Date().toISOString(),
         })
         if (insertError) {
-          console.error(`[completed] Insert fallback failed for callId=${callId}: ${insertError.message} — likely duplicate callback, bailing`)
-          return // 23505 = already handled by another callback
+          console.error(`[completed] Insert fallback failed for callId=${callId}: ${insertError.message} — likely duplicate, bailing`)
+          return
         }
       } else {
         console.log(`[completed] Lock acquired: callId=${callId} rowId=${locked[0].id}`)
       }
 
-      // Fetch client
+      // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, sms_enabled, sms_template, twilio_number')
         .eq('slug', slug)
         .single()
 
@@ -90,11 +95,11 @@ export async function POST(
       }
       console.log(`[completed] Client: slug=${slug} id=${client.id} business="${client.business_name}" hasTelegram=${!!(client.telegram_bot_token && client.telegram_chat_id)}`)
 
-      // Fetch transcript from Ultravox
+      // Fetch transcript
       const transcript = await getTranscript(callId)
       console.log(`[completed] Transcript: callId=${callId} messages=${transcript.length}`)
 
-      // Classify with Claude Haiku via OpenRouter — pass client context for accurate classification
+      // Classify with Claude Haiku via OpenRouter
       const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
       const classification = await classifyCall(transcript, businessContext || undefined)
       console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
@@ -121,30 +126,20 @@ export async function POST(
       if (updateError) console.error(`[completed] DB update failed for callId=${callId}: ${updateError.message}`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
 
-      // Send Telegram alert — 4-tier intelligence routing
+      // ── Telegram alert — 4-tier intelligence routing ───────────────────────
       if (client.telegram_bot_token && client.telegram_chat_id) {
         const mins = Math.floor(durationSeconds / 60)
         const secs = durationSeconds % 60
-        const durationStr = durationSeconds > 0
-          ? `${mins}:${String(secs).padStart(2, '0')} min`
-          : 'n/a'
-
+        const durationStr = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')} min` : 'n/a'
         const bizName = client.business_name || slug
 
         const sentimentEmoji: Record<string, string> = {
-          positive: '😊',
-          neutral: '😐',
-          negative: '😟',
-          frustrated: '😤',
-          indifferent: '😑',
+          positive: '😊', neutral: '😐', negative: '😟', frustrated: '😤', indifferent: '😑',
         }
         const sentimentIcon = sentimentEmoji[classification.sentiment || ''] ?? '😐'
-        const topicsLine = classification.key_topics?.length
-          ? `🔑 ${classification.key_topics.join(', ')}`
-          : ''
+        const topicsLine = classification.key_topics?.length ? `🔑 ${classification.key_topics.join(', ')}` : ''
         const serviceLabel = classification.serviceType && classification.serviceType !== 'other'
-          ? `🏷 ${classification.serviceType.replace(/_/g, ' ')}`
-          : ''
+          ? `🏷 ${classification.serviceType.replace(/_/g, ' ')}` : ''
         const summary = classification.summary || ultravoxSummary || 'No summary available.'
         const nextSteps = classification.next_steps || ''
         const confidence = classification.confidence != null ? `🎯 ${classification.confidence}%` : ''
@@ -153,28 +148,21 @@ export async function POST(
 
         if (classification.status === 'HOT') {
           message = [
-            `⚡ <b>ACTION REQUIRED — HOT LEAD</b>`,
-            `━━━━━━━━━━━━━━━━`,
+            `⚡ <b>ACTION REQUIRED — HOT LEAD</b>`, `━━━━━━━━━━━━━━━━`,
             `🏢 <b>${bizName}</b>`,
             `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
-            ``,
-            `💬 <b>Summary:</b>`,
-            summary,
-            ``,
+            ``, `💬 <b>Summary:</b>`, summary, ``,
             [serviceLabel, topicsLine].filter(Boolean).join(' | '),
             nextSteps ? `\n📋 <b>NEXT:</b> ${nextSteps}` : '',
           ].filter(s => s !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim()
-
         } else if (classification.status === 'WARM') {
           message = [
             `🟡 <b>WARM LEAD — ${bizName}</b>`,
             `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
-            ``,
-            `💬 ${summary}`,
+            ``, `💬 ${summary}`,
             [serviceLabel, topicsLine].filter(Boolean).join(' | '),
             nextSteps ? `📋 <b>NEXT:</b> ${nextSteps}` : '',
           ].filter(Boolean).join('\n')
-
         } else if (classification.status === 'COLD') {
           message = [
             `❄️ <b>COLD — ${bizName}</b>`,
@@ -182,9 +170,15 @@ export async function POST(
             `💬 ${summary}`,
             nextSteps ? `📋 ${nextSteps}` : '',
           ].filter(Boolean).join('\n')
-
+        } else if (classification.status === 'UNKNOWN') {
+          message = [
+            `⚠️ <b>UNKNOWN — manual review needed</b>`,
+            `🏢 ${bizName} | 📱 ${callerPhone} | ⏱ ${durationStr}`,
+            `💬 ${summary}`,
+            `📋 Classification failed — open dashboard to review manually.`,
+          ].filter(Boolean).join('\n')
         } else {
-          // JUNK — brief one-liner, no analysis bloat
+          // JUNK
           const junkType = classification.serviceType || 'junk'
           message = `🗑️ <b>JUNK — ${bizName}</b> | ${callerPhone} | ⏱ ${durationStr} | ${junkType}\nNo action required.`
         }
@@ -195,7 +189,28 @@ export async function POST(
         console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
       }
 
-      // Increment minutes used (billing foundation)
+      // ── SMS post-call follow-up ────────────────────────────────────────────
+      if (client.sms_enabled && callerPhone !== 'unknown' && classification.status !== 'JUNK') {
+        try {
+          const accountSid = process.env.TWILIO_ACCOUNT_SID
+          const authToken = process.env.TWILIO_AUTH_TOKEN
+          const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
+          if (accountSid && authToken && fromNumber) {
+            const smsBody = client.sms_template
+              ? (client.sms_template as string)
+                  .replace('{{business}}', client.business_name || '')
+                  .replace('{{summary}}', (classification.summary || '').slice(0, 100))
+              : `Thanks for calling ${client.business_name || 'us'}! We'll follow up with you shortly.`
+            const twilioClient = twilio(accountSid, authToken)
+            await twilioClient.messages.create({ body: smsBody, from: fromNumber, to: callerPhone })
+            console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone}`)
+          }
+        } catch (smsErr) {
+          console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
+        }
+      }
+
+      // ── Increment minutes used ─────────────────────────────────────────────
       if (durationSeconds > 0) {
         const minutesUsed = Math.ceil(durationSeconds / 60)
         const { error: rpcError } = await supabase.rpc('increment_minutes_used', {
@@ -206,27 +221,19 @@ export async function POST(
         else console.log(`[completed] Minutes incremented: clientId=${client.id} +${minutesUsed}min`)
       }
 
-      // Download and persist recording to Supabase Storage
+      // ── Recording upload ───────────────────────────────────────────────────
       try {
         const recordingRes = await getRecordingStream(callId)
         if (recordingRes.ok && recordingRes.body) {
           const arrayBuffer = await recordingRes.arrayBuffer()
           const { error: uploadError } = await supabase.storage
             .from('recordings')
-            .upload(`${callId}.mp3`, arrayBuffer, {
-              contentType: 'audio/mpeg',
-              upsert: true,
-            })
+            .upload(`${callId}.mp3`, arrayBuffer, { contentType: 'audio/mpeg', upsert: true })
           if (uploadError) {
             console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
           } else {
-            const { data: urlData } = supabase.storage
-              .from('recordings')
-              .getPublicUrl(`${callId}.mp3`)
-            await supabase
-              .from('call_logs')
-              .update({ recording_url: urlData.publicUrl })
-              .eq('ultravox_call_id', callId)
+            const { data: urlData } = supabase.storage.from('recordings').getPublicUrl(`${callId}.mp3`)
+            await supabase.from('call_logs').update({ recording_url: urlData.publicUrl }).eq('ultravox_call_id', callId)
             console.log(`[completed] Recording uploaded: callId=${callId} url=${urlData.publicUrl}`)
           }
         } else {
@@ -239,18 +246,14 @@ export async function POST(
       console.log(`[completed] Done: callId=${callId} slug=${slug}`)
     } catch (err) {
       console.error('[completed] Processing error:', err)
-      // Alert operator via Telegram when webhook crashes
       try {
         const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
         const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
         if (operatorToken && operatorChat) {
-          await sendAlert(
-            operatorToken,
-            operatorChat,
-            `⚠️ <b>Webhook crash</b>\ncallId: ${callId}\nslug: ${slug}\n${String(err).slice(0, 300)}`
-          )
+          await sendAlert(operatorToken, operatorChat,
+            `⚠️ <b>Webhook crash</b>\ncallId: ${callId}\nslug: ${slug}\n${String(err).slice(0, 300)}`)
         }
-      } catch { /* never let alerting break anything */ }
+      } catch { /* never let alerting break */ }
     }
   })
 

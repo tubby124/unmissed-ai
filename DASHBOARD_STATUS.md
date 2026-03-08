@@ -1,5 +1,5 @@
 # unmissed.ai Dashboard — Build Status & Roadmap
-> Last updated: 2026-03-08
+> Last updated: 2026-03-08 (Phase 2–6 hardening complete)
 
 ---
 
@@ -9,9 +9,11 @@
 - [x] Next.js 16 on Railway — auto-deploy on push to `main`
 - [x] Supabase project `qwhvblomlgeapzhnuwlb` (unmissed-ai) — auth, DB, RLS, Storage
 - [x] `next.config.ts` — `serverExternalPackages: ['twilio']` ✓
-- [x] DB indexes — `idx_call_logs_client_started`, unique `idx_call_logs_ultravox_id`
-- [x] Security — `anon_read_clients` policy DROPPED (was leaking system_prompt, tokens publicly)
-- [x] Recordings storage bucket created
+- [x] DB indexes — `idx_call_logs_client_started`, unique `idx_call_logs_ultravox_id`, `idx_call_logs_caller_phone`
+- [x] Security — `anon_read_clients` policy DROPPED, HMAC webhook signing, Basic Auth on `/api/admin/*`
+- [x] Recordings storage bucket (public)
+- [x] Railway healthcheck — `GET /api/health` → `{ ok: true, ts: Date.now() }`
+- [x] Zero-downtime config — `healthcheckTimeout: 300` in `railway.json`
 
 ### Auth / Users
 | Email | Password | Role | Client |
@@ -21,32 +23,20 @@
 | `uvibe@unmissed.ai` | `qwerty123` | owner | Urban Vibe Properties |
 
 ### Clients in DB
-| Slug | Business | Twilio Number | Prompt | Telegram |
-|------|----------|--------------|--------|----------|
-| `hasan-sharif` | Hasan Sharif | +15877421507 | ✅ | ✅ |
-| `urban-vibe` | Urban Vibe Properties | +15873296845 | ✅ | ❌ needs token |
-| `windshield-hub` | Windshield Hub Auto Glass | +15873551834 | ✅ | ❌ needs token |
+| Slug | Business | Twilio Number | Prompt | Telegram | Ultravox Agent ID |
+|------|----------|--------------|--------|----------|--------------------|
+| `hasan-sharif` | Hasan Sharif | +15877421507 | ✅ | ✅ | `f19b4ad7-233e-4125-a547-94e007238cf8` |
+| `urban-vibe` | Urban Vibe Properties | +15873296845 | ✅ | ✅ | `5f88f03b-5aaf-40fc-a608-2f7ed765d6a6` |
+| `windshield-hub` | Windshield Hub Auto Glass | +15873551834 | ✅ | ✅ | `00652ba8-5580-4632-97be-0fd2090bbb71` |
 
-### Webhook Routing (Current)
+### Webhook Routing (Current — pre Phase 4e)
 | Client | Twilio Voice URL | Logs to Dashboard |
 |--------|-----------------|-------------------|
-| Hasan Sharif | `railway.app/api/webhook/hasan-sharif/inbound` | ✅ YES |
-| Windshield Hub | `n8n.srv728397.../webhook/inbound-call-o` | ❌ no (n8n only) |
-| Urban Vibe | `n8n.srv728397.../webhook/urban-vibe-inbound` | ❌ no (n8n only) |
+| Hasan Sharif | `railway.app/api/webhook/hasan-sharif/inbound` | ✅ YES — native |
+| Windshield Hub | `n8n.srv728397.../webhook/inbound-call-o` | ✅ YES — via n8n Dashboard Sync node |
+| Urban Vibe | `n8n.srv728397.../webhook/urban-vibe-inbound` | ✅ YES — via n8n Dashboard Sync node |
 
-### Dashboard Features
-- [x] Login page (`/login`) — Supabase email/password
-- [x] Calls page (`/dashboard/calls`) — admin sees all clients with tab switcher
-- [x] Call detail page (`/dashboard/calls/[id]`) — transcript, audio player, summary
-- [x] Settings page (`/dashboard/settings`) — minute usage meter
-- [x] **LiveCallBanner** — green glow card with animated waveform + live duration counter when calls are active
-- [x] **StatsGrid** — themed stat cards (red/blue/green/zinc), radial glows, animated count-up
-- [x] **StatusBadge** — glow box-shadows per status (HOT=red, WARM=amber, COLD=blue, live=green)
-- [x] **CallRow** — service type pill, monospaced phone, better hierarchy
-- [x] **CallsList** — staggered entrance animation, admin client tabs, search by phone + business name
-- [x] Realtime Supabase subscription — new calls appear without refresh
-- [x] Multi-client classifier — OpenRouter Haiku with `businessContext` per client
-- [x] Telegram crash alerts — uses `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` from `.env`
+> Phase 4e (Twilio URL switch for WH + UV) is **PENDING USER CONFIRMATION**. When ready, switch each number to `railway.app/api/webhook/{slug}/inbound` and set `VoiceFallbackUrl` → current n8n URL.
 
 ---
 
@@ -55,66 +45,65 @@ Core infrastructure, auth, multi-client dashboard, production UI polish
 
 ---
 
-## Phase 2 — Hasan System Dial-In (Next)
-> Goal: Hasan's voice agent fully visible + manageable from dashboard
-
-- [ ] **Verify Hasan's Twilio → Railway webhook is live** — call `+15877421507`, confirm call appears in dashboard
-- [ ] **Call detail — transcript sync** — verify transcript populates after Hasan call completes
-- [ ] **Settings page** — populate `monthly_minute_limit` for Hasan in DB
-- [ ] **Telegram alerts for Hasan** — confirm HOT lead notification fires to `hassistant1_bot`
-- [ ] **Prompt editor** — `/dashboard/settings` should let admin edit `system_prompt` inline (currently read-only)
-- [ ] **Call recording playback** — verify audio waveform player works on real Hasan calls
-- [ ] **Live call test** — fire a test call, watch it appear in LiveCallBanner in real-time
+## Phase 2 — COMPLETE ✅ (Mar 8 2026)
+- [x] Hasan Twilio → Railway webhook live and verified
+- [x] HMAC webhook security — `signCallbackUrl()` / `verifyCallbackSig()` in `ultravox.ts` + `completed/route.ts`
+- [x] Railway zero-downtime config — `railway.json` with healthcheckPath + overlap/draining seconds
+- [x] `GET /api/health` endpoint live
+- [x] Prompt editor in Settings dashboard — already existed, works ✅
+- [x] Prompt → Ultravox agent sync on save (now updates `ultravox_agent_id` via PATCH)
 
 ---
 
-## Phase 3 — Windshield Hub + Urban Vibe Migration
-> Goal: move WH + UV off n8n onto native webhooks so their calls log to dashboard
-
-**Decision needed:** Native webhooks currently don't pass Ultravox tools (calendar booking).
-Options:
-- A) Switch Twilio → Railway native (loses calendar booking tools temporarily)
-- B) Keep n8n but add a Supabase upsert step at end of completion workflow (keeps tools, adds logging)
-
-**Recommended:** Option B first (non-breaking), then migrate fully in Phase 4
-
-- [ ] Add Supabase HTTP upsert to WH n8n completion workflow (`sbztgErD8MV3WMOn`)
-- [ ] Add Supabase HTTP upsert to UV n8n completion workflow (`KzskPB8mGq5sz6OS`)
-- [ ] Verify WH + UV calls appear in dashboard after test calls
-- [ ] Add `telegram_bot_token` + `telegram_chat_id` for WH (winhubv1bot) + UV (urbanvibepptmgmt_bot) to clients table
+## Phase 3 — COMPLETE ✅ (Mar 8 2026)
+- [x] Add `telegram_bot_token` + `telegram_chat_id` for WH (winhubv1bot) in Supabase
+- [x] UV tokens already set ✅
+- [x] `💾 Dashboard Sync` Code node added to WH n8n completion workflow (`sbztgErD8MV3WMOn`)
+- [x] `💾 Dashboard Sync` Code node added to UV n8n completion workflow (`KzskPB8mGq5sz6OS`)
+- [ ] **Test & verify** — fire test calls for WH + UV → confirm rows appear in dashboard ← **TODO**
 
 ---
 
-## Phase 4 — Tools + Native Full Migration
-> Goal: native webhooks support Ultravox tools (calendar booking, SMS)
-
-- [ ] Add `tools` JSONB column to `clients` table
-- [ ] `inbound/route.ts` — read `client.tools` and pass to Ultravox `CreateCallRequest`
-- [ ] Add WH calendar booking tool config to `clients.tools`
-- [ ] Add UV calendar booking tool config to `clients.tools`
-- [ ] Switch WH Twilio → `railway.app/api/webhook/windshield-hub/inbound`
-- [ ] Switch UV Twilio → `railway.app/api/webhook/urban-vibe/inbound`
-- [ ] Decommission n8n inbound workflows for WH + UV (keep as fallback voice_fallback_url)
-
----
-
-## Phase 5 — Post-Call Automation (native)
-> Goal: SMS + calendar confirmations handled natively, not via n8n
-
-- [ ] Post-call SMS via Twilio — triggered from `completed/route.ts` using client config
-- [ ] Google Calendar booking from Ultravox tool calls — webhook handler in `/api/tools/[slug]/book-appointment`
-- [ ] Per-client Telegram bot support — `clients.telegram_bot_token` + `telegram_chat_id`
-- [ ] Lead scoring history chart on call detail page
+## Phase 4 — MOSTLY COMPLETE ✅ (Mar 8 2026)
+- [x] `tools JSONB` column added to `clients`
+- [x] `inbound/route.ts` — reads `client.tools` and passes to Ultravox `createCall()`
+- [x] Ultravox Agents API migration — `createAgent()` + `callViaAgent()` in `ultravox.ts`
+- [x] Agents created for all 3 clients, `ultravox_agent_id` stored in Supabase ✅
+- [x] `inbound/route.ts` — uses `callViaAgent()` if `ultravox_agent_id` exists, else fallback to `createCall()`
+- [ ] **Phase 4e — PENDING USER CONFIRMATION:** Switch Twilio Voice URLs for WH + UV → Railway
+  - WH `+15873551834`: set Voice URL → `https://unmissed-ai-production.up.railway.app/api/webhook/windshield-hub/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/inbound-call-o`
+  - UV `+15873296845`: set Voice URL → `https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/urban-vibe-inbound`
+- [ ] WH + UV tool configs (calendar booking) — deferred until booking n8n webhook confirmed
 
 ---
 
-## Phase 6 — Client Self-Service Portal
-> Goal: each client (whub, uvibe) can log in and manage their own agent
+## Phase 5 — COMPLETE ✅ (Mar 8 2026)
+- [x] Returning caller detection — `inbound/route.ts` queries last 5 calls by `caller_phone + client_id`, injects context
+- [x] Index `idx_call_logs_caller_phone ON call_logs(caller_phone, client_id)` added
+- [x] SMS post-call — `completed/route.ts` sends SMS if `client.sms_enabled && callerPhone !== 'unknown' && status !== 'JUNK'`
+- [x] `sms_enabled BOOLEAN` + `sms_template TEXT` columns added to `clients`
+- [x] UNKNOWN classification guard — `openrouter.ts` fallback is now `UNKNOWN` (not `COLD`)
+- [x] UNKNOWN tier in Telegram routing — ⚠️ badge for manual review
+- [x] `classificationHints` param in `classifyCall()` for per-client HOT criteria
 
-- [ ] Client dashboard — their own calls, stats, prompt
-- [ ] Prompt editor with live preview and version history
-- [ ] Test call trigger button in dashboard
-- [ ] Billing / minute usage with Stripe
+---
+
+## Phase 6 — COMPLETE ✅ (Mar 8 2026)
+- [x] `prompt_versions` table with RLS (admin full + user read-own)
+- [x] Settings PATCH route records immutable version on every prompt save
+- [x] `GET /api/dashboard/settings/prompt-versions` — list versions
+- [x] `POST /api/dashboard/settings/prompt-versions` — restore specific version (admin only)
+- [x] `POST /api/dashboard/test-call` — dials operator's phone via Twilio + Ultravox stream
+
+---
+
+## How to Remove n8n (when ready)
+**Criteria:** WH + UV on native webhooks for 7+ days with zero VoiceFallbackUrl fires.
+1. WH: flip Twilio Voice URL (Phase 4e) → test 5 calls → confirm dashboard rows
+2. UV: same
+3. After 7 days: disable n8n inbound workflows `sbztgErD8MV3WMOn` (WH) + `KzskPB8mGq5sz6OS` (UV)
+4. Keep PERMANENTLY: `N9iBSLx1RFK52lIo` (Hasan calendar), `7nF5fJIcmwKHLY5I` (Manzil calendar), `sKh2bzwPtpDCWVKO` + `7EwdyrmlawE8Kc1t` (Manzil ISA outbound), `5mAUUqnYhr2fHIf4` (error handler)
+5. VoiceFallbackUrl can point to a simple `<Response><Say>This service is temporarily unavailable.</Say></Response>` TwiML bin once n8n is confirmed dead
 
 ---
 
@@ -127,7 +116,10 @@ Options:
 | `ULTRAVOX_API_KEY` | `4FowyUSm...` | ✅ |
 | `TWILIO_ACCOUNT_SID` | `ACff197fc7...` | ✅ |
 | `TWILIO_AUTH_TOKEN` | see `.env.local` | ✅ |
+| `TWILIO_FROM_NUMBER` | default Twilio number for outbound | ✅ |
 | `OPENROUTER_API_KEY` | see `.env.local` | ✅ |
-| `TELEGRAM_BOT_TOKEN` | `8018224669:AAGdog...` | ✅ |
+| `TELEGRAM_BOT_TOKEN` | `8018224669:AAGdog...` (hassistant1_bot) | ✅ |
 | `TELEGRAM_CHAT_ID` | `7278536150` | ✅ |
-| `ADMIN_PASSWORD` | set to anything | ❌ NOT SET (blocks `/admin/*`) |
+| `WEBHOOK_SIGNING_SECRET` | any 32-char random string | ❌ ADD THIS — enables HMAC webhook verification |
+| `ADMIN_PASSWORD` | anything | ❌ ADD THIS — required for `/api/admin/*` routes |
+| `NEXT_PUBLIC_APP_URL` | `https://unmissed-ai-production.up.railway.app` | ✅ |

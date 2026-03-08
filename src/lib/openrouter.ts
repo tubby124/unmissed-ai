@@ -1,17 +1,28 @@
+const VALID_STATUSES = ['HOT', 'WARM', 'COLD', 'JUNK'] as const
+const VALID_SERVICE_TYPES = ['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as const
+const VALID_SENTIMENTS = ['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as const
+
+type Status = typeof VALID_STATUSES[number] | 'UNKNOWN'
+type ServiceType = typeof VALID_SERVICE_TYPES[number]
+type Sentiment = typeof VALID_SENTIMENTS[number]
+
 interface CallClassification {
-  status: 'HOT' | 'WARM' | 'COLD' | 'JUNK'
+  status: Status
   summary: string
-  serviceType: 'appointment' | 'quote_request' | 'emergency' | 'complaint' | 'follow_up' | 'wrong_number' | 'spam' | 'other'
+  serviceType: ServiceType
   confidence: number
-  sentiment: 'positive' | 'neutral' | 'negative' | 'frustrated' | 'indifferent'
+  sentiment: Sentiment
   key_topics: string[]
   next_steps: string
   quality_score: number
 }
 
-function buildSystemPrompt(businessContext?: string) {
+function buildSystemPrompt(businessContext?: string, classificationHints?: string) {
   const business = businessContext || 'a service business'
-  return `You classify inbound call transcripts for ${business} and return a single JSON object.
+  const hintsBlock = classificationHints
+    ? `\nCLIENT-SPECIFIC RULES:\n${classificationHints}\n`
+    : ''
+  return `You classify inbound call transcripts for ${business} and return a single JSON object.${hintsBlock}
 
 Required fields — return ALL 8, no others:
 {"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100}
@@ -56,32 +67,34 @@ Now classify this call for ${business}:`
 
 export async function classifyCall(
   transcript: Array<{ role: string; text: string }>,
-  businessContext?: string
+  businessContext?: string,
+  classificationHints?: string
 ): Promise<CallClassification> {
   const transcriptText = transcript
     .map(m => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
     .join('\n')
 
-  const fallback: CallClassification = {
-    status: 'COLD',
+  // UNKNOWN — not COLD — so it appears in dashboard for manual review
+  const unknownFallback: CallClassification = {
+    status: 'UNKNOWN',
     summary: 'Call transcript unavailable or too short to classify.',
     serviceType: 'other',
     confidence: 0,
     sentiment: 'neutral',
     key_topics: [],
-    next_steps: 'Review call manually.',
+    next_steps: 'Review call manually in dashboard.',
     quality_score: 0,
   }
 
   if (!transcriptText.trim()) {
-    console.warn('[openrouter] classifyCall: empty transcript — returning fallback')
-    return fallback
+    console.warn('[openrouter] classifyCall: empty transcript — returning UNKNOWN')
+    return unknownFallback
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    console.error('[openrouter] OPENROUTER_API_KEY is not set — cannot classify call. Add it to Railway env vars.')
-    return fallback
+    console.error('[openrouter] OPENROUTER_API_KEY not set — returning UNKNOWN. Add to Railway env vars.')
+    return unknownFallback
   }
 
   console.log(`[openrouter] classifyCall: starting — ${transcript.length} messages, context="${businessContext || 'none'}"`)
@@ -98,7 +111,7 @@ export async function classifyCall(
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',
         messages: [
-          { role: 'system', content: buildSystemPrompt(businessContext) },
+          { role: 'system', content: buildSystemPrompt(businessContext, classificationHints) },
           { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
         ],
         max_tokens: 400,
@@ -110,7 +123,7 @@ export async function classifyCall(
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
       console.error(`[openrouter] classifyCall: HTTP ${res.status} — ${body}`)
-      return fallback
+      return unknownFallback
     }
 
     const data = await res.json()
@@ -118,7 +131,7 @@ export async function classifyCall(
 
     if (!content) {
       console.error('[openrouter] classifyCall: empty content in response — data:', JSON.stringify(data).slice(0, 300))
-      return fallback
+      return unknownFallback
     }
 
     let parsed: Record<string, unknown>
@@ -126,18 +139,28 @@ export async function classifyCall(
       parsed = JSON.parse(content)
     } catch (parseErr) {
       console.error('[openrouter] classifyCall: JSON.parse failed — raw content:', content.slice(0, 300), 'error:', parseErr)
-      return fallback
+      return unknownFallback
+    }
+
+    // UNKNOWN guard — if status is not a recognised value, flag for manual review
+    const rawStatus = parsed.status as string
+    const validatedStatus: Status = (VALID_STATUSES as readonly string[]).includes(rawStatus)
+      ? rawStatus as typeof VALID_STATUSES[number]
+      : 'UNKNOWN'
+
+    if (validatedStatus === 'UNKNOWN') {
+      console.warn(`[openrouter] classifyCall: unexpected status="${rawStatus}" — setting UNKNOWN for manual review`)
     }
 
     const result: CallClassification = {
-      status: (['HOT', 'WARM', 'COLD', 'JUNK'] as string[]).includes(parsed.status as string) ? parsed.status as CallClassification['status'] : 'COLD',
-      summary: typeof parsed.summary === 'string' ? parsed.summary : fallback.summary,
-      serviceType: (['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as string[]).includes(parsed.serviceType as string)
-        ? parsed.serviceType as CallClassification['serviceType']
+      status: validatedStatus,
+      summary: typeof parsed.summary === 'string' ? parsed.summary : unknownFallback.summary,
+      serviceType: (VALID_SERVICE_TYPES as readonly string[]).includes(parsed.serviceType as string)
+        ? parsed.serviceType as ServiceType
         : 'other',
       confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.confidence))) : 0,
-      sentiment: (['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as string[]).includes(parsed.sentiment as string)
-        ? parsed.sentiment as CallClassification['sentiment']
+      sentiment: (VALID_SENTIMENTS as readonly string[]).includes(parsed.sentiment as string)
+        ? parsed.sentiment as Sentiment
         : 'neutral',
       key_topics: Array.isArray(parsed.key_topics) ? (parsed.key_topics as unknown[]).slice(0, 4).map(String) : [],
       next_steps: typeof parsed.next_steps === 'string' ? parsed.next_steps : 'Review call manually.',
@@ -148,6 +171,6 @@ export async function classifyCall(
     return result
   } catch (err) {
     console.error('[openrouter] classifyCall: unexpected error —', err)
-    return fallback
+    return unknownFallback
   }
 }
