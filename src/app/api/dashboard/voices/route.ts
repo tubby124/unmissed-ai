@@ -8,15 +8,14 @@ async function fetchAllEnglishVoices() {
   let nextUrl: string | null = `${ULTRAVOX_BASE}/voices?pageSize=100`
 
   while (nextUrl) {
-    const res = await fetch(nextUrl, {
+    const res: Response = await fetch(nextUrl, {
       headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! },
       next: { revalidate: 3600 },
-    })
+    } as RequestInit)
     if (!res.ok) break
-    const data = await res.json()
+    const data: { results: { primaryLanguage: string }[]; next: string | null } = await res.json()
     const english = (data.results || []).filter(
-      (v: { primaryLanguage: string }) =>
-        v.primaryLanguage === 'en' || v.primaryLanguage.startsWith('en-')
+      v => v.primaryLanguage === 'en' || v.primaryLanguage.startsWith('en-')
     )
     voices.push(...english)
     nextUrl = data.next || null
