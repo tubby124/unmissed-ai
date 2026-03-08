@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
+type Client = { id: string; slug: string; business_name: string }
+
 type Scenario = {
   id: string
   name: string
@@ -56,6 +58,8 @@ function PassFailBadge({ passed }: { passed: boolean }) {
 }
 
 export default function TestLabPage() {
+  const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [runs, setRuns] = useState<TestRun[]>([])
   const [running, setRunning] = useState(false)
@@ -66,54 +70,47 @@ export default function TestLabPage() {
   const [addError, setAddError] = useState('')
   const [addLoading, setAddLoading] = useState(false)
 
-  const load = useCallback(async () => {
-    const [sRes, rRes] = await Promise.all([
-      fetch('/api/dashboard/test-scenarios'),
-      fetch('/api/dashboard/test-runs'),
-    ])
-    if (sRes.ok) {
-      const s = await sRes.json()
-      setScenarios(s.scenarios || [])
-    }
-    if (rRes.ok) {
-      const r = await rRes.json()
-      setRuns(r.runs || [])
-    }
+  // Load clients on mount
+  useEffect(() => {
+    fetch('/api/dashboard/clients').then(r => r.json()).then(d => {
+      const list: Client[] = d.clients || []
+      setClients(list)
+      if (list.length > 0) setSelectedClientId(list[0].id)
+    })
   }, [])
 
-  useEffect(() => { load() }, [load])
+  const load = useCallback(async (clientId: string) => {
+    if (!clientId) return
+    const [sRes, rRes] = await Promise.all([
+      fetch(`/api/dashboard/test-scenarios?client_id=${clientId}`),
+      fetch(`/api/dashboard/test-runs?client_id=${clientId}`),
+    ])
+    if (sRes.ok) setScenarios((await sRes.json()).scenarios || [])
+    if (rRes.ok) setRuns((await rRes.json()).runs || [])
+  }, [])
+
+  useEffect(() => {
+    if (selectedClientId) {
+      setLastRun(null)
+      load(selectedClientId)
+    }
+  }, [selectedClientId, load])
+
+  const selectedClient = clients.find(c => c.id === selectedClientId)
 
   async function runSuite() {
-    setRunning(true)
-    setLastRun(null)
-    try {
-      const res = await fetch('/api/debug/run-test-suite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ''}` },
-        body: JSON.stringify({ slug: 'hasan-sharif', triggered_by: 'manual' }),
-      })
-      // run-test-suite uses ADMIN_PASSWORD auth — call via server action proxy instead
-      // For now call the internal route that bypasses auth via cookie session
-      const data = await res.json()
-      setLastRun(data)
-      await load()
-    } finally {
-      setRunning(false)
-    }
-  }
-
-  async function runSuiteViaServer() {
+    if (!selectedClient) return
     setRunning(true)
     setLastRun(null)
     try {
       const res = await fetch('/api/dashboard/run-test-suite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: 'hasan-sharif' }),
+        body: JSON.stringify({ slug: selectedClient.slug }),
       })
       const data = await res.json()
       setLastRun(data)
-      await load()
+      await load(selectedClientId)
     } finally {
       setRunning(false)
     }
@@ -126,6 +123,7 @@ export default function TestLabPage() {
 
   async function addScenario() {
     setAddError('')
+    if (!selectedClientId) { setAddError('No client selected'); return }
     let transcript: unknown
     try {
       transcript = JSON.parse(addForm.transcript)
@@ -138,7 +136,7 @@ export default function TestLabPage() {
     const res = await fetch('/api/dashboard/test-scenarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...addForm, transcript, tags }),
+      body: JSON.stringify({ ...addForm, transcript, tags, client_id: selectedClientId }),
     })
     const data = await res.json()
     setAddLoading(false)
@@ -151,28 +149,44 @@ export default function TestLabPage() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-white">Test Lab</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Simulate calls and verify the full pipeline end-to-end</p>
         </div>
-        <button
-          onClick={runSuiteViaServer}
-          disabled={running || scenarios.length === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
-        >
-          {running ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Running…
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-14 9V3z" fill="currentColor"/></svg>
-              Run All ({scenarios.length})
-            </>
+
+        <div className="flex items-center gap-3">
+          {/* Client switcher */}
+          {clients.length > 1 && (
+            <select
+              value={selectedClientId}
+              onChange={e => setSelectedClientId(e.target.value)}
+              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40 cursor-pointer"
+            >
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.business_name}</option>
+              ))}
+            </select>
           )}
-        </button>
+
+          <button
+            onClick={runSuite}
+            disabled={running || scenarios.length === 0 || !selectedClientId}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+          >
+            {running ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Running…
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-14 9V3z" fill="currentColor"/></svg>
+                Run All ({scenarios.length})
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Last run result banner */}
@@ -183,7 +197,7 @@ export default function TestLabPage() {
           </span>
           <div>
             <div className="text-sm font-medium text-white">{lastRun.failed === 0 ? 'All scenarios passed' : `${lastRun.failed} scenario${lastRun.failed > 1 ? 's' : ''} failed`}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">Just ran — {new Date().toLocaleTimeString()}</div>
+            <div className="text-xs text-zinc-500 mt-0.5">Just ran · {new Date().toLocaleTimeString()}</div>
           </div>
           {lastRun.results?.length > 0 && (
             <div className="ml-auto flex flex-wrap gap-1.5">
@@ -200,7 +214,10 @@ export default function TestLabPage() {
       {/* Scenario Library */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-300">Scenario Library</h2>
+          <h2 className="text-sm font-semibold text-zinc-300">
+            Scenario Library
+            {selectedClient && <span className="text-zinc-600 font-normal ml-2">— {selectedClient.business_name}</span>}
+          </h2>
           <button
             onClick={() => setShowAddForm(v => !v)}
             className="text-xs text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-400/40 px-3 py-1 rounded-lg transition-colors"

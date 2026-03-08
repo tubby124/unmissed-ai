@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
+type Client = { id: string; slug: string; business_name: string }
+
 type Issue = {
   severity: 'high' | 'medium' | 'low'
   type: string
@@ -48,44 +50,48 @@ function Badge({ label, className }: { label: string; className: string }) {
 }
 
 export default function InsightsPage() {
+  const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [reports, setReports] = useState<Report[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [approving, setApproving] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<Record<string, { passed: number; total: number }>>({})
 
-  const load = useCallback(async () => {
-    const res = await fetch('/api/dashboard/analysis')
+  // Load clients on mount
+  useEffect(() => {
+    fetch('/api/dashboard/clients').then(r => r.json()).then(d => {
+      const list: Client[] = d.clients || []
+      setClients(list)
+      if (list.length > 0) setSelectedClientId(list[0].id)
+    })
+  }, [])
+
+  const load = useCallback(async (clientId: string) => {
+    if (!clientId) return
+    const res = await fetch(`/api/dashboard/analysis?client_id=${clientId}`)
     if (res.ok) {
       const d = await res.json()
       setReports(d.reports || [])
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (selectedClientId) load(selectedClientId)
+  }, [selectedClientId, load])
+
+  const selectedClient = clients.find(c => c.id === selectedClientId)
 
   async function runAnalysis() {
-    setAnalyzing(true)
-    try {
-      const res = await fetch('/api/cron/analyze-calls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ''}` },
-        body: JSON.stringify({}),
-      })
-      if (res.ok) await load()
-    } finally {
-      setAnalyzing(false)
-    }
-  }
-
-  async function runAnalysisViaProxy() {
+    if (!selectedClientId) return
     setAnalyzing(true)
     try {
       const res = await fetch('/api/dashboard/analyze-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selectedClientId }),
       })
-      if (res.ok) await load()
+      if (res.ok) await load(selectedClientId)
     } finally {
       setAnalyzing(false)
     }
@@ -105,7 +111,7 @@ export default function InsightsPage() {
         ...prev,
         [reportId]: { passed: data.test_run?.passed ?? 0, total: data.test_run?.total ?? 0 },
       }))
-      await load()
+      await load(selectedClientId)
     }
   }
 
@@ -115,41 +121,63 @@ export default function InsightsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reject' }),
     })
-    await load()
+    await load(selectedClientId)
   }
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-white">Insights</h1>
           <p className="text-sm text-zinc-500 mt-0.5">AI analysis of real calls — issues, recommendations, self-healing</p>
         </div>
-        <button
-          onClick={runAnalysisViaProxy}
-          disabled={analyzing}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
-        >
-          {analyzing ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Analyzing…
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              Run Analysis Now
-            </>
+
+        <div className="flex items-center gap-3">
+          {/* Client switcher */}
+          {clients.length > 1 && (
+            <select
+              value={selectedClientId}
+              onChange={e => { setSelectedClientId(e.target.value); setReports([]) }}
+              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40 cursor-pointer"
+            >
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.business_name}</option>
+              ))}
+            </select>
           )}
-        </button>
+
+          <button
+            onClick={runAnalysis}
+            disabled={analyzing || !selectedClientId}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+          >
+            {analyzing ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Analyzing…
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                Run Analysis
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Reports */}
+      {selectedClient && (
+        <div className="text-xs text-zinc-600 -mt-4">
+          Showing reports for <span className="text-zinc-400">{selectedClient.business_name}</span>
+        </div>
+      )}
+
       {reports.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
           <p className="text-zinc-600 text-sm">No analysis reports yet.</p>
-          <p className="text-zinc-700 text-xs mt-1">Click &quot;Run Analysis Now&quot; or wait for the nightly CRON (2 AM UTC).</p>
+          <p className="text-zinc-700 text-xs mt-1">Click &quot;Run Analysis&quot; or wait for the nightly CRON (2 AM UTC).</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -273,7 +301,7 @@ export default function InsightsPage() {
       {/* CRON info */}
       <div className="rounded-xl border border-white/[0.04] bg-white/[0.01] px-4 py-3 flex items-center gap-3">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-600 shrink-0"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-        <span className="text-xs text-zinc-600">Automatic analysis runs daily at 2 AM UTC via Railway CRON. You can also trigger it manually above.</span>
+        <span className="text-xs text-zinc-600">Automatic analysis runs daily at 2 AM UTC via Railway CRON across all active clients.</span>
       </div>
     </div>
   )
