@@ -100,25 +100,31 @@ interface AgentConfig {
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
 export async function createAgent({ systemPrompt, voice, tools, name }: AgentConfig): Promise<string> {
-  const body: Record<string, unknown> = {
-    name: name || 'unmissed-agent',
-    systemPrompt,
-    voice: voice || DEFAULT_VOICE,
+  // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
+  const callTemplate: Record<string, unknown> = {
+    systemPrompt: systemPrompt + '\n\n{{callerContext}}',
     model: 'ultravox-v0.7',
+    voice: voice || DEFAULT_VOICE,
     maxDuration: '600s',
+    medium: { twilio: {} },
     recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
     vadSettings: DEFAULT_VAD,
-    medium: { twilio: {} },
+    contextSchema: {
+      type: 'object',
+      properties: {
+        callerContext: { type: 'string' },
+      },
+    },
   }
 
-  if (tools?.length) body.selectedTools = tools
+  if (tools?.length) callTemplate.selectedTools = tools
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
     headers: ultravoxHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify({ name: name || 'unmissed-agent', callTemplate }),
   })
 
   if (!res.ok) {
@@ -132,15 +138,21 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
 
 /** Update an existing agent's config (call after saving a new system prompt). */
 export async function updateAgent(agentId: string, updates: Partial<AgentConfig>): Promise<void> {
-  const body: Record<string, unknown> = {}
-  if (updates.systemPrompt !== undefined) body.systemPrompt = updates.systemPrompt
-  if (updates.voice !== undefined) body.voice = updates.voice || DEFAULT_VOICE
-  if (updates.tools !== undefined) body.selectedTools = updates.tools
+  // Updates MUST be nested inside callTemplate — top-level fields are silently ignored
+  const callTemplate: Record<string, unknown> = {}
+  if (updates.systemPrompt !== undefined) {
+    // Preserve {{callerContext}} placeholder for templateContext injection per call
+    callTemplate.systemPrompt = updates.systemPrompt.includes('{{callerContext}}')
+      ? updates.systemPrompt
+      : updates.systemPrompt + '\n\n{{callerContext}}'
+  }
+  if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
+  if (updates.tools !== undefined) callTemplate.selectedTools = updates.tools
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',
     headers: ultravoxHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify({ callTemplate }),
   })
 
   if (!res.ok) {
@@ -165,16 +177,14 @@ export async function callViaAgent(
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
     metadata: metadata || {},
+    // Always inject templateContext so {{callerContext}} placeholder in systemPrompt resolves cleanly
+    templateContext: {
+      callerContext: callerContext || '',
+    },
   }
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
-  // Inject returning-caller context via initialMessages (systemPrompt not accepted by agents call endpoint)
-  if (callerContext) {
-    body.initialMessages = [
-      { role: 'MESSAGE_ROLE_TOOL_RESULT', toolName: 'caller_lookup', text: callerContext }
-    ]
-  }
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',
