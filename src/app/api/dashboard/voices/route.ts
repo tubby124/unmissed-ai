@@ -29,18 +29,33 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isAdmin = user.email === process.env.ADMIN_EMAIL
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  const isAdmin = cu?.role === 'admin'
 
   const voices = await fetchAllEnglishVoices()
 
   let clients: object[] = []
+  let myVoiceId: string | null = null
+
   if (isAdmin) {
     const { data } = await supabase
       .from('clients')
       .select('id, slug, business_name, agent_voice_id, ultravox_agent_id')
       .order('business_name')
     clients = data || []
+  } else if (cu?.client_id) {
+    const { data } = await supabase
+      .from('clients')
+      .select('agent_voice_id')
+      .eq('id', cu.client_id)
+      .single()
+    myVoiceId = data?.agent_voice_id ?? null
   }
 
-  return NextResponse.json({ voices, clients, isAdmin })
+  return NextResponse.json({ voices, clients, isAdmin, myVoiceId })
 }

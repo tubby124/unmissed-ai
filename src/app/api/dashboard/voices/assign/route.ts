@@ -6,19 +6,36 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!cu || cu.role === 'viewer') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { voiceId, clientId } = await req.json()
-  if (!voiceId || !clientId) {
-    return NextResponse.json({ error: 'voiceId and clientId required' }, { status: 400 })
+  const body = await req.json().catch(() => ({}))
+  const { voiceId } = body
+
+  if (!voiceId) {
+    return NextResponse.json({ error: 'voiceId required' }, { status: 400 })
+  }
+
+  // Admin can assign to any client; owners assign to their own
+  const targetClientId = cu.role === 'admin' ? (body.clientId ?? cu.client_id) : cu.client_id
+
+  if (!targetClientId) {
+    return NextResponse.json({ error: 'No client found' }, { status: 400 })
   }
 
   const { data: client, error } = await supabase
     .from('clients')
     .update({ agent_voice_id: voiceId })
-    .eq('id', clientId)
+    .eq('id', targetClientId)
     .select('ultravox_agent_id')
     .single()
 

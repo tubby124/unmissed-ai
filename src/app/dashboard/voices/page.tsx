@@ -20,6 +20,8 @@ interface Client {
   ultravox_agent_id: string | null
 }
 
+type UseVoiceState = 'idle' | 'loading' | 'done'
+
 type Provider = 'All' | 'Cartesia' | 'Eleven Labs' | 'Inworld'
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -49,15 +51,19 @@ function VoiceCard({
   clients,
   isAdmin,
   isPlaying,
+  myVoiceId,
   onPlay,
   onStop,
+  onUseVoice,
 }: {
   voice: UltravoxVoice
   clients: Client[]
   isAdmin: boolean
   isPlaying: boolean
+  myVoiceId: string | null
   onPlay: (voiceId: string) => void
   onStop: () => void
+  onUseVoice: (voiceId: string) => Promise<void>
 }) {
   const [assignOpen, setAssignOpen] = useState(false)
   const [assigning, setAssigning] = useState<string | null>(null)
@@ -66,7 +72,10 @@ function VoiceCard({
     clients.forEach(c => { if (c.agent_voice_id === voice.voiceId) m[c.id] = true })
     return m
   })
+  const [useVoiceState, setUseVoiceState] = useState<UseVoiceState>('idle')
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isMyActiveVoice = !isAdmin && myVoiceId === voice.voiceId
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -97,6 +106,13 @@ function VoiceCard({
       setAssigning(null)
       setAssignOpen(false)
     }
+  }
+
+  async function handleUseVoice() {
+    if (isMyActiveVoice || useVoiceState !== 'idle') return
+    setUseVoiceState('loading')
+    await onUseVoice(voice.voiceId)
+    setUseVoiceState('done')
   }
 
   return (
@@ -136,7 +152,7 @@ function VoiceCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-white truncate">{voice.name}</span>
-            {assignedClients.length > 0 && (
+            {(assignedClients.length > 0 || isMyActiveVoice) && (
               <span className="text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-1.5 py-0.5 leading-none shrink-0">
                 Active
               </span>
@@ -150,6 +166,31 @@ function VoiceCard({
             </span>
           </div>
         </div>
+
+        {/* Use This Voice — non-admin owners */}
+        {!isAdmin && (
+          <div className="shrink-0">
+            {isMyActiveVoice || useVoiceState === 'done' ? (
+              <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="shrink-0">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Active
+              </span>
+            ) : (
+              <button
+                onClick={handleUseVoice}
+                disabled={useVoiceState === 'loading'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200 transition-colors border border-blue-500/20 disabled:opacity-50"
+              >
+                {useVoiceState === 'loading' ? (
+                  <div className="w-3 h-3 rounded-full border border-blue-400/40 border-t-blue-300 animate-spin" />
+                ) : null}
+                {useVoiceState === 'loading' ? 'Saving…' : 'Use This Voice'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Assign button — admin only */}
         {isAdmin && (
@@ -217,6 +258,7 @@ export default function VoicesPage() {
   const [voices, setVoices] = useState<UltravoxVoice[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
+  const [myVoiceId, setMyVoiceId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [provider, setProvider] = useState<Provider>('All')
@@ -230,9 +272,19 @@ export default function VoicesPage() {
         setVoices(data.voices || [])
         setClients(data.clients || [])
         setIsAdmin(data.isAdmin || false)
+        setMyVoiceId(data.myVoiceId ?? null)
       })
       .finally(() => setLoading(false))
   }, [])
+
+  async function useVoice(voiceId: string) {
+    const res = await fetch('/api/dashboard/voices/assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voiceId }),
+    })
+    if (res.ok) setMyVoiceId(voiceId)
+  }
 
   function playVoice(voiceId: string) {
     if (audioRef.current) {
@@ -281,7 +333,10 @@ export default function VoicesPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Voice Library</h1>
         <p className="text-zinc-500 text-sm mt-1">
-          {loading ? 'Loading...' : `${voices.length} English voices from Ultravox — click to preview, assign to any agent`}
+          {loading ? 'Loading...' : isAdmin
+            ? `${voices.length} English voices from Ultravox — click to preview, assign to any agent`
+            : `${voices.length} English voices — preview any voice, then click "Use This Voice" to activate it`
+          }
         </p>
       </div>
 
@@ -365,8 +420,10 @@ export default function VoicesPage() {
               clients={clients}
               isAdmin={isAdmin}
               isPlaying={playingId === voice.voiceId}
+              myVoiceId={myVoiceId}
               onPlay={playVoice}
               onStop={stopVoice}
+              onUseVoice={useVoice}
             />
           ))}
         </div>

@@ -46,13 +46,18 @@ export async function POST(req: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
-  if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
+  if (!cu || (cu.role !== 'admin' && cu.role !== 'owner')) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const body = await req.json().catch(() => ({}))
-  const { version_id, client_id } = body
-  if (!version_id || !client_id) return NextResponse.json({ error: 'version_id and client_id required' }, { status: 400 })
+  const { version_id } = body
+  // Admin can pass explicit client_id; owners are scoped to their own client
+  const client_id = cu.role === 'admin' ? (body.client_id ?? cu.client_id) : cu.client_id
 
-  // Fetch the version content
+  if (!version_id || !client_id) return NextResponse.json({ error: 'version_id required' }, { status: 400 })
+
+  // Fetch the version content — always scoped to this client_id for security
   const { data: versionRow } = await supabase
     .from('prompt_versions')
     .select('id, content, version')

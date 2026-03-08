@@ -1,7 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { ClientConfig } from './page'
+
+interface PromptVersion {
+  id: string
+  version: number
+  content: string
+  change_description: string
+  created_at: string
+  is_active: boolean
+}
+
+type ImproveState = 'idle' | 'loading' | 'done' | 'error'
 
 const TIMEZONES = [
   { value: 'America/Edmonton', label: 'Mountain (Edmonton)' },
@@ -142,6 +153,22 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     Object.fromEntries(clients.map(c => [c.id, 'idle' as const]))
   )
 
+  // AI Improve Prompt
+  const [improveState, setImproveState] = useState<ImproveState>('idle')
+  const [improveResult, setImproveResult] = useState<{
+    improved_prompt: string
+    change_summary: string[]
+    call_count: number
+    has_enough_data: boolean
+  } | null>(null)
+  const [improveError, setImproveError] = useState('')
+
+  // Version History
+  const [versionsOpen, setVersionsOpen] = useState(false)
+  const [versions, setVersions] = useState<PromptVersion[]>([])
+  const [versionsLoading, setVersionsLoading] = useState(false)
+  const [restoring, setRestoring] = useState<string | null>(null)
+
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
@@ -227,6 +254,72 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   }
 
   const isActive = status[client.id] === 'active'
+
+  async function generateImprovement() {
+    setImproveState('loading')
+    setImproveError('')
+    setImproveResult(null)
+    const body: Record<string, unknown> = {}
+    if (isAdmin) body.client_id = client.id
+    try {
+      const res = await fetch('/api/dashboard/settings/improve-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setImproveError(data.error || 'Something went wrong. Try again.')
+        setImproveState('error')
+        return
+      }
+      setImproveResult(data)
+      setImproveState('done')
+    } catch {
+      setImproveError('Network error. Try again.')
+      setImproveState('error')
+    }
+  }
+
+  function applyImprovedPrompt() {
+    if (!improveResult) return
+    setPrompt(prev => ({ ...prev, [client.id]: improveResult.improved_prompt }))
+    setImproveResult(null)
+    setImproveState('idle')
+  }
+
+  const loadVersions = useCallback(async () => {
+    setVersionsLoading(true)
+    const params = isAdmin ? `?client_id=${client.id}` : ''
+    const res = await fetch(`/api/dashboard/settings/prompt-versions${params}`)
+    if (res.ok) {
+      const data = await res.json()
+      setVersions(data.versions || [])
+    }
+    setVersionsLoading(false)
+  }, [client.id, isAdmin])
+
+  async function toggleVersions() {
+    const next = !versionsOpen
+    setVersionsOpen(next)
+    if (next && versions.length === 0) await loadVersions()
+  }
+
+  async function restoreVersion(versionId: string) {
+    setRestoring(versionId)
+    const body: Record<string, unknown> = { version_id: versionId }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings/prompt-versions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      // Reload page to reflect restored prompt
+      window.location.reload()
+    }
+    setRestoring(null)
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
@@ -344,6 +437,14 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         ) : (
           <ConfigRow label="Voice" value="Not configured" />
         )}
+        <div className="py-2">
+          <a
+            href="/dashboard/voices"
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Change voice →
+          </a>
+        </div>
         <ConfigRow label="AI Model" value="Ultravox v0.7 (fixie-ai)" />
         <ConfigRow label="Client ID" value={client.id} copyValue={client.id} />
         {client.telegram_chat_id && (
@@ -526,6 +627,148 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           spellCheck={false}
           placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
         />
+      </div>
+
+      {/* 6 — AI Improve Prompt (Beta) */}
+      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] p-5">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-purple-400/80">AI Improve</p>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">Beta</span>
+          </div>
+          {(improveState === 'idle' || improveState === 'error') && (
+            <button
+              onClick={generateImprovement}
+              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition-all"
+            >
+              Generate Improvement
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-zinc-600 mb-4">
+          AI reads your last 20 calls and your current prompt to suggest improvements. Review before applying.
+        </p>
+
+        {improveState === 'loading' && (
+          <div className="flex items-center gap-2 py-4 text-zinc-400 text-xs">
+            <div className="w-4 h-4 rounded-full border border-purple-400/30 border-t-purple-400 animate-spin shrink-0" />
+            Analyzing recent calls and your prompt…
+          </div>
+        )}
+
+        {improveState === 'error' && (
+          <div className="px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20 text-xs text-red-400">
+            {improveError}
+          </div>
+        )}
+
+        {improveState === 'done' && improveResult && (
+          <div className="space-y-3">
+            {!improveResult.has_enough_data && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20 text-xs text-amber-400/90">
+                Only {improveResult.call_count} calls recorded — improvement is based on your business profile. More calls = better results.
+              </div>
+            )}
+
+            {improveResult.change_summary.length > 0 && (
+              <div className="px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">What changed</p>
+                <ul className="space-y-1">
+                  {improveResult.change_summary.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                      <span className="text-purple-400 mt-0.5 shrink-0">·</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <textarea
+              readOnly
+              value={improveResult.improved_prompt}
+              className="w-full h-48 bg-black/20 border border-white/[0.06] rounded-xl p-4 text-xs text-zinc-400 font-mono resize-none focus:outline-none leading-relaxed"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={applyImprovedPrompt}
+                className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-purple-500 hover:bg-purple-400 text-white transition-all"
+              >
+                Apply to Editor
+              </button>
+              <button
+                onClick={() => { setImproveResult(null); setImproveState('idle') }}
+                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-300 border border-white/[0.06] hover:border-white/[0.12] transition-all"
+              >
+                Dismiss
+              </button>
+            </div>
+            <p className="text-[10px] text-zinc-600">
+              After applying, review the prompt above and click &ldquo;Save Changes&rdquo; to deploy it live.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 7 — Prompt Version History */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <button
+          onClick={toggleVersions}
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        >
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Prompt History</p>
+            <p className="text-[11px] text-zinc-600 mt-0.5">View and restore previous system prompt versions</p>
+          </div>
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            className={`text-zinc-600 transition-transform ${versionsOpen ? 'rotate-180' : ''}`}
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {versionsOpen && (
+          <div className="border-t border-white/[0.06]">
+            {versionsLoading ? (
+              <div className="flex items-center gap-2 px-5 py-4 text-xs text-zinc-600">
+                <div className="w-3 h-3 rounded-full border border-zinc-600 border-t-zinc-400 animate-spin" />
+                Loading history…
+              </div>
+            ) : versions.length === 0 ? (
+              <p className="px-5 py-4 text-xs text-zinc-600">No saved versions yet. Saving the prompt creates a version.</p>
+            ) : (
+              <div className="divide-y divide-white/[0.04]">
+                {versions.map(v => (
+                  <div key={v.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-semibold text-zinc-300">v{v.version}</span>
+                        {v.is_active && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">Active</span>
+                        )}
+                        <span className="text-[11px] text-zinc-600">
+                          {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">{v.change_description}</p>
+                    </div>
+                    {!v.is_active && (
+                      <button
+                        onClick={() => restoreVersion(v.id)}
+                        disabled={restoring === v.id}
+                        className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 border border-white/[0.06] transition-all disabled:opacity-40"
+                      >
+                        {restoring === v.id ? 'Restoring…' : 'Restore'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
