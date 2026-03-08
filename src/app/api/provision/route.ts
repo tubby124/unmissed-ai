@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OnboardingData, Niche, defaultAgentNames } from "@/types/onboarding";
+import { createClient } from "@supabase/supabase-js";
 
 // Provisioning backend URL — FastAPI service (local or Railway)
 const PROVISION_API_URL = process.env.PROVISION_API_URL || "";
 const PROVISION_API_KEY = process.env.PROVISION_API_KEY || "";
 
-// In-memory job store — works for single-instance Railway deployments.
-// For multi-instance, replace with Redis or Supabase.
-const jobStore = new Map<string, {
-  status: string;
-  twilio_number?: string;
-  error?: string;
-}>();
+// Supabase service client — bypasses RLS for job management
+const supa = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+async function setProgress(jobId: string, progressStatus: string, extra: Record<string, unknown> = {}) {
+  await supa
+    .from("intake_submissions")
+    .update({ progress_status: progressStatus, ...extra })
+    .eq("id", jobId);
+}
 
 // Map province/state abbreviations to timezone
 const TIMEZONE_MAP: Record<string, string> = {
@@ -166,16 +172,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please enter a valid phone number with area code" }, { status: 400 });
   }
 
-  // Generate a job ID
-  const jobId = crypto.randomUUID();
+  // Insert job row in Supabase — returns the UUID as jobId
+  const { data: row, error: insertErr } = await supa
+    .from("intake_submissions")
+    .insert({
+      business_name: data.businessName,
+      niche: data.niche || "other",
+      intake_json: data,
+      status: "pending",
+      progress_status: "pending",
+    })
+    .select("id")
+    .single();
 
-  // Store job as pending
-  jobStore.set(jobId, { status: "pending" });
+  if (insertErr || !row) {
+    console.error("[provision] Insert failed:", insertErr);
+    return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
+  }
+
+  const jobId = row.id as string;
 
   if (PROVISION_API_URL) {
     // Real provisioning via FastAPI backend
-    triggerProvisioning(jobId, data).catch((err) => {
-      jobStore.set(jobId, { status: "failed", error: String(err) });
+    triggerProvisioning(jobId, data).catch(async (err) => {
+      await setProgress(jobId, "failed", { status: "failed" });
+      console.error("[provision] triggerProvisioning failed:", err);
     });
   } else {
     // Dev mode: simulate provisioning
@@ -186,26 +207,12 @@ export async function POST(req: NextRequest) {
 }
 
 async function triggerProvisioning(jobId: string, data: OnboardingData) {
-  // Step 1: buying number
-  jobStore.set(jobId, { status: "buying_number" });
+  await setProgress(jobId, "buying_number");
 
   const provisionPayload = toProvisionRequest(data);
 
-  // Simulate intermediate steps for the status page
-  // The backend does everything synchronously, so we show progress here
-  const progressTimer = setTimeout(() => {
-    const current = jobStore.get(jobId);
-    if (current && current.status === "buying_number") {
-      jobStore.set(jobId, { status: "cloning_workflow" });
-    }
-  }, 8000);
-
-  const progressTimer2 = setTimeout(() => {
-    const current = jobStore.get(jobId);
-    if (current && current.status === "cloning_workflow") {
-      jobStore.set(jobId, { status: "wiring_creds" });
-    }
-  }, 20000);
+  const progressTimer = setTimeout(() => setProgress(jobId, "cloning_workflow"), 8000);
+  const progressTimer2 = setTimeout(() => setProgress(jobId, "wiring_creds"), 20000);
 
   try {
     const res = await fetch(`${PROVISION_API_URL}/provision`, {
@@ -226,9 +233,9 @@ async function triggerProvisioning(jobId: string, data: OnboardingData) {
     }
 
     const result = await res.json();
-    jobStore.set(jobId, {
-      status: "active",
-      twilio_number: result.phone,
+    await setProgress(jobId, "active", {
+      status: "provisioned",
+      intake_json: { ...(data as unknown as Record<string, unknown>), _twilio_number: result.phone },
     });
   } catch (err) {
     clearTimeout(progressTimer);
@@ -238,15 +245,17 @@ async function triggerProvisioning(jobId: string, data: OnboardingData) {
 }
 
 async function simulateProvisioning(jobId: string) {
-  const steps: Array<"buying_number" | "cloning_workflow" | "wiring_creds" | "active"> = [
-    "buying_number", "cloning_workflow", "wiring_creds", "active",
-  ];
-  for (const status of steps) {
+  const steps = ["buying_number", "cloning_workflow", "wiring_creds", "active"] as const;
+  for (const step of steps) {
     await new Promise((r) => setTimeout(r, 2000));
-    jobStore.set(jobId, {
-      status,
-      twilio_number: status === "active" ? "+15551234567" : undefined,
-    });
+    if (step === "active") {
+      await setProgress(jobId, "active", {
+        status: "provisioned",
+        intake_json: { _twilio_number: "+15551234567" },
+      });
+    } else {
+      await setProgress(jobId, step);
+    }
   }
 }
 
@@ -255,13 +264,22 @@ export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
   if (!jobId) return NextResponse.json({ error: "Missing jobId" }, { status: 400 });
 
-  const job = jobStore.get(jobId);
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  const { data: row, error } = await supa
+    .from("intake_submissions")
+    .select("id, progress_status, status, intake_json")
+    .eq("id", jobId)
+    .single();
+
+  if (error || !row) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+
+  const intake = (row.intake_json as Record<string, unknown>) || {};
+  const twilioNumber = (intake._twilio_number as string) || null;
+  const isFailed = row.status === "failed";
 
   return NextResponse.json({
     jobId,
-    status: job.status,
-    twilio_number: job.twilio_number || null,
-    error: job.error || null,
+    status: row.progress_status || row.status,
+    twilio_number: twilioNumber,
+    error: isFailed ? "Provisioning failed" : null,
   });
 }

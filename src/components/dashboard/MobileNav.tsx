@@ -10,6 +10,7 @@ const NAV = [
   {
     href: '/dashboard/calls',
     label: 'Calls',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -17,8 +18,19 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/clients',
+    label: 'Clients',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/campaigns',
     label: 'Campaigns',
+    adminOnly: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -30,6 +42,7 @@ const NAV = [
   {
     href: '/dashboard/leads',
     label: 'Lead Queue',
+    adminOnly: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -39,6 +52,7 @@ const NAV = [
   {
     href: '/dashboard/voices',
     label: 'Voices',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -49,6 +63,7 @@ const NAV = [
   {
     href: '/dashboard/settings',
     label: 'Settings',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
@@ -58,7 +73,7 @@ const NAV = [
   },
 ]
 
-export default function MobileNav({ businessName }: { businessName?: string; isAdmin?: boolean }) {
+export default function MobileNav({ businessName, isAdmin = false }: { businessName?: string; isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -133,7 +148,7 @@ export default function MobileNav({ businessName }: { businessName?: string; isA
               </div>
 
               <nav className="flex-1 px-3 py-4 space-y-1">
-                {NAV.map(item => {
+                {NAV.filter(item => !item.adminOnly || isAdmin).map(item => {
                   const active = pathname.startsWith(item.href)
                   return (
                     <Link

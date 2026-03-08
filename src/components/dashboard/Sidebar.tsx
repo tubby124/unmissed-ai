@@ -51,6 +51,16 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/clients',
+    label: 'Clients',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin/test-lab',
     label: 'Test Lab',
     adminOnly: true,
@@ -135,7 +145,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
       className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-black/40 backdrop-blur-xl h-screen sticky top-0 overflow-hidden"
     >
-      {/* Logo */}
+      {/* Logo + identity */}
       <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/[0.06] min-h-[64px]">
         <Link href="/" className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 shrink-0 rounded-lg bg-blue-500 flex items-center justify-center">
@@ -152,9 +162,19 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 transition={{ duration: 0.15 }}
                 className="min-w-0 overflow-hidden"
               >
-                <span className="text-white font-semibold text-sm tracking-tight block whitespace-nowrap">unmissed.ai</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white font-semibold text-sm tracking-tight whitespace-nowrap">unmissed.ai</span>
+                  {isAdmin && (
+                    <span className="text-[9px] font-bold tracking-wide text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-1.5 py-0.5 leading-none">
+                      Admin
+                    </span>
+                  )}
+                </div>
                 {businessName && (
                   <span className="text-zinc-500 text-xs block truncate">{businessName}</span>
+                )}
+                {isAdmin && (
+                  <span className="text-zinc-600 text-xs block">All clients</span>
                 )}
               </motion.div>
             )}
