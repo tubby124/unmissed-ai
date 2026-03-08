@@ -2,9 +2,9 @@ export async function sendAlert(
   botToken: string,
   chatId: string,
   message: string
-): Promise<void> {
+): Promise<boolean> {
   try {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -13,7 +13,13 @@ export async function sendAlert(
         parse_mode: 'HTML',
       }),
     })
+    if (!res.ok) {
+      console.error('[telegram] Non-200:', res.status, await res.text())
+      return false
+    }
+    return true
   } catch (err) {
-    console.error('Telegram alert failed:', err)
+    console.error('[telegram] Alert failed:', err)
+    return false
   }
 }

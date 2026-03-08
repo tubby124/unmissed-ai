@@ -138,6 +138,9 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   )
   const [godSaving, setGodSaving] = useState(false)
   const [godSaved, setGodSaved] = useState(false)
+  const [telegramTest, setTelegramTest] = useState<Record<string, 'idle' | 'testing' | 'ok' | 'fail'>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, 'idle' as const]))
+  )
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -184,6 +187,18 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       body: JSON.stringify(body),
     })
     if (res.ok) setStatus(prev => ({ ...prev, [client.id]: next }))
+  }
+
+  async function testTelegram() {
+    setTelegramTest(prev => ({ ...prev, [client.id]: 'testing' }))
+    const res = await fetch('/api/dashboard/settings/test-telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: client.id }),
+    })
+    const data = await res.json().catch(() => ({ ok: false }))
+    setTelegramTest(prev => ({ ...prev, [client.id]: data.ok ? 'ok' : 'fail' }))
+    setTimeout(() => setTelegramTest(prev => ({ ...prev, [client.id]: 'idle' })), 3000)
   }
 
   async function saveGodConfig() {
@@ -381,6 +396,23 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 placeholder="e.g. 7278536150"
                 className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
               />
+              <button
+                type="button"
+                onClick={testTelegram}
+                disabled={telegramTest[client.id] !== 'idle'}
+                className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 ${
+                  telegramTest[client.id] === 'ok'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : telegramTest[client.id] === 'fail'
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-white/[0.07]'
+                }`}
+              >
+                {telegramTest[client.id] === 'testing' ? 'Sending…'
+                  : telegramTest[client.id] === 'ok' ? '✓ Delivered'
+                  : telegramTest[client.id] === 'fail' ? '✗ Failed'
+                  : 'Send Test Message'}
+              </button>
             </div>
 
             {/* Twilio Number */}

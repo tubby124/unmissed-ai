@@ -194,13 +194,21 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
         </div>
 
         {/* Line 2: summary */}
-        <p className="text-sm text-zinc-500 truncate leading-snug mb-1.5 pr-4">
-          {call.ai_summary || (call.call_status === 'processing' ? 'Analyzing call…' : '—')}
+        <p className={`text-sm truncate leading-snug mb-1.5 pr-4 ${
+          call.call_status !== 'processing' && (!call.ai_summary || call.ai_summary === 'Call transcript unavailable or too short to classify.')
+            ? 'text-zinc-700'
+            : 'text-zinc-500'
+        }`}>
+          {call.call_status === 'processing'
+            ? 'Analyzing call…'
+            : call.ai_summary && call.ai_summary !== 'Call transcript unavailable or too short to classify.'
+            ? call.ai_summary
+            : 'No AI analysis'}
         </p>
 
         {/* Line 3: topics + confidence + sentiment */}
         {!isProcessingOrLive && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             {shownTopics.map(t => (
               <span
                 key={t}

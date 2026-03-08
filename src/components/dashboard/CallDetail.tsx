@@ -300,6 +300,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
   const isActuallyLive = callStatus === 'live'
   const isProcessing = callStatus === 'processing'
   const isClassified = ['HOT', 'WARM', 'COLD', 'JUNK'].includes(callStatus ?? '')
+  const hasRealSummary = !!(displayCall.ai_summary && displayCall.ai_summary !== 'Call transcript unavailable or too short to classify.')
 
   const dur = fmtDur(displayCall.duration_seconds)
   const glowClass = STATUS_GLOW[displayCall.call_status ?? ''] ?? 'border-white/[0.06]'
@@ -416,7 +417,12 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
 
       {/* AI Summary */}
       <AnimatePresence>
-        {displayCall.ai_summary && (isClassified || (!isLive && displayCall.ai_summary)) && (
+        {isClassified && !hasRealSummary && (
+          <div key="no-analysis" className="rounded-2xl border border-white/[0.04] bg-white/[0.01] px-5 py-3">
+            <p className="text-[11px] text-zinc-700 italic">No AI analysis for this call.</p>
+          </div>
+        )}
+        {hasRealSummary && (isClassified || !isLive) && (
           <motion.div
             key="summary"
             initial={{ opacity: 0, y: 8 }}
@@ -447,7 +453,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           >
             {/* Quality gauge + Confidence + Sentiment */}
             {(displayCall.quality_score != null || displayCall.confidence != null || displayCall.sentiment) && (
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 flex items-center gap-5 flex-wrap">
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5">
                 {displayCall.quality_score != null && (
                   <QualityGauge score={displayCall.quality_score} />
                 )}
