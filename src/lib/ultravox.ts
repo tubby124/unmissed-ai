@@ -26,7 +26,7 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl }:
       medium: { twilio: {} },
       recordingEnabled: true,
       metadata: metadata || {},
-      ...(callbackUrl ? { callbacks: { ended: callbackUrl } } : {}),
+      ...(callbackUrl ? { callbacks: { ended: { url: callbackUrl } } } : {}),
       inactivityMessages: [
         { duration: '8s', message: "Hello? You still there?" },
         { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!" },

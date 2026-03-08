@@ -38,8 +38,9 @@ export async function POST(
   const callerPhone = body.From || 'unknown'
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
 
+  let ultravoxCall: { joinUrl: string; callId: string }
   try {
-    const ultravoxCall = await createCall({
+    ultravoxCall = await createCall({
       systemPrompt: client.system_prompt,
       voice: client.agent_voice_id,
       callbackUrl,
@@ -49,20 +50,6 @@ export async function POST(
         client_id: client.id,
       },
     })
-
-    // Insert 'live' row so dashboard can show the active call immediately
-    await supabase.from('call_logs').insert({
-      ultravox_call_id: ultravoxCall.callId,
-      client_id: client.id,
-      caller_phone: callerPhone,
-      call_status: 'live',
-      started_at: new Date().toISOString(),
-    })
-
-    const twiml = buildStreamTwiml(ultravoxCall.joinUrl)
-    return new NextResponse(twiml, {
-      headers: { 'Content-Type': 'text/xml' },
-    })
   } catch (error) {
     console.error('[inbound] Ultravox call creation failed:', error)
     const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -71,4 +58,20 @@ export async function POST(
       headers: { 'Content-Type': 'text/xml' },
     })
   }
+
+  // Fire-and-forget: insert 'live' row — must not block or break the call
+  supabase.from('call_logs').insert({
+    ultravox_call_id: ultravoxCall.callId,
+    client_id: client.id,
+    caller_phone: callerPhone,
+    call_status: 'live',
+    started_at: new Date().toISOString(),
+  }).then(({ error }) => {
+    if (error) console.error('[inbound] Live row insert failed:', error.message)
+  })
+
+  const twiml = buildStreamTwiml(ultravoxCall.joinUrl)
+  return new NextResponse(twiml, {
+    headers: { 'Content-Type': 'text/xml' },
+  })
 }
