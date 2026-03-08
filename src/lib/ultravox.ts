@@ -57,8 +57,13 @@ export async function getTranscript(callId: string) {
   if (!res.ok) return []
 
   const data = await res.json()
-  const messages: Array<{ role: string; text: string; medium: string; callStageMessageIndex: number }> =
-    data.results || []
+  const messages: Array<{
+    role: string
+    text: string
+    medium: string
+    callStageMessageIndex: number
+    timespan?: { startTime?: string; endTime?: string }
+  }> = data.results || []
 
   return messages
     .filter(m =>
@@ -68,5 +73,18 @@ export async function getTranscript(callId: string) {
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,
+      ...(m.timespan?.startTime != null
+        ? { startTime: parseFloat(m.timespan.startTime) }
+        : {}),
+      ...(m.timespan?.endTime != null
+        ? { endTime: parseFloat(m.timespan.endTime) }
+        : {}),
     }))
+}
+
+export async function getRecordingStream(callId: string) {
+  return fetch(`${ULTRAVOX_BASE}/calls/${callId}/recording`, {
+    headers: ultravoxHeaders(),
+    redirect: 'follow',
+  })
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getTranscript } from '@/lib/ultravox'
+import { getTranscript, getRecordingStream } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
 
@@ -133,8 +133,55 @@ export async function POST(
 
         await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message)
       }
+
+      // Increment minutes used (billing foundation)
+      if (durationSeconds > 0) {
+        const minutesUsed = Math.ceil(durationSeconds / 60)
+        const { error: rpcError } = await supabase.rpc('increment_minutes_used', {
+          p_client_id: client.id,
+          p_minutes: minutesUsed,
+        })
+        if (rpcError) console.error('[completed] Minute increment failed:', rpcError.message)
+      }
+
+      // Download and persist recording to Supabase Storage
+      try {
+        const recordingRes = await getRecordingStream(callId)
+        if (recordingRes.ok && recordingRes.body) {
+          const arrayBuffer = await recordingRes.arrayBuffer()
+          const { error: uploadError } = await supabase.storage
+            .from('recordings')
+            .upload(`${callId}.mp3`, arrayBuffer, {
+              contentType: 'audio/mpeg',
+              upsert: true,
+            })
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from('recordings')
+              .getPublicUrl(`${callId}.mp3`)
+            await supabase
+              .from('call_logs')
+              .update({ recording_url: urlData.publicUrl })
+              .eq('ultravox_call_id', callId)
+          }
+        }
+      } catch (storageErr) {
+        console.error('[completed] Recording storage failed:', storageErr)
+      }
     } catch (err) {
       console.error('[completed] Processing error:', err)
+      // Alert operator via Telegram when webhook crashes
+      try {
+        const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN
+        const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID
+        if (operatorToken && operatorChat) {
+          await sendAlert(
+            operatorToken,
+            operatorChat,
+            `⚠️ <b>Webhook crash</b>\ncallId: ${callId}\nslug: ${slug}\n${String(err).slice(0, 300)}`
+          )
+        }
+      } catch { /* never let alerting break anything */ }
     }
   })
 
