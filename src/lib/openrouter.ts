@@ -134,9 +134,12 @@ export async function classifyCall(
       return unknownFallback
     }
 
+    // Strip markdown fences — some OpenRouter providers ignore response_format
+    const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+
     let parsed: Record<string, unknown>
     try {
-      parsed = JSON.parse(content)
+      parsed = JSON.parse(cleaned)
     } catch (parseErr) {
       console.error('[openrouter] classifyCall: JSON.parse failed — raw content:', content.slice(0, 300), 'error:', parseErr)
       return unknownFallback
