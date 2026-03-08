@@ -85,7 +85,7 @@ export async function classifyCall(
         'X-Title': 'unmissed.ai call classifier',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-haiku-4-5-20251001',
+        model: 'anthropic/claude-haiku-4.5',
         messages: [
           { role: 'system', content: buildSystemPrompt(businessContext) },
           { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
