@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'motion/react'
 import CallRow from './CallRow'
@@ -80,10 +81,11 @@ function exportCsv(calls: CallLog[]) {
 }
 
 export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [] }: CallsListProps) {
+  const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const [clientFilter, setClientFilter] = useState<string>('all')
+  const [clientFilter, setClientFilter] = useState<string>(() => searchParams.get('client') ?? 'all')
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [showDial, setShowDial] = useState(false)
