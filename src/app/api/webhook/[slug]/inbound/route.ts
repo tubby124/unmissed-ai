@@ -36,16 +36,27 @@ export async function POST(
   }
 
   const callerPhone = body.From || 'unknown'
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
 
   try {
     const ultravoxCall = await createCall({
       systemPrompt: client.system_prompt,
       voice: client.agent_voice_id,
+      callbackUrl,
       metadata: {
         caller_phone: callerPhone,
         client_slug: slug,
         client_id: client.id,
       },
+    })
+
+    // Insert 'live' row so dashboard can show the active call immediately
+    await supabase.from('call_logs').insert({
+      ultravox_call_id: ultravoxCall.callId,
+      client_id: client.id,
+      caller_phone: callerPhone,
+      call_status: 'live',
+      started_at: new Date().toISOString(),
     })
 
     const twiml = buildStreamTwiml(ultravoxCall.joinUrl)

@@ -11,9 +11,10 @@ interface CreateCallOptions {
   systemPrompt: string
   voice?: string
   metadata?: Record<string, string>
+  callbackUrl?: string
 }
 
-export async function createCall({ systemPrompt, voice, metadata }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl }: CreateCallOptions) {
   const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
     method: 'POST',
     headers: ultravoxHeaders(),
@@ -23,7 +24,9 @@ export async function createCall({ systemPrompt, voice, metadata }: CreateCallOp
       voice: voice || 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
       maxDuration: '600s',
       medium: { twilio: {} },
+      recordingEnabled: true,
       metadata: metadata || {},
+      ...(callbackUrl ? { callbacks: { ended: callbackUrl } } : {}),
       inactivityMessages: [
         { duration: '8s', message: "Hello? You still there?" },
         { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!" },

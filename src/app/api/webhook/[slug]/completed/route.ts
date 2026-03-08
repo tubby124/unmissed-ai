@@ -33,18 +33,25 @@ export async function POST(
     try {
       const supabase = createServiceClient()
 
-      // Atomic dedup insert — catches duplicate callbacks via UNIQUE on ultravox_call_id
-      const { error: insertError } = await supabase.from('call_logs').insert({
-        ultravox_call_id: callId,
-        caller_phone: callerPhone,
-        call_status: 'processing',
-        started_at: new Date().toISOString(),
-      })
+      // Atomic dedup: transition 'live' → 'processing'
+      // Only the first callback wins; subsequent ones see a non-live status and bail
+      const { data: locked } = await supabase
+        .from('call_logs')
+        .update({ call_status: 'processing' })
+        .eq('ultravox_call_id', callId)
+        .eq('call_status', 'live')
+        .select('id')
 
-      if (insertError) {
-        if (insertError.code === '23505') return // Already processed
-        console.error('[completed] Insert error:', insertError)
-        return
+      if (!locked?.length) {
+        // No 'live' row found — either already processed OR inbound insert failed
+        // Try a fresh insert as fallback
+        const { error: insertError } = await supabase.from('call_logs').insert({
+          ultravox_call_id: callId,
+          caller_phone: callerPhone,
+          call_status: 'processing',
+          started_at: new Date().toISOString(),
+        })
+        if (insertError) return // 23505 = already handled by another callback
       }
 
       // Fetch client
