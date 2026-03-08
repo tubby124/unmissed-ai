@@ -9,6 +9,21 @@ const faqs = [
       "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (required by law and good practice), but most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
   },
   {
+    question: "Why don't you charge per minute like other AI receptionists?",
+    answer:
+      "Because per-minute billing punishes success. Dialzara's $29/mo plan gives you 60 minutes — that's about 2 minutes per day. My AI Front Desk caps you at 200 minutes for $99/mo. Smith.ai charges $2.40 per call after 50 calls. The busier your business gets, the more you pay. We think that's backwards. With unmissed.ai, you pay one flat rate whether you get 10 calls or 500. Your success should make you money, not cost you more.",
+  },
+  {
+    question: "Why is unmissed.ai more expensive than $29/mo competitors?",
+    answer:
+      "It's not — once you do the math. Those $29-49/mo plans include 60-250 minutes. A busy service business handles 100-300+ calls per month. At 200 calls, Dialzara costs $290+, Rosie costs $99+, and Smith.ai costs $455+. We're $147 flat — no matter how many calls you get. Plus, we set up your entire agent for you. With competitors, you're configuring it yourself. Our price includes the service, not just the software.",
+  },
+  {
+    question: "How are you different from Goodcall, My AI Front Desk, or Rosie?",
+    answer:
+      "Three ways. First, pricing: they all charge per minute or per caller. We charge flat. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, features: they gate booking, bilingual support, and integrations behind higher tiers. We include everything on every plan.",
+  },
+  {
     question: "What if the agent says something wrong?",
     answer:
       "Your agent only answers questions using what we program into its knowledge base — your services, pricing, hours, policies. If a caller asks something outside that scope, it politely says it'll have you follow up directly. It never makes up information. And through The Learning Loop, any knowledge gaps are flagged weekly so you can add to it.",

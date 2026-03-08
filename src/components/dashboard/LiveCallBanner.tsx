@@ -36,95 +36,127 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
         <motion.div
           key="live-banner"
           initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-          animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+          animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
           exit={{ opacity: 0, height: 0, marginBottom: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="overflow-hidden"
         >
-          {calls.map((call, idx) => (
-            <div
+          {/* Header label */}
+          <div className="flex items-center gap-2 mb-2 px-0.5">
+            <span className="relative flex w-2 h-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+            </span>
+            <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-green-500">
+              {calls.length === 1 ? 'Active Call' : `${calls.length} Active Calls`}
+            </span>
+          </div>
+
+          {calls.map((call) => (
+            <motion.div
               key={call.id}
-              className="relative overflow-hidden rounded-2xl border border-green-500/30 bg-[#050e08] p-4 mb-2 last:mb-0"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="relative overflow-hidden rounded-2xl mb-2 last:mb-0"
               style={{
-                boxShadow: '0 0 0 1px rgba(34,197,94,0.08), 0 0 40px rgba(34,197,94,0.07), inset 0 1px 0 rgba(34,197,94,0.08)',
+                background: 'linear-gradient(135deg, #030e06 0%, #050f08 60%, #040e07 100%)',
+                boxShadow: '0 0 0 1px rgba(34,197,94,0.2), 0 0 60px rgba(34,197,94,0.08), inset 0 1px 0 rgba(34,197,94,0.12)',
               }}
             >
-              {/* Ambient glow */}
-              <div
-                className="absolute inset-0 pointer-events-none"
+              {/* Animated border pulse via pseudo-overlay */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl pointer-events-none"
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
                 style={{
-                  background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(34,197,94,0.08) 0%, transparent 70%)',
+                  boxShadow: 'inset 0 0 0 1px rgba(34,197,94,0.3)',
                 }}
               />
 
-              <div className="relative flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                {/* Live pulse */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="relative flex w-2.5 h-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-                  </span>
-                  <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-green-400">
-                    Signal Active
-                  </span>
+              {/* Top ambient glow */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34,197,94,0.1) 0%, transparent 60%)',
+                }}
+              />
+
+              {/* Scanline sweep */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'linear', repeatDelay: 3 }}
+                style={{
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(34,197,94,0.06) 50%, transparent 100%)',
+                  width: '50%',
+                }}
+              />
+
+              <div className="relative p-4">
+                {/* Top row: business name + timer */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    {call.business_name ? (
+                      <>
+                        <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-green-400/80 mb-0.5">
+                          {call.business_name}
+                        </p>
+                        <p className="font-mono text-base text-green-100 font-semibold tracking-tight truncate">
+                          {call.caller_phone || 'Unknown caller'}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-mono text-base text-green-100 font-semibold tracking-tight truncate">
+                        {call.caller_phone || 'Unknown caller'}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Timer — right aligned, large */}
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-green-500/50 uppercase tracking-wider leading-none mb-1">Duration</p>
+                    <p className="text-2xl font-mono text-green-300 font-bold leading-none tabular-nums">
+                      <LiveDuration startedAt={call.started_at} />
+                    </p>
+                  </div>
                 </div>
 
-                {/* Waveform equalizer */}
-                <div className="flex items-center gap-px h-6 shrink-0">
-                  {BARS.map((peak, i) => (
-                    <motion.span
-                      key={i}
-                      className="w-[3px] rounded-full bg-green-400/70"
-                      animate={{ scaleY: [0.15, peak, 0.15] }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 0.65 + (i % 4) * 0.12,
-                        delay: i * 0.06,
-                        ease: 'easeInOut',
-                      }}
-                      style={{
-                        height: '100%',
-                        transformOrigin: 'center',
-                        display: 'inline-block',
-                      }}
-                    />
-                  ))}
+                {/* Bottom row: waveform + monitor button */}
+                <div className="flex items-center justify-between gap-3">
+                  {/* Waveform equalizer */}
+                  <div className="flex items-center gap-px h-5 shrink-0">
+                    {BARS.map((peak, i) => (
+                      <motion.span
+                        key={i}
+                        className="w-[3px] rounded-full bg-green-400/60"
+                        animate={{ scaleY: [0.12, peak, 0.12] }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 0.6 + (i % 4) * 0.11,
+                          delay: i * 0.055,
+                          ease: 'easeInOut',
+                        }}
+                        style={{ height: '100%', transformOrigin: 'center', display: 'inline-block' }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Monitor CTA */}
+                  <Link
+                    href={`/dashboard/calls/${call.ultravox_call_id}`}
+                    className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/35 hover:bg-green-500/30 hover:border-green-500/55 hover:text-green-200 transition-all"
+                  >
+                    <span className="relative flex w-1.5 h-1.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                    </span>
+                    Open Monitor
+                  </Link>
                 </div>
-
-                {/* Caller info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-mono text-sm text-green-200 font-medium truncate">
-                    {call.caller_phone || 'Unknown caller'}
-                  </p>
-                  {call.business_name && (
-                    <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{call.business_name}</p>
-                  )}
-                </div>
-
-                {/* Timer */}
-                <div className="text-right shrink-0">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Duration</p>
-                  <p className="text-base font-mono text-green-300 font-semibold">
-                    <LiveDuration startedAt={call.started_at} />
-                  </p>
-                </div>
-
-                {/* Other live calls count */}
-                {idx === 0 && calls.length > 1 && (
-                  <span className="text-xs text-green-500/50 shrink-0 hidden sm:block">
-                    +{calls.length - 1} more
-                  </span>
-                )}
-
-                {/* View link */}
-                <Link
-                  href={`/dashboard/calls/${call.ultravox_call_id}`}
-                  className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 hover:border-green-500/35 transition-all"
-                >
-                  Monitor →
-                </Link>
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
       )}

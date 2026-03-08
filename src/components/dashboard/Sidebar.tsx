@@ -17,6 +17,26 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/campaigns',
+    label: 'Campaigns',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="10" y="8" width="4" height="13" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="2" y="13" width="4" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/leads',
+    label: 'Lead Queue',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
     icon: (

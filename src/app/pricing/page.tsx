@@ -18,14 +18,25 @@ export const metadata: Metadata = {
   },
 };
 
+const perMinuteTrapRows = [
+  { competitor: "Dialzara", plan: "$29/mo", minutes: "60 min", perMin: "$0.48/min", at100Calls: "$145+", at200Calls: "$290+", catch: "2 min/day limit" },
+  { competitor: "Rosie", plan: "$49/mo", minutes: "250 min", perMin: "$0.20/min", at100Calls: "$49", at200Calls: "$99+", catch: "Booking requires $149/mo" },
+  { competitor: "My AI Front Desk", plan: "$99/mo", minutes: "200 min", perMin: "$0.50/min", at100Calls: "$99", at200Calls: "$199+", catch: "Bilingual requires $149/mo" },
+  { competitor: "Goodcall", plan: "$59/mo", minutes: "100 callers", perMin: "$0.50/caller over", at100Calls: "$59", at200Calls: "$109+", catch: "Per unique caller, not minutes" },
+  { competitor: "Smith.ai", plan: "$95/mo", minutes: "50 calls", perMin: "$2.40/call over", at100Calls: "$215", at200Calls: "$455+", catch: "Human hybrid, very expensive" },
+];
+
 const comparisonRows = [
-  { feature: "Pricing", dialzara: "$29+/mo (per minute)", smithai: "$255+/mo (per minute)", unmissed: "$147–$397 flat" },
-  { feature: "Per-minute charges", dialzara: "Yes — caps at 60 min", smithai: "Yes — expensive overages", unmissed: "Never" },
-  { feature: "Done-for-you setup", dialzara: "Self-serve", smithai: "Assisted", unmissed: "100% done for you" },
-  { feature: "Custom agent persona", dialzara: "Limited", smithai: "Yes (higher tiers)", unmissed: "Yes (Pro+)" },
-  { feature: "Learns from its own calls", dialzara: "No", smithai: "No", unmissed: "Yes — The Learning Loop" },
-  { feature: "Telegram/SMS alerts", dialzara: "Email only", smithai: "Email + SMS", unmissed: "Telegram + SMS" },
-  { feature: "Google Sheets integration", dialzara: "No", smithai: "No", unmissed: "Yes — your data, your sheet" },
+  { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", unmissed: "Flat rate" },
+  { feature: "Starting price", myai: "$99/mo (200 min)", goodcall: "$59/mo (100 callers)", rosie: "$49/mo (250 min)", smithai: "$95/mo (50 calls)", unmissed: "$147/mo (unlimited)" },
+  { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", unmissed: "Done for you (24hr)" },
+  { feature: "All features included", myai: "No — tiered", goodcall: "No — tiered", rosie: "No — tiered", smithai: "No — tiered", unmissed: "Yes" },
+  { feature: "Booking on all plans", myai: "No ($149+)", goodcall: "No ($99+)", rosie: "No ($149+)", smithai: "No ($270+)", unmissed: "Add-on available" },
+  { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", unmissed: "Yes" },
+  { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", unmissed: "Yes (Learning Loop)" },
+  { feature: "Your data, your sheet", myai: "No", goodcall: "No", rosie: "No", smithai: "No", unmissed: "Google Sheets" },
+  { feature: "Instant mobile alerts", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", unmissed: "Telegram + SMS" },
+  { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", unmissed: "None — cancel anytime" },
 ];
 
 export default function PricingPage() {
@@ -49,11 +60,14 @@ export default function PricingPage() {
               Pricing
             </p>
             <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-              Simple, honest pricing.
+              One flat rate. Every call answered.
             </h1>
-            <p className="text-gray-400 text-xl leading-relaxed mb-6">
-              No per-minute charges. No setup fees. No long-term contracts.
-              Your agent is live within 24 hours.
+            <p className="text-gray-400 text-xl leading-relaxed mb-2">
+              Other AI receptionists charge you per minute — the more your phone
+              rings, the more you pay. That punishes success.
+            </p>
+            <p className="text-white text-xl font-semibold mb-6">
+              We charge one flat monthly rate. No per-minute fees. No overage surprises. Ever.
             </p>
             <div
               className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
@@ -86,15 +100,91 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Competitor comparison */}
+        {/* The Per-Minute Trap */}
         <section className="py-20 px-4" style={{ backgroundColor: "#0D0D0D" }}>
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
+              <p
+                className="text-xs font-mono uppercase tracking-widest mb-3"
+                style={{ color: "#F59E0B" }}
+              >
+                The per-minute trap
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                $29/mo sounds cheap. Until the phone rings.
+              </h2>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                Most AI receptionists advertise low prices — then bill you per minute,
+                per call, or per unique caller. The busier your business gets,
+                the more you pay. Here&apos;s what that actually looks like:
+              </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl mb-6" style={{ border: "1px solid #1F1F1F" }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ backgroundColor: "#111111", borderBottom: "1px solid #1F1F1F" }}>
+                    <th className="text-left p-4 text-gray-400 font-medium">Competitor</th>
+                    <th className="text-center p-4 text-gray-400 font-medium">Advertised</th>
+                    <th className="text-center p-4 text-gray-400 font-medium">Included</th>
+                    <th className="text-center p-4 text-gray-400 font-medium">At 200 calls/mo</th>
+                    <th className="text-center p-4 text-gray-400 font-medium">The catch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {perMinuteTrapRows.map((row, i) => (
+                    <tr
+                      key={i}
+                      style={{
+                        backgroundColor: i % 2 === 0 ? "#0A0A0A" : "#0D0D0D",
+                        borderBottom: "1px solid #1F1F1F",
+                      }}
+                    >
+                      <td className="p-4 text-gray-300 font-medium">{row.competitor}</td>
+                      <td className="p-4 text-center text-gray-400">{row.plan}</td>
+                      <td className="p-4 text-center text-gray-500">{row.minutes}</td>
+                      <td className="p-4 text-center text-red-400 font-semibold">{row.at200Calls}</td>
+                      <td className="p-4 text-center text-gray-500 text-xs">{row.catch}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: "#0D1A2E", borderBottom: "1px solid #1E3A5F" }}>
+                    <td className="p-4 font-semibold" style={{ color: "#3B82F6" }}>unmissed.ai</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147/mo</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>All calls</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No catch</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div
+              className="rounded-xl p-5 text-center"
+              style={{ backgroundColor: "#0D1F0D", border: "1px solid #166534" }}
+            >
+              <p className="text-green-400 font-semibold text-sm">
+                With unmissed.ai, you pay the same whether you get 10 calls or 1,000.
+                The more your phone rings, the more value you get — not the more you owe.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Full competitor comparison */}
+        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <p
+                className="text-xs font-mono uppercase tracking-widest mb-3"
+                style={{ color: "#3B82F6" }}
+              >
+                Feature comparison
+              </p>
               <h2 className="text-3xl font-bold text-white mb-3">
-                Why not use Dialzara or Smith.ai?
+                How we stack up against every alternative.
               </h2>
               <p className="text-gray-500">
-                They charge per minute. We charge per month. The math isn&apos;t complicated.
+                Real features. Real pricing. No marketing spin.
               </p>
             </div>
 
@@ -102,14 +192,16 @@ export default function PricingPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: "#111111", borderBottom: "1px solid #1F1F1F" }}>
-                    <th className="text-left p-4 text-gray-400 font-medium">Feature</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">Dialzara</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">Smith.ai</th>
+                    <th className="text-left p-3 text-gray-400 font-medium text-xs">Feature</th>
+                    <th className="text-center p-3 text-gray-400 font-medium text-xs">My AI Front Desk</th>
+                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Goodcall</th>
+                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Rosie</th>
+                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Smith.ai</th>
                     <th
-                      className="text-center p-4 font-semibold"
+                      className="text-center p-3 font-semibold text-xs"
                       style={{ color: "#3B82F6", backgroundColor: "#0D1A2E" }}
                     >
-                      unmissed.ai ⭐
+                      unmissed.ai
                     </th>
                   </tr>
                 </thead>
@@ -122,11 +214,13 @@ export default function PricingPage() {
                         borderBottom: "1px solid #1F1F1F",
                       }}
                     >
-                      <td className="p-4 text-gray-300 font-medium">{row.feature}</td>
-                      <td className="p-4 text-center text-gray-500">{row.dialzara}</td>
-                      <td className="p-4 text-center text-gray-500">{row.smithai}</td>
+                      <td className="p-3 text-gray-300 font-medium text-xs">{row.feature}</td>
+                      <td className="p-3 text-center text-gray-500 text-xs">{row.myai}</td>
+                      <td className="p-3 text-center text-gray-500 text-xs">{row.goodcall}</td>
+                      <td className="p-3 text-center text-gray-500 text-xs">{row.rosie}</td>
+                      <td className="p-3 text-center text-gray-500 text-xs">{row.smithai}</td>
                       <td
-                        className="p-4 text-center font-semibold"
+                        className="p-3 text-center font-semibold text-xs"
                         style={{ color: "#22C55E", backgroundColor: "rgba(34,197,94,0.04)" }}
                       >
                         {row.unmissed}

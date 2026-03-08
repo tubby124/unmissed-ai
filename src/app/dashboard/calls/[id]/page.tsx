@@ -12,7 +12,6 @@ export default async function CallDetailPage({ params }: Props) {
   const { id } = await params
   const supabase = await createServerClient()
 
-  // Fetch call — RLS ensures this belongs to the authenticated user's client
   const { data: call } = await supabase
     .from('call_logs')
     .select('*, clients(business_name)')
@@ -21,5 +20,7 @@ export default async function CallDetailPage({ params }: Props) {
 
   if (!call) notFound()
 
-  return <CallDetail call={call} agentName="Agent" />
+  const isLive = call.call_status === 'live'
+
+  return <CallDetail call={call} agentName="Agent" isLive={isLive} />
 }

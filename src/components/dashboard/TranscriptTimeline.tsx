@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 
 interface TranscriptMessage {
   role: 'agent' | 'user'
@@ -14,6 +15,7 @@ interface TranscriptTimelineProps {
   currentTime?: number
   onSeek?: (time: number) => void
   agentName?: string
+  isLive?: boolean
 }
 
 function fmtTime(s?: number) {
@@ -21,19 +23,67 @@ function fmtTime(s?: number) {
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 }
 
-export default function TranscriptTimeline({ messages, currentTime = 0, onSeek, agentName = 'Agent' }: TranscriptTimelineProps) {
-  const activeRef = useRef<HTMLDivElement>(null)
+function BlinkingCursor() {
+  return (
+    <motion.span
+      className="inline-block w-[2px] h-[1em] bg-green-400 ml-1 align-middle rounded-sm"
+      animate={{ opacity: [1, 0, 1] }}
+      transition={{ repeat: Infinity, duration: 0.9, ease: [1, 0, 0, 0] }}
+    />
+  )
+}
 
-  // Auto-scroll to active bubble
+export default function TranscriptTimeline({
+  messages,
+  currentTime = 0,
+  onSeek,
+  agentName = 'Agent',
+  isLive = false,
+}: TranscriptTimelineProps) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const activeRef = useRef<HTMLDivElement>(null)
+  const prevLengthRef = useRef(messages.length)
+
+  // Live mode: auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [currentTime])
+    if (isLive && messages.length !== prevLengthRef.current) {
+      prevLengthRef.current = messages.length
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [messages.length, isLive])
+
+  // On mount when live: scroll to bottom immediately
+  useEffect(() => {
+    if (isLive) {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Post-call: scroll to active audio-synced bubble
+  useEffect(() => {
+    if (!isLive) {
+      activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [currentTime, isLive])
 
   if (!messages.length) {
     return (
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-4">Transcript</p>
-        <p className="text-zinc-600 text-sm">No transcript available.</p>
+        <div className="flex items-center gap-2 mb-4">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+            {isLive ? 'Live Transcript' : 'Transcript'}
+          </p>
+          {isLive && (
+            <span className="relative flex w-1.5 h-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+            </span>
+          )}
+        </div>
+        <p className="text-zinc-600 text-sm">
+          {isLive ? 'Waiting for conversation to start…' : 'No transcript available.'}
+        </p>
       </div>
     )
   }
@@ -42,43 +92,65 @@ export default function TranscriptTimeline({ messages, currentTime = 0, onSeek, 
 
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-4">Transcript</p>
-      <div className="space-y-3">
-        {messages.map((msg, i) => {
-          const isAgent = msg.role === 'agent'
-          const isActive = msg.startTime != null && msg.endTime != null
-            && currentTime >= msg.startTime && currentTime <= msg.endTime
-          const sameAsLast = msg.role === lastRole
-          lastRole = msg.role
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+            {isLive ? 'Live Transcript' : 'Transcript'}
+          </p>
+          {isLive && (
+            <span className="relative flex w-1.5 h-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-mono text-zinc-700">{messages.length} msg</span>
+      </div>
 
-          return (
-            <div
-              key={i}
-              ref={isActive ? activeRef : undefined}
-              className={`flex flex-col ${isAgent ? 'items-start' : 'items-end'} ${sameAsLast ? 'mt-1' : 'mt-3'}`}
-            >
-              {!sameAsLast && (
-                <p className={`text-xs text-zinc-600 mb-1 ${isAgent ? 'ml-1' : 'mr-1'}`}>
-                  {isAgent ? agentName : 'Caller'}
-                  {msg.startTime != null && (
-                    <span className="ml-1.5 font-mono">{fmtTime(msg.startTime)}</span>
-                  )}
-                </p>
-              )}
-              <div
-                className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed cursor-pointer transition-all ${
-                  isAgent
-                    ? `bg-white/[0.06] text-zinc-200 rounded-bl-sm ${isActive ? 'border-l-2 border-blue-500' : ''}`
-                    : `bg-blue-500/15 text-blue-100 border border-blue-500/20 rounded-br-sm ${isActive ? 'border-l-2 border-blue-400' : ''}`
-                }`}
-                onClick={() => msg.startTime != null && onSeek?.(msg.startTime)}
-                title={msg.startTime != null ? `Jump to ${fmtTime(msg.startTime)}` : undefined}
+      <div className="space-y-1 max-h-[520px] overflow-y-auto pr-1">
+        <AnimatePresence initial={false}>
+          {messages.map((msg, i) => {
+            const isAgent = msg.role === 'agent'
+            const isActive = !isLive && msg.startTime != null && msg.endTime != null
+              && currentTime >= msg.startTime && currentTime <= msg.endTime
+            const sameAsLast = msg.role === lastRole
+            const isLatest = i === messages.length - 1
+            lastRole = msg.role
+
+            return (
+              <motion.div
+                key={`${msg.role}-${i}`}
+                initial={isLive ? { opacity: 0, y: 10, scale: 0.97 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                ref={isActive ? activeRef : undefined}
+                className={`flex flex-col ${isAgent ? 'items-start' : 'items-end'} ${sameAsLast ? 'mt-1' : 'mt-3'}`}
               >
-                {msg.text}
-              </div>
-            </div>
-          )
-        })}
+                {!sameAsLast && (
+                  <p className={`text-[11px] text-zinc-600 mb-1 ${isAgent ? 'ml-1' : 'mr-1'}`}>
+                    {isAgent ? agentName : 'Caller'}
+                    {msg.startTime != null && !isLive && (
+                      <span className="ml-1.5 font-mono text-zinc-700">{fmtTime(msg.startTime)}</span>
+                    )}
+                  </p>
+                )}
+                <div
+                  className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
+                    isAgent
+                      ? `bg-white/[0.06] text-zinc-200 rounded-bl-sm ${isActive ? 'border-l-2 border-blue-500' : ''} ${isLive && isLatest ? 'border-l-2 border-green-500/50' : ''}`
+                      : `bg-blue-500/15 text-blue-100 border border-blue-500/20 rounded-br-sm ${isActive ? 'border-l-2 border-blue-400' : ''}`
+                  } ${!isLive && msg.startTime != null ? 'cursor-pointer hover:bg-white/[0.09]' : ''}`}
+                  onClick={() => !isLive && msg.startTime != null && onSeek?.(msg.startTime)}
+                  title={!isLive && msg.startTime != null ? `Jump to ${fmtTime(msg.startTime)}` : undefined}
+                >
+                  {msg.text}
+                  {isLive && isLatest && isAgent && <BlinkingCursor />}
+                </div>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+        <div ref={bottomRef} />
       </div>
     </div>
   )
