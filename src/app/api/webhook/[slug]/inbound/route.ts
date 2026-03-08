@@ -83,6 +83,7 @@ export async function POST(
       // Agents API — one persistent profile per client, lightweight per-call payload
       console.log(`[inbound] Agents API: agentId=${client.ultravox_agent_id}`)
       ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
+        callbackUrl: rawCallbackUrl,
         metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
         ...(callerContext ? { callerContext } : {}),
       })
@@ -93,6 +94,7 @@ export async function POST(
         systemPrompt: callerContext ? client.system_prompt + `\n\n[${callerContext}]` : client.system_prompt,
         voice: client.agent_voice_id,
         tools,
+        callbackUrl: rawCallbackUrl,
         metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
       })
     }
