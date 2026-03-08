@@ -30,9 +30,9 @@ export async function createCall({ systemPrompt, voice, metadata }: CreateCallOp
       ],
       timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
       vadSettings: {
-        turnEndpointDelay: 640,
-        minimumTurnDuration: 100,
-        minimumInterruptionDuration: 200,
+        turnEndpointDelay: '640ms',
+        minimumTurnDuration: '100ms',
+        minimumInterruptionDuration: '200ms',
       },
     }),
   })
