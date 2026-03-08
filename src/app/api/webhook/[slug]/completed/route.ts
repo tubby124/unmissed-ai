@@ -105,7 +105,7 @@ export async function POST(
       console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
 
       // Update call_log with full data
-      const { error: updateError } = await supabase
+      const { data: updatedRows, error: updateError } = await supabase
         .from('call_logs')
         .update({
           client_id: client.id,
@@ -123,7 +123,9 @@ export async function POST(
           quality_score: classification.quality_score || null,
         })
         .eq('ultravox_call_id', callId)
-      if (updateError) console.error(`[completed] DB update failed for callId=${callId}: ${updateError.message}`)
+        .select('id')
+      if (updateError) console.error(`[completed] DB update FAILED for callId=${callId}: ${updateError.message} code=${updateError.code}`)
+      else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
 
       // ── Telegram alert — 4-tier intelligence routing ───────────────────────
