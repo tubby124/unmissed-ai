@@ -4,28 +4,32 @@ interface CallClassification {
   serviceType: string
 }
 
-const SYSTEM_PROMPT = `You classify real estate voicemail transcripts for Hasan Sharif, a real estate agent in Saskatoon SK and Calgary AB.
+function buildSystemPrompt(businessContext?: string) {
+  const business = businessContext || 'a service business'
+  return `You classify inbound call transcripts for ${business}.
 
 Return ONLY a valid JSON object with these exact fields:
 {
   "status": "HOT" | "WARM" | "COLD" | "JUNK",
   "summary": "1-2 sentence summary of the call",
-  "serviceType": "buying" | "selling" | "showing" | "general_inquiry" | "wrong_number" | "spam" | "other"
+  "serviceType": "appointment" | "quote_request" | "emergency" | "complaint" | "follow_up" | "wrong_number" | "spam" | "other"
 }
 
 Status definitions:
-- HOT: Wants to buy/sell/see a property urgently, has a specific property or timeline
-- WARM: General real estate inquiry, wants a callback, browsing
+- HOT: Ready to book/buy now, has urgency or specific need, wants immediate action
+- WARM: General inquiry, wants a callback, interested but no immediate urgency
 - COLD: Just asking for info, no clear intent or timeline
 - JUNK: Wrong number, spam, robocall, silence, recorded message, sales pitch
 
 Be concise in summary. Never include PII beyond first name if mentioned.`
+}
 
 export async function classifyCall(
-  transcript: Array<{ role: string; text: string }>
+  transcript: Array<{ role: string; text: string }>,
+  businessContext?: string
 ): Promise<CallClassification> {
   const transcriptText = transcript
-    .map(m => `${m.role === 'agent' ? 'Aisha' : 'Caller'}: ${m.text}`)
+    .map(m => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
     .join('\n')
 
   const fallback: CallClassification = {
@@ -48,7 +52,7 @@ export async function classifyCall(
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4-5-20251001',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: buildSystemPrompt(businessContext) },
           { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
         ],
         max_tokens: 200,

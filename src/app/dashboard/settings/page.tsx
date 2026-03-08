@@ -11,6 +11,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [clientName, setClientName] = useState('')
+  const [minutesUsed, setMinutesUsed] = useState(0)
+  const [minuteLimit, setMinuteLimit] = useState(500)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -20,17 +22,25 @@ export default function SettingsPage() {
 
       const { data: cu } = await supabase
         .from('client_users')
-        .select('client_id, clients(system_prompt, status, business_name)')
+        .select('client_id, clients(system_prompt, status, business_name, minutes_used_this_month, monthly_minute_limit)')
         .eq('user_id', user.id)
         .single()
 
       if (cu?.clients) {
-        const c = cu.clients as { system_prompt?: string; status?: string; business_name?: string }
+        const c = cu.clients as {
+          system_prompt?: string
+          status?: string
+          business_name?: string
+          minutes_used_this_month?: number
+          monthly_minute_limit?: number
+        }
         const p = c.system_prompt || ''
         setPrompt(p)
         setOriginal(p)
         setStatus((c.status === 'paused' ? 'paused' : 'active') as 'active' | 'paused')
         setClientName(c.business_name || '')
+        setMinutesUsed(c.minutes_used_this_month ?? 0)
+        setMinuteLimit(c.monthly_minute_limit ?? 500)
       }
       setLoading(false)
     }
@@ -98,6 +108,26 @@ export default function SettingsPage() {
             />
           </button>
         </div>
+      </div>
+
+      {/* Minute usage meter */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Minutes This Month</p>
+          <span className="text-xs font-mono text-zinc-400 tabular-nums">
+            {minutesUsed} / {minuteLimit} min
+          </span>
+        </div>
+        <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              minutesUsed / minuteLimit > 0.9 ? 'bg-red-500' :
+              minutesUsed / minuteLimit > 0.7 ? 'bg-amber-500' : 'bg-blue-500'
+            }`}
+            style={{ width: `${Math.min((minutesUsed / minuteLimit) * 100, 100)}%` }}
+          />
+        </div>
+        <p className="text-xs text-zinc-600 mt-2">Resets on the 1st of each month</p>
       </div>
 
       {/* System prompt editor */}

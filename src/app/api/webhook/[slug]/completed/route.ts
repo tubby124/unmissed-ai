@@ -73,7 +73,7 @@ export async function POST(
       // Fetch client
       const { data: client } = await supabase
         .from('clients')
-        .select('id, telegram_bot_token, telegram_chat_id')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id')
         .eq('slug', slug)
         .single()
 
@@ -85,8 +85,9 @@ export async function POST(
       // Fetch transcript from Ultravox
       const transcript = await getTranscript(callId)
 
-      // Classify with Claude Haiku via OpenRouter
-      const classification = await classifyCall(transcript)
+      // Classify with Claude Haiku via OpenRouter — pass client context for accurate classification
+      const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
+      const classification = await classifyCall(transcript, businessContext || undefined)
 
       // Update call_log with full data
       await supabase
@@ -172,8 +173,8 @@ export async function POST(
       console.error('[completed] Processing error:', err)
       // Alert operator via Telegram when webhook crashes
       try {
-        const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN
-        const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID
+        const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
+        const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
         if (operatorToken && operatorChat) {
           await sendAlert(
             operatorToken,

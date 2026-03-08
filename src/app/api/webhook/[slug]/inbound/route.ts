@@ -35,6 +35,11 @@ export async function POST(
     return new NextResponse('Client not found', { status: 404 })
   }
 
+  if (!client.system_prompt) {
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Sorry, this line is temporarily unavailable. Please try again later.</Say></Response>`
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
   const callerPhone = body.From || 'unknown'
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
 

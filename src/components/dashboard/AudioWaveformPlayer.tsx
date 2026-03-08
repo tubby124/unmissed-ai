@@ -44,12 +44,17 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
       onTimeUpdate?.(audio.currentTime)
     }
     const onEnded = () => setPlaying(false)
+    const onSeekEvent = (e: Event) => {
+      const time = (e as CustomEvent<{ time: number }>).detail.time
+      if (isFinite(time)) audio.currentTime = time
+    }
 
     audio.addEventListener('canplay', onLoaded)
     audio.addEventListener('error', onError)
     audio.addEventListener('durationchange', onDuration)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('ended', onEnded)
+    document.addEventListener('audio-seek', onSeekEvent)
 
     return () => {
       audio.removeEventListener('canplay', onLoaded)
@@ -57,6 +62,7 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
       audio.removeEventListener('durationchange', onDuration)
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('ended', onEnded)
+      document.removeEventListener('audio-seek', onSeekEvent)
     }
   }, [onTimeUpdate])
 
