@@ -51,6 +51,18 @@ export async function POST(
 
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)
 
+  // ── Stale live call cleanup ────────────────────────────────────────────────
+  // Any 'live' row older than 15 min for this client = webhook never fired. Mark MISSED.
+  supabase.from('call_logs')
+    .update({ call_status: 'MISSED', ai_summary: 'Call ended without webhook delivery' })
+    .eq('client_id', client.id)
+    .eq('call_status', 'live')
+    .lt('started_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+    .then(({ error, count }) => {
+      if (error) console.warn(`[inbound] Stale cleanup failed: ${error.message}`)
+      else if (count) console.log(`[inbound] Cleaned ${count} stale live row(s) for client=${client.id}`)
+    })
+
   // ── Returning caller detection ─────────────────────────────────────────────
   let callerContext: string | undefined
   if (callerPhone !== 'unknown') {

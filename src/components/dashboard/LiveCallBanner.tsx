@@ -14,6 +14,9 @@ interface LiveCall {
 
 const BARS = [0.35, 0.8, 0.55, 1, 0.65, 0.9, 0.4, 0.75, 0.5, 0.85, 0.45, 0.7]
 
+// Max call duration is 600s (10min) + 1min buffer = 660s
+const STALE_THRESHOLD_SECS = 660
+
 function LiveDuration({ startedAt }: { startedAt: string }) {
   const [secs, setSecs] = useState(() =>
     Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
@@ -26,6 +29,15 @@ function LiveDuration({ startedAt }: { startedAt: string }) {
 
   const m = Math.floor(secs / 60)
   const s = secs % 60
+  const isStale = secs > STALE_THRESHOLD_SECS
+
+  if (isStale) {
+    return (
+      <span className="tabular-nums text-yellow-400/80 text-sm">
+        {m}:{String(s).padStart(2, '0')} — stale?
+      </span>
+    )
+  }
   return <span className="tabular-nums">{m}:{String(s).padStart(2, '0')}</span>
 }
 

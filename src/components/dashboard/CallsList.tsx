@@ -158,9 +158,25 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Auto-recover calls stuck as 'live' for >15min (webhook never fired)
+  useEffect(() => {
+    const stale = calls.filter(
+      c => c.call_status === 'live' &&
+        Date.now() - new Date(c.started_at).getTime() > 15 * 60 * 1000
+    )
+    stale.forEach(c => {
+      fetch('/api/admin/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId: c.ultravox_call_id }),
+      }).catch(() => {/* already logged server-side */})
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calls.length])
+
   // Reactive stats — recompute whenever calls change
   const stats = useMemo(() => {
-    const completed = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK'].includes(c.call_status ?? ''))
+    const completed = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK', 'MISSED'].includes(c.call_status ?? ''))
     return {
       totalCalls: completed.length,
       hotLeads: completed.filter(c => c.call_status === 'HOT').length,
