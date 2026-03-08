@@ -10,6 +10,7 @@ interface CallLog {
   service_type: string | null
   duration_seconds: number | null
   started_at: string
+  business_name?: string | null
 }
 
 function timeAgo(iso: string) {
@@ -28,7 +29,7 @@ function fmtDur(secs: number | null) {
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
 }
 
-export default function CallRow({ call }: { call: CallLog }) {
+export default function CallRow({ call, showBusiness }: { call: CallLog; showBusiness?: boolean }) {
   const dur = fmtDur(call.duration_seconds)
 
   return (
@@ -53,6 +54,13 @@ export default function CallRow({ call }: { call: CallLog }) {
         </span>
         <StatusBadge status={call.call_status} showDot={false} />
       </div>
+
+      {/* Business name (admin all-clients view) */}
+      {showBusiness && (
+        <span className="text-xs text-zinc-500 shrink-0 w-36 truncate hidden md:block">
+          {call.business_name || '—'}
+        </span>
+      )}
 
       {/* Summary */}
       <p className="flex-1 text-sm text-zinc-500 truncate hidden sm:block">

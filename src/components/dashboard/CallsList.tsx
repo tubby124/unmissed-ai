@@ -15,6 +15,14 @@ interface CallLog {
   service_type: string | null
   duration_seconds: number | null
   started_at: string
+  client_id?: string | null
+  business_name?: string | null
+}
+
+interface ClientInfo {
+  id: string
+  slug: string
+  business_name: string
 }
 
 type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK'
@@ -30,12 +38,15 @@ const FILTERS: { value: Filter; label: string }[] = [
 interface CallsListProps {
   initialCalls: CallLog[]
   phone?: string | null
+  isAdmin?: boolean
+  adminClients?: ClientInfo[]
 }
 
-export default function CallsList({ initialCalls, phone }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [] }: CallsListProps) {
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
+  const [clientFilter, setClientFilter] = useState<string>('all')
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const supabase = createBrowserClient()
 
@@ -61,28 +72,65 @@ export default function CallsList({ initialCalls, phone }: CallsListProps) {
   const filtered = calls.filter(c => {
     if (c.call_status === 'live' || c.call_status === 'processing') return filter === 'all'
     if (filter !== 'all' && c.call_status !== filter) return false
-    if (search && !c.caller_phone?.includes(search)) return false
+    if (isAdmin && clientFilter !== 'all' && c.client_id !== clientFilter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      const matchPhone = c.caller_phone?.includes(search) ?? false
+      const matchBusiness = isAdmin ? (c.business_name?.toLowerCase().includes(q) ?? false) : false
+      if (!matchPhone && !matchBusiness) return false
+    }
     return true
   })
 
+  const showBusiness = isAdmin && clientFilter === 'all'
+
   return (
     <div className="rounded-2xl border border-white/[0.06] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: '200ms' }}>
+      {/* Admin client tabs */}
+      {isAdmin && adminClients.length > 0 && (
+        <div className="px-5 pt-4 border-b border-white/[0.06] flex items-center gap-1 overflow-x-auto pb-0">
+          <button
+            onClick={() => setClientFilter('all')}
+            className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+              clientFilter === 'all'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            All Clients
+          </button>
+          {adminClients.map(client => (
+            <button
+              key={client.id}
+              onClick={() => setClientFilter(client.id)}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                clientFilter === client.id
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {client.business_name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-5 py-4 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex items-center gap-2 flex-1">
           <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
             Recent Calls
           </p>
-          <span className="text-xs text-zinc-600">{calls.length}</span>
+          <span className="text-xs text-zinc-600">{filtered.length}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search */}
           <input
             type="text"
-            placeholder="Search number…"
+            placeholder={isAdmin ? 'Search number or business…' : 'Search number…'}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-36 transition-colors"
+            className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-44 transition-colors"
           />
           {/* Filter pills */}
           <div className="flex gap-1">
@@ -117,7 +165,7 @@ export default function CallsList({ initialCalls, phone }: CallsListProps) {
                 transition={{ duration: 0.25, ease: 'easeOut' }}
                 className={newIds.has(call.id) ? 'border-l-2 border-blue-500 transition-colors' : ''}
               >
-                <CallRow call={call} />
+                <CallRow call={call} showBusiness={showBusiness} />
               </motion.div>
             ))}
           </AnimatePresence>
