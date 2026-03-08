@@ -1,7 +1,54 @@
 import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  return NextResponse.json({ ok: true, ts: Date.now() })
+  const checks: Record<string, unknown> = { ts: Date.now() }
+  let allOk = true
+
+  // ── Supabase connectivity ─────────────────────────────────────────────────
+  try {
+    const supabase = createServiceClient()
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, slug, ultravox_agent_id')
+      .eq('status', 'active')
+      .limit(10)
+
+    if (error) throw error
+    checks.supabase = 'ok'
+
+    // ── Ultravox agent liveness ─────────────────────────────────────────────
+    const agentClients = (data ?? []).filter(c => c.ultravox_agent_id)
+    const agentChecks: Record<string, string> = {}
+
+    await Promise.all(agentClients.map(async (c) => {
+      try {
+        const res = await fetch(`https://api.ultravox.ai/api/agents/${c.ultravox_agent_id}`, {
+          headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! },
+        })
+        if (!res.ok) {
+          agentChecks[c.slug] = `http_${res.status}`
+          allOk = false
+          return
+        }
+        const body = await res.json()
+        agentChecks[c.slug] = body.publishedRevisionId ? 'ok' : 'draft_uncallable'
+        if (!body.publishedRevisionId) allOk = false
+      } catch (err) {
+        agentChecks[c.slug] = `error:${err instanceof Error ? err.message : String(err)}`
+        allOk = false
+      }
+    }))
+
+    checks.agents = agentChecks
+
+  } catch (err) {
+    checks.supabase = `error:${err instanceof Error ? err.message : String(err)}`
+    allOk = false
+  }
+
+  checks.ok = allOk
+  return NextResponse.json(checks, { status: allOk ? 200 : 503 })
 }

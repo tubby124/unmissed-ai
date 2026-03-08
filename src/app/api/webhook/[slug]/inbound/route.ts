@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
+import { sendAlert } from '@/lib/telegram'
 
 export const maxDuration = 15
 
@@ -99,7 +100,19 @@ export async function POST(
       })
     }
   } catch (error) {
-    console.error('[inbound] Ultravox call creation failed:', error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error('[inbound] Ultravox call creation failed:', errMsg)
+
+    // Alert operator via Telegram — missed call is revenue lost
+    if (client.telegram_bot_token && client.telegram_chat_id) {
+      const via = client.ultravox_agent_id ? 'Agents API' : 'createCall'
+      sendAlert(
+        client.telegram_bot_token,
+        client.telegram_chat_id,
+        `🚨 <b>CALL CREATION FAILED</b> [${slug}]\nCaller: ${callerPhone}\nMethod: ${via}\nError: ${errMsg.slice(0, 300)}`
+      ).catch(() => {}) // fire-and-forget, already logged inside sendAlert
+    }
+
     const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response><Say voice="alice">Sorry, we're experiencing technical difficulties. Please try again shortly.</Say></Response>`
     return new NextResponse(fallbackTwiml, { headers: { 'Content-Type': 'text/xml' } })

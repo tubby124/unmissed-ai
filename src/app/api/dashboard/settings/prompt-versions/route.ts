@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { updateAgent } from '@/lib/ultravox'
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
@@ -69,6 +70,19 @@ export async function POST(req: NextRequest) {
 
   await supabase.from('prompt_versions').update({ is_active: false }).eq('client_id', client_id)
   await supabase.from('prompt_versions').update({ is_active: true }).eq('id', version_id)
+
+  // Sync restored prompt to Ultravox agent (if one exists)
+  const { data: clientRow } = await supabase
+    .from('clients')
+    .select('ultravox_agent_id')
+    .eq('id', client_id)
+    .single()
+
+  if (clientRow?.ultravox_agent_id) {
+    updateAgent(clientRow.ultravox_agent_id, { systemPrompt: versionRow.content })
+      .then(() => console.log(`[prompt-versions] Ultravox agent ${clientRow.ultravox_agent_id} synced to v${versionRow.version}`))
+      .catch(err => console.error(`[prompt-versions] Ultravox agent sync failed: ${err}`))
+  }
 
   return NextResponse.json({ ok: true, restored_version: versionRow.version })
 }
