@@ -41,11 +41,20 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  let ultravox_synced = false
+  let ultravox_error: string | undefined
+
   if (client?.ultravox_agent_id) {
-    updateAgent(client.ultravox_agent_id, { voice: voiceId })
-      .then(() => console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`))
-      .catch(err => console.error(`[voices] Agent voice sync failed: ${err}`))
+    try {
+      await updateAgent(client.ultravox_agent_id, { voice: voiceId })
+      console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`)
+      ultravox_synced = true
+    } catch (err) {
+      ultravox_error = err instanceof Error ? err.message : String(err)
+      console.error(`[voices] Agent voice sync failed: ${ultravox_error}`)
+      // Don't fail — Supabase save succeeded
+    }
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, ultravox_synced, ...(ultravox_error ? { ultravox_error } : {}) })
 }

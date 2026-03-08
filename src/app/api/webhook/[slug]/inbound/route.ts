@@ -90,25 +90,43 @@ export async function POST(
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
   // ── Create Ultravox call ───────────────────────────────────────────────────
+  const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }
+  const promptWithContext = callerContext
+    ? client.system_prompt + `\n\n[${callerContext}]`
+    : client.system_prompt
+
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     if (client.ultravox_agent_id) {
       // Agents API — one persistent profile per client, lightweight per-call payload
       console.log(`[inbound] Agents API: agentId=${client.ultravox_agent_id}`)
-      ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
-        callbackUrl: rawCallbackUrl,
-        metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
-        ...(callerContext ? { callerContext } : {}),
-      })
+      try {
+        ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
+          callbackUrl: rawCallbackUrl,
+          metadata: callMeta,
+          ...(callerContext ? { callerContext } : {}),
+        })
+      } catch (agentErr) {
+        // Safety net: Agents API failed — use Supabase prompt directly via createCall
+        console.error(`[inbound] Agents API failed (${agentErr}), falling back to createCall with Supabase prompt`)
+        ultravoxCall = await createCall({
+          systemPrompt: promptWithContext,
+          voice: client.agent_voice_id,
+          tools,
+          callbackUrl: rawCallbackUrl,
+          metadata: callMeta,
+        })
+        console.log(`[inbound] createCall fallback succeeded: callId=${ultravoxCall.callId}`)
+      }
     } else {
-      // Per-call creation — fallback when no Agents API profile set up yet
+      // Per-call creation — no Agents API profile set up yet
       console.log(`[inbound] Per-call creation (no agentId for slug=${slug})`)
       ultravoxCall = await createCall({
-        systemPrompt: callerContext ? client.system_prompt + `\n\n[${callerContext}]` : client.system_prompt,
+        systemPrompt: promptWithContext,
         voice: client.agent_voice_id,
         tools,
         callbackUrl: rawCallbackUrl,
-        metadata: { caller_phone: callerPhone, client_slug: slug, client_id: client.id },
+        metadata: callMeta,
       })
     }
   } catch (error) {

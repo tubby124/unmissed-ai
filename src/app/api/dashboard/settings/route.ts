@@ -5,26 +5,19 @@ import { updateAgent } from '@/lib/ultravox'
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
 
-  // Verify session
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
+  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
 
-  // Get the user's client + role
   const { data: cu } = await supabase
     .from('client_users')
     .select('client_id, role')
     .eq('user_id', user.id)
     .single()
 
-  if (!cu) {
-    return new NextResponse('No client found', { status: 404 })
-  }
+  if (!cu) return new NextResponse('No client found', { status: 404 })
 
   const body = await req.json().catch(() => ({}))
 
-  // Admin can edit any client by passing client_id in body
   let targetClientId = cu.client_id
   if (cu.role === 'admin' && body.client_id) {
     targetClientId = body.client_id
@@ -63,16 +56,18 @@ export async function PATCH(req: NextRequest) {
     return new NextResponse('Nothing to update', { status: 400 })
   }
 
+  // 1 — Save to Supabase
   const { error } = await supabase
     .from('clients')
     .update(updates)
     .eq('id', targetClientId)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Sync new system_prompt to Ultravox Agent (if one exists for this client)
+  // 2 — Sync system_prompt to Ultravox Agent (awaited — surface failures to caller)
+  let ultravox_synced = false
+  let ultravox_error: string | undefined
+
   if (typeof updates.system_prompt === 'string') {
     const { data: clientRow } = await supabase
       .from('clients')
@@ -81,12 +76,18 @@ export async function PATCH(req: NextRequest) {
       .single()
 
     if (clientRow?.ultravox_agent_id) {
-      updateAgent(clientRow.ultravox_agent_id, { systemPrompt: updates.system_prompt as string })
-        .then(() => console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} prompt synced`))
-        .catch(err => console.error(`[settings] Ultravox agent sync failed: ${err}`))
+      try {
+        await updateAgent(clientRow.ultravox_agent_id, { systemPrompt: updates.system_prompt as string })
+        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} prompt synced`)
+        ultravox_synced = true
+      } catch (err) {
+        ultravox_error = err instanceof Error ? err.message : String(err)
+        console.error(`[settings] Ultravox agent sync failed: ${ultravox_error}`)
+        // Don't fail the whole request — Supabase save succeeded
+      }
     }
 
-    // Record this as a new prompt version
+    // Record prompt version
     const { data: latestVersion } = await supabase
       .from('prompt_versions')
       .select('version')
@@ -97,7 +98,6 @@ export async function PATCH(req: NextRequest) {
 
     const nextVersion = (latestVersion?.version ?? 0) + 1
 
-    // Deactivate all previous versions then insert new active one
     await supabase
       .from('prompt_versions')
       .update({ is_active: false })
@@ -112,5 +112,5 @@ export async function PATCH(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, ultravox_synced, ...(ultravox_error ? { ultravox_error } : {}) })
 }

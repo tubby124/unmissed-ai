@@ -169,6 +169,18 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [versionsLoading, setVersionsLoading] = useState(false)
   const [restoring, setRestoring] = useState<string | null>(null)
 
+  // Re-sync Agent
+  const [syncing, setSyncing] = useState(false)
+  const [syncState, setSyncState] = useState<'idle' | 'ok' | 'error'>('idle')
+  const [syncError, setSyncError] = useState('')
+  const [saveUltravoxWarning, setSaveUltravoxWarning] = useState<string | null>(null)
+
+  // Test Call
+  const [testPhone, setTestPhone] = useState('')
+  const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
+  const [testCallResult, setTestCallResult] = useState<{ callId?: string; twilio_sid?: string } | null>(null)
+  const [testCallError, setTestCallError] = useState('')
+
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
@@ -190,6 +202,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   async function save() {
     setSaving(true)
     setSaved(false)
+    setSaveUltravoxWarning(null)
     const body: Record<string, unknown> = { system_prompt: currentPrompt }
     if (isAdmin) body.client_id = client.id
     const res = await fetch('/api/dashboard/settings', {
@@ -198,8 +211,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       body: JSON.stringify(body),
     })
     if (res.ok) {
+      const data = await res.json().catch(() => ({}))
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      if (!data.ultravox_synced && data.ultravox_error) {
+        setSaveUltravoxWarning(`Ultravox sync failed: ${data.ultravox_error}. Use "Re-sync Agent" to retry.`)
+      }
     }
     setSaving(false)
   }
@@ -315,10 +332,64 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      // Reload page to reflect restored prompt
       window.location.reload()
     }
     setRestoring(null)
+  }
+
+  async function syncAgent() {
+    setSyncing(true)
+    setSyncState('idle')
+    setSyncError('')
+    const body: Record<string, unknown> = {}
+    if (isAdmin) body.client_id = client.id
+    try {
+      const res = await fetch('/api/dashboard/settings/sync-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setSyncState('ok')
+        setSaveUltravoxWarning(null)
+        setTimeout(() => setSyncState('idle'), 3000)
+      } else {
+        setSyncState('error')
+        setSyncError(data.error || 'Sync failed')
+      }
+    } catch {
+      setSyncState('error')
+      setSyncError('Network error')
+    }
+    setSyncing(false)
+  }
+
+  async function fireTestCall() {
+    if (!testPhone.trim()) return
+    setTestCallState('calling')
+    setTestCallResult(null)
+    setTestCallError('')
+    const body: Record<string, unknown> = { to_phone: testPhone.trim() }
+    if (isAdmin) body.client_id = client.id
+    try {
+      const res = await fetch('/api/dashboard/test-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setTestCallState('done')
+        setTestCallResult({ callId: data.callId, twilio_sid: data.twilio_sid })
+      } else {
+        setTestCallState('error')
+        setTestCallError(data.error || 'Failed to start test call')
+      }
+    } catch {
+      setTestCallState('error')
+      setTestCallError('Network error')
+    }
   }
 
   return (
@@ -449,6 +520,26 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         <ConfigRow label="Client ID" value={client.id} copyValue={client.id} />
         {client.telegram_chat_id && (
           <ConfigRow label="Telegram Chat" value={client.telegram_chat_id} copyValue={client.telegram_chat_id} />
+        )}
+        {client.ultravox_agent_id && (
+          <div className="flex items-center gap-3 pt-3 mt-1 border-t border-white/[0.04]">
+            <button
+              onClick={syncAgent}
+              disabled={syncing}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 ${
+                syncState === 'ok'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : syncState === 'error'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-white/[0.07] hover:text-zinc-200'
+              }`}
+            >
+              {syncing ? 'Syncing…' : syncState === 'ok' ? '✓ Synced' : syncState === 'error' ? '✗ Sync failed' : 'Re-sync Agent'}
+            </button>
+            <span className="text-[11px] text-zinc-600">
+              {syncState === 'error' ? syncError : 'Force-push current prompt + voice to Ultravox'}
+            </span>
+          </div>
         )}
       </div>
 
@@ -620,6 +711,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
         )}
 
+        {saveUltravoxWarning && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0">
+              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
+          </div>
+        )}
+
         <textarea
           value={currentPrompt}
           onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
@@ -767,6 +867,61 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* 8 — Test Call */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-1">Test Call</p>
+        <p className="text-[11px] text-zinc-600 mb-4">
+          Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="tel"
+            value={testPhone}
+            onChange={e => setTestPhone(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && fireTestCall()}
+            placeholder="+14031234567"
+            disabled={testCallState === 'calling'}
+            className="flex-1 bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+          />
+          <button
+            onClick={fireTestCall}
+            disabled={!testPhone.trim() || testCallState === 'calling'}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-all disabled:opacity-40 disabled:bg-zinc-700 shrink-0"
+          >
+            {testCallState === 'calling' ? 'Dialing…' : 'Call Me'}
+          </button>
+        </div>
+
+        {testCallState === 'done' && testCallResult && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-[11px] text-green-400/90">
+              Call started — SID: <span className="font-mono">{testCallResult.twilio_sid?.slice(-8)}</span>
+            </span>
+            <button
+              onClick={() => setTestCallState('idle')}
+              className="ml-auto text-[10px] text-zinc-600 hover:text-zinc-400"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {testCallState === 'error' && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
+            <span className="text-[11px] text-red-400/90 flex-1">{testCallError}</span>
+            <button
+              onClick={() => setTestCallState('idle')}
+              className="text-[10px] text-zinc-600 hover:text-zinc-400"
+            >
+              Dismiss
+            </button>
           </div>
         )}
       </div>

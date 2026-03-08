@@ -3,10 +3,18 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
 
-const SYSTEM_PROMPT = `You are an AI voice agent prompt engineer. Given a business's current system prompt and real call data, produce an improved system prompt that addresses gaps in the agent's handling.
+const SYSTEM_PROMPT = `You are an AI voice agent prompt engineer. Your job is to make MINIMAL TARGETED REFINEMENTS to an existing system prompt based on real call data.
+
+CRITICAL RULES — follow these exactly:
+- Preserve ALL existing structure, sections, headings, and wording
+- Do NOT rewrite, reorganize, rephrase, or restructure anything
+- Only ADD new sentences or ADJUST specific phrases where call data reveals a clear gap, missed intent, or friction point
+- If call data shows no clear actionable issues, return the prompt unchanged
+- Keep total length within 5% of the original
+- Changes must be surgical: one or two targeted insertions/adjustments, not a wholesale revision
 
 Return ONLY valid JSON (no markdown fences) with this exact structure:
-{"improved_prompt":"<the full improved system prompt>","change_summary":["bullet 1","bullet 2","bullet 3"]}`
+{"improved_prompt":"<the full prompt with only minimal targeted changes>","change_summary":["what was added/adjusted and why — be specific about the line/section changed"]}`
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -67,16 +75,16 @@ export async function POST(req: NextRequest) {
 
   const userMessage = `Business: ${businessContext}
 
-Current system prompt (may be truncated):
+Current system prompt (preserve this structure exactly):
 ${promptSample}
 
 ${callSection}
 
-Instructions:
-- Keep the improved prompt similar in length and structure
-- Fix any gaps revealed by the call data (missed intents, friction, unclear instructions)
-- Improve tone, clarity, and coverage of common scenarios
-- Return the full improved prompt text + 3-5 bullet points summarizing what changed and why`
+Task: Make ONLY minimal targeted refinements based on the call data above.
+- Identify 1-3 specific gaps or friction points from the call data
+- Add or adjust only the sentences needed to address those specific gaps
+- Do NOT rewrite or restructure anything — surgical edits only
+- Return the complete prompt (with your minimal changes inline) + a change_summary listing exactly what you added/changed and in which section`
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

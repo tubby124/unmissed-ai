@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
-  if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
+  if (!cu || cu.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))
-  const clientId = body.client_id ?? cu.client_id
+  // Admin can target any client; owners can only test their own
+  const clientId = cu.role === 'admin' ? (body.client_id ?? cu.client_id) : cu.client_id
   const toPhone: string = body.to_phone
 
   if (!toPhone) return NextResponse.json({ error: 'to_phone required (E.164 format)' }, { status: 400 })
