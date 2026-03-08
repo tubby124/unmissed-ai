@@ -130,13 +130,13 @@ export async function classifyCall(
     }
 
     const result: CallClassification = {
-      status: (['HOT', 'WARM', 'COLD', 'JUNK'] as const).includes(parsed.status as string) ? parsed.status as CallClassification['status'] : 'COLD',
+      status: (['HOT', 'WARM', 'COLD', 'JUNK'] as string[]).includes(parsed.status as string) ? parsed.status as CallClassification['status'] : 'COLD',
       summary: typeof parsed.summary === 'string' ? parsed.summary : fallback.summary,
-      serviceType: (['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as const).includes(parsed.serviceType as string)
+      serviceType: (['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as string[]).includes(parsed.serviceType as string)
         ? parsed.serviceType as CallClassification['serviceType']
         : 'other',
       confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.confidence))) : 0,
-      sentiment: (['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as const).includes(parsed.sentiment as string)
+      sentiment: (['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as string[]).includes(parsed.sentiment as string)
         ? parsed.sentiment as CallClassification['sentiment']
         : 'neutral',
       key_topics: Array.isArray(parsed.key_topics) ? (parsed.key_topics as unknown[]).slice(0, 4).map(String) : [],
