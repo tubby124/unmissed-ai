@@ -58,7 +58,7 @@ const NAV = [
   },
 ]
 
-export default function MobileNav({ businessName }: { businessName?: string }) {
+export default function MobileNav({ businessName }: { businessName?: string; isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()

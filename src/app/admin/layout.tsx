@@ -12,6 +12,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <Link href="/admin/prompt" className="text-gray-400 hover:text-white transition-colors">
           Prompt
         </Link>
+        <Link href="/admin/test-lab" className="text-gray-400 hover:text-white transition-colors">
+          Test Lab
+        </Link>
+        <Link href="/admin/insights" className="text-gray-400 hover:text-white transition-colors">
+          Insights
+        </Link>
       </nav>
       {children}
     </div>

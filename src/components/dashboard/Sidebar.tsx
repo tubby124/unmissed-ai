@@ -10,6 +10,7 @@ const NAV = [
   {
     href: '/dashboard/calls',
     label: 'Calls',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -19,6 +20,7 @@ const NAV = [
   {
     href: '/dashboard/campaigns',
     label: 'Campaigns',
+    adminOnly: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -30,6 +32,7 @@ const NAV = [
   {
     href: '/dashboard/leads',
     label: 'Lead Queue',
+    adminOnly: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -39,6 +42,7 @@ const NAV = [
   {
     href: '/dashboard/voices',
     label: 'Voices',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -47,8 +51,29 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/test-lab',
+    label: 'Test Lab',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/insights',
+    label: 'Insights',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M2 20h20M6 20V10M12 20V4M18 20v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
@@ -60,9 +85,11 @@ const NAV = [
 
 interface SidebarProps {
   businessName?: string
+  isAdmin?: boolean
+  clientId?: string | null
 }
 
-export default function Sidebar({ businessName }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -72,10 +99,12 @@ export default function Sidebar({ businessName }: SidebarProps) {
 
   useEffect(() => {
     async function loadCounts() {
-      const { data } = await supabase
+      let q = supabase
         .from('call_logs')
         .select('call_status')
         .in('call_status', ['live', 'processing'])
+      if (!isAdmin && clientId) q = q.eq('client_id', clientId)
+      const { data } = await q
       if (!data) return
       setLiveCount(data.filter(r => r.call_status === 'live').length)
       setProcessingCount(data.filter(r => r.call_status === 'processing').length)
@@ -135,7 +164,7 @@ export default function Sidebar({ businessName }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {NAV.map(item => {
+        {NAV.filter(item => !item.adminOnly || isAdmin).map(item => {
           const active = pathname.startsWith(item.href)
           const isCalls = item.href === '/dashboard/calls'
           return (
