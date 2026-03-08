@@ -61,17 +61,12 @@ export async function getTranscript(callId: string) {
     data.results || []
 
   return messages
-    .filter(m => m.role === 'MESSAGE_ROLE_AGENT' || m.role === 'MESSAGE_ROLE_USER')
+    .filter(m =>
+      (m.role === 'MESSAGE_ROLE_AGENT' || m.role === 'MESSAGE_ROLE_USER') &&
+      typeof m.text === 'string' && m.text.trim()
+    )
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,
     }))
-}
-
-export async function getRecordingStream(callId: string): Promise<Response> {
-  const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}/recording`, {
-    headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! },
-    redirect: 'follow',
-  })
-  return res
 }

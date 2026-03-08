@@ -20,15 +20,31 @@ export async function POST(
     return new NextResponse('Bad Request', { status: 400 })
   }
 
-  const callId = (payload.callId || payload.call_id) as string | undefined
+  // Ultravox webhook payload: { event: "call.ended", call: { callId, created, joined, ended, endReason, shortSummary, metadata } }
+  const callData = payload.call as Record<string, unknown> | undefined
+  const callId = (callData?.callId || payload.callId || payload.call_id) as string | undefined
+
   if (!callId) {
+    console.error('[completed] Missing callId in payload:', JSON.stringify(payload).slice(0, 500))
     return new NextResponse('Missing callId', { status: 400 })
   }
 
-  const metadata = (payload.metadata || {}) as Record<string, string>
-  const callerPhone = metadata.caller_phone || 'unknown'
+  // Duration from Ultravox timestamps (no separate duration field)
+  let durationSeconds = 0
+  if (callData?.joined && callData?.ended) {
+    durationSeconds = Math.round(
+      (new Date(callData.ended as string).getTime() - new Date(callData.joined as string).getTime()) / 1000
+    )
+  }
 
-  // Return 200 IMMEDIATELY — Ultravox fires this 3-4x
+  // Metadata we injected at call creation: { caller_phone, client_slug, client_id }
+  const metadata = (callData?.metadata || payload.metadata || {}) as Record<string, string>
+  const callerPhone = metadata.caller_phone || 'unknown'
+  const endReason = (callData?.endReason as string | undefined) || null
+  const ultravoxSummary = (callData?.shortSummary as string | undefined) || null
+  const endedAt = (callData?.ended as string | undefined) || new Date().toISOString()
+
+  // Return 200 IMMEDIATELY — Ultravox fires this up to 10x with exponential backoff
   after(async () => {
     try {
       const supabase = createServiceClient()
@@ -72,8 +88,6 @@ export async function POST(
       // Classify with Claude Haiku via OpenRouter
       const classification = await classifyCall(transcript)
 
-      const durationSeconds = typeof payload.duration === 'number' ? payload.duration : 0
-
       // Update call_log with full data
       await supabase
         .from('call_logs')
@@ -81,10 +95,11 @@ export async function POST(
           client_id: client.id,
           transcript,
           call_status: classification.status,
-          ai_summary: classification.summary,
+          ai_summary: classification.summary || ultravoxSummary || null,
           service_type: classification.serviceType,
           duration_seconds: durationSeconds,
-          ended_at: new Date().toISOString(),
+          ended_at: endedAt,
+          end_reason: endReason,
         })
         .eq('ultravox_call_id', callId)
 
@@ -107,10 +122,11 @@ export async function POST(
           `${statusEmoji} <b>${classification.status} LEAD</b>`,
           `📱 ${callerPhone}`,
           `⏱ ${durationStr}`,
-          `📝 ${classification.summary}`,
+          `📝 ${classification.summary || ultravoxSummary || 'No summary'}`,
           classification.serviceType !== 'other'
             ? `🏷 ${classification.serviceType}`
             : '',
+          endReason ? `📋 ${endReason}` : '',
         ]
           .filter(Boolean)
           .join('\n')

@@ -64,6 +64,7 @@ export async function POST(
     ultravox_call_id: ultravoxCall.callId,
     client_id: client.id,
     caller_phone: callerPhone,
+    twilio_call_sid: body.CallSid || null,
     call_status: 'live',
     started_at: new Date().toISOString(),
   }).then(({ error }) => {
