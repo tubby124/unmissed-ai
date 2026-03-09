@@ -71,13 +71,16 @@ export async function PATCH(req: NextRequest) {
   if (typeof updates.system_prompt === 'string') {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('ultravox_agent_id')
+      .select('ultravox_agent_id, agent_voice_id')
       .eq('id', targetClientId)
       .single()
 
     if (clientRow?.ultravox_agent_id) {
       try {
-        await updateAgent(clientRow.ultravox_agent_id, { systemPrompt: updates.system_prompt as string })
+        await updateAgent(clientRow.ultravox_agent_id, {
+          systemPrompt: updates.system_prompt as string,
+          ...(clientRow.agent_voice_id ? { voice: clientRow.agent_voice_id } : {}),
+        })
         console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} prompt synced`)
         ultravox_synced = true
       } catch (err) {

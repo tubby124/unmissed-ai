@@ -138,8 +138,23 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
 
 /** Update an existing agent's config (call after saving a new system prompt). */
 export async function updateAgent(agentId: string, updates: Partial<AgentConfig>): Promise<void> {
-  // Updates MUST be nested inside callTemplate — top-level fields are silently ignored
-  const callTemplate: Record<string, unknown> = {}
+  // Always include the full standard defaults — Ultravox PATCH replaces the entire callTemplate
+  // in the new revision, so omitting any field wipes it from the live config.
+  const callTemplate: Record<string, unknown> = {
+    model: 'ultravox-v0.7',
+    maxDuration: '600s',
+    medium: { twilio: {} },
+    recordingEnabled: true,
+    vadSettings: DEFAULT_VAD,
+    inactivityMessages: DEFAULT_INACTIVITY,
+    timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
+    contextSchema: {
+      type: 'object',
+      properties: { callerContext: { type: 'string' } },
+    },
+  }
+
+  // Client-specific overrides
   if (updates.systemPrompt !== undefined) {
     // Preserve {{callerContext}} placeholder for templateContext injection per call
     callTemplate.systemPrompt = updates.systemPrompt.includes('{{callerContext}}')
@@ -225,10 +240,13 @@ export async function getTranscript(callId: string) {
   }> = data.results || []
 
   const filtered = messages
-    .filter(m =>
-      (m.role === 'MESSAGE_ROLE_AGENT' || m.role === 'MESSAGE_ROLE_USER') &&
-      typeof m.text === 'string' && m.text.trim()
-    )
+    .filter(m => {
+      if (typeof m.text !== 'string' || !m.text.trim()) return false
+      if (m.role === 'MESSAGE_ROLE_AGENT') return true
+      // Exclude Ultravox platform trigger messages (e.g. "(New Call) Respond as if...") — medium is 'text', not 'voice'
+      if (m.role === 'MESSAGE_ROLE_USER') return m.medium === 'voice'
+      return false
+    })
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,

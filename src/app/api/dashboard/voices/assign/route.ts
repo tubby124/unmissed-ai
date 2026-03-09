@@ -32,21 +32,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No client found' }, { status: 400 })
   }
 
-  const { data: client, error } = await supabase
+  const { error } = await supabase
     .from('clients')
     .update({ agent_voice_id: voiceId })
     .eq('id', targetClientId)
-    .select('ultravox_agent_id')
-    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Fetch full client row — need both agentId and current prompt to avoid wiping config on PATCH
+  const { data: client } = await supabase
+    .from('clients')
+    .select('ultravox_agent_id, system_prompt')
+    .eq('id', targetClientId)
+    .single()
 
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
   if (client?.ultravox_agent_id) {
     try {
-      await updateAgent(client.ultravox_agent_id, { voice: voiceId })
+      await updateAgent(client.ultravox_agent_id, {
+        voice: voiceId,
+        ...(client.system_prompt ? { systemPrompt: client.system_prompt } : {}),
+      })
       console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`)
       ultravox_synced = true
     } catch (err) {
