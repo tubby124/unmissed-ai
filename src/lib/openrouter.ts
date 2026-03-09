@@ -22,7 +22,7 @@ function buildSystemPrompt(businessContext?: string, classificationHints?: strin
   const hintsBlock = classificationHints
     ? `\nCLIENT-SPECIFIC RULES:\n${classificationHints}\n`
     : ''
-  return `You classify inbound call transcripts for ${business} and return a single JSON object.${hintsBlock}
+  return `You classify inbound call transcripts for ${business} and return a single JSON object. Respond ONLY with the JSON object — no markdown fences, no explanation text.${hintsBlock}
 
 Required fields — return ALL 8, no others:
 {"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100}
@@ -134,8 +134,18 @@ export async function classifyCall(
       return unknownFallback
     }
 
-    // Strip markdown fences — some OpenRouter providers ignore response_format
-    const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+    // Robust JSON extraction — Anthropic models on OpenRouter ignore response_format
+    // and return markdown-fenced JSON. The fence may have extra prose after the closing
+    // fence (Claude explanation text), so simple start/end anchor regex fails.
+    // Strategy: 1) extract JSON from inside fences, 2) fallback to first{...last}
+    const fencedMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+    const cleaned = fencedMatch
+      ? fencedMatch[1].trim()
+      : (() => {
+          const s = content.indexOf('{')
+          const e = content.lastIndexOf('}')
+          return s !== -1 && e > s ? content.slice(s, e + 1) : content.trim()
+        })()
 
     let parsed: Record<string, unknown>
     try {

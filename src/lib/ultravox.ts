@@ -162,7 +162,8 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
       : updates.systemPrompt + '\n\n{{callerContext}}'
   }
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
-  if (updates.tools !== undefined) callTemplate.selectedTools = updates.tools
+  // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
+  callTemplate.selectedTools = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',
