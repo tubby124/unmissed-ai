@@ -67,6 +67,12 @@ export default function Navbar() {
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
           <Link
+            href="/login"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
             href="/onboard"
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: "#3B82F6" }}
@@ -139,6 +145,14 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
           >
             Get My Agent →
+          </Link>
+          <Link
+            href="/login"
+            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-center border"
+            style={{ color: "#9CA3AF", borderColor: "#1F1F1F", backgroundColor: "transparent" }}
+            onClick={() => setOpen(false)}
+          >
+            Sign In to Dashboard
           </Link>
           <a
             href="tel:+15873551834"

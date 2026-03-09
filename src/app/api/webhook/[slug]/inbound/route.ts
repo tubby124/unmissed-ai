@@ -33,7 +33,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, ultravox_agent_id, tools')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -142,7 +142,8 @@ export async function POST(
       sendAlert(
         client.telegram_bot_token,
         client.telegram_chat_id,
-        `🚨 <b>CALL CREATION FAILED</b> [${slug}]\nCaller: ${callerPhone}\nMethod: ${via}\nError: ${errMsg.slice(0, 300)}`
+        `🚨 <b>CALL CREATION FAILED</b> [${slug}]\nCaller: ${callerPhone}\nMethod: ${via}\nError: ${errMsg.slice(0, 300)}`,
+        client.telegram_chat_id_2 ?? undefined
       ).catch(() => {}) // fire-and-forget, already logged inside sendAlert
     }
 

@@ -85,7 +85,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, sms_enabled, sms_template, twilio_number, classification_rules')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, sms_enabled, sms_template, twilio_number, classification_rules')
         .eq('slug', slug)
         .single()
 
@@ -185,7 +185,7 @@ export async function POST(
           message = `🗑️ <b>JUNK — ${bizName}</b> | ${callerPhone} | ⏱ ${durationStr} | ${junkType}\nNo action required.`
         }
 
-        const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message)
+        const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
         if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
       } else {
         console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
