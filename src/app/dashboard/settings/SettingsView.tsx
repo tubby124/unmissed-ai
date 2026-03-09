@@ -176,6 +176,19 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [syncError, setSyncError] = useState('')
   const [saveUltravoxWarning, setSaveUltravoxWarning] = useState<string | null>(null)
 
+  // SMS Follow-up
+  const [smsEnabled, setSmsEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.sms_enabled ?? false]))
+  )
+  const [smsTemplate, setSmsTemplate] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.sms_template ?? '']))
+  )
+  const [smsSaving, setSmsSaving] = useState(false)
+  const [smsSaved, setSmsSaved] = useState(false)
+  const [testSmsPhone, setTestSmsPhone] = useState('')
+  const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
+  const [testSmsError, setTestSmsError] = useState('')
+
   // Test Call
   const [testPhone, setTestPhone] = useState('')
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -382,6 +395,52 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       setSyncError('Network error')
     }
     setSyncing(false)
+  }
+
+  async function saveSms() {
+    setSmsSaving(true)
+    setSmsSaved(false)
+    const body: Record<string, unknown> = {
+      sms_enabled: smsEnabled[client.id],
+      sms_template: smsTemplate[client.id],
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSmsSaving(false)
+    if (res.ok) {
+      setSmsSaved(true)
+      setTimeout(() => setSmsSaved(false), 3000)
+    }
+  }
+
+  async function fireTestSms() {
+    if (!testSmsPhone.trim()) return
+    setTestSmsState('sending')
+    setTestSmsError('')
+    const body: Record<string, unknown> = { to_phone: testSmsPhone.trim() }
+    if (isAdmin) body.client_id = client.id
+    try {
+      const res = await fetch('/api/dashboard/settings/test-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
+        setTestSmsState('done')
+        setTimeout(() => setTestSmsState('idle'), 4000)
+      } else {
+        setTestSmsState('error')
+        setTestSmsError(data.error || 'Send failed — check Twilio config.')
+      }
+    } catch {
+      setTestSmsState('error')
+      setTestSmsError('Network error')
+    }
   }
 
   async function fireTestCall() {
@@ -900,7 +959,113 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         )}
       </div>
 
-      {/* 8 — Test Call */}
+      {/* 8 — SMS Follow-up */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">SMS Follow-up</p>
+            <p className="text-[11px] text-zinc-600 mt-0.5">Sent to the caller after each call ends. Powered by Twilio.</p>
+          </div>
+          <button
+            onClick={saveSms}
+            disabled={smsSaving}
+            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              smsSaved
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                : 'bg-blue-500 hover:bg-blue-400 text-white'
+            } disabled:opacity-40`}
+          >
+            {smsSaving ? 'Saving…' : smsSaved ? '✓ Saved' : 'Save SMS Config'}
+          </button>
+        </div>
+
+        {/* Toggle */}
+        <div className="flex items-center gap-3 py-3 border-b border-white/[0.04]">
+          <button
+            onClick={() => setSmsEnabled(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
+            className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled[client.id] ? 'bg-blue-500' : 'bg-zinc-700'}`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${smsEnabled[client.id] ? 'left-4' : 'left-0.5'}`} />
+          </button>
+          <span className="text-xs text-zinc-400">
+            {smsEnabled[client.id] ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
+          </span>
+        </div>
+
+        {/* Template editor */}
+        <div className="mt-3">
+          <label className="text-[11px] text-zinc-500 block mb-1.5">Message Template</label>
+          <textarea
+            value={smsTemplate[client.id] ?? ''}
+            onChange={e => setSmsTemplate(prev => ({ ...prev, [client.id]: e.target.value }))}
+            disabled={!smsEnabled[client.id]}
+            rows={3}
+            className="w-full bg-black/20 border border-white/[0.06] rounded-xl p-3 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            placeholder="Thanks for calling {{business}}! We'll follow up shortly."
+          />
+          <p className="text-[10px] text-zinc-600 mt-1">
+            Placeholders: <span className="font-mono text-zinc-500">{'{{business}}'}</span> = business name &nbsp;·&nbsp; <span className="font-mono text-zinc-500">{'{{summary}}'}</span> = call summary excerpt
+          </p>
+        </div>
+
+        {/* Live preview */}
+        {smsTemplate[client.id] && (
+          <div className="mt-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+            <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Preview</p>
+            <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {(smsTemplate[client.id] ?? '')
+                .replace(/\{\{business\}\}/g, client.business_name || '')
+                .replace(/\{\{summary\}\}/g, '[call summary]')}
+            </p>
+          </div>
+        )}
+
+        {/* Test SMS */}
+        <div className="mt-4 pt-4 border-t border-white/[0.04]">
+          <p className="text-[11px] text-zinc-500 mb-2">Send a test SMS to verify delivery</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="tel"
+              value={testSmsPhone}
+              onChange={e => setTestSmsPhone(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && fireTestSms()}
+              placeholder="+14031234567"
+              disabled={testSmsState === 'sending'}
+              className="flex-1 bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+            />
+            <button
+              onClick={fireTestSms}
+              disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate[client.id]}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-all disabled:opacity-40 shrink-0"
+            >
+              {testSmsState === 'sending' ? 'Sending…' : 'Send Test'}
+            </button>
+          </div>
+
+          {testSmsState === 'done' && (
+            <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-[11px] text-green-400/90">SMS sent to {testSmsPhone}</span>
+            </div>
+          )}
+
+          {testSmsState === 'error' && (
+            <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
+              <span className="text-[11px] text-red-400/90 flex-1">{testSmsError}</span>
+              <button
+                onClick={() => setTestSmsState('idle')}
+                className="text-[10px] text-zinc-600 hover:text-zinc-400"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 9 — Test Call */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-1">Test Call</p>
         <p className="text-[11px] text-zinc-600 mb-4">

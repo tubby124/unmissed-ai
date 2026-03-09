@@ -32,6 +32,12 @@ export async function PATCH(req: NextRequest) {
   if (body.status === 'active' || body.status === 'paused') {
     updates.status = body.status
   }
+  if (typeof body.sms_enabled === 'boolean') {
+    updates.sms_enabled = body.sms_enabled
+  }
+  if (typeof body.sms_template === 'string') {
+    updates.sms_template = body.sms_template
+  }
 
   // God Mode fields — admin only
   if (cu.role === 'admin') {
