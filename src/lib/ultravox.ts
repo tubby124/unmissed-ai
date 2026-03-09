@@ -119,7 +119,8 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
     },
   }
 
-  if (tools?.length) callTemplate.selectedTools = tools
+  // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
+  callTemplate.selectedTools = tools?.length ? tools : [{ toolName: 'hangUp' }]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',

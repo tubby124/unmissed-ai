@@ -20,7 +20,7 @@ export default async function ClientsPage() {
 
   const { data: intakes } = await supabase
     .from('intake_submissions')
-    .select('id, submitted_at, status, progress_status, business_name, niche, client_id, intake_json')
+    .select('id, submitted_at, status, progress_status, business_name, niche, client_id, intake_json, owner_name, contact_email')
     .order('submitted_at', { ascending: false })
 
   const { data: clients } = await supabase

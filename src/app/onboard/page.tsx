@@ -36,7 +36,8 @@ function canAdvance(step: number, data: OnboardingData): boolean {
     case 1: return !!data.niche;
     case 2:
       return !!data.businessName && !!data.city && !!data.state
-        && countDigits(data.callbackPhone) >= 10;
+        && countDigits(data.callbackPhone) >= 10
+        && !!data.contactEmail.trim();
     case 3: {
       // Validate that no open day has close <= open
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
@@ -122,11 +123,11 @@ export default function OnboardPage() {
         body: JSON.stringify(data),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Provisioning failed");
+      if (!res.ok) throw new Error(json.error || "Submission failed");
       if (typeof window !== "undefined") {
         localStorage.removeItem(STORAGE_KEY);
       }
-      router.push(`/onboard/status?jobId=${json.jobId}`);
+      router.push("/onboard/status");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setIsSubmitting(false);

@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { OnboardingData, AgentTone } from "@/types/onboarding";
+import { OnboardingData, AgentTone, PrimaryGoal } from "@/types/onboarding";
 
 interface Props {
   data: OnboardingData;
@@ -17,6 +17,56 @@ export default function Step6({ data, onUpdate }: Props) {
         <p className="text-sm text-gray-500 mt-1">
           Optional — helps your agent handle edge cases and sound right for your brand.
         </p>
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">What should the agent primarily do on each call?</Label>
+        <div className="space-y-2">
+          {([
+            { value: "capture_info" as PrimaryGoal, label: "Capture info for callback", desc: "Collect customer details — your team calls back to quote and book" },
+            { value: "book_appointment" as PrimaryGoal, label: "Book the appointment directly", desc: "AI schedules the slot on the call — requires calendar integration" },
+            { value: "faq_only" as PrimaryGoal, label: "Answer questions only", desc: "Handle FAQs and hours — humans close the booking" },
+          ]).map((opt) => (
+            <label
+              key={opt.value}
+              className={`
+                flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
+                ${data.primaryGoal === opt.value
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+                }
+              `}
+            >
+              <input
+                type="radio"
+                name="primaryGoal"
+                value={opt.value}
+                checked={data.primaryGoal === opt.value}
+                onChange={() => onUpdate({ primaryGoal: opt.value })}
+                className="mt-0.5 accent-blue-600"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900">{opt.label}</span>
+                <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="completionFields">
+          What must be collected before hanging up?{" "}
+          <span className="text-gray-400 font-normal text-xs">(3–5 items max)</span>
+        </Label>
+        <Textarea
+          id="completionFields"
+          placeholder="e.g. vehicle year, make, model, preferred timing"
+          value={data.completionFields}
+          onChange={(e) => onUpdate({ completionFields: e.target.value })}
+          className="resize-none min-h-[80px]"
+        />
+        <p className="text-xs text-gray-400">The agent won&apos;t hang up until all of these are captured</p>
       </div>
 
       <div className="space-y-2">

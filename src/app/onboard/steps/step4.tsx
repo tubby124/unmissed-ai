@@ -8,6 +8,8 @@ import DentalNiche from "./niches/dental";
 import LegalNiche from "./niches/legal";
 import SalonNiche from "./niches/salon";
 import RealEstateNiche from "./niches/real-estate";
+import PropertyManagementNiche from "./niches/property-management";
+import OutboundIsaRealtorNiche from "./niches/outbound-isa-realtor";
 
 interface Props {
   data: OnboardingData;
@@ -23,6 +25,8 @@ const NICHE_COMPONENTS = {
   legal: LegalNiche,
   salon: SalonNiche,
   real_estate: RealEstateNiche,
+  property_management: PropertyManagementNiche,
+  outbound_isa_realtor: OutboundIsaRealtorNiche,
 } as const;
 
 export default function Step4({ data, onUpdate }: Props) {

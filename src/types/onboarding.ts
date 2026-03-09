@@ -8,6 +8,8 @@ export type Niche =
   | "legal"
   | "salon"
   | "real_estate"
+  | "property_management"
+  | "outbound_isa_realtor"
   | "other";
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
@@ -22,6 +24,8 @@ export interface BusinessHours {
   closed: boolean;
 }
 
+export type PrimaryGoal = 'capture_info' | 'book_appointment' | 'faq_only' | '';
+
 export interface OnboardingData {
   // Step 1
   niche: Niche | null;
@@ -32,6 +36,9 @@ export interface OnboardingData {
   state: string;
   agentName: string;
   callbackPhone: string;
+  ownerName: string;
+  contactEmail: string;
+  websiteUrl: string;
 
   // Step 3
   hours: {
@@ -57,6 +64,8 @@ export interface OnboardingData {
   callerFAQ: string;
   agentRestrictions: string;
   agentTone: AgentTone;
+  primaryGoal: PrimaryGoal;
+  completionFields: string;
 }
 
 export const defaultHours: BusinessHours = {
@@ -72,6 +81,9 @@ export const defaultOnboardingData: OnboardingData = {
   state: "",
   agentName: "",
   callbackPhone: "",
+  ownerName: "",
+  contactEmail: "",
+  websiteUrl: "",
   hours: {
     monday: { ...defaultHours },
     tuesday: { ...defaultHours },
@@ -89,6 +101,8 @@ export const defaultOnboardingData: OnboardingData = {
   callerFAQ: "",
   agentRestrictions: "",
   agentTone: "casual",
+  primaryGoal: "",
+  completionFields: "",
 };
 
 export const nicheLabels: Record<Niche, string> = {
@@ -99,6 +113,8 @@ export const nicheLabels: Record<Niche, string> = {
   legal: "Law Firm",
   salon: "Salon / Barbershop",
   real_estate: "Real Estate Agent",
+  property_management: "Property Management",
+  outbound_isa_realtor: "Realtor ISA (Outbound)",
   other: "Other Business",
 };
 
@@ -110,6 +126,8 @@ export const nicheEmojis: Record<Niche, string> = {
   legal: "⚖️",
   salon: "✂️",
   real_estate: "🏠",
+  property_management: "🏘️",
+  outbound_isa_realtor: "📞",
   other: "🏢",
 };
 
@@ -121,5 +139,7 @@ export const defaultAgentNames: Record<Niche, string> = {
   legal: "Jordan",
   salon: "Jamie",
   real_estate: "Alex",
+  property_management: "Jade",
+  outbound_isa_realtor: "Fatima",
   other: "Sam",
 };

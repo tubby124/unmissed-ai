@@ -128,6 +128,42 @@ export default function Step2({ data, onUpdate }: Props) {
           </p>
         )}
       </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="ownerName">Your name</Label>
+        <Input
+          id="ownerName"
+          placeholder="e.g. Mike Johnson"
+          value={data.ownerName}
+          onChange={(e) => onUpdate({ ownerName: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="contactEmail">Your email address</Label>
+        <Input
+          id="contactEmail"
+          type="email"
+          placeholder="mike@yourshop.com"
+          value={data.contactEmail}
+          onChange={(e) => onUpdate({ contactEmail: e.target.value })}
+        />
+        <p className="text-xs text-gray-400">We use this to send you setup updates — not shared with callers</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="websiteUrl">
+          Business website{" "}
+          <span className="text-gray-400 font-normal text-xs">(optional — helps us customize your agent)</span>
+        </Label>
+        <Input
+          id="websiteUrl"
+          type="url"
+          placeholder="https://yourshop.com"
+          value={data.websiteUrl}
+          onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
+        />
+      </div>
     </div>
   );
 }

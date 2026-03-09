@@ -11,6 +11,8 @@ interface Intake {
   niche: string | null
   client_id: string | null
   intake_json: Record<string, unknown> | null
+  owner_name: string | null
+  contact_email: string | null
 }
 
 interface Client {
@@ -53,8 +55,17 @@ function IntakeRow({ intake, onCreateAccount }: {
             <div>
               <p className="text-sm font-medium text-white">{intake.business_name}</p>
               <p className="text-xs text-zinc-500 capitalize">{intake.niche?.replace(/_/g, ' ') || '—'}</p>
+              {intake.owner_name && (
+                <p className="text-xs text-zinc-400 mt-0.5">{intake.owner_name}</p>
+              )}
             </div>
           </div>
+        </td>
+        <td className="px-4 py-3 text-xs text-zinc-400">
+          {intake.contact_email
+            ? <a href={`mailto:${intake.contact_email}`} className="hover:text-zinc-200 transition-colors" onClick={e => e.stopPropagation()}>{intake.contact_email}</a>
+            : <span className="text-zinc-600">—</span>
+          }
         </td>
         <td className="px-4 py-3 text-xs text-zinc-500">{date}</td>
         <td className="px-4 py-3">
@@ -84,7 +95,7 @@ function IntakeRow({ intake, onCreateAccount }: {
       </tr>
       {expanded && intake.intake_json && (
         <tr className="border-b border-white/[0.04]">
-          <td colSpan={5} className="px-4 py-4 bg-white/[0.01]">
+          <td colSpan={6} className="px-4 py-4 bg-white/[0.01]">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               {Object.entries(intake.intake_json)
                 .filter(([k]) => !k.startsWith('_') && !['hours', 'nicheAnswers'].includes(k))
@@ -256,6 +267,7 @@ export default function ClientsTable({ intakes, clients }: {
               <thead>
                 <tr className="border-b border-white/[0.06] bg-white/[0.02]">
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Business</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Contact</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Submitted</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Status</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Account</th>
