@@ -114,7 +114,7 @@ export async function classifyCall(
           { role: 'system', content: buildSystemPrompt(businessContext, classificationHints) },
           { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
         ],
-        max_tokens: 400,
+        max_tokens: 800,
         temperature: 0,
         response_format: { type: 'json_object' },
       }),
