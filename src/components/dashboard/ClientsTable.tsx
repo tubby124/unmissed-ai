@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Intake {
   id: string
@@ -28,9 +29,10 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'text-red-400 bg-red-500/10 border-red-500/20',
 }
 
-function IntakeRow({ intake, onCreateAccount }: {
+function IntakeRow({ intake, onCreateAccount, onGeneratePrompt }: {
   intake: Intake
   onCreateAccount: (intake: Intake) => void
+  onGeneratePrompt: (intake: Intake) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const date = new Date(intake.submitted_at).toLocaleDateString('en-CA', {
@@ -74,18 +76,28 @@ function IntakeRow({ intake, onCreateAccount }: {
           </span>
         </td>
         <td className="px-4 py-3">
-          {hasAccount ? (
-            <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">
-              Account linked
-            </span>
-          ) : (
-            <button
-              onClick={e => { e.stopPropagation(); onCreateAccount(intake) }}
-              className="text-xs font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg px-3 py-1 transition-colors"
-            >
-              Create account
-            </button>
-          )}
+          <div className="flex flex-col gap-1.5">
+            {intake.status !== 'provisioned' && (
+              <button
+                onClick={e => { e.stopPropagation(); onGeneratePrompt(intake) }}
+                className="text-[10px] font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg px-3 py-1 transition-colors"
+              >
+                Generate prompt
+              </button>
+            )}
+            {hasAccount ? (
+              <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5 text-center">
+                Account linked
+              </span>
+            ) : (
+              <button
+                onClick={e => { e.stopPropagation(); onCreateAccount(intake) }}
+                className="text-[10px] font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg px-3 py-1 transition-colors"
+              >
+                Create account
+              </button>
+            )}
+          </div>
         </td>
         <td className="px-4 py-3 text-zinc-600">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
@@ -111,6 +123,117 @@ function IntakeRow({ intake, onCreateAccount }: {
         </tr>
       )}
     </>
+  )
+}
+
+function GeneratePromptModal({ intake, onClose, onDone }: {
+  intake: Intake
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ clientSlug: string; agentId: string; charCount: number; warnings: string[] } | null>(null)
+  const [error, setError] = useState('')
+
+  async function generate() {
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/dashboard/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intakeId: intake.id }),
+      })
+      const data = await res.json()
+      if (res.status === 409) { setError('Already provisioned — use sync-agent to re-sync.'); return }
+      if (!res.ok) { setError(data.error || 'Generation failed'); return }
+      setResult(data)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-semibold">Generate Prompt</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {!result ? (
+          <>
+            <p className="text-zinc-400 text-sm mb-5">
+              Generate a system prompt and Ultravox agent for{' '}
+              <span className="text-white font-medium">{intake.business_name}</span>.
+            </p>
+
+            {error && (
+              <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={generate}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 disabled:opacity-50 transition-colors"
+              >
+                {loading ? 'Generating…' : 'Generate'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 mb-5 space-y-2">
+              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-1">Agent created</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Slug</p>
+                  <p className="text-zinc-200 font-mono">{result.clientSlug}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Char count</p>
+                  <p className="text-zinc-200">{result.charCount.toLocaleString()}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Agent ID</p>
+                  <p className="text-zinc-400 font-mono text-[10px] break-all">{result.agentId}</p>
+                </div>
+              </div>
+              {result.warnings?.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                  <p className="text-amber-400 text-[10px] uppercase tracking-wider mb-1">Warnings</p>
+                  {result.warnings.map((w, i) => (
+                    <p key={i} className="text-amber-300/70 text-xs">{w}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onDone}
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 transition-colors"
+            >
+              Done
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -206,7 +329,9 @@ export default function ClientsTable({ intakes, clients }: {
   intakes: Intake[]
   clients: Client[]
 }) {
+  const router = useRouter()
   const [modal, setModal] = useState<Intake | null>(null)
+  const [generateModal, setGenerateModal] = useState<Intake | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
 
   function handleSuccess(email: string) {
@@ -215,8 +340,21 @@ export default function ClientsTable({ intakes, clients }: {
     setTimeout(() => setSuccessMsg(''), 6000)
   }
 
+  function handleGenerateDone() {
+    setGenerateModal(null)
+    router.refresh()
+  }
+
   return (
     <>
+      {generateModal && (
+        <GeneratePromptModal
+          intake={generateModal}
+          onClose={() => setGenerateModal(null)}
+          onDone={handleGenerateDone}
+        />
+      )}
+
       {modal && (
         <CreateAccountModal
           intake={modal}
@@ -270,7 +408,7 @@ export default function ClientsTable({ intakes, clients }: {
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Contact</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Submitted</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Account</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Actions</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -280,6 +418,7 @@ export default function ClientsTable({ intakes, clients }: {
                     key={intake.id}
                     intake={intake}
                     onCreateAccount={setModal}
+                    onGeneratePrompt={setGenerateModal}
                   />
                 ))}
               </tbody>
