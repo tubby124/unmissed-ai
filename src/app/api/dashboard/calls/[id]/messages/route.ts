@@ -44,10 +44,12 @@ export async function GET(
   }> = data.results || []
 
   const messages = raw
-    .filter(m =>
-      (m.role === 'MESSAGE_ROLE_AGENT' || m.role === 'MESSAGE_ROLE_USER') &&
-      typeof m.text === 'string' && m.text.trim()
-    )
+    .filter(m => {
+      if (typeof m.text !== 'string' || !m.text.trim()) return false
+      if (m.role === 'MESSAGE_ROLE_AGENT') return true
+      if (m.role === 'MESSAGE_ROLE_USER') return m.medium === 'MESSAGE_MEDIUM_VOICE'
+      return false
+    })
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,
