@@ -65,7 +65,7 @@ export default async function CallsPage() {
   }))
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <CallsList
         initialCalls={allCalls}
         phone={clientPhone}

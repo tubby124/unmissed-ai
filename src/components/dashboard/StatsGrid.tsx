@@ -103,7 +103,7 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
   }, [value, format, index])
 
   return (
-    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden`} style={{ boxShadow: t.glow }}>
+    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden min-h-[88px]`} style={{ boxShadow: t.glow }}>
       {/* Radial accent */}
       <div
         className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-40 pointer-events-none"
@@ -242,12 +242,12 @@ export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, activ
   ]
 
   return (
-    <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
       {stats.map((stat, i) => (
         <div
           key={stat.label}
           style={{ animationDelay: `${i * 55}ms` }}
-          className="animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both"
+          className={`animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both${i === stats.length - 1 ? ' col-span-2 md:col-span-1' : ''}`}
         >
           <StatCard {...stat} />
         </div>

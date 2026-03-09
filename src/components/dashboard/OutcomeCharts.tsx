@@ -237,7 +237,7 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
   if (classified.length === 0 && calls.length === 0) return null
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {/* Donut — lead outcomes */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Outcomes</p>
@@ -263,7 +263,7 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
       </div>
 
       {/* Conversion funnel */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4 hidden lg:block">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4 sm:col-span-2 lg:col-span-1">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Funnel</p>
         <ConversionFunnel calls={classified} />
       </div>

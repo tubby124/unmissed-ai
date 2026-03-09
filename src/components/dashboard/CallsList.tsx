@@ -386,20 +386,21 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-shrink-0">
               <input
                 type="text"
                 placeholder={isAdmin ? 'Search number or client…' : 'Search number…'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-44 transition-colors"
+                className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-full sm:w-44 transition-colors"
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {FILTERS.map(f => (
                   <button
                     key={f.value}
                     onClick={() => setFilter(f.value)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                    style={{ touchAction: 'manipulation' }}
+                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                       filter === f.value
                         ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
                         : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] border border-transparent'
