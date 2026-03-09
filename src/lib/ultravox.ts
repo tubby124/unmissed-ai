@@ -244,17 +244,17 @@ export async function getTranscript(callId: string) {
       if (typeof m.text !== 'string' || !m.text.trim()) return false
       if (m.role === 'MESSAGE_ROLE_AGENT') return true
       // Exclude Ultravox platform trigger messages (e.g. "(New Call) Respond as if...") — medium is 'text', not 'voice'
-      if (m.role === 'MESSAGE_ROLE_USER') return m.medium === 'voice'
+      if (m.role === 'MESSAGE_ROLE_USER') return m.medium === 'MESSAGE_MEDIUM_VOICE'
       return false
     })
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,
-      ...(m.timespan?.startTime != null
-        ? { startTime: parseFloat(m.timespan.startTime) }
+      ...(m.timespan?.start != null
+        ? { startTime: parseFloat(m.timespan.start) }
         : {}),
-      ...(m.timespan?.endTime != null
-        ? { endTime: parseFloat(m.timespan.endTime) }
+      ...(m.timespan?.end != null
+        ? { endTime: parseFloat(m.timespan.end) }
         : {}),
     }))
 

@@ -51,8 +51,8 @@ export async function GET(
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
       text: m.text,
-      ...(m.timespan?.startTime != null ? { startTime: parseFloat(m.timespan.startTime) } : {}),
-      ...(m.timespan?.endTime != null ? { endTime: parseFloat(m.timespan.endTime) } : {}),
+      ...(m.timespan?.start != null ? { startTime: parseFloat(m.timespan.start) } : {}),
+      ...(m.timespan?.end != null ? { endTime: parseFloat(m.timespan.end) } : {}),
     }))
 
   return NextResponse.json({ messages })
