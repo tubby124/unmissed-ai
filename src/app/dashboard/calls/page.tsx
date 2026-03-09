@@ -16,6 +16,7 @@ export default async function CallsPage() {
   let clientPhone: string | null = null
   let clientSlug: string | null = null
   let clientBusinessName: string | null = null
+  let clientId: string | null = null
   let isAdmin = false
   let adminClients: ClientInfo[] = []
 
@@ -38,6 +39,7 @@ export default async function CallsPage() {
       clientPhone = clientData?.twilio_number ?? null
       clientSlug = clientData?.slug ?? null
       clientBusinessName = clientData?.business_name ?? null
+      clientId = cu?.client_id ?? null
     }
   }
 
@@ -47,15 +49,7 @@ export default async function CallsPage() {
     .order('started_at', { ascending: false })
     .limit(200)
 
-  // Non-admin users see only their client's calls
-  if (!isAdmin && user) {
-    const { data: cu2 } = await supabase
-      .from('client_users')
-      .select('client_id')
-      .eq('user_id', user.id)
-      .single()
-    if (cu2?.client_id) q = q.eq('client_id', cu2.client_id)
-  }
+  if (!isAdmin && clientId) q = q.eq('client_id', clientId)
 
   const { data: calls } = await q
 
@@ -73,6 +67,7 @@ export default async function CallsPage() {
         adminClients={adminClients}
         clientSlug={clientSlug}
         clientBusinessName={clientBusinessName}
+        clientId={clientId}
       />
     </div>
   )

@@ -35,7 +35,7 @@ interface ClientInfo {
   business_name: string
 }
 
-type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK'
+type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK' | 'UNKNOWN' | 'MISSED'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -43,7 +43,18 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'WARM', label: 'WARM' },
   { value: 'COLD', label: 'COLD' },
   { value: 'JUNK', label: 'JUNK' },
+  { value: 'UNKNOWN', label: 'UNKNOWN' },
+  { value: 'MISSED', label: 'MISSED' },
 ]
+
+const STATUS_BORDER: Record<string, string> = {
+  HOT:     'border-l-red-500',
+  WARM:    'border-l-amber-400',
+  COLD:    'border-l-blue-400',
+  JUNK:    'border-l-zinc-700',
+  UNKNOWN: 'border-l-zinc-700',
+  MISSED:  'border-l-orange-500',
+}
 
 interface CallsListProps {
   initialCalls: CallLog[]
@@ -52,6 +63,7 @@ interface CallsListProps {
   adminClients?: ClientInfo[]
   clientSlug?: string | null
   clientBusinessName?: string | null
+  clientId?: string | null
 }
 
 function dateGroupLabel(iso: string): string {
@@ -92,7 +104,7 @@ function exportCsv(calls: CallLog[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
@@ -130,13 +142,15 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   // Polling fallback — catches Realtime misses for live/processing calls every 6s
   useEffect(() => {
     const poll = async () => {
-      const { data } = await supabase
+      let q = supabase
         .from('call_logs')
         .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, clients(business_name)')
         .in('call_status', ['live', 'processing'])
         .order('started_at', { ascending: false })
+      if (!isAdmin && clientId) q = q.eq('client_id', clientId)
+      const { data } = await q
 
-      if (!data?.length) return
+      if (!data) return
 
       setCalls(prev => {
         const map = new Map(prev.map(c => [c.id, c]))
@@ -174,7 +188,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       }).catch(() => {/* already logged server-side */})
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calls.length])
+  }, [])
 
   // Reactive stats — recompute whenever calls change
   const stats = useMemo(() => {
@@ -187,6 +201,17 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         : 0,
       activeNow: calls.filter(c => c.call_status === 'live').length,
     }
+  }, [calls])
+
+  // Count per status for filter tab badges
+  const filterCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 }
+    for (const c of calls) {
+      if (c.call_status === 'live') continue
+      counts.all = (counts.all ?? 0) + 1
+      if (c.call_status) counts[c.call_status] = (counts[c.call_status] ?? 0) + 1
+    }
+    return counts
   }, [calls])
 
   const liveCalls = calls.filter(c => c.call_status === 'live')
@@ -395,20 +420,37 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-full sm:w-44 transition-colors"
               />
               <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {FILTERS.map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setFilter(f.value)}
-                    style={{ touchAction: 'manipulation' }}
-                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                      filter === f.value
-                        ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
-                        : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] border border-transparent'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+                {FILTERS.map(f => {
+                  const count = filterCounts[f.value] ?? 0
+                  return (
+                    <button
+                      key={f.value}
+                      onClick={() => setFilter(f.value)}
+                      style={{ touchAction: 'manipulation' }}
+                      className="relative flex-shrink-0"
+                    >
+                      {filter === f.value && (
+                        <motion.div
+                          layoutId="tab-bg"
+                          className="absolute inset-0 rounded-full bg-blue-500/15 border border-blue-500/25"
+                          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                        />
+                      )}
+                      <span className={`relative flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                        filter === f.value
+                          ? 'text-blue-400'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}>
+                        {f.label}
+                        {count > 0 && (
+                          <span className={`text-[10px] font-mono ${filter === f.value ? 'text-blue-400/60' : 'text-zinc-600'}`}>
+                            {count}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -445,7 +487,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                             ? { duration: 0.22, delay: Math.min(i * 0.035, 0.6), ease: 'easeOut' }
                             : { duration: 0.25, ease: 'easeOut' }
                           }
-                          className={isNew ? 'border-l-2 border-blue-500 transition-colors' : ''}
+                          className={`border-l-4 ${isNew ? 'border-l-blue-500' : (STATUS_BORDER[call.call_status ?? ''] ?? 'border-l-transparent')} transition-colors`}
                         >
                           <CallRow call={call} showBusiness={showBusiness} />
                         </motion.div>

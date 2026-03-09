@@ -130,6 +130,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   // God Mode — editable config fields (admin only)
   const [godConfig, setGodConfig] = useState<Record<string, {
@@ -202,6 +203,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   async function save() {
     setSaving(true)
     setSaved(false)
+    setSaveError('')
     setSaveUltravoxWarning(null)
     const body: Record<string, unknown> = { system_prompt: currentPrompt }
     if (isAdmin) body.client_id = client.id
@@ -210,6 +212,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    setSaving(false)
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
       setSaved(true)
@@ -217,12 +220,19 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       if (!data.ultravox_synced && data.ultravox_error) {
         setSaveUltravoxWarning(`Ultravox sync failed: ${data.ultravox_error}. Use "Re-sync Agent" to retry.`)
       }
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setSaveError(d.error || 'Save failed — try again.')
+      setTimeout(() => setSaveError(''), 5000)
     }
-    setSaving(false)
   }
 
   async function toggleStatus() {
     const next = status[client.id] === 'active' ? 'paused' : 'active'
+    if (next === 'paused') {
+      if (!confirm(`Pause ${client.business_name}? Calls will not be answered until you reactivate.`)) return
+    }
+    setStatus(prev => ({ ...prev, [client.id]: next }))
     const body: Record<string, unknown> = { status: next }
     if (isAdmin) body.client_id = client.id
     const res = await fetch('/api/dashboard/settings', {
@@ -230,7 +240,10 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    if (res.ok) setStatus(prev => ({ ...prev, [client.id]: next }))
+    if (!res.ok) {
+      setStatus(prev => ({ ...prev, [client.id]: next === 'active' ? 'paused' : 'active' }))
+      alert('Status update failed — try again.')
+    }
   }
 
   async function testTelegram() {
@@ -332,7 +345,13 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      window.location.reload()
+      const data = await res.json().catch(() => ({}))
+      const restoredContent = data.restored_content as string | undefined
+      if (restoredContent) {
+        setPrompt(prev => ({ ...prev, [client.id]: restoredContent }))
+      }
+      setVersionsOpen(false)
+      await loadVersions()
     }
     setRestoring(null)
   }
@@ -717,6 +736,16 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
+          </div>
+        )}
+
+        {saveError && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span className="text-[11px] text-red-400/90">{saveError}</span>
           </div>
         )}
 

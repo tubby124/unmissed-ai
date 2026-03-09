@@ -21,6 +21,7 @@ export default async function CallDetailPage({ params }: Props) {
   if (!call) notFound()
 
   const isLive = call.call_status === 'live'
+  const agentName = (call.clients as { business_name?: string } | null)?.business_name ?? 'Agent'
 
-  return <CallDetail call={call} agentName="Agent" isLive={isLive} />
+  return <CallDetail call={call} agentName={agentName} isLive={isLive} />
 }

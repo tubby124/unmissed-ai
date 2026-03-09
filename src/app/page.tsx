@@ -17,6 +17,7 @@ import FaqAccordion from "@/components/FaqAccordion";
 import IntegrationLogos from "@/components/IntegrationLogos";
 import ReviewBadges from "@/components/ReviewBadges";
 import EmailCapture from "@/components/EmailCapture";
+import StatsSection from "@/components/StatsSection";
 import { faqSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
@@ -30,15 +31,35 @@ export const metadata: Metadata = {
   },
 };
 
-const stats = [
-  // TODO: Pull from real call count API
-  { value: "8,445+", label: "Calls Handled" },
-  { value: "62%", label: "SMBs Miss Daily" },
-  { value: "85%", label: "Won't Call Back" },
-  { value: "$126K", label: "Avg Lost/Year" },
-];
+async function getLiveCallCount(): Promise<number> {
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.unmissed.ai'
+    const res = await fetch(`${appUrl}/api/public/stats`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return 0
+    const { calls } = await res.json()
+    return calls ?? 0
+  } catch {
+    return 0
+  }
+}
 
-export default function HomePage() {
+function formatCallCount(n: number): string {
+  if (n < 100) return `${n}`
+  return `${Math.floor(n / 50) * 50}+`
+}
+
+export default async function HomePage() {
+  const callCount = await getLiveCallCount()
+  const callsStat = formatCallCount(callCount)
+
+  const stats = [
+    { value: callsStat, label: "Calls Answered", sublabel: "since launch · beta" },
+    { value: "62%", label: "SMBs Miss Daily" },
+    { value: "85%", label: "Won't Call Back" },
+    { value: "$126K", label: "Avg Lost/Year" },
+  ]
   return (
     <>
       {/* FAQ JSON-LD */}
@@ -127,19 +148,7 @@ export default function HomePage() {
           className="py-12 px-4"
           style={{ borderTop: "1px solid #1F1F1F", borderBottom: "1px solid #1F1F1F" }}
         >
-          <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {stats.map((s) => (
-              <div key={s.value}>
-                <p
-                  className="text-3xl md:text-4xl font-black mb-1"
-                  style={{ color: "#3B82F6" }}
-                >
-                  {s.value}
-                </p>
-                <p className="text-gray-500 text-sm">{s.label}</p>
-              </div>
-            ))}
-          </div>
+          <StatsSection stats={stats} />
         </section>
 
         {/* ── 3. MARQUEE STRIP ─────────────────────────────────── */}

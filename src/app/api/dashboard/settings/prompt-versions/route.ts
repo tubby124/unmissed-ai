@@ -89,5 +89,5 @@ export async function POST(req: NextRequest) {
       .catch(err => console.error(`[prompt-versions] Ultravox agent sync failed: ${err}`))
   }
 
-  return NextResponse.json({ ok: true, restored_version: versionRow.version })
+  return NextResponse.json({ ok: true, restored_version: versionRow.version, restored_content: versionRow.content })
 }
