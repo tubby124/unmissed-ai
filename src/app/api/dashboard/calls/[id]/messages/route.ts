@@ -40,7 +40,7 @@ export async function GET(
     text: string
     medium?: string
     callStageMessageIndex?: number
-    timespan?: { startTime?: string; endTime?: string }
+    timespan?: { start?: string; end?: string }
   }> = data.results || []
 
   const messages = raw

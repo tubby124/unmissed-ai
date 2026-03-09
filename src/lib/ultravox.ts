@@ -249,7 +249,7 @@ export async function getTranscript(callId: string) {
     })
     .map(m => ({
       role: m.role === 'MESSAGE_ROLE_AGENT' ? 'agent' : 'user',
-      text: m.text,
+      text: m.text!,
       ...(m.timespan?.start != null
         ? { startTime: parseFloat(m.timespan.start) }
         : {}),
