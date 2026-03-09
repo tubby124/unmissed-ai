@@ -58,9 +58,10 @@ export async function POST(
     .eq('client_id', client.id)
     .eq('call_status', 'live')
     .lt('started_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-    .then(({ error, count }) => {
+    .select('id')
+    .then(({ error, data }) => {
       if (error) console.warn(`[inbound] Stale cleanup failed: ${error.message}`)
-      else if (count) console.log(`[inbound] Cleaned ${count} stale live row(s) for client=${client.id}`)
+      else if (data?.length) console.log(`[inbound] Cleaned ${data.length} stale live row(s) for client=${client.id}`)
     })
 
   // ── Returning caller detection ─────────────────────────────────────────────
@@ -86,7 +87,9 @@ export async function POST(
     }
   }
 
+  // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed
   const rawCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
+  const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
   // ── Create Ultravox call ───────────────────────────────────────────────────
@@ -102,7 +105,7 @@ export async function POST(
       console.log(`[inbound] Agents API: agentId=${client.ultravox_agent_id}`)
       try {
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
-          callbackUrl: rawCallbackUrl,
+          callbackUrl: signedCallbackUrl,
           metadata: callMeta,
           ...(callerContext ? { callerContext } : {}),
         })
@@ -113,7 +116,7 @@ export async function POST(
           systemPrompt: promptWithContext,
           voice: client.agent_voice_id,
           tools,
-          callbackUrl: rawCallbackUrl,
+          callbackUrl: signedCallbackUrl,
           metadata: callMeta,
         })
         console.log(`[inbound] createCall fallback succeeded: callId=${ultravoxCall.callId}`)
@@ -125,7 +128,7 @@ export async function POST(
         systemPrompt: promptWithContext,
         voice: client.agent_voice_id,
         tools,
-        callbackUrl: rawCallbackUrl,
+        callbackUrl: signedCallbackUrl,
         metadata: callMeta,
       })
     }
@@ -147,16 +150,6 @@ export async function POST(
 <Response><Say voice="alice">Sorry, we're experiencing technical difficulties. Please try again shortly.</Say></Response>`
     return new NextResponse(fallbackTwiml, { headers: { 'Content-Type': 'text/xml' } })
   }
-
-  // Sign callback URL now that we have callId
-  const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, ultravoxCall.callId)
-
-  // PATCH callback URL onto the created call (fire-and-forget — non-critical)
-  fetch(`https://api.ultravox.ai/api/calls/${ultravoxCall.callId}`, {
-    method: 'PATCH',
-    headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY!, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callbacks: { ended: { url: signedCallbackUrl } } }),
-  }).catch(err => console.warn(`[inbound] Callback URL PATCH failed (non-critical): ${err}`))
 
   console.log(`[inbound] Ultravox call created: callId=${ultravoxCall.callId} joinUrl=${ultravoxCall.joinUrl.slice(0, 60)}...`)
 

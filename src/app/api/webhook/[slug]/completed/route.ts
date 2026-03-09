@@ -32,11 +32,11 @@ export async function POST(
   // ── HMAC signature verification ────────────────────────────────────────────
   // sig is appended by inbound route after call creation. Absent on legacy calls — still accepted.
   const sig = req.nextUrl.searchParams.get('sig')
-  if (sig && !verifyCallbackSig(callId, sig)) {
-    console.error(`[completed] HMAC sig FAILED for callId=${callId} — forged webhook rejected`)
+  if (sig && !verifyCallbackSig(slug, sig)) {
+    console.error(`[completed] HMAC sig FAILED for slug=${slug} callId=${callId} — forged webhook rejected`)
     return new NextResponse('Forbidden', { status: 403 })
   }
-  if (sig) console.log(`[completed] HMAC sig verified for callId=${callId}`)
+  if (sig) console.log(`[completed] HMAC sig verified for slug=${slug} callId=${callId}`)
 
   // Duration from Ultravox timestamps
   let durationSeconds = 0
@@ -85,7 +85,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, sms_enabled, sms_template, twilio_number')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, sms_enabled, sms_template, twilio_number, classification_rules')
         .eq('slug', slug)
         .single()
 
@@ -101,7 +101,7 @@ export async function POST(
 
       // Classify with Claude Haiku via OpenRouter
       const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
-      const classification = await classifyCall(transcript, businessContext || undefined)
+      const classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined)
       console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
 
       // Update call_log with full data

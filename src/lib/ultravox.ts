@@ -233,10 +233,10 @@ export async function getTranscript(callId: string) {
   const data = await res.json()
   const messages: Array<{
     role: string
-    text: string
+    text?: string
     medium: string
     callStageMessageIndex: number
-    timespan?: { startTime?: string; endTime?: string }
+    timespan?: { start?: string; end?: string }
   }> = data.results || []
 
   const filtered = messages
