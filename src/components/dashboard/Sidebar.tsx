@@ -72,6 +72,17 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/costs',
+    label: 'Cost Intel',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin/test-lab',
     label: 'Test Lab',
     adminOnly: true,
