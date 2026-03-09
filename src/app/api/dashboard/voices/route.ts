@@ -41,6 +41,7 @@ export async function GET() {
 
   let clients: object[] = []
   let myVoiceId: string | null = null
+  let myPreviousVoiceId: string | null = null
 
   if (isAdmin) {
     const { data } = await supabase
@@ -51,11 +52,12 @@ export async function GET() {
   } else if (cu?.client_id) {
     const { data } = await supabase
       .from('clients')
-      .select('agent_voice_id')
+      .select('agent_voice_id, previous_agent_voice_id')
       .eq('id', cu.client_id)
       .single()
     myVoiceId = data?.agent_voice_id ?? null
+    myPreviousVoiceId = (data as { previous_agent_voice_id?: string | null } | null)?.previous_agent_voice_id ?? null
   }
 
-  return NextResponse.json({ voices, clients, isAdmin, myVoiceId })
+  return NextResponse.json({ voices, clients, isAdmin, myVoiceId, myPreviousVoiceId })
 }

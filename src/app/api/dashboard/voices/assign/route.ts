@@ -32,9 +32,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No client found' }, { status: 400 })
   }
 
+  // Read current voice before overwriting so we can track it as previous
+  const { data: currentClient } = await supabase
+    .from('clients')
+    .select('agent_voice_id')
+    .eq('id', targetClientId)
+    .single()
+
+  const updatePayload: Record<string, string> = { agent_voice_id: voiceId }
+  if (currentClient?.agent_voice_id && currentClient.agent_voice_id !== voiceId) {
+    updatePayload.previous_agent_voice_id = currentClient.agent_voice_id
+  }
+
   const { error } = await supabase
     .from('clients')
-    .update({ agent_voice_id: voiceId })
+    .update(updatePayload)
     .eq('id', targetClientId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

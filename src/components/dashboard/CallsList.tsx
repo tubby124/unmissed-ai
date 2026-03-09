@@ -50,6 +50,8 @@ interface CallsListProps {
   phone?: string | null
   isAdmin?: boolean
   adminClients?: ClientInfo[]
+  clientSlug?: string | null
+  clientBusinessName?: string | null
 }
 
 function dateGroupLabel(iso: string): string {
@@ -90,7 +92,7 @@ function exportCsv(calls: CallLog[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [] }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
@@ -245,6 +247,14 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           onDialed={(_callId, _phone) => setShowDial(false)}
         />
       )}
+      {showDial && !isAdmin && clientSlug && (
+        <DialModal
+          clients={[{ id: '', slug: clientSlug, business_name: clientBusinessName ?? clientSlug }]}
+          defaultSlug={clientSlug}
+          onClose={() => setShowDial(false)}
+          onDialed={(_callId, _phone) => setShowDial(false)}
+        />
+      )}
 
       {/* Stats — reactive, updates with every call change */}
       <StatsGrid
@@ -351,7 +361,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 )}
               </AnimatePresence>
 
-              {isAdmin && (
+              {(isAdmin || clientSlug) && (
                 <button
                   onClick={() => setShowDial(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 hover:border-green-500/35 transition-all"

@@ -52,6 +52,7 @@ function VoiceCard({
   isAdmin,
   isPlaying,
   myVoiceId,
+  myPreviousVoiceId,
   onPlay,
   onStop,
   onUseVoice,
@@ -61,6 +62,7 @@ function VoiceCard({
   isAdmin: boolean
   isPlaying: boolean
   myVoiceId: string | null
+  myPreviousVoiceId: string | null
   onPlay: (voiceId: string) => void
   onStop: () => void
   onUseVoice: (voiceId: string) => Promise<void>
@@ -76,6 +78,7 @@ function VoiceCard({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const isMyActiveVoice = !isAdmin && myVoiceId === voice.voiceId
+  const isMyPreviousVoice = !isAdmin && !isMyActiveVoice && myPreviousVoiceId === voice.voiceId
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -155,6 +158,11 @@ function VoiceCard({
             {(assignedClients.length > 0 || isMyActiveVoice) && (
               <span className="text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-1.5 py-0.5 leading-none shrink-0">
                 Active
+              </span>
+            )}
+            {isMyPreviousVoice && (
+              <span className="text-[10px] font-medium text-zinc-500 bg-white/[0.03] border border-white/[0.06] rounded-full px-1.5 py-0.5 leading-none shrink-0">
+                Previously used
               </span>
             )}
           </div>
@@ -259,6 +267,7 @@ export default function VoicesPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [myVoiceId, setMyVoiceId] = useState<string | null>(null)
+  const [myPreviousVoiceId, setMyPreviousVoiceId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [provider, setProvider] = useState<Provider>('All')
@@ -273,6 +282,7 @@ export default function VoicesPage() {
         setClients(data.clients || [])
         setIsAdmin(data.isAdmin || false)
         setMyVoiceId(data.myVoiceId ?? null)
+        setMyPreviousVoiceId(data.myPreviousVoiceId ?? null)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -283,7 +293,10 @@ export default function VoicesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voiceId }),
     })
-    if (res.ok) setMyVoiceId(voiceId)
+    if (res.ok) {
+      setMyPreviousVoiceId(myVoiceId)
+      setMyVoiceId(voiceId)
+    }
   }
 
   function playVoice(voiceId: string) {
@@ -421,6 +434,7 @@ export default function VoicesPage() {
               isAdmin={isAdmin}
               isPlaying={playingId === voice.voiceId}
               myVoiceId={myVoiceId}
+              myPreviousVoiceId={myPreviousVoiceId}
               onPlay={playVoice}
               onStop={stopVoice}
               onUseVoice={useVoice}

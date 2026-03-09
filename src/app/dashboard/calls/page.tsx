@@ -14,13 +14,15 @@ export default async function CallsPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
   let clientPhone: string | null = null
+  let clientSlug: string | null = null
+  let clientBusinessName: string | null = null
   let isAdmin = false
   let adminClients: ClientInfo[] = []
 
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(twilio_number)')
+      .select('client_id, role, clients(twilio_number, slug, business_name)')
       .eq('user_id', user.id)
       .single()
 
@@ -32,7 +34,10 @@ export default async function CallsPage() {
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
     } else {
-      clientPhone = (cu?.clients as { twilio_number?: string } | null)?.twilio_number ?? null
+      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string } | null
+      clientPhone = clientData?.twilio_number ?? null
+      clientSlug = clientData?.slug ?? null
+      clientBusinessName = clientData?.business_name ?? null
     }
   }
 
@@ -66,6 +71,8 @@ export default async function CallsPage() {
         phone={clientPhone}
         isAdmin={isAdmin}
         adminClients={adminClients}
+        clientSlug={clientSlug}
+        clientBusinessName={clientBusinessName}
       />
     </div>
   )
