@@ -88,45 +88,68 @@ export async function POST(req: NextRequest) {
   let twilioNumber: string | null = null
 
   // ── Step 1: Buy Twilio number ──────────────────────────────────────────────
+  // Strategy: search for an available number first (with area code if provided,
+  // then without), then buy the specific phone number returned by the search.
+  // This avoids the "Missing required parameter PhoneNumber" error when retrying
+  // without an area code on the IncomingPhoneNumbers/Local endpoint.
   try {
-    const buyUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/Local.json`
     const voiceUrl = `${appUrl}/api/webhook/${client_slug}/inbound`
     const fallbackUrl = `${appUrl}/api/webhook/${client_slug}/fallback`
+    const buyUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers.json`
 
-    const body = new URLSearchParams({
-      VoiceUrl: voiceUrl,
-      VoiceMethod: 'POST',
-      VoiceFallbackUrl: fallbackUrl,
-      VoiceFallbackMethod: 'POST',
+    // Search for an available local number (US or CA depending on area code)
+    const country = areaCode && ['403','587','780','604','778','236','250','778','867','902','506','709','905','647','416','613','343','519','226','289','365','705','249','807','548'].includes(areaCode) ? 'CA' : 'US'
+    const searchBase = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/AvailablePhoneNumbers/${country}/Local.json`
+    const searchUrl = areaCode ? `${searchBase}?AreaCode=${areaCode}&Limit=1` : `${searchBase}?Limit=1`
+
+    let availableNumber: string | null = null
+
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Basic ${twilioAuth}` },
     })
 
-    // Try with area code first
-    if (areaCode) body.set('AreaCode', areaCode)
-
-    let buyRes = await fetch(buyUrl, {
-      method: 'POST',
-      headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    })
-
-    // If area code failed, retry without it
-    if (!buyRes.ok && areaCode) {
-      console.warn(`[stripe-webhook] Area code ${areaCode} unavailable, retrying without area code`)
-      body.delete('AreaCode')
-      buyRes = await fetch(buyUrl, {
-        method: 'POST',
-        headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
-      })
+    if (searchRes.ok) {
+      const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
+      availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
     }
 
-    if (buyRes.ok) {
-      const buyData = await buyRes.json() as { phone_number: string }
-      twilioNumber = buyData.phone_number
-      console.log(`[stripe-webhook] Twilio number purchased: ${twilioNumber} for slug=${client_slug}`)
+    // If area code search returned nothing, retry without area code restriction
+    if (!availableNumber && areaCode) {
+      console.warn(`[stripe-webhook] Area code ${areaCode} unavailable, searching without area code`)
+      const retrySearchRes = await fetch(`${searchBase}?Limit=1`, {
+        headers: { Authorization: `Basic ${twilioAuth}` },
+      })
+      if (retrySearchRes.ok) {
+        const retryData = await retrySearchRes.json() as { available_phone_numbers: { phone_number: string }[] }
+        availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
+      }
+    }
+
+    if (availableNumber) {
+      const buyBody = new URLSearchParams({
+        PhoneNumber: availableNumber,
+        VoiceUrl: voiceUrl,
+        VoiceMethod: 'POST',
+        VoiceFallbackUrl: fallbackUrl,
+        VoiceFallbackMethod: 'POST',
+      })
+
+      const buyRes = await fetch(buyUrl, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: buyBody.toString(),
+      })
+
+      if (buyRes.ok) {
+        const buyData = await buyRes.json() as { phone_number: string }
+        twilioNumber = buyData.phone_number
+        console.log(`[stripe-webhook] Twilio number purchased: ${twilioNumber} for slug=${client_slug}`)
+      } else {
+        const errText = await buyRes.text()
+        console.error(`[stripe-webhook] Twilio number purchase failed for slug=${client_slug}: ${errText}`)
+      }
     } else {
-      const errText = await buyRes.text()
-      console.error(`[stripe-webhook] Twilio number purchase failed for slug=${client_slug}: ${errText}`)
+      console.error(`[stripe-webhook] No available Twilio numbers found for slug=${client_slug}`)
     }
   } catch (err) {
     console.error(`[stripe-webhook] Twilio step threw: ${err}`)
