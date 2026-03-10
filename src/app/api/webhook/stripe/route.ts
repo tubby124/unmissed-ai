@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
+import { randomUUID } from 'crypto'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -155,9 +156,14 @@ export async function POST(req: NextRequest) {
     console.error(`[stripe-webhook] Twilio step threw: ${err}`)
   }
 
-  // ── Step 2: Update clients row ─────────────────────────────────────────────
+  // ── Step 2: Update clients row + generate Telegram registration token ────────
+  const telegramRegToken = randomUUID()
   try {
-    const updatePayload: Record<string, unknown> = { status: 'active', updated_at: new Date().toISOString() }
+    const updatePayload: Record<string, unknown> = {
+      status: 'active',
+      updated_at: new Date().toISOString(),
+      telegram_registration_token: telegramRegToken,
+    }
     if (twilioNumber) updatePayload.twilio_number = twilioNumber
 
     await adminSupa.from('clients').update(updatePayload).eq('id', client_id)
@@ -216,7 +222,7 @@ export async function POST(req: NextRequest) {
     console.error(`[stripe-webhook] intake progress_status update threw: ${err}`)
   }
 
-  // ── Step 7: Telegram alert to admin ────────────────────────────────────────
+  // ── Step 7: Telegram alert to admin (with client registration link) ─────────
   try {
     const { data: adminClient } = await adminSupa
       .from('clients')
@@ -225,9 +231,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (adminClient?.telegram_bot_token && adminClient?.telegram_chat_id) {
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassistant1_bot'
+      const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
       const msg = twilioNumber
-        ? `✅ ${businessName} activated — number ${twilioNumber}`
-        : `✅ ${businessName} activated — number purchase failed, assign manually`
+        ? `✅ <b>${businessName}</b> activated — ${twilioNumber}\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}\n\n<i>Forward this to the client to activate their call alerts.</i>`
+        : `✅ <b>${businessName}</b> activated — no number (assign manually)\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}`
       await sendAlert(
         adminClient.telegram_bot_token as string,
         adminClient.telegram_chat_id as string,
