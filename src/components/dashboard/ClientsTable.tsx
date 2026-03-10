@@ -90,7 +90,7 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
                 Generate prompt
               </button>
             )}
-            {isProvisioned && !isActivated && (
+            {isProvisioned && !isActivated && intake.client_id && (
               <button
                 onClick={e => { e.stopPropagation(); onActivate(intake) }}
                 className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-3 py-1 transition-colors"
