@@ -8,7 +8,11 @@
  *   → replies with confirmation message
  *
  * Registered once via POST /api/admin/setup-telegram-webhook.
- * Always returns HTTP 200 (Telegram retries on non-200).
+ *
+ * Reliability rules:
+ * - Return 200 for valid/complete processing and for graceful ignores (unknown token, non-start)
+ * - Return 500 on infrastructure failures (Supabase write error) so Telegram retries for 24h
+ * - No webhook secret check — the UUID token is the security; secret causes silent drops during deploys
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -38,16 +42,6 @@ async function sendTelegramMessage(chatId: number, text: string): Promise<void> 
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Validate webhook secret (optional but recommended — set via setup-telegram-webhook)
-  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET
-  if (webhookSecret) {
-    const incomingSecret = req.headers.get('x-telegram-bot-api-secret-token')
-    if (incomingSecret !== webhookSecret) {
-      console.warn('[telegram-webhook] Invalid secret token — ignoring update')
-      return new NextResponse('OK', { status: 200 }) // Always 200 to Telegram
-    }
-  }
-
   let update: TelegramUpdate
   try {
     update = await req.json() as TelegramUpdate
@@ -64,7 +58,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // Only handle /start commands
   if (!text.startsWith('/start')) {
-    console.log(`[telegram-webhook] Non-start message from chatId=${chatId} — ignoring`)
     return new NextResponse('OK', { status: 200 })
   }
 
@@ -91,7 +84,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       chatId,
       '⚠️ This link is invalid or has already been used.\n\nContact <b>support@unmissed.ai</b> to get a new link.'
     )
-    return new NextResponse('OK', { status: 200 })
+    return new NextResponse('OK', { status: 200 }) // 200 — don't retry invalid tokens
   }
 
   // Write chat_id + bot_token, consume the registration token
@@ -106,9 +99,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .eq('id', client.id)
 
   if (updateErr) {
-    console.error(`[telegram-webhook] Failed to update client ${client.id}: ${updateErr.message}`)
-    await sendTelegramMessage(chatId, '⚠️ Registration failed. Please try again or contact support@unmissed.ai.')
-    return new NextResponse('OK', { status: 200 })
+    // Return 500 so Telegram retries — token still valid in DB, idempotent on retry
+    console.error(`[telegram-webhook] Supabase write failed for client ${client.id}: ${updateErr.message}`)
+    return new NextResponse('Error', { status: 500 })
   }
 
   console.log(`[telegram-webhook] Registered chatId=${chatId} for client ${client.business_name} (${client.id})`)
