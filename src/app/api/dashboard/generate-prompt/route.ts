@@ -102,9 +102,10 @@ export async function POST(req: NextRequest) {
 
   let agentId: string
   try {
+    const agentName = businessName.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'unmissed-agent'
     agentId = await createAgent({
       systemPrompt: prompt,
-      name: businessName,
+      name: agentName,
     })
     console.log(`[generate-prompt] Ultravox agent created: ${agentId} for "${businessName}"`)
   } catch (err) {
