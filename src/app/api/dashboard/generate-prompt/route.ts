@@ -99,10 +99,12 @@ export async function POST(req: NextRequest) {
   // ── Create Ultravox agent ──────────────────────────────────────────────────
   const businessName = (intakeData.business_name as string) || intake.business_name || 'unmissed-agent'
   const niche = intake.niche || 'other'
+  const clientSlug = intake.client_slug || slugify(businessName)
 
   let agentId: string
   try {
-    const agentName = businessName.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'unmissed-agent'
+    // Use slug as agent name — already unique per client and matches Ultravox regex ^[a-zA-Z0-9_-]{1,64}$
+    const agentName = clientSlug.slice(0, 64) || 'unmissed-agent'
     agentId = await createAgent({
       systemPrompt: prompt,
       name: agentName,
@@ -114,7 +116,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Upsert clients row ─────────────────────────────────────────────────────
-  const clientSlug = intake.client_slug || slugify(businessName)
   const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other
   const timezone = (intakeData.timezone as string) || 'America/Chicago'
 
