@@ -3,7 +3,7 @@
  *
  * Generates (or regenerates) a Telegram registration token for any client.
  * Returns a deep link the admin can forward to the client.
- * Client clicks link → opens @hassistant1_bot → sends /start {token}
+ * Client clicks link → opens @hassitant_1bot → sends /start {token}
  * → /api/webhook/telegram captures their chat_id automatically.
  *
  * Admin only.
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const clientId = body.clientId?.trim()
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassistant1_bot'
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
 
   // ── Generate token ─────────────────────────────────────────────────────────
   const token = randomUUID()

@@ -1,7 +1,7 @@
 /**
  * POST /api/webhook/telegram
  *
- * Telegram bot webhook handler — receives all updates sent to @hassistant1_bot.
+ * Telegram bot webhook handler — receives all updates sent to @hassitant_1bot.
  * Handles the client Telegram registration flow:
  *   Client clicks deep link → sends /start {token} → this route captures their chat_id
  *   → writes telegram_chat_id + telegram_bot_token to clients table

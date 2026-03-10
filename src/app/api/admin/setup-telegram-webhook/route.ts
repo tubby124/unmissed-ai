@@ -2,7 +2,7 @@
  * POST /api/admin/setup-telegram-webhook
  *
  * One-time setup: registers the Telegram bot webhook URL with Telegram's API.
- * Must be called once (or after any URL change) to point @hassistant1_bot
+ * Must be called once (or after any URL change) to point @hassitant_1bot
  * at /api/webhook/telegram on this Railway deployment.
  *
  * Idempotent — safe to call multiple times.

@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (adminClient?.telegram_bot_token && adminClient?.telegram_chat_id) {
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassistant1_bot'
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
       const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
       const msg = twilioNumber
         ? `✅ <b>${businessName}</b> activated — ${twilioNumber}\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}\n\n<i>Forward this to the client to activate their call alerts.</i>`
