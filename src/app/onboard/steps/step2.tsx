@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OnboardingData, defaultAgentNames, NICHE_CONFIG } from "@/types/onboarding";
+import { OnboardingData, defaultAgentNames, NICHE_CONFIG, Niche } from "@/types/onboarding";
 
 function countDigits(s: string): number {
   return (s.match(/\d/g) || []).length;
@@ -43,8 +43,9 @@ export default function Step2({ data, onUpdate }: Props) {
   const phoneDigits = countDigits(data.callbackPhone);
   const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
 
-  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche] : null;
+  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche as Niche] : null;
   const showAddress = nicheConfig?.hasPhysicalAddress ?? false;
+  const isFastTrack = nicheConfig?.fastTrack ?? false;
 
   return (
     <div className="space-y-5">
@@ -80,38 +81,40 @@ export default function Step2({ data, onUpdate }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="city">City <span className="text-red-400">*</span></Label>
-          <Input
-            id="city"
-            placeholder="e.g. Dallas"
-            value={data.city}
-            onChange={(e) => onUpdate({ city: e.target.value })}
-          />
+      {!isFastTrack && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="city">City <span className="text-red-400">*</span></Label>
+            <Input
+              id="city"
+              placeholder="e.g. Dallas"
+              value={data.city}
+              onChange={(e) => onUpdate({ city: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="state">Province / State <span className="text-red-400">*</span></Label>
+            <select
+              id="state"
+              value={data.state}
+              onChange={(e) => onUpdate({ state: e.target.value })}
+              className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            >
+              <option value="">Select…</option>
+              <optgroup label="Canada">
+                {CA_PROVINCES.map((p) => (
+                  <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
+                ))}
+              </optgroup>
+              <optgroup label="United States">
+                {US_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="state">Province / State <span className="text-red-400">*</span></Label>
-          <select
-            id="state"
-            value={data.state}
-            onChange={(e) => onUpdate({ state: e.target.value })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="">Select…</option>
-            <optgroup label="Canada">
-              {CA_PROVINCES.map((p) => (
-                <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
-              ))}
-            </optgroup>
-            <optgroup label="United States">
-              {US_STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </optgroup>
-          </select>
-        </div>
-      </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="callbackPhone">

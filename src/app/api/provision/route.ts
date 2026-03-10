@@ -87,8 +87,9 @@ function toIntakePayload(data: OnboardingData) {
 
   const niche = data.niche || "other";
   const defaultName = niche ? defaultAgentNames[niche as Niche] : "Sam";
-  const country = detectCountry(data.state);
-  const timezone = TIMEZONE_MAP[data.state.toUpperCase()] || "America/Chicago";
+  const stateCode = (data.state || "AB").toUpperCase();
+  const country = detectCountry(stateCode);
+  const timezone = TIMEZONE_MAP[stateCode] || "America/Edmonton";
 
   const rawInsurance = (data.nicheAnswers.insurance as string) || "";
   const insurancePreset = rawInsurance ? mapInsuranceToPreset(rawInsurance) : "private_only";
@@ -106,8 +107,8 @@ function toIntakePayload(data: OnboardingData) {
     niche,
     area_code: areaCode,
     country,
-    city: data.city,
-    province: data.state,
+    city: data.city || "N/A",
+    province: stateCode,
     timezone,
     owner_name: data.ownerName || "",
     contact_email: data.contactEmail || "",
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
   const data: OnboardingData = await req.json();
 
   // Basic validation
-  if (!data.businessName || !data.niche || !data.city || !data.state) {
+  if (!data.businessName || !data.niche) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 

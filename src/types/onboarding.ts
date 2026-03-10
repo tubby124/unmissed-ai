@@ -87,6 +87,7 @@ export const NICHE_CONFIG: Record<Niche, {
   hasPhysicalAddress: boolean;  // show streetAddress in step 2
   showPricingPolicy: boolean;   // show pricingPolicy in step 6
   showFullHours: boolean;       // show full 7-day hours picker vs. simplified
+  fastTrack?: boolean;          // skip steps 3-6, show 3-step wizard
 }> = {
   auto_glass:           { hasPhysicalAddress: true,  showPricingPolicy: true,  showFullHours: true  },
   hvac:                 { hasPhysicalAddress: false, showPricingPolicy: true,  showFullHours: true  },
@@ -97,7 +98,7 @@ export const NICHE_CONFIG: Record<Niche, {
   real_estate:          { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false },
   property_management:  { hasPhysicalAddress: true,  showPricingPolicy: false, showFullHours: true  },
   outbound_isa_realtor: { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false },
-  voicemail:            { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false },
+  voicemail:            { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false, fastTrack: true },
   other:                { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: true  },
 };
 

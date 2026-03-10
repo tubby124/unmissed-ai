@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { OnboardingData, defaultOnboardingData } from "@/types/onboarding";
+import { OnboardingData, defaultOnboardingData, NICHE_CONFIG, Niche } from "@/types/onboarding";
 import Step1 from "./steps/step1";
 import Step2 from "./steps/step2";
 import Step3 from "./steps/step3";
@@ -19,22 +19,29 @@ function countDigits(s: string): number {
   return (s.match(/\d/g) || []).length;
 }
 
-const STEP_TITLES = [
-  "Your industry",
-  "Business basics",
-  "Hours",
-  "Your services",
-  "Notifications",
-  "Preferences",
-  "Review & activate",
-];
+const STEP_TITLES: Record<number, string> = {
+  1: "Your industry",
+  2: "Business basics",
+  3: "Hours",
+  4: "Your services",
+  5: "Notifications",
+  6: "Preferences",
+  7: "Review & activate",
+};
 
-const TOTAL_STEPS = 7;
+function getStepSequence(niche: string | null): number[] {
+  if (niche && NICHE_CONFIG[niche as Niche]?.fastTrack) return [1, 2, 7];
+  return [1, 2, 3, 4, 5, 6, 7];
+}
 
 function canAdvance(step: number, data: OnboardingData): boolean {
+  const isFastTrack = data.niche ? !!NICHE_CONFIG[data.niche as Niche]?.fastTrack : false;
   switch (step) {
     case 1: return !!data.niche;
     case 2:
+      if (isFastTrack) {
+        return !!data.businessName && countDigits(data.callbackPhone) >= 10 && !!data.contactEmail.trim();
+      }
       return !!data.businessName && !!data.city && !!data.state
         && countDigits(data.callbackPhone) >= 10
         && !!data.contactEmail.trim();
@@ -104,6 +111,11 @@ export default function OnboardPage() {
   const [error, setError] = useState<string | null>(null);
   const hydrated = useRef(false);
 
+  // Derived step sequence based on selected niche
+  const stepSequence = getStepSequence(data.niche);
+  const stepIndex = stepSequence.indexOf(step);
+  const totalSteps = stepSequence.length;
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -129,16 +141,16 @@ export default function OnboardPage() {
   };
 
   const goNext = () => {
-    if (step < TOTAL_STEPS) {
+    if (stepIndex < stepSequence.length - 1) {
       setDirection(1);
-      setStep(step + 1);
+      setStep(stepSequence[stepIndex + 1]);
     }
   };
 
   const goBack = () => {
-    if (step > 1) {
+    if (stepIndex > 0) {
       setDirection(-1);
-      setStep(step - 1);
+      setStep(stepSequence[stepIndex - 1]);
     }
   };
 
@@ -154,7 +166,7 @@ export default function OnboardPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Submission failed");
       if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-      router.push("/onboard/status");
+      router.push(`/onboard/status?id=${json.jobId}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setIsSubmitting(false);
@@ -179,15 +191,15 @@ export default function OnboardPage() {
           <span className="hidden sm:block text-xs text-gray-400">Set up your AI agent — ~5 min</span>
         </div>
         <div className="text-xs text-gray-400 font-medium">
-          {step} / {TOTAL_STEPS}
+          {stepIndex + 1} / {totalSteps}
         </div>
       </div>
 
       {/* Step indicator */}
       <div className="bg-white border-b">
-        <StepIndicator current={step} total={TOTAL_STEPS} />
+        <StepIndicator current={stepIndex + 1} total={totalSteps} />
         <div className="text-center pb-3">
-          <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step - 1]}</span>
+          <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step]}</span>
         </div>
       </div>
 
@@ -232,7 +244,7 @@ export default function OnboardPage() {
             {error && (
               <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
             )}
-            {step < TOTAL_STEPS ? (
+            {stepIndex < totalSteps - 1 ? (
               <Button
                 onClick={goNext}
                 disabled={!canGoNext}
