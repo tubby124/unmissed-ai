@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
         slug: clientSlug,
         business_name: businessName,
         niche,
-        status: 'pending',
+        status: 'setup',
         system_prompt: prompt,
         ultravox_agent_id: agentId,
         classification_rules: classificationRules,
