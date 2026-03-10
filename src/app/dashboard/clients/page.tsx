@@ -25,7 +25,7 @@ export default async function ClientsPage() {
 
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, slug, business_name, twilio_number')
+    .select('id, slug, business_name, twilio_number, activation_log')
     .order('business_name')
 
   return (

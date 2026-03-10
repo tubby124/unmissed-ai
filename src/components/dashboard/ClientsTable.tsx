@@ -16,11 +16,27 @@ interface Intake {
   contact_email: string | null
 }
 
+interface ActivationLog {
+  activated_at: string
+  stripe_session_id: string
+  stripe_amount: number | null
+  twilio_number_bought: string | null
+  telegram_link: string | null
+  contact_email: string | null
+  callback_phone: string | null
+  sms_sent: boolean
+  sms_skip_reason: string | null
+  email_sent: boolean
+  email_skip_reason: string | null
+  intake_id: string
+}
+
 interface Client {
   id: string
   slug: string
   business_name: string
   twilio_number: string | null
+  activation_log: ActivationLog | null
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -475,6 +491,108 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
   )
 }
 
+function ActiveClientCard({ client }: { client: Client }) {
+  const [expanded, setExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const log = client.activation_log
+
+  function copyLink(link: string) {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <button
+        className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors text-left"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+          <span className="text-green-400 text-xs font-bold">{client.business_name.charAt(0)}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{client.business_name}</p>
+          <p className="text-xs text-zinc-500">{client.twilio_number || 'No number assigned'}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {log && (
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">
+              Activation log
+            </span>
+          )}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`text-zinc-600 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-white/[0.04] px-4 pb-4 pt-3">
+          {log ? (
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Activation Log</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Activated</p>
+                  <p className="text-zinc-300">{new Date(log.activated_at).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Amount paid</p>
+                  <p className="text-zinc-300">{log.stripe_amount != null ? `$${(log.stripe_amount / 100).toFixed(2)}` : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Twilio number</p>
+                  <p className="text-zinc-300 font-mono">{log.twilio_number_bought || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Contact email</p>
+                  <p className="text-zinc-300 break-all">{log.contact_email || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Callback phone</p>
+                  <p className="text-zinc-300">{log.callback_phone || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Stripe session</p>
+                  <p className="text-zinc-500 font-mono text-[10px] break-all">{log.stripe_session_id}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.sms_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 bg-white/[0.03] border-white/[0.08]'}`}>
+                  SMS {log.sms_sent ? 'sent' : `skipped${log.sms_skip_reason ? ': ' + log.sms_skip_reason : ''}`}
+                </span>
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.email_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 bg-white/[0.03] border-white/[0.08]'}`}>
+                  Email {log.email_sent ? 'sent' : 'not configured'}
+                </span>
+              </div>
+
+              {log.telegram_link && (
+                <div>
+                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-1">Telegram setup link</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-zinc-400 text-[10px] font-mono break-all flex-1">{log.telegram_link}</p>
+                    <button
+                      onClick={() => copyLink(log.telegram_link!)}
+                      className="shrink-0 text-[10px] px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-zinc-300 transition-colors"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p className="text-zinc-600 text-[10px] mt-1">Note: token is consumed after client taps Start. Use generate-telegram-token to re-invite.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-600">No activation log — client was provisioned before this feature was added.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClientsTable({ intakes, clients }: {
   intakes: Intake[]
   clients: Client[]
@@ -533,19 +651,9 @@ export default function ClientsTable({ intakes, clients }: {
       {/* Active clients */}
       <div className="mb-8">
         <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Active Clients</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-2">
           {clients.map(c => (
-            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                  <span className="text-green-400 text-xs font-bold">{c.business_name.charAt(0)}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{c.business_name}</p>
-                  <p className="text-xs text-zinc-500">{c.twilio_number || 'No number'}</p>
-                </div>
-              </div>
-            </div>
+            <ActiveClientCard key={c.id} client={c} />
           ))}
         </div>
       </div>

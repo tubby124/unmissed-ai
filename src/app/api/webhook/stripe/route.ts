@@ -3,13 +3,15 @@
  *
  * Handles Stripe checkout.session.completed events.
  * Runs the full activation chain:
- *   1. Buy Twilio number
- *   2. Update clients.twilio_number + status = 'active'
- *   3. Create Supabase auth user
- *   4. Insert client_users row
- *   5. Send password reset email
- *   6. Mark intake progress_status = 'activated'
- *   7. Telegram alert to admin
+ *   1.   Buy Twilio number
+ *   1.5  Send onboarding SMS from new number to client's callbackPhone
+ *   2.   Update clients row (status=active, twilio_number, telegram_registration_token)
+ *   3.   Create Supabase auth user
+ *   4.   Insert client_users row
+ *   5.   Send password reset email
+ *   6.   Mark intake progress_status = 'activated'
+ *   7.   Telegram alert to admin
+ *   8.   Write activation_log JSONB to clients row (full audit trail)
  *
  * Returns 200 on any outcome (to prevent Stripe retries on partial success).
  * Must be excluded from Next.js body parsing — reads raw body for sig verification.
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const businessName = existingClient?.business_name ?? client_slug
 
-  // ── Load intake for contact_email + area_code ──────────────────────────────
+  // ── Load intake for contact_email, area_code, callbackPhone ───────────────
   const { data: intake } = await adminSupa
     .from('intake_submissions')
     .select('contact_email, intake_json')
@@ -81,6 +83,7 @@ export async function POST(req: NextRequest) {
   const contactEmail = intake?.contact_email ?? null
   const intakeJson = (intake?.intake_json as Record<string, unknown> | null) ?? {}
   const areaCode = intakeJson.area_code as string | null
+  const callbackPhone = (intakeJson.callbackPhone as string | null) || null
   const callerAutoText = intakeJson.callerAutoText !== false  // default true
   const callerAutoTextMessage = (intakeJson.callerAutoTextMessage as string | null) || null
 
@@ -88,6 +91,11 @@ export async function POST(req: NextRequest) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID!
   const authToken = process.env.TWILIO_AUTH_TOKEN!
   const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
+
+  // Generate Telegram registration token upfront (needed in SMS + Step 2)
+  const telegramRegToken = randomUUID()
+  const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
 
   let twilioNumber: string | null = null
 
@@ -159,8 +167,45 @@ export async function POST(req: NextRequest) {
     console.error(`[stripe-webhook] Twilio step threw: ${err}`)
   }
 
-  // ── Step 2: Update clients row + generate Telegram registration token ────────
-  const telegramRegToken = randomUUID()
+  // ── Step 1.5: Onboarding SMS from new number to client's callbackPhone ──────
+  // SMS comes from their new AI line — strong brand impression on first contact.
+  // Body includes their Telegram setup link so they can connect call alerts.
+  let smsSent = false
+  let smsSkipReason: string | null = null
+
+  if (twilioNumber && callbackPhone) {
+    try {
+      const smsBody = new URLSearchParams({
+        From: twilioNumber,
+        To: callbackPhone,
+        Body: `Welcome to unmissed.ai!\n\nYour AI receptionist is now live at ${twilioNumber}.\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+      })
+      const smsRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: smsBody.toString(),
+        }
+      )
+      if (smsRes.ok) {
+        smsSent = true
+        console.log(`[stripe-webhook] Onboarding SMS sent to ${callbackPhone} from ${twilioNumber}`)
+      } else {
+        const errText = await smsRes.text()
+        smsSkipReason = `Twilio error: ${errText.slice(0, 200)}`
+        console.error(`[stripe-webhook] SMS failed for slug=${client_slug}: ${smsSkipReason}`)
+      }
+    } catch (err) {
+      smsSkipReason = `threw: ${err}`
+      console.error(`[stripe-webhook] SMS threw: ${err}`)
+    }
+  } else {
+    smsSkipReason = !twilioNumber ? 'no Twilio number purchased' : 'no callbackPhone in intake'
+    console.warn(`[stripe-webhook] SMS skipped for slug=${client_slug}: ${smsSkipReason}`)
+  }
+
+  // ── Step 2: Update clients row + store Telegram registration token ─────────
   try {
     const updatePayload: Record<string, unknown> = {
       status: 'active',
@@ -236,10 +281,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (adminClient?.telegram_bot_token && adminClient?.telegram_chat_id) {
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
-      const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
       const msg = twilioNumber
-        ? `✅ <b>${businessName}</b> activated — ${twilioNumber}\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}\n\n<i>Forward this to the client to activate their call alerts.</i>`
+        ? `✅ <b>${businessName}</b> activated — ${twilioNumber}\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}\n\n${smsSent ? '📤 Onboarding SMS sent to client.' : `⚠️ SMS not sent: ${smsSkipReason}`}\n\n<i>Forward link if SMS didn't reach them.</i>`
         : `✅ <b>${businessName}</b> activated — no number (assign manually)\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}`
       await sendAlert(
         adminClient.telegram_bot_token as string,
@@ -249,6 +292,34 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error(`[stripe-webhook] Telegram alert threw: ${err}`)
+  }
+
+  // ── Step 8: Write activation_log audit trail ───────────────────────────────
+  // Full record of what happened during activation — viewable in admin dashboard.
+  // Persists even if SMS/email fail so admin can manually follow up.
+  try {
+    const activationLog = {
+      activated_at: new Date().toISOString(),
+      stripe_session_id: session.id,
+      stripe_amount: session.amount_total,
+      twilio_number_bought: twilioNumber,
+      telegram_link: telegramLink,
+      telegram_token: telegramRegToken,
+      contact_email: contactEmail,
+      callback_phone: callbackPhone,
+      sms_sent: smsSent,
+      sms_skip_reason: smsSent ? null : smsSkipReason,
+      email_sent: false,
+      email_skip_reason: 'email provider not configured — set RESEND_API_KEY to enable',
+      intake_id,
+    }
+    await adminSupa
+      .from('clients')
+      .update({ activation_log: activationLog })
+      .eq('id', client_id)
+    console.log(`[stripe-webhook] activation_log written for slug=${client_slug}`)
+  } catch (err) {
+    console.error(`[stripe-webhook] activation_log write threw: ${err}`)
   }
 
   console.log(`[stripe-webhook] Activation complete for slug=${client_slug}`)
