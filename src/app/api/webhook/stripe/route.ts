@@ -20,7 +20,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-02-24.acacia' })
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,8 +28,6 @@ const adminSupa = createClient(
   { auth: { persistSession: false } }
 )
 
-// Disable body parser — Stripe requires raw body for signature verification
-export const config = { api: { bodyParser: false } }
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()

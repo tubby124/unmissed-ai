@@ -55,7 +55,7 @@ async function checkOpenRouterBalance(): Promise<{ usagePct: number | null; warn
     if (!res.ok) return { usagePct: null, warning: null }
     const data = await res.json() as { data?: { usage: number; limit: number | null } }
     const { usage, limit } = data.data ?? {}
-    if (!limit) return { usagePct: null, warning: null }
+    if (!limit || usage === undefined) return { usagePct: null, warning: null }
     const pct = (usage / limit) * 100
     const warning = pct > 80
       ? { service: 'OpenRouter', message: `Usage ${pct.toFixed(0)}% of limit ($${limit}) — HIGH` }
