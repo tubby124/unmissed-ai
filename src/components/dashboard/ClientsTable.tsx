@@ -25,21 +25,26 @@ interface Client {
 
 const STATUS_COLORS: Record<string, string> = {
   provisioned: 'text-green-400 bg-green-500/10 border-green-500/20',
+  activated: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   pending: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   failed: 'text-red-400 bg-red-500/10 border-red-500/20',
 }
 
-function IntakeRow({ intake, onCreateAccount, onGeneratePrompt }: {
+function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
   intake: Intake
   onCreateAccount: (intake: Intake) => void
   onGeneratePrompt: (intake: Intake) => void
+  onActivate: (intake: Intake) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const date = new Date(intake.submitted_at).toLocaleDateString('en-CA', {
     month: 'short', day: 'numeric', year: 'numeric'
   })
-  const statusColor = STATUS_COLORS[intake.status] || STATUS_COLORS.pending
+  const statusLabel = intake.progress_status || intake.status
+  const statusColor = STATUS_COLORS[statusLabel] || STATUS_COLORS.pending
   const hasAccount = !!intake.client_id
+  const isProvisioned = intake.status === 'provisioned'
+  const isActivated = intake.progress_status === 'activated'
 
   return (
     <>
@@ -72,18 +77,31 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt }: {
         <td className="px-4 py-3 text-xs text-zinc-500">{date}</td>
         <td className="px-4 py-3">
           <span className={`text-[10px] font-medium border rounded-full px-2 py-0.5 ${statusColor}`}>
-            {intake.progress_status || intake.status}
+            {statusLabel}
           </span>
         </td>
         <td className="px-4 py-3">
           <div className="flex flex-col gap-1.5">
-            {intake.status !== 'provisioned' && (
+            {!isProvisioned && !isActivated && (
               <button
                 onClick={e => { e.stopPropagation(); onGeneratePrompt(intake) }}
                 className="text-[10px] font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg px-3 py-1 transition-colors"
               >
                 Generate prompt
               </button>
+            )}
+            {isProvisioned && !isActivated && (
+              <button
+                onClick={e => { e.stopPropagation(); onActivate(intake) }}
+                className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-3 py-1 transition-colors"
+              >
+                Activate ($20)
+              </button>
+            )}
+            {isActivated && (
+              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 text-center">
+                Live
+              </span>
             )}
             {hasAccount ? (
               <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5 text-center">
@@ -132,6 +150,7 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
   onDone: () => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [enrichSonar, setEnrichSonar] = useState(false)
   const [result, setResult] = useState<{ clientSlug: string; agentId: string; charCount: number; warnings: string[] } | null>(null)
   const [error, setError] = useState('')
 
@@ -142,7 +161,7 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
       const res = await fetch('/api/dashboard/generate-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intakeId: intake.id }),
+        body: JSON.stringify({ intakeId: intake.id, enrichWithSonar: enrichSonar }),
       })
       const data = await res.json()
       if (res.status === 409) { setError('Already provisioned — use sync-agent to re-sync.'); return }
@@ -167,10 +186,20 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
 
         {!result ? (
           <>
-            <p className="text-zinc-400 text-sm mb-5">
+            <p className="text-zinc-400 text-sm mb-4">
               Generate a system prompt and Ultravox agent for{' '}
               <span className="text-white font-medium">{intake.business_name}</span>.
             </p>
+
+            <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer mb-5 select-none">
+              <input
+                type="checkbox"
+                checked={enrichSonar}
+                onChange={e => setEnrichSonar(e.target.checked)}
+                className="accent-blue-500"
+              />
+              Enrich with Sonar Pro (web research — +5s)
+            </label>
 
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
@@ -192,7 +221,7 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
                 disabled={loading}
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 disabled:opacity-50 transition-colors"
               >
-                {loading ? 'Generating…' : 'Generate'}
+                {loading ? (enrichSonar ? 'Researching…' : 'Generating…') : 'Generate'}
               </button>
             </div>
           </>
@@ -237,13 +266,134 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
   )
 }
 
+function ActivateModal({ intake, onClose }: {
+  intake: Intake
+  onClose: () => void
+}) {
+  const [loading, setLoading] = useState(false)
+  const [checkoutUrl, setCheckoutUrl] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState('')
+
+  async function createCheckout() {
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intakeId: intake.id, clientId: intake.client_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Failed to create checkout'); return }
+      setCheckoutUrl(data.url)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function copyUrl() {
+    navigator.clipboard.writeText(checkoutUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-semibold">Activate Client — $20 Setup</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {!checkoutUrl ? (
+          <>
+            <p className="text-zinc-400 text-sm mb-5">
+              Send a $20 setup payment link to{' '}
+              <span className="text-white font-medium">{intake.business_name}</span>
+              {intake.contact_email && (
+                <> (<span className="text-zinc-300">{intake.contact_email}</span>)</>
+              )}.
+              On payment, their Twilio number is auto-provisioned and login email is sent.
+            </p>
+
+            {error && (
+              <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={createCheckout}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+              >
+                {loading ? 'Creating link…' : 'Create payment link'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-zinc-400 text-sm mb-3">Payment link ready. Copy and send to the client, or open it yourself.</p>
+            <div className="flex items-center gap-2 mb-5">
+              <input
+                type="text"
+                readOnly
+                value={checkoutUrl}
+                className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-zinc-300 font-mono truncate focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyUrl}
+                className="shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-colors"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+              >
+                Close
+              </button>
+              <a
+                href={checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-center text-white bg-emerald-600 hover:bg-emerald-500 transition-colors"
+              >
+                Open link
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CreateAccountModal({ intake, onClose, onSuccess }: {
   intake: Intake
   onClose: () => void
   onSuccess: (email: string) => void
 }) {
   const [email, setEmail] = useState('')
-  const [clientId, setClientId] = useState(intake.client_id || '')
+  const [clientId] = useState(intake.client_id || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -332,6 +482,7 @@ export default function ClientsTable({ intakes, clients }: {
   const router = useRouter()
   const [modal, setModal] = useState<Intake | null>(null)
   const [generateModal, setGenerateModal] = useState<Intake | null>(null)
+  const [activateModal, setActivateModal] = useState<Intake | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
 
   function handleSuccess(email: string) {
@@ -352,6 +503,13 @@ export default function ClientsTable({ intakes, clients }: {
           intake={generateModal}
           onClose={() => setGenerateModal(null)}
           onDone={handleGenerateDone}
+        />
+      )}
+
+      {activateModal && (
+        <ActivateModal
+          intake={activateModal}
+          onClose={() => setActivateModal(null)}
         />
       )}
 
@@ -419,6 +577,7 @@ export default function ClientsTable({ intakes, clients }: {
                     intake={intake}
                     onCreateAccount={setModal}
                     onGeneratePrompt={setGenerateModal}
+                    onActivate={setActivateModal}
                   />
                 ))}
               </tbody>

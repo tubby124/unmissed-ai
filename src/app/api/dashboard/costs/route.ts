@@ -10,7 +10,7 @@ const PRICING = {
 }
 
 // Clients that make OUTBOUND calls (Twilio charges outbound rate)
-const OUTBOUND_CLIENT_SLUGS = new Set(['manzil-isa'])
+const OUTBOUND_CLIENT_SLUGS = new Set<string>([]) // future: add outbound clients here
 
 const ULTRAVOX_API = 'https://api.ultravox.ai/api'
 const ULTRAVOX_KEY = process.env.ULTRAVOX_API_KEY ?? '4FowyUSm.ZEkda8oOwMgWl8HUGMBnSegpOGjU3acw'

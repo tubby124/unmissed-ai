@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent } from '@/lib/ultravox'
+import { enrichWithSonar } from '@/lib/sonar-enrichment'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -32,8 +33,9 @@ export async function POST(req: NextRequest) {
   if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // ── Parse body ─────────────────────────────────────────────────────────────
-  const body = await req.json().catch(() => ({})) as { intakeId?: string }
+  const body = await req.json().catch(() => ({})) as { intakeId?: string; enrichWithSonar?: boolean }
   const intakeId = body.intakeId?.trim()
+  const shouldEnrichSonar = body.enrichWithSonar === true
   if (!intakeId) return NextResponse.json({ error: 'intakeId required' }, { status: 400 })
 
   // ── Load intake submission ─────────────────────────────────────────────────
@@ -57,6 +59,25 @@ export async function POST(req: NextRequest) {
   const intakeData = (intake.intake_json as Record<string, unknown>) || {}
   // Ensure niche is present (intake_json may have camelCase niche; prefer top-level niche field)
   if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
+
+  // ── Optional Sonar Pro enrichment ──────────────────────────────────────────
+  if (shouldEnrichSonar) {
+    const businessName = (intakeData.business_name as string) || intake.business_name || ''
+    const city = (intakeData.city as string) || (intakeData.location as string) || ''
+    const niche = intake.niche || 'other'
+    const websiteUrl = (intakeData.website_url as string) || undefined
+
+    if (businessName && city) {
+      const sonarResult = await enrichWithSonar(businessName, city, niche, websiteUrl)
+      if (sonarResult) {
+        const existingFaq = (intakeData.caller_faq as string) || ''
+        intakeData.caller_faq = `LOCAL BUSINESS FACTS (researched):\n${sonarResult}\n\nCLIENT-PROVIDED FAQ:\n${existingFaq}`
+        console.log(`[generate-prompt] Sonar enrichment: ${sonarResult.length} chars added for "${businessName}"`)
+      }
+    } else {
+      console.warn('[generate-prompt] Sonar enrichment requested but business_name or city missing — skipping')
+    }
+  }
 
   let prompt: string
   try {
