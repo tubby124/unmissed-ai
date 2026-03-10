@@ -57,18 +57,22 @@ export default function Step7({ data, onEdit }: Props) {
   const rows: Array<{ label: string; value: string; step: number }> = [
     { label: "Industry", value: data.niche ? nicheLabels[data.niche] : "—", step: 1 },
     { label: "Business", value: data.businessName || "—", step: 2 },
-    { label: "Location", value: data.city && data.state ? `${data.city}, ${data.state}` : "—", step: 2 },
+    { label: "Location", value: [data.streetAddress, data.city, data.state].filter(Boolean).join(", ") || "—", step: 2 },
     { label: "Agent name", value: data.agentName || "(using default)", step: 2 },
     { label: "Callback #", value: data.callbackPhone || "—", step: 2 },
     { label: "Hours", value: formatHoursDisplay(data), step: 3 },
+    ...(data.afterHoursBehavior === "route_emergency" && data.emergencyPhone ? [{ label: "Emergency #", value: data.emergencyPhone, step: 3 }] : []),
     { label: "Notifications", value: data.notificationMethod, step: 5 },
+    { label: "Caller auto-text", value: data.callerAutoText ? "On" : "Off", step: 5 },
+    ...(data.pricingPolicy ? [{ label: "Pricing policy", value: data.pricingPolicy.replace(/_/g, " "), step: 6 }] : []),
+    { label: "Primary goal", value: data.primaryGoal.replace(/_/g, " ") || "—", step: 6 },
     { label: "Agent tone", value: data.agentTone, step: 6 },
   ];
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Review your setup</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Review your setup</h2>
         <p className="text-sm text-gray-500 mt-1">
           Everything looks right? Hit Activate to go live.
         </p>

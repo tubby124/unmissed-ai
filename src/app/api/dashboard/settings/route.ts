@@ -38,6 +38,12 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.sms_template === 'string') {
     updates.sms_template = body.sms_template
   }
+  if (typeof body.business_facts === 'string') {
+    updates.business_facts = body.business_facts
+  }
+  if (Array.isArray(body.extra_qa)) {
+    updates.extra_qa = body.extra_qa
+  }
 
   // God Mode fields — admin only
   if (cu.role === 'admin') {

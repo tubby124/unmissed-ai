@@ -1,149 +1,162 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { OnboardingData, AgentTone, PrimaryGoal } from "@/types/onboarding";
+import { OnboardingData, AgentTone, PrimaryGoal, PricingPolicy, NICHE_CONFIG } from "@/types/onboarding";
 
 interface Props {
   data: OnboardingData;
   onUpdate: (updates: Partial<OnboardingData>) => void;
 }
 
-export default function Step6({ data, onUpdate }: Props) {
+function CardRadio<T extends string>({
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  name: string;
+  options: { value: T; label: string; desc: string }[];
+  value: T | "";
+  onChange: (v: T) => void;
+}) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-2">
+      {options.map((opt) => (
+        <label
+          key={opt.value}
+          className={`
+            flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
+            ${value === opt.value
+              ? "border-indigo-600 bg-indigo-50"
+              : "border-gray-200 hover:border-gray-300"
+            }
+          `}
+        >
+          <input
+            type="radio"
+            name={name}
+            value={opt.value}
+            checked={value === opt.value}
+            onChange={() => onChange(opt.value)}
+            className="mt-0.5 accent-indigo-600"
+          />
+          <div>
+            <span className="text-sm font-medium text-slate-900">{opt.label}</span>
+            <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export default function Step6({ data, onUpdate }: Props) {
+  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche] : null;
+  const showPricing = nicheConfig?.showPricingPolicy ?? false;
+
+  return (
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Final preferences</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Optional — helps your agent handle edge cases and sound right for your brand.
+        <h2 className="text-2xl font-bold text-slate-900">A few preferences</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          2-3 quick choices — you can fine-tune everything in Settings after your agent is live.
         </p>
       </div>
 
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">What should the agent primarily do on each call?</Label>
-        <div className="space-y-2">
-          {([
-            { value: "capture_info" as PrimaryGoal, label: "Capture info for callback", desc: "Collect customer details — your team calls back to quote and book" },
-            { value: "book_appointment" as PrimaryGoal, label: "Book the appointment directly", desc: "AI schedules the slot on the call — requires calendar integration" },
-            { value: "faq_only" as PrimaryGoal, label: "Answer questions only", desc: "Handle FAQs and hours — humans close the booking" },
-          ]).map((opt) => (
-            <label
-              key={opt.value}
-              className={`
-                flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
-                ${data.primaryGoal === opt.value
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-                }
-              `}
-            >
-              <input
-                type="radio"
-                name="primaryGoal"
-                value={opt.value}
-                checked={data.primaryGoal === opt.value}
-                onChange={() => onUpdate({ primaryGoal: opt.value })}
-                className="mt-0.5 accent-blue-600"
-              />
-              <div>
-                <span className="text-sm font-medium text-gray-900">{opt.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-              </div>
-            </label>
-          ))}
+      {/* Pricing policy — niche-conditional */}
+      {showPricing && (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">How should your agent handle pricing questions?</Label>
+            <p className="text-xs text-slate-400 mt-0.5">This is often the first thing callers ask</p>
+          </div>
+          <CardRadio<PricingPolicy>
+            name="pricingPolicy"
+            value={data.pricingPolicy}
+            onChange={(v) => onUpdate({ pricingPolicy: v })}
+            options={[
+              {
+                value: "quote_range",
+                label: "Give a ballpark range",
+                desc: "Casual and transparent — works well for jobs with predictable pricing",
+              },
+              {
+                value: "no_quote_callback",
+                label: "Never quote — call back with a quote",
+                desc: "Manages expectations — best when pricing varies a lot",
+              },
+              {
+                value: "website_pricing",
+                label: "Direct to website",
+                desc: "Good if you have a pricing page — keeps calls short",
+              },
+              {
+                value: "collect_first",
+                label: "Collect info first, then give a range",
+                desc: "Highest conversion — gets caller info before they can object to price",
+              },
+            ]}
+          />
         </div>
-      </div>
+      )}
 
-      <div className="space-y-2">
-        <Label htmlFor="completionFields">
-          What must be collected before hanging up?{" "}
-          <span className="text-gray-400 font-normal text-xs">(3–5 items max)</span>
-        </Label>
-        <Textarea
-          id="completionFields"
-          placeholder="e.g. vehicle year, make, model, preferred timing"
-          value={data.completionFields}
-          onChange={(e) => onUpdate({ completionFields: e.target.value })}
-          className="resize-none min-h-[80px]"
-        />
-        <p className="text-xs text-gray-400">The agent won&apos;t hang up until all of these are captured</p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="callerFAQ">
-          Common questions callers ask{" "}
-          <span className="text-gray-400 font-normal text-xs">(optional)</span>
-        </Label>
-        <Textarea
-          id="callerFAQ"
-          placeholder="e.g. 'Where are you located?' — we're at 1234 Main St, north end near the Walmart. Parking is free out front."
-          value={data.callerFAQ}
-          onChange={(e) => onUpdate({ callerFAQ: e.target.value })}
-          className="resize-none min-h-[80px]"
-        />
-        <p className="text-xs text-gray-400">Anything callers frequently ask that your agent should know the answer to.</p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="agentRestrictions">
-          Anything your agent should NOT say or do{" "}
-          <span className="text-gray-400 font-normal text-xs">(optional)</span>
-        </Label>
-        <Textarea
-          id="agentRestrictions"
-          placeholder="e.g. Do not quote prices. Do not book appointments directly — take info and say we'll call back."
-          value={data.agentRestrictions}
-          onChange={(e) => onUpdate({ agentRestrictions: e.target.value })}
-          className="resize-none min-h-[80px]"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Agent tone</Label>
-        <div className="space-y-2">
-          {[
+      {/* Primary goal */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">What should your agent primarily do on each call?</Label>
+        <CardRadio<PrimaryGoal>
+          name="primaryGoal"
+          value={data.primaryGoal}
+          onChange={(v) => onUpdate({ primaryGoal: v })}
+          options={[
             {
-              value: "casual" as AgentTone,
-              label: "Casual and friendly",
-              desc: "Relaxed, conversational — like talking to a helpful person at the shop",
+              value: "capture_info",
+              label: "Capture info for callback",
+              desc: "Collect customer details — your team calls back to quote and book",
             },
             {
-              value: "professional" as AgentTone,
+              value: "book_appointment",
+              label: "Book the appointment directly",
+              desc: "AI schedules the slot on the call — requires calendar integration",
+            },
+            {
+              value: "faq_only",
+              label: "Answer questions only",
+              desc: "Handle FAQs and hours — humans close the booking",
+            },
+          ]}
+        />
+      </div>
+
+      {/* Agent tone */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Agent tone</Label>
+        <CardRadio<AgentTone>
+          name="agentTone"
+          value={data.agentTone}
+          onChange={(v) => onUpdate({ agentTone: v })}
+          options={[
+            {
+              value: "casual",
+              label: "Casual and friendly",
+              desc: "Relaxed, conversational — like talking to someone helpful at the shop",
+            },
+            {
+              value: "professional",
               label: "Professional and formal",
               desc: "Polished, structured — better for legal, medical, financial services",
             },
             {
-              value: "match_industry" as AgentTone,
+              value: "match_industry",
               label: "Match my industry",
-              desc: "We'll choose the right tone based on your niche",
+              desc: "We choose the right tone based on your niche",
             },
-          ].map((opt) => (
-            <label
-              key={opt.value}
-              className={`
-                flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
-                ${data.agentTone === opt.value
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-                }
-              `}
-            >
-              <input
-                type="radio"
-                name="agentTone"
-                value={opt.value}
-                checked={data.agentTone === opt.value}
-                onChange={() => onUpdate({ agentTone: opt.value })}
-                className="mt-0.5 accent-blue-600"
-              />
-              <div>
-                <span className="text-sm font-medium text-gray-900">{opt.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-              </div>
-            </label>
-          ))}
-        </div>
+          ]}
+        />
       </div>
+
+      <p className="text-xs text-slate-400 pt-1">
+        More options (custom FAQs, what to collect, restrictions) are available in Settings after activation.
+      </p>
     </div>
   );
 }

@@ -22,6 +22,8 @@ export interface ClientConfig {
   updated_at: string | null
   sms_enabled: boolean | null
   sms_template: string | null
+  business_facts: string | null
+  extra_qa: { q: string; a: string }[] | null
 }
 
 export default async function SettingsPage() {
@@ -40,7 +42,7 @@ export default async function SettingsPage() {
   const isAdmin = cu.role === 'admin'
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
 
-  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, timezone, minutes_used_this_month, monthly_minute_limit, updated_at, sms_enabled, sms_template'
+  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, timezone, minutes_used_this_month, monthly_minute_limit, updated_at, sms_enabled, sms_template, business_facts, extra_qa'
 
   if (isAdmin) {
     const { data: clients } = await supabase

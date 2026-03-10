@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { OnboardingData, defaultOnboardingData } from "@/types/onboarding";
 import Step1 from "./steps/step1";
 import Step2 from "./steps/step2";
@@ -20,7 +20,7 @@ function countDigits(s: string): number {
 }
 
 const STEP_TITLES = [
-  "Pick your industry",
+  "Your industry",
   "Business basics",
   "Hours",
   "Your services",
@@ -39,26 +39,22 @@ function canAdvance(step: number, data: OnboardingData): boolean {
         && countDigits(data.callbackPhone) >= 10
         && !!data.contactEmail.trim();
     case 3: {
-      // Validate that no open day has close <= open
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
       for (const day of days) {
         const h = data.hours[day];
-        if (!h.closed && h.open && h.close && h.close <= h.open) {
-          return false;
-        }
+        if (!h.closed && h.open && h.close && h.close <= h.open) return false;
+      }
+      if (data.afterHoursBehavior === "route_emergency" && countDigits(data.emergencyPhone) < 10) {
+        return false;
       }
       return true;
     }
-    case 4: return true; // niche questions are optional-ish
+    case 4: return true;
     case 5: {
       if (!data.notificationMethod) return false;
-      const method = data.notificationMethod;
-      if ((method === "sms" || method === "both") && countDigits(data.notificationPhone) < 10) {
-        return false;
-      }
-      if ((method === "email" || method === "both") && !data.notificationEmail.trim()) {
-        return false;
-      }
+      const m = data.notificationMethod;
+      if ((m === "sms" || m === "both") && countDigits(data.notificationPhone) < 10) return false;
+      if ((m === "email" || m === "both") && !data.notificationEmail.trim()) return false;
       return true;
     }
     case 6: return true;
@@ -67,15 +63,47 @@ function canAdvance(step: number, data: OnboardingData): boolean {
   }
 }
 
+// Step indicator — numbered circles with connecting lines
+function StepIndicator({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center justify-center gap-0 px-4 py-4">
+      {Array.from({ length: total }, (_, i) => {
+        const n = i + 1;
+        const done = n < current;
+        const active = n === current;
+        return (
+          <div key={n} className="flex items-center">
+            <div
+              className={`
+                flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold shrink-0 transition-all duration-300
+                ${done ? "bg-indigo-600 text-white" : active ? "ring-2 ring-indigo-600 text-indigo-600 bg-white" : "bg-gray-100 text-gray-400"}
+              `}
+            >
+              {done ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : n}
+            </div>
+            {n < total && (
+              <div className={`w-6 sm:w-10 h-0.5 transition-colors duration-300 ${done ? "bg-indigo-600" : "bg-gray-200"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function OnboardPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hydrated = useRef(false);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -85,20 +113,15 @@ export default function OnboardPage() {
         if (parsed.data) setData(parsed.data);
         if (parsed.step) setStep(parsed.step);
       }
-    } catch {
-      // Ignore malformed localStorage
-    }
+    } catch { /* ignore malformed localStorage */ }
     hydrated.current = true;
   }, []);
 
-  // Persist to localStorage on every change (after initial hydration)
   useEffect(() => {
     if (typeof window === "undefined" || !hydrated.current) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }));
-    } catch {
-      // localStorage full or unavailable — silently ignore
-    }
+    } catch { /* localStorage full — silently ignore */ }
   }, [step, data]);
 
   const update = (updates: Partial<OnboardingData>) => {
@@ -106,11 +129,17 @@ export default function OnboardPage() {
   };
 
   const goNext = () => {
-    if (step < TOTAL_STEPS) setStep(step + 1);
+    if (step < TOTAL_STEPS) {
+      setDirection(1);
+      setStep(step + 1);
+    }
   };
 
   const goBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) {
+      setDirection(-1);
+      setStep(step - 1);
+    }
   };
 
   const handleActivate = async () => {
@@ -124,9 +153,7 @@ export default function OnboardPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Submission failed");
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(STORAGE_KEY);
-      }
+      if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
       router.push("/onboard/status");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -134,87 +161,95 @@ export default function OnboardPage() {
     }
   };
 
-  const progress = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 24 : -24, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -24 : 24, opacity: 0 }),
+  };
+
+  const canGoNext = canAdvance(step, data);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-4 flex items-center justify-between">
-        <div className="text-sm font-semibold text-gray-900">
-          Set up your AI agent
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-indigo-600 tracking-tight">unmissed.ai</span>
+          <span className="hidden sm:block text-gray-300 text-xs">·</span>
+          <span className="hidden sm:block text-xs text-gray-400">Set up your AI agent — ~5 min</span>
         </div>
-        <div className="text-xs text-gray-400">
-          Step {step} of {TOTAL_STEPS}
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="bg-white border-b px-4 pb-3">
-        <Progress value={progress} className="h-1.5" />
-        <div className="flex gap-1 mt-2 overflow-x-auto">
-          {STEP_TITLES.map((title, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => i + 1 < step && setStep(i + 1)}
-              className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 transition-colors
-                ${i + 1 === step
-                  ? "bg-blue-100 text-blue-700 font-medium"
-                  : i + 1 < step
-                  ? "text-gray-500 hover:text-gray-700 cursor-pointer"
-                  : "text-gray-300 cursor-default"
-                }`}
-            >
-              {title}
-            </button>
-          ))}
+        <div className="text-xs text-gray-400 font-medium">
+          {step} / {TOTAL_STEPS}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex justify-center px-4 py-6">
+      {/* Step indicator */}
+      <div className="bg-white border-b">
+        <StepIndicator current={step} total={TOTAL_STEPS} />
+        <div className="text-center pb-3">
+          <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step - 1]}</span>
+        </div>
+      </div>
+
+      {/* Step content — animated */}
+      <div className="flex-1 flex justify-center px-4 py-6 overflow-hidden">
         <div className="w-full max-w-lg">
-          {step === 1 && <Step1 data={data} onUpdate={update} />}
-          {step === 2 && <Step2 data={data} onUpdate={update} />}
-          {step === 3 && <Step3 data={data} onUpdate={update} />}
-          {step === 4 && <Step4 data={data} onUpdate={update} />}
-          {step === 5 && <Step5 data={data} onUpdate={update} />}
-          {step === 6 && <Step6 data={data} onUpdate={update} />}
-          {step === 7 && <Step7 data={data} onEdit={(s) => setStep(s)} />}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              {step === 1 && <Step1 data={data} onUpdate={update} />}
+              {step === 2 && <Step2 data={data} onUpdate={update} />}
+              {step === 3 && <Step3 data={data} onUpdate={update} />}
+              {step === 4 && <Step4 data={data} onUpdate={update} />}
+              {step === 5 && <Step5 data={data} onUpdate={update} />}
+              {step === 6 && <Step6 data={data} onUpdate={update} />}
+              {step === 7 && <Step7 data={data} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
       {/* Footer nav */}
-      <div className="bg-white border-t px-4 py-4 flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={goBack}
-          disabled={step === 1}
-          className="text-gray-600"
-        >
-          ← Back
-        </Button>
+      <div className="bg-white border-t px-4 py-4">
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            onClick={goBack}
+            disabled={step === 1}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            ← Back
+          </Button>
 
-        <div className="flex items-center gap-3">
-          {error && (
-            <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
-          )}
-          {step < TOTAL_STEPS ? (
-            <Button
-              onClick={goNext}
-              disabled={!canAdvance(step, data)}
-            >
-              Continue →
-            </Button>
-          ) : (
-            <Button
-              onClick={handleActivate}
-              disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-            >
-              {isSubmitting ? "Activating..." : "Activate My Agent →"}
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {error && (
+              <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
+            )}
+            {step < TOTAL_STEPS ? (
+              <Button
+                onClick={goNext}
+                disabled={!canGoNext}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Continue →
+              </Button>
+            ) : (
+              <Button
+                onClick={handleActivate}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
+              >
+                {isSubmitting ? "Activating..." : "Activate My Agent →"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

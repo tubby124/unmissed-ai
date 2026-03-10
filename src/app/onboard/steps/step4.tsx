@@ -10,6 +10,7 @@ import SalonNiche from "./niches/salon";
 import RealEstateNiche from "./niches/real-estate";
 import PropertyManagementNiche from "./niches/property-management";
 import OutboundIsaRealtorNiche from "./niches/outbound-isa-realtor";
+import VoicemailNiche from "./niches/voicemail";
 
 interface Props {
   data: OnboardingData;
@@ -27,6 +28,7 @@ const NICHE_COMPONENTS = {
   real_estate: RealEstateNiche,
   property_management: PropertyManagementNiche,
   outbound_isa_realtor: OutboundIsaRealtorNiche,
+  voicemail: VoicemailNiche,
 } as const;
 
 export default function Step4({ data, onUpdate }: Props) {
@@ -78,8 +80,8 @@ export default function Step4({ data, onUpdate }: Props) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">A few quick questions</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <h2 className="text-2xl font-bold text-slate-900">Your services</h2>
+        <p className="text-sm text-slate-500 mt-1">
           These help your agent give accurate answers to callers.
         </p>
       </div>

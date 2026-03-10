@@ -79,7 +79,10 @@ export async function POST(req: NextRequest) {
     .single()
 
   const contactEmail = intake?.contact_email ?? null
-  const areaCode = (intake?.intake_json as Record<string, unknown> | null)?.area_code as string | null
+  const intakeJson = (intake?.intake_json as Record<string, unknown> | null) ?? {}
+  const areaCode = intakeJson.area_code as string | null
+  const callerAutoText = intakeJson.callerAutoText !== false  // default true
+  const callerAutoTextMessage = (intakeJson.callerAutoTextMessage as string | null) || null
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   const accountSid = process.env.TWILIO_ACCOUNT_SID!
@@ -163,8 +166,10 @@ export async function POST(req: NextRequest) {
       status: 'active',
       updated_at: new Date().toISOString(),
       telegram_registration_token: telegramRegToken,
+      sms_enabled: callerAutoText,
     }
     if (twilioNumber) updatePayload.twilio_number = twilioNumber
+    if (callerAutoTextMessage) updatePayload.sms_template = callerAutoTextMessage
 
     await adminSupa.from('clients').update(updatePayload).eq('id', client_id)
     console.log(`[stripe-webhook] clients.status → active for slug=${client_slug}`)

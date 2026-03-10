@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OnboardingData, defaultAgentNames } from "@/types/onboarding";
+import { OnboardingData, defaultAgentNames, NICHE_CONFIG } from "@/types/onboarding";
 
 function countDigits(s: string): number {
   return (s.match(/\d/g) || []).length;
@@ -43,15 +43,20 @@ export default function Step2({ data, onUpdate }: Props) {
   const phoneDigits = countDigits(data.callbackPhone);
   const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
 
+  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche] : null;
+  const showAddress = nicheConfig?.hasPhysicalAddress ?? false;
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Tell us about your business</h2>
-        <p className="text-sm text-gray-500 mt-1">This information shapes how your agent introduces itself and routes calls.</p>
+        <h2 className="text-2xl font-bold text-slate-900">Tell us about your business</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          This shapes how your agent introduces itself and routes calls.
+        </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="businessName">Business name</Label>
+        <Label htmlFor="businessName">Business name <span className="text-red-400">*</span></Label>
         <Input
           id="businessName"
           placeholder="e.g. Dallas Quick Glass"
@@ -60,9 +65,24 @@ export default function Step2({ data, onUpdate }: Props) {
         />
       </div>
 
+      {showAddress && (
+        <div className="space-y-2">
+          <Label htmlFor="streetAddress">
+            Street address{" "}
+            <span className="text-slate-400 font-normal text-xs">(optional — helps agent answer &quot;where are you located?&quot;)</span>
+          </Label>
+          <Input
+            id="streetAddress"
+            placeholder="e.g. 123 Main St"
+            value={data.streetAddress}
+            onChange={(e) => onUpdate({ streetAddress: e.target.value })}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="city">City <span className="text-red-400">*</span></Label>
           <Input
             id="city"
             placeholder="e.g. Dallas"
@@ -71,14 +91,14 @@ export default function Step2({ data, onUpdate }: Props) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="state">Province / State</Label>
+          <Label htmlFor="state">Province / State <span className="text-red-400">*</span></Label>
           <select
             id="state"
             value={data.state}
             onChange={(e) => onUpdate({ state: e.target.value })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
-            <option value="">Select province / state</option>
+            <option value="">Select…</option>
             <optgroup label="Canada">
               {CA_PROVINCES.map((p) => (
                 <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
@@ -94,25 +114,9 @@ export default function Step2({ data, onUpdate }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="agentName">
-          Agent name{" "}
-          <span className="text-gray-400 font-normal text-xs">
-            (what callers hear — suggested: {suggestedName})
-          </span>
-        </Label>
-        <Input
-          id="agentName"
-          placeholder={suggestedName}
-          value={data.agentName}
-          onChange={(e) => onUpdate({ agentName: e.target.value })}
-        />
-        <p className="text-xs text-gray-400">Leave blank to use &quot;{suggestedName}&quot;</p>
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="callbackPhone">
-          Your real callback number{" "}
-          <span className="text-gray-400 font-normal text-xs">(NOT the AI line — this is sent to callers via SMS)</span>
+          Your real callback number <span className="text-red-400">*</span>{" "}
+          <span className="text-slate-400 font-normal text-xs">(NOT the AI line — sent to callers via SMS)</span>
         </Label>
         <Input
           id="callbackPhone"
@@ -123,24 +127,14 @@ export default function Step2({ data, onUpdate }: Props) {
           onBlur={() => setPhoneTouched(true)}
         />
         {phoneInvalid && (
-          <p className="text-xs text-red-600 mt-1">
-            Phone number must have at least 10 digits
-          </p>
+          <p className="text-xs text-red-600 mt-1">Phone number must have at least 10 digits</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ownerName">Your name</Label>
-        <Input
-          id="ownerName"
-          placeholder="e.g. Mike Johnson"
-          value={data.ownerName}
-          onChange={(e) => onUpdate({ ownerName: e.target.value })}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="contactEmail">Your email address</Label>
+        <Label htmlFor="contactEmail">
+          Your email address <span className="text-red-400">*</span>
+        </Label>
         <Input
           id="contactEmail"
           type="email"
@@ -148,21 +142,47 @@ export default function Step2({ data, onUpdate }: Props) {
           value={data.contactEmail}
           onChange={(e) => onUpdate({ contactEmail: e.target.value })}
         />
-        <p className="text-xs text-gray-400">We use this to send you setup updates — not shared with callers</p>
+        <p className="text-xs text-slate-400">Used for setup updates — not shared with callers</p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="websiteUrl">
-          Business website{" "}
-          <span className="text-gray-400 font-normal text-xs">(optional — helps us customize your agent)</span>
-        </Label>
-        <Input
-          id="websiteUrl"
-          type="url"
-          placeholder="https://yourshop.com"
-          value={data.websiteUrl}
-          onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
-        />
+      <div className="pt-1 space-y-4 border-t border-gray-100">
+        <p className="text-xs text-slate-400 pt-2">Optional — fill in what you know now, skip the rest</p>
+
+        <div className="space-y-2">
+          <Label htmlFor="agentName">
+            Agent name{" "}
+            <span className="text-slate-400 font-normal text-xs">
+              (suggested: {suggestedName})
+            </span>
+          </Label>
+          <Input
+            id="agentName"
+            placeholder={suggestedName}
+            value={data.agentName}
+            onChange={(e) => onUpdate({ agentName: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ownerName">Your name</Label>
+          <Input
+            id="ownerName"
+            placeholder="e.g. Mike Johnson"
+            value={data.ownerName}
+            onChange={(e) => onUpdate({ ownerName: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="websiteUrl">Business website</Label>
+          <Input
+            id="websiteUrl"
+            type="url"
+            placeholder="https://yourshop.com"
+            value={data.websiteUrl}
+            onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
+          />
+        </div>
       </div>
     </div>
   );
