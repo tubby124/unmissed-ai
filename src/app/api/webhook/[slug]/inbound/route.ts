@@ -65,7 +65,8 @@ export async function POST(
     })
 
   // ── Returning caller detection ─────────────────────────────────────────────
-  let callerContext: string | undefined
+  // Always inject CALLER PHONE — agent should never ask for it; we already have it from Twilio
+  let callerContext = callerPhone !== 'unknown' ? `CALLER PHONE: ${callerPhone}` : ''
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
       .from('call_logs')
@@ -82,7 +83,7 @@ export async function POST(
       const lastSummary = lastCall.ai_summary
         ? ` Last call: ${(lastCall.ai_summary as string).slice(0, 120)}`
         : ''
-      callerContext = `RETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
+      callerContext += `\nRETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
       console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls, context injected`)
     }
   }
