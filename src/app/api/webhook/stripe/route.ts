@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
   const contactEmail = intake?.contact_email ?? null
   const intakeJson = (intake?.intake_json as Record<string, unknown> | null) ?? {}
   const areaCode = intakeJson.area_code as string | null
-  const callbackPhone = (intakeJson.callbackPhone as string | null) || null
+  const callbackPhone = (intakeJson.callback_phone as string | null) || null
   const callerAutoText = intakeJson.callerAutoText !== false  // default true
   const callerAutoTextMessage = (intakeJson.callerAutoTextMessage as string | null) || null
 
