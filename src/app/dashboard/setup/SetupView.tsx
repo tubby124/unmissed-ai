@@ -18,6 +18,7 @@ const CARRIERS = [
   { id: 'lucky-mobile', name: 'Lucky Mobile (Bell network)' },
   { id: 'pc-mobile',    name: 'PC Mobile (Bell network)' },
   { id: 'public-mobile',name: 'Public Mobile (Telus network)' },
+  { id: 'sasktel-mobile', name: 'SaskTel Mobile' },
   { id: 'videotron',    name: 'Videotron' },
   { id: 'virgin-plus',  name: 'Virgin Plus (Bell network)' },
   { id: 'other',        name: 'Other / Unlisted' },
