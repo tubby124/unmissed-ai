@@ -145,30 +145,40 @@ export async function POST(req: NextRequest) {
   // ── Create Stripe Checkout session ─────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    line_items: [
-      {
-        price_data: {
-          currency: 'cad',
-          unit_amount: 2000,
-          product_data: {
-            name: 'unmissed.ai Voice Agent Setup',
-            description: 'Includes your first month of AI call handling — free.',
+  // Validate email before passing to Stripe — invalid format causes email_invalid error
+  const rawEmail = intake.contact_email ?? ''
+  const customerEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : undefined
+
+  let session: { url: string | null }
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'cad',
+            unit_amount: 2000,
+            product_data: {
+              name: 'unmissed.ai Voice Agent Setup',
+              description: 'Includes your first month of AI call handling — free.',
+            },
           },
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      metadata: {
+        intake_id: intakeId,
+        client_id: clientId,
+        client_slug: clientSlug,
       },
-    ],
-    metadata: {
-      intake_id: intakeId,
-      client_id: clientId,
-      client_slug: clientSlug,
-    },
-    customer_email: intake.contact_email ?? undefined,
-    success_url: `${appUrl}/onboard/status?success=true`,
-    cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
-  })
+      customer_email: customerEmail,
+      success_url: `${appUrl}/onboard/status?success=true`,
+      cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
+    })
+  } catch (err) {
+    console.error('[create-public-checkout] Stripe session creation failed:', err)
+    return NextResponse.json({ error: 'Checkout session creation failed', detail: String(err) }, { status: 502 })
+  }
 
   return NextResponse.json({ url: session.url })
 }
