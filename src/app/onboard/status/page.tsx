@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -12,12 +12,42 @@ function StatusContent() {
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
-  // Clear localStorage draft on success
+  // Success screen: poll for Twilio number
+  const [twilioNumber, setTwilioNumber] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  const fetchActivationStatus = useCallback(async () => {
+    if (!intakeId) return;
+    try {
+      const res = await fetch(`/api/public/activation-status?intakeId=${intakeId}`);
+      if (!res.ok) return;
+      const json = await res.json() as { status: string; twilio_number: string | null };
+      if (json.twilio_number) {
+        setTwilioNumber(json.twilio_number);
+        setPolling(false);
+      }
+    } catch { /* ignore — will retry */ }
+  }, [intakeId]);
+
+  // Clear localStorage draft and start polling for Twilio number on success
   useEffect(() => {
     if (success) {
       try { localStorage.removeItem("unmissed-onboard-draft"); } catch { /* ignore */ }
+      if (intakeId) {
+        setPolling(true);
+        fetchActivationStatus();
+      }
     }
-  }, [success]);
+  }, [success, intakeId, fetchActivationStatus]);
+
+  // Poll every 4 seconds until we get the number (Stripe webhook takes ~3-8s)
+  useEffect(() => {
+    if (!polling) return;
+    const interval = setInterval(fetchActivationStatus, 4000);
+    // Stop polling after 90 seconds
+    const timeout = setTimeout(() => { setPolling(false); clearInterval(interval); }, 90_000);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
+  }, [polling, fetchActivationStatus]);
 
   async function handlePay() {
     if (!intakeId) return;
@@ -44,15 +74,33 @@ function StatusContent() {
       <div className="max-w-md w-full text-center space-y-6 py-12">
         <div className="text-5xl">🎉</div>
         <h1 className="text-2xl font-bold text-gray-900">You&apos;re all set!</h1>
+
+        {twilioNumber ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center space-y-1">
+            <p className="text-xs text-emerald-700 font-medium uppercase tracking-wide">Your AI phone number</p>
+            <p className="text-2xl font-bold text-emerald-800 tracking-wide font-mono">{twilioNumber}</p>
+            <p className="text-xs text-emerald-600">Call this number to test your agent</p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-500 flex items-center gap-3">
+            <svg className="animate-spin w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Provisioning your phone number&hellip; usually takes under 30 seconds.
+          </div>
+        )}
+
         <p className="text-gray-600 text-sm leading-relaxed">
-          Your AI agent is being activated. Check your email — you&apos;ll receive a link to set your password and log into your dashboard.
+          Check your email — you&apos;ll receive a link to set your password and log into your dashboard.
         </p>
+
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-900 text-left space-y-2">
           <p className="font-semibold">What happens next:</p>
           <ol className="list-decimal list-inside space-y-1 text-emerald-800">
-            <li>Your AI phone number is being provisioned</li>
             <li>Password setup email is on its way</li>
-            <li>Log in to your dashboard and make a test call</li>
+            <li>Call your new AI number to test it</li>
+            <li>Log in to your dashboard to see the call log</li>
           </ol>
         </div>
         <p className="text-xs text-gray-400">
