@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import StickyMobileCta from "@/components/StickyMobileCta";
-import ActivityTicker from "@/components/ActivityTicker";
+import { SplineHero } from "@/components/SplineHero";
 import MarqueeStrip from "@/components/MarqueeStrip";
 import HowItWorks from "@/components/HowItWorks";
 import NicheSelectorGrid from "@/components/NicheSelectorGrid";
@@ -73,75 +73,7 @@ export default async function HomePage() {
 
       <main style={{ backgroundColor: "#0A0A0A" }}>
         {/* ── 1. HERO ──────────────────────────────────────────── */}
-        <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-          {/* Background glow */}
-          <div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ backgroundColor: "#3B82F6" }}
-          />
-
-          <div className="relative max-w-4xl mx-auto text-center">
-            {/* Live ticker */}
-            <div className="flex justify-center mb-6">
-              <ErrorBoundary>
-                <ActivityTicker />
-              </ErrorBoundary>
-            </div>
-
-            <p
-              className="text-xs font-mono uppercase tracking-widest mb-4"
-              style={{ color: "#3B82F6" }}
-            >
-              AI Receptionist for Service Businesses
-            </p>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-6">
-              Every call answered.
-              <br />
-              Every lead captured.
-              <br />
-              <span style={{ color: "#3B82F6" }}>Even at 2am.</span>
-            </h1>
-
-            <p className="text-gray-400 text-lg md:text-xl leading-relaxed mb-4 max-w-2xl mx-auto">
-              You&apos;re on the job. A customer calls. 3 rings. They hang up.
-              That&apos;s a $400 job gone — to a competitor who picked up.
-            </p>
-            <p className="text-white text-lg md:text-xl font-semibold mb-10 max-w-2xl mx-auto">
-              unmissed.ai fixes that — for good.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Link
-                href="#demo"
-                className="px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-                style={{ backgroundColor: "#3B82F6" }}
-              >
-                Hear a Real Demo Call →
-              </Link>
-              <Link
-                href="/onboard"
-                className="px-8 py-4 rounded-xl font-semibold text-sm transition-colors"
-                style={{
-                  backgroundColor: "#111111",
-                  color: "#D1D5DB",
-                  border: "1px solid #1F1F1F",
-                }}
-              >
-                Get My Agent Set Up
-              </Link>
-            </div>
-
-            <p className="text-gray-600 text-xs">
-              Trusted by service businesses in Alberta · Saskatchewan · British Columbia · Ontario · Texas
-            </p>
-
-            {/* Guarantee badge */}
-            <p className="text-gray-600 text-xs mt-2">
-              🔒 No contracts · Cancel anytime · 30-day money-back guarantee
-            </p>
-          </div>
-        </section>
+        <SplineHero callsStat={callsStat} />
 
         {/* ── 2. PROOF NUMBERS ─────────────────────────────────── */}
         <section
