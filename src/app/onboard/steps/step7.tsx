@@ -41,7 +41,7 @@ function formatNicheValue(value: string | string[] | boolean): string {
 }
 
 function AgentPreview({ data }: { data: OnboardingData }) {
-  const name = data.agentName || (data.niche ? ({ auto_glass:"Mark",hvac:"Mike",plumbing:"Dave",dental:"Ashley",legal:"Jordan",salon:"Jamie",real_estate:"Alex",property_management:"Jade",outbound_isa_realtor:"Fatima",other:"Sam" } as Record<string,string>)[data.niche] : "Sam");
+  const name = data.agentName || (data.niche ? ({ auto_glass:"Mark",hvac:"Mike",plumbing:"Dave",dental:"Ashley",legal:"Jordan",salon:"Jamie",real_estate:"Alex",property_management:"Jade",outbound_isa_realtor:"Fatima",voicemail:"Sam",other:"Sam" } as Record<string,string>)[data.niche] : "Sam");
   const biz = data.businessName || "[Your Business]";
   return (
     <div className="bg-gray-900 rounded-xl p-4 text-sm font-mono">

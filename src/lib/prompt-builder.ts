@@ -630,6 +630,18 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
 
+  // Pre-resolve variable values that reference other variables.
+  // e.g. voicemail niche sets CLOSE_PERSON = '{{BUSINESS_NAME}}' — must resolve before template fill
+  // because buildPrompt does a single pass and won't catch values introduced by earlier substitutions.
+  for (const key of Object.keys(variables)) {
+    if (variables[key].includes('{{')) {
+      variables[key] = variables[key].replace(
+        /\{\{([A-Z_]+)\}\}/g,
+        (_, k: string) => variables[k] ?? '',
+      )
+    }
+  }
+
   // Build base prompt
   let prompt = buildPrompt(variables)
 
