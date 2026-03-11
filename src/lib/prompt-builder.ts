@@ -1130,6 +1130,8 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     'ANGRY / RUDE CALLER',
     'CALLER SPEAKS ANOTHER LANGUAGE',
     'CALLER ASKS ABOUT PRICING',
+    'WRONG NUMBER',
+    'SPAM',
   ]
   for (const section of requiredSections) {
     if (!prompt.includes(section)) {
