@@ -38,7 +38,10 @@ const US_STATES = [
 ];
 
 export default function Step2({ data, onUpdate }: Props) {
-  const suggestedName = data.niche ? defaultAgentNames[data.niche] : "Sam";
+  const isMaleVoice = data.niche === "voicemail" && data.nicheAnswers?.voiceGender === "male";
+  const suggestedName = data.niche === "voicemail"
+    ? (isMaleVoice ? "Max" : "Sam")
+    : (data.niche ? defaultAgentNames[data.niche] : "Sam");
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const phoneDigits = countDigits(data.callbackPhone);
@@ -137,6 +140,9 @@ export default function Step2({ data, onUpdate }: Props) {
         />
         {phoneInvalid && (
           <p className="text-xs text-red-600 mt-1">Phone number must have at least 10 digits</p>
+        )}
+        {!phoneInvalid && isFastTrack && (
+          <p className="text-xs text-slate-400 mt-1">You&apos;ll receive a setup SMS at this number when your agent goes live.</p>
         )}
       </div>
 

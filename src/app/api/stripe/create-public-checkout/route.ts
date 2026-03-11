@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
         client_slug: clientSlug,
       },
       customer_email: customerEmail,
-      success_url: `${appUrl}/onboard/status?success=true`,
+      success_url: `${appUrl}/onboard/status?success=true&id=${intakeId}`,
       cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
     })
   } catch (err) {
