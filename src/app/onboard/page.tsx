@@ -46,7 +46,9 @@ function canAdvance(step: number, data: OnboardingData): boolean {
     case 2: {
       const noCity = isFastTrack || data.niche === 'real_estate';
       if (noCity) {
-        return !!data.businessName && !!data.state && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
+        const baseValid = !!data.businessName && !!data.state && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
+        if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim();
+        return baseValid;
       }
       return !!data.businessName && !!data.city && !!data.state
         && countDigits(data.callbackPhone) >= 10

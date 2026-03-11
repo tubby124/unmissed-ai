@@ -62,12 +62,26 @@ export default function Step2({ data, onUpdate }: Props) {
         </p>
       </div>
 
+      {isRealEstate && (
+        <div className="space-y-2">
+          <Label htmlFor="ownerNameTop">
+            Your full name <span className="text-red-400">*</span>
+            <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;from [your name]&apos;s office at [brokerage]&quot;)</span>
+          </Label>
+          <Input
+            id="ownerNameTop"
+            placeholder="e.g. Omar Sharif"
+            value={data.ownerName}
+            onChange={(e) => onUpdate({ ownerName: e.target.value })}
+          />
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="businessName">
           {isFastTrack ? "Your name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
           <span className="text-red-400">*</span>
           {isFastTrack && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;This is Sam, assistant for [your name]&quot;)</span>}
-          {isRealEstate && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;from [your name]&apos;s office at [brokerage]&quot;)</span>}
         </Label>
         <Input
           id="businessName"
@@ -205,15 +219,17 @@ export default function Step2({ data, onUpdate }: Props) {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="ownerName">Your name</Label>
-          <Input
-            id="ownerName"
-            placeholder="e.g. Mike Johnson"
-            value={data.ownerName}
-            onChange={(e) => onUpdate({ ownerName: e.target.value })}
-          />
-        </div>
+        {!isRealEstate && (
+          <div className="space-y-2">
+            <Label htmlFor="ownerName">Your name</Label>
+            <Input
+              id="ownerName"
+              placeholder="e.g. Mike Johnson"
+              value={data.ownerName}
+              onChange={(e) => onUpdate({ ownerName: e.target.value })}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="websiteUrl">Business website</Label>

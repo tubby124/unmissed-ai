@@ -157,18 +157,24 @@ export async function POST(req: NextRequest) {
 
   const intakePayload = toIntakePayload(data);
 
+  // For real_estate the display name is the agent's personal name (ownerName),
+  // not the brokerage (businessName). The brokerage is preserved inside intake_json.
+  const displayName = (data.niche === "real_estate" && data.ownerName?.trim())
+    ? data.ownerName.trim()
+    : data.businessName;
+
   // Insert into intake_submissions
   const { data: row, error: insertErr } = await supa
     .from("intake_submissions")
     .insert({
-      business_name: data.businessName,
+      business_name: displayName,
       niche: data.niche || "other",
       intake_json: { ...data, ...intakePayload },
       status: "pending",
       progress_status: "pending",
       owner_name: data.ownerName || null,
       contact_email: data.contactEmail || null,
-      client_slug: slugify(data.businessName),
+      client_slug: slugify(displayName),
     })
     .select("id")
     .single();
@@ -197,7 +203,7 @@ export async function POST(req: NextRequest) {
         };
         const msg = `🆕 <b>New Agent Request</b>
 
-<b>${data.businessName}</b> — ${(data.niche || "other").replace(/_/g, " ")}
+<b>${displayName}</b>${data.niche === "real_estate" && data.businessName ? ` (${data.businessName})` : ""} — ${(data.niche || "other").replace(/_/g, " ")}
 📍 ${data.city}, ${data.state}
 📞 ${data.callbackPhone}
 👤 ${data.ownerName || "not provided"} — ${data.contactEmail || "no email"}
