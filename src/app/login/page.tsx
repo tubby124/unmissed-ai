@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
-import AnimatedShaderBackground from '@/components/ui/animated-shader-background'
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,10 +49,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center py-8 px-4">
-      <AnimatedShaderBackground />
-
-      <div className="relative z-10 w-full max-w-sm">
+    <div className="min-h-dvh flex items-center justify-center py-8 px-4 bg-zinc-950">
+      <div className="w-full max-w-sm">
         {/* Back to home */}
         <Link
           href="/"

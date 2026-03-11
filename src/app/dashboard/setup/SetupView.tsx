@@ -126,13 +126,13 @@ const LANDLINE_NOTES: Record<string, string[]> = {
 // ── VoIP platform data ────────────────────────────────────────────────────────
 
 const VOIP_PLATFORMS = [
-  { id: 'ringcentral',   name: 'RingCentral' },
-  { id: 'ooma',         name: 'Ooma Office' },
-  { id: 'grasshopper',  name: 'Grasshopper' },
-  { id: '8x8',          name: '8x8 Work / Express' },
-  { id: 'vonage',       name: 'Vonage Business' },
-  { id: 'telus-connect',name: 'Telus Business Connect' },
-  { id: 'other-voip',   name: 'Other VoIP System' },
+  { id: 'ringcentral',    name: 'RingCentral' },
+  { id: 'ooma',          name: 'Ooma Office' },
+  { id: 'grasshopper',   name: 'Grasshopper' },
+  { id: '8x8',           name: '8x8 Work / Express' },
+  { id: 'vonage',        name: 'Vonage Business' },
+  { id: 'telus-connect', name: 'Telus Business Connect' },
+  { id: 'other-voip',    name: 'Other VoIP System' },
 ]
 
 const VOIP_INSTRUCTIONS: Record<string, { steps: string[]; note?: string }> = {
@@ -215,31 +215,36 @@ function fmtPhone(num: string | null): string {
   return num
 }
 
-function CopyButton({ value }: { value: string }) {
+function CopyButton({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <button
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation()
         navigator.clipboard.writeText(value)
         setCopied(true)
         setTimeout(() => setCopied(false), 1800)
       }}
-      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-400 border border-white/[0.08] hover:text-zinc-200 hover:border-white/[0.18] hover:bg-white/[0.04] transition-all shrink-0"
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all shrink-0 cursor-pointer ${
+        copied
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+          : 'text-zinc-400 border-white/[0.08] hover:text-zinc-200 hover:border-white/[0.18] hover:bg-white/[0.04]'
+      }`}
     >
       {copied ? (
         <>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
             <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Copied
+          {label ? 'Copied!' : 'Copied'}
         </>
       ) : (
         <>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
             <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.5"/>
           </svg>
-          Copy
+          {label ?? 'Copy'}
         </>
       )}
     </button>
@@ -256,23 +261,53 @@ function CodeRow({ label, code }: { label: string; code: string }) {
   )
 }
 
-function CarrierNoteBox({ notes }: { notes: string[] }) {
+function StepHeader({ num, label }: { num: string; label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-5">
+      <span className="text-[11px] font-mono font-black tracking-widest text-blue-500/50">{num}</span>
+      <span className="text-[11px] text-zinc-500 uppercase tracking-[0.12em] font-semibold">{label}</span>
+      <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
+    </div>
+  )
+}
+
+function InlineNotes({ notes }: { notes: string[] }) {
   if (!notes.length) return null
   return (
-    <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5">
-      <div className="flex items-start gap-3">
-        <svg className="text-amber-400 shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
-          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-        <ul className="space-y-1.5">
-          {notes.map((note, i) => (
-            <li key={i} className="text-xs text-amber-200/80 leading-relaxed">{note}</li>
-          ))}
-        </ul>
-      </div>
+    <div className="space-y-1.5">
+      {notes.map((note, i) => (
+        <div key={i} className="flex items-start gap-2">
+          <svg className="text-amber-500/60 shrink-0 mt-0.5" width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <p className="text-[11px] text-amber-200/55 leading-relaxed">{note}</p>
+        </div>
+      ))}
     </div>
+  )
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+
+function ActiveBadge() {
+  return (
+    <div className="flex items-center justify-center gap-3 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+      <span className="text-emerald-400 font-semibold text-sm">Agent Active — Calls will forward automatically</span>
+    </div>
+  )
+}
+
+function MarkActiveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full py-3.5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 text-emerald-400 font-semibold text-sm hover:bg-emerald-500/[0.12] hover:border-emerald-500/30 transition-all cursor-pointer"
+    >
+      Done dialing → Mark Agent Active
+    </button>
   )
 }
 
@@ -290,6 +325,9 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
   const [device, setDevice] = useState<'iphone' | 'android'>('iphone')
   const [landlineCarrier, setLandlineCarrier] = useState('')
   const [voipPlatform, setVoipPlatform] = useState('')
+  const [telusOption, setTelusOption] = useState<'A' | 'B'>('A')
+  const [isActive, setIsActive] = useState(false)
+  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -310,23 +348,83 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
   // VoIP derived state
   const voipInstructions = voipPlatform ? VOIP_INSTRUCTIONS[voipPlatform] : null
 
-  return (
-    <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+  function toggleStep(i: number) {
+    setCheckedSteps(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">Call Forwarding Setup</h1>
-        <p className="text-sm text-zinc-500 mt-1">Activate your AI agent in 60 seconds — set this up once and you&apos;re done.</p>
+  const showMobileCodes = lineType === 'mobile' && !!carrier && !!rawNumber
+  const showLandlineCodes = lineType === 'landline' && !!landlineCarrier && !!rawNumber && !!landlineCodes
+  const showVoipCodes = lineType === 'voip' && !!voipPlatform && !!voipInstructions
+
+  // Icons for line type tabs
+  const PhoneIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+      <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  )
+  const DeskPhoneIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+  const CloudIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+
+  const lineTypeTabs = [
+    { id: 'mobile'   as const, label: 'Mobile',   sub: 'Cell Phone',       icon: PhoneIcon     },
+    { id: 'landline' as const, label: 'Landline',  sub: 'Desk Phone',       icon: DeskPhoneIcon },
+    { id: 'voip'     as const, label: 'VoIP',      sub: 'Business System',  icon: CloudIcon     },
+  ]
+
+  // Shared call card for star code scenarios
+  function StarCard({ stepNum, label, desc, code, icon }: {
+    stepNum: string; label: string; desc: string; code: string; icon: React.ReactNode
+  }) {
+    return (
+      <div className="bg-zinc-900/60 border border-white/[0.06] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center shrink-0 text-blue-400">
+            {icon}
+          </div>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-black font-mono text-blue-500/40 tracking-widest">{stepNum}</span>
+              <p className="text-sm font-semibold text-white">{label}</p>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-0.5">{desc}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 block font-mono text-xl text-white bg-black/60 border border-white/[0.06] rounded-xl px-4 py-3.5 tracking-wider text-center">
+            {code}
+          </span>
+          <CopyButton value={code} />
+        </div>
+        <p className="text-[10px] text-zinc-600 text-center">Dial this code, then press the green Call button</p>
       </div>
+    )
+  }
 
-      {/* ── Admin client selector ───────────────────────────────────────── */}
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+
+      {/* ── Admin client selector ─────────────────────────────────────── */}
       {isAdmin && clients.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {clients.map(c => (
             <button
               key={c.id}
               onClick={() => setSelectedId(c.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                 selectedId === c.id
                   ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                   : 'text-zinc-400 border-white/[0.08] hover:text-zinc-200 hover:bg-white/[0.04]'
@@ -338,579 +436,616 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
         </div>
       )}
 
-      {/* ── Agent number card ───────────────────────────────────────────── */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
-        <p className="text-xs text-zinc-500 mb-1">Your AI Agent&apos;s Phone Number</p>
-        <div className="flex items-center gap-3 mt-2">
-          <span className="text-2xl font-mono font-semibold text-white tracking-tight">
-            {rawNumber ? displayNumber : <span className="text-zinc-600">Not configured</span>}
-          </span>
-          {rawNumber && (
-            <CopyButton value={rawNumber} />
-          )}
-        </div>
-        <p className="text-xs text-zinc-600 mt-2">
-          This is the number you&apos;ll forward your calls to. Copy it before dialing the codes below.
-        </p>
-      </div>
+      {/* ═══════════════════════════════════════════════════════════════
+          01 — Your AI Agent Number
+      ═══════════════════════════════════════════════════════════════ */}
+      <div>
+        <StepHeader num="01" label="Your AI Agent Number" />
 
-      {/* ── How it works ────────────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[10px] font-bold tracking-wide text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">
-              CONDITIONAL FORWARDING — RECOMMENDED
-            </span>
+        <div className="relative bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent border border-white/[0.08] rounded-2xl p-8 overflow-hidden">
+          {/* Background glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-500/[0.05] rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative text-center space-y-3">
+            <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] font-medium">
+              Forward calls to this number
+            </p>
+
+            {rawNumber ? (
+              <>
+                <div className="flex items-center justify-center">
+                  <span className="text-4xl sm:text-5xl font-mono font-bold text-white tracking-tight tabular-nums">
+                    {displayNumber}
+                  </span>
+                </div>
+                <div className="flex justify-center pt-1">
+                  <CopyButton value={rawNumber} label="Copy Number" />
+                </div>
+                <p className="text-[11px] text-zinc-600 pt-1">
+                  Copy this before dialing the codes below — you&apos;ll need it
+                </p>
+              </>
+            ) : (
+              <span className="text-3xl font-mono text-zinc-600">Not configured yet</span>
+            )}
           </div>
-          <p className="text-sm text-zinc-300 leading-relaxed">
-            When a caller doesn&apos;t reach you — you&apos;re busy, didn&apos;t answer, or your phone is off — the call automatically routes to your AI agent. <span className="text-white font-medium">Your main line still rings first.</span> You keep full control of your phone.
-          </p>
-        </div>
 
-        <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <svg className="text-red-400 shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
-              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            <div>
-              <p className="text-xs font-semibold text-red-400 mb-1">Avoid: Unconditional (Full) Forwarding</p>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                iPhone&apos;s built-in <span className="font-mono text-zinc-300">Settings › Phone › Call Forwarding</span> activates unconditional forwarding — every call goes straight to the agent and <span className="text-red-300 font-medium">you receive no calls on your own phone</span>. Only use this if you want 100% of calls handled by the agent.
-              </p>
-            </div>
+          {/* How it works — minimal inline strip */}
+          <div className="mt-6 pt-5 border-t border-white/[0.05] flex items-start gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              <span className="text-white font-medium">Conditional forwarding</span> — your phone rings first. If you don&apos;t answer, are busy, or are unreachable, the call routes to your AI agent automatically.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* ── Line type picker ────────────────────────────────────────────── */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-        <p className="text-xs font-medium text-zinc-400 mb-3">Your Business Phone Type</p>
-        <div className="flex gap-2 flex-wrap">
-          {([
-            { id: 'mobile',   label: 'Mobile / Cell Phone' },
-            { id: 'landline', label: 'Landline / Desk Phone' },
-            { id: 'voip',     label: 'VoIP / Business Phone System' },
-          ] as const).map(t => (
+      {/* ═══════════════════════════════════════════════════════════════
+          02 — Phone Type
+      ═══════════════════════════════════════════════════════════════ */}
+      <div>
+        <StepHeader num="02" label="Your Business Phone Type" />
+
+        <div className="grid grid-cols-3 gap-2">
+          {lineTypeTabs.map(t => (
             <button
               key={t.id}
-              onClick={() => setLineType(t.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+              onClick={() => { setLineType(t.id); setIsActive(false) }}
+              className={`flex flex-col items-center gap-2 px-3 py-4 rounded-xl border transition-all cursor-pointer ${
                 lineType === t.id
-                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'text-zinc-400 border-white/[0.08] hover:text-zinc-200 hover:bg-white/[0.04]'
+                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/25 shadow-[0_0_20px_rgba(59,130,246,0.08)]'
+                  : 'text-zinc-500 border-white/[0.06] hover:text-zinc-300 hover:border-white/[0.12] hover:bg-white/[0.02]'
               }`}
             >
-              {t.label}
+              {t.icon}
+              <div className="text-center">
+                <p className="text-xs font-semibold">{t.label}</p>
+                <p className="text-[10px] opacity-60 mt-0.5">{t.sub}</p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════
-          MOBILE SECTION
-      ══════════════════════════════════════════════════════════════════ */}
-      {lineType === 'mobile' && (
-        <>
-          {/* ── Device picker ─────────────────────────────────────────── */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-            <p className="text-xs font-medium text-zinc-400 mb-3">Your Device</p>
-            <div className="flex gap-2 mb-4">
-              {(['iphone', 'android'] as const).map(d => (
-                <button
-                  key={d}
-                  onClick={() => setDevice(d)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                    device === d
-                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                      : 'text-zinc-400 border-white/[0.08] hover:text-zinc-200 hover:bg-white/[0.04]'
-                  }`}
+      {/* ═══════════════════════════════════════════════════════════════
+          03 — Activate Forwarding
+      ═══════════════════════════════════════════════════════════════ */}
+      <div>
+        <StepHeader num="03" label="Activate Forwarding" />
+
+        {/* ════════════════════════
+            MOBILE
+        ════════════════════════ */}
+        {lineType === 'mobile' && (
+          <div className="space-y-5">
+
+            {/* Device + Carrier row */}
+            <div className="grid grid-cols-2 gap-3">
+
+              {/* Device toggle */}
+              <div>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold mb-2">Device</p>
+                <div className="flex gap-1 p-1 bg-black/40 border border-white/[0.06] rounded-xl">
+                  {(['iphone', 'android'] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDevice(d)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                        device === d ? 'bg-white/[0.08] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {d === 'iphone' ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                          <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                          <path d="M9 2l1 2h4l1-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                      {d === 'iphone' ? 'iPhone' : 'Android'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Carrier select */}
+              <div>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold mb-2">Carrier</p>
+                <select
+                  value={carrier}
+                  onChange={e => { setCarrier(e.target.value); setIsActive(false) }}
+                  className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-[9px] text-xs text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors cursor-pointer"
                 >
-                  {d === 'iphone' ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                      <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
+                  <option value="">Select carrier...</option>
+                  <optgroup label="Big Three">
+                    <option value="rogers">Rogers</option>
+                    <option value="bell">Bell</option>
+                    <option value="telus">Telus</option>
+                  </optgroup>
+                  <optgroup label="Sub-brands &amp; Independents">
+                    <option value="chatr">Chatr (Rogers network)</option>
+                    <option value="fido">Fido (Rogers network)</option>
+                    <option value="freedom">Freedom Mobile</option>
+                    <option value="koodo">Koodo (Telus network)</option>
+                    <option value="lucky-mobile">Lucky Mobile (Bell network)</option>
+                    <option value="pc-mobile">PC Mobile (Bell network)</option>
+                    <option value="public-mobile">Public Mobile (Telus network)</option>
+                    <option value="videotron">Videotron</option>
+                    <option value="virgin-plus">Virgin Plus (Bell network)</option>
+                  </optgroup>
+                  <optgroup label="">
+                    <option value="other">Other / Unlisted</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            {/* Device instructions strip */}
+            {carrier && (
+              <div className="bg-black/20 border border-white/[0.04] rounded-xl px-4 py-3">
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  {device === 'iphone' ? (
+                    <>
+                      Open your <span className="text-zinc-300 font-medium">Phone app</span> → tap the keypad → dial each code and press the green Call button.{' '}
+                      <span className="text-red-400">Do not</span> use Settings → Phone → Call Forwarding.
+                    </>
                   ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M9 2l1 2h4l1-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
+                    <>
+                      Open <span className="text-zinc-300 font-medium">Phone app</span> → dial the code and press Call.
+                      Or: Phone → More (⋮) → Settings → Supplementary Services → Call Forwarding.
+                    </>
                   )}
-                  {d === 'iphone' ? 'iPhone' : 'Android'}
-                </button>
-              ))}
-            </div>
-            <div className="text-xs text-zinc-500 bg-black/20 rounded-lg px-3 py-2.5 leading-relaxed">
-              {device === 'iphone' ? (
-                <>
-                  Open your <span className="text-zinc-300 font-medium">Phone app</span> → tap the keypad icon → dial the codes below and press the green Call button.<br/>
-                  <span className="text-red-400">Do NOT</span> use Settings › Phone › Call Forwarding — that enables unconditional forwarding.
-                </>
-              ) : (
-                <>
-                  Option A (dial pad): Open your <span className="text-zinc-300 font-medium">Phone app</span> → dial the code and press Call.<br/>
-                  Option B (in-app): Phone app → More (⋮) → Settings → Supplementary Services → Call Forwarding → select each scenario.
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* ── Carrier selector ──────────────────────────────────────── */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-            <label className="text-xs font-medium text-zinc-400 mb-3 block">Your Carrier</label>
-            <select
-              value={carrier}
-              onChange={e => setCarrier(e.target.value)}
-              className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors"
-            >
-              <option value="">Select your carrier...</option>
-              <optgroup label="Big Three">
-                <option value="rogers">Rogers</option>
-                <option value="bell">Bell</option>
-                <option value="telus">Telus</option>
-              </optgroup>
-              <optgroup label="Sub-brands &amp; Independents">
-                <option value="chatr">Chatr (Rogers network)</option>
-                <option value="fido">Fido (Rogers network)</option>
-                <option value="freedom">Freedom Mobile</option>
-                <option value="koodo">Koodo (Telus network)</option>
-                <option value="lucky-mobile">Lucky Mobile (Bell network)</option>
-                <option value="pc-mobile">PC Mobile (Bell network)</option>
-                <option value="public-mobile">Public Mobile (Telus network)</option>
-                <option value="videotron">Videotron</option>
-                <option value="virgin-plus">Virgin Plus (Bell network)</option>
-              </optgroup>
-              <optgroup label="">
-                <option value="other">Other / Unlisted</option>
-              </optgroup>
-            </select>
-          </div>
-
-          {/* ── Carrier notes ─────────────────────────────────────────── */}
-          <CarrierNoteBox notes={carrierNotes} />
-
-          {/* ── Recommended setup: 3 codes ────────────────────────────── */}
-          {carrier && rawNumber && (
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <p className="text-sm font-semibold text-white">Recommended Setup — Forward Missed Calls Only</p>
+                </p>
               </div>
-              <p className="text-xs text-zinc-500 mb-4">Dial each code, press Call, wait for confirmation tone, then hang up. Do all three.</p>
+            )}
 
+            {/* Carrier notes */}
+            {carrier && carrierNotes.length > 0 && <InlineNotes notes={carrierNotes} />}
+
+            {/* Star code cards */}
+            {showMobileCodes && (
               <div className="space-y-3">
-                {[
-                  { step: 1, label: 'No Answer (missed calls)', code: `*61*${rawNumber}#`, desc: 'Forwards when you don\'t pick up' },
-                  { step: 2, label: 'Busy (you\'re on a call)', code: `*67*${rawNumber}#`, desc: 'Forwards when your line is busy' },
-                  { step: 3, label: 'Unreachable (phone off / no signal)', code: `*62*${rawNumber}#`, desc: 'Forwards when your phone is unreachable' },
-                ].map(({ step, label, code, desc }) => (
-                  <div key={step} className="bg-black/30 border border-white/[0.05] rounded-xl p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold flex items-center justify-center shrink-0">
-                          {step}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-zinc-300">{label}</p>
-                          <p className="text-[10px] text-zinc-600 mt-0.5">{desc}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="flex-1 font-mono text-base text-white bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 tracking-wide">
-                        {code}
-                      </span>
-                      <CopyButton value={code} />
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-2">Dial this code, then press the Call button</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Full forwarding (unconditional) ───────────────────────── */}
-          {carrier && rawNumber && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-400">Full Forwarding — All Calls to Agent</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">Use this only if you want every single call answered by the AI agent</p>
-                    </div>
-                    <svg className="text-zinc-600 group-open:rotate-180 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <StarCard
+                  stepNum="01"
+                  label="No Answer"
+                  desc="Forwards when you don't pick up"
+                  code={`*61*${rawNumber}#`}
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  </div>
-                </div>
-              </summary>
-              <div className="bg-red-500/5 border border-red-500/20 border-t-0 rounded-b-2xl p-5 space-y-2">
-                <p className="text-xs text-red-300/80 mb-3">Your phone will not ring. All callers go directly to the agent.</p>
-                <CodeRow label="Enable unconditional" code={`*21*${rawNumber}#`} />
-              </div>
-            </details>
-          )}
-
-          {/* ── Disable forwarding ────────────────────────────────────── */}
-          {carrier && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-400">Disable Forwarding — Rollback</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">Codes to turn off forwarding on your line</p>
-                    </div>
-                    <svg className="text-zinc-600 group-open:rotate-180 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  }
+                />
+                <StarCard
+                  stepNum="02"
+                  label="Busy"
+                  desc="Forwards when your line is busy"
+                  code={`*67*${rawNumber}#`}
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <line x1="8" y1="6" x2="8" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="16" y1="6" x2="16" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
-                  </div>
-                </div>
-              </summary>
-              <div className="bg-white/[0.02] border border-white/[0.05] border-t-0 rounded-b-2xl p-5 space-y-0 divide-y divide-white/[0.04]">
-                <CodeRow label="Disable no-answer"     code={`${disablePrefix}61#`} />
-                <CodeRow label="Disable busy"          code={`${disablePrefix}67#`} />
-                <CodeRow label="Disable unreachable"   code={`${disablePrefix}62#`} />
-                <CodeRow label="Disable unconditional" code={`${disablePrefix}21#`} />
-                <CodeRow label="Disable ALL at once"   code="##002#" />
-              </div>
-            </details>
-          )}
-
-          {/* ── Status check ──────────────────────────────────────────── */}
-          {carrier && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-400">Verify It&apos;s Working</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">Check that forwarding is active on your line</p>
-                    </div>
-                    <svg className="text-zinc-600 group-open:rotate-180 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  }
+                />
+                <StarCard
+                  stepNum="03"
+                  label="Unreachable"
+                  desc="Forwards when phone is off or has no signal"
+                  code={`*62*${rawNumber}#`}
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  </div>
-                </div>
-              </summary>
-              <div className="bg-white/[0.02] border border-white/[0.05] border-t-0 rounded-b-2xl p-5 space-y-0 divide-y divide-white/[0.04]">
-                <CodeRow label="Check no-answer status"   code="*#61#" />
-                <CodeRow label="Check unreachable status" code="*#62#" />
-                <CodeRow label="Check busy status"        code="*#67#" />
-                <p className="pt-3 text-xs text-zinc-600">Dial the code and press Call. Your carrier will display a message confirming whether forwarding is active and which number it routes to.</p>
+                  }
+                />
+
+                {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
               </div>
-            </details>
-          )}
+            )}
 
-          {/* ── Empty state ───────────────────────────────────────────── */}
-          {!carrier && (
-            <div className="text-center py-8 text-zinc-600 text-sm">
-              Select your carrier above to see the forwarding codes.
-            </div>
-          )}
+            {/* Collapsible panels — only when carrier is selected */}
+            {carrier && rawNumber && (
+              <div className="space-y-1 pt-1">
 
-          <p className="text-[11px] text-zinc-700 text-center pb-2">
-            These are standard 3GPP GSM supplementary service codes — they work on all Canadian carriers.<br/>
-            You only need to do this once. Forwarding stays active until you disable it.
-          </p>
-        </>
-      )}
+                {/* Full forwarding */}
+                <details className="group">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center gap-2 px-1 py-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+                        <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <span className="text-xs font-medium">Full Forwarding — All Calls to Agent</span>
+                      <svg className="ml-auto group-open:rotate-180 transition-transform" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div className="bg-black/30 border border-red-500/15 rounded-xl p-4 mt-1 space-y-2">
+                    <p className="text-[11px] text-red-300/70 mb-3">Your phone will not ring. Every caller goes directly to the agent.</p>
+                    <CodeRow label="Enable unconditional" code={`*21*${rawNumber}#`} />
+                  </div>
+                </details>
 
-      {/* ══════════════════════════════════════════════════════════════════
-          LANDLINE SECTION
-      ══════════════════════════════════════════════════════════════════ */}
-      {lineType === 'landline' && (
-        <>
-          {/* ── Carrier selector ──────────────────────────────────────── */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-            <label className="text-xs font-medium text-zinc-400 mb-3 block">Your Landline Provider</label>
-            <select
-              value={landlineCarrier}
-              onChange={e => setLandlineCarrier(e.target.value)}
-              className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors"
-            >
-              <option value="">Select your provider...</option>
-              <optgroup label="Saskatchewan">
-                <option value="sasktel">SaskTel (IBC)</option>
-              </optgroup>
-              <optgroup label="National Carriers">
-                <option value="rogers-business">Rogers Business / Shaw Business</option>
-                <option value="bell-business">Bell Business</option>
-                <option value="telus-wireline">Telus Business (wireline)</option>
-                <option value="cogeco">Cogeco Business</option>
-              </optgroup>
-              <optgroup label="">
-                <option value="other-landline">Other Landline</option>
-              </optgroup>
-            </select>
+                {/* Rollback */}
+                <details className="group">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center gap-2 px-1 py-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-xs font-medium">Rollback — Disable Forwarding</span>
+                      <svg className="ml-auto group-open:rotate-180 transition-transform" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4 mt-1 divide-y divide-white/[0.04]">
+                    <CodeRow label="Disable no-answer"     code={`${disablePrefix}61#`} />
+                    <CodeRow label="Disable busy"          code={`${disablePrefix}67#`} />
+                    <CodeRow label="Disable unreachable"   code={`${disablePrefix}62#`} />
+                    <CodeRow label="Disable unconditional" code={`${disablePrefix}21#`} />
+                    <CodeRow label="Disable ALL at once"   code="##002#" />
+                  </div>
+                </details>
+
+                {/* Verify */}
+                <details className="group">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center gap-2 px-1 py-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
+                        <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                      <span className="text-xs font-medium">Verify It&apos;s Working</span>
+                      <svg className="ml-auto group-open:rotate-180 transition-transform" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4 mt-1 divide-y divide-white/[0.04]">
+                    <CodeRow label="Check no-answer status"   code="*#61#" />
+                    <CodeRow label="Check unreachable status" code="*#62#" />
+                    <CodeRow label="Check busy status"        code="*#67#" />
+                    <p className="pt-3 text-[11px] text-zinc-600">Dial the code and press Call. Your carrier displays a message confirming whether forwarding is active.</p>
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!carrier && (
+              <div className="text-center py-10 text-zinc-600 text-sm">
+                Select your carrier above to see the forwarding codes.
+              </div>
+            )}
+
+            <p className="text-[11px] text-zinc-700 text-center pb-2">
+              Standard 3GPP GSM codes — work on all Canadian carriers. Set once, stays active permanently.
+            </p>
           </div>
+        )}
 
-          {/* ── Carrier notes ─────────────────────────────────────────── */}
-          <CarrierNoteBox notes={landlineNotes} />
+        {/* ════════════════════════
+            LANDLINE
+        ════════════════════════ */}
+        {lineType === 'landline' && (
+          <div className="space-y-5">
 
-          {/* ── Recommended setup ─────────────────────────────────────── */}
-          {landlineCarrier && rawNumber && landlineCodes && !isTelus && (
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <p className="text-sm font-semibold text-white">Recommended Setup — Forward Missed Calls</p>
-              </div>
+            {/* Provider selector */}
+            <div>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold mb-2">Landline Provider</p>
+              <select
+                value={landlineCarrier}
+                onChange={e => { setLandlineCarrier(e.target.value); setIsActive(false) }}
+                className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors cursor-pointer"
+              >
+                <option value="">Select your provider...</option>
+                <optgroup label="Saskatchewan">
+                  <option value="sasktel">SaskTel (IBC)</option>
+                </optgroup>
+                <optgroup label="National Carriers">
+                  <option value="rogers-business">Rogers Business / Shaw Business</option>
+                  <option value="bell-business">Bell Business</option>
+                  <option value="telus-wireline">Telus Business (wireline)</option>
+                  <option value="cogeco">Cogeco Business</option>
+                </optgroup>
+                <optgroup label="">
+                  <option value="other-landline">Other Landline</option>
+                </optgroup>
+              </select>
+            </div>
 
-              {/* Activation process */}
-              <div className="bg-black/20 rounded-lg px-3 py-2.5 mb-4">
-                <p className="text-xs text-zinc-400 leading-relaxed">{landlineCodes.process}</p>
-              </div>
+            {/* Inline notes */}
+            {landlineCarrier && landlineNotes.length > 0 && <InlineNotes notes={landlineNotes} />}
 
+            {/* Standard landline codes */}
+            {showLandlineCodes && !isTelus && (
               <div className="space-y-3">
-                {landlineCodes.noAnswerOn && (
-                  <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                      <div>
-                        <p className="text-xs font-medium text-zinc-300">No Answer (missed calls)</p>
-                        <p className="text-[10px] text-zinc-600 mt-0.5">Forwards when you don&apos;t pick up</p>
-                      </div>
+                {/* Process instructions */}
+                <div className="bg-black/20 border border-white/[0.04] rounded-xl px-4 py-3">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">{landlineCodes!.process}</p>
+                </div>
+
+                {landlineCodes!.noAnswerOn && (
+                  <StarCard
+                    stepNum="01"
+                    label="No Answer"
+                    desc="Forwards when you don't pick up"
+                    code={`${landlineCodes!.noAnswerOn} ${rawNumber}`}
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    }
+                  />
+                )}
+
+                {landlineCodes!.busyOn && (
+                  <StarCard
+                    stepNum="02"
+                    label="Busy"
+                    desc="Forwards when your line is busy"
+                    code={`${landlineCodes!.busyOn} ${rawNumber}`}
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <line x1="8" y1="6" x2="8" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <line x1="16" y1="6" x2="16" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    }
+                  />
+                )}
+
+                <p className="text-[10px] text-zinc-600">No # suffix needed — landline star codes work differently from mobile GSM codes.</p>
+
+                {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
+              </div>
+            )}
+
+            {/* Telus wireline — toggle tabs */}
+            {landlineCarrier === 'telus-wireline' && rawNumber && (
+              <div className="space-y-4">
+                {/* Option toggle */}
+                <div className="flex gap-1 p-1 bg-black/40 border border-white/[0.06] rounded-xl">
+                  {(['A', 'B'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setTelusOption(opt)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                        telusOption === opt ? 'bg-white/[0.08] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      Option {opt} — {opt === 'A' ? 'Star Code (manual)' : 'Call Telus (easier)'}
+                    </button>
+                  ))}
+                </div>
+
+                {telusOption === 'A' && (
+                  <div className="space-y-3">
+                    <div className="bg-black/20 border border-white/[0.04] rounded-xl px-4 py-3">
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Dial from your desk phone. The destination phone will ring —{' '}
+                        <span className="text-amber-300 font-medium">you must answer it</span> to confirm activation.
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex-1 font-mono text-base text-white bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 tracking-wide">
-                        {landlineCodes.noAnswerOn} {rawNumber}
-                      </span>
-                      <CopyButton value={`${landlineCodes.noAnswerOn} ${rawNumber}`} />
+                    <StarCard
+                      stepNum="01"
+                      label="Activate Call Forwarding"
+                      desc="If *72 doesn't work, try #72"
+                      code={`*72 ${rawNumber}`}
+                      icon={
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      }
+                    />
+                  </div>
+                )}
+
+                {telusOption === 'B' && (
+                  <div className="bg-zinc-900/60 border border-white/[0.06] rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0 text-emerald-400">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-white">Call Telus Business Support</p>
+                    </div>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Skip the star code entirely. Call Telus Business and they&apos;ll enable it for you — takes about 5 minutes. No answer-to-confirm step required.
+                    </p>
+                    <div className="bg-black/30 rounded-xl px-4 py-3 space-y-2">
+                      <p className="text-xs text-zinc-300"><span className="text-zinc-500">Call:</span> 1-866-771-9666</p>
+                      <p className="text-xs text-zinc-300"><span className="text-zinc-500">Say:</span> &quot;Please enable Call Forward No Answer on my line to {displayNumber}&quot;</p>
                     </div>
                   </div>
                 )}
 
-                {landlineCodes.busyOn && (
-                  <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                      <div>
-                        <p className="text-xs font-medium text-zinc-300">Busy (line in use)</p>
-                        <p className="text-[10px] text-zinc-600 mt-0.5">Forwards when your line is busy</p>
+                {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
+              </div>
+            )}
+
+            {/* Collapsible: Full forward + Rollback */}
+            {landlineCarrier && landlineCodes && (
+              <div className="space-y-1 pt-1">
+
+                {landlineCodes.unconditionalOn && !isTelus && (
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex items-center gap-2 px-1 py-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+                          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span className="text-xs font-medium">Full Forwarding — All Calls to Agent</span>
+                        <svg className="ml-auto group-open:rotate-180 transition-transform" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
+                    </summary>
+                    <div className="bg-black/30 border border-red-500/15 rounded-xl p-4 mt-1 space-y-2">
+                      <p className="text-[11px] text-red-300/70 mb-3">Your desk phone will not ring. Every caller goes directly to the agent.</p>
+                      <CodeRow label="Enable unconditional" code={`${landlineCodes.unconditionalOn} ${rawNumber}`} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex-1 font-mono text-base text-white bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 tracking-wide">
-                        {landlineCodes.busyOn} {rawNumber}
+                  </details>
+                )}
+
+                <details className="group">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center gap-2 px-1 py-2 text-zinc-600 hover:text-zinc-400 transition-colors">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-xs font-medium">Rollback — Disable Forwarding</span>
+                      <svg className="ml-auto group-open:rotate-180 transition-transform" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4 mt-1 divide-y divide-white/[0.04]">
+                    {landlineCodes.noAnswerOff && <CodeRow label="Disable no-answer forward"     code={landlineCodes.noAnswerOff} />}
+                    {landlineCodes.busyOff && <CodeRow label="Disable busy forward"              code={landlineCodes.busyOff} />}
+                    {landlineCodes.unconditionalOff && <CodeRow label="Disable unconditional forward" code={landlineCodes.unconditionalOff} />}
+                    <p className="pt-3 text-[11px] text-zinc-600">Pick up the receiver, dial the code, hang up when you hear the confirmation tone.</p>
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!landlineCarrier && (
+              <div className="text-center py-10 text-zinc-600 text-sm">
+                Select your landline provider above to see the forwarding codes.
+              </div>
+            )}
+
+            <p className="text-[11px] text-zinc-700 text-center pb-2">
+              Forwarding stays active until disabled — even after restarts or power outages.
+            </p>
+          </div>
+        )}
+
+        {/* ════════════════════════
+            VOIP
+        ════════════════════════ */}
+        {lineType === 'voip' && (
+          <div className="space-y-5">
+
+            {/* Info strip */}
+            <div className="flex items-start gap-2 px-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                VoIP systems use your admin portal instead of star codes. Works with any 10-digit North American number — no extra cost or delay.
+              </p>
+            </div>
+
+            {/* Platform selector */}
+            <div>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold mb-2">VoIP Platform</p>
+              <select
+                value={voipPlatform}
+                onChange={e => { setVoipPlatform(e.target.value); setIsActive(false); setCheckedSteps(new Set()) }}
+                className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors cursor-pointer"
+              >
+                <option value="">Select your platform...</option>
+                {VOIP_PLATFORMS.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Mission checklist */}
+            {showVoipCodes && voipInstructions && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-white">
+                    {VOIP_PLATFORMS.find(p => p.id === voipPlatform)?.name} — Setup Steps
+                  </p>
+                  <span className="text-[10px] text-zinc-600 tabular-nums">
+                    {checkedSteps.size}/{voipInstructions.steps.length} done
+                  </span>
+                </div>
+
+                <ol className="space-y-2">
+                  {voipInstructions.steps.map((step, i) => (
+                    <li
+                      key={i}
+                      onClick={() => toggleStep(i)}
+                      className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                        checkedSteps.has(i)
+                          ? 'bg-emerald-500/[0.05] border-emerald-500/20'
+                          : 'bg-black/20 border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <span className="text-sm font-black font-mono text-blue-500/35 w-7 shrink-0 mt-0.5">
+                        {String(i + 1).padStart(2, '0')}
                       </span>
-                      <CopyButton value={`${landlineCodes.busyOn} ${rawNumber}`} />
-                    </div>
+                      <p className={`text-sm leading-relaxed flex-1 transition-colors ${
+                        checkedSteps.has(i) ? 'text-zinc-500' : 'text-zinc-300'
+                      }`}>
+                        {step}
+                      </p>
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                        checkedSteps.has(i)
+                          ? 'bg-emerald-500/30 border-emerald-500/50'
+                          : 'border-white/[0.15]'
+                      }`}>
+                        {checkedSteps.has(i) && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+
+                {/* Agent number inline */}
+                {rawNumber && (
+                  <div className="bg-black/20 border border-white/[0.04] rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span className="text-[11px] text-zinc-500 shrink-0">Agent number:</span>
+                    <span className="font-mono text-sm text-white flex-1">{displayNumber}</span>
+                    <CopyButton value={rawNumber} />
                   </div>
                 )}
-              </div>
 
-              <p className="text-[10px] text-zinc-600 mt-3">
-                No # suffix needed — landline star codes work differently from mobile GSM codes.
-              </p>
-            </div>
-          )}
-
-          {/* ── Telus wireline: two-option layout ─────────────────────── */}
-          {isTelus && rawNumber && (
-            <div className="space-y-3">
-              {/* Option A: star code */}
-              <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold tracking-wide text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2 py-0.5">
-                    OPTION A — STAR CODE
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                  Dial the code from your desk phone. The destination phone will ring — <span className="text-amber-300 font-medium">you must answer it</span> to confirm activation. If the call goes unanswered, the code won&apos;t activate.
-                </p>
-                <div className="bg-black/30 border border-white/[0.05] rounded-xl p-4">
-                  <p className="text-xs font-medium text-zinc-300 mb-3">Activate call forwarding</p>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 font-mono text-base text-white bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 tracking-wide">
-                      *72 {rawNumber}
-                    </span>
-                    <CopyButton value={`*72 ${rawNumber}`} />
+                {/* Note */}
+                {voipInstructions.note && (
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 mt-1.5 shrink-0" />
+                    <p className="text-[11px] text-amber-200/50 leading-relaxed">{voipInstructions.note}</p>
                   </div>
-                  <p className="text-[10px] text-zinc-600 mt-2">If *72 doesn&apos;t work, try #72 {rawNumber}</p>
-                </div>
+                )}
+
+                {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
               </div>
+            )}
 
-              {/* Option B: call support */}
-              <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold tracking-wide text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">
-                    OPTION B — CALL TELUS SUPPORT (EASIER)
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-3 leading-relaxed">
-                  Skip the star code entirely. Call Telus Business and they&apos;ll enable it for you — takes about 5 minutes. No answer-to-confirm step required.
-                </p>
-                <div className="bg-black/20 rounded-lg px-3 py-2.5 space-y-1.5">
-                  <p className="text-xs text-zinc-300"><span className="text-zinc-500">Call:</span> 1-866-771-9666 (Telus Business support)</p>
-                  <p className="text-xs text-zinc-300"><span className="text-zinc-500">Ask:</span> &quot;Please enable Call Forward No Answer on my line to {displayNumber}&quot;</p>
-                </div>
+            {/* Empty state */}
+            {!voipPlatform && (
+              <div className="text-center py-10 text-zinc-600 text-sm">
+                Select your VoIP platform above to see the setup steps.
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Full forwarding (unconditional) ───────────────────────── */}
-          {landlineCarrier && rawNumber && landlineCodes?.unconditionalOn && !isTelus && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-400">Full Forwarding — All Calls to Agent</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">Every call goes directly to the AI — your phone won&apos;t ring</p>
-                    </div>
-                    <svg className="text-zinc-600 group-open:rotate-180 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-              </summary>
-              <div className="bg-red-500/5 border border-red-500/20 border-t-0 rounded-b-2xl p-5 space-y-2">
-                <p className="text-xs text-red-300/80 mb-3">Your desk phone will not ring. All callers go directly to the agent.</p>
-                <CodeRow label="Enable unconditional" code={`${landlineCodes.unconditionalOn} ${rawNumber}`} />
-              </div>
-            </details>
-          )}
-
-          {/* ── Disable forwarding ────────────────────────────────────── */}
-          {landlineCarrier && landlineCodes && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-400">Disable Forwarding — Rollback</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">Codes to turn off forwarding on your line</p>
-                    </div>
-                    <svg className="text-zinc-600 group-open:rotate-180 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-              </summary>
-              <div className="bg-white/[0.02] border border-white/[0.05] border-t-0 rounded-b-2xl p-5 space-y-0 divide-y divide-white/[0.04]">
-                {landlineCodes.noAnswerOff && <CodeRow label="Disable no-answer forward" code={landlineCodes.noAnswerOff} />}
-                {landlineCodes.busyOff && <CodeRow label="Disable busy forward" code={landlineCodes.busyOff} />}
-                {landlineCodes.unconditionalOff && <CodeRow label="Disable unconditional forward" code={landlineCodes.unconditionalOff} />}
-                <p className="pt-3 text-xs text-zinc-600">Pick up the receiver, dial the code, and hang up when you hear the confirmation tone.</p>
-              </div>
-            </details>
-          )}
-
-          {/* ── Empty state ───────────────────────────────────────────── */}
-          {!landlineCarrier && (
-            <div className="text-center py-8 text-zinc-600 text-sm">
-              Select your landline provider above to see the forwarding codes.
-            </div>
-          )}
-
-          <p className="text-[11px] text-zinc-700 text-center pb-2">
-            Forwarding stays active until you disable it — even if you restart your phone or lose power.<br/>
-            You only need to set this up once.
-          </p>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════
-          VOIP SECTION
-      ══════════════════════════════════════════════════════════════════ */}
-      {lineType === 'voip' && (
-        <>
-          {/* ── Info banner ───────────────────────────────────────────── */}
-          <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <svg className="text-blue-400 shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-                <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              <p className="text-xs text-blue-200/80 leading-relaxed">
-                VoIP systems don&apos;t use star codes — forwarding is set up in your admin portal. All platforms support forwarding to any 10-digit North American number at no extra cost. Callers hear seamless ringing with no perceptible delay.
-              </p>
-            </div>
+            <p className="text-[11px] text-zinc-700 text-center pb-2">
+              Once saved in the portal, forwarding stays active permanently. Your business number remains unchanged for outbound calls.
+            </p>
           </div>
+        )}
+      </div>
 
-          {/* ── Platform selector ─────────────────────────────────────── */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-            <label className="text-xs font-medium text-zinc-400 mb-3 block">Your VoIP Platform</label>
-            <select
-              value={voipPlatform}
-              onChange={e => setVoipPlatform(e.target.value)}
-              className="w-full bg-black/40 border border-white/[0.1] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors"
-            >
-              <option value="">Select your platform...</option>
-              {VOIP_PLATFORMS.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* ── Step-by-step instructions ─────────────────────────────── */}
-          {voipPlatform && voipInstructions && (
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <p className="text-sm font-semibold text-white">
-                  {VOIP_PLATFORMS.find(p => p.id === voipPlatform)?.name} — Setup Steps
-                </p>
-              </div>
-
-              <ol className="space-y-3">
-                {voipInstructions.steps.map((step, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    <p className="text-sm text-zinc-300 leading-relaxed">{step}</p>
-                  </li>
-                ))}
-              </ol>
-
-              {rawNumber && (
-                <div className="mt-4 bg-black/20 rounded-lg px-3 py-2.5 flex items-center gap-3">
-                  <span className="text-xs text-zinc-500 shrink-0">Your agent number:</span>
-                  <span className="font-mono text-sm text-white flex-1">{displayNumber}</span>
-                  <CopyButton value={rawNumber} />
-                </div>
-              )}
-
-              {voipInstructions.note && (
-                <div className="mt-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2.5">
-                  <p className="text-xs text-amber-200/80 leading-relaxed">{voipInstructions.note}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Empty state ───────────────────────────────────────────── */}
-          {!voipPlatform && (
-            <div className="text-center py-8 text-zinc-600 text-sm">
-              Select your VoIP platform above to see the setup steps.
-            </div>
-          )}
-
-          <p className="text-[11px] text-zinc-700 text-center pb-2">
-            Once saved in the portal, forwarding stays active permanently — no need to reconfigure.<br/>
-            Your business number remains unchanged for outbound calls.
-          </p>
-        </>
-      )}
-
-      {/* ── Footer note ─────────────────────────────────────────────────── */}
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
       <p className="text-[11px] text-zinc-700 text-center pb-4">
         Need help? Contact us and we&apos;ll walk you through it.
       </p>
