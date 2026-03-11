@@ -454,6 +454,26 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     INSURANCE_DETAIL: 'N/A',
     WEEKEND_POLICY: "yeah we work weekends too — real estate doesn't stop on saturdays",
   },
+  voicemail: {
+    INDUSTRY: 'professional practice',
+    PRIMARY_CALL_REASON: 'reaching {{BUSINESS_NAME}}',
+    TRIAGE_SCRIPT: [
+      `"If urgent: 'okay, got it — let me make sure i have the right details to pass along.'"`,
+      `"If unclear reason: 'no worries — just give me a quick idea of what it's about so they know when they call back.'"`,
+      `"If wrong number: 'no problem — sorry about that, i'll make a note.'"`,
+    ].join('\n'),
+    FIRST_INFO_QUESTION: "can i get your name and what this is about?",
+    INFO_TO_COLLECT: 'name, callback number, and reason for the call',
+    INFO_LABEL: 'message details',
+    SERVICE_TIMING_PHRASE: 'pass your message along',
+    CLOSE_PERSON: '{{BUSINESS_NAME}}',
+    CLOSE_ACTION: 'get back to you as soon as possible',
+    MOBILE_POLICY: 'N/A',
+    COMPLETION_FIELDS: 'name, callback number, and reason for call',
+    INSURANCE_STATUS: 'N/A',
+    INSURANCE_DETAIL: 'N/A',
+    WEEKEND_POLICY: "i'll make sure your message gets through",
+  },
   other: {
     INDUSTRY: 'business',
     PRIMARY_CALL_REASON: 'service or inquiry',
@@ -487,6 +507,7 @@ export const NICHE_CLASSIFICATION_RULES: Record<string, string> = {
   real_estate: 'HOT = ready to list or buy now, has specific property in mind. WARM = market assessment wanted, actively looking, wants agent callback. COLD = casual browsing inquiry. JUNK = spam.',
   property_management: 'HOT = maintenance emergency (flooding, no heat, gas leak, fire, security). WARM = routine maintenance request, viewing inquiry, billing question. COLD = general inquiry only. JUNK = spam.',
   outbound_isa_realtor: 'HOT = expresses immediate buying/selling intent, wants to meet agent. WARM = interested but not ready, wants callback at specific time. COLD = not interested, maybe later. JUNK = DNC request, wrong contact, hang-up.',
+  voicemail: 'HOT = urgent matter, time-sensitive, caller stressed or mentioned deadline. WARM = left message, wants callback, standard inquiry. COLD = no message left, hung up or no reason given. JUNK = spam, robocall, wrong number.',
   other: 'HOT = immediate need, urgency signals, ready to proceed. WARM = interested, callback requested. COLD = info only, no intent signals. JUNK = spam or wrong number.',
 }
 
