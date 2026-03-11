@@ -593,17 +593,27 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               <p className="text-[11px] text-zinc-600 mt-1">Share this number — callers will reach your AI agent here.</p>
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">
+              <label className="text-xs text-zinc-400 mb-1.5 flex items-center gap-2">
                 Call forwarding number
+                {isAdmin
+                  ? <span className="text-[9px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Beta</span>
+                  : <span className="text-[9px] font-bold tracking-wider uppercase bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Coming Soon</span>
+                }
               </label>
               <input
                 type="tel"
+                disabled={!isAdmin}
                 value={forwardingNumber[client.id] ?? ''}
                 onChange={(e) => setForwardingNumber(prev => ({ ...prev, [client.id]: e.target.value }))}
                 placeholder="+1 306 555 0100"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20"
+                className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 ${!isAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
               />
-              <p className="text-[11px] text-zinc-600 mt-1">If a caller needs urgent help or to reach a real person, your AI will direct them to call this number.</p>
+              <p className="text-[11px] text-zinc-600 mt-1">
+                {isAdmin
+                  ? 'When a caller asks for a real person, your AI will live-transfer them to this number.'
+                  : 'Live call transfer to your number — coming soon.'
+                }
+              </p>
             </div>
             <div className="flex items-center gap-2.5">
               <input

@@ -82,24 +82,66 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // 2 — Sync system_prompt to Ultravox Agent (awaited — surface failures to caller)
+  // 2 — Sync to Ultravox Agent
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
-  if (typeof updates.system_prompt === 'string') {
+  const needsAgentSync = typeof updates.system_prompt === 'string' || 'forwarding_number' in updates
+
+  if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('ultravox_agent_id, agent_voice_id')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number')
       .eq('id', targetClientId)
       .single()
 
     if (clientRow?.ultravox_agent_id) {
+      // Use just-saved forwarding_number if it changed, otherwise use current DB value
+      const fwdNumber = 'forwarding_number' in updates
+        ? (updates.forwarding_number as string | null)
+        : clientRow.forwarding_number
+
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+      const transferTool = {
+        temporaryTool: {
+          modelToolName: 'transferCall',
+          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+          dynamicParameters: [
+            {
+              name: 'reason',
+              location: 'PARAMETER_LOCATION_BODY',
+              schema: { type: 'string', description: 'Reason for transfer' },
+              required: false,
+            },
+          ],
+          automaticParameters: [
+            {
+              name: 'call_id',
+              location: 'PARAMETER_LOCATION_BODY',
+              knownValue: 'KNOWN_PARAM_CALL_ID',
+            },
+          ],
+          http: {
+            baseUrlPattern: `${appUrl}/api/webhook/${clientRow.slug}/transfer`,
+            httpMethod: 'POST',
+            staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          },
+        },
+      }
+      const tools = fwdNumber ? [{ toolName: 'hangUp' }, transferTool] : [{ toolName: 'hangUp' }]
+
       try {
+        const promptToSync = typeof updates.system_prompt === 'string'
+          ? updates.system_prompt
+          : (clientRow.system_prompt ?? '')
         await updateAgent(clientRow.ultravox_agent_id, {
-          systemPrompt: updates.system_prompt as string,
+          systemPrompt: promptToSync,
           ...(clientRow.agent_voice_id ? { voice: clientRow.agent_voice_id } : {}),
+          tools,
         })
-        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} prompt synced`)
+        // Keep clients.tools in sync for the createCall fallback path in the inbound route
+        await supabase.from('clients').update({ tools }).eq('id', targetClientId)
+        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber})`)
         ultravox_synced = true
       } catch (err) {
         ultravox_error = err instanceof Error ? err.message : String(err)
@@ -107,8 +149,10 @@ export async function PATCH(req: NextRequest) {
         // Don't fail the whole request — Supabase save succeeded
       }
     }
+  }
 
-    // Record prompt version
+  // 3 — Record prompt version (only when system_prompt changed)
+  if (typeof updates.system_prompt === 'string') {
     const { data: latestVersion } = await supabase
       .from('prompt_versions')
       .select('version')

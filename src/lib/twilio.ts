@@ -1,5 +1,12 @@
 import twilio from 'twilio'
 
+export async function redirectCall(callSid: string, toNumber: string): Promise<void> {
+  const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+  await client.calls(callSid).update({
+    twiml: `<Response><Dial><Number>${toNumber}</Number></Dial></Response>`,
+  })
+}
+
 export function validateSignature(
   signature: string,
   url: string,
