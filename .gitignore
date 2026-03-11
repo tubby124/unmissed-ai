@@ -1,0 +1,25 @@
+# Session transcripts — large, sensitive
+*.jsonl
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# agent-app has its own git repo
+agent-app/
+
+# Memory files contain API keys
+memory/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# E2E screenshots and reports
+e2e-screenshots/
+e2e-test-report.md
+
+# macOS
+.DS_Store
