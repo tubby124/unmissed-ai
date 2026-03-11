@@ -26,8 +26,11 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   other: HelpCircle,
 };
 
-// Niches that are fully built and ready to use
-const LIVE_NICHES: Niche[] = ["voicemail"];
+// Fully built and ready to use
+const LIVE_NICHES: Niche[] = ["real_estate"];
+
+// Available but still in beta
+const BETA_NICHES: Niche[] = ["voicemail"];
 
 const INBOUND_NICHES: Niche[] = [
   "auto_glass",
@@ -36,7 +39,6 @@ const INBOUND_NICHES: Niche[] = [
   "dental",
   "legal",
   "salon",
-  "real_estate",
   "property_management",
   "other",
 ];
@@ -79,6 +81,35 @@ function LiveNicheButton({ niche, selected, onSelect }: { niche: Niche; selected
   );
 }
 
+function BetaNicheButton({ niche, selected, onSelect }: { niche: Niche; selected: boolean; onSelect: () => void }) {
+  const Icon = nicheIcons[niche];
+  return (
+    <motion.button
+      type="button"
+      onClick={onSelect}
+      animate={selected ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className={`
+        relative w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer min-h-[64px]
+        ${selected
+          ? "border-indigo-600 bg-indigo-50 text-indigo-900 shadow-md shadow-indigo-100"
+          : "border-amber-300 bg-amber-50/40 hover:bg-amber-50 hover:border-amber-400 text-gray-800"
+        }
+      `}
+    >
+      <Icon className={`w-5 h-5 shrink-0 ${selected ? "text-indigo-600" : "text-amber-600"}`} />
+      <span className="text-sm font-semibold leading-tight">
+        {nicheLabels[niche]}
+      </span>
+
+      {/* Beta badge */}
+      <span className="ml-auto text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-2 py-0.5 shrink-0">
+        Beta
+      </span>
+    </motion.button>
+  );
+}
+
 function ComingSoonButton({ niche }: { niche: Niche }) {
   const Icon = nicheIcons[niche];
   return (
@@ -113,6 +144,23 @@ export default function Step1({ data, onUpdate }: Props) {
           <div className="flex flex-col gap-3">
             {LIVE_NICHES.map((niche) => (
               <LiveNicheButton
+                key={niche}
+                niche={niche}
+                selected={data.niche === niche}
+                onSelect={() => onUpdate({ niche })}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Beta niches */}
+        <div>
+          <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-3">
+            In beta — available now
+          </p>
+          <div className="flex flex-col gap-3">
+            {BETA_NICHES.map((niche) => (
+              <BetaNicheButton
                 key={niche}
                 niche={niche}
                 selected={data.niche === niche}

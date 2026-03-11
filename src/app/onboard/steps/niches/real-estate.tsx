@@ -21,12 +21,12 @@ const SPECIALTIES = [
 
 export default function RealEstateNiche({ data, onChange }: Props) {
   const answers = data.nicheAnswers;
-  const serviceAreas     = (answers.niche_serviceAreas    as string[]) || [];
-  const specialties      = (answers.niche_specialties     as string[]) || [];
-  const callMode         = (answers.niche_callMode        as string)   || "";
-  const messageRecipient = (answers.niche_messageRecipient as string)  || "";
-  const customRecipient  = (answers.niche_customRecipient  as string)  || "";
-  const customNotes      = (answers.niche_customNotes      as string)  || "";
+  const serviceAreas     = (answers.serviceAreas    as string[]) || [];
+  const specialties      = (answers.specialties     as string[]) || [];
+  const callMode         = (answers.callMode        as string)   || "";
+  const messageRecipient = (answers.messageRecipient as string)  || "";
+  const customRecipient  = (answers.customRecipient  as string)  || "";
+  const customNotes      = (answers.customNotes      as string)  || "";
 
   const [areaInput, setAreaInput] = useState("");
 
@@ -35,7 +35,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
   function addArea() {
     const val = areaInput.trim().replace(/,$/, "");
     if (!val || serviceAreas.includes(val)) { setAreaInput(""); return; }
-    onChange("niche_serviceAreas", [...serviceAreas, val]);
+    onChange("serviceAreas", [...serviceAreas, val]);
     setAreaInput("");
   }
 
@@ -45,19 +45,19 @@ export default function RealEstateNiche({ data, onChange }: Props) {
       addArea();
     }
     if (e.key === "Backspace" && !areaInput && serviceAreas.length > 0) {
-      onChange("niche_serviceAreas", serviceAreas.slice(0, -1));
+      onChange("serviceAreas", serviceAreas.slice(0, -1));
     }
   }
 
   function removeArea(val: string) {
-    onChange("niche_serviceAreas", serviceAreas.filter(a => a !== val));
+    onChange("serviceAreas", serviceAreas.filter(a => a !== val));
   }
 
   function toggleSpecialty(val: string) {
     const updated = specialties.includes(val)
       ? specialties.filter(s => s !== val)
       : [...specialties, val];
-    onChange("niche_specialties", updated);
+    onChange("specialties", updated);
   }
 
   return (
@@ -138,7 +138,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange("niche_callMode", opt.value)}
+              onClick={() => onChange("callMode", opt.value)}
               className={`text-left p-4 rounded-xl border-2 transition-all ${
                 callMode === opt.value
                   ? "border-indigo-600 bg-indigo-50"
@@ -169,7 +169,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
                 name="messageRecipient"
                 value={opt.value}
                 checked={messageRecipient === opt.value}
-                onChange={() => onChange("niche_messageRecipient", opt.value)}
+                onChange={() => onChange("messageRecipient", opt.value)}
                 className="accent-indigo-600"
               />
               <span className="text-sm text-slate-700">{opt.label}</span>
@@ -181,7 +181,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
             type="text"
             placeholder="e.g. Sarah at the front desk"
             value={customRecipient}
-            onChange={e => onChange("niche_customRecipient", e.target.value)}
+            onChange={e => onChange("customRecipient", e.target.value)}
             className="w-full mt-2 h-9 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         )}
@@ -198,7 +198,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
           rows={3}
           placeholder="e.g. I specialize in acreages near Saskatoon. I work with buyers relocating from out of province."
           value={customNotes}
-          onChange={e => onChange("niche_customNotes", e.target.value)}
+          onChange={e => onChange("customNotes", e.target.value)}
           className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-slate-400"
         />
       </div>

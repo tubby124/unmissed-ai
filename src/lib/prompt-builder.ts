@@ -618,6 +618,7 @@ Never use hollow affirmations like "great question!" or "that's a great point!" 
 If you mishear something: "sorry about that — can you say that one more time?"
 Spell phone numbers digit by digit with pauses: "five-eight-seven... four-two-three... one-two-three-four"
 Say dates naturally: "Thursday the twentieth" not "02/20"
+If the caller says "Assalamu Alaikum" or similar greeting, respond warmly with "Wa Alaikum Assalam!" then continue naturally.
 
 ---
 
@@ -725,8 +726,19 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
   const ownerFirst    = ownerName.split(' ')[0] || ownerName || 'the owner'
   const brokerage     = ((intake.business_name as string) || '').trim()
   const agentName     = ((intake.agent_name    as string) || 'Alex').trim()
-  const serviceAreas  = (intake.niche_serviceAreas   as string[] | null) || []
-  const specialties   = (intake.niche_specialties    as string[] | null) || []
+  const rawAreas = intake.niche_serviceAreas
+  const serviceAreas: string[] = Array.isArray(rawAreas)
+    ? rawAreas
+    : typeof rawAreas === 'string' && rawAreas.trim()
+      ? rawAreas.split(/,\s*/).filter(Boolean)
+      : []
+
+  const rawSpecialties = intake.niche_specialties
+  const specialties: string[] = Array.isArray(rawSpecialties)
+    ? rawSpecialties
+    : typeof rawSpecialties === 'string' && rawSpecialties.trim()
+      ? rawSpecialties.split(/,\s*/).filter(Boolean)
+      : []
   const callMode      = ((intake.niche_callMode        as string) || 'message_and_questions').trim()
   const recipientType = ((intake.niche_messageRecipient as string) || 'owner').trim()
   const customRecip   = ((intake.niche_customRecipient  as string) || '').trim()

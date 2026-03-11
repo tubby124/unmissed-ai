@@ -30,7 +30,7 @@ const STEP_TITLES: Record<number, string> = {
 };
 
 function getStepSequence(niche: string | null): number[] {
-  if (niche === 'voicemail') return [1, 2, 4, 7];
+  if (niche === 'voicemail' || niche === 'real_estate') return [1, 2, 4, 7];
   if (niche && NICHE_CONFIG[niche as Niche]?.fastTrack) return [1, 2, 7];
   return [1, 2, 3, 4, 5, 6, 7];
 }
@@ -43,13 +43,15 @@ function canAdvance(step: number, data: OnboardingData): boolean {
   const isFastTrack = data.niche ? !!NICHE_CONFIG[data.niche as Niche]?.fastTrack : false;
   switch (step) {
     case 1: return !!data.niche;
-    case 2:
-      if (isFastTrack) {
+    case 2: {
+      const noCity = isFastTrack || data.niche === 'real_estate';
+      if (noCity) {
         return !!data.businessName && !!data.state && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
       }
       return !!data.businessName && !!data.city && !!data.state
         && countDigits(data.callbackPhone) >= 10
         && isValidEmail(data.contactEmail);
+    }
     case 3: {
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
       for (const day of days) {
