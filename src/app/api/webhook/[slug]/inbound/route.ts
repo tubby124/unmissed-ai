@@ -70,7 +70,7 @@ export async function POST(
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
       .from('call_logs')
-      .select('started_at, call_status, ai_summary')
+      .select('started_at, call_status, ai_summary, caller_name')
       .eq('caller_phone', callerPhone)
       .eq('client_id', client.id)
       .order('started_at', { ascending: false })
@@ -83,8 +83,11 @@ export async function POST(
       const lastSummary = lastCall.ai_summary
         ? ` Last call: ${(lastCall.ai_summary as string).slice(0, 120)}`
         : ''
+      // Inject caller name if any prior call recorded it
+      const knownName = priorCalls.find(c => c.caller_name)?.caller_name as string | undefined
+      if (knownName) callerContext += `\nCALLER NAME: ${knownName}`
       callerContext += `\nRETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
-      console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls, context injected`)
+      console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls${knownName ? `, name=${knownName}` : ''}, context injected`)
     }
   }
 
