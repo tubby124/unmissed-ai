@@ -101,11 +101,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt failed validation', errors: validation.errors }, { status: 422 })
     }
 
+    // Voice ID: female default (Ayana), male = Mark's voice
+    const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+    const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+    const voiceGender = (intakeData.niche_voiceGender as string) || 'female'
+    const voiceId = voiceGender === 'male' ? VOICE_MALE : VOICE_FEMALE
+
     let agentId: string
     try {
       agentId = await createAgent({
         systemPrompt: prompt,
         name: clientSlug.slice(0, 64),
+        voice: voiceId,
       })
     } catch (err) {
       console.error('[create-public-checkout] createAgent failed:', err)
@@ -125,6 +132,7 @@ export async function POST(req: NextRequest) {
         status: 'setup',
         system_prompt: prompt,
         ultravox_agent_id: agentId,
+        agent_voice_id: voiceId,
         classification_rules: classificationRules,
         timezone,
       })

@@ -23,7 +23,7 @@ const STEP_TITLES: Record<number, string> = {
   1: "Your industry",
   2: "Business basics",
   3: "Hours",
-  4: "Your services",
+  4: "Customize your agent",
   5: "Notifications",
   6: "Preferences",
   7: "Review & activate",
