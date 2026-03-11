@@ -107,12 +107,20 @@ export async function POST(req: NextRequest) {
 
   const { data: client } = await svc
     .from('clients')
-    .select('id, business_name, niche, system_prompt')
+    .select('id, business_name, niche, system_prompt, forwarding_number')
     .eq('id', targetClientId)
     .single()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   if (!client.system_prompt) return NextResponse.json({ error: 'No system prompt configured yet' }, { status: 422 })
+
+  // Build exclusion list: admin number + client's own forwarding number (if set)
+  const ADMIN_NUMBERS = ['+13068507687']
+  const clientOwnerPhone = client.forwarding_number
+    ? [client.forwarding_number.replace(/\D/g, '').replace(/^1?(\d{10})$/, '+1$1')]
+    : []
+  const excludePhones = [...ADMIN_NUMBERS, ...clientOwnerPhone]
+  const excludeFilter = `(${excludePhones.map(p => `"${p}"`).join(',')})`
 
   // Primary fetch: last 30 calls (no transcript — fast)
   const { data: calls } = await svc
@@ -120,6 +128,7 @@ export async function POST(req: NextRequest) {
     .select('id, call_status, ai_summary, service_type, key_topics, sentiment, next_steps, quality_score, duration_seconds')
     .eq('client_id', targetClientId)
     .not('call_status', 'in', '("live","processing")')
+    .not('caller_phone', 'in', excludeFilter)
     .order('ended_at', { ascending: false })
     .limit(30)
 

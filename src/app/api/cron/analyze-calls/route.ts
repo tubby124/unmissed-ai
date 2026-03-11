@@ -58,18 +58,27 @@ async function analyzeClient(clientId: string): Promise<{
 
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, niche, telegram_bot_token, telegram_chat_id')
+    .select('id, slug, business_name, niche, telegram_bot_token, telegram_chat_id, forwarding_number')
     .eq('id', clientId)
     .single()
 
   if (!client) return { report_id: null, issues_count: 0, recommendations_count: 0, calls_analyzed: 0, error: 'client not found' }
 
-  // Fetch last 50 classified calls
+  // Build exclusion list: admin number + client's own forwarding number (if set)
+  const ADMIN_NUMBERS = ['+13068507687']
+  const clientOwnerPhone = client.forwarding_number
+    ? [client.forwarding_number.replace(/\D/g, '').replace(/^1?(\d{10})$/, '+1$1')]
+    : []
+  const excludePhones = [...ADMIN_NUMBERS, ...clientOwnerPhone]
+  const excludeFilter = `(${excludePhones.map(p => `"${p}"`).join(',')})`
+
+  // Fetch last 50 classified calls (excluding admin/owner numbers)
   const { data: calls } = await supabase
     .from('call_logs')
     .select('id, call_status, ai_summary, service_type, confidence, sentiment, key_topics, next_steps, quality_score, duration_seconds, caller_phone, ended_at')
     .eq('client_id', clientId)
     .not('call_status', 'in', '("live","processing")')
+    .not('caller_phone', 'in', excludeFilter)
     .order('ended_at', { ascending: false })
     .limit(50)
 
