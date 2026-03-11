@@ -305,13 +305,24 @@ export async function POST(req: NextRequest) {
         const resendKey = process.env.RESEND_API_KEY
         if (resendKey) {
           try {
-            // Generate password setup link without sending Supabase's default email
+            // Generate password setup link without sending Supabase's default email.
+            // We extract the token_hash and build our own /auth/confirm URL so the
+            // link stays on our domain — bypasses Supabase redirect-allowlist issues.
             const { data: linkData } = await adminSupa.auth.admin.generateLink({
               type: 'recovery',
               email: contactEmail,
-              options: { redirectTo: `${appUrl}/auth/callback?next=/dashboard` },
             })
-            const setupUrl = linkData?.properties?.action_link ?? `${appUrl}/auth/callback?next=/dashboard`
+            const actionLink = linkData?.properties?.action_link ?? ''
+            let setupUrl = `${appUrl}/dashboard`
+            if (actionLink) {
+              try {
+                const parsed = new URL(actionLink)
+                const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+                if (tokenHash) {
+                  setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+                }
+              } catch { setupUrl = `${appUrl}/login` }
+            }
 
             const resend = new Resend(resendKey)
             // Use sandbox domain until custom domain is verified — swap 'from' to your domain after setup
