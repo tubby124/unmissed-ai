@@ -44,6 +44,12 @@ export async function PATCH(req: NextRequest) {
   if (Array.isArray(body.extra_qa)) {
     updates.extra_qa = body.extra_qa
   }
+  if (typeof body.forwarding_number === 'string') {
+    updates.forwarding_number = body.forwarding_number || null
+  }
+  if (typeof body.setup_complete === 'boolean') {
+    updates.setup_complete = body.setup_complete
+  }
 
   // God Mode fields — admin only
   if (cu.role === 'admin') {

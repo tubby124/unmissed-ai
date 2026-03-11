@@ -1,7 +1,7 @@
 "use client";
 
+import { useState, KeyboardEvent } from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { OnboardingData } from "@/types/onboarding";
 
 interface Props {
@@ -9,172 +9,198 @@ interface Props {
   onChange: (key: string, value: string | string[] | boolean) => void;
 }
 
-const TRANSACTION_TYPES = [
-  { value: "buying", label: "Buying" },
-  { value: "selling", label: "Selling" },
-  { value: "rentals", label: "Rentals" },
-  { value: "property_management", label: "Property management" },
-  { value: "commercial", label: "Commercial" },
-];
-
-const LEAD_SOURCES = [
-  { value: "website_inquiries", label: "Website inquiries" },
-  { value: "sign_calls", label: "Sign calls" },
-  { value: "referrals", label: "Referrals" },
-  { value: "online_ads", label: "Online ads" },
-  { value: "open_houses", label: "Open houses" },
-];
-
-const TEAM_SIZES = [
-  { value: "solo", label: "Solo agent" },
-  { value: "small_team", label: "Small team (2-5)" },
-  { value: "brokerage", label: "Brokerage (6+)" },
-];
-
-const PRE_QUALIFICATION_OPTIONS = [
-  { value: "ask_preapproval", label: "Ask about pre-approval status" },
-  { value: "dont_ask", label: "Don't ask about financing" },
-  { value: "refer_mortgage", label: "Refer to mortgage partner" },
-];
-
-const SHOWING_OPTIONS = [
-  { value: "book_directly", label: "Book showings directly" },
-  { value: "collect_info", label: "Collect info and call back" },
-  { value: "booking_link", label: "Redirect to booking link" },
+const SPECIALTIES = [
+  { value: "Residential",      label: "Residential" },
+  { value: "Commercial",       label: "Commercial" },
+  { value: "Land",             label: "Land" },
+  { value: "Multifamily",      label: "Multifamily" },
+  { value: "Luxury",           label: "Luxury" },
+  { value: "Investment",       label: "Investment" },
+  { value: "New Construction", label: "New Construction" },
 ];
 
 export default function RealEstateNiche({ data, onChange }: Props) {
   const answers = data.nicheAnswers;
-  const selectedTransactionTypes = (answers.transactionTypes as string[]) || [];
-  const serviceArea = (answers.serviceArea as string) || "";
-  const teamSize = (answers.teamSize as string) || "";
-  const selectedLeadSources = (answers.leadSources as string[]) || [];
-  const preQualification = (answers.preQualification as string) || "";
-  const showingPolicy = (answers.showingPolicy as string) || "";
+  const serviceAreas     = (answers.niche_serviceAreas    as string[]) || [];
+  const specialties      = (answers.niche_specialties     as string[]) || [];
+  const callMode         = (answers.niche_callMode        as string)   || "";
+  const messageRecipient = (answers.niche_messageRecipient as string)  || "";
+  const customRecipient  = (answers.niche_customRecipient  as string)  || "";
+  const customNotes      = (answers.niche_customNotes      as string)  || "";
 
-  const toggleTransactionType = (val: string) => {
-    const updated = selectedTransactionTypes.includes(val)
-      ? selectedTransactionTypes.filter((t) => t !== val)
-      : [...selectedTransactionTypes, val];
-    onChange("transactionTypes", updated);
-  };
+  const [areaInput, setAreaInput] = useState("");
 
-  const toggleLeadSource = (val: string) => {
-    const updated = selectedLeadSources.includes(val)
-      ? selectedLeadSources.filter((s) => s !== val)
-      : [...selectedLeadSources, val];
-    onChange("leadSources", updated);
-  };
+  const ownerFirst = (data.ownerName || "").split(" ")[0] || "";
+
+  function addArea() {
+    const val = areaInput.trim().replace(/,$/, "");
+    if (!val || serviceAreas.includes(val)) { setAreaInput(""); return; }
+    onChange("niche_serviceAreas", [...serviceAreas, val]);
+    setAreaInput("");
+  }
+
+  function handleAreaKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addArea();
+    }
+    if (e.key === "Backspace" && !areaInput && serviceAreas.length > 0) {
+      onChange("niche_serviceAreas", serviceAreas.slice(0, -1));
+    }
+  }
+
+  function removeArea(val: string) {
+    onChange("niche_serviceAreas", serviceAreas.filter(a => a !== val));
+  }
+
+  function toggleSpecialty(val: string) {
+    const updated = specialties.includes(val)
+      ? specialties.filter(s => s !== val)
+      : [...specialties, val];
+    onChange("niche_specialties", updated);
+  }
 
   return (
     <div className="space-y-6">
-      {/* Transaction Types */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">What types of transactions do you handle? <span className="text-gray-400 font-normal">(select all that apply)</span></Label>
-        <div className="grid grid-cols-2 gap-2">
-          {TRANSACTION_TYPES.map((type) => (
-            <label key={type.value} className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50">
-              <input
-                type="checkbox"
-                checked={selectedTransactionTypes.includes(type.value)}
-                onChange={() => toggleTransactionType(type.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700">{type.label}</span>
-            </label>
-          ))}
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Your AI receptionist</h2>
+        <p className="text-sm text-slate-500 mt-1">A few quick choices — change anything from your dashboard later.</p>
       </div>
 
-      {/* Service Area */}
+      {/* Service areas — tag-chip input */}
       <div className="space-y-2">
-        <Label htmlFor="serviceArea" className="text-sm font-medium">
-          What areas/neighborhoods do you primarily serve? <span className="text-gray-400 font-normal">(cities or region)</span>
+        <Label>
+          Where do you work? <span className="text-red-400">*</span>{" "}
+          <span className="text-slate-400 font-normal text-xs">Type a city + province, press Enter</span>
         </Label>
-        <Input
-          id="serviceArea"
-          placeholder="e.g. Downtown Toronto, North York, Mississauga, Brampton"
-          value={serviceArea}
-          onChange={(e) => onChange("serviceArea", e.target.value)}
+        <div className="min-h-[42px] flex flex-wrap gap-1.5 items-center px-3 py-2 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+          {serviceAreas.map(area => (
+            <span key={area} className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs font-medium">
+              {area}
+              <button type="button" onClick={() => removeArea(area)} className="text-indigo-400 hover:text-indigo-700 leading-none">×</button>
+            </span>
+          ))}
+          <input
+            value={areaInput}
+            onChange={e => setAreaInput(e.target.value)}
+            onKeyDown={handleAreaKey}
+            onBlur={addArea}
+            placeholder={serviceAreas.length === 0 ? "e.g. Calgary, AB" : "Add more…"}
+            className="flex-1 min-w-[120px] bg-transparent text-sm outline-none placeholder:text-slate-400"
+          />
+        </div>
+        <p className="text-xs text-slate-400">Format: "Saskatoon, SK" · "Calgary, AB" · "Edmonton, AB"</p>
+      </div>
+
+      {/* Specialties — pill multi-select */}
+      <div className="space-y-2">
+        <Label>
+          What do you focus on?{" "}
+          <span className="text-slate-400 font-normal text-xs">(optional — skip if you do a bit of everything)</span>
+        </Label>
+        <div className="flex flex-wrap gap-2">
+          {SPECIALTIES.map(s => {
+            const selected = specialties.includes(s.value);
+            return (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => toggleSpecialty(s.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  selected
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Call mode — two cards */}
+      <div className="space-y-2">
+        <Label>What should your agent do? <span className="text-red-400">*</span></Label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              value: "message_only",
+              title: "Just take a message",
+              desc: "Name and reason — fast and simple.",
+            },
+            {
+              value: "message_and_questions",
+              title: "Messages + answer basics",
+              desc: "Also handles service area questions and showing inquiries.",
+            },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange("niche_callMode", opt.value)}
+              className={`text-left p-4 rounded-xl border-2 transition-all ${
+                callMode === opt.value
+                  ? "border-indigo-600 bg-indigo-50"
+                  : "border-slate-200 hover:border-indigo-200"
+              }`}
+            >
+              <p className={`text-sm font-semibold ${callMode === opt.value ? "text-indigo-800" : "text-slate-700"}`}>
+                {opt.title}
+              </p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message recipient */}
+      <div className="space-y-2">
+        <Label>Who should your agent pass messages to? <span className="text-red-400">*</span></Label>
+        <div className="space-y-2.5">
+          {[
+            { value: "owner",       label: ownerFirst ? `You (${ownerFirst})` : "You" },
+            { value: "front_desk",  label: "The team / front desk" },
+            { value: "custom",      label: "Someone else…" },
+          ].map(opt => (
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="messageRecipient"
+                value={opt.value}
+                checked={messageRecipient === opt.value}
+                onChange={() => onChange("niche_messageRecipient", opt.value)}
+                className="accent-indigo-600"
+              />
+              <span className="text-sm text-slate-700">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        {messageRecipient === "custom" && (
+          <input
+            type="text"
+            placeholder="e.g. Sarah at the front desk"
+            value={customRecipient}
+            onChange={e => onChange("niche_customRecipient", e.target.value)}
+            className="w-full mt-2 h-9 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        )}
+      </div>
+
+      {/* Optional custom notes */}
+      <div className="space-y-2">
+        <Label htmlFor="reCustomNotes">
+          Anything else your agent should know?{" "}
+          <span className="text-slate-400 font-normal text-xs">(optional)</span>
+        </Label>
+        <textarea
+          id="reCustomNotes"
+          rows={3}
+          placeholder="e.g. I specialize in acreages near Saskatoon. I work with buyers relocating from out of province."
+          value={customNotes}
+          onChange={e => onChange("niche_customNotes", e.target.value)}
+          className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-slate-400"
         />
-      </div>
-
-      {/* Team Size */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">What is your team size?</Label>
-        <div className="space-y-2">
-          {TEAM_SIZES.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="teamSize"
-                value={opt.value}
-                checked={teamSize === opt.value}
-                onChange={() => onChange("teamSize", opt.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Lead Sources */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Where do your leads come from? <span className="text-gray-400 font-normal">(select all that apply)</span></Label>
-        <div className="grid grid-cols-2 gap-2">
-          {LEAD_SOURCES.map((source) => (
-            <label key={source.value} className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50">
-              <input
-                type="checkbox"
-                checked={selectedLeadSources.includes(source.value)}
-                onChange={() => toggleLeadSource(source.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700">{source.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Pre-qualification */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">How should the agent handle pre-qualification?</Label>
-        <div className="space-y-2">
-          {PRE_QUALIFICATION_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="preQualification"
-                value={opt.value}
-                checked={preQualification === opt.value}
-                onChange={() => onChange("preQualification", opt.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Showing Scheduling */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">How should showings be scheduled?</Label>
-        <div className="space-y-2">
-          {SHOWING_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="showingPolicy"
-                value={opt.value}
-                checked={showingPolicy === opt.value}
-                onChange={() => onChange("showingPolicy", opt.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
-            </label>
-          ))}
-        </div>
       </div>
     </div>
   );

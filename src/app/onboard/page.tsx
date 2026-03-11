@@ -45,7 +45,7 @@ function canAdvance(step: number, data: OnboardingData): boolean {
     case 1: return !!data.niche;
     case 2:
       if (isFastTrack) {
-        return !!data.businessName && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
+        return !!data.businessName && !!data.state && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
       }
       return !!data.businessName && !!data.city && !!data.state
         && countDigits(data.callbackPhone) >= 10

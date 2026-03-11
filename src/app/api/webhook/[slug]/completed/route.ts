@@ -198,11 +198,14 @@ export async function POST(
           const authToken = process.env.TWILIO_AUTH_TOKEN
           const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
           if (accountSid && authToken && fromNumber) {
+            const defaultSmsBody = client.niche === 'voicemail'
+              ? `Hi, this is ${client.business_name || 'us'}'s assistant. We got your message and will get back to you shortly. For faster service, you can also text us at this number.`
+              : `Thanks for calling ${client.business_name || 'us'}! We'll follow up with you shortly.`
             const smsBody = client.sms_template
               ? (client.sms_template as string)
                   .replace('{{business}}', client.business_name || '')
                   .replace('{{summary}}', (classification.summary || '').slice(0, 100))
-              : `Thanks for calling ${client.business_name || 'us'}! We'll follow up with you shortly.`
+              : defaultSmsBody
             const twilioClient = twilio(accountSid, authToken)
             await twilioClient.messages.create({ body: smsBody, from: fromNumber, to: callerPhone })
             console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone}`)

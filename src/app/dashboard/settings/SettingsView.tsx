@@ -32,6 +32,7 @@ const NICHE_CONFIG: Record<string, { label: string; color: string; border: strin
   'auto-glass':          { label: 'Auto Glass',       color: 'text-blue-400',   border: 'border-blue-500/30' },
   'auto':                { label: 'Automotive',        color: 'text-blue-400',   border: 'border-blue-500/30' },
   'real-estate':         { label: 'Real Estate',       color: 'text-amber-400',  border: 'border-amber-500/30' },
+  'real_estate':         { label: 'Real Estate',       color: 'text-amber-400',  border: 'border-amber-500/30' },
   'isa':                 { label: 'ISA / Real Estate',  color: 'text-amber-400',  border: 'border-amber-500/30' },
   'property-management': { label: 'Property Mgmt',     color: 'text-purple-400', border: 'border-purple-500/30' },
   'dental':              { label: 'Dental',             color: 'text-teal-400',   border: 'border-teal-500/30' },
@@ -204,6 +205,17 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
   const [testCallResult, setTestCallResult] = useState<{ callId?: string; twilio_sid?: string } | null>(null)
   const [testCallError, setTestCallError] = useState('')
+
+  // Setup section
+  const [forwardingNumber, setForwardingNumber] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.forwarding_number ?? '']))
+  )
+  const [setupComplete, setSetupComplete] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.setup_complete ?? false]))
+  )
+  const [setupSaving, setSetupSaving] = useState(false)
+  const [setupSaved, setSetupSaved] = useState(false)
+  const [setupEditing, setSetupEditing] = useState(false)
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -500,6 +512,27 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     }
   }
 
+  async function saveSetup() {
+    setSetupSaving(true)
+    setSetupSaved(false)
+    const body: Record<string, unknown> = {
+      forwarding_number: forwardingNumber[client.id] || '',
+      setup_complete: setupComplete[client.id],
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSetupSaving(false)
+    if (res.ok) {
+      setSetupSaved(true)
+      if (setupComplete[client.id]) setSetupEditing(false)
+      setTimeout(() => setSetupSaved(false), 3000)
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
 
@@ -540,6 +573,73 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* 0 — Setup */}
+      {(!setupComplete[client.id] || setupEditing) ? (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] overflow-hidden">
+          <div className="px-5 py-3 border-b border-amber-500/20 flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400">Start here — complete your setup</p>
+          </div>
+          <div className="p-5 space-y-4">
+            <div>
+              <p className="text-xs text-zinc-500 mb-1.5">Your AI phone number</p>
+              <div className="flex items-center gap-2">
+                <span className="flex-1 text-sm font-mono text-zinc-200">{fmtPhone(client.twilio_number) || 'Not yet assigned'}</span>
+                {client.twilio_number && <CopyButton value={client.twilio_number} label="Copy" />}
+              </div>
+              <p className="text-[11px] text-zinc-600 mt-1">Share this number — callers will reach your AI agent here.</p>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-400 mb-1.5 block">
+                Call forwarding number
+              </label>
+              <input
+                type="tel"
+                value={forwardingNumber[client.id] ?? ''}
+                onChange={(e) => setForwardingNumber(prev => ({ ...prev, [client.id]: e.target.value }))}
+                placeholder="+1 306 555 0100"
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20"
+              />
+              <p className="text-[11px] text-zinc-600 mt-1">If a caller needs urgent help or to reach a real person, your AI will direct them to call this number.</p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <input
+                type="checkbox"
+                id="setup-complete"
+                checked={setupComplete[client.id] ?? false}
+                onChange={(e) => setSetupComplete(prev => ({ ...prev, [client.id]: e.target.checked }))}
+                className="w-4 h-4 rounded accent-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="setup-complete" className="text-xs text-zinc-400 cursor-pointer">Mark setup as complete</label>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={saveSetup}
+                disabled={setupSaving}
+                className="px-4 py-1.5 text-xs font-medium rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 disabled:opacity-50 transition-colors"
+              >
+                {setupSaving ? 'Saving…' : 'Save setup'}
+              </button>
+              {setupSaved && <span className="text-xs text-green-400">Saved</span>}
+              {setupEditing && (
+                <button onClick={() => setSetupEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="text-xs text-zinc-400">Setup complete</span>
+            {client.twilio_number && (
+              <span className="text-xs font-mono text-zinc-600">{fmtPhone(client.twilio_number)}</span>
+            )}
+          </div>
+          <button onClick={() => setSetupEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Edit</button>
         </div>
       )}
 

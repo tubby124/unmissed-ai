@@ -26,6 +26,23 @@ import { randomUUID } from 'crypto'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
+// Province → area codes priority list (try each in order, stop at first available)
+const PROVINCE_AREA_CODES: Record<string, string[]> = {
+  AB: ['587', '403', '780'],
+  SK: ['639', '306'],
+  BC: ['778', '604', '236'],
+  ON: ['647', '416', '905', '519'],
+  MB: ['431', '204'],
+  QC: ['514', '438'],
+  NS: ['902'], NB: ['506'], NL: ['709'], PE: ['902'],
+  NT: ['867'], YT: ['867'], NU: ['867'],
+}
+
+async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
+  if (!bot || !chat) return
+  try { await sendAlert(bot, chat, msg) } catch { /* non-blocking */ }
+}
+
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -74,6 +91,17 @@ export async function POST(req: NextRequest) {
 
   const businessName = existingClient?.business_name ?? client_slug
 
+  // ── Fetch admin Telegram config (fetched once, used for step-by-step alerts) ─
+  const { data: adminClient } = await adminSupa
+    .from('clients')
+    .select('telegram_bot_token, telegram_chat_id')
+    .eq('slug', 'hasan-sharif')
+    .single()
+  const adminBot = adminClient?.telegram_bot_token as string | null
+  const adminChat = adminClient?.telegram_chat_id as string | null
+
+  void notifyAdmin(adminBot, adminChat, `💳 Payment received — activating <b>${businessName}</b>…`)
+
   // ── Load intake for contact_email, area_code, callbackPhone ───────────────
   const { data: intake } = await adminSupa
     .from('intake_submissions')
@@ -101,40 +129,58 @@ export async function POST(req: NextRequest) {
   let twilioNumber: string | null = null
 
   // ── Step 1: Buy Twilio number ──────────────────────────────────────────────
-  // Strategy: search for an available number first (with area code if provided,
-  // then without), then buy the specific phone number returned by the search.
-  // This avoids the "Missing required parameter PhoneNumber" error when retrying
-  // without an area code on the IncomingPhoneNumbers/Local endpoint.
+  // Province-first strategy: use province from intake_json to determine country
+  // and try area codes in priority order. Never fall through to US for CA provinces.
   try {
     const voiceUrl = `${appUrl}/api/webhook/${client_slug}/inbound`
     const fallbackUrl = `${appUrl}/api/webhook/${client_slug}/fallback`
     const buyUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers.json`
 
-    // Search for an available local number (US or CA depending on area code)
-    const country = areaCode && ['403','587','780','604','778','236','250','778','867','902','506','709','905','647','416','613','343','519','226','289','365','705','249','807','548'].includes(areaCode) ? 'CA' : 'US'
-    const searchBase = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/AvailablePhoneNumbers/${country}/Local.json`
-    const searchUrl = areaCode ? `${searchBase}?AreaCode=${areaCode}&Limit=1` : `${searchBase}?Limit=1`
+    const province = (intakeJson.province as string | null) || null
+    const isCanadian = !!(province && province in PROVINCE_AREA_CODES)
+    const searchCountry = isCanadian ? 'CA' : 'US'
+    const searchBase = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/AvailablePhoneNumbers/${searchCountry}/Local.json`
 
     let availableNumber: string | null = null
 
-    const searchRes = await fetch(searchUrl, {
-      headers: { Authorization: `Basic ${twilioAuth}` },
-    })
-
-    if (searchRes.ok) {
-      const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
-      availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
-    }
-
-    // If area code search returned nothing, retry without area code restriction
-    if (!availableNumber && areaCode) {
-      console.warn(`[stripe-webhook] Area code ${areaCode} unavailable, searching without area code`)
-      const retrySearchRes = await fetch(`${searchBase}?Limit=1`, {
-        headers: { Authorization: `Basic ${twilioAuth}` },
-      })
-      if (retrySearchRes.ok) {
-        const retryData = await retrySearchRes.json() as { available_phone_numbers: { phone_number: string }[] }
-        availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
+    if (isCanadian && province) {
+      // Try each area code in priority order for the province
+      const areaCodes = PROVINCE_AREA_CODES[province] || []
+      for (const code of areaCodes) {
+        const searchRes = await fetch(`${searchBase}?AreaCode=${code}&Limit=1`, {
+          headers: { Authorization: `Basic ${twilioAuth}` },
+        })
+        if (searchRes.ok) {
+          const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
+          availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
+          if (availableNumber) { console.log(`[stripe-webhook] Found CA number with area code ${code}`); break }
+        }
+      }
+      // Fallback: any CA number (never US for CA provinces)
+      if (!availableNumber) {
+        console.warn(`[stripe-webhook] No number found for province=${province}, trying any CA number`)
+        const retryRes = await fetch(`${searchBase}?Limit=1`, { headers: { Authorization: `Basic ${twilioAuth}` } })
+        if (retryRes.ok) {
+          const retryData = await retryRes.json() as { available_phone_numbers: { phone_number: string }[] }
+          availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
+        }
+      }
+    } else {
+      // US or no province: use areaCode if provided, else any US number
+      const searchUrl = areaCode ? `${searchBase}?AreaCode=${areaCode}&Limit=1` : `${searchBase}?Limit=1`
+      const searchRes = await fetch(searchUrl, { headers: { Authorization: `Basic ${twilioAuth}` } })
+      if (searchRes.ok) {
+        const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
+        availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
+      }
+      // Retry without area code restriction if needed
+      if (!availableNumber && areaCode) {
+        console.warn(`[stripe-webhook] Area code ${areaCode} unavailable, searching without area code`)
+        const retryRes = await fetch(`${searchBase}?Limit=1`, { headers: { Authorization: `Basic ${twilioAuth}` } })
+        if (retryRes.ok) {
+          const retryData = await retryRes.json() as { available_phone_numbers: { phone_number: string }[] }
+          availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
+        }
       }
     }
 
@@ -157,15 +203,19 @@ export async function POST(req: NextRequest) {
         const buyData = await buyRes.json() as { phone_number: string }
         twilioNumber = buyData.phone_number
         console.log(`[stripe-webhook] Twilio number purchased: ${twilioNumber} for slug=${client_slug}`)
+        void notifyAdmin(adminBot, adminChat, `📞 Twilio number purchased: <b>${twilioNumber}</b> for ${businessName}`)
       } else {
         const errText = await buyRes.text()
         console.error(`[stripe-webhook] Twilio number purchase failed for slug=${client_slug}: ${errText}`)
+        void notifyAdmin(adminBot, adminChat, `⚠️ Twilio number purchase FAILED for ${businessName}`)
       }
     } else {
       console.error(`[stripe-webhook] No available Twilio numbers found for slug=${client_slug}`)
+      void notifyAdmin(adminBot, adminChat, `⚠️ No Twilio numbers available for ${businessName}`)
     }
   } catch (err) {
     console.error(`[stripe-webhook] Twilio step threw: ${err}`)
+    void notifyAdmin(adminBot, adminChat, `⚠️ Twilio step threw: ${String(err).slice(0, 100)}`)
   }
 
   // ── Step 1.5: Onboarding SMS from new number to client's callbackPhone ──────
@@ -192,10 +242,12 @@ export async function POST(req: NextRequest) {
       if (smsRes.ok) {
         smsSent = true
         console.log(`[stripe-webhook] Onboarding SMS sent to ${callbackPhone} from ${twilioNumber}`)
+        void notifyAdmin(adminBot, adminChat, `📤 Onboarding SMS sent to ${callbackPhone}`)
       } else {
         const errText = await smsRes.text()
         smsSkipReason = `Twilio error: ${errText.slice(0, 200)}`
         console.error(`[stripe-webhook] SMS failed for slug=${client_slug}: ${smsSkipReason}`)
+        void notifyAdmin(adminBot, adminChat, `⚠️ SMS failed: ${smsSkipReason.slice(0, 100)}`)
       }
     } catch (err) {
       smsSkipReason = `threw: ${err}`
@@ -267,7 +319,7 @@ export async function POST(req: NextRequest) {
             await resend.emails.send({
               from: fromAddress,
               to: contactEmail,
-              subject: `Your unmissed.ai agent is live${twilioNumber ? ` — ${twilioNumber}` : ''}`,
+              subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
               html: `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
   <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
@@ -276,10 +328,11 @@ export async function POST(req: NextRequest) {
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
 
   <p><strong>Set up your dashboard password</strong></p>
-  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:16px">
+  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">
     Create my password →
   </a>
-  <p style="font-size:12px;color:#888">This link expires in 24 hours.</p>
+  <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
+  <p style="margin-top:8px;font-size:14px">Or <a href="${appUrl}/login" style="color:#4f46e5">log in directly</a> if you already set a password.</p>
 
   ${telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
 
@@ -299,9 +352,11 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`[stripe-webhook] Auth user created and password email sent to ${contactEmail}`)
+        void notifyAdmin(adminBot, adminChat, `👤 Auth account created, welcome email sent to ${contactEmail}`)
       }
     } catch (err) {
       console.error(`[stripe-webhook] Auth user creation threw: ${err}`)
+      void notifyAdmin(adminBot, adminChat, `❌ Auth/email step failed for ${businessName}: ${String(err).slice(0, 100)}`)
     }
   } else {
     console.warn(`[stripe-webhook] No contact_email on intake ${intake_id} — skipping auth user creation`)
