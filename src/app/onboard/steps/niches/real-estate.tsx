@@ -23,6 +23,7 @@ export default function RealEstateNiche({ data, onChange }: Props) {
   const answers = data.nicheAnswers;
   const serviceAreas     = (answers.serviceAreas    as string[]) || [];
   const specialties      = (answers.specialties     as string[]) || [];
+  const pronouns         = (answers.pronouns        as string)   || "he";
   const callMode         = (answers.callMode        as string)   || "";
   const messageRecipient = (answers.messageRecipient as string)  || "";
   const customRecipient  = (answers.customRecipient  as string)  || "";
@@ -116,6 +117,30 @@ export default function RealEstateNiche({ data, onChange }: Props) {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Pronouns */}
+      <div className="space-y-2">
+        <Label>Agent&apos;s pronouns <span className="text-red-400">*</span></Label>
+        <div className="flex gap-4">
+          {[
+            { value: "he",   label: "he/him"   },
+            { value: "she",  label: "she/her"  },
+            { value: "they", label: "they/them" },
+          ].map(opt => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="pronouns"
+                value={opt.value}
+                checked={pronouns === opt.value}
+                onChange={() => onChange("pronouns", opt.value)}
+                className="accent-indigo-600"
+              />
+              <span className="text-sm text-slate-700">{opt.label}</span>
+            </label>
+          ))}
         </div>
       </div>
 

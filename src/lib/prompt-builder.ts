@@ -763,14 +763,16 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
     : recipientType === 'front_desk'          ? 'the team'
     : ownerFirst
 
-  const contactInstruction = callbackPhone
+  const contactInstructionVoice = 'text this same number'
+  const contactInstructionMeta  = callbackPhone
     ? `text this same number (${callbackPhone})`
     : 'text this same number'
 
-  const pronSub    = ownerFirst
-  const pronSubCap = ownerFirst
-  const pronPoss   = `${ownerFirst}'s`
-  const pronObj    = ownerFirst
+  const pronouns   = ((intake.niche_pronouns as string) || 'he').toLowerCase()
+  const pronSub    = pronouns === 'she' ? 'she' : pronouns === 'they' ? 'they' : 'he'
+  const pronObj    = pronouns === 'she' ? 'her' : pronouns === 'they' ? 'them' : 'him'
+  const pronPoss   = pronouns === 'she' ? 'her' : pronouns === 'they' ? 'their' : 'his'
+  const pronSubCap = pronSub.charAt(0).toUpperCase() + pronSub.slice(1)
 
   return `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -785,11 +787,11 @@ Role: ${ownerName}'s real estate assistant
 Company: ${brokerage}
 Service Areas: ${serviceAreasStr}
 Licensed Province${provinceSet.size !== 1 ? 's' : ''}: ${licensedProvinces}
-${specialtiesStr ? `Specialties: ${ownerName} specializes in ${specialtiesStr}.\n` : ''}Contact: Callers can ${contactInstruction} and ${ownerName} will get back to them right away.
+${specialtiesStr ? `Specialties: ${ownerName} specializes in ${specialtiesStr}.\n` : ''}Contact: Callers can ${contactInstructionMeta} and ${ownerName} will get back to them right away.
 ${customNotes ? `\nADDITIONAL CONTEXT FROM ${ownerName.toUpperCase()}\n\n${customNotes}\n` : ''}
 OPENING (say this first — uninterruptible, keep under 4 seconds)
 
-"Hey! This is ${agentName} from ${ownerName}'s office... how can I help ya?"
+"Hey! This is ${agentName} from ${ownerFirst}'s office... how can I help ya?"
 
 CONVERSATION STYLE
 
@@ -814,17 +816,15 @@ Step 3 — Get urgency/timing:
 Only ask if relevant: "Is this time-sensitive, or whenever ${pronSub}'s free?"
 
 Step 4 — Confirm and close:
-"Perfect... I'll get this to ${recipientName} right away. ${pronSubCap}'ll get back to you soon. You can also ${contactInstruction} if you need ${pronObj} faster. Thanks for calling!"
+"Perfect... I'll get this to ${recipientName} right away. ${pronSubCap}'ll get back to you soon. You can also ${contactInstructionVoice} if you need ${pronObj} faster. Thanks for calling!"
 Then IMMEDIATELY use the hangUp tool.
 
 IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that step. Don't re-ask what they already told you.
-
-[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]
 ${callMode === 'message_and_questions' ? `
 COMMON QUESTIONS
 
 "Is ${ownerName} available?" / "When can ${pronSub} call back?"
--> "${pronSubCap}'s just tied up right now but ${pronSub}'s really good about getting back to people. If you ${contactInstruction}, that's usually the fastest way."
+-> "${pronSubCap}'s just tied up right now but ${pronSub}'s really good about getting back to people. If you ${contactInstructionVoice}, that's usually the fastest way."
 
 "Can I schedule a showing?" / "I want to see a property"
 -> "Absolutely! Let me grab some details for ${ownerName}... What property are you looking at?... And what day and time work best for you?... How many people coming to the showing?"
@@ -840,10 +840,10 @@ ${specialtiesStr ? `
 -> "I'm ${agentName}, ${ownerName}'s assistant! I handle ${pronPoss} calls when ${pronSub}'s busy. How can I help you?"
 
 "I didn't get a text" / "What's ${pronPoss} number?"
--> "You can ${contactInstruction}. ${pronSubCap} checks ${pronPoss} messages all the time."
+-> "You can ${contactInstructionVoice}. ${pronSubCap} checks ${pronPoss} messages all the time."
 
 "I need to speak to ${ownerName} directly / this is urgent"
--> "I totally understand... I'll mark this as urgent so ${pronSub} sees it right away. Best thing is to also ${contactInstruction} — ${pronSub}'ll see that instantly."
+-> "I totally understand... I'll mark this as urgent so ${pronSub} sees it right away. Best thing is to also ${contactInstructionVoice} — ${pronSub}'ll see that instantly."
 ` : ''}
 EDGE CASES
 
@@ -853,6 +853,9 @@ WRONG NUMBER:
 SPAM / ROBOCALL / RECORDED MESSAGE:
 -> If you detect a pre-recorded message, sales pitch, or scam (like "Canadian Medicare", "phone deregistered", "press 9"):
 -> "Thanks, but we're all set. Have a good day!" -> hangUp
+
+SILENCE (handled by Ultravox inactivity messages — no action needed in prompt, just keep talking naturally if they go quiet):
+-> If they seem hesitant: "No worries — take your time, or you can text ${ownerFirst} at this number anytime."
 
 CALLER ENDS CALL:
 -> If caller says "bye", "thanks, that's all", "okay have a good one", "I'm all set", or otherwise signals they're done:
@@ -864,6 +867,7 @@ ANGRY / RUDE CALLER:
 
 CALLER SPEAKS ANOTHER LANGUAGE:
 -> "I'm sorry, I can only help in English right now... but I'll let ${ownerName} know you called and that you might prefer another language. ${pronSubCap}'ll call you back!"
+-> Note the language preference in the message.
 
 CALLER ASKS ABOUT PRICING / PROPERTY VALUES:
 -> "That's a great question for ${ownerName} — ${pronSub}'ll be able to give you accurate numbers. Let me take your info and ${pronSub}'ll call you back with those details."
