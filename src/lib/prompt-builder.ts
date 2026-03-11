@@ -113,6 +113,10 @@ CALLER ENDS CALL:
 If caller says "bye", "thanks, that's all", "okay cool", "have a good one", or signals they're done:
 → immediately say "talk soon!" and use hangUp tool. No additional closing language.
 
+SILENCE (10+ seconds of no response):
+→ "hey, still there? no worries — i can have {{CLOSE_PERSON}} call ya back if that's easier. what's your name?"
+→ If still no response: "i'll leave the line open for a second... feel free to call back anytime." then use hangUp tool.
+
 {{PRIMARY_CALL_REASON}}: go to triage (step 3).
 
 ANYTHING ELSE (unusual request, unclear, doesn't fit above):
@@ -129,6 +133,7 @@ ANYTHING ELSE (unusual request, unclear, doesn't fit above):
 After they answer: "just to confirm — that's [repeat back what they said], right?"
 
 Collect any remaining required fields from {{INFO_TO_COLLECT}} — one question at a time. Do NOT ask two things at once.
+IMPORTANT: When collecting callback number, an actual phone number is required. If the caller gives a name, company name, or any non-numeric response, re-ask immediately: "and what's the best number to reach ya at?" Never close the call without a real phone number.
 
 Mobility check (if relevant): "and are ya looking to {{SERVICE_TIMING_PHRASE}}, or would ya need us to come to you?" [adapt based on {{MOBILE_POLICY}}]
 
@@ -136,7 +141,7 @@ Mobility check (if relevant): "and are ya looking to {{SERVICE_TIMING_PHRASE}}, 
 
 "when were ya looking to [{{SERVICE_TIMING_PHRASE}}]?"
 
-Any date or timeframe given: "perfect — i've noted that down. {{CLOSE_PERSON}}'ll call ya back to {{CLOSE_ACTION}}."
+Any date or timeframe given: "perfect — i've noted that down. {{CLOSE_PERSON}}'ll {{CLOSE_ACTION}}."
 Never say "we have a slot available" or "that time is open" — always route to callback for confirmation.
 
 Weekend asked: "{{WEEKEND_POLICY}} — is it urgent?"
@@ -158,7 +163,7 @@ If unclear or mumbles: "sorry, line broke up there — what number's best for ya
 
 ## TRANSFER TRIGGERS — when to offer a live transfer (only if {{TRANSFER_ENABLED}} is true):
 - Caller explicitly asks: "let me talk to someone", "can I speak to the owner", "I need a real person"
-- Emergency keywords: "emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"
+- Urgency keywords: {{URGENCY_KEYWORDS}}
 - Confidence fallback: you have failed to answer the same question twice — offer transfer instead of guessing
 
 ## IF TRANSFER IS ENABLED ({{TRANSFER_ENABLED}} = true):
@@ -268,6 +273,7 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     OWNER_PHONE: '',
     TRANSFER_ENABLED: 'false',
     SERVICES_NOT_OFFERED: '',
+    sms_template: "Thanks for calling {{business}}! We'll call you back shortly.",
   },
   auto_glass: {
     INDUSTRY: 'auto glass shop',
@@ -447,7 +453,7 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     INFO_LABEL: 'contact details',
     SERVICE_TIMING_PHRASE: 'set up a quick call',
     CLOSE_PERSON: 'our agent',
-    CLOSE_ACTION: 'have our agent call you back for a quick 10-minute chat',
+    CLOSE_ACTION: 'call ya back for a quick 10-minute chat',
     MOBILE_POLICY: 'we work across the whole area — in-person, virtual, or by phone',
     COMPLETION_FIELDS: 'interest level, buying or selling, and best callback time confirmed',
     INSURANCE_STATUS: 'N/A',
@@ -473,6 +479,31 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     INSURANCE_STATUS: 'N/A',
     INSURANCE_DETAIL: 'N/A',
     WEEKEND_POLICY: "i'll make sure your message gets through",
+  },
+  print_shop: {
+    INDUSTRY: 'print shop',
+    PRIMARY_CALL_REASON: 'a printing quote, order, or question',
+    TRIAGE_SCRIPT: [
+      `"If quote / new order: 'for sure — what are you looking to get printed?'"`,
+      `"If reorder: 'easy — do you remember roughly what it was? size, quantity, that kind of thing?'"`,
+      `"If order status / is it ready?: 'i can't pull up orders from here, but i'll have someone check and call ya back. what's your name?'"`,
+      `"If design question: 'yeah we've got a designer on site — do you have artwork already, or starting from scratch?'"`,
+      `"If caller asks for a specific staff member by name: 'they're not at the desk right now — let me grab your info and make sure they get the message.'"`,
+      `"If unsure what they need: 'no worries — tell me a bit about what you're trying to do and we'll figure out the right product.'"`,
+    ].join('\n'),
+    FIRST_INFO_QUESTION: 'what are you looking to get printed?',
+    INFO_TO_COLLECT: 'product type, size or quantity, whether artwork is ready, and callback number',
+    INFO_LABEL: 'order details',
+    SERVICE_TIMING_PHRASE: 'come pick it up',
+    CLOSE_PERSON: 'the team',
+    CLOSE_ACTION: 'call ya back to get the order sorted',
+    MOBILE_POLICY: "pickup only — we don't do delivery or shipping",
+    COMPLETION_FIELDS: 'product type, approximate size or quantity, artwork status, and callback number',
+    INSURANCE_STATUS: 'cash or card',
+    INSURANCE_DETAIL: "pay when you pick up — easy as that",
+    WEEKEND_POLICY: "we're closed weekends — leave a message and we'll call ya back first thing Monday",
+    URGENCY_KEYWORDS: '"deadline today", "event tomorrow", "i need it today", "same-day rush", "it\'s for this weekend", "need it printed today", "event is tomorrow"',
+    sms_template: "Thanks for calling {{business}}! Place your order https://{{niche_websiteUrl}}/ online or send your files anytime: {{niche_emailAddress}} — the team will call you back shortly.",
   },
   other: {
     INDUSTRY: 'business',
@@ -508,6 +539,7 @@ export const NICHE_CLASSIFICATION_RULES: Record<string, string> = {
   property_management: 'HOT = maintenance emergency (flooding, no heat, gas leak, fire, security). WARM = routine maintenance request, viewing inquiry, billing question. COLD = general inquiry only. JUNK = spam.',
   outbound_isa_realtor: 'HOT = expresses immediate buying/selling intent, wants to meet agent. WARM = interested but not ready, wants callback at specific time. COLD = not interested, maybe later. JUNK = DNC request, wrong contact, hang-up.',
   voicemail: 'HOT = urgent matter, time-sensitive, caller stressed or mentioned deadline. WARM = left message, wants callback, standard inquiry. COLD = no message left, hung up or no reason given. JUNK = spam, robocall, wrong number.',
+  print_shop: 'HOT = urgent deadline (event today or tomorrow, rush needed), ready to order with artwork in hand. WARM = price inquiry, reorder, order status check, callback requested. COLD = general info only, no urgency or order intent. JUNK = spam, wrong number, vendor pitch.',
   other: 'HOT = immediate need, urgency signals, ready to proceed. WARM = interested, callback requested. COLD = info only, no intent signals. JUNK = spam or wrong number.',
 }
 
@@ -1001,6 +1033,45 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   if (niche_booking === 'appointment_only') variables.SERVICE_TIMING_PHRASE = 'book an appointment'
   else if (niche_booking === 'walk_in') variables.SERVICE_TIMING_PHRASE = 'come on in'
 
+  // Print shop niche-specific field handling
+  let printShopFaq = ''
+  if (niche === 'print_shop') {
+    const rushCutoff = ((intake.niche_rushCutoffTime as string) || '10 AM').trim()
+    const pickupOnly = intake.niche_pickupOnly !== false
+    const designOffered = intake.niche_designOffered !== false
+    const websiteUrl = ((intake.niche_websiteUrl as string) || '').trim()
+    const emailAddress = ((intake.niche_emailAddress as string) || '').trim()
+
+    if (pickupOnly) variables.MOBILE_POLICY = "pickup only — we don't do delivery or shipping"
+
+    // Build niche FAQ incorporating dynamic fields — used as fallback when caller_faq is empty
+    const faqLines: string[] = [
+      `How much are coroplast yard signs? — a standard 2 by 2 single-sided starts at $32, a 2 by 4 is $64, and a 4 by 8 is $240. custom sizes are $8 a square foot${websiteUrl ? `. for exact pricing, the online estimator at ${websiteUrl} gives you the number right away` : ''}.`,
+      `How much are vinyl banners? — a 2 by 4 banner starts at $66, a 3 by 6 is $135, and a 4 by 8 is $216. custom sizes are about $8.25 a square foot.`,
+      `How much are business cards? — 250 double-sided on 14-point gloss — $45.`,
+      `How much are flyers? — 100 full-colour sheets — $45.`,
+      `How much are retractable banners? — economy starts at $219, deluxe is $299 — both include a carry case.`,
+      `How much are ACP aluminum signs? — those run about $13 a square foot — stronger and more permanent than coroplast.`,
+      designOffered
+        ? `Do you do design? — yeah, we've got a designer on site. $35 flat to build a layout or clean up your files, and you'll get a proof same day.`
+        : `Do you do design? — the team can point you in the right direction when they call back.`,
+      `Do you do rush orders? — yeah, same-day rush is $40 on top and you'd need your order in before ${rushCutoff}. after that we're usually looking at next business day.`,
+      `What's the turnaround time? — standard is 1 to 3 business days after your artwork is approved.`,
+      pickupOnly
+        ? `Do you deliver or ship? — we're pickup only${websiteUrl ? `. easiest way to order is online at ${websiteUrl}` : ''}.`
+        : `Do you deliver or ship? — the team can sort that out when they call you back.`,
+      `What file format do you need? — PDF works great, or an AI or vector file is even better.${designOffered ? ' if you don\'t have anything ready, our designer can take care of it for $35.' : ''}`,
+      `Can I reorder something I got before? — for sure — if you know roughly what you got, i'll have the team look it up and call ya back.`,
+    ]
+    if (emailAddress) {
+      faqLines.push(`How do I send my files? — email them to ${emailAddress} and the team will confirm they got it.`)
+    }
+    if (websiteUrl) {
+      faqLines.push(`Can I order online? — yep — ${websiteUrl} has a live estimator where you can place the order right now.`)
+    }
+    printShopFaq = faqLines.join('\n')
+  }
+
   // Transfer — if owner_phone provided, enable transfer
   const ownerPhone = intake.owner_phone as string | undefined
   if (ownerPhone?.trim()) {
@@ -1025,6 +1096,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   // Fallback defaults
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
+  variables.URGENCY_KEYWORDS = variables.URGENCY_KEYWORDS || '"emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"'
 
   // Pre-resolve variable values that reference other variables.
   // e.g. voicemail niche sets CLOSE_PERSON = '{{BUSINESS_NAME}}' — must resolve before template fill
@@ -1041,12 +1113,32 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   // Build base prompt
   let prompt = buildPrompt(variables)
 
+  // Fix TRANSFER_ENABLED literal value leaking into prompt text (e.g. "unless false is true")
+  if (variables.TRANSFER_ENABLED === 'false') {
+    prompt = prompt
+      .replace(/unless false is true/g, 'unless transfer is enabled')
+      .replace(/\(only if false is true\)/g, '(only if transfer is enabled)')
+      .replace(/\(false = true\):/g, '(transfer enabled):')
+      .replace(/\(false = false\):/g, '(transfer not enabled):')
+  } else if (variables.TRANSFER_ENABLED === 'true') {
+    prompt = prompt
+      .replace(/unless true is true/g, 'when transfer is enabled')
+      .replace(/\(only if true is true\)/g, '(transfer is enabled)')
+      .replace(/\(true = true\):/g, '(transfer enabled):')
+      .replace(/\(true = false\):/g, '(transfer not enabled):')
+  }
+
   // Inject agent restrictions after rule 8
+  // For print_shop: prepend Rule 3 override (price quoting allowed from KB) before any intake restrictions
+  const nicheRestriction = niche === 'print_shop'
+    ? 'PRICE QUOTING EXCEPTION: You MAY quote standard product prices from the knowledge base in this prompt. Use the exact amounts listed — do not guess or estimate. For custom sizes or unusual requests, say the team will call back with a firm quote.'
+    : ''
   const agentRestrictions = intake.agent_restrictions as string | undefined
-  if (agentRestrictions?.trim()) {
+  const effectiveRestrictions = [nicheRestriction, agentRestrictions?.trim()].filter(Boolean).join('\n')
+  if (effectiveRestrictions) {
     const restrictionLines: string[] = []
     let ruleNum = 9
-    for (const line of agentRestrictions.trim().split('\n')) {
+    for (const line of effectiveRestrictions.split('\n')) {
       const trimmed = line.trim()
       if (trimmed) {
         restrictionLines.push(`${ruleNum}. ${trimmed}`)
@@ -1063,9 +1155,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
 
   // Replace PRODUCT KNOWLEDGE BASE placeholder with actual FAQ content
   const callerFaq = intake.caller_faq as string | undefined
+  const effectiveCallerFaq = callerFaq?.trim() || printShopFaq
   const kbMarker = '> **REPLACE THIS ENTIRE SECTION with client-specific Q&A.**'
   if (prompt.includes(kbMarker)) {
-    const kbContent = buildKnowledgeBase(callerFaq || '', niche)
+    const kbContent = buildKnowledgeBase(effectiveCallerFaq, niche)
     const kbStart = prompt.indexOf(kbMarker)
     const afterKb = prompt.slice(kbStart)
     const nextSection = afterKb.indexOf('\n---')
@@ -1128,19 +1221,28 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings.push(`Prompt is very long: ${prompt.length} chars — may exceed Ultravox limits`)
   }
 
-  // Required sections check
-  const requiredSections = [
-    'SILENCE',
-    'ANGRY / RUDE CALLER',
-    'CALLER SPEAKS ANOTHER LANGUAGE',
-    'CALLER ASKS ABOUT PRICING',
-    'WRONG NUMBER',
-    'SPAM',
-  ]
+  // Required sections — only check what the inbound template actually contains.
+  // Do NOT check for SILENCE / ANGRY / LANGUAGE / PRICING — those are NOT in the base
+  // INBOUND_TEMPLATE_BODY and will always produce false-positive warnings.
+  const requiredSections = ['WRONG NUMBER', 'SPAM', 'CALLER ENDS CALL', 'COMPLETION CHECK']
   for (const section of requiredSections) {
     if (!prompt.includes(section)) {
       warnings.push(`Missing required section: ${section}`)
     }
+  }
+
+  // TRANSFER_ENABLED literal value leak — catches e.g. "unless false is true"
+  if (/\b(false|true) is (true|false)\b/.test(prompt)) {
+    warnings.push('TRANSFER_ENABLED literal value leaked into prompt text — check post-processing in buildPromptFromIntake')
+  }
+  if (/\((false|true) = (false|true)\):/.test(prompt)) {
+    warnings.push('TRANSFER_ENABLED raw value in section header — check post-processing in buildPromptFromIntake')
+  }
+
+  // Double "call ya back" render artifact — caused by CLOSE_ACTION starting with "call ya back to"
+  // when the template already says "{{CLOSE_PERSON}}'ll {{CLOSE_ACTION}}"
+  if (/call ya back to call ya back/.test(prompt)) {
+    errors.push('Render artifact: double "call ya back" — CLOSE_ACTION must not start with "call ya back to" since the template already provides it')
   }
 
   // Raw 10-digit phone number in dialogue lines (inside quotes)
@@ -1182,4 +1284,47 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings,
     charCount: prompt.length,
   }
+}
+
+// ── Niche registry helpers ─────────────────────────────────────────────────────
+
+/** Returns true if the niche has a registered entry in NICHE_DEFAULTS.
+ *  Used by /niche-test and the onboard wizard to catch unregistered niches early. */
+export function isNicheRegistered(niche: string): boolean {
+  return niche in NICHE_DEFAULTS && niche !== '_common'
+}
+
+/** Returns all registered niche slugs (excluding internal keys). */
+export function getRegisteredNiches(): string[] {
+  return Object.keys(NICHE_DEFAULTS).filter(k => k !== '_common')
+}
+
+/**
+ * Build the SMS follow-up message text from intake form answers + niche defaults.
+ * Called after every call completes — message sent via Twilio to the caller's number.
+ *
+ * Placeholders: {{business}} = business_name, {{niche_*}} = any niche-specific intake field
+ */
+export function buildSmsTemplate(intake: Record<string, unknown>): string {
+  const niche = (intake.niche as string) || 'other'
+  const nicheDefaults = NICHE_DEFAULTS[niche] || NICHE_DEFAULTS.other
+  const commonDefaults = NICHE_DEFAULTS._common || {}
+
+  let template =
+    nicheDefaults.sms_template ||
+    commonDefaults.sms_template ||
+    "Thanks for calling {{business}}! We'll call you back shortly."
+
+  // Replace {{business}} with business name
+  const businessName = (intake.business_name as string) || 'us'
+  template = template.replace(/\{\{business\}\}/g, businessName)
+
+  // Replace any remaining {{key}} placeholders from intake fields
+  for (const [key, value] of Object.entries(intake)) {
+    if (typeof value === 'string') {
+      template = template.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+    }
+  }
+
+  return template
 }
