@@ -151,6 +151,9 @@ export async function POST(req: NextRequest) {
   if (!data.contactEmail?.trim()) {
     return NextResponse.json({ error: "Email address is required" }, { status: 400 });
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail.trim())) {
+    return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
+  }
 
   const intakePayload = toIntakePayload(data);
 

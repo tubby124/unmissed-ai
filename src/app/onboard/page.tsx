@@ -34,17 +34,21 @@ function getStepSequence(niche: string | null): number[] {
   return [1, 2, 3, 4, 5, 6, 7];
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
 function canAdvance(step: number, data: OnboardingData): boolean {
   const isFastTrack = data.niche ? !!NICHE_CONFIG[data.niche as Niche]?.fastTrack : false;
   switch (step) {
     case 1: return !!data.niche;
     case 2:
       if (isFastTrack) {
-        return !!data.businessName && countDigits(data.callbackPhone) >= 10 && !!data.contactEmail.trim();
+        return !!data.businessName && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
       }
       return !!data.businessName && !!data.city && !!data.state
         && countDigits(data.callbackPhone) >= 10
-        && !!data.contactEmail.trim();
+        && isValidEmail(data.contactEmail);
     case 3: {
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
       for (const day of days) {

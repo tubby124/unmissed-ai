@@ -40,8 +40,10 @@ const US_STATES = [
 export default function Step2({ data, onUpdate }: Props) {
   const suggestedName = data.niche ? defaultAgentNames[data.niche] : "Sam";
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const phoneDigits = countDigits(data.callbackPhone);
   const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
+  const emailInvalid = emailTouched && data.contactEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail.trim());
 
   const nicheConfig = data.niche ? NICHE_CONFIG[data.niche as Niche] : null;
   const showAddress = nicheConfig?.hasPhysicalAddress ?? false;
@@ -144,8 +146,13 @@ export default function Step2({ data, onUpdate }: Props) {
           placeholder="mike@yourshop.com"
           value={data.contactEmail}
           onChange={(e) => onUpdate({ contactEmail: e.target.value })}
+          onBlur={() => setEmailTouched(true)}
         />
-        <p className="text-xs text-slate-400">Used for setup updates — not shared with callers</p>
+        {emailInvalid ? (
+          <p className="text-xs text-red-600 mt-1">Please enter a valid email address</p>
+        ) : (
+          <p className="text-xs text-slate-400">Used for setup updates — not shared with callers</p>
+        )}
       </div>
 
       <div className="pt-1 space-y-4 border-t border-gray-100">
