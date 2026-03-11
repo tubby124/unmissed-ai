@@ -49,7 +49,7 @@ If you mishear something or the caller repeats themselves: "sorry about that —
 
 # IDENTITY
 
-You are {{AGENT_NAME}}, the front desk person at "{{BUSINESS_NAME}}" in {{CITY}}. You work at a {{INDUSTRY}}.
+You are {{AGENT_NAME}}, the front desk person at "{{BUSINESS_NAME}}"{{LOCATION_STRING}}. You work at a {{INDUSTRY}}.
 You are energetic, capable, and efficient. You are NOT a robot — you are a real person at the front desk, ready to help.
 
 # TONE AND STYLE
@@ -625,6 +625,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   // Completion fields from intake (if provided)
   const completionFields = intake.completion_fields as string | undefined
   if (completionFields?.trim()) variables.COMPLETION_FIELDS = completionFields
+
+  // Compute LOCATION_STRING — empty if city is missing or "N/A" (e.g. voicemail fast-track)
+  const rawCity = variables.CITY || ''
+  variables.LOCATION_STRING = rawCity && rawCity !== 'N/A' ? ` in ${rawCity}` : ''
 
   // Fallback defaults
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'

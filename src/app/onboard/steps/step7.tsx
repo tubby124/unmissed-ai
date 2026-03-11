@@ -4,6 +4,7 @@ import { OnboardingData, nicheLabels } from "@/types/onboarding";
 
 interface Props {
   data: OnboardingData;
+  stepSequence: number[];
   onEdit: (step: number) => void;
 }
 
@@ -53,8 +54,8 @@ function AgentPreview({ data }: { data: OnboardingData }) {
   );
 }
 
-export default function Step7({ data, onEdit }: Props) {
-  const rows: Array<{ label: string; value: string; step: number }> = [
+export default function Step7({ data, stepSequence, onEdit }: Props) {
+  const allRows: Array<{ label: string; value: string; step: number }> = [
     { label: "Industry", value: data.niche ? nicheLabels[data.niche] : "—", step: 1 },
     { label: "Business", value: data.businessName || "—", step: 2 },
     { label: "Location", value: [data.streetAddress, data.city, data.state].filter(Boolean).join(", ") || "—", step: 2 },
@@ -68,6 +69,7 @@ export default function Step7({ data, onEdit }: Props) {
     { label: "Primary goal", value: data.primaryGoal.replace(/_/g, " ") || "—", step: 6 },
     { label: "Agent tone", value: data.agentTone, step: 6 },
   ];
+  const rows = allRows.filter(r => stepSequence.includes(r.step));
 
   return (
     <div className="space-y-5">
@@ -99,7 +101,7 @@ export default function Step7({ data, onEdit }: Props) {
         ))}
       </div>
 
-      {Object.keys(data.nicheAnswers).length > 0 && (
+      {Object.keys(data.nicheAnswers).length > 0 && stepSequence.includes(4) && (
         <div className="border rounded-xl overflow-hidden">
           <div className="px-4 py-2 bg-gray-50 border-b">
             <span className="text-sm font-medium text-gray-700">Industry Details</span>

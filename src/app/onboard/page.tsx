@@ -30,6 +30,7 @@ const STEP_TITLES: Record<number, string> = {
 };
 
 function getStepSequence(niche: string | null): number[] {
+  if (niche === 'voicemail') return [1, 2, 4, 7];
   if (niche && NICHE_CONFIG[niche as Niche]?.fastTrack) return [1, 2, 7];
   return [1, 2, 3, 4, 5, 6, 7];
 }
@@ -226,7 +227,7 @@ export default function OnboardPage() {
               {step === 4 && <Step4 data={data} onUpdate={update} />}
               {step === 5 && <Step5 data={data} onUpdate={update} />}
               {step === 6 && <Step6 data={data} onUpdate={update} />}
-              {step === 7 && <Step7 data={data} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
+              {step === 7 && <Step7 data={data} stepSequence={stepSequence} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
             </motion.div>
           </AnimatePresence>
         </div>

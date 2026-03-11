@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // ── Load intake ────────────────────────────────────────────────────────────
   const { data: intake, error: intakeErr } = await svc
     .from('intake_submissions')
-    .select('id, niche, business_name, client_slug, contact_email, intake_json, progress_status')
+    .select('id, niche, business_name, client_slug, contact_email, intake_json, progress_status, client_id')
     .eq('id', intakeId)
     .single()
 
@@ -50,20 +50,34 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Auto-provision clients row if not already done ─────────────────────────
-  const clientSlug = intake.client_slug || slugify(intake.business_name || 'unmissed-agent')
-  const businessName = intake.business_name || clientSlug
+  const baseSlug = intake.client_slug || slugify(intake.business_name || 'unmissed-agent')
+  const businessName = intake.business_name || baseSlug
 
-  // Check for existing client by slug
-  const { data: existingClient } = await svc
-    .from('clients')
-    .select('id, status')
-    .eq('slug', clientSlug)
-    .maybeSingle()
+  // If this intake already owns a client, use that client directly
+  const alreadyLinkedClientId = intake.client_id as string | null
+
+  // Resolve a unique slug — collision = different client owns this slug
+  let clientSlug = baseSlug
+  if (!alreadyLinkedClientId) {
+    let suffix = 2
+    while (true) {
+      const { data: slugCheck } = await svc.from('clients').select('id').eq('slug', clientSlug).maybeSingle()
+      if (!slugCheck) break // slug is free
+      // Slug taken — try next suffix
+      clientSlug = `${baseSlug}-${suffix}`
+      suffix++
+    }
+  }
+
+  // Check for existing client linked to this intake
+  const { data: existingClient } = alreadyLinkedClientId
+    ? await svc.from('clients').select('id, status').eq('id', alreadyLinkedClientId).maybeSingle()
+    : { data: null }
 
   let clientId: string
 
   if (existingClient) {
-    // Admin already ran generate-prompt — use existing client
+    // Admin already ran generate-prompt, or this is a checkout retry — use existing client
     clientId = existingClient.id as string
 
     if (existingClient.status === 'active') {

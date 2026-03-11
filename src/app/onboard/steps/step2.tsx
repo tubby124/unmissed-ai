@@ -52,17 +52,21 @@ export default function Step2({ data, onUpdate }: Props) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Tell us about your business</h2>
+        <h2 className="text-2xl font-bold text-slate-900">{isFastTrack ? "Tell us about yourself" : "Tell us about your business"}</h2>
         <p className="text-sm text-slate-500 mt-1">
           This shapes how your agent introduces itself and routes calls.
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="businessName">Business name <span className="text-red-400">*</span></Label>
+        <Label htmlFor="businessName">
+          {isFastTrack ? "Your name" : "Business name"}{" "}
+          <span className="text-red-400">*</span>
+          {isFastTrack && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;This is Sam, assistant for [your name]&quot;)</span>}
+        </Label>
         <Input
           id="businessName"
-          placeholder="e.g. Dallas Quick Glass"
+          placeholder={isFastTrack ? "e.g. Hasan Sharif" : "e.g. Dallas Quick Glass"}
           value={data.businessName}
           onChange={(e) => onUpdate({ businessName: e.target.value })}
         />
