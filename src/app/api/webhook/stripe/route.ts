@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
 
@@ -248,10 +249,54 @@ export async function POST(req: NextRequest) {
           .update({ supabase_user_id: newUserId })
           .eq('id', intake_id)
 
-        // Send password setup email
-        await adminSupa.auth.resetPasswordForEmail(contactEmail, {
-          redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
-        })
+        // Send welcome + password setup email via Resend (if key is configured)
+        const resendKey = process.env.RESEND_API_KEY
+        if (resendKey) {
+          try {
+            // Generate password setup link without sending Supabase's default email
+            const { data: linkData } = await adminSupa.auth.admin.generateLink({
+              type: 'recovery',
+              email: contactEmail,
+              options: { redirectTo: `${appUrl}/auth/callback?next=/dashboard` },
+            })
+            const setupUrl = linkData?.properties?.action_link ?? `${appUrl}/auth/callback?next=/dashboard`
+
+            const resend = new Resend(resendKey)
+            // Use sandbox domain until custom domain is verified — swap 'from' to your domain after setup
+            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+            await resend.emails.send({
+              from: fromAddress,
+              to: contactEmail,
+              subject: `Your unmissed.ai agent is live${twilioNumber ? ` — ${twilioNumber}` : ''}`,
+              html: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
+  <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
+  <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
+
+  ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
+
+  <p><strong>Set up your dashboard password</strong></p>
+  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:16px">
+    Create my password →
+  </a>
+  <p style="font-size:12px;color:#888">This link expires in 24 hours.</p>
+
+  ${telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
+
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+</div>`,
+            })
+            console.log(`[stripe-webhook] Welcome email sent via Resend to ${contactEmail}`)
+          } catch (emailErr) {
+            console.error(`[stripe-webhook] Resend email failed for ${contactEmail}: ${emailErr}`)
+          }
+        } else {
+          // Fallback: Supabase default email (no custom branding)
+          await adminSupa.auth.resetPasswordForEmail(contactEmail, {
+            redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+          })
+        }
 
         console.log(`[stripe-webhook] Auth user created and password email sent to ${contactEmail}`)
       }
@@ -309,8 +354,8 @@ export async function POST(req: NextRequest) {
       callback_phone: callbackPhone,
       sms_sent: smsSent,
       sms_skip_reason: smsSent ? null : smsSkipReason,
-      email_sent: false,
-      email_skip_reason: 'email provider not configured — set RESEND_API_KEY to enable',
+      email_sent: !!process.env.RESEND_API_KEY && !!contactEmail,
+      email_skip_reason: !contactEmail ? 'no contact email' : !process.env.RESEND_API_KEY ? 'RESEND_API_KEY not set' : null,
       intake_id,
     }
     await adminSupa
