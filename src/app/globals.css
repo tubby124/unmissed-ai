@@ -226,3 +226,9 @@ audio::-webkit-media-controls-panel {
   outline: 2px solid var(--brand-blue);
   outline-offset: 2px;
 }
+
+/* ─── Float Animation (21st.dev) ────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
