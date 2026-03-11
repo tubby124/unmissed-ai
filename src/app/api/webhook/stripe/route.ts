@@ -276,24 +276,43 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Steps 3-5: Create auth user + link + send password email ───────────────
+  let emailActuallySent = false
+  let emailFailReason: string | null = null
+
   if (contactEmail) {
     try {
+      let resolvedUserId: string | null = null
+
       const { data: newUser, error: createErr } = await adminSupa.auth.admin.createUser({
         email: contactEmail,
         email_confirm: true,
       })
 
       if (createErr) {
-        console.error(`[stripe-webhook] createUser failed for ${contactEmail}: ${createErr.message}`)
+        // User may already exist (e.g. repeat purchase, test run) — look them up
+        console.warn(`[stripe-webhook] createUser failed for ${contactEmail}: ${createErr.message} — attempting lookup`)
+        const { data: existingUsers } = await adminSupa.auth.admin.listUsers()
+        const found = existingUsers?.users?.find((u) => u.email === contactEmail)
+        if (found) {
+          resolvedUserId = found.id
+          console.log(`[stripe-webhook] Found existing auth user ${resolvedUserId} for ${contactEmail}`)
+        } else {
+          console.error(`[stripe-webhook] Could not resolve user for ${contactEmail}`)
+          emailFailReason = `createUser failed and lookup found no user: ${createErr.message}`
+        }
       } else if (newUser.user) {
-        const newUserId = newUser.user.id
+        resolvedUserId = newUser.user.id
+      }
 
-        // Link in client_users
+      if (resolvedUserId) {
+        const newUserId = resolvedUserId
+
+        // Link in client_users (upsert to handle existing links)
         const { error: linkErr } = await adminSupa
           .from('client_users')
-          .insert({ user_id: newUserId, client_id, role: 'owner' })
+          .upsert({ user_id: newUserId, client_id, role: 'owner' }, { onConflict: 'user_id,client_id' })
 
-        if (linkErr) console.error(`[stripe-webhook] client_users insert failed: ${linkErr.message}`)
+        if (linkErr) console.error(`[stripe-webhook] client_users upsert failed: ${linkErr.message}`)
 
         // Update intake with user ID
         await adminSupa
@@ -351,25 +370,36 @@ export async function POST(req: NextRequest) {
   <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
 </div>`,
             })
+            emailActuallySent = true
             console.log(`[stripe-webhook] Welcome email sent via Resend to ${contactEmail}`)
           } catch (emailErr) {
+            emailFailReason = String(emailErr)
             console.error(`[stripe-webhook] Resend email failed for ${contactEmail}: ${emailErr}`)
           }
         } else {
           // Fallback: Supabase default email (no custom branding)
-          await adminSupa.auth.resetPasswordForEmail(contactEmail, {
-            redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
-          })
+          try {
+            await adminSupa.auth.resetPasswordForEmail(contactEmail, {
+              redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+            })
+            emailActuallySent = true
+          } catch (emailErr) {
+            emailFailReason = String(emailErr)
+          }
         }
 
-        console.log(`[stripe-webhook] Auth user created and password email sent to ${contactEmail}`)
-        void notifyAdmin(adminBot, adminChat, `👤 Auth account created, welcome email sent to ${contactEmail}`)
+        console.log(`[stripe-webhook] Auth user resolved and password email sent to ${contactEmail}`)
+        void notifyAdmin(adminBot, adminChat, `👤 Auth account linked, welcome email sent to ${contactEmail}`)
+      } else if (emailFailReason) {
+        void notifyAdmin(adminBot, adminChat, `⚠️ Auth/email step: user not resolved for ${contactEmail}`)
       }
     } catch (err) {
+      emailFailReason = String(err)
       console.error(`[stripe-webhook] Auth user creation threw: ${err}`)
       void notifyAdmin(adminBot, adminChat, `❌ Auth/email step failed for ${businessName}: ${String(err).slice(0, 100)}`)
     }
   } else {
+    emailFailReason = 'no contact email on intake'
     console.warn(`[stripe-webhook] No contact_email on intake ${intake_id} — skipping auth user creation`)
   }
 
@@ -420,8 +450,8 @@ export async function POST(req: NextRequest) {
       callback_phone: callbackPhone,
       sms_sent: smsSent,
       sms_skip_reason: smsSent ? null : smsSkipReason,
-      email_sent: !!process.env.RESEND_API_KEY && !!contactEmail,
-      email_skip_reason: !contactEmail ? 'no contact email' : !process.env.RESEND_API_KEY ? 'RESEND_API_KEY not set' : null,
+      email_sent: emailActuallySent,
+      email_skip_reason: emailActuallySent ? null : (emailFailReason ?? 'unknown'),
       intake_id,
     }
     await adminSupa
