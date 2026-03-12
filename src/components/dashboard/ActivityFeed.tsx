@@ -223,6 +223,8 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
 
       {/* Top fade mask */}
       <div className="absolute top-[57px] left-0 right-0 h-6 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
+      {/* Bottom fade mask */}
+      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
     </aside>
   )
 }

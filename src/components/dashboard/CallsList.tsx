@@ -353,7 +353,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] text-amber-400/80">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800/60 text-zinc-300">
                 <svg className="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -369,7 +369,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
           {/* Admin client tabs */}
           {isAdmin && adminClients.length > 0 && (
-            <div className="px-5 border-b border-white/[0.06] flex items-center gap-0 overflow-x-auto">
+            <div className="px-5 border-b border-white/[0.06] flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <button
                 onClick={() => setClientFilter('all')}
                 className={`px-3.5 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
@@ -426,7 +426,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               {(isAdmin || clientSlug) && (
                 <button
                   onClick={() => setShowDial(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 hover:border-green-500/35 transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-zinc-700/80 text-zinc-200 border border-white/10 hover:bg-zinc-600/80 hover:text-white transition-all"
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                     <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.77 9.84 19.79 19.79 0 01.7 1.23a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 6.54a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -454,7 +454,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 placeholder={isAdmin ? 'Search number or client…' : 'Search number…'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-full sm:w-44 transition-colors"
+                className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-full sm:w-56 transition-colors"
               />
               <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {FILTERS.map(f => {
@@ -509,7 +509,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 <div key={group.label}>
                   {/* Date group header */}
                   <div className="px-5 py-2 bg-white/[0.01] border-b border-white/[0.04]">
-                    <span className="text-[10px] font-semibold tracking-[0.18em] uppercase text-zinc-600">
+                    <span className="text-xs font-semibold tracking-[0.18em] uppercase text-zinc-400 bg-zinc-900/60 px-2 py-0.5 rounded">
                       {group.label}
                     </span>
                   </div>

@@ -97,7 +97,7 @@ function StackedBarChart({
   const HEIGHT = 48
 
   return (
-    <div className="flex items-end gap-1" style={{ height: HEIGHT + 16 }}>
+    <div className="flex items-end gap-2" style={{ height: HEIGHT + 16 }}>
       {days.map(d => {
         const isSelected = selectedDay === d.dateStr
         const barH = Math.max(2, (d.total / max) * HEIGHT)
@@ -184,7 +184,7 @@ function ConversionFunnel({ calls }: { calls: CallLog[] }) {
               <span className="text-[10px] font-mono" style={{ color: stage.color }}>{stage.pct}%</span>
             </div>
           </div>
-          <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+          <div className="h-3 rounded-full bg-white/[0.05] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700 ease-out"
               style={{

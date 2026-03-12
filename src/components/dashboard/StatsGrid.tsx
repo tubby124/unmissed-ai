@@ -103,7 +103,7 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
   }, [value, format, index])
 
   return (
-    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden min-h-[88px]`} style={{ boxShadow: t.glow }}>
+    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden min-h-[88px] hover:border-white/[0.12] transition-colors cursor-pointer`} style={{ boxShadow: t.glow }}>
       {/* Radial accent */}
       <div
         className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-40 pointer-events-none"

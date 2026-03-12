@@ -23,8 +23,7 @@ const NAV = [
     adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M18 2l4 4-4 4M22 6H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
@@ -217,7 +216,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           return (
             <Fragment key={item.href}>
               {isAdmin && idx === firstAdminIdx && !collapsed && (
-                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold text-zinc-700 uppercase tracking-widest select-none">
+                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold text-zinc-500 uppercase tracking-widest select-none">
                   Admin
                 </div>
               )}
