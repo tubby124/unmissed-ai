@@ -103,7 +103,7 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
   }, [value, format, index])
 
   return (
-    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden min-h-[88px] hover:border-white/[0.12] transition-colors cursor-pointer`} style={{ boxShadow: t.glow }}>
+    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden hover:border-white/[0.12] transition-colors cursor-pointer`} style={{ boxShadow: t.glow }}>
       {/* Radial accent */}
       <div
         className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-40 pointer-events-none"
@@ -184,14 +184,12 @@ interface StatsGridProps {
   totalCalls: number
   hotLeads: number
   avgDurationSecs: number
-  activeNow: number
+  missedCalls: number
   calls: CallLog[]
 }
 
-export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, activeNow, calls }: StatsGridProps) {
+export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, missedCalls, calls }: StatsGridProps) {
   const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK'].includes(c.call_status ?? ''))
-  const junkCount = classified.filter(c => c.call_status === 'JUNK').length
-  const convRate = Math.round(hotLeads / Math.max(totalCalls - junkCount, 1) * 100)
 
   // Sparklines
   const isHOT = (c: CallLog) => c.call_status === 'HOT'
@@ -206,17 +204,9 @@ export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, activ
   const durSpark = weekBuckets(classified, 0, undefined, dur)
   const durPrior = weekBuckets(classified, 1, undefined, dur)
 
-  // Conversion rate per day
-  const DAY = 86400000
-  const now = Date.now()
-  const convSpark = Array.from({ length: 7 }, (_, i) => {
-    const start = now - (7 - i) * DAY
-    const end = start + DAY
-    const day = classified.filter(c => { const t = new Date(c.started_at).getTime(); return t >= start && t < end })
-    const j = day.filter(c => c.call_status === 'JUNK').length
-    const h = day.filter(c => c.call_status === 'HOT').length
-    return day.length > j ? Math.round(h / (day.length - j) * 100) : 0
-  })
+  // Containment rate — quality calls (HOT+WARM+COLD) / answered calls (non-JUNK classified)
+  const qualityCalls = classified.filter(c => c.call_status !== 'JUNK').length
+  const containmentRate = Math.round(qualityCalls / Math.max(classified.length, 1) * 100)
 
   const stats: StatCardProps[] = [
     {
@@ -232,12 +222,12 @@ export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, activ
       format: fmtDur, sparkValues: durSpark, delta: delta(durSpark, durPrior), index: 2,
     },
     {
-      label: 'Active Now', value: activeNow, sub: activeNow > 0 ? 'call in progress' : 'lines clear',
-      theme: activeNow > 0 ? 'green' : 'zinc', liveOrb: true, index: 3,
+      label: 'Missed Calls', value: missedCalls, sub: 'in last 7 days',
+      theme: missedCalls > 0 ? 'red' : 'zinc', index: 3,
     },
     {
-      label: 'Conversion', value: convRate, sub: 'HOT / answered calls', theme: 'purple',
-      format: (n: number) => `${n}%`, sparkValues: convSpark, index: 4,
+      label: 'Containment', value: containmentRate, sub: 'quality calls handled', theme: 'purple',
+      format: (n: number) => `${n}%`, index: 4,
     },
   ]
 

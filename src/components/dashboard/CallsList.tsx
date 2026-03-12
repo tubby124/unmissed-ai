@@ -202,6 +202,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         ? Math.round(completed.reduce((s, c) => s + (c.duration_seconds ?? 0), 0) / completed.length)
         : 0,
       activeNow: calls.filter(c => c.call_status === 'live').length,
+      missedCalls: calls.filter(c => c.call_status === 'MISSED').length,
     }
   }, [calls])
 
@@ -333,7 +334,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         totalCalls={stats.totalCalls}
         hotLeads={stats.hotLeads}
         avgDurationSecs={stats.avgDurationSecs}
-        activeNow={stats.activeNow}
+        missedCalls={stats.missedCalls}
         calls={calls}
       />
 
