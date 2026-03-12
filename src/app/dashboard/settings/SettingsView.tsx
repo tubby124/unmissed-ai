@@ -208,7 +208,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [testCallError, setTestCallError] = useState('')
 
   // Collapsible sections
-  const [promptCollapsed, setPromptCollapsed] = useState(true)
+  const [promptCollapsed, setPromptCollapsed] = useState(isAdmin)
   const [webhooksCollapsed, setWebhooksCollapsed] = useState(true)
 
   // Setup section
@@ -977,25 +977,38 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       </div>
 
       {/* 5 — System Prompt (collapsible) */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className={`rounded-2xl overflow-hidden transition-colors ${promptCollapsed ? 'border border-blue-500/25 bg-blue-500/[0.03]' : 'border border-blue-500/20 bg-white/[0.02]'}`}>
         <button
           onClick={() => setPromptCollapsed(p => !p)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03] transition-colors group"
         >
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Advanced — Agent Prompt</p>
-            <p className="text-[11px] text-zinc-600 mt-0.5">
-              {promptCollapsed
-                ? <span className="font-mono">{currentPrompt ? currentPrompt.slice(0, 120) + (currentPrompt.length > 120 ? '…' : '') : 'No prompt set'}</span>
-                : `${nicheConfig.label} agent instructions`}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${promptCollapsed ? 'bg-blue-500/15' : 'bg-blue-500/10'}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Agent Script</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                {promptCollapsed
+                  ? 'Tap to view and edit what your AI agent says on calls'
+                  : `${nicheConfig.label} agent instructions`}
+              </p>
+            </div>
           </div>
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            className={`text-zinc-600 transition-transform duration-200 shrink-0 ml-3 ${promptCollapsed ? '' : 'rotate-180'}`}
-          >
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            {promptCollapsed && (
+              <span className="text-[10px] font-medium text-blue-400/60 group-hover:text-blue-400/90 transition-colors hidden sm:block">Edit</span>
+            )}
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              className={`text-blue-400/50 group-hover:text-blue-400/80 transition-all duration-200 shrink-0 ${promptCollapsed ? '' : 'rotate-180'}`}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </button>
         <AnimatePresence initial={false}>
           {!promptCollapsed && (
@@ -1009,8 +1022,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             >
               <div className="px-5 pb-5 border-t border-white/[0.06]">
                 <div className="flex items-center justify-between mt-4 mb-3">
-                  <p className="text-[11px] text-zinc-600">
-                    This is your AI agent&apos;s brain. Only modify if you know what you&apos;re doing — changes take effect immediately.
+                  <p className="text-[11px] text-zinc-500">
+                    Edit your agent&apos;s script below. Changes go live as soon as you save.
                   </p>
                   <div className="flex items-center gap-3 shrink-0 ml-3">
                     <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 'text-zinc-600'}`}>
