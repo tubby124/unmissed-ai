@@ -114,6 +114,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [showDial, setShowDial] = useState(false)
+  const [dialPhone, setDialPhone] = useState<string | null>(null)
   const initialIds = useRef(new Set(initialCalls.map(c => c.id)))
   const supabase = createBrowserClient()
 
@@ -269,16 +270,18 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       {showDial && isAdmin && (
         <DialModal
           clients={adminClients}
-          onClose={() => setShowDial(false)}
-          onDialed={(_callId, _phone) => setShowDial(false)}
+          defaultPhone={dialPhone ?? undefined}
+          onClose={() => { setShowDial(false); setDialPhone(null) }}
+          onDialed={(_callId, _phone) => { setShowDial(false); setDialPhone(null) }}
         />
       )}
       {showDial && !isAdmin && clientSlug && (
         <DialModal
           clients={[{ id: '', slug: clientSlug, business_name: clientBusinessName ?? clientSlug }]}
           defaultSlug={clientSlug}
-          onClose={() => setShowDial(false)}
-          onDialed={(_callId, _phone) => setShowDial(false)}
+          defaultPhone={dialPhone ?? undefined}
+          onClose={() => { setShowDial(false); setDialPhone(null) }}
+          onDialed={(_callId, _phone) => { setShowDial(false); setDialPhone(null) }}
         />
       )}
 
@@ -523,7 +526,11 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                           }
                           className={`border-l-4 ${isNew ? 'border-l-blue-500' : (STATUS_BORDER[call.call_status ?? ''] ?? 'border-l-transparent')} transition-colors`}
                         >
-                          <CallRow call={call} showBusiness={showBusiness} />
+                          <CallRow
+                            call={call}
+                            showBusiness={showBusiness}
+                            onCallBack={(phone) => { setDialPhone(phone); setShowDial(true) }}
+                          />
                         </motion.div>
                       )
                     })}

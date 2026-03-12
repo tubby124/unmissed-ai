@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import StatusBadge from './StatusBadge'
+import AudioWaveformPlayer from './AudioWaveformPlayer'
 
 interface TranscriptMsg { role: string; text: string }
 
@@ -113,10 +114,18 @@ interface ExpandedData {
   sentiment: string | null
 }
 
-export default function CallRow({ call, showBusiness }: { call: CallLog; showBusiness?: boolean }) {
+const RECORDING_STATUSES = new Set(['HOT', 'WARM', 'COLD'])
+
+export default function CallRow({ call, showBusiness, onCallBack }: {
+  call: CallLog
+  showBusiness?: boolean
+  onCallBack?: (phone: string) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const [expandData, setExpandData] = useState<ExpandedData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [recordingAvailable, setRecordingAvailable] = useState<boolean | null>(null)
+  const [recordingLoading, setRecordingLoading] = useState(false)
   const supabase = createBrowserClient()
 
   const dur = fmtDur(call.duration_seconds)
@@ -131,6 +140,7 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
     if (isProcessingOrLive) return
     const next = !expanded
     setExpanded(next)
+
     if (next && !expandData) {
       setLoading(true)
       const { data } = await supabase
@@ -140,6 +150,17 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
         .single()
       setExpandData(data as ExpandedData | null)
       setLoading(false)
+    }
+
+    // Check recording availability once per lifecycle (fire-and-forget)
+    if (next && recordingAvailable === null && !recordingLoading && RECORDING_STATUSES.has(call.call_status ?? '')) {
+      setRecordingLoading(true)
+      fetch(`/api/dashboard/calls/${call.ultravox_call_id}/recording`, {
+        headers: { Range: 'bytes=0-0' },
+      })
+        .then(r => setRecordingAvailable(r.ok || r.status === 206))
+        .catch(() => setRecordingAvailable(false))
+        .finally(() => setRecordingLoading(false))
     }
   }
 
@@ -153,18 +174,33 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
       className="border-b border-white/[0.04] transition-colors"
       style={{ borderLeft: `3px solid ${stripeColor}` }}
     >
-      {/* Main row — clickable to expand */}
-      <button
-        onClick={handleExpand}
-        disabled={isProcessingOrLive}
-        className="w-full text-left px-4 py-3 hover:bg-white/[0.025] transition-colors disabled:cursor-default group"
+      {/* Main row — div instead of button to allow nested interactive elements */}
+      <div
+        role="button"
+        tabIndex={isProcessingOrLive ? -1 : 0}
+        onClick={!isProcessingOrLive ? handleExpand : undefined}
+        onKeyDown={!isProcessingOrLive ? (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleExpand() }
+        } : undefined}
+        className={`w-full text-left px-4 py-3 hover:bg-white/[0.025] transition-colors group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
       >
-        {/* Line 1: phone + status + meta */}
+        {/* Line 1: phone + status + call-back + meta */}
         <div className="flex items-center gap-3 mb-1.5">
           <span className="font-mono text-[13px] text-zinc-100 font-medium tracking-tight shrink-0">
             {call.caller_phone || 'Unknown'}
           </span>
           <StatusBadge status={call.call_status} showDot={false} />
+
+          {/* HOT lead call-back button */}
+          {call.call_status === 'HOT' && call.caller_phone && onCallBack && (
+            <button
+              onClick={e => { e.stopPropagation(); onCallBack(call.caller_phone!) }}
+              className="shrink-0 border border-green-500/40 text-green-400 text-[10px] rounded-full px-2 py-0.5 hover:bg-green-500/10 transition-colors"
+            >
+              Call Back
+            </button>
+          )}
+
           {call.service_type && call.service_type !== 'other' && (
             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider hidden sm:block">
               {call.service_type.replace(/_/g, ' ')}
@@ -232,7 +268,7 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
             </div>
           </div>
         )}
-      </button>
+      </div>
 
       {/* Expanded panel */}
       <AnimatePresence>
@@ -275,21 +311,44 @@ export default function CallRow({ call, showBusiness }: { call: CallLog; showBus
                     </div>
                   )}
 
-                  {/* Transcript preview */}
+                  {/* Audio player — compact skeleton while checking, player if available */}
+                  {recordingLoading && (
+                    <div className="h-[72px] rounded-xl bg-white/[0.03] animate-pulse" />
+                  )}
+                  {!recordingLoading && recordingAvailable && (
+                    <div className="rounded-xl overflow-hidden border border-white/[0.06]">
+                      <AudioWaveformPlayer callId={call.ultravox_call_id} />
+                    </div>
+                  )}
+
+                  {/* Transcript — iPhone iMessage-style chat bubbles */}
                   {transcriptMsgs.length > 0 && (
-                    <div className="space-y-1.5">
-                      {transcriptMsgs.slice(0, 6).map((m, i) => (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <span className={`text-[9px] font-bold tracking-[0.15em] uppercase shrink-0 mt-0.5 w-10 ${
-                            m.role === 'agent' ? 'text-blue-400/60' : 'text-zinc-500'
-                          }`}>
-                            {m.role === 'agent' ? 'AI' : 'Caller'}
-                          </span>
-                          <p className="text-[12px] text-zinc-500 leading-relaxed">{m.text}</p>
-                        </div>
-                      ))}
+                    <div className="space-y-1 pt-1">
+                      {transcriptMsgs.slice(0, 6).map((m, i) => {
+                        const isAgent = m.role === 'agent'
+                        return (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.15, delay: i * 0.04 }}
+                            className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
+                          >
+                            <span className={`text-[9px] mb-0.5 ${isAgent ? 'text-blue-400/50 mr-1' : 'text-zinc-600 ml-1'}`}>
+                              {isAgent ? 'AI' : 'Caller'}
+                            </span>
+                            <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
+                              isAgent
+                                ? 'bg-blue-600/70 text-white rounded-tr-sm'
+                                : 'bg-zinc-700/60 text-zinc-200 rounded-tl-sm'
+                            }`}>
+                              {m.text}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
                       {transcriptMsgs.length > 6 && (
-                        <p className="text-[10px] text-zinc-700 pl-12">
+                        <p className="text-[10px] text-zinc-700 text-center pt-1">
                           +{transcriptMsgs.length - 6} more messages
                         </p>
                       )}
