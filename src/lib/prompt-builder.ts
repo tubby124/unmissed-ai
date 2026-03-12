@@ -113,6 +113,10 @@ CALLER ENDS CALL:
 If caller says "bye", "thanks, that's all", "okay cool", "have a good one", or signals they're done:
 → immediately say "talk soon!" and use hangUp tool. No additional closing language.
 
+SILENCE (10+ seconds of no response):
+→ "hey, still there? no worries — i can have {{CLOSE_PERSON}} call ya back if that's easier. what's your name?"
+→ If still no response: "i'll leave the line open for a second... feel free to call back anytime." then use hangUp tool.
+
 {{PRIMARY_CALL_REASON}}: go to triage (step 3).
 
 ANYTHING ELSE (unusual request, unclear, doesn't fit above):
@@ -129,6 +133,7 @@ ANYTHING ELSE (unusual request, unclear, doesn't fit above):
 After they answer: "just to confirm — that's [repeat back what they said], right?"
 
 Collect any remaining required fields from {{INFO_TO_COLLECT}} — one question at a time. Do NOT ask two things at once.
+NOTE: The caller's inbound phone number is already available in context (CALLER PHONE) — do NOT ask for it. If the caller volunteers a different callback number, record it naturally.
 
 Mobility check (if relevant): "and are ya looking to {{SERVICE_TIMING_PHRASE}}, or would ya need us to come to you?" [adapt based on {{MOBILE_POLICY}}]
 
@@ -136,7 +141,7 @@ Mobility check (if relevant): "and are ya looking to {{SERVICE_TIMING_PHRASE}}, 
 
 "when were ya looking to [{{SERVICE_TIMING_PHRASE}}]?"
 
-Any date or timeframe given: "perfect — i've noted that down. {{CLOSE_PERSON}}'ll call ya back to {{CLOSE_ACTION}}."
+Any date or timeframe given: "perfect — i've noted that down. {{CLOSE_PERSON}}'ll {{CLOSE_ACTION}}."
 Never say "we have a slot available" or "that time is open" — always route to callback for confirmation.
 
 Weekend asked: "{{WEEKEND_POLICY}} — is it urgent?"
@@ -150,15 +155,13 @@ If any field is missing and the caller is still engaged: ask for it now with a d
 If the caller tries to hang up before COMPLETION CHECK passes: "one quick thing before i let ya go — {{FIRST_INFO_QUESTION}}"
 Do NOT use closing language until COMPLETION CHECK passes.]
 
-"alright, i'll let {{CLOSE_PERSON}} know and they'll give ya a call back shortly. this the best number to reach ya?"
-If yes or confirms number: "perfect. talk soon." then use hangUp tool.
-If unclear or mumbles: "sorry, line broke up there — what number's best for ya?"
+"alright, i'll let {{CLOSE_PERSON}} know — they'll call you back at the number you called from. talk soon." then use hangUp tool.
 
 # ESCALATION AND TRANSFER
 
 ## TRANSFER TRIGGERS — when to offer a live transfer (only if {{TRANSFER_ENABLED}} is true):
 - Caller explicitly asks: "let me talk to someone", "can I speak to the owner", "I need a real person"
-- Emergency keywords: "emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"
+- Urgency keywords: {{URGENCY_KEYWORDS}}
 - Confidence fallback: you have failed to answer the same question twice — offer transfer instead of guessing
 
 ## IF TRANSFER IS ENABLED ({{TRANSFER_ENABLED}} = true):
@@ -268,6 +271,7 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     OWNER_PHONE: '',
     TRANSFER_ENABLED: 'false',
     SERVICES_NOT_OFFERED: '',
+    sms_template: "Thanks for calling {{business}}! We'll call you back shortly.",
   },
   auto_glass: {
     INDUSTRY: 'auto glass shop',
@@ -447,7 +451,7 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     INFO_LABEL: 'contact details',
     SERVICE_TIMING_PHRASE: 'set up a quick call',
     CLOSE_PERSON: 'our agent',
-    CLOSE_ACTION: 'have our agent call you back for a quick 10-minute chat',
+    CLOSE_ACTION: 'call ya back for a quick 10-minute chat',
     MOBILE_POLICY: 'we work across the whole area — in-person, virtual, or by phone',
     COMPLETION_FIELDS: 'interest level, buying or selling, and best callback time confirmed',
     INSURANCE_STATUS: 'N/A',
@@ -463,16 +467,41 @@ const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
       `"If wrong number: 'no problem — sorry about that, i'll make a note.'"`,
     ].join('\n'),
     FIRST_INFO_QUESTION: "can i get your name and what this is about?",
-    INFO_TO_COLLECT: 'name, callback number, and reason for the call',
+    INFO_TO_COLLECT: 'name and reason for the call',
     INFO_LABEL: 'message details',
     SERVICE_TIMING_PHRASE: 'pass your message along',
     CLOSE_PERSON: '{{BUSINESS_NAME}}',
     CLOSE_ACTION: 'get back to you as soon as possible',
     MOBILE_POLICY: 'N/A',
-    COMPLETION_FIELDS: 'name, callback number, and reason for call',
+    COMPLETION_FIELDS: 'name and reason for call',
     INSURANCE_STATUS: 'N/A',
     INSURANCE_DETAIL: 'N/A',
     WEEKEND_POLICY: "i'll make sure your message gets through",
+  },
+  print_shop: {
+    INDUSTRY: 'print shop',
+    PRIMARY_CALL_REASON: 'a printing quote, order, or question',
+    TRIAGE_SCRIPT: [
+      `"If quote / new order: 'for sure — what are you looking to get printed?'"`,
+      `"If reorder: 'easy — do you remember roughly what it was? size, quantity, that kind of thing?'"`,
+      `"If order status / is it ready?: 'i can't pull up orders from here, but i'll have someone check and call ya back. what's your name?'"`,
+      `"If design question: 'yeah we've got a designer on site — do you have artwork already, or starting from scratch?'"`,
+      `"If caller asks for a specific staff member by name: 'they're not at the desk right now — let me grab your info and make sure they get the message.'"`,
+      `"If unsure what they need: 'no worries — tell me a bit about what you're trying to do and we'll figure out the right product.'"`,
+    ].join('\n'),
+    FIRST_INFO_QUESTION: 'what are you looking to get printed?',
+    INFO_TO_COLLECT: 'product type, size or quantity, and whether artwork is ready',
+    INFO_LABEL: 'order details',
+    SERVICE_TIMING_PHRASE: 'come pick it up',
+    CLOSE_PERSON: 'the team',
+    CLOSE_ACTION: 'call ya back to get the order sorted',
+    MOBILE_POLICY: "pickup only — we don't do delivery or shipping",
+    COMPLETION_FIELDS: 'product type, approximate size or quantity, and artwork status',
+    INSURANCE_STATUS: 'cash or card',
+    INSURANCE_DETAIL: "pay when you pick up — easy as that",
+    WEEKEND_POLICY: "we're closed weekends — leave a message and we'll call ya back first thing Monday",
+    URGENCY_KEYWORDS: '"deadline today", "event tomorrow", "i need it today", "same-day rush", "it\'s for this weekend", "need it printed today", "event is tomorrow"',
+    sms_template: "Thanks for calling {{business}}! Place your order https://{{niche_websiteUrl}}/ online or send your files anytime: {{niche_emailAddress}} — the team will call you back shortly.",
   },
   other: {
     INDUSTRY: 'business',
@@ -508,6 +537,7 @@ export const NICHE_CLASSIFICATION_RULES: Record<string, string> = {
   property_management: 'HOT = maintenance emergency (flooding, no heat, gas leak, fire, security). WARM = routine maintenance request, viewing inquiry, billing question. COLD = general inquiry only. JUNK = spam.',
   outbound_isa_realtor: 'HOT = expresses immediate buying/selling intent, wants to meet agent. WARM = interested but not ready, wants callback at specific time. COLD = not interested, maybe later. JUNK = DNC request, wrong contact, hang-up.',
   voicemail: 'HOT = urgent matter, time-sensitive, caller stressed or mentioned deadline. WARM = left message, wants callback, standard inquiry. COLD = no message left, hung up or no reason given. JUNK = spam, robocall, wrong number.',
+  print_shop: 'HOT = urgent deadline (event today or tomorrow, rush needed), ready to order with artwork in hand. WARM = price inquiry, reorder, order status check, callback requested. COLD = general info only, no urgency or order intent. JUNK = spam, wrong number, vendor pitch.',
   other: 'HOT = immediate need, urgency signals, ready to proceed. WARM = interested, callback requested. COLD = info only, no intent signals. JUNK = spam or wrong number.',
 }
 
@@ -632,9 +662,8 @@ If they already gave their name: acknowledge it and skip this step.
 Ask: "And what's this about?" or "What can I pass along to ${recipientName}?"
 Keep it open-ended. Let them tell you in their own words.
 
-## Step 3 — Confirm callback number
-Ask: "And the best number to reach you at?"
-If they say "this number" or "the one I'm calling from": "Perfect, I've got it."
+## Step 3 — Confirm you have what you need
+The caller's number is already in context (CALLER PHONE) — no need to ask for it.
 
 ## Step 4 — Close the call
 Say: "Perfect... I'll get this to ${recipientName} right away. They'll get back to you as soon as they can.${callbackPhone ? ` You can also text this number if you need a faster response.` : ''} Thanks for calling ${bizName}!"
@@ -642,7 +671,7 @@ Then IMMEDIATELY use the hangUp tool.
 
 IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that step. Never re-ask for info they already provided.
 
-[COMPLETION CHECK — before Step 4, verify: have you collected the caller's name, callback number, and reason for the call? If any are missing, ask before closing.]
+[COMPLETION CHECK — before Step 4, verify: have you collected the caller's name and reason for the call? If any are missing, ask before closing.]
 
 ---
 
@@ -659,6 +688,10 @@ IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that ste
 
 "What number will they call back from?"
 → "They'll call back from this same number you reached us at."
+
+"I don't want to talk to a machine" / "Can I speak to ${recipientName} directly?"
+→ "I'm ${agentName}, ${bizName}'s call assistant — ${recipientName}'s just tied up right now. Can I get your name so they can reach out to you?"
+[This is your entire response. Do not add a third sentence. Then continue to message-taking flow.]
 ${canAnswerFaq ? `
 "What are your hours?" / "Where are you located?"
 → If you know the answer from the business info, answer it. If not: "That's a great question for ${recipientName} — let me grab your info and have them call you back with those details."
@@ -708,7 +741,7 @@ ${extraContext}
 4. NEVER say "let me check" or "hold on" — you have no access to calendars, databases, or systems.
 5. NEVER say anything after your final goodbye line. Use the hangUp tool immediately after goodbye.
 6. NEVER provide legal advice, specific prices, or financial information. Never make commitments on behalf of ${bizName}.
-7. NEVER close the call until COMPLETION CHECK passes: caller name, callback number, and reason for call must all be collected.
+7. NEVER close the call until COMPLETION CHECK passes: caller name and reason for call must be collected.
 8. NEVER say you are transferring the call — you don't have that capability. Route everything to a callback message.`
 }
 
@@ -719,6 +752,17 @@ const RE_PROVINCE_NAMES: Record<string, string> = {
   MB: 'Manitoba', QC: 'Quebec', NS: 'Nova Scotia', NB: 'New Brunswick',
   NL: 'Newfoundland and Labrador', PE: 'Prince Edward Island',
   NT: 'Northwest Territories', YT: 'Yukon', NU: 'Nunavut',
+}
+
+function phoneToVoice(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3).split('').join('-')}... ${digits.slice(3, 6).split('').join('-')}... ${digits.slice(6).split('').join('-')}`
+  }
+  if (digits.length === 11 && digits[0] === '1') {
+    return `${digits.slice(1, 4).split('').join('-')}... ${digits.slice(4, 7).split('').join('-')}... ${digits.slice(7).split('').join('-')}`
+  }
+  return digits.split('').join('-')
 }
 
 function buildRealEstatePrompt(intake: Record<string, unknown>): string {
@@ -776,11 +820,31 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
 
   return `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
-You are ${agentName}, ${ownerName}'s assistant at ${brokerage}. You handle ${pronPoss} calls when ${pronSub}'s busy.
-You are interacting over voice — keep responses SHORT (1-2 sentences max), natural, conversational.
-No lists, bullets, emojis, or stage directions. Use contractions always. Use "..." for natural pauses.
+FORBIDDEN ACTIONS
+
+1. NEVER use bullet points, numbered lists, markdown, emojis, or text formatting.
+2. NEVER say "certainly," "absolutely," "of course," or "I will." Use contractions.
+3. NEVER give specific property prices, home valuations, or market estimates.
+4. NEVER promise a showing time or availability — always route to ${ownerFirst} for confirmation.
+5. NEVER stack two questions in one turn. One question, then wait.
+6. NEVER close the call until COMPLETION CHECK passes: name and reason must be collected.
+7. NEVER say anything after your final goodbye. Use hangUp immediately.
+8. NEVER say "let me check" and pause silently — always follow with a question or acknowledgment.
+9. NEVER provide legal advice, mortgage advice, or financial projections.
+10. NEVER give out ${ownerName}'s personal number — direct callers to text this same number.
+
+VOICE NATURALNESS
+
+- Speak in short, natural sentences. 1–2 sentences per turn max.
+- Start with a backchannel when acknowledging: "Mm-hmm", "Got it", "For sure", "Yeah"
+- Use contractions always: "I'll", "he's", "she's", "they're", "you're"
+- Use "..." for natural pauses. Say dates as "Thursday the twentieth" not "02/20"
+- Spell phone numbers digit by digit: "${callbackPhone ? phoneToVoice(callbackPhone) : 'three-zero-six... eight-five-zero... seven-six-eight-seven'}"
+- If the caller says "Assalamu Alaikum", respond "Wa Alaikum Assalam!" then continue naturally.
 
 IDENTITY
+
+You are ${agentName}, ${ownerName}'s assistant at ${brokerage}. You answer ${pronPoss} calls from the office — warm, real, and ready to help.
 
 Name: ${agentName}
 Role: ${ownerName}'s real estate assistant
@@ -793,16 +857,28 @@ OPENING (say this first — uninterruptible, keep under 4 seconds)
 
 "Hey! This is ${agentName} from ${ownerFirst}'s office... how can I help ya?"
 
-CONVERSATION STYLE
+TONE AND STYLE
 
 - Be warm and real. You sound like an actual office assistant, not a robot.
-- Use backchannels: "Mm-hmm", "Got it", "Okay", "For sure"
 - Match the caller's energy — chill callers get chill ${agentName}, urgent callers get focused ${agentName}.
-- One question at a time. Never stack multiple questions.
 - Keep YOUR speaking turns under 2 sentences. Let THEM talk.
-- Spell phone numbers digit by digit with pauses: "three-zero-six... eight-five-zero... seven-six-eight-seven"
-- Say dates naturally: "Thursday the twentieth" not "02/20"
-- If the caller says "Assalamu Alaikum" or similar greeting, respond warmly with "Wa Alaikum Assalam!" then continue naturally.
+- If the caller gives info unprompted, acknowledge it and skip that collection step.
+
+GOAL
+
+Primary: Collect the caller's name and reason for the call so ${ownerFirst} can follow up.
+Secondary: Answer basic questions about service areas and availability. Route everything else to ${ownerFirst}.
+Never prolong calls with confused or resistant callers. Get the minimum and close.
+
+THE FILTER — handle these immediately before anything else
+
+WRONG NUMBER → "Oh no worries — you've reached ${ownerFirst}'s office. Sounds like wrong number — take care!" → hangUp
+SPAM / ROBOCALL → if you detect a pre-recorded message, sales pitch, or "press 9" prompt → "Thanks, we're all set. Have a good one!" → hangUp
+HOURS / IS ${ownerFirst.toUpperCase()} AVAILABLE → "Yeah, ${pronSub} works most days — let me take your info so ${pronSub} can call ya back."
+AI DISCLOSURE → "I'm ${agentName}, ${ownerName}'s assistant! I handle ${pronPoss} calls when ${pronSub}'s busy. How can I help?"
+JOB INQUIRY / AGENT RECRUITING → "Thanks for reaching out — not looking to expand the team right now." → hangUp
+NON-RE CALL (contractor, delivery, cold sales) → "That's outside what I can help with — let me take your info and ${ownerFirst} can point ya in the right direction."
+CALLER ENDS CALL → "Great, take care!" → hangUp immediately
 
 MESSAGE TAKING FLOW
 
@@ -819,7 +895,7 @@ Step 4 — Confirm and close:
 "Perfect... I'll get this to ${recipientName} right away. ${pronSubCap}'ll get back to you soon. You can also ${contactInstructionVoice} if you need ${pronObj} faster. Thanks for calling!"
 Then IMMEDIATELY use the hangUp tool.
 
-IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that step. Don't re-ask what they already told you.
+[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]
 ${callMode === 'message_and_questions' ? `
 COMMON QUESTIONS
 
@@ -827,39 +903,62 @@ COMMON QUESTIONS
 -> "${pronSubCap}'s just tied up right now but ${pronSub}'s really good about getting back to people. If you ${contactInstructionVoice}, that's usually the fastest way."
 
 "Can I schedule a showing?" / "I want to see a property"
--> "Absolutely! Let me grab some details for ${ownerName}... What property are you looking at?... And what day and time work best for you?... How many people coming to the showing?"
-(Collect: property address or area, preferred date/time, number of people)
+-> "For sure! Let me grab some details for ${ownerName}... What property are you looking at?"
+(Collect: property address or area, preferred date/time, number of people. Then route to message taking flow.)
 
 "What areas does ${pronSub} cover?"
 -> "${ownerName} covers ${serviceAreasStr}."
 ${specialtiesStr ? `
 "What does ${pronSub} specialize in?"
--> "${ownerName} focuses on ${specialtiesStr} — but ${pronSub}'s happy to help with other types of properties too."
+-> "${ownerName} focuses on ${specialtiesStr} — but ${pronSub}'s happy to help with other types too."
 ` : ''}
-"Is this an AI?" / "Am I talking to a robot?"
--> "I'm ${agentName}, ${ownerName}'s assistant! I handle ${pronPoss} calls when ${pronSub}'s busy. How can I help you?"
-
 "I didn't get a text" / "What's ${pronPoss} number?"
 -> "You can ${contactInstructionVoice}. ${pronSubCap} checks ${pronPoss} messages all the time."
 
 "I need to speak to ${ownerName} directly / this is urgent"
 -> "I totally understand... I'll mark this as urgent so ${pronSub} sees it right away. Best thing is to also ${contactInstructionVoice} — ${pronSub}'ll see that instantly."
 ` : ''}
+RETURNING CALLER HANDLING
+
+If the system context starts with [RETURNING CALLER: ...], greet them by name: "Hey [Name]! Good to hear from you again. How can I help today?"
+Reference their previous interaction naturally if relevant — don't repeat full history.
+
+INLINE EXAMPLES
+
+Example A — Caller wants a showing:
+Caller: "I saw a listing on Realtor.ca and I'd love to book a showing"
+You: "For sure! Let me grab a couple details for ${ownerFirst}... what property are you looking at?"
+[Collect property + preferred date/time. Then route to message taking flow.]
+
+Example B — Caller asks home value:
+Caller: "I'm thinking of selling — what's my home worth?"
+You: "That's exactly what ${ownerFirst} can help with — ${pronSub}'ll do a proper assessment. Can I get your name and address?"
+[NEVER give a valuation. Always route to ${ownerFirst}.]
+
+Example C — Caller wants to speak to ${ownerFirst} directly:
+Caller: "Can I talk to ${ownerName}?"
+You: "${pronSubCap}'s tied up right now but ${pronSub} gets back to people fast. Real quick — what's your name?"
+[Collect name + reason → message flow. If refuses: "No problem — ${pronSub}'ll ring ya back." → hangUp]
+
+Example D — Spam robocall:
+Caller: [pre-recorded] "Congratulations, you've been selected..."
+You: "Thanks, we're all set. Have a good one." → hangUp immediately
+
+PRODUCT KNOWLEDGE BASE
+
+"Is ${ownerFirst} available?" → "Yeah, ${pronSub} works most days — let me take your info so ${pronSub} can call ya back."
+"What areas does ${pronSub} cover?" → "${ownerName} covers ${serviceAreasStr}."
+${specialtiesStr ? `"What does ${pronSub} specialize in?" → "${ownerName} focuses on ${specialtiesStr}."
+` : ''}"Can I book a showing?" → "For sure — let me grab some details for ${ownerFirst}. What property are you looking at?"
+"What's my home worth?" → "Great question for ${ownerFirst} — ${pronSub}'ll give you accurate numbers. Can I take your contact info?"
+"How do I reach ${ownerFirst} directly?" → "Best way is to text this same number — ${pronSub} checks messages regularly."
+"Are you an AI?" → "I'm ${agentName}, ${ownerName}'s assistant! I handle ${pronPoss} calls when ${pronSub}'s busy."
+"Is ${ownerFirst} the agent on [property]?" → "Let me take your info and ${pronSub}'ll call ya right back with all the details."
+
 EDGE CASES
 
-WRONG NUMBER:
--> "Oh, no worries! You've reached ${ownerName}'s office at ${brokerage}. If that's not who you're looking for, you might have the wrong number. Have a good one!" -> hangUp
-
-SPAM / ROBOCALL / RECORDED MESSAGE:
--> If you detect a pre-recorded message, sales pitch, or scam (like "Canadian Medicare", "phone deregistered", "press 9"):
--> "Thanks, but we're all set. Have a good day!" -> hangUp
-
-SILENCE (handled by Ultravox inactivity messages — no action needed in prompt, just keep talking naturally if they go quiet):
+SILENCE:
 -> If they seem hesitant: "No worries — take your time, or you can text ${ownerFirst} at this number anytime."
-
-CALLER ENDS CALL:
--> If caller says "bye", "thanks, that's all", "okay have a good one", "I'm all set", or otherwise signals they're done:
--> Immediately say "Great, take care!" and call hangUp. Skip the full closing sequence.
 
 ANGRY / RUDE CALLER:
 -> Stay calm, don't engage with insults. "I understand you're frustrated... Let me take a message and I'll make sure ${ownerName} gets it."
@@ -869,17 +968,11 @@ CALLER SPEAKS ANOTHER LANGUAGE:
 -> "I'm sorry, I can only help in English right now... but I'll let ${ownerName} know you called and that you might prefer another language. ${pronSubCap}'ll call you back!"
 -> Note the language preference in the message.
 
-CALLER ASKS ABOUT PRICING / PROPERTY VALUES:
--> "That's a great question for ${ownerName} — ${pronSub}'ll be able to give you accurate numbers. Let me take your info and ${pronSub}'ll call you back with those details."
--> Never give specific property valuations or prices.
+TECHNICAL RULES
 
-TECHNICAL RULES (Ultravox)
-
-- Use hangUp tool IMMEDIATELY after your closing line. No extra words after goodbye.
+- Use hangUp IMMEDIATELY after your closing line. No extra words after goodbye.
 - Keep calls under 60 seconds unless the caller is giving a detailed message.
-- NEVER say "let me check" or "hold on" — you don't have access to calendars or listings.
-- NEVER provide legal advice, specific property prices, or financial information.
-- Your ONLY job is to take messages and answer basic questions about ${ownerName}'s availability and service area. If asked anything outside this scope, say "That's definitely something ${ownerName} can help with — let me take your info!"`
+- Your ONLY job is to take messages and answer basic questions. If asked anything outside this scope: "That's definitely something ${ownerName} can help with — let me take your info!"`
 }
 
 // ── Main intake-to-prompt function ────────────────────────────────────────────
@@ -937,6 +1030,45 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   if (niche_booking === 'appointment_only') variables.SERVICE_TIMING_PHRASE = 'book an appointment'
   else if (niche_booking === 'walk_in') variables.SERVICE_TIMING_PHRASE = 'come on in'
 
+  // Print shop niche-specific field handling
+  let printShopFaq = ''
+  if (niche === 'print_shop') {
+    const rushCutoff = ((intake.niche_rushCutoffTime as string) || '10 AM').trim()
+    const pickupOnly = intake.niche_pickupOnly !== false
+    const designOffered = intake.niche_designOffered !== false
+    const websiteUrl = ((intake.niche_websiteUrl as string) || '').trim()
+    const emailAddress = ((intake.niche_emailAddress as string) || '').trim()
+
+    if (pickupOnly) variables.MOBILE_POLICY = "pickup only — we don't do delivery or shipping"
+
+    // Build niche FAQ incorporating dynamic fields — used as fallback when caller_faq is empty
+    const faqLines: string[] = [
+      `How much are coroplast yard signs? — a standard 2 by 2 single-sided starts at $32, a 2 by 4 is $64, and a 4 by 8 is $240. custom sizes are $8 a square foot${websiteUrl ? `. for exact pricing, the online estimator at ${websiteUrl} gives you the number right away` : ''}.`,
+      `How much are vinyl banners? — a 2 by 4 banner starts at $66, a 3 by 6 is $135, and a 4 by 8 is $216. custom sizes are about $8.25 a square foot.`,
+      `How much are business cards? — 250 double-sided on 14-point gloss — $45.`,
+      `How much are flyers? — 100 full-colour sheets — $45.`,
+      `How much are retractable banners? — economy starts at $219, deluxe is $299 — both include a carry case.`,
+      `How much are ACP aluminum signs? — those run about $13 a square foot — stronger and more permanent than coroplast.`,
+      designOffered
+        ? `Do you do design? — yeah, we've got a designer on site. $35 flat to build a layout or clean up your files, and you'll get a proof same day.`
+        : `Do you do design? — the team can point you in the right direction when they call back.`,
+      `Do you do rush orders? — yeah, same-day rush is $40 on top and you'd need your order in before ${rushCutoff}. after that we're usually looking at next business day.`,
+      `What's the turnaround time? — standard is 1 to 3 business days after your artwork is approved.`,
+      pickupOnly
+        ? `Do you deliver or ship? — we're pickup only${websiteUrl ? `. easiest way to order is online at ${websiteUrl}` : ''}.`
+        : `Do you deliver or ship? — the team can sort that out when they call you back.`,
+      `What file format do you need? — PDF works great, or an AI or vector file is even better.${designOffered ? ' if you don\'t have anything ready, our designer can take care of it for $35.' : ''}`,
+      `Can I reorder something I got before? — for sure — if you know roughly what you got, i'll have the team look it up and call ya back.`,
+    ]
+    if (emailAddress) {
+      faqLines.push(`How do I send my files? — email them to ${emailAddress} and the team will confirm they got it.`)
+    }
+    if (websiteUrl) {
+      faqLines.push(`Can I order online? — yep — ${websiteUrl} has a live estimator where you can place the order right now.`)
+    }
+    printShopFaq = faqLines.join('\n')
+  }
+
   // Transfer — if owner_phone provided, enable transfer
   const ownerPhone = intake.owner_phone as string | undefined
   if (ownerPhone?.trim()) {
@@ -961,6 +1093,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   // Fallback defaults
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
+  variables.URGENCY_KEYWORDS = variables.URGENCY_KEYWORDS || '"emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"'
 
   // Pre-resolve variable values that reference other variables.
   // e.g. voicemail niche sets CLOSE_PERSON = '{{BUSINESS_NAME}}' — must resolve before template fill
@@ -977,12 +1110,32 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
   // Build base prompt
   let prompt = buildPrompt(variables)
 
+  // Fix TRANSFER_ENABLED literal value leaking into prompt text (e.g. "unless false is true")
+  if (variables.TRANSFER_ENABLED === 'false') {
+    prompt = prompt
+      .replace(/unless false is true/g, 'unless transfer is enabled')
+      .replace(/\(only if false is true\)/g, '(only if transfer is enabled)')
+      .replace(/\(false = true\):/g, '(transfer enabled):')
+      .replace(/\(false = false\):/g, '(transfer not enabled):')
+  } else if (variables.TRANSFER_ENABLED === 'true') {
+    prompt = prompt
+      .replace(/unless true is true/g, 'when transfer is enabled')
+      .replace(/\(only if true is true\)/g, '(transfer is enabled)')
+      .replace(/\(true = true\):/g, '(transfer enabled):')
+      .replace(/\(true = false\):/g, '(transfer not enabled):')
+  }
+
   // Inject agent restrictions after rule 8
+  // For print_shop: prepend Rule 3 override (price quoting allowed from KB) before any intake restrictions
+  const nicheRestriction = niche === 'print_shop'
+    ? 'PRICE QUOTING EXCEPTION: You MAY quote standard product prices from the knowledge base in this prompt. Use the exact amounts listed — do not guess or estimate. For custom sizes or unusual requests, say the team will call back with a firm quote.'
+    : ''
   const agentRestrictions = intake.agent_restrictions as string | undefined
-  if (agentRestrictions?.trim()) {
+  const effectiveRestrictions = [nicheRestriction, agentRestrictions?.trim()].filter(Boolean).join('\n')
+  if (effectiveRestrictions) {
     const restrictionLines: string[] = []
     let ruleNum = 9
-    for (const line of agentRestrictions.trim().split('\n')) {
+    for (const line of effectiveRestrictions.split('\n')) {
       const trimmed = line.trim()
       if (trimmed) {
         restrictionLines.push(`${ruleNum}. ${trimmed}`)
@@ -999,9 +1152,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
 
   // Replace PRODUCT KNOWLEDGE BASE placeholder with actual FAQ content
   const callerFaq = intake.caller_faq as string | undefined
+  const effectiveCallerFaq = callerFaq?.trim() || printShopFaq
   const kbMarker = '> **REPLACE THIS ENTIRE SECTION with client-specific Q&A.**'
   if (prompt.includes(kbMarker)) {
-    const kbContent = buildKnowledgeBase(callerFaq || '', niche)
+    const kbContent = buildKnowledgeBase(effectiveCallerFaq, niche)
     const kbStart = prompt.indexOf(kbMarker)
     const afterKb = prompt.slice(kbStart)
     const nextSection = afterKb.indexOf('\n---')
@@ -1064,10 +1218,110 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings.push(`Prompt is very long: ${prompt.length} chars — may exceed Ultravox limits`)
   }
 
+  // Required sections — only check what the inbound template actually contains.
+  // Do NOT check for SILENCE / ANGRY / LANGUAGE / PRICING — those are NOT in the base
+  // INBOUND_TEMPLATE_BODY and will always produce false-positive warnings.
+  const requiredSections = ['WRONG NUMBER', 'SPAM', 'CALLER ENDS CALL', 'COMPLETION CHECK']
+  for (const section of requiredSections) {
+    if (!prompt.includes(section)) {
+      warnings.push(`Missing required section: ${section}`)
+    }
+  }
+
+  // TRANSFER_ENABLED literal value leak — catches e.g. "unless false is true"
+  if (/\b(false|true) is (true|false)\b/.test(prompt)) {
+    warnings.push('TRANSFER_ENABLED literal value leaked into prompt text — check post-processing in buildPromptFromIntake')
+  }
+  if (/\((false|true) = (false|true)\):/.test(prompt)) {
+    warnings.push('TRANSFER_ENABLED raw value in section header — check post-processing in buildPromptFromIntake')
+  }
+
+  // Double "call ya back" render artifact — caused by CLOSE_ACTION starting with "call ya back to"
+  // when the template already says "{{CLOSE_PERSON}}'ll {{CLOSE_ACTION}}"
+  if (/call ya back to call ya back/.test(prompt)) {
+    errors.push('Render artifact: double "call ya back" — CLOSE_ACTION must not start with "call ya back to" since the template already provides it')
+  }
+
+  // Raw 10-digit phone number in dialogue lines (inside quotes)
+  const dialogueLines = [...prompt.matchAll(/"([^"]{10,200})"/g)].map(m => m[1])
+  const rawPhoneInDialogue = dialogueLines.some(line => /\d{10}/.test(line))
+  if (rawPhoneInDialogue) {
+    warnings.push('Raw 10-digit phone number found in dialogue line — use "this number" or phoneToVoice() format instead')
+  }
+
+  // Excessive owner name usage — extract from Role line, count outside IDENTITY and EDGE CASES
+  const roleMatch = prompt.match(/Role:\s+(.+?)'s/)
+  if (roleMatch) {
+    const ownerName = roleMatch[1].trim()
+    if (ownerName.length >= 3) {
+      const identityEnd = prompt.indexOf('\nIDENTITY\n') + prompt.slice(prompt.indexOf('\nIDENTITY\n')).indexOf('\nOPENING')
+      const edgeCasesStart = prompt.indexOf('\nEDGE CASES\n')
+      const bodyStart = identityEnd > 0 ? identityEnd : 0
+      const bodyEnd = edgeCasesStart > 0 ? edgeCasesStart : prompt.length
+      const body = prompt.slice(bodyStart, bodyEnd)
+      const occurrences = (body.match(new RegExp(ownerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length
+      if (occurrences > 10) {
+        warnings.push(`Excessive owner name usage: "${ownerName}" appears ${occurrences}x in dialogue — consider using pronouns`)
+      }
+    }
+  }
+
+  // Opening line word count (should be under 15 words)
+  const openingMatch = prompt.match(/OPENING[^\n]*\n[\s\S]*?"([^"]{10,200})"/)
+  if (openingMatch) {
+    const wordCount = openingMatch[1].trim().split(/\s+/).length
+    if (wordCount > 15) {
+      warnings.push(`Opening line is too long: ${wordCount} words (target ≤15 for under 4 seconds)`)
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,
     warnings,
     charCount: prompt.length,
   }
+}
+
+// ── Niche registry helpers ─────────────────────────────────────────────────────
+
+/** Returns true if the niche has a registered entry in NICHE_DEFAULTS.
+ *  Used by /niche-test and the onboard wizard to catch unregistered niches early. */
+export function isNicheRegistered(niche: string): boolean {
+  return niche in NICHE_DEFAULTS && niche !== '_common'
+}
+
+/** Returns all registered niche slugs (excluding internal keys). */
+export function getRegisteredNiches(): string[] {
+  return Object.keys(NICHE_DEFAULTS).filter(k => k !== '_common')
+}
+
+/**
+ * Build the SMS follow-up message text from intake form answers + niche defaults.
+ * Called after every call completes — message sent via Twilio to the caller's number.
+ *
+ * Placeholders: {{business}} = business_name, {{niche_*}} = any niche-specific intake field
+ */
+export function buildSmsTemplate(intake: Record<string, unknown>): string {
+  const niche = (intake.niche as string) || 'other'
+  const nicheDefaults = NICHE_DEFAULTS[niche] || NICHE_DEFAULTS.other
+  const commonDefaults = NICHE_DEFAULTS._common || {}
+
+  let template =
+    nicheDefaults.sms_template ||
+    commonDefaults.sms_template ||
+    "Thanks for calling {{business}}! We'll call you back shortly."
+
+  // Replace {{business}} with business name
+  const businessName = (intake.business_name as string) || 'us'
+  template = template.replace(/\{\{business\}\}/g, businessName)
+
+  // Replace any remaining {{key}} placeholders from intake fields
+  for (const [key, value] of Object.entries(intake)) {
+    if (typeof value === 'string') {
+      template = template.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+    }
+  }
+
+  return template
 }

@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
+interface InventoryNumber {
+  phone_number: string;
+  display: string;
+  province: string | null;
+  area_code: string | null;
+  country: string;
+}
+
 function StatusContent() {
   const searchParams = useSearchParams();
   const intakeId = searchParams.get("id");
@@ -11,6 +19,10 @@ function StatusContent() {
 
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+
+  // Inventory number picker
+  const [availableNumbers, setAvailableNumbers] = useState<InventoryNumber[]>([]);
+  const [selectedNumber, setSelectedNumber] = useState<string | null>(null); // null = fresh $20
 
   // Success screen: poll for Twilio number
   const [twilioNumber, setTwilioNumber] = useState<string | null>(null);
@@ -40,6 +52,15 @@ function StatusContent() {
     }
   }, [success, intakeId, fetchActivationStatus]);
 
+  // Fetch available inventory numbers for the picker
+  useEffect(() => {
+    if (!intakeId || success) return;
+    fetch(`/api/public/available-numbers?intakeId=${intakeId}`)
+      .then((r) => r.json())
+      .then((json) => { if (json.numbers) setAvailableNumbers(json.numbers); })
+      .catch(() => { /* silently ignore — falls back to $20 flow */ });
+  }, [intakeId, success]);
+
   // Poll every 4 seconds until we get the number (Stripe webhook takes ~3-8s)
   useEffect(() => {
     if (!polling) return;
@@ -57,9 +78,17 @@ function StatusContent() {
       const res = await fetch("/api/stripe/create-public-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intakeId }),
+        body: JSON.stringify({ intakeId, selectedNumber: selectedNumber ?? undefined }),
       });
       const json = await res.json();
+      if (res.status === 409 && json.error?.includes("Number just taken")) {
+        // Refresh available numbers and let user pick again
+        const refreshRes = await fetch(`/api/public/available-numbers?intakeId=${intakeId}`);
+        const refreshJson = await refreshRes.json();
+        if (refreshJson.numbers) setAvailableNumbers(refreshJson.numbers);
+        setSelectedNumber(null);
+        throw new Error(json.error + " — please pick another or choose a fresh number.");
+      }
       if (!res.ok) throw new Error(json.error || "Failed to create checkout session");
       window.location.href = json.url;
     } catch (err: unknown) {
@@ -215,6 +244,80 @@ function StatusContent() {
           </ul>
         </div>
 
+        {/* Number picker — only shown when inventory numbers are available */}
+        {availableNumbers.length > 0 && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <p className="text-sm font-semibold text-gray-800">Choose your phone number</p>
+            </div>
+
+            {/* Inventory option */}
+            <div className="p-4 space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="numberOption"
+                  checked={selectedNumber !== null}
+                  onChange={() => selectedNumber === null && setSelectedNumber(availableNumbers[0].phone_number)}
+                  className="mt-0.5 accent-indigo-600"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Pick from available numbers</span>
+                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $3 — $17 CAD</span>
+                  <p className="text-xs text-gray-400 mt-0.5">Ready to go — no wait for provisioning</p>
+                </div>
+              </label>
+
+              {/* Number list */}
+              <div className="ml-6 space-y-1.5">
+                {availableNumbers.map((num) => (
+                  <label
+                    key={num.phone_number}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                      selectedNumber === num.phone_number
+                        ? "border-indigo-400 bg-indigo-50"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="inventoryNumber"
+                      value={num.phone_number}
+                      checked={selectedNumber === num.phone_number}
+                      onChange={() => setSelectedNumber(num.phone_number)}
+                      className="accent-indigo-600"
+                    />
+                    <span className="text-sm font-mono font-medium text-gray-900">{num.display}</span>
+                    {num.province && (
+                      <span className="text-xs text-gray-400 ml-auto">{num.province}</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 h-px" />
+
+            {/* Fresh number option */}
+            <div className="p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="numberOption"
+                  checked={selectedNumber === null}
+                  onChange={() => setSelectedNumber(null)}
+                  className="mt-0.5 accent-indigo-600"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Get a fresh local number</span>
+                  <span className="ml-2 text-xs text-gray-500">$20 CAD</span>
+                  <p className="text-xs text-gray-400 mt-0.5">Assigned from your province after payment</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+
         {payError && (
           <p className="text-sm text-red-600">{payError}</p>
         )}
@@ -224,7 +327,11 @@ function StatusContent() {
           disabled={loading}
           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 px-6 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed text-base"
         >
-          {loading ? "Redirecting to checkout…" : "Activate my agent — $20 CAD"}
+          {loading
+            ? "Redirecting to checkout…"
+            : selectedNumber
+            ? "Activate my agent — $17 CAD"
+            : "Activate my agent — $20 CAD"}
         </button>
 
         <p className="text-xs text-gray-400">

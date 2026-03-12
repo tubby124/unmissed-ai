@@ -27,8 +27,8 @@ function slugify(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({})) as { intakeId?: string }
-  const { intakeId } = body
+  const body = await req.json().catch(() => ({})) as { intakeId?: string; selectedNumber?: string }
+  const { intakeId, selectedNumber } = body
 
   if (!intakeId) {
     return NextResponse.json({ error: 'intakeId required' }, { status: 400 })
@@ -47,6 +47,38 @@ export async function POST(req: NextRequest) {
 
   if (intake.progress_status === 'activated') {
     return NextResponse.json({ error: 'This setup has already been activated' }, { status: 409 })
+  }
+
+  // ── Reserve inventory number if selected ───────────────────────────────────
+  if (selectedNumber) {
+    const expiryTime = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+
+    // Atomically claim the number — fails if another checkout already holds it (within 30 min)
+    const { data: reserved, error: reserveErr } = await svc
+      .from('number_inventory')
+      .update({
+        status: 'reserved',
+        reserved_intake_id: intakeId,
+        reserved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('phone_number', selectedNumber)
+      .or(`status.eq.available,and(status.eq.reserved,reserved_at.lt.${expiryTime})`)
+      .select('id')
+
+    if (reserveErr) {
+      console.error('[create-public-checkout] Reserve number error:', reserveErr)
+      return NextResponse.json({ error: 'Failed to reserve number' }, { status: 500 })
+    }
+
+    if (!reserved || reserved.length === 0) {
+      return NextResponse.json(
+        { error: 'Number just taken — pick another or choose a fresh number' },
+        { status: 409 }
+      )
+    }
+
+    console.log(`[create-public-checkout] Reserved inventory number ${selectedNumber} for intake ${intakeId}`)
   }
 
   // ── Auto-provision clients row if not already done ─────────────────────────
@@ -173,15 +205,18 @@ export async function POST(req: NextRequest) {
 
   let session: { url: string | null }
   try {
+    const isInventory = !!selectedNumber
     session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {
           price_data: {
             currency: 'cad',
-            unit_amount: 2000,
+            unit_amount: isInventory ? 1700 : 2000,
             product_data: {
-              name: 'unmissed.ai Voice Agent Setup',
+              name: isInventory
+                ? `unmissed.ai Voice Agent Setup (${selectedNumber})`
+                : 'unmissed.ai Voice Agent Setup',
               description: 'Includes your first month of AI call handling — free.',
             },
           },
@@ -192,6 +227,7 @@ export async function POST(req: NextRequest) {
         intake_id: intakeId,
         client_id: clientId,
         client_slug: clientSlug,
+        reserved_number: selectedNumber ?? '',
       },
       customer_email: customerEmail,
       success_url: `${appUrl}/onboard/status?success=true&id=${intakeId}`,

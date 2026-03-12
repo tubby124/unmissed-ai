@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -119,9 +119,10 @@ interface SidebarProps {
   businessName?: string
   isAdmin?: boolean
   clientId?: string | null
+  setupIncomplete?: boolean
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -206,17 +207,28 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {NAV.filter(item => !item.adminOnly || isAdmin).map(item => {
+        {(() => {
+          const filteredNav = NAV.filter(item => !item.adminOnly || isAdmin)
+          const firstAdminIdx = filteredNav.findIndex(item => item.adminOnly)
+          return filteredNav.map((item, idx) => {
           const active = pathname.startsWith(item.href)
           const isCalls = item.href === '/dashboard/calls'
+          const isSetup = item.href === '/dashboard/setup'
           return (
+            <Fragment key={item.href}>
+              {isAdmin && idx === firstAdminIdx && !collapsed && (
+                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold text-zinc-700 uppercase tracking-widest select-none">
+                  Admin
+                </div>
+              )}
             <Link
-              key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 active
                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                  : isSetup && setupIncomplete && !active
+                  ? 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] ring-1 ring-amber-500/30'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
               }`}
             >
@@ -227,6 +239,13 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                )}
+                {/* Pulsing amber dot when setup is incomplete */}
+                {isSetup && setupIncomplete && !active && (
+                  <span className="absolute -top-1 -right-1 flex w-2 h-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                   </span>
                 )}
               </span>
@@ -250,8 +269,10 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 )}
               </AnimatePresence>
             </Link>
+            </Fragment>
           )
-        })}
+        })
+        })()}
 
         <hr className="border-white/[0.06] my-2" />
 

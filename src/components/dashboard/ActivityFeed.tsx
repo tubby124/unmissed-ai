@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 
@@ -26,6 +27,15 @@ const STATUS_LABEL: Record<string, string> = {
   HOT: 'Hot', WARM: 'Warm', COLD: 'Cold', JUNK: 'Junk', live: 'Live', processing: '…',
 }
 
+function formatPhone(phone: string | null): string {
+  if (!phone) return 'Unknown'
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 11 && digits[0] === '1') {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+  }
+  return phone
+}
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
@@ -39,9 +49,12 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
   const dot = STATUS_DOT[event.call_status ?? ''] ?? 'bg-zinc-700'
   const label = STATUS_LABEL[event.call_status ?? ''] ?? '—'
   const isLive = event.call_status === 'live'
+  const href = event.caller_phone
+    ? `/dashboard/calls?highlight=${encodeURIComponent(event.caller_phone)}`
+    : null
 
-  return (
-    <div className="flex items-start gap-2.5 py-2.5 px-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+  const inner = (
+    <div className="flex items-start gap-2.5 py-2.5 px-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
       {/* Status dot */}
       <span className="relative flex shrink-0 mt-0.5">
         {isLive && (
@@ -53,14 +66,14 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-mono text-zinc-300 truncate leading-snug">
-          {event.caller_phone || 'Unknown'}
+          {formatPhone(event.caller_phone)}
         </p>
         {showBusiness && event.business_name && (
           <p className="text-[10px] text-zinc-600 truncate mt-0.5">{event.business_name}</p>
         )}
       </div>
 
-      {/* Right: label + time */}
+      {/* Right: label + time + chevron */}
       <div className="flex flex-col items-end gap-0.5 shrink-0">
         <span className={`text-[9px] font-bold tracking-wider uppercase ${
           event.call_status === 'HOT' ? 'text-red-400/80' :
@@ -71,8 +84,16 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
         }`}>{label}</span>
         <span className="text-[9px] font-mono text-zinc-700">{timeAgo(event.started_at)}</span>
       </div>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0 mt-0.5">
+        <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
     </div>
   )
+
+  if (href) {
+    return <Link href={href}>{inner}</Link>
+  }
+  return inner
 }
 
 interface ActivityFeedProps {

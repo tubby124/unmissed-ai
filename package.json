@@ -16,6 +16,7 @@
     "@splinetool/runtime": "^1.12.68",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
+    "@types/three": "^0.183.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
@@ -27,6 +28,7 @@
     "resend": "^6.9.3",
     "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",
+    "three": "^0.183.2",
     "twilio": "^5.12.2"
   },
   "devDependencies": {

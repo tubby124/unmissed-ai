@@ -124,10 +124,10 @@ export default function TranscriptTimeline({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 ref={isActive ? activeRef : undefined}
-                className={`flex flex-col ${isAgent ? 'items-start' : 'items-end'} ${sameAsLast ? 'mt-1' : 'mt-3'}`}
+                className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'} ${sameAsLast ? 'mt-1' : 'mt-3'}`}
               >
                 {!sameAsLast && (
-                  <p className={`text-[11px] text-zinc-600 mb-1 ${isAgent ? 'ml-1' : 'mr-1'}`}>
+                  <p className={`text-[11px] text-zinc-600 mb-1 ${isAgent ? 'mr-1 text-right' : 'ml-1'}`}>
                     {isAgent ? agentName : 'Caller'}
                     {msg.startTime != null && !isLive && (
                       <span className="ml-1.5 font-mono text-zinc-700">{fmtTime(msg.startTime)}</span>
@@ -137,9 +137,9 @@ export default function TranscriptTimeline({
                 <div
                   className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
                     isAgent
-                      ? `bg-white/[0.06] text-zinc-200 rounded-bl-sm ${isActive ? 'border-l-2 border-blue-500' : ''} ${isLive && isLatest ? 'border-l-2 border-green-500/50' : ''}`
-                      : `bg-blue-500/15 text-blue-100 border border-blue-500/20 rounded-br-sm ${isActive ? 'border-l-2 border-blue-400' : ''}`
-                  } ${!isLive && msg.startTime != null ? 'cursor-pointer hover:bg-white/[0.09]' : ''}`}
+                      ? `bg-blue-600/70 text-white rounded-tr-sm ${isActive ? 'ring-1 ring-blue-300/50' : ''} ${isLive && isLatest ? 'ring-1 ring-green-400/50' : ''}`
+                      : `bg-zinc-700/60 text-zinc-200 rounded-tl-sm ${isActive ? 'ring-1 ring-blue-400/40' : ''}`
+                  } ${!isLive && msg.startTime != null ? 'cursor-pointer hover:opacity-90' : ''}`}
                   onClick={() => !isLive && msg.startTime != null && onSeek?.(msg.startTime)}
                   title={!isLive && msg.startTime != null ? `Jump to ${fmtTime(msg.startTime)}` : undefined}
                 >

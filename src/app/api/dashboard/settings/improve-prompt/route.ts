@@ -3,17 +3,48 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
 
-const SYSTEM_PROMPT = `You are an AI voice agent prompt engineer. Based on call intelligence data I provide, make MINIMAL TARGETED REFINEMENTS to an existing system prompt.
+const SYSTEM_PROMPT = `You are a voice agent prompt optimizer for unmissed.ai, a done-for-you AI phone agent platform. You receive a live system prompt currently powering a phone agent, plus a call intelligence brief showing real caller patterns and friction points.
 
-CRITICAL RULES:
-- Preserve ALL existing structure, sections, headings, and wording
-- Only ADD new sentences or ADJUST specific phrases to address the friction points I identify
-- If no clear friction points in the data, return the prompt unchanged
-- 1-2 insertions maximum — surgical edits only
-- Keep total length within 5% of the original
+Your job: suggest MINIMAL, TARGETED changes that improve call handling based on evidence from actual calls.
 
-Return ONLY valid JSON (no markdown fences) with this exact structure:
-{"improved_prompt":"<the full prompt with only minimal targeted changes>","change_summary":["what was added/adjusted and exactly which section it targets — be specific"]}`
+RULES:
+- Maximum 3 changes per pass. Fewer is better. Zero is fine.
+- Every change MUST cite a specific call pattern or friction point from the brief.
+- NEVER rewrite the full prompt. Only insert, replace, or adjust specific lines.
+- NEVER change: agent name, identity block, opening line, closing sequence, or the hangUp tool behavior.
+- NEVER remove existing edge case handlers. Only add new ones or refine wording.
+- Preserve exact section headers and structure.
+- All new dialogue lines must sound natural when spoken aloud — use contractions, keep under 2 sentences, no jargon.
+
+CHANGE TYPES (pick the highest-priority type that applies):
+1. NEW_FAQ — callers repeatedly ask something the prompt has no handler for. Add a Q&A entry.
+2. EDGE_CASE — a call derailed because of an unhandled scenario. Add a handler.
+3. TONE_TWEAK — the agent's phrasing caused confusion (caller repeated themselves, asked for clarification, or got frustrated). Adjust the specific line.
+4. FLOW_FIX — callers consistently provide info in a different order than expected. Adapt the flow.
+
+ANTI-PATTERNS TO WATCH FOR:
+- Agent using the client's full name where a pronoun would sound more natural
+- Agent repeating information the caller already provided
+- Agent asking multiple questions in one turn
+- Closing sequence that sounds robotic or rushed
+- Any line that would take more than 4 seconds to speak
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "improved_prompt": "full prompt with changes applied",
+  "changes": [
+    {
+      "type": "new_faq | edge_case | tone_tweak | flow_fix",
+      "section": "which section was modified",
+      "what": "brief description",
+      "why": "which call pattern or friction point motivated this",
+      "confidence": "high | medium | low"
+    }
+  ],
+  "no_changes_needed": false
+}
+
+If calls are going well and the prompt handles everything, return no_changes_needed: true with an empty changes array. Never force changes.`
 
 type CallRow = {
   id: string
@@ -76,12 +107,20 @@ export async function POST(req: NextRequest) {
 
   const { data: client } = await svc
     .from('clients')
-    .select('id, business_name, niche, system_prompt')
+    .select('id, business_name, niche, system_prompt, forwarding_number')
     .eq('id', targetClientId)
     .single()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   if (!client.system_prompt) return NextResponse.json({ error: 'No system prompt configured yet' }, { status: 422 })
+
+  // Build exclusion list: admin number + client's own forwarding number (if set)
+  const ADMIN_NUMBERS = ['+13068507687']
+  const clientOwnerPhone = client.forwarding_number
+    ? [client.forwarding_number.replace(/\D/g, '').replace(/^1?(\d{10})$/, '+1$1')]
+    : []
+  const excludePhones = [...ADMIN_NUMBERS, ...clientOwnerPhone]
+  const excludeFilter = `(${excludePhones.map(p => `"${p}"`).join(',')})`
 
   // Primary fetch: last 30 calls (no transcript — fast)
   const { data: calls } = await svc
@@ -89,6 +128,7 @@ export async function POST(req: NextRequest) {
     .select('id, call_status, ai_summary, service_type, key_topics, sentiment, next_steps, quality_score, duration_seconds')
     .eq('client_id', targetClientId)
     .not('call_status', 'in', '("live","processing")')
+    .not('caller_phone', 'in', excludeFilter)
     .order('ended_at', { ascending: false })
     .limit(30)
 
@@ -172,20 +212,21 @@ Task: Based ONLY on the friction points and top topics above, add 1-2 targeted s
         return s !== -1 && e > s ? raw.slice(s, e + 1) : raw.trim()
       })()
 
-  let parsed: { improved_prompt?: string; change_summary?: string[] }
+  let parsed: { improved_prompt?: string; changes?: unknown[]; no_changes_needed?: boolean }
   try {
     parsed = JSON.parse(cleaned)
   } catch {
     return NextResponse.json({ error: 'AI returned unparseable response. Try again.' }, { status: 500 })
   }
 
-  if (!parsed.improved_prompt) {
+  if (!parsed.no_changes_needed && !parsed.improved_prompt) {
     return NextResponse.json({ error: 'AI did not return an improved prompt. Try again.' }, { status: 500 })
   }
 
   return NextResponse.json({
-    improved_prompt: parsed.improved_prompt,
-    change_summary: parsed.change_summary ?? [],
+    improved_prompt: parsed.improved_prompt ?? null,
+    changes: parsed.changes ?? [],
+    no_changes_needed: parsed.no_changes_needed ?? false,
     call_count: totalCalls,
     has_enough_data: hasEnoughData,
   })

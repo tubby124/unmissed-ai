@@ -99,6 +99,11 @@ export async function POST(
       const transcript = await getTranscript(callId)
       console.log(`[completed] Transcript: callId=${callId} messages=${transcript.length}`)
 
+      // ── Canary token leak detection ────────────────────────────────────────
+      if (JSON.stringify(transcript).includes('CNRY-UV-7F3X')) {
+        console.error(`[completed] CRITICAL — CANARY TOKEN LEAKED — prompt contamination detected for slug=${slug} callId=${callId}`)
+      }
+
       // Classify with Claude Haiku via OpenRouter
       const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
       const classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined)

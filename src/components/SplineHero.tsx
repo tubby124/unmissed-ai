@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { SplineScene } from '@/components/ui/splite'
 import { Spotlight } from '@/components/ui/spotlight'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface SplineHeroProps {
   callsStat: string
@@ -87,10 +88,12 @@ export function SplineHero({ callsStat }: SplineHeroProps) {
 
           {/* ── Right: 3D Spline scene ── */}
           <div className="flex-1 relative h-[420px] lg:h-[540px] w-full rounded-2xl overflow-hidden" style={{ border: '1px solid #1F1F1F' }}>
-            <SplineScene
-              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-              className="w-full h-full"
-            />
+            <ErrorBoundary fallback={<div className="w-full h-full" style={{ backgroundColor: '#0D1117' }} />}>
+              <SplineScene
+                scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                className="w-full h-full"
+              />
+            </ErrorBoundary>
           </div>
 
         </div>

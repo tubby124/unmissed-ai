@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import CallsList from '@/components/dashboard/CallsList'
 
@@ -17,13 +18,14 @@ export default async function CallsPage() {
   let clientSlug: string | null = null
   let clientBusinessName: string | null = null
   let clientId: string | null = null
+  let clientStatus: string | null = null
   let isAdmin = false
   let adminClients: ClientInfo[] = []
 
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(twilio_number, slug, business_name)')
+      .select('client_id, role, clients(twilio_number, slug, business_name, status)')
       .eq('user_id', user.id)
       .single()
 
@@ -35,11 +37,17 @@ export default async function CallsPage() {
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
     } else {
-      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string } | null
+      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string } | null
       clientPhone = clientData?.twilio_number ?? null
       clientSlug = clientData?.slug ?? null
       clientBusinessName = clientData?.business_name ?? null
       clientId = cu?.client_id ?? null
+      clientStatus = clientData?.status ?? null
+
+      // Redirect setup clients to setup page
+      if (clientStatus === 'setup') {
+        redirect('/dashboard/setup')
+      }
     }
   }
 
@@ -68,6 +76,7 @@ export default async function CallsPage() {
         clientSlug={clientSlug}
         clientBusinessName={clientBusinessName}
         clientId={clientId}
+        clientStatus={clientStatus}
       />
     </div>
   )

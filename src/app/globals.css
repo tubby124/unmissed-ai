@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@keyframes voiceBar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -225,4 +230,10 @@ audio::-webkit-media-controls-panel {
 .brand-focus:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 2px;
+}
+
+/* ─── Float Animation (21st.dev) ────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
 }
