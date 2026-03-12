@@ -35,60 +35,6 @@ const STATUS_STRIPE: Record<string, string> = {
   processing: '#eab308',
 }
 
-const STATUS_ARC_COLOR: Record<string, string> = {
-  HOT:  '#ef4444',
-  WARM: '#f59e0b',
-  COLD: '#60a5fa',
-  JUNK: '#52525b',
-}
-
-const SENTIMENT_GLYPH: Record<string, string> = {
-  positive:    '✦',
-  neutral:     '—',
-  negative:    '↓',
-  frustrated:  '⚡',
-  indifferent: '·',
-}
-
-const SENTIMENT_COLOR: Record<string, string> = {
-  positive:    'text-green-400/70',
-  neutral:     'text-zinc-500',
-  negative:    'text-red-400/70',
-  frustrated:  'text-orange-400/70',
-  indifferent: 'text-zinc-600',
-}
-
-// Semicircle confidence arc (r=13, circumference ≈ 40.84 for 180°)
-const ARC_C = 40.84
-function ConfidenceArc({ confidence, status }: { confidence: number; status: string }) {
-  const fill = Math.max(0, Math.min(100, confidence)) / 100 * ARC_C
-  const color = STATUS_ARC_COLOR[status] ?? '#52525b'
-  return (
-    <svg width="30" height="16" viewBox="0 0 30 16" fill="none" className="shrink-0">
-      {/* Track */}
-      <path
-        d="M2 15 A13 13 0 0 1 28 15"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Fill */}
-      <path
-        d="M2 15 A13 13 0 0 1 28 15"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-        strokeDasharray={`${fill} ${ARC_C}`}
-        style={{ transition: 'stroke-dasharray 0.6s ease' }}
-      />
-      <text x="15" y="13" textAnchor="middle" fill={color} fontSize="7" fontFamily="monospace" opacity={0.8}>
-        {confidence}
-      </text>
-    </svg>
-  )
-}
 
 function fmtDur(secs: number | null) {
   if (!secs) return null
@@ -134,7 +80,6 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
   const topics = call.key_topics ?? expandData?.key_topics ?? []
   const sentiment = call.sentiment ?? expandData?.sentiment ?? null
-  const confidence = call.confidence ?? expandData?.confidence ?? null
 
   async function handleExpand() {
     if (isProcessingOrLive) return
@@ -256,16 +201,15 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             {extraTopics > 0 && (
               <span className="text-[10px] font-mono text-zinc-600">+{extraTopics}</span>
             )}
-            <div className="ml-auto flex items-center gap-2 shrink-0">
-              {sentiment && (
-                <span className={`text-[13px] ${SENTIMENT_COLOR[sentiment] ?? 'text-zinc-600'}`} title={sentiment}>
-                  {SENTIMENT_GLYPH[sentiment] ?? '—'}
-                </span>
-              )}
-              {confidence != null && (
-                <ConfidenceArc confidence={confidence} status={call.call_status ?? ''} />
-              )}
-            </div>
+            {sentiment && sentiment !== 'neutral' && (
+              <span className={`ml-auto text-[10px] font-mono capitalize shrink-0 ${
+                sentiment === 'positive' ? 'text-green-400/60' :
+                sentiment === 'negative' || sentiment === 'frustrated' ? 'text-red-400/60' :
+                'text-zinc-600'
+              }`}>
+                {sentiment}
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -144,11 +144,6 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
   )
 }
 
-function fmtDur(secs: number) {
-  if (!secs) return '0:00'
-  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
-}
-
 // 7-day bucketed values — offset 0 = current week, offset 1 = prior week
 function weekBuckets(
   calls: CallLog[],
@@ -183,17 +178,15 @@ function delta(curr: number[], prior: number[]): number | null {
 interface StatsGridProps {
   totalCalls: number
   hotLeads: number
-  avgDurationSecs: number
   missedCalls: number
   calls: CallLog[]
 }
 
-export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, missedCalls, calls }: StatsGridProps) {
+export default function StatsGrid({ totalCalls, hotLeads, missedCalls, calls }: StatsGridProps) {
   const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK'].includes(c.call_status ?? ''))
 
   // Sparklines
   const isHOT = (c: CallLog) => c.call_status === 'HOT'
-  const dur = (c: CallLog) => c.duration_seconds ?? 0
 
   const totalSpark = weekBuckets(classified, 0)
   const totalPrior = weekBuckets(classified, 1)
@@ -201,8 +194,24 @@ export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, misse
   const hotSpark = weekBuckets(classified, 0, isHOT)
   const hotPrior = weekBuckets(classified, 1, isHOT)
 
-  const durSpark = weekBuckets(classified, 0, undefined, dur)
-  const durPrior = weekBuckets(classified, 1, undefined, dur)
+  // Today's calls — all statuses including live/processing
+  const DAY = 86400000
+  const nowMs = Date.now()
+  const todayStart = new Date().setHours(0, 0, 0, 0)
+  const yesterdayStart = todayStart - DAY
+  const todayCalls = calls.filter(c => new Date(c.started_at).getTime() >= todayStart).length
+  const yesterdayCalls = calls.filter(c => {
+    const t = new Date(c.started_at).getTime()
+    return t >= yesterdayStart && t < todayStart
+  }).length
+  const todayDelta = yesterdayCalls === 0 ? null : ((todayCalls - yesterdayCalls) / yesterdayCalls) * 100
+
+  // 7-day sparkline for today's calls (all)
+  const todaySpark = Array.from({ length: 7 }, (_, i) => {
+    const start = nowMs - (6 - i) * DAY
+    const end = start + DAY
+    return calls.filter(c => { const t = new Date(c.started_at).getTime(); return t >= start && t < end }).length
+  })
 
   // Containment rate — quality calls (HOT+WARM+COLD) / answered calls (non-JUNK classified)
   const qualityCalls = classified.filter(c => c.call_status !== 'JUNK').length
@@ -218,8 +227,8 @@ export default function StatsGrid({ totalCalls, hotLeads, avgDurationSecs, misse
       sparkValues: hotSpark, delta: delta(hotSpark, hotPrior), index: 1,
     },
     {
-      label: 'Avg Duration', value: avgDurationSecs, sub: 'per classified call', theme: 'blue',
-      format: fmtDur, sparkValues: durSpark, delta: delta(durSpark, durPrior), index: 2,
+      label: 'Today', value: todayCalls, sub: yesterdayCalls > 0 ? `${yesterdayCalls} yesterday` : 'calls so far',
+      theme: 'blue', sparkValues: todaySpark, delta: todayDelta, index: 2,
     },
     {
       label: 'Missed Calls', value: missedCalls, sub: 'in last 7 days',

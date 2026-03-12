@@ -1,6 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  PieChart, Pie, Cell, Tooltip,
+  BarChart, Bar, XAxis, ResponsiveContainer,
+} from 'recharts'
 
 interface CallLog {
   call_status: string | null
@@ -23,18 +26,34 @@ const STATUS_COLORS: Record<string, { fill: string; label: string; bg: string }>
 
 const STATUSES = ['HOT', 'WARM', 'COLD', 'JUNK'] as const
 
-// Animated donut — segments draw in sequentially on mount
-function AnimatedDonut({ counts, total }: { counts: Record<string, number>; total: number }) {
-  const [animated, setAnimated] = useState(false)
+// Shared dark-theme tooltip for all charts
+function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; name: string; value: number; fill: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  const rows = payload.filter(p => p.value > 0)
+  if (!rows.length) return null
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-zinc-900 px-3 py-2 text-[11px] shadow-2xl">
+      {label && <p className="text-zinc-600 mb-1.5 font-mono uppercase tracking-wider text-[9px]">{label}</p>}
+      {rows.map(p => (
+        <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.fill }} />
+          <span className="text-zinc-400">{p.name}:</span>
+          <span className="text-zinc-100 font-mono font-semibold ml-auto pl-3">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-  useEffect(() => {
-    const t = setTimeout(() => setAnimated(true), 80)
-    return () => clearTimeout(t)
-  }, [])
+// Recharts donut with hover tooltip + animated slices
+function DonutChart({ counts, total }: { counts: Record<string, number>; total: number }) {
+  const data = STATUSES
+    .filter(s => (counts[s] ?? 0) > 0)
+    .map(s => ({ name: STATUS_COLORS[s].label, value: counts[s] ?? 0, fill: STATUS_COLORS[s].fill, dataKey: s }))
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center w-[120px] h-[120px]">
+      <div className="w-[120px] h-[120px] flex items-center justify-center shrink-0">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="14" />
         </svg>
@@ -42,40 +61,32 @@ function AnimatedDonut({ counts, total }: { counts: Record<string, number>; tota
     )
   }
 
-  const R = 44
-  const C = 2 * Math.PI * R
-  let offset = 0
-
-  const slices = STATUSES.map((s, idx) => {
-    const pct = (counts[s] ?? 0) / total
-    const finalDash = pct * C
-    const slice = { status: s, dash: animated ? finalDash : 0, offset, delay: idx * 120, fill: STATUS_COLORS[s].fill }
-    offset += finalDash
-    return slice
-  })
-
   return (
-    <div className="relative flex items-center justify-center w-[120px] h-[120px] shrink-0">
-      <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
-        {slices.map(s => s.dash > 0 && (
-          <circle
-            key={s.status}
-            cx="60" cy="60" r={R}
-            fill="none"
-            stroke={s.fill}
-            strokeWidth="14"
-            strokeDasharray={`${s.dash} ${C - s.dash}`}
-            strokeDashoffset={-s.offset}
-            strokeLinecap="butt"
-            style={{
-              opacity: 0.88,
-              transition: `stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1) ${s.delay}ms`,
-            }}
-          />
-        ))}
-      </svg>
-      <div className="absolute flex flex-col items-center">
+    <div className="relative w-[120px] h-[120px] shrink-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={34}
+            outerRadius={50}
+            dataKey="value"
+            startAngle={90}
+            endAngle={-270}
+            strokeWidth={0}
+            animationBegin={80}
+            animationDuration={600}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} opacity={0.88} />
+            ))}
+          </Pie>
+          <Tooltip content={<DarkTooltip />} />
+        </PieChart>
+      </ResponsiveContainer>
+      {/* Center label — pointer-events-none so it doesn't block tooltip */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="text-xl font-bold font-mono text-zinc-100 leading-none">{total}</span>
         <span className="text-[10px] text-zinc-600 mt-0.5">calls</span>
       </div>
@@ -83,8 +94,8 @@ function AnimatedDonut({ counts, total }: { counts: Record<string, number>; tota
   )
 }
 
-// Stacked bar chart — HOT/WARM/COLD/JUNK segments per day
-function StackedBarChart({
+// Recharts stacked bar chart — clickable days, hover tooltip
+function DayBarChart({
   days,
   onDayClick,
   selectedDay,
@@ -93,77 +104,52 @@ function StackedBarChart({
   onDayClick?: (dateStr: string | null) => void
   selectedDay?: string | null
 }) {
-  const max = Math.max(...days.map(d => d.total), 1)
-  const HEIGHT = 48
+  const data = days.map(d => ({
+    label: d.label,
+    dateStr: d.dateStr,
+    HOT: d.counts.HOT ?? 0,
+    WARM: d.counts.WARM ?? 0,
+    COLD: d.counts.COLD ?? 0,
+    JUNK: d.counts.JUNK ?? 0,
+  }))
+
+  function handleClick(state: { activePayload?: { payload: { dateStr: string } }[] } | null) {
+    if (!state?.activePayload?.[0]) return
+    const d = state.activePayload[0].payload
+    onDayClick?.(selectedDay === d.dateStr ? null : d.dateStr)
+  }
 
   return (
-    <div className="flex gap-1.5">
-      <div className="flex flex-col justify-between shrink-0 self-end mb-4" style={{ height: HEIGHT }}>
-        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">{max}</span>
-        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">{Math.round(max / 2)}</span>
-        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">0</span>
-      </div>
-      <div className="flex items-end gap-2 flex-1" style={{ height: HEIGHT + 16 }}>
-      {days.map(d => {
-        const isSelected = selectedDay === d.dateStr
-        const barH = Math.max(2, (d.total / max) * HEIGHT)
-
-        // Build stacked segments bottom-up: JUNK → COLD → WARM → HOT
-        let yFromBottom = 0
-        const segments = [...STATUSES].reverse().map(s => {
-          const count = d.counts[s] ?? 0
-          const h = d.total > 0 ? (count / max) * HEIGHT : 0
-          const seg = { status: s, h, y: HEIGHT - yFromBottom - h }
-          yFromBottom += h
-          return seg
-        })
-
-        return (
-          <div
-            key={d.label}
-            className={`flex-1 flex flex-col items-center gap-1 ${onDayClick ? 'cursor-pointer group' : ''}`}
-            onClick={() => onDayClick?.(isSelected ? null : d.dateStr)}
-          >
-            <div
-              className="w-full relative overflow-hidden rounded-sm transition-all duration-200"
-              style={{ height: barH }}
-            >
-              {d.total === 0 ? (
-                <div className="absolute inset-0 bg-white/[0.04]" />
-              ) : (
-                <svg width="100%" height="100%" viewBox={`0 0 10 ${HEIGHT}`} preserveAspectRatio="none" className="absolute inset-0">
-                  {segments.map(seg => seg.h > 0 && (
-                    <rect
-                      key={seg.status}
-                      x="0"
-                      y={seg.y}
-                      width="10"
-                      height={seg.h}
-                      fill={STATUS_COLORS[seg.status].fill}
-                      opacity={isSelected ? 1 : 0.65}
-                      style={{ transition: 'opacity 0.2s' }}
-                    >
-                      <title>{STATUS_COLORS[seg.status].label}: {d.counts[seg.status] ?? 0}</title>
-                    </rect>
-                  ))}
-                </svg>
-              )}
-              {isSelected && (
-                <div className="absolute inset-0 ring-1 ring-inset ring-white/20 rounded-sm pointer-events-none" />
-              )}
-            </div>
-            <span className={`text-[9px] font-mono transition-colors ${isSelected ? 'text-blue-400' : 'text-zinc-700'}`}>
-              {d.label}
-            </span>
-          </div>
-        )
-      })}
-      </div>
+    <div style={{ height: 80 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          barSize={14}
+          onClick={handleClick}
+          style={{ cursor: onDayClick ? 'pointer' : 'default' }}
+          margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+        >
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 9, fill: '#52525b', fontFamily: 'monospace' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            content={<DarkTooltip />}
+            cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 } as object}
+          />
+          <Bar dataKey="JUNK" name="Junk" stackId="a" fill="#52525b" opacity={0.65} />
+          <Bar dataKey="COLD" name="Cold" stackId="a" fill="#60a5fa" opacity={0.65} />
+          <Bar dataKey="WARM" name="Warm" stackId="a" fill="#f59e0b" opacity={0.65} />
+          <Bar dataKey="HOT" name="Hot" stackId="a" fill="#ef4444" opacity={0.65} radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }
 
-// Conversion funnel — 4 horizontal bars
+// Conversion funnel — 4 horizontal bars (unchanged)
 function ConversionFunnel({ calls }: { calls: CallLog[] }) {
   const classified = calls.filter(c => STATUSES.includes(c.call_status as typeof STATUSES[number]))
   const total = classified.length
@@ -249,13 +235,16 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Outcomes</p>
         <div className="flex items-center gap-4">
-          <AnimatedDonut counts={counts} total={classified.length} />
+          <DonutChart counts={counts} total={classified.length} />
           <div className="space-y-1.5 flex-1 min-w-0">
             {STATUSES.map(s => (
               <div key={s} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_COLORS[s].bg}`} />
                 <span className="text-[11px] text-zinc-500 flex-1">{STATUS_COLORS[s].label}</span>
                 <span className="text-[11px] font-mono text-zinc-400">{counts[s]}</span>
+                <span className="text-[10px] font-mono text-zinc-600">
+                  {classified.length > 0 ? `${Math.round((counts[s] ?? 0) / classified.length * 100)}%` : '—'}
+                </span>
               </div>
             ))}
           </div>
@@ -265,8 +254,8 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
       {/* Stacked bar chart — 7-day volume */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Last 7 Days</p>
-        <StackedBarChart days={days} onDayClick={onDayClick} selectedDay={selectedDay} />
-        <p className="text-[10px] text-zinc-700 mt-2 font-mono">{todayCount} today</p>
+        <DayBarChart days={days} onDayClick={onDayClick} selectedDay={selectedDay} />
+        <p className="text-[10px] text-zinc-700 mt-1 font-mono">{todayCount} today</p>
       </div>
 
       {/* Conversion funnel */}

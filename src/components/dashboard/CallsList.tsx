@@ -198,9 +198,6 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
     return {
       totalCalls: completed.length,
       hotLeads: completed.filter(c => c.call_status === 'HOT').length,
-      avgDurationSecs: completed.length
-        ? Math.round(completed.reduce((s, c) => s + (c.duration_seconds ?? 0), 0) / completed.length)
-        : 0,
       activeNow: calls.filter(c => c.call_status === 'live').length,
       missedCalls: calls.filter(c => c.call_status === 'MISSED').length,
     }
@@ -333,7 +330,6 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       <StatsGrid
         totalCalls={stats.totalCalls}
         hotLeads={stats.hotLeads}
-        avgDurationSecs={stats.avgDurationSecs}
         missedCalls={stats.missedCalls}
         calls={calls}
       />
