@@ -63,7 +63,7 @@ function VoiceCard({
   isPlaying: boolean
   myVoiceId: string | null
   myPreviousVoiceId: string | null
-  onPlay: (voiceId: string) => void
+  onPlay: (voiceId: string, previewUrl: string) => void
   onStop: () => void
   onUseVoice: (voiceId: string) => Promise<void>
 }) {
@@ -123,13 +123,16 @@ function VoiceCard({
       className={`group relative rounded-2xl border p-5 transition-all duration-200 ${
         isPlaying
           ? 'border-blue-500/40 bg-blue-500/[0.04]'
+          : isMyActiveVoice
+          ? 'border-green-500/20 bg-white/[0.02] hover:border-green-500/30 hover:bg-white/[0.04]'
           : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
       }`}
+      style={isMyActiveVoice ? { borderBottomColor: 'rgba(34,197,94,0.4)', borderBottomWidth: 2 } : undefined}
     >
       <div className="flex items-start gap-3">
         {/* Play button */}
         <button
-          onClick={() => (isPlaying ? onStop() : onPlay(voice.voiceId))}
+          onClick={() => (isPlaying ? onStop() : onPlay(voice.voiceId, voice.previewUrl))}
           className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
             isPlaying
               ? 'bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]'
@@ -138,11 +141,23 @@ function VoiceCard({
           title={isPlaying ? 'Stop preview' : 'Play preview'}
         >
           {isPlaying ? (
-            /* Stop icon */
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <rect x="1" y="1" width="4" height="10" rx="1"/>
-              <rect x="7" y="1" width="4" height="10" rx="1"/>
-            </svg>
+            /* Animated waveform bars — scaleY from bottom, GPU-composited */
+            <div className="flex items-end gap-px justify-center" style={{ width: 20, height: 16 }}>
+              {[0, 120, 240, 120, 0].map((delay, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 2,
+                    height: 14,
+                    borderRadius: 2,
+                    background: 'white',
+                    transformOrigin: 'bottom',
+                    willChange: 'transform',
+                    animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
+                  }}
+                />
+              ))}
+            </div>
           ) : (
             /* Play icon */
             <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
@@ -156,8 +171,8 @@ function VoiceCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-white truncate">{voice.name}</span>
             {(assignedClients.length > 0 || isMyActiveVoice) && (
-              <span className="text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-1.5 py-0.5 leading-none shrink-0">
-                Active
+              <span className="text-[9px] font-medium text-green-400 bg-green-500/15 border border-green-500/20 rounded-full px-1.5 py-0.5 leading-none shrink-0">
+                {isMyActiveVoice ? 'Assigned' : 'Active'}
               </span>
             )}
             {isMyPreviousVoice && (
@@ -242,9 +257,13 @@ function VoiceCard({
       </div>
 
       {/* Description */}
-      {voice.description && (
+      {voice.description ? (
         <p className="mt-3 text-xs text-zinc-500 leading-relaxed line-clamp-2">
           {voice.description}
+        </p>
+      ) : (
+        <p className="mt-3 text-xs text-zinc-600 leading-relaxed italic">
+          No description available
         </p>
       )}
 
@@ -299,21 +318,26 @@ export default function VoicesPage() {
     }
   }
 
-  function playVoice(voiceId: string) {
+  function playVoice(voiceId: string, previewUrl: string) {
     if (audioRef.current) {
+      audioRef.current.onended = null  // clear BEFORE src change — prevents stale onerror firing
+      audioRef.current.onerror = null
       audioRef.current.pause()
       audioRef.current.src = ''
     }
-    const audio = new Audio(`/api/dashboard/voices/${voiceId}/preview`)
+    const url = previewUrl || `/api/dashboard/voices/${voiceId}/preview`
+    const audio = new Audio(url)
     audio.onended = () => setPlayingId(null)
     audio.onerror = () => setPlayingId(null)
-    audio.play()
+    audio.play().catch(() => {})
     audioRef.current = audio
     setPlayingId(voiceId)
   }
 
   function stopVoice() {
     if (audioRef.current) {
+      audioRef.current.onended = null
+      audioRef.current.onerror = null
       audioRef.current.pause()
       audioRef.current.src = ''
     }
@@ -435,7 +459,7 @@ export default function VoicesPage() {
               isPlaying={playingId === voice.voiceId}
               myVoiceId={myVoiceId}
               myPreviousVoiceId={myPreviousVoiceId}
-              onPlay={playVoice}
+              onPlay={(id, url) => playVoice(id, url)}
               onStop={stopVoice}
               onUseVoice={useVoice}
             />

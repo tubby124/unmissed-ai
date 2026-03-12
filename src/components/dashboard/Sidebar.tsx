@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -207,13 +207,21 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {NAV.filter(item => !item.adminOnly || isAdmin).map(item => {
+        {(() => {
+          const filteredNav = NAV.filter(item => !item.adminOnly || isAdmin)
+          const firstAdminIdx = filteredNav.findIndex(item => item.adminOnly)
+          return filteredNav.map((item, idx) => {
           const active = pathname.startsWith(item.href)
           const isCalls = item.href === '/dashboard/calls'
           const isSetup = item.href === '/dashboard/setup'
           return (
+            <Fragment key={item.href}>
+              {isAdmin && idx === firstAdminIdx && !collapsed && (
+                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold text-zinc-700 uppercase tracking-widest select-none">
+                  Admin
+                </div>
+              )}
             <Link
-              key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
@@ -261,8 +269,10 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 )}
               </AnimatePresence>
             </Link>
+            </Fragment>
           )
-        })}
+        })
+        })()}
 
         <hr className="border-white/[0.06] my-2" />
 

@@ -480,7 +480,15 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                       }`}>
                         {f.label}
                         {count > 0 && (
-                          <span className={`text-[10px] font-mono ${filter === f.value ? 'text-blue-400/60' : 'text-zinc-600'}`}>
+                          <span className={`text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
+                            filter === f.value
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : f.value === 'HOT' ? 'bg-red-500/20 text-red-400'
+                              : f.value === 'WARM' ? 'bg-amber-500/20 text-amber-400'
+                              : f.value === 'COLD' ? 'bg-blue-500/20 text-blue-400'
+                              : f.value === 'JUNK' ? 'bg-zinc-700/50 text-zinc-400'
+                              : 'bg-zinc-800 text-zinc-500'
+                          }`}>
                             {count}
                           </span>
                         )}
