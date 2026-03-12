@@ -133,61 +133,39 @@ export async function POST(
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
 
-      // ── Telegram alert — 4-tier intelligence routing ───────────────────────
+      // ── Telegram alert ───────────────────────────────────────────────────────
       if (client.telegram_bot_token && client.telegram_chat_id) {
         const mins = Math.floor(durationSeconds / 60)
         const secs = durationSeconds % 60
-        const durationStr = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')} min` : 'n/a'
+        const dur = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : 'n/a'
         const bizName = client.business_name || slug
-
-        const sentimentEmoji: Record<string, string> = {
-          positive: '😊', neutral: '😐', negative: '😟', frustrated: '😤', indifferent: '😑',
-        }
-        const sentimentIcon = sentimentEmoji[classification.sentiment || ''] ?? '😐'
-        const topicsLine = classification.key_topics?.length ? `🔑 ${classification.key_topics.join(', ')}` : ''
-        const serviceLabel = classification.serviceType && classification.serviceType !== 'other'
-          ? `🏷 ${classification.serviceType.replace(/_/g, ' ')}` : ''
-        const summary = classification.summary || ultravoxSummary || 'No summary available.'
+        const fullSummary = classification.summary || ultravoxSummary || ''
         const nextSteps = classification.next_steps || ''
-        const confidence = classification.confidence != null ? `🎯 ${classification.confidence}%` : ''
+
+        // One-sentence summary — enough context without overwhelming
+        const dot = fullSummary.search(/[.!?]/)
+        const brief = fullSummary.length === 0 ? '' : (dot > 0 && dot < 130 ? fullSummary.slice(0, dot + 1) : fullSummary.slice(0, 130)).trim()
 
         let message: string
 
         if (classification.status === 'HOT') {
-          message = [
-            `⚡ <b>ACTION REQUIRED — HOT LEAD</b>`, `━━━━━━━━━━━━━━━━`,
-            `🏢 <b>${bizName}</b>`,
-            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
-            ``, `💬 <b>Summary:</b>`, summary, ``,
-            [serviceLabel, topicsLine].filter(Boolean).join(' | '),
-            nextSteps ? `\n📋 <b>NEXT:</b> ${nextSteps}` : '',
-          ].filter(s => s !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim()
+          const lines = [`🔥 <b>HOT — ${bizName}</b>`, `📞 ${callerPhone} · ${dur}`]
+          if (brief) lines.push(`"${brief}"`)
+          if (nextSteps) lines.push(`↳ ${nextSteps}`)
+          message = lines.join('\n')
         } else if (classification.status === 'WARM') {
-          message = [
-            `🟡 <b>WARM LEAD — ${bizName}</b>`,
-            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence} | ${sentimentIcon}`,
-            ``, `💬 ${summary}`,
-            [serviceLabel, topicsLine].filter(Boolean).join(' | '),
-            nextSteps ? `📋 <b>NEXT:</b> ${nextSteps}` : '',
-          ].filter(Boolean).join('\n')
+          const lines = [`🌤 <b>WARM — ${bizName}</b>`, `📞 ${callerPhone} · ${dur}`]
+          if (brief) lines.push(brief)
+          if (nextSteps) lines.push(`↳ ${nextSteps}`)
+          message = lines.join('\n')
         } else if (classification.status === 'COLD') {
-          message = [
-            `❄️ <b>COLD — ${bizName}</b>`,
-            `📱 ${callerPhone} | ⏱ ${durationStr} | ${confidence}`,
-            `💬 ${summary}`,
-            nextSteps ? `📋 ${nextSteps}` : '',
-          ].filter(Boolean).join('\n')
+          const parts = [`📞 ${callerPhone} · ${dur}`, brief].filter(Boolean).join(' · ')
+          message = `❄️ Cold — ${bizName}\n${parts}`
         } else if (classification.status === 'UNKNOWN') {
-          message = [
-            `⚠️ <b>UNKNOWN — manual review needed</b>`,
-            `🏢 ${bizName} | 📱 ${callerPhone} | ⏱ ${durationStr}`,
-            `💬 ${summary}`,
-            `📋 Classification failed — open dashboard to review manually.`,
-          ].filter(Boolean).join('\n')
+          message = `⚠️ <b>Review needed — ${bizName}</b>\n📞 ${callerPhone} · ${dur}\nOpen dashboard to classify manually.`
         } else {
-          // JUNK
-          const junkType = classification.serviceType || 'junk'
-          message = `🗑️ <b>JUNK — ${bizName}</b> | ${callerPhone} | ⏱ ${durationStr} | ${junkType}\nNo action required.`
+          // JUNK — single line, no action needed
+          message = `🗑 Junk · ${bizName} · ${callerPhone}`
         }
 
         const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
