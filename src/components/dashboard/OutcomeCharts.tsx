@@ -34,15 +34,15 @@ function AnimatedDonut({ counts, total }: { counts: Record<string, number>; tota
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center w-24 h-24">
-        <svg width="96" height="96" viewBox="0 0 96 96">
-          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="14" />
+      <div className="flex items-center justify-center w-[120px] h-[120px]">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="14" />
         </svg>
       </div>
     )
   }
 
-  const R = 36
+  const R = 44
   const C = 2 * Math.PI * R
   let offset = 0
 
@@ -55,13 +55,13 @@ function AnimatedDonut({ counts, total }: { counts: Record<string, number>; tota
   })
 
   return (
-    <div className="relative flex items-center justify-center w-24 h-24 shrink-0">
-      <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="48" cy="48" r={R} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
+    <div className="relative flex items-center justify-center w-[120px] h-[120px] shrink-0">
+      <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
         {slices.map(s => s.dash > 0 && (
           <circle
             key={s.status}
-            cx="48" cy="48" r={R}
+            cx="60" cy="60" r={R}
             fill="none"
             stroke={s.fill}
             strokeWidth="14"
@@ -97,7 +97,13 @@ function StackedBarChart({
   const HEIGHT = 48
 
   return (
-    <div className="flex items-end gap-2" style={{ height: HEIGHT + 16 }}>
+    <div className="flex gap-1.5">
+      <div className="flex flex-col justify-between shrink-0 self-end mb-4" style={{ height: HEIGHT }}>
+        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">{max}</span>
+        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">{Math.round(max / 2)}</span>
+        <span className="text-[8px] font-mono text-zinc-700 tabular-nums leading-none">0</span>
+      </div>
+      <div className="flex items-end gap-2 flex-1" style={{ height: HEIGHT + 16 }}>
       {days.map(d => {
         const isSelected = selectedDay === d.dateStr
         const barH = Math.max(2, (d.total / max) * HEIGHT)
@@ -152,6 +158,7 @@ function StackedBarChart({
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

@@ -50,7 +50,7 @@ type Theme = keyof typeof THEMES
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
   if (values.length < 2) return null
-  const W = 48, H = 18
+  const W = 64, H = 24
   const max = Math.max(...values, 1)
   const pts = values.map((v, i) =>
     `${(i / (values.length - 1)) * W},${H - (v / max) * (H - 3) - 1.5}`

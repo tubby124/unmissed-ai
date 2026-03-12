@@ -248,7 +248,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             {shownTopics.map(t => (
               <span
                 key={t}
-                className="px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-500 bg-white/[0.04] border border-white/[0.06] whitespace-nowrap"
+                className="px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-300 bg-white/[0.04] border border-white/[0.06] whitespace-nowrap"
               >
                 {t}
               </span>
@@ -303,7 +303,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                       {(expandData?.key_topics ?? call.key_topics ?? []).map(t => (
                         <span
                           key={t}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-zinc-400 bg-white/[0.04] border border-white/[0.08]"
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-zinc-300 bg-white/[0.04] border border-white/[0.08]"
                         >
                           {t}
                         </span>
