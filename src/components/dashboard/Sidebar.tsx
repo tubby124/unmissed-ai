@@ -119,9 +119,10 @@ interface SidebarProps {
   businessName?: string
   isAdmin?: boolean
   clientId?: string | null
+  setupIncomplete?: boolean
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -209,6 +210,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         {NAV.filter(item => !item.adminOnly || isAdmin).map(item => {
           const active = pathname.startsWith(item.href)
           const isCalls = item.href === '/dashboard/calls'
+          const isSetup = item.href === '/dashboard/setup'
           return (
             <Link
               key={item.href}
@@ -217,6 +219,8 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 active
                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                  : isSetup && setupIncomplete && !active
+                  ? 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] ring-1 ring-amber-500/30'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
               }`}
             >
@@ -227,6 +231,13 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                )}
+                {/* Pulsing amber dot when setup is incomplete */}
+                {isSetup && setupIncomplete && !active && (
+                  <span className="absolute -top-1 -right-1 flex w-2 h-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                   </span>
                 )}
               </span>

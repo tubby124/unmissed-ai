@@ -12,15 +12,19 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let clientId: string | null = null
   let isAdmin = false
 
+  let clientStatus: string | null = null
+
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(business_name)')
+      .select('client_id, role, clients(business_name, status)')
       .eq('user_id', user.id)
       .single()
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
-    businessName = isAdmin ? undefined : (cu?.clients as { business_name?: string } | null)?.business_name ?? undefined
+    const clientData = cu?.clients as { business_name?: string; status?: string } | null
+    businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
+    clientStatus = isAdmin ? null : clientData?.status ?? null
   }
 
   return (
@@ -36,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <div className="flex flex-1 relative overflow-hidden">
         {/* Desktop sidebar */}
-        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} />
+        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} />
 
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto">

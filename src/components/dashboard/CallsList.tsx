@@ -64,6 +64,7 @@ interface CallsListProps {
   clientSlug?: string | null
   clientBusinessName?: string | null
   clientId?: string | null
+  clientStatus?: string | null
 }
 
 function dateGroupLabel(iso: string): string {
@@ -104,7 +105,7 @@ function exportCsv(calls: CallLog[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
@@ -281,6 +282,49 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         />
       )}
 
+      {/* Live call banner — above everything */}
+      <LiveCallBanner
+        calls={liveCalls.map(c => ({
+          id: c.id,
+          ultravox_call_id: c.ultravox_call_id,
+          caller_phone: c.caller_phone,
+          started_at: c.started_at,
+          business_name: c.business_name,
+        }))}
+      />
+
+      {/* Setup incomplete card — shown for setup clients only */}
+      <AnimatePresence>
+        {!isAdmin && clientStatus === 'setup' && (
+          <motion.div
+            key="setup-card"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-amber-500/25 bg-amber-500/[0.06]"
+          >
+            <svg className="w-5 h-5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <p className="flex-1 text-sm text-amber-200/80">
+              Your AI agent isn&apos;t live yet — complete setup to start receiving calls
+            </p>
+            <a
+              href="/dashboard/setup"
+              className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 hover:border-amber-500/50 hover:text-amber-200 transition-all"
+            >
+              Complete Setup
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Stats — reactive, updates with every call change */}
       <StatsGrid
         totalCalls={stats.totalCalls}
@@ -294,16 +338,6 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       <OutcomeCharts calls={calls} onDayClick={setDateFilter} selectedDay={dateFilter} />
 
       <div>
-        {/* Live call banner */}
-        <LiveCallBanner
-          calls={liveCalls.map(c => ({
-            id: c.id,
-            ultravox_call_id: c.ultravox_call_id,
-            caller_phone: c.caller_phone,
-            started_at: c.started_at,
-            business_name: c.business_name,
-          }))}
-        />
 
         {/* Processing indicator */}
         <AnimatePresence>
