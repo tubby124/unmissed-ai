@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
 
 interface PromptVersion {
@@ -205,6 +206,10 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
   const [testCallResult, setTestCallResult] = useState<{ callId?: string; twilio_sid?: string } | null>(null)
   const [testCallError, setTestCallError] = useState('')
+
+  // Collapsible sections
+  const [promptCollapsed, setPromptCollapsed] = useState(true)
+  const [webhooksCollapsed, setWebhooksCollapsed] = useState(true)
 
   // Setup section
   const [forwardingNumber, setForwardingNumber] = useState<Record<string, string>>(() =>
@@ -605,37 +610,85 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 disabled={!isAdmin}
                 value={forwardingNumber[client.id] ?? ''}
                 onChange={(e) => setForwardingNumber(prev => ({ ...prev, [client.id]: e.target.value }))}
-                placeholder="+1 306 555 0100"
+                placeholder="+1 (555) 555-5555"
                 className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 ${!isAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
               />
               <p className="text-[11px] text-zinc-600 mt-1">
                 {isAdmin
-                  ? 'When a caller asks for a real person, your AI will live-transfer them to this number.'
+                  ? 'Enter your personal phone number. When a caller asks for a human, they\'ll be transferred here.'
                   : 'Live call transfer to your number — coming soon.'
                 }
               </p>
             </div>
-            <div className="flex items-center gap-2.5">
-              <input
-                type="checkbox"
-                id="setup-complete"
-                checked={setupComplete[client.id] ?? false}
-                onChange={(e) => setSetupComplete(prev => ({ ...prev, [client.id]: e.target.checked }))}
-                className="w-4 h-4 rounded accent-indigo-500 cursor-pointer"
-              />
-              <label htmlFor="setup-complete" className="text-xs text-zinc-400 cursor-pointer">Mark setup as complete</label>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={saveSetup}
-                disabled={setupSaving}
-                className="px-4 py-1.5 text-xs font-medium rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 disabled:opacity-50 transition-colors"
-              >
-                {setupSaving ? 'Saving…' : 'Save setup'}
-              </button>
-              {setupSaved && <span className="text-xs text-green-400">Saved</span>}
+            {/* Setup checklist */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-3">
+              <p className="text-xs font-medium text-zinc-300">Setup Checklist</p>
+              <div className="space-y-2">
+                {/* Item 1: Phone number */}
+                <div className="flex items-center gap-2.5">
+                  {client.twilio_number ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0"><circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15"/><path d="M8 12l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-600 shrink-0" />
+                  )}
+                  <span className={`text-xs ${client.twilio_number ? 'text-zinc-300' : 'text-zinc-500'}`}>AI phone number assigned</span>
+                </div>
+                {/* Item 2: Forwarding configured */}
+                <div className="flex items-center gap-2.5">
+                  {forwardingNumber[client.id] ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0"><circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15"/><path d="M8 12l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-600 shrink-0" />
+                  )}
+                  <span className={`text-xs ${forwardingNumber[client.id] ? 'text-zinc-300' : 'text-zinc-500'}`}>Call forwarding configured</span>
+                </div>
+                {/* Item 3: Setup complete */}
+                <div className="flex items-center gap-2.5">
+                  {setupComplete[client.id] ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0"><circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15"/><path d="M8 12l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-amber-500/60 shrink-0" />
+                  )}
+                  <span className={`text-xs ${setupComplete[client.id] ? 'text-zinc-300' : 'text-zinc-500'}`}>Setup marked complete</span>
+                </div>
+              </div>
+              {/* Activate Agent button — shown when phone + forwarding are set */}
+              {(client.twilio_number && forwardingNumber[client.id]) && !setupComplete[client.id] && (
+                <button
+                  onClick={() => {
+                    setSetupComplete(prev => ({ ...prev, [client.id]: true }))
+                    setTimeout(() => saveSetup(), 0)
+                  }}
+                  disabled={setupSaving}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-green-500 hover:bg-green-400 text-black transition-colors disabled:opacity-50"
+                >
+                  {setupSaving ? 'Activating…' : 'Activate Agent'}
+                </button>
+              )}
+              {setupComplete[client.id] && (
+                <button
+                  onClick={() => {
+                    setSetupComplete(prev => ({ ...prev, [client.id]: false }))
+                    setTimeout(() => saveSetup(), 0)
+                  }}
+                  disabled={setupSaving}
+                  className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                >
+                  Reset setup status
+                </button>
+              )}
+              {!client.twilio_number && (
+                <button
+                  onClick={saveSetup}
+                  disabled={setupSaving}
+                  className="px-4 py-1.5 text-xs font-medium rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 disabled:opacity-50 transition-colors"
+                >
+                  {setupSaving ? 'Saving…' : 'Save setup'}
+                </button>
+              )}
+              {setupSaved && <span className="text-xs text-green-400 block">Saved</span>}
               {setupEditing && (
-                <button onClick={() => setSetupEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+                <button onClick={() => setSetupEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors block">Cancel</button>
               )}
             </div>
           </div>
@@ -698,19 +751,51 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </div>
       </div>
 
-      {/* 2 — Webhooks + Phone */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-1">Webhooks & Phone</p>
-        <p className="text-[11px] text-zinc-600 mb-4">Configure these in your Twilio console for this number</p>
-        <UrlRow label="Inbound" url={inboundUrl} />
-        <UrlRow label="Completed" url={completedUrl} />
-        <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
-          <span className="text-xs text-zinc-500 w-24 shrink-0">Twilio Number</span>
-          <span className="flex-1 text-sm font-mono font-medium text-zinc-200">
-            {fmtPhone(client.twilio_number)}
-          </span>
-          {client.twilio_number && <CopyButton value={client.twilio_number} />}
-        </div>
+      {/* 2 — Webhooks + Phone (collapsible) */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <button
+          onClick={() => setWebhooksCollapsed(p => !p)}
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500 shrink-0">
+              <polyline points="16 18 22 12 16 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="8 6 2 12 8 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Developer Settings</p>
+          </div>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            className={`text-zinc-600 transition-transform duration-200 ${webhooksCollapsed ? '' : 'rotate-180'}`}
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <AnimatePresence initial={false}>
+          {!webhooksCollapsed && (
+            <motion.div
+              key="webhooks-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="px-5 pb-5 border-t border-white/[0.06]">
+                <p className="text-[11px] text-zinc-600 mt-4 mb-3">These URLs are pre-configured in your Twilio console. No action needed.</p>
+                <UrlRow label="Inbound" url={inboundUrl} />
+                <UrlRow label="Completed" url={completedUrl} />
+                <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
+                  <span className="text-xs text-zinc-500 w-24 shrink-0">Twilio Number</span>
+                  <span className="flex-1 text-sm font-mono font-medium text-zinc-200">
+                    {fmtPhone(client.twilio_number)}
+                  </span>
+                  {client.twilio_number && <CopyButton value={client.twilio_number} />}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 3 — Agent Configuration */}
@@ -891,70 +976,101 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </div>
       </div>
 
-      {/* 5 — System Prompt */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <div className="flex items-center justify-between mb-4">
+      {/* 5 — System Prompt (collapsible) */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <button
+          onClick={() => setPromptCollapsed(p => !p)}
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        >
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">System Prompt</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Advanced — Agent Prompt</p>
             <p className="text-[11px] text-zinc-600 mt-0.5">
-              {nicheConfig.label} agent instructions
+              {promptCollapsed
+                ? <span className="font-mono">{currentPrompt ? currentPrompt.slice(0, 120) + (currentPrompt.length > 120 ? '…' : '') : 'No prompt set'}</span>
+                : `${nicheConfig.label} agent instructions`}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 'text-zinc-600'}`}>
-              {charCount.toLocaleString()} chars
-            </span>
-            <button
-              onClick={save}
-              disabled={!dirty || saving}
-              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                saved
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : dirty
-                  ? 'bg-blue-500 hover:bg-blue-400 text-white'
-                  : 'bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.06]'
-              }`}
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            className={`text-zinc-600 transition-transform duration-200 shrink-0 ml-3 ${promptCollapsed ? '' : 'rotate-180'}`}
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <AnimatePresence initial={false}>
+          {!promptCollapsed && (
+            <motion.div
+              key="prompt-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ overflow: 'hidden' }}
             >
-              {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
+              <div className="px-5 pb-5 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between mt-4 mb-3">
+                  <p className="text-[11px] text-zinc-600">
+                    This is your AI agent&apos;s brain. Only modify if you know what you&apos;re doing — changes take effect immediately.
+                  </p>
+                  <div className="flex items-center gap-3 shrink-0 ml-3">
+                    <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 'text-zinc-600'}`}>
+                      {charCount.toLocaleString()} chars
+                    </span>
+                    <button
+                      onClick={save}
+                      disabled={!dirty || saving}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        saved
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : dirty
+                          ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                          : 'bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.06]'
+                      }`}
+                    >
+                      {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
 
-        {dirty && (
-          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
-              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-[11px] text-amber-400/90">Unsaved changes — deploy to update the live agent</span>
-          </div>
-        )}
+                {dirty && (
+                  <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+                      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-[11px] text-amber-400/90">Unsaved changes — deploy to update the live agent</span>
+                  </div>
+                )}
 
-        {saveUltravoxWarning && (
-          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0">
-              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
-          </div>
-        )}
+                {saveUltravoxWarning && (
+                  <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0">
+                      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
+                  </div>
+                )}
 
-        {saveError && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <span className="text-[11px] text-red-400/90">{saveError}</span>
-          </div>
-        )}
+                {saveError && (
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span className="text-[11px] text-red-400/90">{saveError}</span>
+                  </div>
+                )}
 
-        <textarea
-          value={currentPrompt}
-          onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
-          className="w-full h-[480px] bg-black/20 border border-white/[0.06] rounded-xl p-4 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
-          spellCheck={false}
-          placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
-        />
+                <textarea
+                  value={currentPrompt}
+                  onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
+                  className="w-full h-[480px] bg-black/20 border border-white/[0.06] rounded-xl p-4 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+                  spellCheck={false}
+                  placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 6 — AI Improve Prompt (Beta) */}
