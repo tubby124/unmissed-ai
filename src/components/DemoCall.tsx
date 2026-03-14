@@ -29,6 +29,8 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(120)
+  const [callId, setCallId] = useState<string | null>(null)
+  const callStartRef = useRef<number>(0)
   const sessionRef = useRef<InstanceType<typeof import("ultravox-client").UltravoxSession> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const transcriptContainerRef = useRef<HTMLDivElement>(null)
@@ -69,7 +71,17 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
     }
     sessionRef.current = null
     setCallState("ended")
-  }, [])
+
+    // Log demo end (fire-and-forget)
+    if (callId) {
+      const duration = callStartRef.current > 0 ? Math.round((Date.now() - callStartRef.current) / 1000) : undefined
+      fetch("/api/demo/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, duration }),
+      }).catch(() => {})
+    }
+  }, [callId])
 
   const startCall = useCallback(async () => {
     setCallState("requesting")
@@ -99,7 +111,9 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
         throw new Error(data.error || `HTTP ${res.status}`)
       }
 
-      const { joinUrl } = await res.json()
+      const { joinUrl, callId: newCallId } = await res.json()
+      setCallId(newCallId)
+      callStartRef.current = Date.now()
 
       // Connect via WebRTC
       setCallState("connecting")
@@ -256,7 +270,16 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
 
             <div className="space-y-3">
               <Link
-                href="/onboard"
+                href={callId ? `/onboard?ref=demo&callId=${callId}` : "/onboard"}
+                onClick={() => {
+                  if (callId) {
+                    fetch("/api/demo/event", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ callId, eventType: "onboard_clicked", metadata: { demoId } }),
+                    }).catch(() => {})
+                  }
+                }}
                 className="block w-full py-4 rounded-xl text-white font-semibold text-sm transition-colors text-center"
                 style={{ backgroundColor: "#3B82F6" }}
               >

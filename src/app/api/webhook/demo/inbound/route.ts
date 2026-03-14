@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { createDemoCall } from '@/lib/ultravox'
+import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 
@@ -61,6 +63,20 @@ export async function POST(req: NextRequest) {
     })
 
     console.log(`[demo-ivr] Ultravox call created: callId=${call.callId}`)
+
+    // Log phone demo call (fire-and-forget)
+    const supabase = createServiceClient()
+    const ipHash = crypto.createHash('sha256').update(callerPhone).digest('hex').slice(0, 16)
+    supabase.from('demo_calls').insert({
+      demo_id: demoId,
+      caller_name: callerPhone,
+      ultravox_call_id: call.callId,
+      source: 'phone',
+      ip_hash: ipHash,
+    }).then(({ error }) => {
+      if (error) console.error(`[demo-ivr] Failed to log demo call: ${error.message}`)
+    })
+
     const twiml = buildStreamTwiml(call.joinUrl)
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   } catch (err) {
