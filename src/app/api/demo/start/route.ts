@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch live prompt from Supabase if flagged (for testing production prompt changes)
   let basePrompt = demo.systemPrompt
+  let liveVoiceId: string | null = null
   if (demo.useLivePrompt && demo.clientSlug) {
     const supabase = createServiceClient()
     const { data: client } = await supabase
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
     } else {
       console.warn(`[demo] Live prompt fetch failed for slug=${demo.clientSlug}, falling back to hardcoded`)
     }
+    // Use Supabase voice if available so demo stays in sync with production
+    if (client?.agent_voice_id) {
+      liveVoiceId = client.agent_voice_id as string
+    }
   }
 
   // Inject caller name into the prompt context
@@ -69,7 +74,7 @@ export async function POST(req: NextRequest) {
   try {
     const call = await createDemoCall({
       systemPrompt: promptWithContext,
-      voice: demo.voiceId,
+      voice: liveVoiceId || demo.voiceId,
     })
 
     recordUsage(ip)

@@ -21,7 +21,7 @@ export interface DemoAgent {
 // Voice IDs from Ultravox
 const VOICE_MARK = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
 const VOICE_ALISHA = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
-const VOICE_AISHA = 'f90da51d-0244-4471-8f0b-801a8ab69a3b'
+const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'
 
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
   auto_glass: {
