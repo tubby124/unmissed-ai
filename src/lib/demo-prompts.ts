@@ -18,10 +18,11 @@ export interface DemoAgent {
   clientSlug?: string
 }
 
-// Voice IDs from Ultravox
-const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
-const VOICE_NICOLE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
-const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'
+// Voice IDs from Ultravox — if changing a production voice, update here too.
+// Fallback voice in /api/demo/start catches stale IDs, but keep these current.
+const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark (windshield-hub prod voice)
+const VOICE_NICOLE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'   // Jacqueline (urban-vibe prod voice)
+const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'    // Aisha (hasan-sharif prod voice)
 
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
   auto_glass: {

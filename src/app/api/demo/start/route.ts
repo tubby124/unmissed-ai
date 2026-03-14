@@ -72,11 +72,24 @@ export async function POST(req: NextRequest) {
   // Inject caller name into the prompt context
   const promptWithContext = basePrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
 
+  const voiceId = liveVoiceId || demo.voiceId
+  // Fallback: if the voice ID is rejected by Ultravox (deleted/invalid), retry with the platform default
+  const FALLBACK_VOICE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+
   try {
-    const call = await createDemoCall({
-      systemPrompt: promptWithContext,
-      voice: liveVoiceId || demo.voiceId,
-    })
+    let call: { joinUrl: string; callId: string }
+    try {
+      call = await createDemoCall({
+        systemPrompt: promptWithContext,
+        voice: voiceId,
+      })
+    } catch (firstErr) {
+      console.warn(`[demo] Voice ${voiceId} rejected, retrying with fallback: ${firstErr}`)
+      call = await createDemoCall({
+        systemPrompt: promptWithContext,
+        voice: FALLBACK_VOICE,
+      })
+    }
 
     recordUsage(ip)
 
@@ -102,7 +115,7 @@ export async function POST(req: NextRequest) {
       companyName: demo.companyName,
     })
   } catch (err) {
-    console.error(`[demo] Failed to create demo call: ${err}`)
+    console.error(`[demo] Failed to create demo call (both voices failed): ${err}`)
     return NextResponse.json(
       { error: 'Failed to start demo. Please try again.' },
       { status: 500 }
