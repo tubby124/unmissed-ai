@@ -29,7 +29,7 @@ const AGENTS = [
     company: "Hasan Sharif — EXP Realty",
     agent: "Aisha",
     niche: "Real Estate",
-    description: "Live production real estate agent. Uses the latest prompt from Supabase with Cartesia TTS voice.",
+    description: "Real estate AI voicemail assistant. Takes messages, books showings, and makes sure the agent calls back fast.",
     color: "#10B981",
   },
 ]

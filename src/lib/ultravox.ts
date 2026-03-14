@@ -109,6 +109,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio }: CreateD
     timeExceededMessage: "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
+    selectedTools: [{ toolName: 'hangUp' }],
   }
 
   // Only add Twilio medium for phone IVR demos; omit for browser WebRTC
