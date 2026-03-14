@@ -32,6 +32,14 @@ const AGENTS = [
     description: "Real estate agent voicemail assistant. Takes messages, collects caller info, handles showing requests, and gets the agent to call back.",
     color: "#10B981",
   },
+  {
+    id: "hasan_sharif_live",
+    company: "Hasan Sharif — EXP Realty",
+    agent: "Aisha",
+    niche: "Live Test",
+    description: "Live production agent. Tests the real Aisha prompt with latest changes from Supabase. Use this to verify prompt updates before rolling out.",
+    color: "#F59E0B",
+  },
 ]
 
 type DemoState =

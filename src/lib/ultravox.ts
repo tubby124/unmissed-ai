@@ -226,12 +226,14 @@ interface CallViaAgentOptions {
   maxDuration?: string
   /** Inject returning-caller context as an initial hidden tool message. */
   callerContext?: string
+  /** Per-call VAD overrides (e.g. different turnEndpointDelay per client niche). */
+  vadSettings?: Record<string, string>
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, vadSettings }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -244,6 +246,7 @@ export async function callViaAgent(
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
+  if (vadSettings) body.vadSettings = vadSettings
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createDemoCall } from '@/lib/ultravox'
+import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 
 // Simple in-memory rate limiter: 2 demos per IP per hour
@@ -44,8 +45,26 @@ export async function POST(req: NextRequest) {
 
   const demo = DEMO_AGENTS[demoId]
 
+  // Fetch live prompt from Supabase if flagged (for testing production prompt changes)
+  let basePrompt = demo.systemPrompt
+  if (demo.useLivePrompt && demo.clientSlug) {
+    const supabase = createServiceClient()
+    const { data: client } = await supabase
+      .from('clients')
+      .select('system_prompt, agent_voice_id')
+      .eq('slug', demo.clientSlug)
+      .single()
+
+    if (client?.system_prompt) {
+      basePrompt = client.system_prompt
+      console.log(`[demo] Using live prompt from Supabase for slug=${demo.clientSlug} (${basePrompt.length} chars)`)
+    } else {
+      console.warn(`[demo] Live prompt fetch failed for slug=${demo.clientSlug}, falling back to hardcoded`)
+    }
+  }
+
   // Inject caller name into the prompt context
-  const promptWithContext = demo.systemPrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
 
   try {
     const call = await createDemoCall({

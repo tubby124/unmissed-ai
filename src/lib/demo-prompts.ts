@@ -12,6 +12,10 @@ export interface DemoAgent {
   voiceId: string
   description: string
   systemPrompt: string
+  /** When true, fetch the live system_prompt from Supabase instead of using the hardcoded one. */
+  useLivePrompt?: boolean
+  /** Client slug to fetch live prompt from (required when useLivePrompt is true). */
+  clientSlug?: string
 }
 
 // Voice IDs from Ultravox
@@ -255,6 +259,18 @@ SILENT CALLER: "hello? can you hear me okay?" If still no response: "no worries 
 
 CALLER ENDS CALL
 If the caller says goodbye — immediately acknowledge with a short goodbye and stop talking.`,
+  },
+  hasan_sharif_live: {
+    id: 'hasan_sharif_live',
+    companyName: 'Hasan Sharif — EXP Realty',
+    niche: 'real_estate',
+    nicheLabel: 'Live Test',
+    agentName: 'Aisha',
+    voiceId: VOICE_AISHA,
+    description: 'Live production prompt — tests the real Aisha agent with latest prompt changes',
+    systemPrompt: '', // Fetched from Supabase at call time
+    useLivePrompt: true,
+    clientSlug: 'hasan-sharif',
   },
 }
 
