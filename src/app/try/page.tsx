@@ -11,7 +11,7 @@ const AGENTS = [
   {
     id: "auto_glass",
     company: "Crystal Clear Auto Glass",
-    agent: "Mark",
+    agent: "Tyler",
     niche: "Auto Glass",
     description: "Windshield repair & replacement shop receptionist. Collects vehicle info, triages chip vs crack, and gets the boss to call back with a quote.",
     color: "#3B82F6",
@@ -19,7 +19,7 @@ const AGENTS = [
   {
     id: "property_mgmt",
     company: "Maple Ridge Property Management",
-    agent: "Alisha",
+    agent: "Nicole",
     niche: "Property Management",
     description: "Property management office assistant. Handles maintenance requests, rental inquiries, billing questions, and routes everything to the manager.",
     color: "#8B5CF6",

@@ -19,8 +19,8 @@ export interface DemoAgent {
 }
 
 // Voice IDs from Ultravox
-const VOICE_MARK = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
-const VOICE_ALISHA = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+const VOICE_NICOLE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
 const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'
 
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
@@ -29,8 +29,8 @@ export const DEMO_AGENTS: Record<string, DemoAgent> = {
     companyName: 'Crystal Clear Auto Glass',
     niche: 'auto_glass',
     nicheLabel: 'Auto Glass',
-    agentName: 'Mark',
-    voiceId: VOICE_MARK,
+    agentName: 'Tyler',
+    voiceId: VOICE_TYLER,
     description: 'Windshield repair & replacement shop receptionist',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -50,7 +50,7 @@ If the caller interrupts: "sorry — yeah, go ahead."
 Split long responses into micro-turns. Say one sentence, then pause.
 
 IDENTITY
-You are Mark, the front desk person at "Crystal Clear Auto Glass" in Edmonton.
+You are Tyler, the front desk person at "Crystal Clear Auto Glass" in Edmonton.
 You are energetic, capable, and efficient. You are a real person leaning on the counter in a busy shop.
 
 TONE & STYLE
@@ -66,7 +66,7 @@ If caller is confused or resistant, get minimal info and promise callback.
 CONVERSATION FLOW
 
 GREETING
-"crystal clear auto glass — this is mark, an AI assistant. how can i help ya today?"
+"crystal clear auto glass — this is tyler, an AI assistant. how can i help ya today?"
 
 WRONG NUMBER or "ARE YOU AI?":
 "yeah, i'm an AI assistant here at crystal clear — i can get your info to the boss. how can i help ya?"
@@ -107,8 +107,8 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     companyName: 'Maple Ridge Property Management',
     niche: 'property_mgmt',
     nicheLabel: 'Property Management',
-    agentName: 'Alisha',
-    voiceId: VOICE_ALISHA,
+    agentName: 'Nicole',
+    voiceId: VOICE_NICOLE,
     description: 'Property management office assistant',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -130,7 +130,7 @@ If the caller interrupts: "sorry — yeah, go ahead."
 When collecting a name: if you're not confident you heard it correctly, always confirm.
 
 IDENTITY
-You are Alisha, Maple Ridge Properties' assistant. You handle inbound calls for Sarah Mitchell, the property manager.
+You are Nicole, Maple Ridge Properties' assistant. You handle inbound calls for Sarah Mitchell, the property manager.
 You are sharp, kind, respectful, warm, and efficient. Your job: listen, triage, collect caller info, and get Sarah to call them back.
 
 TONE AND STYLE
@@ -146,10 +146,10 @@ Secondary: Route confused or resistant callers to a callback quickly.
 CONVERSATION FLOW
 
 GREETING
-"maple ridge properties, this is alisha, an AI assistant — how can I help you today?"
+"maple ridge properties, this is nicole, an AI assistant — how can I help you today?"
 
 ARE YOU A REAL PERSON? / IS THIS AI?
-"yes, I'm Alisha — an AI assistant for Maple Ridge Properties. I help manage calls when Sarah's busy. How can I help you?"
+"yes, I'm Nicole — an AI assistant for Maple Ridge Properties. I help manage calls when Sarah's busy. How can I help you?"
 
 TRIAGE — Listen for category:
 

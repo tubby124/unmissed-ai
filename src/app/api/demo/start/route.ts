@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { createDemoCall } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
@@ -78,6 +79,19 @@ export async function POST(req: NextRequest) {
     })
 
     recordUsage(ip)
+
+    // Log demo call to Supabase (fire-and-forget)
+    const supabaseLog = createServiceClient()
+    const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
+    supabaseLog.from('demo_calls').insert({
+      demo_id: demoId,
+      caller_name: callerName,
+      ultravox_call_id: call.callId,
+      source: 'browser',
+      ip_hash: ipHash,
+    }).then(({ error }) => {
+      if (error) console.error(`[demo] Failed to log demo call: ${error.message}`)
+    })
 
     console.log(`[demo] Browser demo started: demoId=${demoId} callerName=${callerName} callId=${call.callId} ip=${ip}`)
 
