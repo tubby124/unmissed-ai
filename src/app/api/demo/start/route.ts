@@ -5,7 +5,7 @@ import { DEMO_AGENTS } from '@/lib/demo-prompts'
 
 // Simple in-memory rate limiter: 2 demos per IP per hour
 const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 2
+const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
 
 function isRateLimited(ip: string): boolean {
