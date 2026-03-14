@@ -73,8 +73,10 @@ export async function POST(req: NextRequest) {
   const promptWithContext = basePrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
 
   const voiceId = liveVoiceId || demo.voiceId
-  // Fallback: if the voice ID is rejected by Ultravox (deleted/invalid), retry with the platform default
-  const FALLBACK_VOICE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+  // Fallback: if the voice ID is rejected by Ultravox (deleted/invalid), retry with a gender-matched default
+  const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
+  const FALLBACK_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'  // Jacqueline voice
+  const fallbackVoice = demo.voiceGender === 'male' ? FALLBACK_MALE : FALLBACK_FEMALE
 
   try {
     let call: { joinUrl: string; callId: string }
@@ -84,10 +86,10 @@ export async function POST(req: NextRequest) {
         voice: voiceId,
       })
     } catch (firstErr) {
-      console.warn(`[demo] Voice ${voiceId} rejected, retrying with fallback: ${firstErr}`)
+      console.warn(`[demo] Voice ${voiceId} rejected, retrying with ${demo.voiceGender} fallback: ${firstErr}`)
       call = await createDemoCall({
         systemPrompt: promptWithContext,
-        voice: FALLBACK_VOICE,
+        voice: fallbackVoice,
       })
     }
 

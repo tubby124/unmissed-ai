@@ -10,6 +10,7 @@ export interface DemoAgent {
   nicheLabel: string
   agentName: string
   voiceId: string
+  voiceGender: 'male' | 'female'
   description: string
   systemPrompt: string
   /** When true, fetch the live system_prompt from Supabase instead of using the hardcoded one. */
@@ -32,6 +33,7 @@ export const DEMO_AGENTS: Record<string, DemoAgent> = {
     nicheLabel: 'Auto Glass',
     agentName: 'Tyler',
     voiceId: VOICE_TYLER,
+    voiceGender: 'male',
     description: 'Windshield repair & replacement shop receptionist',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -110,6 +112,7 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     nicheLabel: 'Property Management',
     agentName: 'Nicole',
     voiceId: VOICE_NICOLE,
+    voiceGender: 'female',
     description: 'Property management office assistant',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -188,6 +191,7 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     nicheLabel: 'Real Estate',
     agentName: 'Aisha',
     voiceId: VOICE_AISHA,
+    voiceGender: 'female',
     description: 'Real estate agent voicemail assistant',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -268,6 +272,7 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     nicheLabel: 'Live Test',
     agentName: 'Aisha',
     voiceId: VOICE_AISHA,
+    voiceGender: 'female',
     description: 'Live production prompt — tests the real Aisha agent with latest prompt changes',
     systemPrompt: '', // Fetched from Supabase at call time
     useLivePrompt: true,
