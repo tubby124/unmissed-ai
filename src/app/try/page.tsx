@@ -25,20 +25,12 @@ const AGENTS = [
     color: "#8B5CF6",
   },
   {
-    id: "voicemail",
-    company: "West Bridge Real Estate",
-    agent: "Aisha",
-    niche: "Real Estate",
-    description: "Real estate agent voicemail assistant. Takes messages, collects caller info, handles showing requests, and gets the agent to call back.",
-    color: "#10B981",
-  },
-  {
-    id: "hasan_sharif_live",
+    id: "real_estate",
     company: "Hasan Sharif — EXP Realty",
     agent: "Aisha",
-    niche: "Live Test",
-    description: "Live production agent. Tests the real Aisha prompt with latest changes from Supabase. Use this to verify prompt updates before rolling out.",
-    color: "#F59E0B",
+    niche: "Real Estate",
+    description: "Live production real estate agent. Uses the latest prompt from Supabase with Cartesia TTS voice.",
+    color: "#10B981",
   },
 ]
 
@@ -215,7 +207,7 @@ export default function TryPage() {
               Prefer to call from your phone?
             </h2>
             <p className="text-gray-500 mb-6">
-              Call our demo line and press 1 for auto glass, 2 for property management, or 3 for real estate.
+              Call our demo line and press 1 for auto glass, 2 for property management, or 3 for a real estate agent.
             </p>
             {demoNumber ? (
               <a

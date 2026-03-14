@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   if (!demoId || !DEMO_AGENTS[demoId]) {
     return NextResponse.json(
-      { error: 'Invalid demoId. Choose: auto_glass, property_mgmt, or voicemail' },
+      { error: 'Invalid demoId. Choose: auto_glass, property_mgmt, or real_estate' },
       { status: 400 }
     )
   }

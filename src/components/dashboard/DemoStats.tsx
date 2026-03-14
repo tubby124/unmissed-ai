@@ -25,10 +25,9 @@ interface DemoStatsData {
 }
 
 const AGENT_LABELS: Record<string, string> = {
-  auto_glass: 'Auto Glass (Mark)',
-  property_mgmt: 'Property Mgmt (Alisha)',
-  voicemail: 'Real Estate (Aisha)',
-  hasan_sharif_live: 'Hasan Live Test',
+  auto_glass: 'Auto Glass (Tyler)',
+  property_mgmt: 'Property Mgmt (Nicole)',
+  real_estate: 'Real Estate (Aisha)',
 }
 
 export default function DemoStats() {

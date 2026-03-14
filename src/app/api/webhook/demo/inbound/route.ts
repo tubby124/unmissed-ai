@@ -8,7 +8,7 @@ import { DEMO_AGENTS } from '@/lib/demo-prompts'
 const IVR_MENU: Record<string, string> = {
   '1': 'auto_glass',
   '2': 'property_mgmt',
-  '3': 'voicemail',
+  '3': 'real_estate',
 }
 
 export async function POST(req: NextRequest) {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/demo/inbound" method="POST" timeout="8">
-    <Say voice="Polly.Joanna">Welcome to unmissed dot A I. Press 1 to talk to an auto glass receptionist. Press 2 for a property management assistant. Press 3 for a real estate voicemail agent.</Say>
+    <Say voice="Polly.Joanna">Welcome to unmissed dot A I. Press 1 to talk to an auto glass receptionist. Press 2 for a property management assistant. Press 3 for a real estate agent.</Say>
   </Gather>
   <Say voice="Polly.Joanna">We didn't get your selection. Goodbye.</Say>
 </Response>`
