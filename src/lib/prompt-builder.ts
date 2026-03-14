@@ -594,7 +594,7 @@ export function buildPrompt(variables: Record<string, string>): string {
 // ── Voicemail-specific prompt builder (Hasan/Aisha structure, parameterized) ──
 
 function buildVoicemailPrompt(intake: Record<string, unknown>): string {
-  const agentName   = ((intake.agent_name as string) || 'Sam').trim()
+  const agentName   = ((intake.db_agent_name as string) || (intake.agent_name as string) || 'Sam').trim()
   const bizName     = ((intake.business_name as string) || 'our office').trim()
   const callbackPhone = ((intake.callback_phone as string) || '').trim()
   const ownerName   = ((intake.owner_name as string) || '').trim()
@@ -769,7 +769,7 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
   const ownerName     = ((intake.owner_name    as string) || '').trim()
   const ownerFirst    = ownerName.split(' ')[0] || ownerName || 'the owner'
   const brokerage     = ((intake.business_name as string) || '').trim()
-  const agentName     = ((intake.agent_name    as string) || 'Alex').trim()
+  const agentName     = ((intake.db_agent_name as string) || (intake.agent_name as string) || 'Alex').trim()
   const rawAreas = intake.niche_serviceAreas
   const serviceAreas: string[] = Array.isArray(rawAreas)
     ? rawAreas
@@ -999,6 +999,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>): string {
     ['business_name', 'BUSINESS_NAME'],
     ['city', 'CITY'],
     ['agent_name', 'AGENT_NAME'],
+    ['db_agent_name', 'AGENT_NAME'],
     ['hours_weekday', 'HOURS_WEEKDAY'],
     ['weekend_policy', 'WEEKEND_POLICY'],
     ['callback_phone', 'CALLBACK_PHONE'],

@@ -222,6 +222,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [setupSaved, setSetupSaved] = useState(false)
   const [setupEditing, setSetupEditing] = useState(false)
 
+  // Agent Name
+  const [agentName, setAgentName] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.agent_name ?? '']))
+  )
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameSaved, setNameSaved] = useState(false)
+  const [changeDesc, setChangeDesc] = useState('')
+  const [showAllVersions, setShowAllVersions] = useState(false)
+
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
@@ -245,7 +254,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     setSaved(false)
     setSaveError('')
     setSaveUltravoxWarning(null)
-    const body: Record<string, unknown> = { system_prompt: currentPrompt }
+    const desc = changeDesc.trim() || 'Edited via dashboard'
+    const body: Record<string, unknown> = { system_prompt: currentPrompt, change_description: desc }
     if (isAdmin) body.client_id = client.id
     const res = await fetch('/api/dashboard/settings', {
       method: 'PATCH',
@@ -256,6 +266,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
       setSaved(true)
+      setChangeDesc('')
       setTimeout(() => setSaved(false), 3000)
       if (!data.ultravox_synced && data.ultravox_error) {
         setSaveUltravoxWarning(`Ultravox sync failed: ${data.ultravox_error}. Use "Re-sync Agent" to retry.`)
@@ -372,6 +383,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   async function toggleVersions() {
     const next = !versionsOpen
     setVersionsOpen(next)
+    if (!next) setShowAllVersions(false)
     if (next && versions.length === 0) await loadVersions()
   }
 
@@ -719,6 +731,43 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 </span>
               )}
             </div>
+            {/* Agent Name — inline edit */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Agent</span>
+              <input
+                type="text"
+                value={agentName[client.id] ?? ''}
+                onChange={e => setAgentName(prev => ({ ...prev, [client.id]: e.target.value }))}
+                placeholder="e.g. Aisha"
+                className="text-xs text-zinc-300 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.07] w-28 focus:outline-none focus:border-blue-500/50"
+              />
+              {(agentName[client.id] ?? '') !== (client.agent_name ?? '') && (
+                <button
+                  disabled={nameSaving}
+                  onClick={async () => {
+                    setNameSaving(true)
+                    setNameSaved(false)
+                    const body: Record<string, unknown> = { agent_name: agentName[client.id]?.trim() }
+                    if (isAdmin) body.client_id = client.id
+                    const res = await fetch('/api/dashboard/settings', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(body),
+                    })
+                    setNameSaving(false)
+                    if (res.ok) {
+                      setNameSaved(true)
+                      client.agent_name = agentName[client.id]?.trim() ?? null
+                      setTimeout(() => setNameSaved(false), 3000)
+                    }
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
+                >
+                  {nameSaving ? 'Saving...' : 'Save'}
+                </button>
+              )}
+              {nameSaved && <span className="text-[10px] text-green-400">Saved</span>}
+            </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Slug</span>
@@ -1029,6 +1078,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 'text-zinc-600'}`}>
                       {charCount.toLocaleString()} chars
                     </span>
+                    {dirty && (
+                      <input
+                        type="text"
+                        placeholder="What changed? (optional)"
+                        value={changeDesc}
+                        onChange={e => setChangeDesc(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl text-xs bg-white/[0.04] border border-white/[0.06] text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 w-48"
+                      />
+                    )}
                     <button
                       onClick={save}
                       disabled={!dirty || saving}
@@ -1196,33 +1254,43 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             ) : versions.length === 0 ? (
               <p className="px-5 py-4 text-xs text-zinc-600">No saved versions yet. Saving the prompt creates a version.</p>
             ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {versions.map(v => (
-                  <div key={v.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-zinc-300">v{v.version}</span>
-                        {v.is_active && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">Active</span>
-                        )}
-                        <span className="text-[11px] text-zinc-600">
-                          {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
+              <>
+                <div className="divide-y divide-white/[0.04]">
+                  {(showAllVersions ? versions : versions.slice(0, 5)).map(v => (
+                    <div key={v.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-semibold text-zinc-300">v{v.version}</span>
+                          {v.is_active && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">Active</span>
+                          )}
+                          <span className="text-[11px] text-zinc-600">
+                            {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">{v.change_description}</p>
                       </div>
-                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">{v.change_description}</p>
+                      {!v.is_active && (
+                        <button
+                          onClick={() => restoreVersion(v.id)}
+                          disabled={restoring === v.id}
+                          className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 border border-white/[0.06] transition-all disabled:opacity-40"
+                        >
+                          {restoring === v.id ? 'Restoring…' : 'Restore'}
+                        </button>
+                      )}
                     </div>
-                    {!v.is_active && (
-                      <button
-                        onClick={() => restoreVersion(v.id)}
-                        disabled={restoring === v.id}
-                        className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 border border-white/[0.06] transition-all disabled:opacity-40"
-                      >
-                        {restoring === v.id ? 'Restoring…' : 'Restore'}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                {!showAllVersions && versions.length > 5 && (
+                  <button
+                    onClick={() => setShowAllVersions(true)}
+                    className="w-full px-5 py-2 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    Show {versions.length - 5} older versions
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

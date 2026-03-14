@@ -60,6 +60,16 @@ export async function POST(req: NextRequest) {
   // Ensure niche is present (intake_json may have camelCase niche; prefer top-level niche field)
   if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
 
+  // Prefer clients.agent_name over intake-time agent_name (prevents name drift)
+  if (intake.client_slug) {
+    const { data: clientRow } = await svc
+      .from('clients')
+      .select('agent_name')
+      .eq('slug', intake.client_slug)
+      .single()
+    if (clientRow?.agent_name) intakeData.db_agent_name = clientRow.agent_name
+  }
+
   // ── Optional Sonar Pro enrichment ──────────────────────────────────────────
   if (shouldEnrichSonar) {
     const businessName = (intakeData.business_name as string) || intake.business_name || ''

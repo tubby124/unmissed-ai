@@ -63,40 +63,33 @@ export default function DemoPage() {
           </div>
         </section>
 
-        {/* Call yourself CTA */}
+        {/* Talk to an agent live CTA */}
         <section
           className="py-20 px-4 text-center"
           style={{ backgroundColor: "#0A0A0A", borderTop: "1px solid #1F1F1F" }}
         >
           <div className="max-w-xl mx-auto">
             <h2 className="text-3xl font-bold text-white mb-4">
-              Want to talk to the agent yourself?
+              Want to talk to an agent yourself?
             </h2>
             <p className="text-gray-500 text-lg mb-6">
-              Call our live auto glass agent right now. It&apos;s real — ask it anything,
-              book a quote, test it out.
+              Talk to a live AI agent right in your browser — no phone needed.
+              Pick from auto glass, property management, or real estate.
             </p>
-            <div
-              className="inline-block px-8 py-5 rounded-2xl mb-6"
-              style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
-            >
-              <p className="text-gray-500 text-xs mb-1">Live demo line:</p>
-              <a href="tel:+15873551834">
-                <p className="text-2xl font-black text-white hover:text-blue-400 transition-colors">(587) 355-1834</p>
-              </a>
-              <p className="text-gray-500 text-xs mt-1">Auto glass agent · Call anytime</p>
-            </div>
-            <div>
+            <div className="flex flex-col items-center gap-4">
               <Link
-                href="/onboard"
+                href="/try"
                 className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
                 style={{ backgroundColor: "#3B82F6" }}
               >
-                Ready? Get My Agent Set Up →
+                Try an Agent Live &rarr;
               </Link>
-              <p className="text-gray-600 text-xs mt-2">
-                Agent live within 24 hours · No contracts
-              </p>
+              <Link
+                href="/onboard"
+                className="text-gray-500 text-sm hover:text-white transition-colors"
+              >
+                Or skip ahead &mdash; Get My Agent Set Up
+              </Link>
             </div>
           </div>
         </section>

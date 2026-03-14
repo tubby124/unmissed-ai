@@ -89,6 +89,46 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   return { joinUrl: data.joinUrl as string, callId: data.callId as string }
 }
 
+// ── Demo call creation (browser WebRTC — no Twilio medium) ──────────────────
+
+interface CreateDemoCallOptions {
+  systemPrompt: string
+  voice?: string | null
+  /** When true, use Twilio medium (for phone IVR demos). Omit for browser WebRTC. */
+  useTwilio?: boolean
+}
+
+export async function createDemoCall({ systemPrompt, voice, useTwilio }: CreateDemoCallOptions) {
+  const body: Record<string, unknown> = {
+    model: 'ultravox-v0.7',
+    systemPrompt,
+    voice: voice || DEFAULT_VOICE,
+    maxDuration: '120s',
+    recordingEnabled: false,
+    inactivityMessages: DEFAULT_INACTIVITY,
+    timeExceededMessage: "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
+    vadSettings: DEFAULT_VAD,
+    firstSpeakerSettings: { agent: { uninterruptible: true } },
+  }
+
+  // Only add Twilio medium for phone IVR demos; omit for browser WebRTC
+  if (useTwilio) body.medium = { twilio: {} }
+
+  const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox createDemoCall failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return { joinUrl: data.joinUrl as string, callId: data.callId as string }
+}
+
 // ── Agents API ───────────────────────────────────────────────────────────────
 
 interface AgentConfig {
@@ -117,6 +157,7 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
         callerContext: { type: 'string' },
       },
     },
+    firstSpeakerSettings: { agent: { uninterruptible: true } },
   }
 
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
@@ -153,6 +194,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
       type: 'object',
       properties: { callerContext: { type: 'string' } },
     },
+    firstSpeakerSettings: { agent: { uninterruptible: true } },
   }
 
   // Client-specific overrides

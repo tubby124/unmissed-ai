@@ -39,6 +39,13 @@ export default function Navbar() {
             How It Works
           </Link>
           <Link
+            href="/try"
+            className="text-sm font-semibold transition-colors"
+            style={{ color: "#3B82F6" }}
+          >
+            Try Free
+          </Link>
+          <Link
             href="/#demo"
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
@@ -109,6 +116,14 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
           >
             How It Works
+          </Link>
+          <Link
+            href="/try"
+            className="text-sm font-semibold"
+            style={{ color: "#3B82F6" }}
+            onClick={() => setOpen(false)}
+          >
+            Try Free
           </Link>
           <Link
             href="/#demo"

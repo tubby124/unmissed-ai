@@ -50,6 +50,9 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.setup_complete === 'boolean') {
     updates.setup_complete = body.setup_complete
   }
+  if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
+    updates.agent_name = body.agent_name.trim()
+  }
 
   // God Mode fields — admin only
   if (cu.role === 'admin') {
@@ -168,13 +171,19 @@ export async function PATCH(req: NextRequest) {
       .update({ is_active: false })
       .eq('client_id', targetClientId)
 
-    await supabase.from('prompt_versions').insert({
+    const { data: newVersion } = await supabase.from('prompt_versions').insert({
       client_id: targetClientId,
       version: nextVersion,
       content: updates.system_prompt as string,
       change_description: body.change_description || `Manual update v${nextVersion}`,
       is_active: true,
-    })
+    }).select('id').single()
+
+    if (newVersion) {
+      await supabase.from('clients')
+        .update({ active_prompt_version_id: newVersion.id })
+        .eq('id', targetClientId)
+    }
   }
 
   return NextResponse.json({ ok: true, ultravox_synced, ...(ultravox_error ? { ultravox_error } : {}) })
