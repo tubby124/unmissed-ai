@@ -44,31 +44,31 @@ export default function ForLegalPage() {
 
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }}>
+      <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Hero */}
         <section className="relative pt-32 pb-20 px-4 overflow-hidden">
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
           />
           <div className="relative max-w-4xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <p
                   className="text-xs font-mono uppercase tracking-widest mb-3"
-                  style={{ color: "#3B82F6" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   For Law Firms
                 </p>
-                <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+                <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight" style={{ color: "var(--color-text-1)" }}>
                   Stop losing clients to voicemail.
                 </h1>
-                <p className="text-gray-400 text-lg leading-relaxed mb-6">
+                <p className="text-lg leading-relaxed mb-6" style={{ color: "var(--color-text-2)" }}>
                   Someone just got in a car accident. They need a personal injury
                   lawyer now. They call your firm at 6 PM. Voicemail. They call the
                   next firm. That&apos;s a $3,000&ndash;$50,000 retainer gone.
                 </p>
-                <p className="text-white font-semibold text-lg mb-8">
+                <p className="font-semibold text-lg mb-8" style={{ color: "var(--color-text-1)" }}>
                   Your AI receptionist answers. Every time.
                 </p>
 
@@ -76,27 +76,27 @@ export default function ForLegalPage() {
                   <Link
                     href="/onboard?niche=legal"
                     className="px-6 py-3.5 rounded-xl text-white font-semibold text-sm transition-colors text-center"
-                    style={{ backgroundColor: "#3B82F6" }}
+                    style={{ backgroundColor: "var(--color-primary)" }}
                   >
                     Get My Law Firm Agent &rarr;
                   </Link>
                   <Link
                     href="#demo"
                     className="px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors text-center"
-                    style={{ backgroundColor: "#111111", color: "#D1D5DB", border: "1px solid #1F1F1F" }}
+                    style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-2)", border: "1px solid var(--color-border)" }}
                   >
                     Hear a Real Call &darr;
                   </Link>
                 </div>
 
-                <p className="text-gray-600 text-xs mt-3">
+                <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
                   {"\u{1F512}"} No contracts &middot; Agent live within 24 hours
                 </p>
               </div>
 
               {/* Lead card preview */}
               <div>
-                <p className="text-gray-500 text-xs text-center mb-3">
+                <p className="text-xs text-center mb-3" style={{ color: "var(--color-text-2)" }}>
                   This hits your Telegram within seconds of every call:
                 </p>
                 <LeadCard niche="legal" />
@@ -108,32 +108,32 @@ export default function ForLegalPage() {
         {/* Niche stat bar */}
         <div
           className="py-8 px-4"
-          style={{ backgroundColor: "#0D0D0D", borderTop: "1px solid #1F1F1F", borderBottom: "1px solid #1F1F1F" }}
+          style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}
         >
           <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6 text-center">
             <div>
-              <p className="text-3xl font-black mb-1" style={{ color: "#3B82F6" }}>$3,000&ndash;$10,000</p>
-              <p className="text-gray-500 text-sm">Avg retainer value</p>
+              <p className="text-3xl font-black mb-1" style={{ color: "var(--color-primary)" }}>$3,000&ndash;$10,000</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Avg retainer value</p>
             </div>
             <div>
               <p className="text-3xl font-black mb-1" style={{ color: "#EF4444" }}>6+ calls/week</p>
-              <p className="text-gray-500 text-sm">Missed after hours</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Missed after hours</p>
             </div>
             <div>
               <p className="text-3xl font-black mb-1" style={{ color: "#22C55E" }}>$936,000</p>
-              <p className="text-gray-500 text-sm">Annual revenue at risk</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Annual revenue at risk</p>
             </div>
           </div>
         </div>
 
         {/* What your agent collects */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
                 Your agent collects everything you need to qualify the lead.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 Before you even call them back, you know exactly what the case involves.
               </p>
             </div>
@@ -142,10 +142,10 @@ export default function ForLegalPage() {
                 <div
                   key={item.label}
                   className="rounded-xl p-4 text-center"
-                  style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+                  style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
                   <div className="text-2xl mb-2">{item.icon}</div>
-                  <p className="text-gray-300 text-sm font-medium">{item.label}</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
             </div>
@@ -160,13 +160,13 @@ export default function ForLegalPage() {
         </section>
 
         {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
           <div className="max-w-2xl mx-auto">
             <div
               className="rounded-2xl p-8"
-              style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
             >
-              <p className="text-gray-300 text-lg leading-relaxed mb-4 italic">
+              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
                 &ldquo;Personal injury leads don&apos;t call during business hours. My
                 agent screens every call, collects case details, and I wake up to a
                 full intake card. We&apos;ve signed 3 extra clients a month we would
@@ -175,13 +175,13 @@ export default function ForLegalPage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "#3B82F6" }}
+                  style={{ backgroundColor: "var(--color-primary)" }}
                 >
                   J
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Jordan M.</p>
-                  <p className="text-gray-500 text-sm">Personal injury firm &middot; Calgary, AB</p>
+                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Jordan M.</p>
+                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Personal injury firm &middot; Calgary, AB</p>
                 </div>
               </div>
             </div>
@@ -189,13 +189,13 @@ export default function ForLegalPage() {
         </section>
 
         {/* Pricing */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-3xl font-bold mb-2" style={{ color: "var(--color-text-1)" }}>
                 One signed client pays for years of service.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 At $3,000+ per retainer, a single captured lead covers your entire plan cost many times over.
               </p>
             </div>
@@ -211,19 +211,19 @@ export default function ForLegalPage() {
         </ErrorBoundary>
 
         {/* Final CTA */}
-        <section className="py-20 px-4 text-center" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-20 px-4 text-center" style={{ backgroundColor: "var(--color-surface)" }}>
           <div className="max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
               Never lose a client to voicemail again.
             </h2>
             <Link
               href="/onboard?niche=legal"
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-              style={{ backgroundColor: "#3B82F6" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               Get My Law Firm Agent &rarr;
             </Link>
-            <p className="text-gray-600 text-xs mt-3">
+            <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
               Agent live within 24 hours &middot; No contracts &middot; 30-day guarantee
             </p>
           </div>

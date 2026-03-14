@@ -142,12 +142,6 @@ const niches: Niche[] = [
   },
 ];
 
-const statusColors: Record<string, { bg: string; text: string; border: string }> = {
-  HOT: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/40" },
-  WARM: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/40" },
-  COLD: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/40" },
-};
-
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -190,7 +184,6 @@ export default function DemoAudioPlayer() {
       }
     }
 
-    // Show outcome at 30% through
     if (niche.outcome && t > (niche.duration ?? 98) * 0.3) {
       setShowOutcome(true);
     }
@@ -245,8 +238,7 @@ export default function DemoAudioPlayer() {
   };
 
   return (
-    <section id="demo" className="py-20 px-4" style={{ backgroundColor: "#0D0D0D" }}>
-      {/* Soundbar animation keyframes */}
+    <section id="demo" className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
       <style>{`
         @keyframes soundbar {
           0%, 100% { height: 4px; }
@@ -276,17 +268,19 @@ export default function DemoAudioPlayer() {
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <p className="text-xs font-mono uppercase tracking-widest mb-2" style={{ color: "#3B82F6" }}>
+          <p className="text-xs font-mono uppercase tracking-widest mb-2" style={{ color: "var(--color-primary)" }}>
             Live Demo
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
             Hear it. This is your AI receptionist.
           </h2>
-          <p className="text-zinc-500 text-lg">Real call. Real agent. Real lead captured.</p>
+          <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
+            Demo call. Real agent. Real lead captured.
+          </p>
         </div>
 
-        {/* Niche tabs — horizontal scroll on mobile */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none" style={{ scrollbarWidth: "none" }}>
+        {/* Niche tabs */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {niches.map((n) => (
             <div key={n.id} className="relative flex-shrink-0">
               <button
@@ -300,24 +294,16 @@ export default function DemoAudioPlayer() {
               >
                 {n.label}
                 {!n.audioUrl && (
-                  <span
-                    className="ml-1.5 text-xs"
-                    style={{ color: "#52525B" }}
-                  >
-                    ·
-                  </span>
+                  <span className="ml-1.5 text-xs" style={{ color: "#52525B" }}>·</span>
                 )}
               </button>
             </div>
           ))}
         </div>
 
-        {/* Player card */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
-        >
-          {/* Hidden audio element */}
+        {/* iPhone frame */}
+        <div className="flex flex-col items-center">
+          {/* Hidden audio */}
           {hasAudio && (
             <audio
               ref={audioRef}
@@ -333,71 +319,108 @@ export default function DemoAudioPlayer() {
             />
           )}
 
-          {/* Transcript area */}
           <div
-            ref={transcriptRef}
-            className="p-5 space-y-2.5 overflow-y-auto"
-            style={{ maxHeight: "320px" }}
+            style={{
+              width: 304,
+              background: "#1C1C1E",
+              borderRadius: 48,
+              border: "8px solid #1C1C1E",
+              padding: 2,
+              boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.07)",
+            }}
           >
-            {/* Label row */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-zinc-600 text-xs font-mono uppercase tracking-wider">
-                {hasAudio ? "Real call transcript" : "Demo excerpt · No audio"}
-              </p>
-              {hasAudio && (
-                <span className="text-zinc-600 text-xs flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Verified recording
+            {/* Screen */}
+            <div style={{ background: "#000", borderRadius: 40, overflow: "hidden" }}>
+
+              {/* Status bar */}
+              <div
+                style={{
+                  background: "#111",
+                  padding: "10px 16px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid #222",
+                }}
+              >
+                <span style={{ color: "#F1F5F9", fontSize: 12, fontWeight: 600 }}>
+                  {niche.agentName} · {niche.label}
                 </span>
-              )}
-            </div>
-
-            {niche.transcript.map((line, i) => {
-              const isActive = activeLineIdx === i;
-              const isAgent = line.role === "agent";
-              return (
-                <motion.div
-                  key={`${activeNiche}-${i}`}
-                  ref={(el) => { bubbleRefs.current[i] = el; }}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.2 }}
-                  className={`flex gap-2.5 ${isAgent ? "" : "flex-row-reverse"}`}
+                <span
+                  style={{
+                    background: "rgba(16,185,129,0.15)",
+                    color: "#34D399",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 99,
+                    letterSpacing: "0.03em",
+                  }}
                 >
-                  {/* Speaker label */}
-                  <div className="flex-shrink-0 pt-0.5">
-                    <div
-                      className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                      style={{
-                        backgroundColor: isAgent ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.05)",
-                        color: isAgent ? "#60A5FA" : "#9CA3AF",
-                      }}
-                    >
-                      {isAgent ? niche.agentName : "Caller"}
-                    </div>
-                  </div>
+                  Demo call
+                </span>
+              </div>
 
-                  {/* Bubble */}
-                  <div
-                    className={`flex-1 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed transition-all duration-200 ${
-                      isAgent ? "rounded-tl-sm" : "rounded-tr-sm text-right"
-                    } ${isActive ? "ring-1 ring-blue-500/40" : ""}`}
-                    style={{
-                      backgroundColor: isActive
-                        ? isAgent
-                          ? "rgba(59,130,246,0.08)"
-                          : "rgba(255,255,255,0.06)"
-                        : isAgent
-                        ? "#1A1A1A"
-                        : "#161616",
-                      color: isActive ? "#E5E7EB" : "#9CA3AF",
-                    }}
-                  >
-                    {line.text}
-                  </div>
-                </motion.div>
-              );
-            })}
+              {/* Timer */}
+              {hasAudio && (
+                <div style={{ background: "#000", padding: "5px 16px 3px", textAlign: "center" }}>
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "monospace" }}>
+                    {formatTime(currentTime)} / {formatTime(duration || niche.duration || 0)}
+                  </span>
+                </div>
+              )}
+
+              {/* Bubbles */}
+              <div
+                ref={transcriptRef}
+                style={{
+                  padding: "10px 12px 8px",
+                  overflowY: "auto",
+                  maxHeight: 340,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 7,
+                  background: "#000",
+                }}
+              >
+                {niche.transcript.map((line, i) => {
+                  const isActive = activeLineIdx === i;
+                  const isAgent = line.role === "agent";
+                  return (
+                    <motion.div
+                      key={`${activeNiche}-${i}`}
+                      ref={(el) => { bubbleRefs.current[i] = el; }}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.2 }}
+                      style={{ display: "flex", justifyContent: isAgent ? "flex-start" : "flex-end" }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: "78%",
+                          padding: "8px 12px",
+                          borderRadius: isAgent ? "18px 18px 18px 4px" : "18px 18px 4px 18px",
+                          background: isActive
+                            ? isAgent ? "#6366F1" : "#D1D5DB"
+                            : isAgent ? "#4F46E5" : "#E5E7EB",
+                          color: isAgent ? "#fff" : "#111827",
+                          fontSize: 13,
+                          lineHeight: 1.45,
+                          transition: "background 0.2s",
+                        }}
+                      >
+                        {line.text}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Home indicator */}
+              <div style={{ background: "#000", padding: "10px 0 8px", display: "flex", justifyContent: "center" }}>
+                <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.22)", borderRadius: 2 }} />
+              </div>
+            </div>
           </div>
 
           {/* Outcome card */}
@@ -408,34 +431,35 @@ export default function DemoAudioPlayer() {
                 animate={{ opacity: 1, y: 0, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mx-5 mb-4 overflow-hidden"
+                className="w-full overflow-hidden mt-3"
+                style={{ maxWidth: 304 }}
               >
                 <div
                   className="rounded-xl p-4"
                   style={{
-                    backgroundColor: niche.outcome.status === "HOT" ? "rgba(239,68,68,0.05)" : "rgba(245,158,11,0.05)",
-                    border: `1px solid ${niche.outcome.status === "HOT" ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"}`,
+                    backgroundColor: niche.outcome.status === "HOT" ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                    border: `1px solid ${niche.outcome.status === "HOT" ? "rgba(239,68,68,0.25)" : "rgba(245,158,11,0.25)"}`,
                     borderLeft: `3px solid ${niche.outcome.status === "HOT" ? "#EF4444" : "#F59E0B"}`,
                   }}
                 >
-                  <p className="text-zinc-500 text-xs font-mono uppercase tracking-wider mb-2">
+                  <p className="text-xs font-mono uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
                     AI captured this lead:
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span
                       className="text-xs font-bold px-2 py-0.5 rounded-md"
                       style={{
-                        backgroundColor: statusColors[niche.outcome.status].bg,
+                        backgroundColor: niche.outcome.status === "HOT" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
                         color: niche.outcome.status === "HOT" ? "#F87171" : "#FCD34D",
                       }}
                     >
                       {niche.outcome.status}
                     </span>
-                    <span className="text-zinc-400 text-sm font-medium">{niche.outcome.caller}</span>
-                    <span className="text-zinc-600 text-xs">· {niche.outcome.duration}</span>
+                    <span className="text-sm font-medium" style={{ color: "#94A3B8" }}>{niche.outcome.caller}</span>
+                    <span className="text-xs" style={{ color: "#64748B" }}>· {niche.outcome.duration}</span>
                   </div>
-                  <p className="text-zinc-300 text-sm mb-1">{niche.outcome.intent}</p>
-                  <p className="text-zinc-500 text-xs flex items-center gap-1">
+                  <p className="text-sm mb-1" style={{ color: "#94A3B8" }}>{niche.outcome.intent}</p>
+                  <p className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
                     <span style={{ color: niche.outcome.status === "HOT" ? "#F87171" : "#FCD34D" }}>→</span>
                     {niche.outcome.nextStep}
                   </p>
@@ -444,49 +468,48 @@ export default function DemoAudioPlayer() {
             )}
           </AnimatePresence>
 
-          {/* Audio player bar */}
-          <div
-            className="px-5 pb-5 pt-3"
-            style={{ borderTop: "1px solid #1F1F1F" }}
-          >
-            <div className="flex items-center gap-3">
-              {/* Play button + soundbar */}
-              <button
-                onClick={togglePlay}
-                disabled={!hasAudio}
-                className="flex-shrink-0 flex items-center justify-center gap-1.5 transition-transform active:scale-95"
-                style={{ cursor: hasAudio ? "pointer" : "not-allowed" }}
-              >
-                {isPlaying ? (
-                  /* Pause icon + soundbars */
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="#111">
-                        <rect x="2" y="2" width="4" height="10" rx="1" />
-                        <rect x="8" y="2" width="4" height="10" rx="1" />
+          {/* Audio player */}
+          {hasAudio && (
+            <div
+              className="w-full mt-3 rounded-xl px-4 py-3"
+              style={{
+                maxWidth: 304,
+                backgroundColor: "#0F172A",
+                border: "1px solid #1E293B",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={togglePlay}
+                  className="flex-shrink-0 flex items-center justify-center gap-1.5 transition-transform active:scale-95"
+                >
+                  {isPlaying ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="#111">
+                          <rect x="2" y="2" width="4" height="10" rx="1" />
+                          <rect x="8" y="2" width="4" height="10" rx="1" />
+                        </svg>
+                      </div>
+                      <div className="flex items-end gap-0.5 h-4">
+                        <div className="soundbar-1 w-1 rounded-full" style={{ backgroundColor: "#818CF8" }} />
+                        <div className="soundbar-2 w-1 rounded-full" style={{ backgroundColor: "#818CF8" }} />
+                        <div className="soundbar-3 w-1 rounded-full" style={{ backgroundColor: "#818CF8" }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+                      style={{ backgroundColor: "#F1F5F9" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="#111">
+                        <path d="M3 2l9 5-9 5V2z" />
                       </svg>
                     </div>
-                    <div className="flex items-end gap-0.5 h-4">
-                      <div className="soundbar-1 w-1 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-                      <div className="soundbar-2 w-1 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-                      <div className="soundbar-3 w-1 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 transition-transform"
-                    style={{ backgroundColor: hasAudio ? "white" : "#2A2A2A" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill={hasAudio ? "#111" : "#555"}>
-                      <path d="M3 2l9 5-9 5V2z" />
-                    </svg>
-                  </div>
-                )}
-              </button>
+                  )}
+                </button>
 
-              {/* Progress bar */}
-              <div className="flex-1 flex flex-col gap-1">
-                {hasAudio ? (
+                <div className="flex-1 flex flex-col gap-1">
                   <input
                     type="range"
                     min={0}
@@ -496,26 +519,17 @@ export default function DemoAudioPlayer() {
                     onChange={handleSeek}
                     className="demo-progress w-full h-1.5 rounded-full cursor-pointer appearance-none"
                     style={{
-                      background: `linear-gradient(to right, #3B82F6 ${((currentTime / (duration || niche.duration || 100)) * 100).toFixed(1)}%, #27272A ${((currentTime / (duration || niche.duration || 100)) * 100).toFixed(1)}%)`,
+                      background: `linear-gradient(to right, #818CF8 ${((currentTime / (duration || niche.duration || 100)) * 100).toFixed(1)}%, #27272A ${((currentTime / (duration || niche.duration || 100)) * 100).toFixed(1)}%)`,
                       outline: "none",
                     }}
                   />
-                ) : (
-                  <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: "#27272A" }} />
-                )}
-                <div className="flex items-center justify-between">
-                  <p className="text-zinc-500 text-xs">
-                    {niche.agentName} · {hasAudio ? "Real call recording" : "Demo excerpt"}
+                  <p className="text-xs" style={{ color: "#64748B" }}>
+                    {niche.agentName} · Demo recording
                   </p>
-                  {hasAudio && (
-                    <span className="text-zinc-600 text-xs font-mono">
-                      {formatTime(currentTime)} / {formatTime(duration || niche.duration || 0)}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* CTA */}
@@ -523,7 +537,7 @@ export default function DemoAudioPlayer() {
           <Link
             href="/onboard"
             className="inline-block px-8 py-3.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-cta)" }}
           >
             This is what your customers hear. Get Mine Set Up →
           </Link>

@@ -44,31 +44,31 @@ export default function ForAutoGlassPage() {
 
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }}>
+      <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Hero */}
         <section className="relative pt-32 pb-20 px-4 overflow-hidden">
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
           />
           <div className="relative max-w-4xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <p
                   className="text-xs font-mono uppercase tracking-widest mb-3"
-                  style={{ color: "#3B82F6" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   For Auto Glass Shops
                 </p>
-                <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+                <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight" style={{ color: "var(--color-text-1)" }}>
                   Stop losing windshield jobs to voicemail.
                 </h1>
-                <p className="text-gray-400 text-lg leading-relaxed mb-6">
+                <p className="text-lg leading-relaxed mb-6" style={{ color: "var(--color-text-2)" }}>
                   You&apos;re in the middle of a ADAS calibration. A customer calls
                   about a cracked windshield on their 2024 F-150. 3 rings. They hang up
                   and call the next shop. That&apos;s a $600 job gone.
                 </p>
-                <p className="text-white font-semibold text-lg mb-8">
+                <p className="font-semibold text-lg mb-8" style={{ color: "var(--color-text-1)" }}>
                   Your AI receptionist answers. Every time.
                 </p>
 
@@ -76,27 +76,27 @@ export default function ForAutoGlassPage() {
                   <Link
                     href="/onboard?niche=auto_glass"
                     className="px-6 py-3.5 rounded-xl text-white font-semibold text-sm transition-colors text-center"
-                    style={{ backgroundColor: "#3B82F6" }}
+                    style={{ backgroundColor: "var(--color-primary)" }}
                   >
                     Get My Auto Glass Agent →
                   </Link>
                   <Link
                     href="#demo"
                     className="px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors text-center"
-                    style={{ backgroundColor: "#111111", color: "#D1D5DB", border: "1px solid #1F1F1F" }}
+                    style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-2)", border: "1px solid var(--color-border)" }}
                   >
                     Hear a Real Call ↓
                   </Link>
                 </div>
 
-                <p className="text-gray-600 text-xs mt-3">
+                <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
                   🔒 No contracts · Agent live within 24 hours
                 </p>
               </div>
 
               {/* Lead card preview */}
               <div>
-                <p className="text-gray-500 text-xs text-center mb-3">
+                <p className="text-xs text-center mb-3" style={{ color: "var(--color-text-2)" }}>
                   This hits your Telegram within seconds of every call:
                 </p>
                 <LeadCard niche="auto-glass" />
@@ -108,32 +108,32 @@ export default function ForAutoGlassPage() {
         {/* Niche stat bar */}
         <div
           className="py-8 px-4"
-          style={{ backgroundColor: "#0D0D0D", borderTop: "1px solid #1F1F1F", borderBottom: "1px solid #1F1F1F" }}
+          style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}
         >
           <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6 text-center">
             <div>
-              <p className="text-3xl font-black mb-1" style={{ color: "#3B82F6" }}>$150–$800</p>
-              <p className="text-gray-500 text-sm">Avg glass job value</p>
+              <p className="text-3xl font-black mb-1" style={{ color: "var(--color-primary)" }}>$150–$800</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Avg glass job value</p>
             </div>
             <div>
               <p className="text-3xl font-black mb-1" style={{ color: "#EF4444" }}>3 jobs/week</p>
-              <p className="text-gray-500 text-sm">Typical missed calls per shop</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Typical missed calls per shop</p>
             </div>
             <div>
               <p className="text-3xl font-black mb-1" style={{ color: "#22C55E" }}>$93,600</p>
-              <p className="text-gray-500 text-sm">Annual revenue at risk</p>
+              <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Annual revenue at risk</p>
             </div>
           </div>
         </div>
 
         {/* What your agent collects */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
                 Your agent collects everything you need to quote the job.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 Before you even call them back, you know exactly what the job involves.
               </p>
             </div>
@@ -142,10 +142,10 @@ export default function ForAutoGlassPage() {
                 <div
                   key={item.label}
                   className="rounded-xl p-4 text-center"
-                  style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+                  style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
                   <div className="text-2xl mb-2">{item.icon}</div>
-                  <p className="text-gray-300 text-sm font-medium">{item.label}</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
             </div>
@@ -160,13 +160,13 @@ export default function ForAutoGlassPage() {
         </section>
 
         {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
           <div className="max-w-2xl mx-auto">
             <div
               className="rounded-2xl p-8"
-              style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
             >
-              <p className="text-gray-300 text-lg leading-relaxed mb-4 italic">
+              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
                 &ldquo;I used to lose 3–4 windshield jobs a week to voicemail while I was
                 doing installs. My agent catches everything now — even at 11pm.
                 The lead card hits my phone before I&apos;m done with the job I&apos;m on.&rdquo;
@@ -174,13 +174,13 @@ export default function ForAutoGlassPage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "#3B82F6" }}
+                  style={{ backgroundColor: "var(--color-primary)" }}
                 >
                   M
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Mark T.</p>
-                  <p className="text-gray-500 text-sm">Windshield Hub Auto Glass · Calgary, AB</p>
+                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Mark T.</p>
+                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Windshield Hub Auto Glass · Calgary, AB</p>
                 </div>
               </div>
             </div>
@@ -188,13 +188,13 @@ export default function ForAutoGlassPage() {
         </section>
 
         {/* Pricing */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-3xl font-bold mb-2" style={{ color: "var(--color-text-1)" }}>
                 One missed job pays for 6 months.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 At $400/avg job, a single captured lead covers your entire plan cost.
               </p>
             </div>
@@ -210,19 +210,19 @@ export default function ForAutoGlassPage() {
         </ErrorBoundary>
 
         {/* Final CTA */}
-        <section className="py-20 px-4 text-center" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-20 px-4 text-center" style={{ backgroundColor: "var(--color-surface)" }}>
           <div className="max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
               Never lose a windshield job to voicemail again.
             </h2>
             <Link
               href="/onboard?niche=auto_glass"
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-              style={{ backgroundColor: "#3B82F6" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               Get My Auto Glass Agent →
             </Link>
-            <p className="text-gray-600 text-xs mt-3">
+            <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
               Agent live within 24 hours · No contracts · 30-day guarantee
             </p>
           </div>

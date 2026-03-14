@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'motion/react'
 import CallRow from './CallRow'
 import EmptyState from './EmptyState'
+import KanbanBoard from './KanbanBoard'
 import LiveCallBanner from './LiveCallBanner'
 import StatsGrid from './StatsGrid'
 import OutcomeCharts from './OutcomeCharts'
@@ -51,8 +52,8 @@ const STATUS_BORDER: Record<string, string> = {
   HOT:     'border-l-red-500',
   WARM:    'border-l-amber-400',
   COLD:    'border-l-blue-400',
-  JUNK:    'border-l-zinc-700',
-  UNKNOWN: 'border-l-zinc-700',
+  JUNK:    'border-l-[var(--color-border)]',
+  UNKNOWN: 'border-l-[var(--color-border)]',
   MISSED:  'border-l-orange-500',
 }
 
@@ -115,6 +116,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [showDial, setShowDial] = useState(false)
   const [dialPhone, setDialPhone] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const initialIds = useRef(new Set(initialCalls.map(c => c.id)))
   const supabase = createBrowserClient()
 
@@ -350,7 +352,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800/60 text-zinc-300">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-2)' }}>
                 <svg className="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -363,17 +365,18 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           )}
         </AnimatePresence>
 
-        <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
           {/* Admin client tabs */}
           {isAdmin && adminClients.length > 0 && (
-            <div className="px-5 border-b border-white/[0.06] flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="px-5 flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <button
                 onClick={() => setClientFilter('all')}
                 className={`px-3.5 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
                   clientFilter === 'all'
                     ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                    : 'border-transparent hover:text-[var(--color-text-2)]'
                 }`}
+                style={clientFilter === 'all' ? undefined : { color: 'var(--color-text-3)' }}
               >
                 All Clients
               </button>
@@ -384,8 +387,9 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                   className={`px-3.5 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
                     clientFilter === client.id
                       ? 'border-blue-500 text-blue-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      : 'border-transparent hover:text-[var(--color-text-2)]'
                   }`}
+                  style={clientFilter === client.id ? undefined : { color: 'var(--color-text-3)' }}
                 >
                   {client.business_name}
                 </button>
@@ -394,12 +398,12 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           )}
 
           {/* Header */}
-          <div className="px-5 py-4 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
                 Call Log
               </p>
-              <span className="text-[11px] font-mono text-zinc-600">{filtered.length}</span>
+              <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-3)' }}>{filtered.length}</span>
 
               {/* Date filter chip */}
               <AnimatePresence>
@@ -423,7 +427,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               {(isAdmin || clientSlug) && (
                 <button
                   onClick={() => setShowDial(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-zinc-700/80 text-zinc-200 border border-white/10 hover:bg-zinc-600/80 hover:text-white transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all"
+                  style={{ backgroundColor: 'var(--color-bg-raised)', color: 'var(--color-text-1)', border: '1px solid var(--color-border)' }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                     <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.77 9.84 19.79 19.79 0 01.7 1.23a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 6.54a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -436,7 +441,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               {filtered.length > 0 && (
                 <button
                   onClick={() => exportCsv(filtered)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-white/[0.07] hover:text-zinc-200 transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all"
+                  style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -444,6 +450,31 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                   CSV
                 </button>
               )}
+
+              {/* View mode toggle */}
+              <div className="flex items-center gap-0.5 ml-auto p-0.5 rounded-lg" style={{ backgroundColor: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
+                <button
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm dark:bg-zinc-700' : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'}`}
+                  style={viewMode === 'list' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  title="Kanban view"
+                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm dark:bg-zinc-700' : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'}`}
+                  style={viewMode === 'kanban' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="3" width="7" height="18" rx="1" stroke="currentColor" strokeWidth="2"/>
+                    <rect x="14" y="3" width="7" height="11" rx="1" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-shrink-0">
               <input
@@ -451,7 +482,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 placeholder={isAdmin ? 'Search number or client…' : 'Search number…'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 w-full sm:w-56 transition-colors"
+                className="rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500/30 w-full sm:w-56 transition-colors"
+                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-2)' }}
               />
               <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {FILTERS.map(f => {
@@ -470,11 +502,14 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                           transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                         />
                       )}
-                      <span className={`relative flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                        filter === f.value
-                          ? 'text-blue-400'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}>
+                      <span
+                        className={`relative flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                          filter === f.value
+                            ? 'text-blue-400'
+                            : 'hover:text-[var(--color-text-2)]'
+                        }`}
+                        style={filter === f.value ? undefined : { color: 'var(--color-text-3)' }}
+                      >
                         {f.label}
                         {count > 0 && (
                           <span className={`text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
@@ -497,16 +532,20 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
             </div>
           </div>
 
-          {/* Rows — date grouped */}
-          {filtered.length === 0 ? (
+          {/* Rows — kanban or date-grouped list */}
+          {viewMode === 'kanban' ? (
+            <div className="p-4">
+              <KanbanBoard calls={filtered} showBusiness={showBusiness} />
+            </div>
+          ) : filtered.length === 0 ? (
             <EmptyState phone={phone} />
           ) : (
             <div>
               {grouped.map(group => (
                 <div key={group.label}>
                   {/* Date group header */}
-                  <div className="px-5 py-2 bg-white/[0.01] border-b border-white/[0.04]">
-                    <span className="text-xs font-semibold tracking-[0.18em] uppercase text-zinc-400 bg-zinc-900/60 px-2 py-0.5 rounded">
+                  <div className="px-5 py-2" style={{ backgroundColor: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+                    <span className="text-xs font-semibold tracking-[0.18em] uppercase px-2 py-0.5 rounded" style={{ color: 'var(--color-text-2)', backgroundColor: 'var(--color-bg-raised)' }}>
                       {group.label}
                     </span>
                   </div>

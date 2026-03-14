@@ -230,6 +230,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [nameSaved, setNameSaved] = useState(false)
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
+  const [activeTab, setActiveTab] = useState<'general' | 'transfer' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -592,6 +593,35 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
         </div>
       )}
+
+      {/* ─── Tab bar ─────────────────────────────────────────────────── */}
+      <div className="border-b border-gray-200 dark:border-white/[0.08]">
+        <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Settings tabs">
+          {([
+            { id: 'general', label: 'General' },
+            { id: 'transfer', label: 'Transfer' },
+            { id: 'sms', label: 'SMS' },
+            { id: 'voice', label: 'Voice' },
+            { id: 'notifications', label: 'Notifications' },
+            { id: 'billing', label: 'Billing' },
+          ] as { id: typeof activeTab; label: string }[]).map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 border-b-2 ${
+                activeTab === id
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-zinc-500'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ─── General Tab ──────────────────────────────────────────────── */}
+      {activeTab === 'general' && (<>
 
       {/* 0 — Setup */}
       {(!setupComplete[client.id] || setupEditing) ? (
@@ -1296,7 +1326,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         )}
       </div>
 
-      {/* 8 — SMS Follow-up */}
+      </>)}
+
+      {/* ─── SMS Tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'sms' && (<>
+
+      {/* SMS Follow-up */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
         <div className="flex items-center justify-between mb-1">
           <div>
@@ -1401,6 +1436,11 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           )}
         </div>
       </div>
+
+      </>)}
+
+      {/* ─── General Tab (continued) ──────────────────────────────── */}
+      {activeTab === 'general' && (<>
 
       {/* 8b — Advanced Context */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
@@ -1558,6 +1598,93 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
         )}
       </div>
+
+      </>)}
+
+      {/* ─── Transfer Tab ─────────────────────────────────────────── */}
+      {activeTab === 'transfer' && (
+        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Call Transfer Rules</p>
+          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Configure scenarios where the agent hands off to a human.</p>
+          <div className="rounded-xl border border-dashed border-gray-200 dark:border-white/[0.06] p-8 text-center">
+            <p className="text-sm text-gray-400 dark:text-zinc-500">Transfer workflows coming soon.</p>
+            <p className="text-xs text-gray-400 dark:text-zinc-600 mt-1">Use your Setup tab to configure the forwarding number for now.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Voice Tab ────────────────────────────────────────────── */}
+      {activeTab === 'voice' && (
+        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Voice</p>
+          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Your agent&apos;s voice is configured in the Voice Library.</p>
+          <a
+            href="/dashboard/voices"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            Open Voice Library
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </a>
+        </div>
+      )}
+
+      {/* ─── Notifications Tab ────────────────────────────────────── */}
+      {activeTab === 'notifications' && (
+        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Notifications</p>
+          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Choose how and when you get notified.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr>
+                  <th className="text-left pb-3 text-gray-400 dark:text-zinc-500 font-medium w-36" />
+                  {(['Telegram', 'SMS', 'Email'] as const).map(ch => (
+                    <th key={ch} className="pb-3 text-gray-400 dark:text-zinc-500 font-medium px-6 text-center">{ch}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+                {(['HOT lead', 'Missed call', 'Daily digest'] as const).map(event => (
+                  <tr key={event}>
+                    <td className="py-3 text-gray-600 dark:text-zinc-400 font-medium pr-4">{event}</td>
+                    {(['telegram', 'sms', 'email'] as const).map(ch => (
+                      <td key={ch} className="py-3 px-6 text-center">
+                        <button
+                          role="switch"
+                          aria-checked="false"
+                          aria-label={`${event} via ${ch}`}
+                          className="w-9 h-5 rounded-full bg-gray-200 dark:bg-zinc-700 relative inline-flex items-center justify-center transition-colors hover:bg-gray-300 dark:hover:bg-zinc-600"
+                        >
+                          <span className="w-4 h-4 rounded-full bg-white shadow absolute left-0.5 transition-all" />
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[10px] text-gray-400 dark:text-zinc-600 mt-4">Full notification routing coming in a future update.</p>
+        </div>
+      )}
+
+      {/* ─── Billing Tab ──────────────────────────────────────────── */}
+      {activeTab === 'billing' && (
+        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Billing</p>
+          <div className="mt-3 flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.04]">
+            <div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Starter Plan</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Renews monthly · {client.business_name}</p>
+            </div>
+            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">$20 / mo</span>
+          </div>
+          <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-4">
+            To manage your subscription, email{' '}
+            <span className="font-mono text-gray-600 dark:text-zinc-400">support@unmissed.ai</span>
+          </p>
+        </div>
+      )}
     </div>
   )
 }

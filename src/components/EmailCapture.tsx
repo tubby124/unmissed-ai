@@ -31,23 +31,24 @@ export default function EmailCapture() {
   return (
     <section
       className="py-20 px-4"
-      style={{ backgroundColor: "#0D0D0D" }}
+      style={{ backgroundColor: "var(--color-bg)" }}
     >
       <div className="max-w-xl mx-auto text-center">
         <p
           className="text-xs font-mono uppercase tracking-widest mb-2"
-          style={{ color: "#3B82F6" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Stay in the Loop
         </p>
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+        <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
           Not ready to commit?
         </h2>
-        <p className="text-gray-500 mb-2">
+        <p className="mb-2" style={{ color: "var(--color-text-2)" }}>
           Get actionable tips on capturing more leads — plus early access to new features.
         </p>
         <p
-          className="text-white font-semibold text-lg mb-6 leading-tight"
+          className="font-semibold text-lg mb-6 leading-tight"
+          style={{ color: "var(--color-text-1)" }}
         >
           Join service business owners who never miss a call.
         </p>
@@ -59,7 +60,7 @@ export default function EmailCapture() {
           >
             <p className="text-2xl mb-2">✅</p>
             <p className="text-green-400 font-semibold">You&apos;re in!</p>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-sm mt-1" style={{ color: "var(--color-text-2)" }}>
               Thanks! We&apos;ll be in touch with tips to stop missing calls.
             </p>
           </div>
@@ -71,23 +72,24 @@ export default function EmailCapture() {
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-4 py-3 rounded-xl text-white text-sm outline-none transition-colors"
+              className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-colors"
               style={{
-                backgroundColor: "#111111",
-                border: "1px solid #1F1F1F",
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-1)",
               }}
               onFocus={(e) =>
-                (e.currentTarget.style.borderColor = "#3B82F6")
+                (e.currentTarget.style.borderColor = "var(--color-primary)")
               }
               onBlur={(e) =>
-                (e.currentTarget.style.borderColor = "#1F1F1F")
+                (e.currentTarget.style.borderColor = "var(--color-border)")
               }
             />
             <button
               type="submit"
               disabled={status === "loading"}
               className="flex-shrink-0 px-6 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-60"
-              style={{ backgroundColor: "#3B82F6" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               {status === "loading" ? "Sending…" : "Get Updates →"}
             </button>
@@ -100,7 +102,7 @@ export default function EmailCapture() {
           </p>
         )}
 
-        <p className="text-gray-700 text-xs mt-3">
+        <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
           No spam. Just useful tips and updates. Unsubscribe anytime.
         </p>
       </div>

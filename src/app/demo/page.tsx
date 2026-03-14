@@ -21,13 +21,13 @@ export default function DemoPage() {
     <>
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }}>
+      <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Header */}
         <section className="pt-32 pb-8 px-4 text-center">
           <div className="max-w-2xl mx-auto">
             <p
               className="text-xs font-mono uppercase tracking-widest mb-3"
-              style={{ color: "#3B82F6" }}
+              style={{ color: "var(--color-primary)" }}
             >
               Live Demo
             </p>
@@ -47,7 +47,7 @@ export default function DemoPage() {
         </ErrorBoundary>
 
         {/* What you receive section */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-2xl font-bold text-white mb-2">
@@ -66,7 +66,7 @@ export default function DemoPage() {
         {/* Talk to an agent live CTA */}
         <section
           className="py-20 px-4 text-center"
-          style={{ backgroundColor: "#0A0A0A", borderTop: "1px solid #1F1F1F" }}
+          style={{ backgroundColor: "var(--color-bg)", borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-xl mx-auto">
             <h2 className="text-3xl font-bold text-white mb-4">
@@ -80,7 +80,7 @@ export default function DemoPage() {
               <Link
                 href="/try"
                 className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-                style={{ backgroundColor: "#3B82F6" }}
+                style={{ backgroundColor: "var(--color-primary)" }}
               >
                 Try an Agent Live &rarr;
               </Link>

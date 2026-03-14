@@ -9,9 +9,9 @@ const integrations = [
 
 export default function IntegrationLogos() {
   return (
-    <section className="py-16 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-16 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
       <div className="max-w-5xl mx-auto">
-        <p className="text-center text-gray-600 text-xs uppercase tracking-widest font-mono mb-8">
+        <p className="text-center text-xs uppercase tracking-widest font-mono mb-8" style={{ color: "var(--color-text-3)" }}>
           Built on enterprise-grade infrastructure
         </p>
 
@@ -21,18 +21,18 @@ export default function IntegrationLogos() {
               key={integration.name}
               className="rounded-xl p-4 text-center transition-colors hover:border-gray-600"
               style={{
-                backgroundColor: "#111111",
-                border: "1px solid #1F1F1F",
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
               }}
             >
               <div className="text-2xl mb-2">{integration.icon}</div>
-              <p className="text-white text-xs font-semibold">{integration.name}</p>
-              <p className="text-gray-600 text-xs mt-0.5">{integration.description}</p>
+              <p className="text-xs font-semibold" style={{ color: "var(--color-text-1)" }}>{integration.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>{integration.description}</p>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-gray-700 text-xs mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: "var(--color-text-3)" }}>
           And more integrations coming soon.
         </p>
       </div>

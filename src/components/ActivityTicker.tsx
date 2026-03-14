@@ -18,7 +18,7 @@ export default function ActivityTicker() {
   return (
     <div
       className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
-      style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+      style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
     >
       <span
         className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse"

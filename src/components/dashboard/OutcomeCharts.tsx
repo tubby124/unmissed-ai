@@ -32,13 +32,13 @@ function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: {
   const rows = payload.filter(p => p.value > 0)
   if (!rows.length) return null
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-zinc-900 px-3 py-2 text-[11px] shadow-2xl">
-      {label && <p className="text-zinc-600 mb-1.5 font-mono uppercase tracking-wider text-[9px]">{label}</p>}
+    <div className="rounded-xl px-3 py-2 text-[11px] shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
+      {label && <p className="mb-1.5 font-mono uppercase tracking-wider text-[9px]" style={{ color: "var(--color-text-3)" }}>{label}</p>}
       {rows.map(p => (
         <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.fill }} />
-          <span className="text-zinc-400">{p.name}:</span>
-          <span className="text-zinc-100 font-mono font-semibold ml-auto pl-3">{p.value}</span>
+          <span style={{ color: "var(--color-text-2)" }}>{p.name}:</span>
+          <span className="font-mono font-semibold ml-auto pl-3" style={{ color: "var(--color-text-1)" }}>{p.value}</span>
         </div>
       ))}
     </div>
@@ -87,8 +87,8 @@ function DonutChart({ counts, total }: { counts: Record<string, number>; total: 
       </ResponsiveContainer>
       {/* Center label — pointer-events-none so it doesn't block tooltip */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-xl font-bold font-mono text-zinc-100 leading-none">{total}</span>
-        <span className="text-[10px] text-zinc-600 mt-0.5">calls</span>
+        <span className="text-xl font-bold font-mono leading-none" style={{ color: "var(--color-text-1)" }}>{total}</span>
+        <span className="text-[10px] mt-0.5" style={{ color: "var(--color-text-3)" }}>calls</span>
       </div>
     </div>
   )
@@ -153,7 +153,7 @@ function DayBarChart({
 function ConversionFunnel({ calls }: { calls: CallLog[] }) {
   const classified = calls.filter(c => STATUSES.includes(c.call_status as typeof STATUSES[number]))
   const total = classified.length
-  if (total === 0) return <div className="flex items-center justify-center h-full text-zinc-700 text-[11px]">No data</div>
+  if (total === 0) return <div className="flex items-center justify-center h-full text-[11px]" style={{ color: "var(--color-text-3)" }}>No data</div>
 
   const answered = classified.filter(c => c.call_status !== 'JUNK').length
   const qualified = classified.filter(c => c.call_status === 'HOT' || c.call_status === 'WARM').length
@@ -171,13 +171,13 @@ function ConversionFunnel({ calls }: { calls: CallLog[] }) {
       {stages.map((stage) => (
         <div key={stage.label}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] text-zinc-500">{stage.label}</span>
+            <span className="text-[11px]" style={{ color: "var(--color-text-3)" }}>{stage.label}</span>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-zinc-400">{stage.count}</span>
+              <span className="text-[11px] font-mono" style={{ color: "var(--color-text-2)" }}>{stage.count}</span>
               <span className="text-[10px] font-mono" style={{ color: stage.color }}>{stage.pct}%</span>
             </div>
           </div>
-          <div className="h-3 rounded-full bg-white/[0.05] overflow-hidden">
+          <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: "var(--color-surface)" }}>
             <div
               className="h-full rounded-full transition-all duration-700 ease-out"
               style={{
@@ -232,17 +232,17 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {/* Donut — lead outcomes */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Outcomes</p>
+      <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Outcomes</p>
         <div className="flex items-center gap-4">
           <DonutChart counts={counts} total={classified.length} />
           <div className="space-y-1.5 flex-1 min-w-0">
             {STATUSES.map(s => (
               <div key={s} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_COLORS[s].bg}`} />
-                <span className="text-[11px] text-zinc-500 flex-1">{STATUS_COLORS[s].label}</span>
-                <span className="text-[11px] font-mono text-zinc-400">{counts[s]}</span>
-                <span className="text-[10px] font-mono text-zinc-600">
+                <span className="text-[11px] flex-1" style={{ color: "var(--color-text-3)" }}>{STATUS_COLORS[s].label}</span>
+                <span className="text-[11px] font-mono" style={{ color: "var(--color-text-2)" }}>{counts[s]}</span>
+                <span className="text-[10px] font-mono" style={{ color: "var(--color-text-3)" }}>
                   {classified.length > 0 ? `${Math.round((counts[s] ?? 0) / classified.length * 100)}%` : '—'}
                 </span>
               </div>
@@ -252,15 +252,15 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
       </div>
 
       {/* Stacked bar chart — 7-day volume */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Last 7 Days</p>
+      <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Last 7 Days</p>
         <DayBarChart days={days} onDayClick={onDayClick} selectedDay={selectedDay} />
-        <p className="text-[10px] text-zinc-700 mt-1 font-mono">{todayCount} today</p>
+        <p className="text-[10px] mt-1 font-mono" style={{ color: "var(--color-text-3)" }}>{todayCount} today</p>
       </div>
 
       {/* Conversion funnel */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4 sm:col-span-2 lg:col-span-1">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Funnel</p>
+      <div className="rounded-2xl border p-4 sm:col-span-2 lg:col-span-1" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Funnel</p>
         <ConversionFunnel calls={classified} />
       </div>
     </div>

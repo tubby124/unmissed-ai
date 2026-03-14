@@ -80,7 +80,8 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#111113] p-6 space-y-5 shadow-2xl"
+          className="relative w-full max-w-sm rounded-2xl border p-6 space-y-5 shadow-2xl"
+          style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}
           initial={{ opacity: 0, scale: 0.95, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -89,12 +90,13 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Outbound Dial</p>
-              <p className="text-base font-semibold text-zinc-100 mt-0.5">Place a call</p>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>Outbound Dial</p>
+              <p className="text-base font-semibold mt-0.5" style={{ color: "var(--color-text-1)" }}>Place a call</p>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.05] transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--color-hover)] transition-all"
+              style={{ color: "var(--color-text-3)" }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -122,10 +124,11 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
                 </div>
               </div>
               <p className="text-sm font-medium text-green-300">Dialing…</p>
-              <p className="text-xs text-zinc-500">Watch the live banner for the call</p>
+              <p className="text-xs" style={{ color: "var(--color-text-3)" }}>Watch the live banner for the call</p>
               <button
                 onClick={onClose}
-                className="mt-2 px-4 py-2 rounded-lg text-xs font-medium bg-white/[0.05] text-zinc-300 border border-white/[0.08] hover:bg-white/[0.08] transition-all"
+                className="mt-2 px-4 py-2 rounded-lg text-xs font-medium border hover:bg-[var(--color-hover)] transition-all"
+                style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-2)", borderColor: "var(--color-border)" }}
               >
                 Close
               </button>
@@ -135,11 +138,12 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
               {/* Client selector */}
               {clients.length > 1 && (
                 <div>
-                  <label className="text-[11px] text-zinc-500 font-medium block mb-1.5">Agent</label>
+                  <label className="text-[11px] font-medium block mb-1.5" style={{ color: "var(--color-text-3)" }}>Agent</label>
                   <select
                     value={slug}
                     onChange={e => setSlug(e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/30 transition-colors appearance-none"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500/30 transition-colors appearance-none"
+                    style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-2)" }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.slug}>{c.business_name}</option>
@@ -150,16 +154,17 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
 
               {/* Phone input */}
               <div>
-                <label className="text-[11px] text-zinc-500 font-medium block mb-1.5">Phone number</label>
-                <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 focus-within:border-blue-500/30 transition-colors">
-                  <span className="text-zinc-600 text-sm font-mono shrink-0">+1</span>
+                <label className="text-[11px] font-medium block mb-1.5" style={{ color: "var(--color-text-3)" }}>Phone number</label>
+                <div className="flex items-center gap-2 border rounded-xl px-3 py-2.5 focus-within:border-blue-500/30 transition-colors" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
+                  <span className="text-sm font-mono shrink-0" style={{ color: "var(--color-text-3)" }}>+1</span>
                   <input
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(formatPhone(e.target.value))}
                     placeholder="(555) 000-0000"
                     autoFocus
-                    className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none font-mono"
+                    className="flex-1 bg-transparent text-sm placeholder-zinc-700 focus:outline-none font-mono"
+                    style={{ color: "var(--color-text-1)" }}
                   />
                 </div>
               </div>

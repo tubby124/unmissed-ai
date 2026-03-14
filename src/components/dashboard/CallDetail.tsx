@@ -50,7 +50,7 @@ function AudioAura({ lastRole }: { lastRole: 'agent' | 'user' | null }) {
             : '0 0 20px rgba(59,130,246,0.5)',
         }}
       >
-        <span className="text-[10px] font-bold text-white/90 tracking-wider">
+        <span className="text-[10px] font-bold tracking-wider" style={{ color: "var(--color-text-1)" }}>
           {isAgent ? 'AI' : 'YOU'}
         </span>
       </div>
@@ -131,10 +131,10 @@ function QualityGauge({ score }: { score: number }) {
 
 const SENTIMENT_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
   positive:    { label: 'Positive',    color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/25' },
-  neutral:     { label: 'Neutral',     color: 'text-zinc-400',   bg: 'bg-white/[0.04] border-white/[0.1]' },
+  neutral:     { label: 'Neutral',     color: 'text-zinc-400',   bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
   negative:    { label: 'Negative',    color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/25' },
   frustrated:  { label: 'Frustrated',  color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/25' },
-  indifferent: { label: 'Indifferent', color: 'text-zinc-500',   bg: 'bg-white/[0.03] border-white/[0.07]' },
+  indifferent: { label: 'Indifferent', color: 'text-zinc-500',   bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
 }
 
 interface CallDetailProps {
@@ -315,7 +315,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
   const hasRealSummary = !!(displayCall.ai_summary && displayCall.ai_summary !== 'Call transcript unavailable or too short to classify.')
 
   const dur = fmtDur(displayCall.duration_seconds)
-  const glowClass = STATUS_GLOW[displayCall.call_status ?? ''] ?? 'border-white/[0.06]'
+  const glowClass = STATUS_GLOW[displayCall.call_status ?? ''] ?? 'border-[var(--color-border)]'
 
   const staticMessages = ((finalCall?.transcript ?? call.transcript) ?? []).filter(m =>
     m.role === 'agent' || m.role === 'user'
@@ -327,10 +327,11 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 -mx-6 px-6 py-3 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.04] flex items-center gap-3 flex-wrap">
+      <div className="sticky top-0 z-10 -mx-6 px-6 py-3 backdrop-blur-xl border-b flex items-center gap-3 flex-wrap" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-sm transition-colors shrink-0"
+          style={{ color: "var(--color-text-3)" }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -338,7 +339,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           Back
         </button>
         <div className="flex-1 flex items-center gap-3 min-w-0 flex-wrap">
-          <span className="font-mono text-zinc-200 text-sm shrink-0">{displayCall.caller_phone || 'Unknown'}</span>
+          <span className="font-mono text-sm shrink-0" style={{ color: "var(--color-text-1)" }}>{displayCall.caller_phone || 'Unknown'}</span>
           {isActuallyLive ? (
             <>
               <span className="flex items-center gap-1.5 shrink-0">
@@ -355,8 +356,8 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           ) : (
             <>
               <StatusBadge status={displayCall.call_status} />
-              {dur && <span className="text-zinc-600 text-xs font-mono shrink-0">{dur}</span>}
-              <span className="text-zinc-600 text-xs shrink-0">{timeAgo(displayCall.started_at)}</span>
+              {dur && <span className="text-xs font-mono shrink-0" style={{ color: "var(--color-text-3)" }}>{dur}</span>}
+              <span className="text-xs shrink-0" style={{ color: "var(--color-text-3)" }}>{timeAgo(displayCall.started_at)}</span>
             </>
           )}
         </div>
@@ -400,10 +401,10 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           />
           <div className="relative flex flex-col items-center py-4">
             <AudioAura lastRole={lastRole} />
-            <p className="text-[11px] text-zinc-600 mt-1">
+            <p className="text-[11px] mt-1" style={{ color: "var(--color-text-3)" }}>
               {lastRole === 'agent' ? 'Agent speaking' : lastRole === 'user' ? 'Caller speaking' : 'Waiting…'}
             </p>
-            <p className="text-[10px] text-zinc-700 mt-0.5">Transcript updates every 2.5s</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-3)" }}>Transcript updates every 2.5s</p>
           </div>
         </div>
       )}
@@ -430,8 +431,8 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
       {/* AI Summary */}
       <AnimatePresence>
         {isClassified && !hasRealSummary && (
-          <div key="no-analysis" className="rounded-2xl border border-white/[0.04] bg-white/[0.01] px-5 py-3">
-            <p className="text-[11px] text-zinc-700 italic">No AI analysis for this call.</p>
+          <div key="no-analysis" className="rounded-2xl border px-5 py-3" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+            <p className="text-[11px] italic" style={{ color: "var(--color-text-3)" }}>No AI analysis for this call.</p>
           </div>
         )}
         {hasRealSummary && (isClassified || !isLive) && (
@@ -440,12 +441,13 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className={`rounded-2xl border bg-white/[0.02] p-5 shadow-lg ${glowClass}`}
+            className={`rounded-2xl border p-5 shadow-lg ${glowClass}`}
+            style={{ backgroundColor: "var(--color-surface)" }}
           >
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">AI Summary</p>
-            <p className="text-sm text-zinc-300 leading-relaxed">{displayCall.ai_summary}</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>AI Summary</p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>{displayCall.ai_summary}</p>
             {displayCall.service_type && displayCall.service_type !== 'other' && (
-              <p className="text-xs text-zinc-600 mt-2 capitalize">
+              <p className="text-xs mt-2 capitalize" style={{ color: "var(--color-text-3)" }}>
                 Service: {displayCall.service_type.replace(/_/g, ' ')}
               </p>
             )}
@@ -465,7 +467,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           >
             {/* Quality gauge + Confidence + Sentiment */}
             {(displayCall.quality_score != null || displayCall.confidence != null || displayCall.sentiment) && (
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+              <div className="rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
                 {displayCall.quality_score != null && (
                   <QualityGauge score={displayCall.quality_score} />
                 )}
@@ -473,10 +475,10 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                   {displayCall.confidence != null && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Confidence</span>
-                        <span className="text-[11px] font-mono text-zinc-400">{displayCall.confidence}%</span>
+                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Confidence</span>
+                        <span className="text-[11px] font-mono" style={{ color: "var(--color-text-2)" }}>{displayCall.confidence}%</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--color-surface)" }}>
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{
@@ -489,7 +491,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                   )}
                   {displayCall.sentiment && SENTIMENT_DISPLAY[displayCall.sentiment] && (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Sentiment</span>
+                      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Sentiment</span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${SENTIMENT_DISPLAY[displayCall.sentiment].bg} ${SENTIMENT_DISPLAY[displayCall.sentiment].color}`}>
                         {SENTIMENT_DISPLAY[displayCall.sentiment].label}
                       </span>
@@ -501,13 +503,14 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
 
             {/* Key topics */}
             {displayCall.key_topics && displayCall.key_topics.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Key Topics</p>
+              <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Key Topics</p>
                 <div className="flex flex-wrap gap-2">
                   {displayCall.key_topics.map(topic => (
                     <span
                       key={topic}
-                      className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-zinc-300 bg-white/[0.04] border border-white/[0.08]"
+                      className="px-3 py-1.5 rounded-lg text-[12px] font-medium border"
+                      style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                     >
                       {topic}
                     </span>
@@ -555,7 +558,8 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
               value={whisper}
               onChange={e => setWhisper(e.target.value)}
               placeholder="Whisper to agent (caller won't hear)…"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
+              className="w-full border rounded-xl px-4 py-3 text-sm placeholder-zinc-700 focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
+              style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
             />
             {whisperSent && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-amber-400 font-medium">
@@ -575,17 +579,17 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
 
       {/* Metadata — post-call only */}
       {!isActuallyLive && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-3">Details</p>
+        <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Details</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {displayCall.end_reason && (
               <>
-                <span className="text-zinc-600">End reason</span>
-                <span className="text-zinc-400">{displayCall.end_reason}</span>
+                <span style={{ color: "var(--color-text-3)" }}>End reason</span>
+                <span style={{ color: "var(--color-text-2)" }}>{displayCall.end_reason}</span>
               </>
             )}
-            <span className="text-zinc-600">Ultravox ID</span>
-            <span className="text-zinc-500 font-mono text-xs break-all">{displayCall.ultravox_call_id}</span>
+            <span style={{ color: "var(--color-text-3)" }}>Ultravox ID</span>
+            <span className="font-mono text-xs break-all" style={{ color: "var(--color-text-3)" }}>{displayCall.ultravox_call_id}</span>
           </div>
         </div>
       )}

@@ -54,7 +54,7 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
     : null
 
   const inner = (
-    <div className="flex items-start gap-2.5 py-2.5 px-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+    <div className="flex items-start gap-2.5 py-2.5 px-3 rounded-xl hover:bg-[var(--color-hover)] transition-colors group cursor-pointer">
       {/* Status dot */}
       <span className="relative flex shrink-0 mt-0.5">
         {isLive && (
@@ -65,11 +65,11 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-mono text-zinc-300 truncate leading-snug">
+        <p className="text-[12px] font-mono truncate leading-snug" style={{ color: "var(--color-text-2)" }}>
           {formatPhone(event.caller_phone)}
         </p>
         {showBusiness && event.business_name && (
-          <p className="text-[10px] text-zinc-600 truncate mt-0.5">{event.business_name}</p>
+          <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--color-text-3)" }}>{event.business_name}</p>
         )}
       </div>
 
@@ -80,11 +80,11 @@ function EventRow({ event, showBusiness }: { event: ActivityEvent; showBusiness:
           event.call_status === 'WARM' ? 'text-amber-400/80' :
           event.call_status === 'COLD' ? 'text-blue-400/80' :
           event.call_status === 'live' ? 'text-green-400/80' :
-          'text-zinc-600'
+          'text-[var(--color-text-3)]'
         }`}>{label}</span>
-        <span className="text-[9px] font-mono text-zinc-700">{timeAgo(event.started_at)}</span>
+        <span className="text-[9px] font-mono" style={{ color: "var(--color-text-3)" }}>{timeAgo(event.started_at)}</span>
       </div>
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0 mt-0.5">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="transition-colors shrink-0 mt-0.5" style={{ color: "var(--color-text-3)" }}>
         <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     </div>
@@ -185,10 +185,10 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
   }, [])
 
   return (
-    <aside className="hidden xl:flex flex-col w-[272px] shrink-0 border-l border-white/[0.05] bg-black/20 h-screen sticky top-0 overflow-hidden">
+    <aside className="hidden xl:flex flex-col w-[272px] shrink-0 border-l h-screen sticky top-0 overflow-hidden" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-white/[0.05] shrink-0">
-        <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Live Activity</span>
+      <div className="flex items-center gap-2.5 px-4 py-4 border-b shrink-0" style={{ borderColor: "var(--color-border)" }}>
+        <span className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>Live Activity</span>
         {hasLive && (
           <span className="relative flex w-1.5 h-1.5 ml-auto">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
@@ -201,7 +201,7 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
       <div className="flex-1 overflow-y-auto py-1 scrollbar-none">
         {events.length === 0 ? (
           <div className="flex items-center justify-center h-full px-4">
-            <p className="text-[11px] text-zinc-700 text-center">No recent activity</p>
+            <p className="text-[11px] text-center" style={{ color: "var(--color-text-3)" }}>No recent activity</p>
           </div>
         ) : (
           <AnimatePresence initial={false}>
@@ -222,9 +222,9 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
       </div>
 
       {/* Top fade mask */}
-      <div className="absolute top-[57px] left-0 right-0 h-6 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
+      <div className="absolute top-[57px] left-0 right-0 h-6 pointer-events-none" style={{ background: "linear-gradient(to bottom, var(--color-surface), transparent)" }} />
       {/* Bottom fade mask */}
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" style={{ background: "linear-gradient(to top, var(--color-surface), transparent)" }} />
     </aside>
   )
 }

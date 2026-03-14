@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import ThemeToggle from '../ThemeToggle'
 
 const NAV = [
   {
@@ -163,12 +164,13 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 64 : 260 }}
+      animate={{ width: collapsed ? 64 : 240 }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-black/40 backdrop-blur-xl h-screen sticky top-0 overflow-hidden"
+      className="hidden lg:flex flex-col shrink-0 border-r backdrop-blur-xl h-screen sticky top-0 overflow-hidden"
+      style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
     >
       {/* Logo + identity */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/[0.06] min-h-[64px]">
+      <div className="flex items-center gap-2.5 px-4 py-5 border-b min-h-[64px]" style={{ borderColor: "var(--color-border)" }}>
         <Link href="/" className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 shrink-0 rounded-lg bg-blue-500 flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -185,18 +187,18 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 className="min-w-0 overflow-hidden"
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="text-white font-semibold text-sm tracking-tight whitespace-nowrap">unmissed.ai</span>
+                  <span className="font-semibold text-sm tracking-tight whitespace-nowrap" style={{ color: "var(--color-text-1)" }}>unmissed.ai</span>
                   {isAdmin && (
-                    <span className="text-[9px] font-bold tracking-wide text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-1.5 py-0.5 leading-none">
+                    <span className="text-[9px] font-bold tracking-wide text-indigo-500 bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-500/30 dark:text-indigo-400 rounded-full px-1.5 py-0.5 leading-none">
                       Admin
                     </span>
                   )}
                 </div>
                 {businessName && (
-                  <span className="text-zinc-500 text-xs block truncate">{businessName}</span>
+                  <span className="text-xs block truncate" style={{ color: "var(--color-text-2)" }}>{businessName}</span>
                 )}
                 {isAdmin && (
-                  <span className="text-zinc-600 text-xs block">All clients</span>
+                  <span className="text-xs block" style={{ color: "var(--color-text-3)" }}>All clients</span>
                 )}
               </motion.div>
             )}
@@ -216,7 +218,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           return (
             <Fragment key={item.href}>
               {isAdmin && idx === firstAdminIdx && !collapsed && (
-                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold text-zinc-500 uppercase tracking-widest select-none">
+                <div className="px-3 pb-1 pt-3 text-[9px] font-semibold uppercase tracking-widest select-none" style={{ color: "var(--color-text-2)" }}>
                   Admin
                 </div>
               )}
@@ -225,11 +227,12 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 active
-                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                  ? 'bg-indigo-50 border-l-[3px] border-indigo-500 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-400 dark:text-indigo-400'
                   : isSetup && setupIncomplete && !active
-                  ? 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] ring-1 ring-amber-500/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                  ? 'hover:bg-gray-50 dark:hover:bg-white/5 ring-1 ring-amber-500/30'
+                  : 'hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
+              style={active ? {} : { color: "var(--color-text-2)" }}
             >
               <span className="shrink-0 relative">
                 {item.icon}
@@ -273,12 +276,13 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         })
         })()}
 
-        <hr className="border-white/[0.06] my-2" />
+        <hr className="my-2" style={{ borderColor: "var(--color-border)" }} />
 
         <Link
           href="/"
           title={collapsed ? 'Back to Site' : undefined}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+          style={{ color: "var(--color-text-2)" }}
         >
           <span className="shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -295,12 +299,25 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         </Link>
       </nav>
 
-      {/* Sign out + collapse */}
-      <div className="px-2 py-4 border-t border-white/[0.06] space-y-1">
+      {/* Theme toggle + Sign out + collapse */}
+      <div className="px-2 py-4 border-t space-y-1" style={{ borderColor: "var(--color-border)" }}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-1`}>
+          <ThemeToggle />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className="text-sm whitespace-nowrap" style={{ color: "var(--color-text-3)" }}>
+                Theme
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+
         <button
           onClick={signOut}
           title={collapsed ? 'Sign out' : undefined}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors w-full"
+          aria-label="Sign out"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors w-full"
+          style={{ color: "var(--color-text-2)" }}
         >
           <span className="shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -319,7 +336,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         <button
           onClick={() => setCollapsed(v => !v)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.04] transition-colors w-full"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors w-full"
+          style={{ color: "var(--color-text-3)" }}
         >
           <span className="shrink-0">
             <motion.svg

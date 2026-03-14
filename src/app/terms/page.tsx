@@ -19,13 +19,13 @@ export default function TermsPage() {
     <>
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }}>
+      <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Header */}
         <section className="pt-32 pb-8 px-4 text-center">
           <div className="max-w-2xl mx-auto">
             <p
               className="text-xs font-mono uppercase tracking-widest mb-3"
-              style={{ color: "#3B82F6" }}
+              style={{ color: "var(--color-primary)" }}
             >
               Legal
             </p>
@@ -42,7 +42,7 @@ export default function TermsPage() {
         <section className="pb-20 px-4">
           <div
             className="max-w-3xl mx-auto rounded-2xl p-8 md:p-12"
-            style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+            style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           >
             <div className="space-y-10 text-gray-300 text-sm leading-relaxed">
               {/* Intro */}
@@ -317,7 +317,7 @@ export default function TermsPage() {
                 </p>
                 <div
                   className="mt-4 p-4 rounded-xl"
-                  style={{ backgroundColor: "#0A0A0A", border: "1px solid #1F1F1F" }}
+                  style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border)" }}
                 >
                   <p className="text-white font-semibold">unmissed.ai</p>
                   <p className="text-gray-400 mt-1">
@@ -325,7 +325,7 @@ export default function TermsPage() {
                     <a
                       href="mailto:support@unmissed.ai"
                       className="hover:text-white transition-colors"
-                      style={{ color: "#3B82F6" }}
+                      style={{ color: "var(--color-primary)" }}
                     >
                       support@unmissed.ai
                     </a>
@@ -338,11 +338,11 @@ export default function TermsPage() {
             </div>
 
             {/* Back link */}
-            <div className="mt-12 pt-8" style={{ borderTop: "1px solid #1F1F1F" }}>
+            <div className="mt-12 pt-8" style={{ borderTop: "1px solid var(--color-border)" }}>
               <Link
                 href="/"
                 className="text-sm hover:text-white transition-colors"
-                style={{ color: "#3B82F6" }}
+                style={{ color: "var(--color-primary)" }}
               >
                 &larr; Back to home
               </Link>

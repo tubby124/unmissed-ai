@@ -53,20 +53,20 @@ export default function TryPage() {
     <>
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }} className="min-h-screen">
+      <main style={{ backgroundColor: "var(--color-bg)" }} className="min-h-screen">
         {/* Header */}
         <section className="pt-32 pb-8 px-4 text-center">
           <div className="max-w-2xl mx-auto">
             <p
               className="text-xs font-mono uppercase tracking-widest mb-3"
-              style={{ color: "#3B82F6" }}
+              style={{ color: "var(--color-primary)" }}
             >
               Try It Free
             </p>
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "var(--color-text-1)" }}>
               Talk to an AI agent right now.
             </h1>
-            <p className="text-gray-400 text-lg">
+            <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
               No sign-up. No credit card. Pick an agent below, say your name, and start talking.
               This is exactly what your customers will hear.
             </p>
@@ -78,15 +78,15 @@ export default function TryPage() {
             {/* Step 1: Select an agent */}
             {state.step === "select" && (
               <div className="space-y-4">
-                <p className="text-gray-500 text-sm text-center mb-6">Choose an industry to try:</p>
+                <p className="text-sm text-center mb-6" style={{ color: "var(--color-text-3)" }}>Choose an industry to try:</p>
                 {AGENTS.map(agent => (
                   <button
                     key={agent.id}
                     onClick={() => setState({ step: "name", agentId: agent.id })}
                     className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.01]"
                     style={{
-                      backgroundColor: "#111111",
-                      border: "1px solid #1F1F1F",
+                      backgroundColor: "var(--color-surface)",
+                      border: "1px solid var(--color-border)",
                     }}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -99,8 +99,8 @@ export default function TryPage() {
                             {agent.niche}
                           </span>
                         </div>
-                        <h3 className="text-white font-semibold text-lg">{agent.company}</h3>
-                        <p className="text-gray-500 text-sm mt-1">{agent.description}</p>
+                        <h3 className="font-semibold text-lg" style={{ color: "var(--color-text-1)" }}>{agent.company}</h3>
+                        <p className="text-sm mt-1" style={{ color: "var(--color-text-2)" }}>{agent.description}</p>
                       </div>
                       <div className="shrink-0 mt-2">
                         <div
@@ -111,7 +111,7 @@ export default function TryPage() {
                         </div>
                       </div>
                     </div>
-                    <p className="text-gray-600 text-xs mt-3">
+                    <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
                       You&apos;ll talk to {agent.agent} — tap to start
                     </p>
                   </button>
@@ -124,14 +124,15 @@ export default function TryPage() {
               <div className="max-w-md mx-auto text-center">
                 <button
                   onClick={() => setState({ step: "select" })}
-                  className="text-gray-500 text-sm hover:text-white transition-colors mb-6 inline-block"
+                  className="text-sm transition-colors mb-6 inline-block"
+                  style={{ color: "var(--color-text-3)" }}
                 >
                   &larr; Pick a different agent
                 </button>
 
                 <div
                   className="rounded-xl p-6"
-                  style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+                  style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4"
@@ -139,10 +140,10 @@ export default function TryPage() {
                   >
                     {selectedAgent.agent[0]}
                   </div>
-                  <h3 className="text-white font-semibold text-lg mb-1">
+                  <h3 className="font-semibold text-lg mb-1" style={{ color: "var(--color-text-1)" }}>
                     Talk to {selectedAgent.agent}
                   </h3>
-                  <p className="text-gray-500 text-sm mb-6">
+                  <p className="text-sm mb-6" style={{ color: "var(--color-text-2)" }}>
                     {selectedAgent.company}
                   </p>
 
@@ -158,23 +159,24 @@ export default function TryPage() {
                       value={nameInput}
                       onChange={e => setNameInput(e.target.value)}
                       placeholder="Your first name (optional)"
-                      className="w-full px-4 py-3 rounded-lg text-white text-sm mb-4 outline-none focus:ring-2"
+                      className="w-full px-4 py-3 rounded-lg text-sm mb-4 outline-none focus:ring-2"
                       style={{
-                        backgroundColor: "#1A1A1A",
-                        border: "1px solid #2A2A2A",
+                        color: "var(--color-text-1)",
+                        backgroundColor: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
                       }}
                       autoFocus
                     />
                     <button
                       type="submit"
                       className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
-                      style={{ backgroundColor: "#3B82F6" }}
+                      style={{ backgroundColor: "var(--color-primary)" }}
                     >
                       Start 2-Minute Demo Call
                     </button>
                   </form>
 
-                  <p className="text-gray-600 text-xs mt-3">
+                  <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
                     Uses your microphone. 2-minute limit per demo.
                   </p>
                 </div>
@@ -200,26 +202,26 @@ export default function TryPage() {
         {/* Phone demo CTA */}
         <section
           className="py-16 px-4 text-center"
-          style={{ borderTop: "1px solid #1F1F1F" }}
+          style={{ borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-3">
+            <h2 className="text-2xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
               Prefer to call from your phone?
             </h2>
-            <p className="text-gray-500 mb-6">
+            <p className="mb-6" style={{ color: "var(--color-text-2)" }}>
               Call our demo line and press 1 for auto glass, 2 for property management, or 3 for a real estate agent.
             </p>
             {demoNumber ? (
               <a
                 href={`tel:${demoNumber}`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm transition-colors"
-                style={{ backgroundColor: "#1A1A1A", border: "1px solid #2A2A2A" }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-colors"
+                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-1)" }}
               >
                 <Phone size={16} />
                 {demoNumber}
               </a>
             ) : (
-              <p className="text-gray-600 text-sm">Phone demo coming soon</p>
+              <p className="text-sm" style={{ color: "var(--color-text-3)" }}>Phone demo coming soon</p>
             )}
           </div>
         </section>
@@ -227,23 +229,23 @@ export default function TryPage() {
         {/* Bottom CTA */}
         <section
           className="py-16 px-4 text-center"
-          style={{ borderTop: "1px solid #1F1F1F" }}
+          style={{ borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-3">
+            <h2 className="text-2xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
               Ready to get your own agent?
             </h2>
-            <p className="text-gray-400 mb-6">
+            <p className="mb-6" style={{ color: "var(--color-text-2)" }}>
               Set up takes under 5 minutes. Your agent is live within 24 hours.
             </p>
             <Link
               href="/onboard"
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-              style={{ backgroundColor: "#3B82F6" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               Get My Agent Set Up &rarr;
             </Link>
-            <p className="text-gray-600 text-xs mt-2">
+            <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
               No contracts &middot; Cancel anytime
             </p>
           </div>

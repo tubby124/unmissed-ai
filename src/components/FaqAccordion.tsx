@@ -49,16 +49,16 @@ export default function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <p
             className="text-xs font-mono uppercase tracking-widest mb-2"
-            style={{ color: "#3B82F6" }}
+            style={{ color: "var(--color-primary)" }}
           >
             FAQ
           </p>
-          <h2 className="text-3xl font-bold text-white">Common questions.</h2>
+          <h2 className="text-3xl font-bold" style={{ color: "var(--color-text-1)" }}>Common questions.</h2>
         </div>
 
         <div className="space-y-3">
@@ -66,20 +66,20 @@ export default function FaqAccordion() {
             <div
               key={i}
               className="rounded-xl overflow-hidden"
-              style={{ border: "1px solid #1F1F1F" }}
+              style={{ border: "1px solid var(--color-border)" }}
             >
               <button
                 className="w-full flex items-center justify-between p-5 text-left transition-colors"
                 style={{
-                  backgroundColor: openIndex === i ? "#111111" : "#0D0D0D",
+                  backgroundColor: openIndex === i ? "var(--color-surface)" : "var(--color-bg)",
                 }}
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
               >
-                <span className="text-white font-medium pr-4">{faq.question}</span>
+                <span className="font-medium pr-4" style={{ color: "var(--color-text-1)" }}>{faq.question}</span>
                 <span
                   className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm transition-transform"
                   style={{
-                    backgroundColor: openIndex === i ? "#3B82F6" : "#1F1F1F",
+                    backgroundColor: openIndex === i ? "var(--color-primary)" : "var(--color-border)",
                     transform: openIndex === i ? "rotate(45deg)" : "rotate(0deg)",
                   }}
                 >
@@ -90,9 +90,9 @@ export default function FaqAccordion() {
               {openIndex === i && (
                 <div
                   className="px-5 pb-5"
-                  style={{ backgroundColor: "#111111" }}
+                  style={{ backgroundColor: "var(--color-surface)" }}
                 >
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>
                     {faq.answer}
                   </p>
                 </div>

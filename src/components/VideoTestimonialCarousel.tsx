@@ -41,16 +41,16 @@ const statusStyle: Record<string, { color: string; bg: string; border: string; d
 
 export default function VideoTestimonialCarousel() {
   return (
-    <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <p className="text-xs font-mono uppercase tracking-widest mb-2" style={{ color: "#3B82F6" }}>
+          <p className="text-xs font-mono uppercase tracking-widest mb-2" style={{ color: "var(--color-primary)" }}>
             Real Outcomes
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
             These happened this week.
           </h2>
-          <p className="text-zinc-500 text-lg">
+          <p className="text-lg" style={{ color: "var(--color-text-3)" }}>
             Not marketing copy — actual calls from our live agents.
           </p>
         </div>
@@ -64,18 +64,18 @@ export default function VideoTestimonialCarousel() {
                 <div
                   key={i}
                   className="flex-shrink-0 w-64 md:w-72 rounded-2xl p-5 flex flex-col justify-between snap-start"
-                  style={{ backgroundColor: "#0D1A2E", border: "1px solid #1E3A5F", minHeight: "220px" }}
+                  style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-primary)", minHeight: "220px" }}
                 >
                   <div>
                     <div className="text-3xl mb-4">{o.icon}</div>
-                    <p className="text-white font-semibold text-sm mb-2">{o.niche}</p>
-                    <p className="text-zinc-400 text-sm leading-relaxed mb-2">{o.intent}</p>
-                    <p className="text-zinc-500 text-xs">{o.nextStep}</p>
+                    <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-1)" }}>{o.niche}</p>
+                    <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--color-text-2)" }}>{o.intent}</p>
+                    <p className="text-xs" style={{ color: "var(--color-text-3)" }}>{o.nextStep}</p>
                   </div>
                   <Link
                     href="/onboard"
                     className="mt-4 block text-center py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                    style={{ backgroundColor: "#3B82F6" }}
+                    style={{ backgroundColor: "var(--color-primary)" }}
                   >
                     Get Mine Set Up →
                   </Link>
@@ -88,8 +88,8 @@ export default function VideoTestimonialCarousel() {
                 key={i}
                 className="flex-shrink-0 w-64 md:w-72 rounded-2xl p-5 snap-start flex flex-col gap-3"
                 style={{
-                  backgroundColor: style ? style.bg : "#111111",
-                  border: `1px solid ${style ? style.border : "#1F1F1F"}`,
+                  backgroundColor: style ? style.bg : "var(--color-surface)",
+                  border: `1px solid ${style ? style.border : "var(--color-border)"}`,
                   borderLeft: style ? `3px solid ${style.dot}` : undefined,
                   minHeight: "220px",
                 }}
@@ -98,7 +98,7 @@ export default function VideoTestimonialCarousel() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{o.icon}</span>
-                    <span className="text-zinc-400 text-xs font-medium">{o.niche}</span>
+                    <span className="text-xs font-medium" style={{ color: "var(--color-text-2)" }}>{o.niche}</span>
                   </div>
                   {o.status && style && (
                     <span
@@ -114,19 +114,19 @@ export default function VideoTestimonialCarousel() {
                 {/* Caller + duration */}
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-zinc-300"
-                    style={{ backgroundColor: "#1F1F1F" }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ backgroundColor: "var(--color-border)", color: "var(--color-text-2)" }}
                   >
                     {o.caller?.[0]}
                   </div>
-                  <span className="text-zinc-300 text-sm">{o.caller}</span>
+                  <span className="text-sm" style={{ color: "var(--color-text-2)" }}>{o.caller}</span>
                   {o.duration && (
-                    <span className="text-zinc-600 text-xs ml-auto">{o.duration}</span>
+                    <span className="text-xs ml-auto" style={{ color: "var(--color-text-3)" }}>{o.duration}</span>
                   )}
                 </div>
 
                 {/* Intent */}
-                <p className="text-zinc-300 text-sm leading-relaxed">{o.intent}</p>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>{o.intent}</p>
 
                 {/* Next step */}
                 <div
@@ -134,12 +134,12 @@ export default function VideoTestimonialCarousel() {
                   style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
                 >
                   <span style={{ color: style?.color ?? "#60A5FA" }}>→</span>
-                  <span className="text-zinc-500">{o.nextStep}</span>
+                  <span style={{ color: "var(--color-text-3)" }}>{o.nextStep}</span>
                 </div>
 
                 {/* Agent label */}
                 {o.agentName && (
-                  <p className="text-zinc-700 text-xs">
+                  <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
                     Handled by {o.agentName} · unmissed.ai
                   </p>
                 )}
@@ -148,7 +148,7 @@ export default function VideoTestimonialCarousel() {
           })}
         </div>
 
-        <p className="text-center text-zinc-700 text-xs mt-4">
+        <p className="text-center text-xs mt-4" style={{ color: "var(--color-text-3)" }}>
           Real call outcomes from our live deployment · Updated weekly
         </p>
       </div>

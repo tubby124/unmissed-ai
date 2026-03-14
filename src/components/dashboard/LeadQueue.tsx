@@ -30,7 +30,7 @@ const STATUS_LABEL: Record<Tab, string> = {
 }
 
 const STATUS_STYLE: Record<Tab, string> = {
-  queued: 'bg-zinc-700/40 text-zinc-300 border-zinc-600/30',
+  queued: 'bg-[var(--color-hover)] text-[var(--color-text-2)] border-[var(--color-border)]',
   called: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   dnc: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
@@ -126,8 +126,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Lead Queue</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Outbound call targets — manage and dial from here</p>
+          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text-1)" }}>Lead Queue</h1>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>Outbound call targets — manage and dial from here</p>
         </div>
         <button
           onClick={() => setShowAdd(v => !v)}
@@ -146,31 +146,34 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
           <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-blue-400/70 mb-3">New Lead</p>
           <form onSubmit={addLead} className="flex flex-wrap gap-2 items-end">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500">Phone *</label>
+              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Phone *</label>
               <input
                 type="tel"
                 placeholder="+1 (555) 000-0000"
                 value={addPhone}
                 onChange={e => setAddPhone(e.target.value)}
-                className="bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-44 transition-colors"
+                className="border rounded-lg px-3 py-2 text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-44 transition-colors"
+                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500">Name</label>
+              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Name</label>
               <input
                 type="text"
                 placeholder="Optional"
                 value={addName}
                 onChange={e => setAddName(e.target.value)}
-                className="bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-36 transition-colors"
+                className="border rounded-lg px-3 py-2 text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-36 transition-colors"
+                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500">Client</label>
+              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Client</label>
               <select
                 value={addClientId}
                 onChange={e => setAddClientId(e.target.value)}
-                className="bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500/40 w-40 transition-colors"
+                className="border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500/40 w-40 transition-colors"
+                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
               >
                 <option value="">— none —</option>
                 {clients.map(c => (
@@ -181,14 +184,16 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-500 text-white hover:bg-blue-400 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-1)" }}
             >
               {isPending ? 'Adding…' : 'Add'}
             </button>
             <button
               type="button"
               onClick={() => setShowAdd(false)}
-              className="px-3 py-2 rounded-lg text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+              style={{ color: "var(--color-text-3)" }}
             >
               Cancel
             </button>
@@ -198,8 +203,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       )}
 
       {/* Tab list */}
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-        <div className="flex border-b border-white/[0.06]">
+      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--color-border)" }}>
+        <div className="flex border-b" style={{ borderColor: "var(--color-border)" }}>
           {(['queued', 'called', 'dnc'] as Tab[]).map(t => (
             <button
               key={t}
@@ -207,18 +212,19 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
               className={`flex-1 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
                 tab === t
                   ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  : 'border-transparent'
               }`}
+              style={tab !== t ? { color: "var(--color-text-3)" } : undefined}
             >
               {STATUS_LABEL[t]}
-              <span className="ml-1.5 font-mono text-zinc-600">{counts[t]}</span>
+              <span className="ml-1.5 font-mono" style={{ color: "var(--color-text-3)" }}>{counts[t]}</span>
             </button>
           ))}
         </div>
 
         {/* Rows */}
         {filtered.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-zinc-600">
+          <div className="py-16 flex flex-col items-center gap-3" style={{ color: "var(--color-text-3)" }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="opacity-30">
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -233,7 +239,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
           filtered.map((lead, i) => (
             <div
               key={lead.id}
-              className={`flex items-center gap-4 px-5 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors ${i === filtered.length - 1 ? 'border-b-0' : ''}`}
+              className={`flex items-center gap-4 px-5 py-3.5 border-b hover:bg-[var(--color-hover)] transition-colors ${i === filtered.length - 1 ? 'border-b-0' : ''}`}
+              style={{ borderBottomColor: "var(--color-border)" }}
             >
               {/* Status pill */}
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_STYLE[lead.status]}`}>
@@ -242,17 +249,17 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
 
               {/* Phone + name */}
               <div className="min-w-0 w-44 shrink-0">
-                <p className="font-mono text-[13px] text-zinc-100 font-medium truncate">{lead.phone}</p>
-                {lead.name && <p className="text-xs text-zinc-500 truncate">{lead.name}</p>}
+                <p className="font-mono text-[13px] font-medium truncate" style={{ color: "var(--color-text-1)" }}>{lead.phone}</p>
+                {lead.name && <p className="text-xs truncate" style={{ color: "var(--color-text-3)" }}>{lead.name}</p>}
               </div>
 
               {/* Client */}
-              <span className="text-xs text-zinc-500 w-32 truncate hidden md:block">
+              <span className="text-xs w-32 truncate hidden md:block" style={{ color: "var(--color-text-3)" }}>
                 {lead.clients?.business_name ?? '—'}
               </span>
 
               {/* Added */}
-              <span className="text-xs font-mono text-zinc-600 hidden sm:block flex-1">
+              <span className="text-xs font-mono hidden sm:block flex-1" style={{ color: "var(--color-text-3)" }}>
                 {timeAgo(lead.added_at)}
               </span>
 
@@ -271,13 +278,15 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                     </button>
                     <button
                       onClick={() => updateStatus(lead.id, 'called')}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-zinc-500 border border-white/[0.07] hover:text-zinc-200 hover:bg-white/[0.04] transition-all"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-[var(--color-hover)] transition-all"
+                      style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
                     >
                       Called
                     </button>
                     <button
                       onClick={() => updateStatus(lead.id, 'dnc')}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-zinc-600 border border-white/[0.05] hover:text-red-400 hover:border-red-500/20 transition-all"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:text-red-400 hover:border-red-500/20 transition-all"
+                      style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
                     >
                       DNC
                     </button>
@@ -286,7 +295,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                 {lead.status === 'called' && (
                   <button
                     onClick={() => updateStatus(lead.id, 'queued')}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-zinc-600 border border-white/[0.05] hover:text-zinc-300 hover:bg-white/[0.04] transition-all"
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-[var(--color-hover)] transition-all"
+                    style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
                   >
                     Requeue
                   </button>

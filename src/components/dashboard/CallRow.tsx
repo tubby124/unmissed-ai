@@ -116,8 +116,8 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
   return (
     <div
-      className="border-b border-white/[0.04] transition-colors"
-      style={{ borderLeft: `3px solid ${stripeColor}` }}
+      className="border-b transition-colors"
+      style={{ borderBottomColor: "var(--color-border)", borderLeft: `3px solid ${stripeColor}` }}
     >
       {/* Main row — div instead of button to allow nested interactive elements */}
       <div
@@ -127,11 +127,11 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         onKeyDown={!isProcessingOrLive ? (e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleExpand() }
         } : undefined}
-        className={`w-full text-left px-4 py-3 hover:bg-white/[0.025] transition-colors group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
+        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
       >
         {/* Line 1: phone + status + call-back + meta */}
         <div className="flex items-center gap-3 mb-1.5">
-          <span className="font-mono text-[13px] text-zinc-100 font-medium tracking-tight shrink-0">
+          <span className="font-mono text-[13px] font-medium tracking-tight shrink-0" style={{ color: "var(--color-text-1)" }}>
             {call.caller_phone || 'Unknown'}
           </span>
           <StatusBadge status={call.call_status} showDot={false} />
@@ -147,26 +147,27 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
           )}
 
           {call.service_type && call.service_type !== 'other' && (
-            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider hidden sm:block">
+            <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:block" style={{ color: "var(--color-text-3)" }}>
               {call.service_type.replace(/_/g, ' ')}
             </span>
           )}
           {showBusiness && (
-            <span className="text-[11px] text-zinc-500 truncate hidden md:block flex-1">
+            <span className="text-[11px] truncate hidden md:block flex-1" style={{ color: "var(--color-text-2)" }}>
               {call.business_name || '—'}
             </span>
           )}
           <div className="ml-auto flex items-center gap-2 shrink-0">
             {dur && (
-              <span className="text-[11px] font-mono text-zinc-600 tabular-nums">{dur}</span>
+              <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{dur}</span>
             )}
-            <span className="text-[11px] font-mono text-zinc-600 tabular-nums">{timeAgo(call.started_at)}</span>
+            <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{timeAgo(call.started_at)}</span>
             {!isProcessingOrLive && (
               <motion.svg
                 width="12" height="12" viewBox="0 0 24 24" fill="none"
                 animate={{ rotate: expanded ? 90 : 0 }}
                 transition={{ duration: 0.18 }}
-                className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0"
+                className="transition-colors shrink-0"
+                style={{ color: "var(--color-text-3)" }}
               >
                 <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </motion.svg>
@@ -175,16 +176,15 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         </div>
 
         {/* Line 2: summary */}
-        <p className={`text-sm truncate leading-snug mb-1.5 pr-4 ${
-          call.call_status !== 'processing' && (!call.ai_summary || call.ai_summary === 'Call transcript unavailable or too short to classify.')
-            ? 'text-zinc-700'
-            : 'text-zinc-500'
-        }`}>
+        <p
+          className="text-xs italic truncate leading-snug mb-1.5 pr-4"
+          style={{ color: "var(--color-text-3)" }}
+        >
           {call.call_status === 'processing'
             ? 'Analyzing call…'
             : call.ai_summary && call.ai_summary !== 'Call transcript unavailable or too short to classify.'
-            ? call.ai_summary
-            : 'No AI analysis'}
+            ? `${call.ai_summary.slice(0, 80)}${call.ai_summary.length > 80 ? '…' : ''}`
+            : 'No summary yet'}
         </p>
 
         {/* Line 3: topics + confidence + sentiment */}
@@ -193,20 +193,24 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             {shownTopics.map(t => (
               <span
                 key={t}
-                className="px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-300 bg-white/[0.04] border border-white/[0.06] whitespace-nowrap"
+                className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[var(--color-hover)] border whitespace-nowrap"
+                style={{ color: "var(--color-text-1)", borderColor: "var(--color-border)" }}
               >
                 {t}
               </span>
             ))}
             {extraTopics > 0 && (
-              <span className="text-[10px] font-mono text-zinc-600">+{extraTopics}</span>
+              <span className="text-[10px] font-mono" style={{ color: "var(--color-text-3)" }}>+{extraTopics}</span>
             )}
             {sentiment && sentiment !== 'neutral' && (
-              <span className={`ml-auto text-[10px] font-mono capitalize shrink-0 ${
-                sentiment === 'positive' ? 'text-green-400/60' :
-                sentiment === 'negative' || sentiment === 'frustrated' ? 'text-red-400/60' :
-                'text-zinc-600'
-              }`}>
+              <span
+                className="ml-auto text-[10px] font-mono capitalize shrink-0"
+                style={{
+                  color: sentiment === 'positive' ? 'rgba(74,222,128,0.6)' :
+                    sentiment === 'negative' || sentiment === 'frustrated' ? 'rgba(248,113,113,0.6)' :
+                    "var(--color-text-3)"
+                }}
+              >
                 {sentiment}
               </span>
             )}
@@ -224,9 +228,9 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-0 border-t border-white/[0.04]">
+            <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: "var(--color-border)" }}>
               {loading && (
-                <p className="text-[11px] text-zinc-600 py-3">Loading…</p>
+                <p className="text-[11px] py-3" style={{ color: "var(--color-text-3)" }}>Loading…</p>
               )}
 
               {!loading && (
@@ -247,7 +251,8 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                       {(expandData?.key_topics ?? call.key_topics ?? []).map(t => (
                         <span
                           key={t}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-zinc-300 bg-white/[0.04] border border-white/[0.08]"
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[var(--color-hover)] border"
+                          style={{ color: "var(--color-text-1)", borderColor: "var(--color-border)" }}
                         >
                           {t}
                         </span>
@@ -257,10 +262,10 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
                   {/* Audio player — compact skeleton while checking, player if available */}
                   {recordingLoading && (
-                    <div className="h-[72px] rounded-xl bg-white/[0.03] animate-pulse" />
+                    <div className="h-[72px] rounded-xl bg-[var(--color-hover)] animate-pulse" />
                   )}
                   {!recordingLoading && recordingAvailable && (
-                    <div className="rounded-xl overflow-hidden border border-white/[0.06]">
+                    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--color-border)" }}>
                       <AudioWaveformPlayer callId={call.ultravox_call_id} />
                     </div>
                   )}
@@ -278,21 +283,25 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                             transition={{ duration: 0.15, delay: i * 0.04 }}
                             className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
                           >
-                            <span className={`text-[9px] mb-0.5 ${isAgent ? 'text-blue-400/50 mr-1' : 'text-zinc-600 ml-1'}`}>
+                            <span className={`text-[9px] mb-0.5 ${isAgent ? 'mr-1' : 'ml-1'}`} style={{ color: isAgent ? "var(--color-primary)" : "var(--color-text-3)" }}>
                               {isAgent ? 'AI' : 'Caller'}
                             </span>
-                            <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
-                              isAgent
-                                ? 'bg-blue-600/70 text-white rounded-tr-sm'
-                                : 'bg-zinc-700/60 text-zinc-200 rounded-tl-sm'
-                            }`}>
+                            <div
+                              className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
+                                isAgent ? 'rounded-tr-sm' : 'rounded-tl-sm'
+                              }`}
+                              style={{
+                                backgroundColor: isAgent ? "var(--color-primary)" : "var(--color-bg-raised)",
+                                color: "var(--color-text-1)",
+                              }}
+                            >
                               {m.text}
                             </div>
                           </motion.div>
                         )
                       })}
                       {transcriptMsgs.length > 6 && (
-                        <p className="text-[10px] text-zinc-700 text-center pt-1">
+                        <p className="text-[10px] text-center pt-1" style={{ color: "var(--color-text-3)" }}>
                           +{transcriptMsgs.length - 6} more messages
                         </p>
                       )}
@@ -303,7 +312,8 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                   <Link
                     href={`/dashboard/calls/${call.ultravox_call_id}`}
                     onClick={e => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-400/80 hover:text-blue-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                    style={{ color: "var(--color-primary)" }}
                   >
                     View full call
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none">

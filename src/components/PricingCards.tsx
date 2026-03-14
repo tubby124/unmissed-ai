@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 
 const plans = [
   {
@@ -71,22 +72,28 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
     <div>
       {/* Annual toggle */}
       <div className="flex items-center justify-center gap-3 mb-8">
-        <span className={`text-sm ${!annual ? "text-white" : "text-gray-500"}`}>Monthly</span>
+        <span
+          className="text-sm"
+          style={{ color: !annual ? "var(--color-text-1)" : "var(--color-text-3)" }}
+        >Monthly</span>
         <button
           onClick={() => setAnnual(!annual)}
           className="relative w-12 h-6 rounded-full transition-colors"
-          style={{ backgroundColor: annual ? "#3B82F6" : "#374151" }}
+          style={{ backgroundColor: annual ? "var(--color-primary)" : "var(--color-border)" }}
         >
           <span
             className="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform"
             style={{ left: annual ? "28px" : "4px" }}
           />
         </button>
-        <span className={`text-sm ${annual ? "text-white" : "text-gray-500"}`}>
+        <span
+          className="text-sm"
+          style={{ color: annual ? "var(--color-text-1)" : "var(--color-text-3)" }}
+        >
           Annual{" "}
           <span
             className="px-1.5 py-0.5 rounded text-xs font-semibold"
-            style={{ backgroundColor: "#166534", color: "#4ADE80" }}
+            style={{ backgroundColor: "rgba(16,185,129,0.12)", color: "var(--color-cta)" }}
           >
             Save 2 months
           </span>
@@ -100,49 +107,55 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
             key={plan.name}
             className="rounded-2xl p-6 relative flex flex-col"
             style={{
-              backgroundColor: plan.highlighted ? "#0D1A2E" : "#111111",
-              border: `1px solid ${plan.highlighted ? "#3B82F6" : "#1F1F1F"}`,
-              boxShadow: plan.highlighted ? "0 0 40px rgba(59,130,246,0.15)" : "none",
+              backgroundColor: plan.highlighted ? "var(--color-surface)" : "var(--color-surface)",
+              border: `1px solid ${plan.highlighted ? "var(--color-primary)" : "var(--color-border)"}`,
+              boxShadow: plan.highlighted ? "0 0 40px rgba(79,70,229,0.12)" : "none",
             }}
           >
             {plan.badge && (
               <div
                 className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white"
-                style={{ backgroundColor: "#3B82F6" }}
+                style={{ backgroundColor: "var(--color-primary)" }}
               >
                 {plan.badge}
               </div>
             )}
 
             <div className="mb-5">
-              <p className="text-gray-400 text-xs font-mono uppercase tracking-wider mb-1">
+              <p
+                className="text-xs font-mono uppercase tracking-wider mb-1"
+                style={{ color: "var(--color-text-2)" }}
+              >
                 {plan.name}
               </p>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-black text-white">
+                <span
+                  className="text-4xl font-black"
+                  style={{ color: "var(--color-text-1)" }}
+                >
                   ${annual ? plan.annual : plan.monthly}
                 </span>
-                <span className="text-gray-500 text-sm">/mo CAD</span>
+                <span className="text-sm" style={{ color: "var(--color-text-3)" }}>/mo CAD</span>
               </div>
               {annual && (
                 <p className="text-green-400 text-xs">
                   Billed annually (${(plan.annual * 12).toLocaleString()}/yr)
                 </p>
               )}
-              <p className="text-gray-500 text-sm mt-2">{plan.description}</p>
+              <p className="text-sm mt-2" style={{ color: "var(--color-text-3)" }}>{plan.description}</p>
             </div>
 
             <div className="flex-1 space-y-2 mb-6">
               {plan.features.map((f) => (
                 <div key={f} className="flex items-start gap-2">
-                  <span className="text-green-400 text-sm flex-shrink-0 mt-0.5">✓</span>
-                  <span className="text-gray-300 text-sm">{f}</span>
+                  <Check size={14} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm" style={{ color: "var(--color-text-2)" }}>{f}</span>
                 </div>
               ))}
               {!compact && plan.notIncluded.map((f) => (
                 <div key={f} className="flex items-start gap-2 opacity-40">
-                  <span className="text-gray-600 text-sm flex-shrink-0 mt-0.5">✗</span>
-                  <span className="text-gray-500 text-sm">{f}</span>
+                  <X size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-text-3)" }} />
+                  <span className="text-sm" style={{ color: "var(--color-text-3)" }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -153,13 +166,13 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                 className="block w-full text-center py-3 rounded-xl font-semibold text-sm transition-colors"
                 style={
                   plan.highlighted
-                    ? { backgroundColor: "#3B82F6", color: "white" }
-                    : { backgroundColor: "#1F1F1F", color: "#D1D5DB" }
+                    ? { backgroundColor: "var(--color-primary)", color: "white" }
+                    : { backgroundColor: "var(--color-border)", color: "var(--color-text-2)" }
                 }
               >
                 {plan.cta} →
               </Link>
-              <p className="text-center text-gray-600 text-xs mt-2">
+              <p className="text-center text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
                 No contracts · Cancel anytime
               </p>
             </div>

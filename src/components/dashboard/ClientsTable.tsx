@@ -65,7 +65,8 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
   return (
     <>
       <tr
-        className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition-colors"
+        className="border-b hover:bg-[var(--color-hover)] cursor-pointer transition-colors"
+        style={{ borderColor: "var(--color-border)" }}
         onClick={() => setExpanded(v => !v)}
       >
         <td className="px-4 py-3">
@@ -76,21 +77,21 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-white">{intake.business_name}</p>
-              <p className="text-xs text-zinc-500 capitalize">{intake.niche?.replace(/_/g, ' ') || '—'}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</p>
+              <p className="text-xs capitalize" style={{ color: "var(--color-text-3)" }}>{intake.niche?.replace(/_/g, ' ') || '—'}</p>
               {intake.owner_name && (
-                <p className="text-xs text-zinc-400 mt-0.5">{intake.owner_name}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-text-2)" }}>{intake.owner_name}</p>
               )}
             </div>
           </div>
         </td>
-        <td className="px-4 py-3 text-xs text-zinc-400">
+        <td className="px-4 py-3 text-xs" style={{ color: "var(--color-text-2)" }}>
           {intake.contact_email
-            ? <a href={`mailto:${intake.contact_email}`} className="hover:text-zinc-200 transition-colors" onClick={e => e.stopPropagation()}>{intake.contact_email}</a>
-            : <span className="text-zinc-600">—</span>
+            ? <a href={`mailto:${intake.contact_email}`} className="transition-colors" style={{ color: "var(--color-text-2)" }} onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")} onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")} onClick={e => e.stopPropagation()}>{intake.contact_email}</a>
+            : <span style={{ color: "var(--color-text-3)" }}>—</span>
           }
         </td>
-        <td className="px-4 py-3 text-xs text-zinc-500">{date}</td>
+        <td className="px-4 py-3 text-xs" style={{ color: "var(--color-text-3)" }}>{date}</td>
         <td className="px-4 py-3">
           <span className={`text-[10px] font-medium border rounded-full px-2 py-0.5 ${statusColor}`}>
             {statusLabel}
@@ -126,29 +127,30 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
             ) : (
               <button
                 onClick={e => { e.stopPropagation(); onCreateAccount(intake) }}
-                className="text-[10px] font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg px-3 py-1 transition-colors"
+                className="text-[10px] font-medium hover:bg-[var(--color-hover)] border rounded-lg px-3 py-1 transition-colors"
+                style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
               >
                 Create account
               </button>
             )}
           </div>
         </td>
-        <td className="px-4 py-3 text-zinc-600">
+        <td className="px-4 py-3" style={{ color: "var(--color-text-3)" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
             <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </td>
       </tr>
       {expanded && intake.intake_json && (
-        <tr className="border-b border-white/[0.04]">
-          <td colSpan={6} className="px-4 py-4 bg-white/[0.01]">
+        <tr className="border-b" style={{ borderColor: "var(--color-border)" }}>
+          <td colSpan={6} className="px-4 py-4" style={{ backgroundColor: "var(--color-surface)" }}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               {Object.entries(intake.intake_json)
                 .filter(([k]) => !k.startsWith('_') && !['hours', 'nicheAnswers'].includes(k))
                 .map(([k, v]) => (
                   <div key={k}>
-                    <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">{k.replace(/([A-Z])/g, ' $1').trim()}</p>
-                    <p className="text-zinc-300">{String(v) || '—'}</p>
+                    <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>{k.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <p style={{ color: "var(--color-text-2)" }}>{String(v) || '—'}</p>
                   </div>
                 ))
               }
@@ -189,11 +191,11 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4" style={{ backgroundColor: "var(--color-surface)" }}>
+      <div className="w-full max-w-md rounded-2xl border backdrop-blur-xl p-6 shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-semibold">Generate Prompt</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Generate Prompt</h2>
+          <button onClick={onClose} className="transition-colors" style={{ color: "var(--color-text-3)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -202,12 +204,12 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
 
         {!result ? (
           <>
-            <p className="text-zinc-400 text-sm mb-4">
+            <p className="text-sm mb-4" style={{ color: "var(--color-text-2)" }}>
               Generate a system prompt and Ultravox agent for{' '}
-              <span className="text-white font-medium">{intake.business_name}</span>.
+              <span className="font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</span>.
             </p>
 
-            <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer mb-5 select-none">
+            <label className="flex items-center gap-2 text-xs cursor-pointer mb-5 select-none" style={{ color: "var(--color-text-2)" }}>
               <input
                 type="checkbox"
                 checked={enrichSonar}
@@ -227,7 +229,8 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--color-hover)] transition-colors"
+                style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)" }}
               >
                 Cancel
               </button>
@@ -235,7 +238,8 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
                 type="button"
                 onClick={generate}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 disabled:opacity-50 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors"
+                style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-primary)" }}
               >
                 {loading ? (enrichSonar ? 'Researching…' : 'Generating…') : 'Generate'}
               </button>
@@ -247,20 +251,20 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
               <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-1">Agent created</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Slug</p>
-                  <p className="text-zinc-200 font-mono">{result.clientSlug}</p>
+                  <p className="uppercase tracking-wide text-[10px]" style={{ color: "var(--color-text-3)" }}>Slug</p>
+                  <p className="font-mono" style={{ color: "var(--color-text-1)" }}>{result.clientSlug}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Char count</p>
-                  <p className="text-zinc-200">{result.charCount.toLocaleString()}</p>
+                  <p className="uppercase tracking-wide text-[10px]" style={{ color: "var(--color-text-3)" }}>Char count</p>
+                  <p style={{ color: "var(--color-text-1)" }}>{result.charCount.toLocaleString()}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-zinc-500 uppercase tracking-wide text-[10px]">Agent ID</p>
-                  <p className="text-zinc-400 font-mono text-[10px] break-all">{result.agentId}</p>
+                  <p className="uppercase tracking-wide text-[10px]" style={{ color: "var(--color-text-3)" }}>Agent ID</p>
+                  <p className="font-mono text-[10px] break-all" style={{ color: "var(--color-text-2)" }}>{result.agentId}</p>
                 </div>
               </div>
               {result.warnings?.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
                   <p className="text-amber-400 text-[10px] uppercase tracking-wider mb-1">Warnings</p>
                   {result.warnings.map((w, i) => (
                     <p key={i} className="text-amber-300/70 text-xs">{w}</p>
@@ -271,7 +275,8 @@ function GeneratePromptModal({ intake, onClose, onDone }: {
             <button
               type="button"
               onClick={onDone}
-              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[var(--color-primary-hover)] transition-colors"
+              style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-primary)" }}
             >
               Done
             </button>
@@ -315,11 +320,11 @@ function ActivateModal({ intake, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4" style={{ backgroundColor: "var(--color-surface)" }}>
+      <div className="w-full max-w-md rounded-2xl border backdrop-blur-xl p-6 shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-semibold">Activate Client — $20 Setup</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Activate Client — $20 Setup</h2>
+          <button onClick={onClose} className="transition-colors" style={{ color: "var(--color-text-3)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -328,11 +333,11 @@ function ActivateModal({ intake, onClose }: {
 
         {!checkoutUrl ? (
           <>
-            <p className="text-zinc-400 text-sm mb-5">
+            <p className="text-sm mb-5" style={{ color: "var(--color-text-2)" }}>
               Send a $20 setup payment link to{' '}
-              <span className="text-white font-medium">{intake.business_name}</span>
+              <span className="font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</span>
               {intake.contact_email && (
-                <> (<span className="text-zinc-300">{intake.contact_email}</span>)</>
+                <> (<span style={{ color: "var(--color-text-2)" }}>{intake.contact_email}</span>)</>
               )}.
               On payment, their Twilio number is auto-provisioned and login email is sent.
             </p>
@@ -347,7 +352,8 @@ function ActivateModal({ intake, onClose }: {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--color-hover)] transition-colors"
+                style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)" }}
               >
                 Cancel
               </button>
@@ -363,18 +369,20 @@ function ActivateModal({ intake, onClose }: {
           </>
         ) : (
           <>
-            <p className="text-zinc-400 text-sm mb-3">Payment link ready. Copy and send to the client, or open it yourself.</p>
+            <p className="text-sm mb-3" style={{ color: "var(--color-text-2)" }}>Payment link ready. Copy and send to the client, or open it yourself.</p>
             <div className="flex items-center gap-2 mb-5">
               <input
                 type="text"
                 readOnly
                 value={checkoutUrl}
-                className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-zinc-300 font-mono truncate focus:outline-none"
+                className="flex-1 min-w-0 border rounded-xl px-3 py-2 text-xs font-mono truncate focus:outline-none"
+                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-2)" }}
               />
               <button
                 type="button"
                 onClick={copyUrl}
-                className="shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-colors"
+                className="shrink-0 px-3 py-2 rounded-xl text-xs font-medium border hover:bg-[var(--color-hover)] transition-colors"
+                style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
               >
                 {copied ? 'Copied!' : 'Copy'}
               </button>
@@ -383,7 +391,8 @@ function ActivateModal({ intake, onClose }: {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--color-hover)] transition-colors"
+                style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)" }}
               >
                 Close
               </button>
@@ -432,25 +441,25 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4" style={{ backgroundColor: "var(--color-surface)" }}>
+      <div className="w-full max-w-md rounded-2xl border backdrop-blur-xl p-6 shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-semibold">Create Client Account</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Create Client Account</h2>
+          <button onClick={onClose} className="transition-colors" style={{ color: "var(--color-text-3)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
 
-        <p className="text-zinc-400 text-sm mb-5">
-          Creating account for <span className="text-white font-medium">{intake.business_name}</span>.
+        <p className="text-sm mb-5" style={{ color: "var(--color-text-2)" }}>
+          Creating account for <span className="font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</span>.
           A password reset email will be sent to the client.
         </p>
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+            <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>
               Client Email
             </label>
             <input
@@ -459,7 +468,8 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
               onChange={e => setEmail(e.target.value)}
               required
               placeholder="client@company.com"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 transition-all"
+              className="w-full border rounded-xl px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 transition-all"
+              style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
             />
           </div>
 
@@ -473,14 +483,16 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--color-hover)] transition-colors"
+              style={{ color: "var(--color-text-2)", backgroundColor: "var(--color-surface)" }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-400 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors"
+              style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-primary)" }}
             >
               {loading ? 'Creating…' : 'Create & Send Email'}
             </button>
@@ -503,17 +515,17 @@ function ActiveClientCard({ client }: { client: Client }) {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
       <button
-        className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors text-left"
+        className="w-full flex items-center gap-3 p-4 hover:bg-[var(--color-hover)] transition-colors text-left"
         onClick={() => setExpanded(v => !v)}
       >
         <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
           <span className="text-green-400 text-xs font-bold">{client.business_name.charAt(0)}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{client.business_name}</p>
-          <p className="text-xs text-zinc-500">{client.twilio_number || 'No number assigned'}</p>
+          <p className="text-sm font-medium truncate" style={{ color: "var(--color-text-1)" }}>{client.business_name}</p>
+          <p className="text-xs" style={{ color: "var(--color-text-3)" }}>{client.twilio_number || 'No number assigned'}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {log && (
@@ -521,71 +533,72 @@ function ActiveClientCard({ client }: { client: Client }) {
               Activation log
             </span>
           )}
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`text-zinc-600 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${expanded ? 'rotate-180' : ''}`} style={{ color: "var(--color-text-3)" }}>
             <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-white/[0.04] px-4 pb-4 pt-3">
+        <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--color-border)" }}>
           {log ? (
             <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Activation Log</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Activation Log</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Activated</p>
-                  <p className="text-zinc-300">{new Date(log.activated_at).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Activated</p>
+                  <p style={{ color: "var(--color-text-2)" }}>{new Date(log.activated_at).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Amount paid</p>
-                  <p className="text-zinc-300">{log.stripe_amount != null ? `$${(log.stripe_amount / 100).toFixed(2)}` : '—'}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Amount paid</p>
+                  <p style={{ color: "var(--color-text-2)" }}>{log.stripe_amount != null ? `$${(log.stripe_amount / 100).toFixed(2)}` : '—'}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Twilio number</p>
-                  <p className="text-zinc-300 font-mono">{log.twilio_number_bought || '—'}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Twilio number</p>
+                  <p className="font-mono" style={{ color: "var(--color-text-2)" }}>{log.twilio_number_bought || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Contact email</p>
-                  <p className="text-zinc-300 break-all">{log.contact_email || '—'}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Contact email</p>
+                  <p className="break-all" style={{ color: "var(--color-text-2)" }}>{log.contact_email || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Callback phone</p>
-                  <p className="text-zinc-300">{log.callback_phone || '—'}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Callback phone</p>
+                  <p style={{ color: "var(--color-text-2)" }}>{log.callback_phone || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-0.5">Stripe session</p>
-                  <p className="text-zinc-500 font-mono text-[10px] break-all">{log.stripe_session_id}</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-0.5" style={{ color: "var(--color-text-3)" }}>Stripe session</p>
+                  <p className="font-mono text-[10px] break-all" style={{ color: "var(--color-text-3)" }}>{log.stripe_session_id}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.sms_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 bg-white/[0.03] border-white/[0.08]'}`}>
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.sms_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
                   SMS {log.sms_sent ? 'sent' : `skipped${log.sms_skip_reason ? ': ' + log.sms_skip_reason : ''}`}
                 </span>
-                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.email_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 bg-white/[0.03] border-white/[0.08]'}`}>
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.email_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
                   Email {log.email_sent ? 'sent' : 'not configured'}
                 </span>
               </div>
 
               {log.telegram_link && (
                 <div>
-                  <p className="text-zinc-600 uppercase tracking-wide text-[10px] mb-1">Telegram setup link</p>
+                  <p className="uppercase tracking-wide text-[10px] mb-1" style={{ color: "var(--color-text-3)" }}>Telegram setup link</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-zinc-400 text-[10px] font-mono break-all flex-1">{log.telegram_link}</p>
+                    <p className="text-[10px] font-mono break-all flex-1" style={{ color: "var(--color-text-2)" }}>{log.telegram_link}</p>
                     <button
                       onClick={() => copyLink(log.telegram_link!)}
-                      className="shrink-0 text-[10px] px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-zinc-300 transition-colors"
+                      className="shrink-0 text-[10px] px-2 py-1 rounded-lg border hover:bg-[var(--color-hover)] transition-colors"
+                      style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-2)" }}
                     >
                       {copied ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
-                  <p className="text-zinc-600 text-[10px] mt-1">Note: token is consumed after client taps Start. Use generate-telegram-token to re-invite.</p>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--color-text-3)" }}>Note: token is consumed after client taps Start. Use generate-telegram-token to re-invite.</p>
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-xs text-zinc-600">No activation log — client was provisioned before this feature was added.</p>
+            <p className="text-xs" style={{ color: "var(--color-text-3)" }}>No activation log — client was provisioned before this feature was added.</p>
           )}
         </div>
       )}
@@ -650,7 +663,7 @@ export default function ClientsTable({ intakes, clients }: {
 
       {/* Active clients */}
       <div className="mb-8">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Active Clients</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-3)" }}>Active Clients</h2>
         <div className="space-y-2">
           {clients.map(c => (
             <ActiveClientCard key={c.id} client={c} />
@@ -660,21 +673,21 @@ export default function ClientsTable({ intakes, clients }: {
 
       {/* Intake submissions */}
       <div>
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-3)" }}>
           Intake Submissions ({intakes.length})
         </h2>
         {intakes.length === 0 ? (
-          <div className="text-center py-16 text-zinc-600 text-sm">No submissions yet</div>
+          <div className="text-center py-16 text-sm" style={{ color: "var(--color-text-3)" }}>No submissions yet</div>
         ) : (
-          <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--color-border)" }}>
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Business</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Contact</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Submitted</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Actions</th>
+                <tr className="border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Business</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Contact</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Submitted</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Status</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>Actions</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>

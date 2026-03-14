@@ -49,13 +49,13 @@ export default function PricingPage() {
 
       <Navbar />
 
-      <main style={{ backgroundColor: "#0A0A0A" }}>
+      <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Header */}
-        <section className="pt-32 pb-16 px-4 text-center">
+        <section className="pt-32 pb-16 px-4 text-center" style={{ backgroundColor: "#0F172A" }}>
           <div className="max-w-3xl mx-auto">
             <p
               className="text-xs font-mono uppercase tracking-widest mb-3"
-              style={{ color: "#3B82F6" }}
+              style={{ color: "var(--color-primary)" }}
             >
               Pricing
             </p>
@@ -101,7 +101,7 @@ export default function PricingPage() {
         </div>
 
         {/* The Per-Minute Trap */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <p
@@ -120,10 +120,10 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="overflow-x-auto rounded-xl mb-6" style={{ border: "1px solid #1F1F1F" }}>
+            <div className="overflow-x-auto rounded-xl mb-6" style={{ border: "1px solid var(--color-border)" }}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ backgroundColor: "#111111", borderBottom: "1px solid #1F1F1F" }}>
+                  <tr style={{ backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
                     <th className="text-left p-4 text-gray-400 font-medium">Competitor</th>
                     <th className="text-center p-4 text-gray-400 font-medium">Advertised</th>
                     <th className="text-center p-4 text-gray-400 font-medium">Included</th>
@@ -136,8 +136,8 @@ export default function PricingPage() {
                     <tr
                       key={i}
                       style={{
-                        backgroundColor: i % 2 === 0 ? "#0A0A0A" : "#0D0D0D",
-                        borderBottom: "1px solid #1F1F1F",
+                        backgroundColor: i % 2 === 0 ? "var(--color-bg)" : "var(--color-surface)",
+                        borderBottom: "1px solid var(--color-border)",
                       }}
                     >
                       <td className="p-4 text-gray-300 font-medium">{row.competitor}</td>
@@ -148,7 +148,7 @@ export default function PricingPage() {
                     </tr>
                   ))}
                   <tr style={{ backgroundColor: "#0D1A2E", borderBottom: "1px solid #1E3A5F" }}>
-                    <td className="p-4 font-semibold" style={{ color: "#3B82F6" }}>unmissed.ai</td>
+                    <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>unmissed.ai</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>All calls</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147</td>
@@ -171,12 +171,12 @@ export default function PricingPage() {
         </section>
 
         {/* Full competitor comparison */}
-        <section className="py-20 px-4" style={{ backgroundColor: "#0A0A0A" }}>
+        <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
               <p
                 className="text-xs font-mono uppercase tracking-widest mb-3"
-                style={{ color: "#3B82F6" }}
+                style={{ color: "var(--color-primary)" }}
               >
                 Feature comparison
               </p>
@@ -188,10 +188,10 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid #1F1F1F" }}>
+            <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--color-border)" }}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ backgroundColor: "#111111", borderBottom: "1px solid #1F1F1F" }}>
+                  <tr style={{ backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
                     <th className="text-left p-3 text-gray-400 font-medium text-xs">Feature</th>
                     <th className="text-center p-3 text-gray-400 font-medium text-xs">My AI Front Desk</th>
                     <th className="text-center p-3 text-gray-400 font-medium text-xs">Goodcall</th>
@@ -199,7 +199,7 @@ export default function PricingPage() {
                     <th className="text-center p-3 text-gray-400 font-medium text-xs">Smith.ai</th>
                     <th
                       className="text-center p-3 font-semibold text-xs"
-                      style={{ color: "#3B82F6", backgroundColor: "#0D1A2E" }}
+                      style={{ color: "var(--color-primary)", backgroundColor: "#0D1A2E" }}
                     >
                       unmissed.ai
                     </th>
@@ -210,8 +210,8 @@ export default function PricingPage() {
                     <tr
                       key={i}
                       style={{
-                        backgroundColor: i % 2 === 0 ? "#0A0A0A" : "#0D0D0D",
-                        borderBottom: "1px solid #1F1F1F",
+                        backgroundColor: i % 2 === 0 ? "var(--color-bg)" : "var(--color-surface)",
+                        borderBottom: "1px solid var(--color-border)",
                       }}
                     >
                       <td className="p-3 text-gray-300 font-medium text-xs">{row.feature}</td>
@@ -244,7 +244,7 @@ export default function PricingPage() {
         </ErrorBoundary>
 
         {/* Final CTA */}
-        <section className="py-20 px-4 text-center" style={{ backgroundColor: "#0D0D0D" }}>
+        <section className="py-20 px-4 text-center" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-xl mx-auto">
             <h2 className="text-3xl font-bold text-white mb-4">
               Ready to stop missing calls?
@@ -252,7 +252,7 @@ export default function PricingPage() {
             <Link
               href="/onboard"
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
-              style={{ backgroundColor: "#3B82F6" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               Get My Agent Set Up →
             </Link>

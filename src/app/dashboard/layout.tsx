@@ -28,11 +28,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col">
-      {/* Ambient glow background */}
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text-1)' }}>
+      {/* Ambient glow background — dark mode only */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-60 -left-60 w-[500px] h-[500px] bg-blue-500/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-60 -right-60 w-[500px] h-[500px] bg-violet-500/8 rounded-full blur-3xl" />
+        <div className="absolute -top-60 -left-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-0 dark:opacity-100 bg-blue-500/8" />
+        <div className="absolute -bottom-60 -right-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-0 dark:opacity-100 bg-violet-500/8" />
       </div>
 
       {/* Mobile top bar */}

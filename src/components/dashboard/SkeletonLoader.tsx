@@ -1,12 +1,12 @@
 function SkeletonBox({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-white/[0.04] rounded-lg ${className ?? ''}`} />
+  return <div className={`animate-pulse bg-[var(--color-surface)] rounded-lg ${className ?? ''}`} />
 }
 
 export function StatsGridSkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3">
+        <div key={i} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
           <SkeletonBox className="h-3 w-20" />
           <SkeletonBox className="h-8 w-16" />
           <SkeletonBox className="h-3 w-24" />
@@ -18,13 +18,13 @@ export function StatsGridSkeleton() {
 
 export function CallsListSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+    <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <SkeletonBox className="h-3 w-24" />
         <SkeletonBox className="h-6 w-32 rounded-full" />
       </div>
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-4">
+        <div key={i} className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-4">
           <SkeletonBox className="h-2 w-2 rounded-full" />
           <div className="flex-1 space-y-2">
             <div className="flex gap-3">
@@ -44,13 +44,13 @@ export function CallDetailSkeleton() {
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-3">
         <SkeletonBox className="h-3 w-24" />
         <SkeletonBox className="h-4 w-full" />
         <SkeletonBox className="h-4 w-3/4" />
       </div>
       {/* Player */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-4">
         <SkeletonBox className="h-3 w-20" />
         <div className="flex items-center gap-4">
           <SkeletonBox className="w-10 h-10 rounded-full" />
@@ -60,14 +60,14 @@ export function CallDetailSkeleton() {
           {[...Array(60)].map((_, i) => (
             <div
               key={i}
-              className="flex-1 rounded-full animate-pulse bg-white/[0.04]"
+              className="flex-1 rounded-full animate-pulse bg-[var(--color-surface)]"
               style={{ height: `${25 + (i * 17 + 11) % 70}%` }}
             />
           ))}
         </div>
       </div>
       {/* Transcript */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-4">
         <SkeletonBox className="h-3 w-24" />
         {[...Array(6)].map((_, i) => (
           <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>

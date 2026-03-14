@@ -99,16 +99,16 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-4">Recording</p>
-        <p className="text-zinc-600 text-sm">Recording unavailable or still processing.</p>
+      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4" style={{ color: "var(--color-text-3)" }}>Recording</p>
+        <p className="text-sm" style={{ color: "var(--color-text-3)" }}>Recording unavailable or still processing.</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-4">Recording</p>
+    <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4" style={{ color: "var(--color-text-3)" }}>Recording</p>
 
       {/* Hidden audio element */}
       <audio
@@ -124,7 +124,8 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
         <button
           onClick={togglePlay}
           disabled={loading}
-          className="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
+          className="w-10 h-10 rounded-full hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
+          style={{ backgroundColor: "var(--color-primary)" }}
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -142,17 +143,18 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
 
         {/* Progress bar */}
         <div
-          className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative overflow-hidden"
+          className="flex-1 h-1.5 rounded-full cursor-pointer relative overflow-hidden"
+          style={{ backgroundColor: "var(--color-surface)" }}
           onClick={handleProgressClick}
         >
           <div
-            className="absolute inset-y-0 left-0 bg-blue-500 rounded-full transition-none"
-            style={{ width: `${progress * 100}%` }}
+            className="absolute inset-y-0 left-0 rounded-full transition-none"
+            style={{ width: `${progress * 100}%`, backgroundColor: "var(--color-primary)" }}
           />
         </div>
 
         {/* Time */}
-        <span className="text-xs font-mono text-zinc-500 shrink-0 tabular-nums">
+        <span className="text-xs font-mono shrink-0 tabular-nums" style={{ color: "var(--color-text-3)" }}>
           {fmtTime(currentTime)} / {fmtTime(duration)}
         </span>
 
@@ -160,7 +162,8 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
         <a
           href={`/api/dashboard/calls/${callId}/recording`}
           download={`call-${callId.slice(0, 8)}.mp3`}
-          className="text-zinc-600 hover:text-zinc-400 transition-colors"
+          className="transition-colors"
+          style={{ color: "var(--color-text-3)" }}
           title="Download recording"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -177,8 +180,11 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
           return (
             <div
               key={i}
-              className={`flex-1 rounded-full transition-colors ${active ? 'bg-blue-500' : 'bg-white/10'}`}
-              style={{ height: `${height * 100}%` }}
+              className="flex-1 rounded-full transition-colors"
+              style={{
+                height: `${height * 100}%`,
+                backgroundColor: active ? "var(--color-primary)" : "var(--color-surface)",
+              }}
               onClick={() => handleBarClick(i)}
             />
           )

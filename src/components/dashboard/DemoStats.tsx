@@ -64,7 +64,8 @@ export default function DemoStats() {
     <div className="mb-6">
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors mb-3"
+        className="flex items-center gap-2 text-sm font-semibold transition-colors mb-3"
+        style={{ color: 'var(--color-text-2)' }}
       >
         <svg
           className={`w-4 h-4 transition-transform ${collapsed ? '-rotate-90' : ''}`}
@@ -89,16 +90,16 @@ export default function DemoStats() {
 
           {/* Most popular */}
           {stats.popularAgent && (
-            <p className="text-xs text-gray-500 mb-3">
-              Most tried: <span className="text-gray-300">{AGENT_LABELS[stats.popularAgent] || stats.popularAgent}</span>
+            <p className="text-xs mb-3" style={{ color: 'var(--color-text-3)' }}>
+              Most tried: <span style={{ color: 'var(--color-text-2)' }}>{AGENT_LABELS[stats.popularAgent] || stats.popularAgent}</span>
             </p>
           )}
 
           {/* Recent demos table */}
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #1f1f1f' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500 text-xs" style={{ backgroundColor: '#111' }}>
+                <tr className="text-left text-xs" style={{ backgroundColor: 'var(--color-bg-raised)', color: 'var(--color-text-3)' }}>
                   <th className="px-3 py-2 font-medium">Agent</th>
                   <th className="px-3 py-2 font-medium">Caller</th>
                   <th className="px-3 py-2 font-medium hidden sm:table-cell">Source</th>
@@ -109,25 +110,25 @@ export default function DemoStats() {
               </thead>
               <tbody>
                 {recentCalls.slice(0, 20).map(call => (
-                  <tr key={call.id} className="border-t" style={{ borderColor: '#1a1a1a' }}>
-                    <td className="px-3 py-2 text-gray-300">
+                  <tr key={call.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                    <td className="px-3 py-2" style={{ color: 'var(--color-text-2)' }}>
                       {AGENT_LABELS[call.demoId] || call.demoId}
                     </td>
-                    <td className="px-3 py-2 text-gray-400">{call.callerName}</td>
-                    <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">
+                    <td className="px-3 py-2" style={{ color: 'var(--color-text-2)' }}>{call.callerName}</td>
+                    <td className="px-3 py-2 hidden sm:table-cell" style={{ color: 'var(--color-text-3)' }}>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${call.source === 'phone' ? 'bg-violet-500/10 text-violet-400' : 'bg-blue-500/10 text-blue-400'}`}>
                         {call.source}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">
+                    <td className="px-3 py-2 hidden sm:table-cell" style={{ color: 'var(--color-text-3)' }}>
                       {call.durationSeconds ? formatDuration(call.durationSeconds) : '--'}
                     </td>
-                    <td className="px-3 py-2 text-gray-500 text-xs">{formatTime(call.startedAt)}</td>
+                    <td className="px-3 py-2 text-xs" style={{ color: 'var(--color-text-3)' }}>{formatTime(call.startedAt)}</td>
                     <td className="px-3 py-2">
                       {call.converted ? (
                         <span className="text-green-400 text-xs">Yes</span>
                       ) : (
-                        <span className="text-gray-600 text-xs">--</span>
+                        <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>--</span>
                       )}
                     </td>
                   </tr>
@@ -143,10 +144,10 @@ export default function DemoStats() {
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#111', border: '1px solid #1f1f1f' }}>
-      <p className="text-gray-500 text-xs mb-1">{label}</p>
-      <p className="text-white text-xl font-bold">{value}</p>
-      {sub && <p className="text-gray-600 text-xs mt-0.5">{sub}</p>}
+    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
+      <p className="text-xs mb-1" style={{ color: 'var(--color-text-3)' }}>{label}</p>
+      <p className="text-xl font-bold" style={{ color: 'var(--color-text-1)' }}>{value}</p>
+      {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>{sub}</p>}
     </div>
   )
 }

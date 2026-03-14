@@ -104,7 +104,7 @@ export default function LeadCard({ niche = "auto-glass", className = "" }: LeadC
     <div
       className={`rounded-2xl p-4 font-mono text-xs ${className}`}
       style={{
-        backgroundColor: "#0D0D0D",
+        backgroundColor: "var(--color-bg)",
         border: `1px solid ${data.badgeColor}33`,
         boxShadow: `0 0 30px ${data.badgeColor}15`,
       }}
@@ -144,7 +144,7 @@ export default function LeadCard({ niche = "auto-glass", className = "" }: LeadC
       {/* Footer */}
       <div
         className="mt-3 pt-3 flex items-center gap-2 text-gray-600"
-        style={{ borderTop: "1px solid #1F1F1F" }}
+        style={{ borderTop: "1px solid var(--color-border)" }}
       >
         <span
           className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0"

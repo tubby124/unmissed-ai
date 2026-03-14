@@ -46,11 +46,11 @@ function AnimatedNumber({ value, sublabel }: { value: string; sublabel?: string 
 
   return (
     <div>
-      <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "#3B82F6" }}>
+      <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "var(--color-primary)" }}>
         {prefix}{display.toLocaleString()}{suffix}
       </p>
       {sublabel && (
-        <p className="text-zinc-600 text-xs mt-0.5">{sublabel}</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>{sublabel}</p>
       )}
     </div>
   );
@@ -81,11 +81,11 @@ export default function StatsSection({ stats }: { stats: Stat[] }) {
           {visible ? (
             <AnimatedNumber value={s.value} sublabel={s.sublabel} />
           ) : (
-            <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "#3B82F6" }}>
+            <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "var(--color-primary)" }}>
               {s.value}
             </p>
           )}
-          <p className="text-zinc-500 text-sm">{s.label}</p>
+          <p className="text-sm" style={{ color: "var(--color-text-2)" }}>{s.label}</p>
         </div>
       ))}
     </div>

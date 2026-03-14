@@ -44,21 +44,23 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
   return (
     <Link
       href={`/dashboard/calls?client=${campaign.id}`}
-      className="block rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 hover:bg-white/[0.03] hover:border-white/[0.10] transition-all group"
+      className="block rounded-2xl border p-5 hover:bg-[var(--color-hover)] transition-all group"
+      style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-100 truncate group-hover:text-white transition-colors">
+          <p className="text-sm font-semibold truncate transition-colors" style={{ color: "var(--color-text-1)" }}>
             {campaign.business_name}
           </p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-3)" }}>
             {campaign.last_call_at ? `Last call ${timeAgo(campaign.last_call_at)}` : 'No calls yet'}
           </p>
         </div>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
-          className="shrink-0 text-zinc-700 group-hover:text-zinc-400 transition-colors mt-0.5"
+          className="shrink-0 transition-colors mt-0.5"
+          style={{ color: "var(--color-text-3)" }}
         >
           <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -67,15 +69,15 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
       {/* Stats row */}
       <div className="flex items-center gap-4 mb-4">
         <div>
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Calls</p>
-          <p className="text-xl font-bold font-mono text-zinc-100 tabular-nums">{campaign.total_calls}</p>
+          <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Calls</p>
+          <p className="text-xl font-bold font-mono tabular-nums" style={{ color: "var(--color-text-1)" }}>{campaign.total_calls}</p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Hot</p>
+          <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot</p>
           <p className="text-xl font-bold font-mono text-red-300 tabular-nums">{campaign.hot_leads}</p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Hot %</p>
+          <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot %</p>
           <p className={`text-xl font-bold font-mono tabular-nums ${hotRate >= 20 ? 'text-green-300' : hotRate >= 10 ? 'text-amber-300' : 'text-zinc-400'}`}>
             {hotRate}%
           </p>
@@ -84,7 +86,7 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
 
       {/* Sparkline */}
       <MiniSparkline counts={campaign.daily_counts} />
-      <p className="text-[9px] text-zinc-700 mt-1 font-mono">7-day volume</p>
+      <p className="text-[9px] mt-1 font-mono" style={{ color: "var(--color-text-3)" }}>7-day volume</p>
     </Link>
   )
 }

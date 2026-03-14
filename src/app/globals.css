@@ -7,7 +7,7 @@
   50%       { transform: scaleY(1); }
 }
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -130,18 +130,48 @@
   }
 }
 
-/* ─── unmissed.ai Brand Tokens ─────────────────────────────────────── */
+/* ─── unmissed.ai Design System ────────────────────────────────────── */
 :root {
-  --brand-bg: #0A0A0A;
-  --brand-surface: #111111;
-  --brand-border: #1F1F1F;
-  --brand-blue: #3B82F6;
-  --brand-blue-dark: #2563EB;
-  --brand-cyan: #06B6D4;
-  --brand-text: #F9FAFB;
-  --brand-muted: #6B7280;
-  --brand-hot: #EF4444;
-  --brand-warm: #F59E0B;
+  --color-primary: #4F46E5;
+  --color-primary-hover: #4338CA;
+  --color-cta: #10B981;
+  --color-cta-hover: #059669;
+  --color-surface: #FFFFFF;
+  --color-bg: #F9FAFB;
+  --color-bg-raised: #FFFFFF;
+  --color-border: #E5E7EB;
+  --color-border-focus: #4F46E5;
+  --color-text-1: #111827;
+  --color-text-2: #6B7280;
+  --color-text-3: #9CA3AF;
+  --color-hot: #EF4444;
+  --color-warm: #F59E0B;
+  --color-cold: #3B82F6;
+  --color-junk: #9CA3AF;
+  --color-live: #10B981;
+  --color-nav-bg: rgba(255,255,255,0.92);
+  --color-nav-border: #E5E7EB;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.12);
+  --color-hover: rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] {
+  --color-primary: #818CF8;
+  --color-primary-hover: #6366F1;
+  --color-surface: #0F172A;
+  --color-bg: #020617;
+  --color-bg-raised: #1E293B;
+  --color-border: #1E293B;
+  --color-border-focus: #818CF8;
+  --color-text-1: #F1F5F9;
+  --color-text-2: #94A3B8;
+  --color-text-3: #64748B;
+  --color-nav-bg: rgba(2,6,23,0.92);
+  --color-nav-border: #1E293B;
+  --color-hover: rgba(255,255,255,0.04);
 }
 
 /* ─── Marquee Animations (CSS-only, GPU-composited) ─────────────────── */
@@ -228,7 +258,7 @@ audio::-webkit-media-controls-panel {
 
 /* ─── Focus Ring Override for Dark Pages ────────────────────────────── */
 .brand-focus:focus-visible {
-  outline: 2px solid var(--brand-blue);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 

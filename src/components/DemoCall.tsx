@@ -206,7 +206,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
             <div
               ref={transcriptContainerRef}
               className="rounded-xl p-4 mb-4 h-64 overflow-y-auto space-y-3"
-              style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
             >
               {transcripts.length === 0 && (
                 <p className="text-gray-600 text-sm italic">Waiting for {agentName} to speak...</p>
@@ -256,7 +256,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
             {transcripts.filter(t => t.isFinal).length > 0 && (
               <div
                 className="rounded-xl p-4 mb-6 text-left h-40 overflow-y-auto"
-                style={{ backgroundColor: "#111111", border: "1px solid #1F1F1F" }}
+                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
               >
                 <p className="text-gray-500 text-xs mb-2 uppercase tracking-wider">Call transcript</p>
                 {transcripts.filter(t => t.isFinal).map((t, i) => (
@@ -288,7 +288,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
               <button
                 onClick={onEnd}
                 className="block w-full py-3 rounded-xl text-gray-400 font-medium text-sm transition-colors hover:text-white"
-                style={{ backgroundColor: "#1A1A1A" }}
+                style={{ backgroundColor: "var(--color-surface)" }}
               >
                 Try a different agent
               </button>
@@ -317,7 +317,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
               <button
                 onClick={onEnd}
                 className="block w-full py-3 rounded-xl text-gray-400 font-medium text-sm hover:text-white"
-                style={{ backgroundColor: "#1A1A1A" }}
+                style={{ backgroundColor: "var(--color-surface)" }}
               >
                 Back to agents
               </button>

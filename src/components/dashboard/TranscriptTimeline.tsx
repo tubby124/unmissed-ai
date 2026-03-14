@@ -69,9 +69,9 @@ export default function TranscriptTimeline({
 
   if (!messages.length) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
         <div className="flex items-center gap-2 mb-4">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>
             {isLive ? 'Live Transcript' : 'Transcript'}
           </p>
           {isLive && (
@@ -81,7 +81,7 @@ export default function TranscriptTimeline({
             </span>
           )}
         </div>
-        <p className="text-zinc-600 text-sm">
+        <p className="text-sm" style={{ color: "var(--color-text-3)" }}>
           {isLive ? 'Waiting for conversation to start…' : 'No transcript available.'}
         </p>
       </div>
@@ -91,10 +91,10 @@ export default function TranscriptTimeline({
   let lastRole: string | null = null
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+    <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>
             {isLive ? 'Live Transcript' : 'Transcript'}
           </p>
           {isLive && (
@@ -104,7 +104,7 @@ export default function TranscriptTimeline({
             </span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-zinc-700">{messages.length} msg</span>
+        <span className="text-[10px] font-mono" style={{ color: "var(--color-text-3)" }}>{messages.length} msg</span>
       </div>
 
       <div className="space-y-1 max-h-[520px] overflow-y-auto pr-1">
@@ -127,19 +127,23 @@ export default function TranscriptTimeline({
                 className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'} ${sameAsLast ? 'mt-1' : 'mt-3'}`}
               >
                 {!sameAsLast && (
-                  <p className={`text-[11px] text-zinc-600 mb-1 ${isAgent ? 'mr-1 text-right' : 'ml-1'}`}>
+                  <p className={`text-[11px] mb-1 ${isAgent ? 'mr-1 text-right' : 'ml-1'}`} style={{ color: "var(--color-text-3)" }}>
                     {isAgent ? agentName : 'Caller'}
                     {msg.startTime != null && !isLive && (
-                      <span className="ml-1.5 font-mono text-zinc-700">{fmtTime(msg.startTime)}</span>
+                      <span className="ml-1.5 font-mono" style={{ color: "var(--color-text-3)" }}>{fmtTime(msg.startTime)}</span>
                     )}
                   </p>
                 )}
                 <div
                   className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
                     isAgent
-                      ? `bg-blue-600/70 text-white rounded-tr-sm ${isActive ? 'ring-1 ring-blue-300/50' : ''} ${isLive && isLatest ? 'ring-1 ring-green-400/50' : ''}`
-                      : `bg-zinc-700/60 text-zinc-200 rounded-tl-sm ${isActive ? 'ring-1 ring-blue-400/40' : ''}`
+                      ? `rounded-tr-sm ${isActive ? 'ring-1 ring-blue-300/50' : ''} ${isLive && isLatest ? 'ring-1 ring-green-400/50' : ''}`
+                      : `rounded-tl-sm ${isActive ? 'ring-1 ring-blue-400/40' : ''}`
                   } ${!isLive && msg.startTime != null ? 'cursor-pointer hover:opacity-90' : ''}`}
+                  style={{
+                    backgroundColor: isAgent ? "var(--color-primary)" : "var(--color-bg-raised)",
+                    color: "var(--color-text-1)",
+                  }}
                   onClick={() => !isLive && msg.startTime != null && onSeek?.(msg.startTime)}
                   title={!isLive && msg.startTime != null ? `Jump to ${fmtTime(msg.startTime)}` : undefined}
                 >

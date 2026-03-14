@@ -3,30 +3,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, Phone } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 border-b"
+      className="fixed top-3 left-4 right-4 z-50 rounded-2xl border shadow-md"
       style={{
-        backgroundColor: "rgba(10,10,10,0.92)",
+        backgroundColor: "var(--color-nav-bg)",
         backdropFilter: "blur(12px)",
-        borderColor: "#1F1F1F",
+        borderColor: "var(--color-nav-border)",
       }}
     >
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
           >
             U
           </div>
-          <span className="font-semibold text-white text-lg tracking-tight">
-            unmissed<span style={{ color: "#3B82F6" }}>.ai</span>
+          <span className="font-semibold text-lg tracking-tight" style={{ color: "var(--color-text-1)" }}>
+            unmissed<span style={{ color: "var(--color-primary)" }}>.ai</span>
           </span>
         </Link>
 
@@ -34,38 +35,53 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link
             href="/#how-it-works"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
             How It Works
           </Link>
           <Link
             href="/try"
             className="text-sm font-semibold transition-colors"
-            style={{ color: "#3B82F6" }}
+            style={{ color: "var(--color-primary)" }}
           >
             Try Free
           </Link>
           <Link
             href="/#demo"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
             Demo
           </Link>
           <Link
             href="/pricing"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
             Pricing
           </Link>
           <Link
             href="/for-auto-glass"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
             For Glass Shops
           </Link>
           <Link
             href="/for-realtors"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
             For Realtors
           </Link>
@@ -73,21 +89,23 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           <Link
             href="/login"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm hover:text-white transition-colors"
+            style={{ color: "var(--color-text-2)" }}
           >
             Sign In
           </Link>
           <Link
             href="/onboard"
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
             onMouseEnter={(e) =>
-              ((e.target as HTMLElement).style.backgroundColor = "#2563EB")
+              ((e.target as HTMLElement).style.backgroundColor = "var(--color-primary-hover)")
             }
             onMouseLeave={(e) =>
-              ((e.target as HTMLElement).style.backgroundColor = "#3B82F6")
+              ((e.target as HTMLElement).style.backgroundColor = "var(--color-primary)")
             }
           >
             Get My Agent →
@@ -96,7 +114,8 @@ export default function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden text-gray-400 hover:text-white"
+          className="md:hidden hover:text-white"
+          style={{ color: "var(--color-text-2)" }}
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -107,12 +126,13 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div
-          className="md:hidden border-t px-4 py-4 flex flex-col gap-4"
-          style={{ backgroundColor: "#0A0A0A", borderColor: "#1F1F1F" }}
+          className="md:hidden border-t px-4 py-4 flex flex-col gap-4 rounded-b-2xl"
+          style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-nav-border)" }}
         >
           <Link
             href="/#how-it-works"
-            className="text-sm text-gray-400"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
             How It Works
@@ -120,35 +140,39 @@ export default function Navbar() {
           <Link
             href="/try"
             className="text-sm font-semibold"
-            style={{ color: "#3B82F6" }}
+            style={{ color: "var(--color-primary)" }}
             onClick={() => setOpen(false)}
           >
             Try Free
           </Link>
           <Link
             href="/#demo"
-            className="text-sm text-gray-400"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
             Demo
           </Link>
           <Link
             href="/pricing"
-            className="text-sm text-gray-400"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
             Pricing
           </Link>
           <Link
             href="/for-auto-glass"
-            className="text-sm text-gray-400"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
             For Glass Shops
           </Link>
           <Link
             href="/for-realtors"
-            className="text-sm text-gray-400"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
             For Realtors
@@ -156,7 +180,7 @@ export default function Navbar() {
           <Link
             href="/onboard"
             className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white text-center"
-            style={{ backgroundColor: "#3B82F6" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
             onClick={() => setOpen(false)}
           >
             Get My Agent →
@@ -164,14 +188,15 @@ export default function Navbar() {
           <Link
             href="/login"
             className="px-5 py-2.5 rounded-lg text-sm font-semibold text-center border"
-            style={{ color: "#9CA3AF", borderColor: "#1F1F1F", backgroundColor: "transparent" }}
+            style={{ color: "var(--color-text-2)", borderColor: "var(--color-nav-border)", backgroundColor: "transparent" }}
             onClick={() => setOpen(false)}
           >
             Sign In to Dashboard
           </Link>
           <a
             href="tel:+15873551834"
-            className="flex items-center gap-2 text-sm text-gray-500"
+            className="flex items-center gap-2 text-sm"
+            style={{ color: "var(--color-text-2)" }}
           >
             <Phone size={14} />
             Call our demo line
