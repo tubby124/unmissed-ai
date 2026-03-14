@@ -23,7 +23,7 @@ export interface DemoAgent {
 // Fallback voice in /api/demo/start catches stale IDs, but keep these current.
 const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark (windshield-hub prod voice)
 const VOICE_NICOLE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'   // Jacqueline (urban-vibe prod voice)
-const VOICE_AISHA = 'cartesia.f786b574-daa5-4673-aa0c-cbe3e8534c02:sonic-3'    // Cartesia Katie (testing) — prod voice: 87edb04c-06d4-47c2-bd94-683bc47e8fbe
+const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'   // Ria (Ultravox native — hasan-sharif prod voice)
 
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
   auto_glass: {
