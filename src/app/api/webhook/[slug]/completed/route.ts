@@ -146,27 +146,17 @@ export async function POST(
         const dot = fullSummary.search(/[.!?]/)
         const brief = fullSummary.length === 0 ? '' : (dot > 0 && dot < 130 ? fullSummary.slice(0, dot + 1) : fullSummary.slice(0, 130)).trim()
 
-        let message: string
-
-        if (classification.status === 'HOT') {
-          const lines = [`🔥 <b>HOT — ${bizName}</b>`, `📞 ${callerPhone} · ${dur}`]
-          if (brief) lines.push(`"${brief}"`)
-          if (nextSteps) lines.push(`↳ ${nextSteps}`)
-          message = lines.join('\n')
-        } else if (classification.status === 'WARM') {
-          const lines = [`🌤 <b>WARM — ${bizName}</b>`, `📞 ${callerPhone} · ${dur}`]
-          if (brief) lines.push(brief)
-          if (nextSteps) lines.push(`↳ ${nextSteps}`)
-          message = lines.join('\n')
-        } else if (classification.status === 'COLD') {
-          const parts = [`📞 ${callerPhone} · ${dur}`, brief].filter(Boolean).join(' · ')
-          message = `❄️ Cold — ${bizName}\n${parts}`
-        } else if (classification.status === 'UNKNOWN') {
-          message = `⚠️ <b>Review needed — ${bizName}</b>\n📞 ${callerPhone} · ${dur}\nOpen dashboard to classify manually.`
-        } else {
-          // JUNK — single line, no action needed
-          message = `🗑 Junk · ${bizName} · ${callerPhone}`
+        const statusEmoji: Record<string, string> = {
+          HOT: '🔥', WARM: '🌤', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
         }
+        const emoji = statusEmoji[classification.status] || '📞'
+        const lines = [
+          `${emoji} <b>${classification.status} — ${bizName}</b>`,
+          `📞 ${callerPhone} · ${dur}`,
+        ]
+        if (brief) lines.push(brief)
+        if (nextSteps) lines.push(`↳ ${nextSteps}`)
+        const message = lines.join('\n')
 
         const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
         if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
