@@ -117,7 +117,7 @@ export default function AdminNumbersPage() {
       <div>
         <h1 className="text-xl font-bold text-white">Number Inventory</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Pre-owned Twilio numbers offered at $17 CAD during onboarding (vs $20 for a fresh number).
+          Twilio numbers offered at $20 CAD during onboarding (vs $25 for a fresh number). Includes 50 free minutes.
         </p>
       </div>
 

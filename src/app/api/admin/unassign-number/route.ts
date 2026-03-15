@@ -3,7 +3,7 @@
  *
  * Releases a Twilio number from a client and returns it to the inventory pool.
  * - If the number is in number_inventory: reconfigures Twilio VoiceUrl → idle, marks available
- * - If the number is a fresh $20 purchase (not in inventory): just clears clients.twilio_number
+ * - If the number is a fresh purchase (not in inventory): just clears clients.twilio_number
  * - Always clears clients.twilio_number
  *
  * Body: { clientId: string }
@@ -106,14 +106,13 @@ export async function POST(req: NextRequest) {
         assigned_client_id:  null,
         reserved_intake_id:  null,
         reserved_at:         null,
-        updated_at:          new Date().toISOString(),
       })
       .eq('id', invRow.id)
 
     returnedToInventory = true
     console.log(`[unassign-number] ${twilioNumber} returned to inventory`)
   } else {
-    // Fresh $20 number — not in inventory, just clear the DB reference
+    // Fresh number — not in inventory, just clear the DB reference
     console.log(`[unassign-number] ${twilioNumber} is not in inventory — clearing clients row only`)
   }
 

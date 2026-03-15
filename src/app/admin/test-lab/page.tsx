@@ -23,6 +23,16 @@ type ScenarioResult = {
   summary?: string
 }
 
+type LoopState = 'idle' | 'loading' | 'done' | 'error'
+type LoopChange = { type: string; section: string; what: string; why: string; confidence: 'high' | 'medium' | 'low' }
+type LoopResult = {
+  improved_prompt: string | null
+  changes: LoopChange[]
+  no_changes_needed: boolean
+  call_count: number
+  has_enough_data: boolean
+}
+
 type TestRun = {
   id: string
   ran_at: string
@@ -65,6 +75,12 @@ export default function TestLabPage() {
   const [running, setRunning] = useState(false)
   const [lastRun, setLastRun] = useState<TestRun | null>(null)
   const [expandedRun, setExpandedRun] = useState<string | null>(null)
+  const [loopState, setLoopState] = useState<LoopState>('idle')
+  const [loopResult, setLoopResult] = useState<LoopResult | null>(null)
+  const [loopError, setLoopError] = useState('')
+  const [applying, setApplying] = useState(false)
+  const [applied, setApplied] = useState(false)
+
   const [showAddForm, setShowAddForm] = useState(false)
   const [addForm, setAddForm] = useState({ name: '', description: '', expected_status: 'HOT', transcript: '', tags: '' })
   const [addError, setAddError] = useState('')
@@ -95,6 +111,32 @@ export default function TestLabPage() {
       load(selectedClientId)
     }
   }, [selectedClientId, load])
+
+  // Pre-load pending loop suggestion from cron (if available) — avoids redundant OpenRouter call
+  useEffect(() => {
+    if (!selectedClientId) return
+    setLoopState('idle')
+    setLoopResult(null)
+    setLoopError('')
+    setApplied(false)
+    fetch(`/api/dashboard/settings/learning-status?client_id=${selectedClientId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.loop_suggestion) return
+        const s = data.loop_suggestion as { improved_prompt: string; changes: LoopChange[]; calls_analyzed: number }
+        if (s.improved_prompt) {
+          setLoopResult({
+            improved_prompt: s.improved_prompt,
+            changes: s.changes ?? [],
+            no_changes_needed: false,
+            call_count: s.calls_analyzed ?? 0,
+            has_enough_data: true,
+          })
+          setLoopState('done')
+        }
+      })
+      .catch(() => { /* silent — non-critical */ })
+  }, [selectedClientId])
 
   const selectedClient = clients.find(c => c.id === selectedClientId)
 
@@ -144,6 +186,54 @@ export default function TestLabPage() {
     setScenarios(prev => [...prev, data.scenario])
     setShowAddForm(false)
     setAddForm({ name: '', description: '', expected_status: 'HOT', transcript: '', tags: '' })
+  }
+
+  async function analyzeLoop() {
+    if (!selectedClientId) return
+    setLoopState('loading')
+    setLoopResult(null)
+    setLoopError('')
+    setApplied(false)
+    try {
+      const res = await fetch('/api/dashboard/settings/improve-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selectedClientId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      setLoopResult(data)
+      setLoopState('done')
+    } catch (e) {
+      setLoopError(e instanceof Error ? e.message : String(e))
+      setLoopState('error')
+    }
+  }
+
+  async function applyLoop() {
+    if (!loopResult?.improved_prompt) return
+    setApplying(true)
+    try {
+      const res = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_prompt: loopResult.improved_prompt, client_id: selectedClientId }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Save failed') }
+      // Clear the pending suggestion so the next cron run can generate a fresh one
+      await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pending_loop_suggestion: null, client_id: selectedClientId }),
+      }).catch(() => { /* non-critical */ })
+      setApplied(true)
+      setLoopState('idle')
+      setLoopResult(null)
+    } catch (e) {
+      setLoopError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setApplying(false)
+    }
   }
 
   return (
@@ -210,6 +300,108 @@ export default function TestLabPage() {
           )}
         </div>
       )}
+
+      {/* Learning Loop */}
+      <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Learning Loop</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Analyze real conversations and apply targeted prompt improvements. Auto-runs via cron + Telegram when 5+ new calls arrive.
+            </p>
+          </div>
+          <button
+            onClick={analyzeLoop}
+            disabled={loopState === 'loading' || !selectedClientId}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0"
+          >
+            {loopState === 'loading' ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Analyzing…
+              </>
+            ) : 'Analyze Now'}
+          </button>
+        </div>
+
+        {loopState === 'error' && loopError && (
+          <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{loopError}</p>
+        )}
+
+        {applied && (
+          <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+            Prompt updated and synced to Ultravox agent.
+          </div>
+        )}
+
+        {loopState === 'done' && loopResult && (
+          <div className="space-y-4">
+            <div className="text-xs text-zinc-500">
+              Based on{' '}
+              <span className="text-zinc-300 font-medium">{loopResult.call_count} real conversations</span>
+              {!loopResult.has_enough_data && (
+                <span className="text-yellow-500 ml-2">(fewer than 3 conversations — limited signal)</span>
+              )}
+            </div>
+
+            {loopResult.no_changes_needed && (
+              <div className="text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
+                Prompt is handling calls well — no changes needed.
+              </div>
+            )}
+
+            {!loopResult.no_changes_needed && loopResult.changes.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
+                  {loopResult.changes.length} suggested change{loopResult.changes.length > 1 ? 's' : ''}
+                </p>
+                {loopResult.changes.map((c, i) => (
+                  <div key={i} className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                        c.confidence === 'high'
+                          ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                          : c.confidence === 'medium'
+                          ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                          : 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20'
+                      }`}>{c.confidence}</span>
+                      <span className="text-[10px] font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full uppercase">
+                        {c.type.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs text-zinc-500">§ {c.section}</span>
+                    </div>
+                    <p className="text-sm text-white">{c.what}</p>
+                    <p className="text-xs text-zinc-500 italic">{c.why}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loopResult.no_changes_needed && loopResult.improved_prompt && (
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  onClick={applyLoop}
+                  disabled={applying}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+                >
+                  {applying ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving…
+                    </>
+                  ) : 'Apply & Deploy'}
+                </button>
+                <button
+                  onClick={() => { setLoopState('idle'); setLoopResult(null) }}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Scenario Library */}
       <section>

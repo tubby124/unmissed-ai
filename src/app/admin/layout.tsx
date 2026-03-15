@@ -1,7 +1,22 @@
+import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const svc = createServiceClient()
+  const { data: cu } = await svc
+    .from('client_users')
+    .select('role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (cu?.role !== 'admin') redirect('/login')
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-6 text-sm">
@@ -23,6 +38,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         <Link href="/admin/numbers" className="text-gray-400 hover:text-white transition-colors">
           Numbers
+        </Link>
+        <Link
+          href="/onboard"
+          className="ml-auto text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+        >
+          + New Intake
         </Link>
       </nav>
       {children}
