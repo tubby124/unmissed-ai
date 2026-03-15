@@ -820,13 +820,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       <div className="border-b border-gray-200 dark:b-theme">
         <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Settings tabs">
           {([
-            { id: 'general', label: 'General' },
-            { id: 'transfer', label: 'Transfer' },
-            { id: 'sms', label: 'SMS' },
-            { id: 'voice', label: 'Voice' },
-            { id: 'notifications', label: 'Notifications' },
-            { id: 'billing', label: 'Billing' },
-          ] as { id: typeof activeTab; label: string }[]).map(({ id, label }) => (
+            { id: 'general',       label: 'Agent',    adminOnly: false },
+            { id: 'transfer',      label: 'Transfer', adminOnly: true  },
+            { id: 'sms',           label: 'SMS',      adminOnly: false },
+            { id: 'voice',         label: 'Voice',    adminOnly: true  },
+            { id: 'notifications', label: 'Alerts',   adminOnly: false },
+            { id: 'billing',       label: 'Billing',  adminOnly: false },
+          ] as { id: typeof activeTab; label: string; adminOnly: boolean }[])
+            .filter(t => !t.adminOnly || isAdmin)
+            .map(({ id, label }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
@@ -869,7 +871,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       {activeTab === 'general' && (<>
 
       {/* 0 — Setup */}
-      {(!setupComplete[client.id] || setupEditing) ? (
+      {!isAdmin && ((!setupComplete[client.id] || setupEditing) ? (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] overflow-hidden">
           <div className="px-5 py-3 border-b border-amber-500/20 flex items-center gap-2">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -991,10 +993,10 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
           <button onClick={() => setSetupEditing(true)} className="text-xs t3 hover:t1 transition-colors">Edit</button>
         </div>
-      )}
+      ))}
 
       {/* Call Forwarding Quick Link */}
-      {!isAdmin && client.twilio_number && (
+      {!isAdmin && client.twilio_number && !setupComplete[client.id] && (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1014,7 +1016,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       >
       <div className="relative rounded-2xl border b-theme bg-surface p-5 overflow-hidden">
         {client.status === 'active' && <BorderBeam size={250} duration={12} colorFrom="#6366f1" colorTo="#a855f7" />}
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-4">Agent Overview</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-4">Agent overview</p>
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1067,12 +1069,20 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               {nameSaved && <span className="text-[10px] text-green-400">Saved</span>}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] t3 uppercase tracking-wider">Slug</span>
-                <span className="text-xs font-mono t2 bg-hover px-2 py-0.5 rounded border b-theme">
-                  {client.slug}
-                </span>
-              </div>
+              {voiceName && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] t3 uppercase tracking-wider">Voice</span>
+                  <span className="text-xs t2 bg-hover px-2 py-0.5 rounded border b-theme">{voiceName}</span>
+                </div>
+              )}
+              {isAdmin && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] t3 uppercase tracking-wider">Slug</span>
+                  <span className="text-xs font-mono t2 bg-hover px-2 py-0.5 rounded border b-theme">
+                    {client.slug}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] t3 uppercase tracking-wider">Last updated</span>
                 <span className="text-xs t3 font-mono">{timeAgo(client.updated_at)}</span>
@@ -1108,7 +1118,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           <div className="h-1.5 bg-hover rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                usagePct > 100 ? 'bg-pink-500' : usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-blue-500'
+                usagePct > 100 ? 'bg-pink-500' : usagePct >= 95 ? 'bg-red-500' : usagePct >= 80 ? 'bg-amber-500' : 'bg-blue-500'
               }`}
               style={{ width: `${Math.min(usagePct, 100)}%` }}
             />
@@ -1129,7 +1139,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       </div>
       </motion.div>
 
-      {/* 2 — Webhooks + Phone (collapsible) */}
+      {/* 2 — Webhooks + Phone (collapsible, admin only) */}
+      {isAdmin && (
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1181,8 +1192,10 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </AnimatePresence>
       </div>
       </motion.div>
+      )}
 
-      {/* 3 — Agent Configuration */}
+      {/* 3 — Agent Configuration (admin only) */}
+      {isAdmin && (
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1235,13 +1248,14 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         )}
       </div>
       </motion.div>
+      )}
 
-      {/* 3b — God Mode (admin only) */}
+      {/* 3b — Advanced Config (admin only) */}
       {isAdmin && godConfig[client.id] && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400/80">God Mode</p>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-600 dark:text-amber-400/80">Advanced Config</p>
               <p className="text-[11px] t3 mt-0.5">Editable infrastructure settings</p>
             </div>
             <button
@@ -2017,7 +2031,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         <div className="flex items-center justify-between mb-1">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">SMS Follow-up</p>
-            <p className="text-[11px] t3 mt-0.5">Sent to the caller after each call ends. Powered by Twilio.</p>
+            <p className="text-[11px] t3 mt-0.5">Sent to the caller after each call ends.</p>
           </div>
           <button
             onClick={saveSms}
@@ -2346,7 +2360,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         >
         <div className="rounded-2xl border b-theme bg-surface p-5">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Notifications</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Alerts</p>
             {!isAdmin && (
               <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                 client.telegram_bot_token && client.telegram_chat_id
@@ -2360,7 +2374,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </span>
             )}
           </div>
-          <p className="text-[11px] t3 mb-5">Choose how and when you get notified.</p>
+          <p className="text-[11px] t3 mb-5">Coming soon — we&apos;ll notify you here when enabled.</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -2381,7 +2395,9 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                           role="switch"
                           aria-checked="false"
                           aria-label={`${event} via ${ch}`}
-                          className="w-9 h-5 rounded-full bg-hover relative inline-flex items-center justify-center transition-colors hover:bg-zinc-600"
+                          title="We'll notify you here once enabled"
+                          disabled
+                          className="w-9 h-5 rounded-full bg-hover relative inline-flex items-center justify-center transition-colors opacity-50 cursor-not-allowed"
                         >
                           <span className="w-4 h-4 rounded-full bg-white shadow absolute left-0.5 transition-all" />
                         </button>
@@ -2392,7 +2408,6 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] t3 mt-4">Full notification routing coming in a future update.</p>
         </div>
         </motion.div>
       )}
@@ -2436,7 +2451,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               <div className="h-1.5 bg-hover rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    usagePct > 100 ? 'bg-pink-500' : usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-blue-500'
+                    usagePct > 100 ? 'bg-pink-500' : usagePct >= 95 ? 'bg-red-500' : usagePct >= 80 ? 'bg-amber-500' : 'bg-blue-500'
                   }`}
                   style={{ width: `${Math.min(usagePct, 100)}%` }}
                 />

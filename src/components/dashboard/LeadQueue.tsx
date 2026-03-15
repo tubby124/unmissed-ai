@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import DialModal from './DialModal'
+import { slaTag } from '@/lib/utils/sla'
 
 interface Lead {
   id: string
@@ -46,6 +47,7 @@ function timeAgo(iso: string) {
   if (mins > 0) return `${mins}m ago`
   return 'just now'
 }
+
 
 interface LeadQueueProps {
   initialLeads: Lead[]
@@ -257,6 +259,16 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_STYLE[lead.status]}`}>
                 {STATUS_LABEL[lead.status]}
               </span>
+              {/* SLA timer — queued only */}
+              {lead.status === 'queued' && (() => {
+                const tag = slaTag(lead.added_at)
+                if (!tag) return null
+                return (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${tag.cls}`}>
+                    {tag.label}
+                  </span>
+                )
+              })()}
 
               {/* Phone + name */}
               <div className="min-w-0 w-44 shrink-0">
