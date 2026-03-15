@@ -66,10 +66,19 @@ export function toIntakePayload(data: OnboardingData) {
     return m === 0 ? `${hour} ${ampm}` : `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
   };
   const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
-  const openDays = dayNames
-    .filter(d => !data.hours[d].closed)
-    .map(d => `${d.charAt(0).toUpperCase() + d.slice(1)} ${to12h(data.hours[d].open)}–${to12h(data.hours[d].close)}`);
-  const hoursStr = openDays.length > 0 ? openDays.join(", ") : "By appointment";
+  let hoursStr: string;
+  if (data.businessHoursText?.trim()) {
+    hoursStr = data.businessHoursText.trim();
+  } else {
+    try {
+      const openDays = dayNames
+        .filter(d => !data.hours[d].closed)
+        .map(d => `${d.charAt(0).toUpperCase() + d.slice(1)} ${to12h(data.hours[d].open)}–${to12h(data.hours[d].close)}`);
+      hoursStr = openDays.length > 0 ? openDays.join(", ") : "By appointment";
+    } catch {
+      hoursStr = data.businessHoursText || "By appointment";
+    }
+  }
 
   const digits = data.callbackPhone.replace(/\D/g, "");
   const areaCode = digits.length >= 10
@@ -118,6 +127,10 @@ export function toIntakePayload(data: OnboardingData) {
     agent_tone: data.agentTone || "casual",
     caller_faq: data.callerFAQ || "",
     agent_restrictions: data.agentRestrictions || "",
+    services_offered: data.servicesOffered?.trim() ||
+      (Array.isArray(data.nicheAnswers?.services)
+        ? (data.nicheAnswers.services as string[]).join(', ')
+        : (data.nicheAnswers?.services as string) || ''),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>
         [`niche_${k}`, Array.isArray(v) ? (v as string[]).join(", ") : String(v)]

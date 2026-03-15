@@ -39,7 +39,13 @@ export interface ClientConfig {
   calendar_auth_status: string | null
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ client_id?: string }>
+}) {
+  const params = searchParams ? await searchParams : {}
+  const initialClientId = params?.client_id
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -68,6 +74,7 @@ export default async function SettingsPage() {
         clients={(clients ?? []) as ClientConfig[]}
         isAdmin={true}
         appUrl={appUrl}
+        initialClientId={initialClientId}
       />
     )
   }
@@ -85,6 +92,7 @@ export default async function SettingsPage() {
       clients={[client as ClientConfig]}
       isAdmin={false}
       appUrl={appUrl}
+      initialClientId={initialClientId}
     />
   )
 }

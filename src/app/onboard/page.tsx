@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -49,9 +49,9 @@ function canAdvance(step: number, data: OnboardingData): boolean {
       const baseValid = !!data.businessName && !!data.state
         && countDigits(data.callbackPhone) >= 10
         && isValidEmail(data.contactEmail);
-      if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim();
+      if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim() && !!data.businessHoursText?.trim();
       if (skipCity) return baseValid;
-      return baseValid && !!data.city;
+      return baseValid && !!data.city && !!data.businessHoursText?.trim();
     }
     case 3: {
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
@@ -119,12 +119,33 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 
 export default function OnboardPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        return typeof parsed.step === 'number' ? parsed.step : 1
+      }
+    } catch { /* ignore */ }
+    return 1
+  })
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
-  const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
+  const [data, setData] = useState<OnboardingData>(() => {
+    if (typeof window === 'undefined') return defaultOnboardingData
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed.data && typeof parsed.data === 'object') {
+          return { ...defaultOnboardingData, ...parsed.data }
+        }
+      }
+    } catch { /* ignore */ }
+    return defaultOnboardingData
+  })
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hydrated = useRef(false);
 
   // Derived step sequence based on selected niche
   const stepSequence = getStepSequence(data.niche);
@@ -132,23 +153,10 @@ export default function OnboardPage() {
   const totalSteps = stepSequence.length;
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.data) setData(parsed.data);
-        if (parsed.step) setStep(parsed.step);
-      }
-    } catch { /* ignore malformed localStorage */ }
-    hydrated.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !hydrated.current) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }));
-    } catch { /* localStorage full — silently ignore */ }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }))
+    } catch { /* localStorage full */ }
   }, [step, data]);
 
   const update = (updates: Partial<OnboardingData>) => {

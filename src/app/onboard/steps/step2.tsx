@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OnboardingData, defaultAgentNames, NICHE_CONFIG, Niche } from "@/types/onboarding";
@@ -45,6 +45,7 @@ export default function Step2({ data, onUpdate }: Props) {
     : (data.niche ? defaultAgentNames[data.niche] : "Sam");
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [autofillState, setAutofillState] = useState<'idle' | 'loading' | 'done'>('idle');
   const phoneDigits = countDigits(data.callbackPhone);
   const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
   const emailInvalid = emailTouched && data.contactEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail.trim());
@@ -161,6 +162,21 @@ export default function Step2({ data, onUpdate }: Props) {
         </div>
       )}
 
+      {!isVoicemail && (
+        <div className="space-y-2">
+          <Label htmlFor="businessHoursText">
+            Business hours <span className="text-red-400">*</span>
+          </Label>
+          <Input
+            id="businessHoursText"
+            placeholder="e.g. Mon–Fri 9am–5pm, Sat 10am–2pm"
+            value={data.businessHoursText}
+            onChange={(e) => onUpdate({ businessHoursText: e.target.value })}
+          />
+          <p className="text-xs text-slate-400">When is your business open? Your agent will use this to handle after-hours calls.</p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="callbackPhone">
           Your real callback number <span className="text-red-400">*</span>{" "}
@@ -231,6 +247,20 @@ export default function Step2({ data, onUpdate }: Props) {
           </div>
         )}
 
+        {!isVoicemail && (
+          <div className="space-y-2">
+            <Label htmlFor="servicesOffered">Services offered</Label>
+            <textarea
+              id="servicesOffered"
+              rows={2}
+              placeholder="e.g. windshield repair, chip filling, ADAS recalibration"
+              value={data.servicesOffered}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onUpdate({ servicesOffered: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="websiteUrl">Business website</Label>
           <Input
@@ -239,7 +269,36 @@ export default function Step2({ data, onUpdate }: Props) {
             placeholder="https://yourshop.com"
             value={data.websiteUrl}
             onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
+            onBlur={async (e) => {
+              const url = e.target.value.trim()
+              if (!url || autofillState !== 'idle') return
+              try { new URL(url) } catch { return }
+              setAutofillState('loading')
+              try {
+                const res = await fetch('/api/onboard/autofill', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url }),
+                })
+                if (res.ok) {
+                  const json = await res.json()
+                  if (json.hours && !data.businessHoursText?.trim()) onUpdate({ businessHoursText: json.hours })
+                  if (json.services && !data.servicesOffered?.trim()) onUpdate({ servicesOffered: json.services })
+                  setAutofillState('done')
+                } else {
+                  setAutofillState('idle')
+                }
+              } catch {
+                setAutofillState('idle')
+              }
+            }}
           />
+          {autofillState === 'loading' && (
+            <p className="text-xs text-indigo-500 mt-1">Fetching info from your site…</p>
+          )}
+          {autofillState === 'done' && (
+            <p className="text-xs text-green-600 mt-1">Auto-filled from your website</p>
+          )}
         </div>
       </div>
     </div>

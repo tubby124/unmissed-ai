@@ -296,6 +296,8 @@ function ActivateModal({ intake, onClose }: {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
+  const missingClientId = !intake.client_id
+
   async function createCheckout() {
     setError('')
     setLoading(true)
@@ -342,6 +344,12 @@ function ActivateModal({ intake, onClose }: {
               On payment, their Twilio number is auto-provisioned and login email is sent.
             </p>
 
+            {missingClientId && (
+              <p className="text-xs rounded px-3 py-2 mb-2" style={{ background: 'var(--color-warn-bg, #fef9c3)', color: 'var(--color-warn-text, #854d0e)' }}>
+                Generate prompt first (Actions → Generate Prompt) before activating.
+              </p>
+            )}
+
             {error && (
               <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
                 {error}
@@ -360,7 +368,7 @@ function ActivateModal({ intake, onClose }: {
               <button
                 type="button"
                 onClick={createCheckout}
-                disabled={loading}
+                disabled={loading || missingClientId}
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Creating link…' : 'Create payment link'}
@@ -642,7 +650,7 @@ function ActiveClientCard({ client, onDeleted }: { client: Client; onDeleted: ()
             </a>
           </div>
 
-          {!isProtected && (
+          {!isProtected && !client.twilio_number && !client.activation_log && (
             <div className="mt-2">
               {!confirmDelete ? (
                 <button

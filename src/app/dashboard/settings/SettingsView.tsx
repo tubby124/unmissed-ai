@@ -170,10 +170,15 @@ interface SettingsViewProps {
   clients: ClientConfig[]
   isAdmin: boolean
   appUrl: string
+  initialClientId?: string
 }
 
-export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewProps) {
-  const [selectedId, setSelectedId] = useState(clients[0]?.id ?? '')
+export default function SettingsView({ clients, isAdmin, appUrl, initialClientId }: SettingsViewProps) {
+  const [selectedId, setSelectedId] = useState(
+    (initialClientId && clients.find(c => c.id === initialClientId))
+      ? initialClientId
+      : (clients[0]?.id ?? '')
+  )
   const [prompt, setPrompt] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.system_prompt ?? '']))
   )
@@ -205,6 +210,9 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [telegramTest, setTelegramTest] = useState<Record<string, 'idle' | 'testing' | 'ok' | 'fail'>>(() =>
     Object.fromEntries(clients.map(c => [c.id, 'idle' as const]))
   )
+
+  // Re-generate from template
+  const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
   // AI Improve Prompt
   const [improveState, setImproveState] = useState<ImproveState>('idle')
@@ -1755,6 +1763,32 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                         </AnimatePresence>
                       )}
                     </button>
+                    {isAdmin && (
+                      <ShimmerButton
+                        onClick={async () => {
+                          setRegenState('loading')
+                          try {
+                            const res = await fetch('/api/dashboard/regenerate-prompt', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ clientId: selectedId }),
+                            })
+                            if (!res.ok) throw new Error(await res.text())
+                            setRegenState('done')
+                            setTimeout(() => setRegenState('idle'), 3000)
+                          } catch (e) {
+                            console.error('[regen]', e)
+                            setRegenState('error')
+                            setTimeout(() => setRegenState('idle'), 3000)
+                          }
+                        }}
+                        disabled={regenState === 'loading'}
+                        className="text-sm"
+                        shimmerColor="rgba(99,102,241,0.5)"
+                      >
+                        {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
+                      </ShimmerButton>
+                    )}
                   </div>
                 </div>
 

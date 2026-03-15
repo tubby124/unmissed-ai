@@ -136,15 +136,71 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
 
 // ── Agents API ───────────────────────────────────────────────────────────────
 
+interface UltravoxTool {
+  toolName?: string
+  modelToolName?: string
+  description?: string
+  dynamicParameters?: Array<{
+    name: string
+    location: string
+    schema: { type: string; description?: string }
+    required: boolean
+  }>
+  http?: {
+    baseUrlPattern: string
+    httpMethod: string
+  }
+}
+
+function buildCalendarTools(slug: string): UltravoxTool[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  return [
+    {
+      modelToolName: 'checkCalendarAvailability',
+      description: 'Check available appointment slots for a given date.',
+      dynamicParameters: [
+        {
+          name: 'date',
+          location: 'PARAMETER_LOCATION_QUERY',
+          schema: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+          required: true,
+        },
+      ],
+      http: {
+        baseUrlPattern: `${appUrl}/api/calendar/${slug}/slots`,
+        httpMethod: 'GET',
+      },
+    },
+    {
+      modelToolName: 'bookAppointment',
+      description: 'Book an appointment for a caller.',
+      dynamicParameters: [
+        { name: 'date',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
+        { name: 'time',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
+        { name: 'service',    location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
+        { name: 'callerName', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
+      ],
+      http: {
+        baseUrlPattern: `${appUrl}/api/calendar/${slug}/book`,
+        httpMethod: 'POST',
+      },
+    },
+  ]
+}
+
 interface AgentConfig {
   systemPrompt: string
   voice?: string | null
   tools?: object[]
   name?: string
+  /** Client slug — required when booking_enabled is true to build calendar tool URLs. */
+  slug?: string
+  /** When true, inject Google Calendar availability + booking tools into selectedTools. */
+  booking_enabled?: boolean
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -169,7 +225,9 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
   }
 
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
-  callTemplate.selectedTools = tools?.length ? tools : [{ toolName: 'hangUp' }]
+  const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
+  const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
+  callTemplate.selectedTools = [...baseTools, ...calendarTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -229,7 +287,9 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   }
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
-  callTemplate.selectedTools = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
+  const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
+  const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
+  callTemplate.selectedTools = [...baseTools, ...calendarTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',

@@ -49,6 +49,8 @@ export interface OnboardingData {
   ownerName: string;
   contactEmail: string;
   websiteUrl: string;
+  businessHoursText: string;   // e.g. "Mon–Fri 9am–5pm, Sat 10am–2pm" — used when step 3 is skipped
+  servicesOffered: string;     // brief services description — optional, used when step 4 is skipped
 
   // Step 3
   hours: {
@@ -120,6 +122,8 @@ export const defaultOnboardingData: OnboardingData = {
   ownerName: "",
   contactEmail: "",
   websiteUrl: "",
+  businessHoursText: '',
+  servicesOffered: '',
   hours: {
     monday: { ...defaultHours },
     tuesday: { ...defaultHours },

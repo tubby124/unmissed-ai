@@ -61,14 +61,17 @@ export async function POST(req: NextRequest) {
   // Ensure niche is present (intake_json may have camelCase niche; prefer top-level niche field)
   if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
 
-  // Prefer clients.agent_name over intake-time agent_name (prevents name drift)
+  // Preserve existing agent_name ONLY when re-generating for an already-active client.
+  // First-time provisioning: trust the intake form's agent_name.
   if (intake.client_slug) {
     const { data: clientRow } = await svc
       .from('clients')
-      .select('agent_name')
+      .select('agent_name, status')
       .eq('slug', intake.client_slug)
       .single()
-    if (clientRow?.agent_name) intakeData.db_agent_name = clientRow.agent_name
+    if (clientRow?.agent_name && clientRow.status === 'active') {
+      intakeData.db_agent_name = clientRow.agent_name
+    }
   }
 
   // ── Optional Sonar Pro enrichment ──────────────────────────────────────────

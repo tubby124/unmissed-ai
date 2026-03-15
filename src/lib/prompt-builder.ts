@@ -253,7 +253,7 @@ You: "thanks, but we're not interested. have a good day."
 > Format: Bold question → 1-2 sentence spoken answer. No lists, no URLs, no prices.
 > Use {{VARIABLES}} where values differ per client.
 
-**What services do you offer?** "[REPLACE: brief spoken description of main services]"
+**What services do you offer?** "{{SERVICES_OFFERED}}"
 
 **Do you come to us, or do we come to you?** "[REPLACE: spoken answer based on {{MOBILE_POLICY}}]"
 
@@ -1612,6 +1612,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     ['agent_name', 'AGENT_NAME'],
     ['db_agent_name', 'AGENT_NAME'],
     ['hours_weekday', 'HOURS_WEEKDAY'],
+    ['services_offered', 'SERVICES_OFFERED'],
     ['weekend_policy', 'WEEKEND_POLICY'],
     ['callback_phone', 'CALLBACK_PHONE'],
     ['services_not_offered', 'SERVICES_NOT_OFFERED'],
