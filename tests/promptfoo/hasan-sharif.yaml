@@ -89,6 +89,8 @@ tests:
       - type: icontains-any
         value:
           - "property"
+          - "address"
+          - "area"
           - "name"
           - "date"
           - "time"

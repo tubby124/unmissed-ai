@@ -1,4 +1,4 @@
 [
-  {"role": "system", "content": "{{system_prompt}}"},
+  {"role": "system", "content": "{{system_prompt}}{% if context_data %}\n\n{{context_data}}{% endif %}"},
   {"role": "user", "content": "{{caller_message}}"}
 ]

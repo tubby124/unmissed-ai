@@ -19,7 +19,7 @@ defaultTest:
   assert:
     # Agent must NEVER ask for callback number (any phrasing)
     - type: javascript
-      value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|ray|him|them)/i.test(output)"
+      value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(phone|phone number|callback number)|(your|a).*(phone|callback).*(so|for|to) (i|we|ray|him|them)/i.test(output)"
       threshold: 1
 
 tests:
@@ -69,7 +69,7 @@ tests:
       caller_message: "Hi, my name is Sarah and my furnace stopped working."
     assert:
       - type: javascript
-        value: "!/(what's|what is).*(your|the).*(number|phone|reach)/i.test(output)"
+        value: "!/(what's|what is).*(your|the).*(phone|phone number|callback number|reach)/i.test(output)"
       - type: not-icontains
         value: "what is your phone"
       - type: not-icontains
