@@ -1,0 +1,27 @@
+{
+  "_comment": "Windshield Hub Auto Glass — Railway native since 2026-03-09 | Webhook: /api/webhook/windshield-hub/inbound",
+  "client_name":          "Windshield Hub Auto Glass",
+  "agent_name":           "Mark",
+  "business_name":        "Windshield Hub Auto Glass",
+  "host_name":            "the team",
+  "host_phone_display":   null,
+  "twilio_from":          "+15873551834",
+  "voice_number":         "+15873551834",
+  "owner_phone":          "+13067163228",
+  "telegram_chat_id":     null,
+  "_telegram_todo":       "Get Sabbir's Telegram chat ID — notifications currently not delivered",
+  "sms_enabled":          true,
+  "business_hours_start": 8,
+  "business_hours_end":   18,
+  "work_days":            "Mon-Sat",
+  "timezone":             "America/Regina",
+  "timezone_display":     "Saskatchewan",
+  "utc_offset":           "-06:00",
+  "vertical":             "auto_glass",
+  "deployed_at":          "2026-03-09",
+  "_notes": [
+    "WH books install appointments, not consultations — slot_minutes is 60 min",
+    "Insurance: SGI accepted + regular payment",
+    "Hours: Mon-Sat 8-6, Sundays case-by-case depending on urgency"
+  ]
+}

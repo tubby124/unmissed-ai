@@ -1,0 +1,19 @@
+{
+  "_comment": "Hasan Sharif — EXP Realty | Railway native | Webhook: /api/webhook/hasan-sharif/inbound",
+  "client_name":          "Hasan Sharif Real Estate",
+  "agent_name":           "Aisha",
+  "business_name":        "EXP Realty",
+  "host_name":            "Hasan",
+  "host_phone_display":   "(306) 850-7687",
+  "twilio_from":          "+15877421507",
+  "voice_number":         "+15877421507",
+  "telegram_chat_id":     "7278536150",
+  "business_hours_start": 9,
+  "business_hours_end":   19,
+  "work_days":            "Mon-Sat",
+  "timezone":             "America/Regina",
+  "timezone_display":     "Saskatchewan",
+  "utc_offset":           "-06:00",
+  "vertical":             "real_estate",
+  "deployed_at":          "2026-02-23T00:00:00Z"
+}

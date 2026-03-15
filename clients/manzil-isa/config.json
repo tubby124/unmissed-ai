@@ -1,0 +1,39 @@
+{
+  "_comment": "Manzil Realty ISA — Omar Sharif + Hasan Sharif | eXp Realty Saskatoon",
+  "_status": "TEST MODE — n8n legacy client. Do NOT migrate to Railway until Manzil goes live.",
+  "client_name":          "Manzil Realty",
+  "agent_name":           "Fatima",
+  "agent_voice":          "ac329809-3b43-4ab7-a16a-b40448212e1c",
+  "greeting_style":       "islamic",
+  "business_name":        "Manzil Realty — eXp Realty Saskatoon",
+  "team_lead":            "Omar Sharif",
+  "team_lead_email":      "osharif@manzilrealty.com",
+  "team_realtor":         "Hasan Sharif",
+  "team_realtor_email":   "hasan.sharif@exprealty.com",
+  "outbound_from":        "+15878014602",
+  "timezone":             "America/Regina",
+  "timezone_display":     "Saskatchewan",
+  "utc_offset":           "-06:00",
+  "business_hours_start": 10,
+  "business_hours_end":   20,
+  "work_days":            "Mon-Sat",
+  "slot_minutes":         30,
+  "event_name":           "Manzil Halal Mortgage Info Session — April 13, 2026",
+  "event_date":           "Monday April 13, 2026 from 5 PM to 9 PM",
+  "event_location":       "IAS Gymnasium, 222 Copland Crescent, Saskatoon SK S7H 2Z5",
+  "pre_approval_url":     "https://forms.manzilrealty.ca/preapproval",
+  "telegram_chat_id":     "7278536150",
+  "_telegram_note":       "omarassistant_1bot — shared chat ID with Hasan workflows",
+  "notify_emails": [
+    "osharif@manzilrealty.com",
+    "hasan.sharif@exprealty.com"
+  ],
+  "vertical":             "real_estate_isa",
+  "product_type":         "halal_mortgage",
+  "deployed_at":          "2026-02-24T01:05:32.347741",
+  "lead_statuses": [
+    "Ready to Call", "Called - HOT", "Called - WARM", "Called - COLD",
+    "Called - Not Interested", "Voicemail", "No Answer",
+    "Wrong Number", "Do Not Call", "Appointment Booked"
+  ]
+}

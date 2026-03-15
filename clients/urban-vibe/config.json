@@ -1,0 +1,59 @@
+{
+  "_comment": "Urban Vibe Properties — Calgary AB | Property Management | Railway native since Mar 9 2026",
+  "_telegram_note": "Alerts -> 'Urban Vibe AI' Telegram group (-1003821528827) via Railway completed webhook.",
+
+  "client_name":          "Urban Vibe Properties",
+  "client_slug":          "urban-vibe",
+  "vertical":             "property_management",
+  "niche":                "property_management",
+
+  "twilio_from":          "+15873296845",
+  "voice_number":         "+15873296845",
+
+  "telegram_group_name":          "Urban Vibe AI",
+  "telegram_group_chat_id":       "-1003821528827",
+
+  "agent_name":           "Alisha",
+  "business_name":        "Urban Vibe Properties",
+  "host_name":            "the property manager",
+  "callback_phone":       "(403) 605-7142",
+
+  "timezone":             "America/Edmonton",
+  "timezone_display":     "Alberta",
+  "utc_offset":           "-07:00",
+
+  "intake": {
+    "niche":                "property_management",
+    "business_name":        "Urban Vibe Properties",
+    "city":                 "Calgary",
+    "agent_name":           "Alisha",
+    "hours_weekday":        "Monday to Friday, 9 AM to 5 PM",
+    "callback_phone":       "(403) 605-7142",
+    "insurance_preset":     "not_applicable",
+    "weekend_policy":       "for emergencies like flooding, no heat, or a security issue we're reachable — for routine requests we're back monday morning",
+    "services_not_offered": "commercial properties",
+    "triage_script_override": "If maintenance/repair: \"gotcha — is this an emergency like no heat or a water leak, or more of a routine repair?\"\n-> emergency: collect name, unit/address, issue description, callback — add [URGENT] to Telegram note\n-> routine: collect name, unit/address, issue, callback\n\nIf viewing/rental inquiry: \"yeah, for sure — do you have a specific property in mind, or are you looking for something in the Calgary area?\"\n-> collect name, property interest, preferred timing, callback\n\nIf billing/payment question: \"okay — can I get your name and a quick summary of the question? I'll have the property manager follow up.\"\n-> collect name, unit/address, question summary, callback\n\nIf personal call / general message / other: \"of course — can I take a message and have the team get back to you?\"\n-> collect name, message, callback",
+    "completion_fields_override": "caller name and callback number confirmed",
+    "caller_faq": "What properties do you manage? — We manage residential rental properties in Calgary. I can have the property manager call you back with current availability.\nHow do I report an emergency? — For emergencies like flooding, no heat, or a security issue, just leave your name, unit, and a description right now and the property manager will be notified immediately.\nHow do I pay rent? — The property manager can go over payment options with you. Let me grab your info and have them call you back.\nIs there a unit available? — Let me grab your name and number and have our property manager call you back with current availability.\nWho do I contact for maintenance? — You've reached the right place. Tell me your unit number and what's happening and I'll get it logged and passed to the property manager.\nCan I do a viewing? — Absolutely. Let me get your name and number and the property manager will call you back to arrange a time.\nDo you manage commercial properties? — We're residential only, but I can have the property manager point you in the right direction if you need a referral.",
+    "agent_restrictions": "NEVER give out the owner's personal name or number\nNEVER promise a specific repair timeline — always route to callback\nNEVER confirm or deny rent amounts — always route to callback\nNEVER make commitments about unit availability — always route to callback",
+    "agent_tone": "professional"
+  },
+
+  "phase2_features": [
+    "Connect-to-manager handler: when caller asks to speak to someone directly, fire Telegram alert LIVE CONNECT REQUEST with caller number",
+    "Property database: Google Sheets tenant list — match caller address to known tenant on inbound",
+    "Availability lookup: separate sheet tab with unit availability — Alisha can reference during viewing inquiries",
+    "Email CC: send call summary to urbanvibe.ca@gmail.com per call",
+    "Ray Telegram bot: create UrbanVibeAgent bot, get Ray's chat_id, update workflow + add second Telegram node to CC Hasan permanently"
+  ],
+
+  "webhook_inbound":      "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/inbound",
+  "webhook_completed":    "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/completed",
+  "webhook_fallback":     "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/fallback",
+  "voice_id_alisha":      "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",
+  "voice_name":           "Jacqueline",
+
+  "deployed_at": "2026-03-07",
+  "live": true,
+  "switched_to_railway": "2026-03-09"
+}
