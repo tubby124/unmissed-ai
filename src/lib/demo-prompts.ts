@@ -35,6 +35,8 @@ export const DEMO_AGENTS: Record<string, DemoAgent> = {
     voiceId: VOICE_TYLER,
     voiceGender: 'male',
     description: 'Windshield repair & replacement shop receptionist',
+    useLivePrompt: true,
+    clientSlug: 'demo-auto-glass',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
 ABSOLUTE FORBIDDEN ACTIONS — READ THESE FIRST
@@ -114,6 +116,8 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     voiceId: VOICE_NICOLE,
     voiceGender: 'female',
     description: 'Property management office assistant',
+    useLivePrompt: true,
+    clientSlug: 'demo-property-mgmt',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
 ABSOLUTE FORBIDDEN ACTIONS — READ THESE FIRST
@@ -193,6 +197,8 @@ If the caller says goodbye — immediately acknowledge with a short goodbye and 
     voiceId: VOICE_AISHA,
     voiceGender: 'female',
     description: 'Real estate AI voicemail assistant — takes messages and routes callbacks',
+    useLivePrompt: true,
+    clientSlug: 'hasan-sharif',
     systemPrompt: `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
 ABSOLUTE FORBIDDEN ACTIONS — READ THESE FIRST

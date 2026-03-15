@@ -96,17 +96,21 @@ interface CreateDemoCallOptions {
   voice?: string | null
   /** When true, use Twilio medium (for phone IVR demos). Omit for browser WebRTC. */
   useTwilio?: boolean
+  /** Override max call duration (default: 120s) */
+  maxDuration?: string
+  /** Override the message spoken when time runs out */
+  timeExceededMessage?: string
 }
 
-export async function createDemoCall({ systemPrompt, voice, useTwilio }: CreateDemoCallOptions) {
+export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDuration, timeExceededMessage }: CreateDemoCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
     voice: voice || DEFAULT_VOICE,
-    maxDuration: '120s',
-    recordingEnabled: false,
+    maxDuration: maxDuration || '120s',
+    recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
-    timeExceededMessage: "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
+    timeExceededMessage: timeExceededMessage || "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
     selectedTools: [{ toolName: 'hangUp' }],
@@ -143,7 +147,7 @@ interface AgentConfig {
 export async function createAgent({ systemPrompt, voice, tools, name }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
-    systemPrompt: systemPrompt + '\n\n{{callerContext}}',
+    systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
     model: 'ultravox-v0.7',
     voice: voice || DEFAULT_VOICE,
     maxDuration: '600s',
@@ -156,6 +160,7 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
       type: 'object',
       properties: {
         callerContext: { type: 'string' },
+        contextData: { type: 'string' },
       },
     },
     firstSpeakerSettings: { agent: { uninterruptible: true } },
@@ -193,17 +198,23 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
     contextSchema: {
       type: 'object',
-      properties: { callerContext: { type: 'string' } },
+      properties: { callerContext: { type: 'string' }, contextData: { type: 'string' } },
     },
     firstSpeakerSettings: { agent: { uninterruptible: true } },
   }
 
   // Client-specific overrides
   if (updates.systemPrompt !== undefined) {
-    // Preserve {{callerContext}} placeholder for templateContext injection per call
-    callTemplate.systemPrompt = updates.systemPrompt.includes('{{callerContext}}')
-      ? updates.systemPrompt
-      : updates.systemPrompt + '\n\n{{callerContext}}'
+    // Preserve {{callerContext}} and {{contextData}} placeholders — appended after validation,
+    // these resolve at call time via templateContext and must always be present.
+    let sp = updates.systemPrompt
+    if (!sp.includes('{{callerContext}}')) {
+      sp = sp + '\n\n{{callerContext}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
+    } else if (!sp.includes('{{contextData}}')) {
+      // callerContext present but contextData missing — add contextData block
+      sp = sp + '\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
+    }
+    callTemplate.systemPrompt = sp
   }
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
@@ -227,19 +238,22 @@ interface CallViaAgentOptions {
   maxDuration?: string
   /** Inject returning-caller context as an initial hidden tool message. */
   callerContext?: string
+  /** Inject per-call reference data (CSV/text) via {{contextData}} templateContext. */
+  contextData?: string
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, contextData }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
     metadata: metadata || {},
-    // Always inject templateContext so {{callerContext}} placeholder in systemPrompt resolves cleanly
+    // Always inject templateContext so {{callerContext}} and {{contextData}} placeholders resolve cleanly
     templateContext: {
       callerContext: callerContext || '',
+      contextData: contextData || '',
     },
   }
 

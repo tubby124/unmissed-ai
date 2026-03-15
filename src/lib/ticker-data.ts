@@ -21,9 +21,9 @@ export const tickerEvents: TickerEvent[] = [
 export const marqueeTestimonials = [
   {
     quote: "I used to lose 3-4 jobs a week to voicemail. Now every call gets answered while we're doing installs.",
-    author: "Mark",
-    business: "Windshield Hub Auto Glass",
-    location: "Saskatoon, SK",
+    author: "Shop Owner",
+    business: "Auto Glass Shop",
+    location: "Calgary, AB",
     stars: 5,
   },
   {
