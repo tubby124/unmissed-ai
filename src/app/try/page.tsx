@@ -83,10 +83,16 @@ export default function TryPage() {
                   <button
                     key={agent.id}
                     onClick={() => setState({ step: "name", agentId: agent.id })}
-                    className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.01]"
+                    className="w-full text-left rounded-xl p-5 transition-all duration-200 hover:scale-[1.01] cursor-pointer"
                     style={{
                       backgroundColor: "var(--color-surface)",
                       border: "1px solid var(--color-border)",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 24px ${agent.color}22, 0 0 0 1px ${agent.color}33`
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"
                     }}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -103,11 +109,22 @@ export default function TryPage() {
                         <p className="text-sm mt-1" style={{ color: "var(--color-text-2)" }}>{agent.description}</p>
                       </div>
                       <div className="shrink-0 mt-2">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                          style={{ backgroundColor: agent.color }}
-                        >
-                          {agent.agent[0]}
+                        <div className="relative">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm relative z-10"
+                            style={{ backgroundColor: agent.color }}
+                          >
+                            {agent.agent[0]}
+                          </div>
+                          {/* Pulse ring around avatar */}
+                          <div
+                            className="absolute inset-0 rounded-full animate-ping"
+                            style={{
+                              backgroundColor: agent.color,
+                              opacity: 0.15,
+                              animationDuration: "2.5s",
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -190,6 +207,7 @@ export default function TryPage() {
                 callerName={state.callerName}
                 agentName={selectedAgent.agent}
                 companyName={selectedAgent.company}
+                agentColor={selectedAgent.color}
                 onEnd={() => {
                   setState({ step: "select" })
                   setNameInput("")

@@ -4,8 +4,8 @@ import Footer from "@/components/Footer";
 import LeadCard from "@/components/LeadCard";
 import PricingCards from "@/components/PricingCards";
 import FaqAccordion from "@/components/FaqAccordion";
-import DemoAudioPlayer from "@/components/DemoAudioPlayer";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 
@@ -81,11 +81,11 @@ export default function ForAutoGlassPage() {
                     Get My Auto Glass Agent →
                   </Link>
                   <Link
-                    href="#demo"
+                    href="/try"
                     className="px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors text-center"
                     style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-2)", border: "1px solid var(--color-border)" }}
                   >
-                    Hear a Real Call ↓
+                    Try a Live Demo
                   </Link>
                 </div>
 
@@ -152,11 +152,24 @@ export default function ForAutoGlassPage() {
           </div>
         </section>
 
-        {/* Demo audio */}
-        <section id="demo">
-          <ErrorBoundary>
-            <DemoAudioPlayer />
-          </ErrorBoundary>
+        {/* Demo link */}
+        <section id="demo" className="py-12 px-4">
+          <div
+            className="max-w-2xl mx-auto rounded-xl p-6 text-center"
+            style={{ backgroundColor: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)" }}
+          >
+            <p className="text-emerald-400 font-semibold text-sm mb-1">Live Agent</p>
+            <p style={{ color: "var(--color-text-2)" }} className="text-sm mb-3">
+              Talk to our auto glass AI agent right now — free, no sign-up:
+            </p>
+            <Link
+              href="/try"
+              className="inline-block px-6 py-2.5 rounded-xl text-white font-semibold text-sm"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              Try a Live Demo Agent
+            </Link>
+          </div>
         </section>
 
         {/* Testimonial */}
@@ -179,8 +192,8 @@ export default function ForAutoGlassPage() {
                   M
                 </div>
                 <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Mark T.</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Windshield Hub Auto Glass · Calgary, AB</p>
+                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Shop Owner</p>
+                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Auto Glass Shop · Calgary, AB</p>
                 </div>
               </div>
             </div>
@@ -230,6 +243,7 @@ export default function ForAutoGlassPage() {
       </main>
 
       <Footer />
+      <TryDemoPopup />
     </>
   );
 }

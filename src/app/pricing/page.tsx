@@ -7,6 +7,7 @@ import FaqAccordion from "@/components/FaqAccordion";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
+import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
 
 export const metadata: Metadata = {
   title: "Pricing — unmissed.ai AI Receptionist",
@@ -51,32 +52,7 @@ export default function PricingPage() {
 
       <main style={{ backgroundColor: "var(--color-bg)" }}>
         {/* Header */}
-        <section className="pt-32 pb-16 px-4 text-center" style={{ backgroundColor: "#0F172A" }}>
-          <div className="max-w-3xl mx-auto">
-            <p
-              className="text-xs font-mono uppercase tracking-widest mb-3"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Pricing
-            </p>
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-              One flat rate. Every call answered.
-            </h1>
-            <p className="text-gray-400 text-xl leading-relaxed mb-2">
-              Other AI receptionists charge you per minute — the more your phone
-              rings, the more you pay. That punishes success.
-            </p>
-            <p className="text-white text-xl font-semibold mb-6">
-              We charge one flat monthly rate. No per-minute fees. No overage surprises. Ever.
-            </p>
-            <div
-              className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
-              style={{ backgroundColor: "#0D1A2E", color: "#60A5FA", border: "1px solid #1E3A5F" }}
-            >
-              🔒 Founding Member Pricing — locked for life for the first 50 clients
-            </div>
-          </div>
-        </section>
+        <PricingHero />
 
         {/* Pricing Cards */}
         <section className="pb-16 px-4">
@@ -88,17 +64,7 @@ export default function PricingPage() {
         </section>
 
         {/* Guarantee bar */}
-        <div
-          className="py-6 px-4 text-center"
-          style={{ backgroundColor: "#0D1F0D", borderTop: "1px solid #166534", borderBottom: "1px solid #166534" }}
-        >
-          <p className="text-green-400 font-semibold text-sm">
-            ✅ 30-day money-back guarantee · No contracts · Cancel anytime with 30 days notice
-          </p>
-          <p className="text-gray-500 text-xs mt-1">
-            Your call log data lives in your Google Sheet — you keep it if you ever leave.
-          </p>
-        </div>
+        <GuaranteeBar />
 
         {/* The Per-Minute Trap */}
         <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
@@ -147,7 +113,7 @@ export default function PricingPage() {
                       <td className="p-4 text-center text-gray-500 text-xs">{row.catch}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#0D1A2E", borderBottom: "1px solid #1E3A5F" }}>
+                  <tr style={{ backgroundColor: "#0d0d0d", borderBottom: "1px solid #1f1f1f" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>unmissed.ai</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>All calls</td>
@@ -199,7 +165,7 @@ export default function PricingPage() {
                     <th className="text-center p-3 text-gray-400 font-medium text-xs">Smith.ai</th>
                     <th
                       className="text-center p-3 font-semibold text-xs"
-                      style={{ color: "var(--color-primary)", backgroundColor: "#0D1A2E" }}
+                      style={{ color: "var(--color-primary)", backgroundColor: "#0d0d0d" }}
                     >
                       unmissed.ai
                     </th>

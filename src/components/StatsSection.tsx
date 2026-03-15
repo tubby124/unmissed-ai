@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from 'motion/react';
 
 interface Stat {
   value: string;
@@ -76,8 +77,14 @@ export default function StatsSection({ stats }: { stats: Stat[] }) {
       ref={ref}
       className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center"
     >
-      {stats.map((s) => (
-        <div key={s.label}>
+      {stats.map((s, i) => (
+        <motion.div
+          key={s.label}
+          initial={{ opacity: 0, y: 16, scale: 0.95 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.15 }}
+        >
           {visible ? (
             <AnimatedNumber value={s.value} sublabel={s.sublabel} />
           ) : (
@@ -86,7 +93,7 @@ export default function StatsSection({ stats }: { stats: Stat[] }) {
             </p>
           )}
           <p className="text-sm" style={{ color: "var(--color-text-2)" }}>{s.label}</p>
-        </div>
+        </motion.div>
       ))}
     </div>
   );

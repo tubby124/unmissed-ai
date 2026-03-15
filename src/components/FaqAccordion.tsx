@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const faqs = [
   {
@@ -63,8 +64,12 @@ export default function FaqAccordion() {
 
         <div className="space-y-3">
           {faqs.map((faq, i) => (
-            <div
+            <motion.div
               key={i}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
               className="rounded-xl overflow-hidden"
               style={{ border: "1px solid var(--color-border)" }}
             >
@@ -76,28 +81,47 @@ export default function FaqAccordion() {
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
               >
                 <span className="font-medium pr-4" style={{ color: "var(--color-text-1)" }}>{faq.question}</span>
-                <span
-                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm transition-transform"
+                <motion.span
+                  animate={{ rotate: openIndex === i ? 45 : 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    width: "1.5rem",
+                    height: "1.5rem",
+                    borderRadius: "9999px",
+                    color: "white",
+                    fontSize: "0.875rem",
                     backgroundColor: openIndex === i ? "var(--color-primary)" : "var(--color-border)",
-                    transform: openIndex === i ? "rotate(45deg)" : "rotate(0deg)",
                   }}
                 >
                   +
-                </span>
+                </motion.span>
               </button>
 
-              {openIndex === i && (
-                <div
-                  className="px-5 pb-5"
-                  style={{ backgroundColor: "var(--color-surface)" }}
-                >
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                    {faq.answer}
-                  </p>
-                </div>
-              )}
-            </div>
+              <AnimatePresence>
+                {openIndex === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div
+                      className="px-5 pb-5"
+                      style={{ backgroundColor: "var(--color-surface)" }}
+                    >
+                      <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           ))}
         </div>
       </div>

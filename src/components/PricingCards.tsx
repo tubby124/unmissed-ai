@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 const plans = [
   {
@@ -81,8 +82,10 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
           className="relative w-12 h-6 rounded-full transition-colors"
           style={{ backgroundColor: annual ? "var(--color-primary)" : "var(--color-border)" }}
         >
-          <span
-            className="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform"
+          <motion.span
+            layout
+            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+            className="absolute top-1 w-4 h-4 bg-white rounded-full"
             style={{ left: annual ? "28px" : "4px" }}
           />
         </button>
@@ -102,9 +105,19 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
 
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {plans.map((plan) => (
-          <div
+        {plans.map((plan, i) => (
+          <motion.div
             key={plan.name}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.1 }}
+            whileHover={{
+              y: -4,
+              boxShadow: plan.highlighted
+                ? "0 12px 40px rgba(59,130,246,0.25)"
+                : "0 12px 40px rgba(0,0,0,0.2)",
+            }}
             className="rounded-2xl p-6 relative flex flex-col"
             style={{
               backgroundColor: plan.highlighted ? "var(--color-surface)" : "var(--color-surface)",
@@ -113,12 +126,16 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
             }}
           >
             {plan.badge && (
-              <div
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 500, damping: 25, delay: i * 0.1 + 0.1 }}
                 className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold text-white"
                 style={{ backgroundColor: "var(--color-primary)" }}
               >
                 {plan.badge}
-              </div>
+              </motion.div>
             )}
 
             <div className="mb-5">
@@ -133,8 +150,21 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                   className="text-4xl font-black"
                   style={{ color: "var(--color-text-1)" }}
                 >
-                  ${annual ? plan.annual : plan.monthly}
+                  $
                 </span>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={annual ? `annual-${plan.name}` : `monthly-${plan.name}`}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="text-4xl font-black"
+                    style={{ color: "var(--color-text-1)" }}
+                  >
+                    {annual ? plan.annual : plan.monthly}
+                  </motion.span>
+                </AnimatePresence>
                 <span className="text-sm" style={{ color: "var(--color-text-3)" }}>/mo CAD</span>
               </div>
               {annual && (
@@ -176,7 +206,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                 No contracts · Cancel anytime
               </p>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

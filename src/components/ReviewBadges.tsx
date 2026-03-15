@@ -2,7 +2,7 @@ const reviews = [
   {
     platform: "Google",
     rating: 5,
-    reviewer: "Mark T.",
+    reviewer: "Shop Owner",
     text: "Best investment I've made for the shop. Stopped losing jobs to voicemail overnight.",
   },
   {

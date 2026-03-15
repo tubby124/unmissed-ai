@@ -1,3 +1,7 @@
+'use client'
+
+import { motion } from 'motion/react'
+
 const steps = [
   {
     number: "01",
@@ -55,8 +59,12 @@ export default function HowItWorks() {
         {/* Steps grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           {steps.map((step, i) => (
-            <div
-              key={i}
+            <motion.div
+              key={step.number}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.1 }}
               className="relative rounded-2xl p-6"
               style={{
                 backgroundColor: "var(--color-surface)",
@@ -65,12 +73,13 @@ export default function HowItWorks() {
             >
               {/* Step number */}
               <div className="flex items-start gap-4">
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
                   className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black"
                   style={{ backgroundColor: "var(--color-surface)", color: "var(--color-primary)" }}
                 >
                   {step.number}
-                </div>
+                </motion.div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">{step.icon}</span>
@@ -90,7 +99,7 @@ export default function HowItWorks() {
                 >
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
 

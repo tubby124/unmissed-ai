@@ -2,7 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import Link from "next/link"
+import BorderBeam from "@/components/ui/border-beam"
+import {
+  VoiceOrb,
+  WaveformBars,
+  StatusBadge,
+  CallTimer,
+  TranscriptBubble,
+  LiveClassificationTags,
+  NotificationPreview,
+  PostCallSummary,
+  EndCallButton,
+  createSoundCues,
+  useClassificationTags,
+  type AgentStatus,
+  type TranscriptEntry,
+} from "@/components/DemoCallVisuals"
 
 // Lazy-load the SDK to avoid SSR issues (WebRTC is browser-only)
 let UltravoxSession: typeof import("ultravox-client").UltravoxSession | null = null
@@ -13,35 +28,95 @@ interface DemoCallProps {
   callerName: string
   agentName: string
   companyName: string
+  agentColor?: string
+  extraBody?: Record<string, unknown>
   onEnd: () => void
-}
-
-interface TranscriptEntry {
-  speaker: "user" | "agent"
-  text: string
-  isFinal: boolean
 }
 
 type CallState = "idle" | "requesting" | "connecting" | "active" | "ended" | "error"
 
-export default function DemoCall({ demoId, callerName, agentName, companyName, onEnd }: DemoCallProps) {
+export default function DemoCall({ demoId, callerName, agentName, companyName, agentColor, extraBody, onEnd }: DemoCallProps) {
   const [callState, setCallState] = useState<CallState>("idle")
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle")
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(120)
   const [callId, setCallId] = useState<string | null>(null)
+  const [energy, setEnergy] = useState(0.3)
+  const [showNotification, setShowNotification] = useState(false)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [notificationIntent, setNotificationIntent] = useState<string | undefined>()
+
   const callStartRef = useRef<number>(0)
   const sessionRef = useRef<InstanceType<typeof import("ultravox-client").UltravoxSession> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const transcriptContainerRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const energyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const soundRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
+  const notificationShownRef = useRef(false)
+  const agentStatusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-scroll transcript within its container (not the whole page)
+  // Auto-scroll transcript within its container
   useEffect(() => {
     const container = transcriptContainerRef.current
     if (container) {
       container.scrollTop = container.scrollHeight
     }
   }, [transcripts])
+
+  // Simulated audio energy based on agent status
+  useEffect(() => {
+    if (energyIntervalRef.current) clearInterval(energyIntervalRef.current)
+
+    if (callState !== "active") {
+      setEnergy(0.3)
+      return
+    }
+
+    energyIntervalRef.current = setInterval(() => {
+      setEnergy(() => {
+        if (agentStatus === "speaking") return 0.6 + Math.random() * 0.4
+        if (agentStatus === "listening") return 0.1 + Math.random() * 0.3
+        return 0.3
+      })
+    }, 120)
+
+    return () => {
+      if (energyIntervalRef.current) clearInterval(energyIntervalRef.current)
+    }
+  }, [callState, agentStatus])
+
+  // Classification tags from transcripts
+  const onNewTag = useCallback(() => {
+    soundRef.current?.tagPop()
+    // Show notification toast on first HOT tag
+    if (!notificationShownRef.current) {
+      notificationShownRef.current = true
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 4000)
+    }
+  }, [])
+
+  const classificationTags = useClassificationTags(transcripts, demoId, onNewTag)
+
+  // Show notification at ~45s if no tag has triggered it yet
+  useEffect(() => {
+    if (callState === "active" && secondsLeft <= 75 && secondsLeft > 73 && !notificationShownRef.current) {
+      notificationShownRef.current = true
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 4000)
+    }
+  }, [callState, secondsLeft])
+
+  // Update notification intent from latest tag
+  useEffect(() => {
+    if (classificationTags.length > 0) {
+      const latest = classificationTags[classificationTags.length - 1]
+      setNotificationIntent(latest.label)
+    }
+  }, [classificationTags])
 
   // Countdown timer
   useEffect(() => {
@@ -64,6 +139,8 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
 
   const handleEndCall = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current)
+    if (energyIntervalRef.current) clearInterval(energyIntervalRef.current)
+    soundRef.current?.endTone()
     try {
       await sessionRef.current?.leaveCall()
     } catch {
@@ -83,9 +160,41 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
     }
   }, [callId])
 
+  // Fetch AI summary when call ends
+  useEffect(() => {
+    if (callState !== "ended") return
+    const finalTranscripts = transcripts.filter(t => t.isFinal)
+    if (finalTranscripts.length < 2) return
+
+    setSummaryLoading(true)
+    const transcriptText = finalTranscripts
+      .map(t => `${t.speaker === "agent" ? agentName : "Caller"}: ${t.text}`)
+      .join("\n")
+
+    fetch("/api/demo/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: transcriptText, demoId }),
+    })
+      .then(res => res.json())
+      .then(data => setSummary(data.summary || null))
+      .catch(() => setSummary(null))
+      .finally(() => setSummaryLoading(false))
+  }, [callState, transcripts, demoId, agentName])
+
   const startCall = useCallback(async () => {
+    // Cancel any previous in-flight call (React 18 Strict Mode double-mount fix)
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setCallState("requesting")
     setError(null)
+
+    // Init sound cues
+    if (!soundRef.current) {
+      soundRef.current = createSoundCues()
+    }
 
     try {
       // Lazy-load SDK
@@ -95,15 +204,20 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
         UltravoxSessionStatus = mod.UltravoxSessionStatus
       }
 
+      if (controller.signal.aborted) return
+
       // Request mic permission early
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(t => t.stop()) // release immediately, SDK will request again
+
+      if (controller.signal.aborted) return
 
       // Create demo call via API
       const res = await fetch("/api/demo/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ demoId, callerName }),
+        body: JSON.stringify({ demoId, callerName, ...extraBody }),
+        signal: controller.signal,
       })
 
       if (!res.ok) {
@@ -111,9 +225,13 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
         throw new Error(data.error || `HTTP ${res.status}`)
       }
 
+      if (controller.signal.aborted) return
+
       const { joinUrl, callId: newCallId } = await res.json()
       setCallId(newCallId)
       callStartRef.current = Date.now()
+
+      if (controller.signal.aborted) return
 
       // Connect via WebRTC
       setCallState("connecting")
@@ -122,8 +240,29 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
 
       session.addEventListener("status", () => {
         const status = session.status
-        if (status === UltravoxSessionStatus!.IDLE || status === UltravoxSessionStatus!.LISTENING || status === UltravoxSessionStatus!.SPEAKING) {
-          setCallState("active")
+
+        // Debounce agent status to prevent jitter during rapid turn-taking
+        if (agentStatusDebounceRef.current) clearTimeout(agentStatusDebounceRef.current)
+        agentStatusDebounceRef.current = setTimeout(() => {
+          if (status === UltravoxSessionStatus!.SPEAKING) setAgentStatus("speaking")
+          else if (status === UltravoxSessionStatus!.LISTENING) setAgentStatus("listening")
+          else if (status === UltravoxSessionStatus!.THINKING) setAgentStatus("thinking")
+          else setAgentStatus("idle")
+        }, 150)
+
+        // Call state transitions (not debounced)
+        if (
+          status === UltravoxSessionStatus!.IDLE ||
+          status === UltravoxSessionStatus!.LISTENING ||
+          status === UltravoxSessionStatus!.SPEAKING
+        ) {
+          setCallState(prev => {
+            if (prev !== "active") {
+              // First time hitting active — play connect chime
+              soundRef.current?.connectChime()
+            }
+            return "active"
+          })
         } else if (status === UltravoxSessionStatus!.DISCONNECTED) {
           setCallState("ended")
           if (timerRef.current) clearInterval(timerRef.current)
@@ -132,7 +271,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
 
       session.addEventListener("transcripts", () => {
         const allTranscripts = session.transcripts.map(t => ({
-          speaker: t.speaker === "user" ? "user" as const : "agent" as const,
+          speaker: t.speaker === "user" ? ("user" as const) : ("agent" as const),
           text: t.text,
           isFinal: t.isFinal,
         }))
@@ -141,6 +280,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
 
       session.joinCall(joinUrl)
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
         setError("Microphone access is required. Please allow mic access and try again.")
@@ -155,18 +295,21 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
   useEffect(() => {
     startCall()
     return () => {
+      abortRef.current?.abort()
       sessionRef.current?.leaveCall().catch(() => {})
       if (timerRef.current) clearInterval(timerRef.current)
+      if (energyIntervalRef.current) clearInterval(energyIntervalRef.current)
+      if (agentStatusDebounceRef.current) clearTimeout(agentStatusDebounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+  const callDuration = callStartRef.current > 0 ? Math.round((Date.now() - callStartRef.current) / 1000) : 0
 
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-lg mx-auto relative">
       <AnimatePresence mode="wait">
-        {/* Loading / Connecting */}
+        {/* ─── Loading / Connecting ─── */}
         {(callState === "requesting" || callState === "connecting") && (
           <motion.div
             key="connecting"
@@ -175,128 +318,148 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
             exit={{ opacity: 0 }}
             className="text-center py-12"
           >
-            <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-white text-lg font-semibold">
+            <div className="flex justify-center mb-6">
+              <div className="relative rounded-full overflow-hidden">
+                <VoiceOrb
+                  status="idle"
+                  energy={0.3}
+                  agentColor={agentColor}
+                  size="sm"
+                  connecting={callState === "connecting"}
+                />
+                <BorderBeam
+                  size={100}
+                  duration={callState === "connecting" ? 4 : 8}
+                  colorFrom={agentColor || "#6366f1"}
+                  colorTo="#a855f7"
+                />
+              </div>
+            </div>
+            <motion.p
+              className="text-lg font-semibold"
+              style={{ color: "var(--color-text-1)" }}
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
               {callState === "requesting" ? "Setting up your demo..." : `Connecting to ${agentName}...`}
+            </motion.p>
+            <p className="text-sm mt-2" style={{ color: "var(--color-text-3)" }}>
+              Make sure your microphone is enabled
             </p>
-            <p className="text-gray-500 text-sm mt-2">Make sure your microphone is enabled</p>
           </motion.div>
         )}
 
-        {/* Active Call */}
+        {/* ─── Active Call ─── */}
         {callState === "active" && (
           <motion.div
             key="active"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            className="relative"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-white font-semibold">Talking to {agentName}</p>
-                <p className="text-gray-500 text-xs">{companyName}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-mono text-gray-400">{formatTime(secondsLeft)}</span>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              </div>
-            </div>
-
-            {/* Transcript */}
+            {/* Glassmorphism call card */}
             <div
-              ref={transcriptContainerRef}
-              className="rounded-xl p-4 mb-4 h-64 overflow-y-auto space-y-3"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+              className="rounded-2xl p-5"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                backdropFilter: "blur(24px)",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+              }}
             >
-              {transcripts.length === 0 && (
-                <p className="text-gray-600 text-sm italic">Waiting for {agentName} to speak...</p>
-              )}
-              {transcripts.map((t, i) => (
-                <div
-                  key={i}
-                  className={`text-sm ${t.speaker === "agent" ? "text-blue-400" : "text-gray-300"} ${!t.isFinal ? "opacity-60" : ""}`}
-                >
-                  <span className="text-gray-600 text-xs mr-2">{t.speaker === "agent" ? agentName : "You"}</span>
-                  {t.text}
+              {/* Header row: agent info + status + timer */}
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "var(--color-text-1)" }}>
+                    Talking to {agentName}
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--color-text-3)" }}>{companyName}</p>
                 </div>
-              ))}
+                <div className="flex items-center gap-2.5">
+                  <StatusBadge status={agentStatus} callState="active" />
+                  <CallTimer secondsLeft={secondsLeft} totalSeconds={120} />
+                </div>
+              </div>
+
+              {/* Orb + Waveform center */}
+              <div className="flex flex-col items-center gap-3 mb-5">
+                <VoiceOrb
+                  status={agentStatus}
+                  energy={energy}
+                  agentColor={agentColor}
+                  size="md"
+                />
+                <WaveformBars
+                  status={agentStatus}
+                  energy={energy}
+                  agentColor={agentColor}
+                />
+              </div>
+
+              {/* Classification tags */}
+              {classificationTags.length > 0 && (
+                <div className="mb-3">
+                  <LiveClassificationTags tags={classificationTags} />
+                </div>
+              )}
+
+              {/* Transcript bubbles */}
+              <div
+                ref={transcriptContainerRef}
+                className="h-48 sm:h-64 overflow-y-auto space-y-2 mb-4 px-1"
+              >
+                {transcripts.length === 0 && (
+                  <p className="text-sm italic text-center pt-4" style={{ color: "var(--color-text-3)" }}>
+                    Waiting for {agentName} to speak...
+                  </p>
+                )}
+                {transcripts.map((t, i) => (
+                  <TranscriptBubble
+                    key={i}
+                    entry={t}
+                    agentName={agentName}
+                    showLabel={i === 0 || transcripts[i - 1].speaker !== t.speaker}
+                  />
+                ))}
+              </div>
+
+              {/* End call button */}
+              <EndCallButton onEnd={handleEndCall} />
             </div>
 
-            {/* End button */}
-            <button
-              onClick={handleEndCall}
-              className="w-full py-3 rounded-xl font-semibold text-sm transition-colors text-white"
-              style={{ backgroundColor: "#DC2626" }}
-            >
-              End Demo Call
-            </button>
+            {/* Notification toast — positioned outside the card */}
+            <NotificationPreview
+              show={showNotification}
+              agentName={agentName}
+              intent={notificationIntent}
+            />
           </motion.div>
         )}
 
-        {/* Call Ended */}
+        {/* ─── Call Ended ─── */}
         {callState === "ended" && (
           <motion.div
             key="ended"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-8"
           >
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#1a1a2e" }}>
-              <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-white text-xl font-bold mb-2">Demo complete</h3>
-            <p className="text-gray-400 mb-6">
-              That&apos;s exactly what your customers would hear.
-              {agentName} answered the phone, collected info, and would have notified you instantly.
-            </p>
-
-            {/* Transcript summary */}
-            {transcripts.filter(t => t.isFinal).length > 0 && (
-              <div
-                className="rounded-xl p-4 mb-6 text-left h-40 overflow-y-auto"
-                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-              >
-                <p className="text-gray-500 text-xs mb-2 uppercase tracking-wider">Call transcript</p>
-                {transcripts.filter(t => t.isFinal).map((t, i) => (
-                  <div key={i} className={`text-sm mb-1 ${t.speaker === "agent" ? "text-blue-400" : "text-gray-300"}`}>
-                    <span className="text-gray-600 text-xs mr-2">{t.speaker === "agent" ? agentName : "You"}</span>
-                    {t.text}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Link
-                href={callId ? `/onboard?ref=demo&callId=${callId}` : "/onboard"}
-                onClick={() => {
-                  if (callId) {
-                    fetch("/api/demo/event", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ callId, eventType: "onboard_clicked", metadata: { demoId } }),
-                    }).catch(() => {})
-                  }
-                }}
-                className="block w-full py-4 rounded-xl text-white font-semibold text-sm transition-colors text-center"
-                style={{ backgroundColor: "#3B82F6" }}
-              >
-                Get My Agent Set Up →
-              </Link>
-              <button
-                onClick={onEnd}
-                className="block w-full py-3 rounded-xl text-gray-400 font-medium text-sm transition-colors hover:text-white"
-                style={{ backgroundColor: "var(--color-surface)" }}
-              >
-                Try a different agent
-              </button>
-            </div>
+            <PostCallSummary
+              transcripts={transcripts}
+              agentName={agentName}
+              companyName={companyName}
+              duration={callDuration}
+              summary={summary}
+              summaryLoading={summaryLoading}
+              tags={classificationTags}
+              callId={callId}
+              demoId={demoId}
+              isPreview={extraBody?.mode === "preview"}
+              onEnd={onEnd}
+            />
           </motion.div>
         )}
 
-        {/* Error */}
+        {/* ─── Error ─── */}
         {callState === "error" && (
           <motion.div
             key="error"
@@ -304,20 +467,28 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, o
             animate={{ opacity: 1 }}
             className="text-center py-8"
           >
-            <p className="text-red-400 text-lg font-semibold mb-2">Could not start demo</p>
-            <p className="text-gray-500 text-sm mb-6">{error}</p>
+            <div className="flex justify-center mb-4">
+              <VoiceOrb status="idle" energy={0.1} size="sm" />
+            </div>
+            <p className="text-lg font-semibold mb-2" style={{ color: "#EF4444" }}>
+              Could not start demo
+            </p>
+            <p className="text-sm mb-6" style={{ color: "var(--color-text-3)" }}>{error}</p>
             <div className="space-y-3">
               <button
-                onClick={() => { setCallState("idle"); startCall() }}
-                className="block w-full py-3 rounded-xl text-white font-semibold text-sm"
-                style={{ backgroundColor: "#3B82F6" }}
+                onClick={() => {
+                  setCallState("idle")
+                  startCall()
+                }}
+                className="block w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer"
+                style={{ backgroundColor: "var(--color-primary)" }}
               >
                 Try Again
               </button>
               <button
                 onClick={onEnd}
-                className="block w-full py-3 rounded-xl text-gray-400 font-medium text-sm hover:text-white"
-                style={{ backgroundColor: "var(--color-surface)" }}
+                className="block w-full py-3 rounded-xl font-medium text-sm cursor-pointer"
+                style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-3)" }}
               >
                 Back to agents
               </button>

@@ -20,7 +20,9 @@ import StatsSection from "@/components/StatsSection";
 import { faqSchema } from "@/lib/schema";
 import TryItNowWidget from "@/components/TryItNowWidget";
 import HeroCallMockup from "@/components/HeroCallMockup";
-import { BarChart3, AlertTriangle, Lightbulb, CheckCircle2, Lock, Check, X } from "lucide-react";
+import HeroContent from "@/components/HeroContent";
+import LearningLoopItems from "@/components/LearningLoopItems";
+import { Lock, Check, X } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "unmissed.ai — AI Receptionist for Service Businesses",
@@ -77,66 +79,7 @@ export default async function HomePage() {
         {/* ── 1. HERO ──────────────────────────────────────────── */}
         <section className="relative pt-32 pb-20 px-4 overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
           <div className="relative max-w-6xl mx-auto">
-            <div className="text-center z-10">
-              {/* Live badge */}
-              <div className="flex justify-center mb-6">
-                <span
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono"
-                  style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-border)' }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-live)' }} />
-                  {callsStat} calls answered · live
-                </span>
-              </div>
-
-              <p className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--color-primary)' }}>
-                AI Receptionist for Service Businesses
-              </p>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight mb-6" style={{ color: 'var(--color-text-1)' }}>
-                Every call answered.
-                <br />
-                Every lead captured.
-                <br />
-                <span style={{ color: 'var(--color-primary)' }}>Even at 2am.</span>
-              </h1>
-
-              <p className="text-lg md:text-xl leading-relaxed mb-4 max-w-2xl mx-auto" style={{ color: 'var(--color-text-2)' }}>
-                You&apos;re on the job. A customer calls. 3 rings. They hang up.
-                That&apos;s a $400 job gone — to a competitor who picked up.
-              </p>
-              <p className="text-lg md:text-xl font-semibold mb-10 max-w-2xl mx-auto" style={{ color: 'var(--color-text-1)' }}>
-                unmissed.ai fixes that — for good.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-                <Link
-                  href="#demo"
-                  className="px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors cursor-pointer"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                >
-                  Hear a Real Demo Call →
-                </Link>
-                <Link
-                  href="/onboard"
-                  className="px-8 py-4 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--color-surface)',
-                    color: 'var(--color-text-2)',
-                    border: '1px solid var(--color-border)',
-                  }}
-                >
-                  Get My Agent Set Up
-                </Link>
-              </div>
-
-              <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-                Trusted by service businesses in Alberta · Saskatchewan · British Columbia · Ontario · Texas
-              </p>
-              <p className="text-xs mt-2" style={{ color: 'var(--color-text-3)' }}>
-                No contracts · Cancel anytime · 30-day money-back guarantee
-              </p>
-            </div>
+            <HeroContent callsStat={callsStat} />
 
             {/* Animated call mockup */}
             <div className="mt-14 pb-20">
@@ -181,74 +124,7 @@ export default async function HomePage() {
         {/* ── 8. LEARNING LOOP (THE DIFFERENTIATOR) ────────────── */}
         <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <p
-                  className="text-xs font-mono uppercase tracking-widest mb-3"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  Only at unmissed.ai
-                </p>
-                <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
-                  Your agent gets smarter every week.
-                </h2>
-                <p className="text-lg leading-relaxed mb-6" style={{ color: "var(--color-text-2)" }}>
-                  Every week, your agent reviews its own calls. Common questions
-                  get flagged. Knowledge gaps get filled. Prompt improvements get
-                  suggested automatically. No dashboard to check. No work to do.
-                </p>
-                <p className="font-semibold text-lg mb-4" style={{ color: "var(--color-text-1)" }}>
-                  We call it: <span style={{ color: "var(--color-primary)" }}>The Learning Loop™</span>
-                </p>
-                <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-2)" }}>
-                  {[
-                    "Weekly transcript analysis — automated",
-                    "Unanswered questions flagged and filled",
-                    "Caller confusion patterns identified",
-                    "You approve changes before they go live",
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2">
-                      <span style={{ color: "var(--color-primary)" }}>→</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <p
-                  className="mt-4 text-xs px-3 py-1.5 rounded-full inline-block"
-                  style={{ backgroundColor: "var(--color-surface)", color: "var(--color-primary)", border: "1px solid var(--color-border)" }}
-                >
-                  Included in Pro & Business plans
-                </p>
-              </div>
-
-              {/* Visual */}
-              <div
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-              >
-                <p className="text-xs font-mono mb-4" style={{ color: "var(--color-text-2)" }}>
-                  // Weekly Learning Loop report
-                </p>
-                {[
-                  { Icon: BarChart3, text: "47 calls reviewed this week", color: "var(--color-primary)" },
-                  { Icon: AlertTriangle, text: "3 unanswered questions detected", color: "#F59E0B" },
-                  { Icon: Lightbulb, text: '"What areas do you service?" — added to KB', color: "#22C55E" },
-                  { Icon: Lightbulb, text: '"Do you do fleet vehicles?" — added to KB', color: "#22C55E" },
-                  { Icon: CheckCircle2, text: "Agent updated. Approved by operator.", color: "#22C55E" },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 py-2"
-                    style={{ borderBottom: i < 4 ? "1px solid var(--color-border)" : "none" }}
-                  >
-                    <item.Icon size={16} className="flex-shrink-0 mt-0.5" style={{ color: item.color }} />
-                    <p className="text-sm" style={{ color: item.color }}>
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <LearningLoopItems />
           </div>
         </section>
 
@@ -426,28 +302,21 @@ export default async function HomePage() {
               Try it right now
             </p>
             <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
-              Don&apos;t take our word for it. Call it yourself.
+              Don&apos;t take our word for it. Try it yourself.
             </h2>
             <p className="text-lg mb-6" style={{ color: "var(--color-text-2)" }}>
-              This is a live demo agent. Talk to it. Ask it anything.
+              Talk to a live demo agent right in your browser. No phone call needed.
               Experience exactly what your customers will hear.
             </p>
-            <div
-              className="inline-block px-8 py-5 rounded-2xl mb-4"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+            <Link
+              href="/try"
+              className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
-              <p className="text-xs mb-1" style={{ color: "var(--color-text-2)" }}>Call our live demo agent:</p>
-              <a href="tel:+15873551834" className="block">
-                <p className="text-3xl font-black tracking-wider hover:text-blue-400 transition-colors" style={{ color: "var(--color-text-1)" }}>
-                  (587) 355-1834
-                </p>
-              </a>
-              <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>
-                Live auto glass agent · Try it right now
-              </p>
-            </div>
-            <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
-              Live demo agent · No obligation · Powered by unmissed.ai
+              Talk to an AI Agent Now →
+            </Link>
+            <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
+              Free demo · No sign-up · No obligation
             </p>
           </div>
         </section>
@@ -455,7 +324,7 @@ export default async function HomePage() {
         {/* ── FINAL CTA ────────────────────────────────────────── */}
         <section
           className="py-24 px-4 text-center"
-          style={{ backgroundColor: "#0F172A" }}
+          style={{ backgroundColor: "#0a0a0a" }}
         >
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "#FFFFFF" }}>

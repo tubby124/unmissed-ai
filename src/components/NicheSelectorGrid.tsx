@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import LeadCard from "./LeadCard";
+import { motion, AnimatePresence } from "motion/react";
 
 const niches = [
   {
@@ -12,6 +13,16 @@ const niches = [
     href: "/for-auto-glass",
     stat: "Avg $400/job",
     leadCardNiche: "auto-glass" as const,
+    live: true,
+  },
+  {
+    id: "property-mgmt",
+    icon: "🏢",
+    label: "Property Mgmt",
+    href: "/for-realtors",
+    stat: "Avg $1,200/unit/yr",
+    leadCardNiche: "realty" as const,
+    live: true,
   },
   {
     id: "hvac",
@@ -80,65 +91,94 @@ export default function NicheSelectorGrid() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           {/* Niche tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {niches.map((niche) => (
-              <Link
+            {niches.map((niche, i) => (
+              <motion.div
                 key={niche.id}
-                href={niche.href}
-                className="group rounded-2xl p-4 transition-all duration-200 cursor-pointer"
-                style={{
-                  backgroundColor:
-                    hoveredNiche === niche.id ? "var(--color-surface)" : "var(--color-surface)",
-                  border: `1px solid ${
-                    hoveredNiche === niche.id ? "var(--color-primary)" : "var(--color-border)"
-                  }`,
-                }}
-                onMouseEnter={() => setHoveredNiche(niche.id)}
-                onMouseLeave={() => setHoveredNiche(null)}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
+                whileHover={{ scale: 1.03, y: -2 }}
               >
-                <div className="text-2xl mb-2">{niche.icon}</div>
-                <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>{niche.label}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>{niche.stat}</p>
-                <p
-                  className="text-xs mt-2 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: "var(--color-primary)" }}
+                <Link
+                  href={niche.href}
+                  className="group rounded-2xl p-4 transition-all duration-200 cursor-pointer block"
+                  style={{
+                    backgroundColor:
+                      hoveredNiche === niche.id ? "var(--color-surface)" : "var(--color-surface)",
+                    border: `1px solid ${
+                      hoveredNiche === niche.id ? "var(--color-primary)" : "var(--color-border)"
+                    }`,
+                  }}
+                  onMouseEnter={() => setHoveredNiche(niche.id)}
+                  onMouseLeave={() => setHoveredNiche(null)}
                 >
-                  See example →
-                </p>
-              </Link>
+                  <div className="text-2xl mb-2">{niche.icon}</div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>{niche.label}</p>
+                    {"live" in niche && niche.live && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>{niche.stat}</p>
+                  <p
+                    className="text-xs mt-2 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    See example →
+                  </p>
+                </Link>
+              </motion.div>
             ))}
           </div>
 
           {/* Lead card preview */}
           <div className="lg:sticky lg:top-24">
-            {activeNiche ? (
-              <div>
-                <p className="text-xs mb-3 text-center" style={{ color: "var(--color-text-3)" }}>
-                  This is what you&apos;d receive after each {activeNiche.label} call:
-                </p>
-                <LeadCard niche={activeNiche.leadCardNiche} />
-              </div>
-            ) : (
-              <div
-                className="rounded-2xl p-8 text-center"
-                style={{
-                  backgroundColor: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  minHeight: "280px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <p className="text-4xl mb-4">📲</p>
-                <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
-                  Hover a tile to see your lead card
-                </p>
-                <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
-                  Every call = a structured card delivered to your phone
-                </p>
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {activeNiche ? (
+                <motion.div
+                  key={activeNiche.id}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                >
+                  <p className="text-xs mb-3 text-center" style={{ color: "var(--color-text-3)" }}>
+                    This is what you&apos;d receive after each {activeNiche.label} call:
+                  </p>
+                  <LeadCard niche={activeNiche.leadCardNiche} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                  className="rounded-2xl p-8 text-center"
+                  style={{
+                    backgroundColor: "var(--color-surface)",
+                    border: "1px solid var(--color-border)",
+                    minHeight: "280px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <p className="text-4xl mb-4">📲</p>
+                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
+                    Hover a tile to see your lead card
+                  </p>
+                  <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
+                    Every call = a structured card delivered to your phone
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

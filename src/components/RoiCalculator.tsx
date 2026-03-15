@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
 
 function formatCurrency(n: number) {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
@@ -41,9 +42,13 @@ export default function RoiCalculator() {
           </p>
         </div>
 
-        <div
+        <motion.div
           className="rounded-2xl p-6 md:p-8"
           style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ type: "spring", stiffness: 300, damping: 24 }}
         >
           {/* Slider: calls per week */}
           <div className="mb-6">
@@ -122,12 +127,28 @@ export default function RoiCalculator() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-xs mb-1" style={{ color: "var(--color-text-2)" }}>Calls missed/week</p>
-                <p className="text-2xl font-bold" style={{ color: "var(--color-text-1)" }}>{missedPerWeek}</p>
+                <p className="text-2xl font-bold" style={{ color: "var(--color-text-1)" }}>
+                  <motion.span
+                    key={missedPerWeek}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    {missedPerWeek}
+                  </motion.span>
+                </p>
               </div>
               <div>
                 <p className="text-xs mb-1" style={{ color: "var(--color-text-2)" }}>Lost revenue/week</p>
                 <p className="text-2xl font-bold" style={{ color: "#EF4444" }}>
-                  {formatCurrency(lostPerWeek)}
+                  <motion.span
+                    key={lostPerWeek}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    {formatCurrency(lostPerWeek)}
+                  </motion.span>
                 </p>
               </div>
             </div>
@@ -142,7 +163,15 @@ export default function RoiCalculator() {
                 className="text-4xl font-black mb-1"
                 style={{ color: "#EF4444" }}
               >
-                {formatCurrency(lostPerMonth)}/month
+                <motion.span
+                  key={Math.round(lostPerMonth)}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  {formatCurrency(lostPerMonth)}
+                </motion.span>
+                /month
               </p>
               <p className="text-xs" style={{ color: "var(--color-text-2)" }}>to missed calls</p>
             </div>
@@ -158,24 +187,33 @@ export default function RoiCalculator() {
               </div>
               <div className="text-right">
                 <p className="text-green-400 font-bold text-lg">
-                  {roi > 999 ? "1000%+" : `${roi}%`} ROI
+                  <motion.span
+                    key={roi}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    {roi > 999 ? "1000%+" : `${roi}%`} ROI
+                  </motion.span>
                 </p>
                 <p className="text-xs" style={{ color: "var(--color-text-2)" }}>payback in week 1</p>
               </div>
             </div>
           </div>
 
-          <Link
-            href="/onboard"
-            className="block w-full text-center py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            Stop the bleeding — Get My Agent Set Up →
-          </Link>
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Link
+              href="/onboard"
+              className="block w-full text-center py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              Stop the bleeding — Get My Agent Set Up →
+            </Link>
+          </motion.div>
           <p className="text-center text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
             No contracts · Cancel anytime · Agent live within 24 hours
           </p>
-        </div>
+        </motion.div>
 
         {/* noscript fallback */}
         <noscript>

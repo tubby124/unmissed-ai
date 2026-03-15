@@ -193,14 +193,14 @@ export default function Navbar() {
           >
             Sign In to Dashboard
           </Link>
-          <a
-            href="tel:+15873551834"
+          <Link
+            href="/try"
             className="flex items-center gap-2 text-sm"
             style={{ color: "var(--color-text-2)" }}
           >
             <Phone size={14} />
-            Call our demo line
-          </a>
+            Try our AI agent
+          </Link>
         </div>
       )}
     </nav>

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "motion/react";
 
 const rows = [
   {
@@ -95,8 +98,12 @@ export default function CostComparisonTable() {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr
+                <motion.tr
                   key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
                   style={{
                     backgroundColor: i % 2 === 0 ? "var(--color-bg)" : "var(--color-bg)",
                     borderBottom: "1px solid var(--color-border)",
@@ -105,16 +112,17 @@ export default function CostComparisonTable() {
                   <td className="p-4 font-medium" style={{ color: "var(--color-text-2)" }}>{row.feature}</td>
                   <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.human}</td>
                   <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.answering}</td>
-                  <td
+                  <motion.td
                     className="p-4 text-center font-semibold"
-                    style={{
-                      color: "#22C55E",
-                      backgroundColor: "rgba(34,197,94,0.04)",
-                    }}
+                    initial={{ backgroundColor: "rgba(34,197,94,0.04)" }}
+                    whileInView={{ backgroundColor: ["rgba(34,197,94,0.04)", "rgba(34,197,94,0.14)", "rgba(34,197,94,0.04)"] }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.05 + 0.3, duration: 0.6, ease: "easeOut" }}
+                    style={{ color: "#22C55E" }}
                   >
                     {row.unmissed}
-                  </td>
-                </tr>
+                  </motion.td>
+                </motion.tr>
               ))}
             </tbody>
           </table>
