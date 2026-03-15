@@ -32,7 +32,11 @@ const PROVIDER_COLORS: Record<string, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 animate-pulse space-y-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3" style={{
+      background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-hover) 50%, var(--color-surface) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.5s infinite',
+    }}>
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-white/[0.06] shrink-0" />
         <div className="flex-1 space-y-2">

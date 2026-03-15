@@ -13,18 +13,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let isAdmin = false
 
   let clientStatus: string | null = null
+  let telegramConnected = false
 
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(business_name, status)')
+      .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id)')
       .eq('user_id', user.id)
       .single()
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
-    const clientData = cu?.clients as { business_name?: string; status?: string } | null
+    const clientData = cu?.clients as { business_name?: string; status?: string; telegram_bot_token?: string | null; telegram_chat_id?: string | null } | null
     businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
     clientStatus = isAdmin ? null : clientData?.status ?? null
+    telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
   }
 
   return (
@@ -40,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <div className="flex flex-1 relative overflow-hidden">
         {/* Desktop sidebar */}
-        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} />
+        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} />
 
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto">

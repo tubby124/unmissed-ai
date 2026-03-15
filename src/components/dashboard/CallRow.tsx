@@ -62,6 +62,11 @@ interface ExpandedData {
 
 const RECORDING_STATUSES = new Set(['HOT', 'WARM', 'COLD'])
 
+// iMessage-style: blue = good call, green = bad/missed call
+const IMESSAGE_BLUE = '#007AFF'
+const IMESSAGE_GREEN = '#34C759'
+const GOOD_STATUSES = new Set(['HOT', 'WARM', 'live', 'processing'])
+
 export default function CallRow({ call, showBusiness, onCallBack }: {
   call: CallLog
   showBusiness?: boolean
@@ -77,6 +82,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
   const dur = fmtDur(call.duration_seconds)
   const stripeColor = STATUS_STRIPE[call.call_status ?? ''] ?? '#3f3f46'
   const isProcessingOrLive = call.call_status === 'live' || call.call_status === 'processing'
+  const bubbleColor = GOOD_STATUSES.has(call.call_status ?? '') ? IMESSAGE_BLUE : IMESSAGE_GREEN
 
   const topics = call.key_topics ?? expandData?.key_topics ?? []
   const sentiment = call.sentiment ?? expandData?.sentiment ?? null
@@ -127,7 +133,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         onKeyDown={!isProcessingOrLive ? (e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleExpand() }
         } : undefined}
-        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
+        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.07] hover:brightness-105 transition-all duration-200 group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
       >
         {/* Line 1: phone + status + call-back + meta */}
         <div className="flex items-center gap-3 mb-1.5">
@@ -262,7 +268,11 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
                   {/* Audio player — compact skeleton while checking, player if available */}
                   {recordingLoading && (
-                    <div className="h-[72px] rounded-xl bg-[var(--color-hover)] animate-pulse" />
+                    <div className="h-[72px] rounded-xl" style={{
+                      background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-hover) 50%, var(--color-surface) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.5s infinite',
+                    }} />
                   )}
                   {!recordingLoading && recordingAvailable && (
                     <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--color-border)" }}>
@@ -283,7 +293,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                             transition={{ duration: 0.15, delay: i * 0.04 }}
                             className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
                           >
-                            <span className={`text-[9px] mb-0.5 ${isAgent ? 'mr-1' : 'ml-1'}`} style={{ color: isAgent ? "var(--color-primary)" : "var(--color-text-3)" }}>
+                            <span className={`text-[9px] mb-0.5 ${isAgent ? 'mr-1' : 'ml-1'}`} style={{ color: isAgent ? bubbleColor : "var(--color-text-3)" }}>
                               {isAgent ? 'AI' : 'Caller'}
                             </span>
                             <div
@@ -291,8 +301,8 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                                 isAgent ? 'rounded-tr-sm' : 'rounded-tl-sm'
                               }`}
                               style={{
-                                backgroundColor: isAgent ? "var(--color-primary)" : "var(--color-bg-raised)",
-                                color: "var(--color-text-1)",
+                                backgroundColor: isAgent ? bubbleColor : "var(--color-bg-raised)",
+                                color: isAgent ? "#FFFFFF" : "var(--color-text-1)",
                               }}
                             >
                               {m.text}

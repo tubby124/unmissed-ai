@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import DialModal from './DialModal'
 
 interface Lead {
@@ -209,15 +210,20 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
-                tab === t
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent'
-              }`}
+              className="relative flex-1 px-4 py-3 text-xs font-medium transition-colors"
               style={tab !== t ? { color: "var(--color-text-3)" } : undefined}
             >
-              {STATUS_LABEL[t]}
-              <span className="ml-1.5 font-mono" style={{ color: "var(--color-text-3)" }}>{counts[t]}</span>
+              {tab === t && (
+                <motion.div
+                  layoutId="lead-tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
+              <span className={tab === t ? 'text-blue-400' : ''}>
+                {STATUS_LABEL[t]}
+                <span className="ml-1.5 font-mono" style={{ color: "var(--color-text-3)" }}>{counts[t]}</span>
+              </span>
             </button>
           ))}
         </div>
@@ -236,9 +242,14 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             )}
           </div>
         ) : (
-          filtered.map((lead, i) => (
-            <div
+          <AnimatePresence mode="popLayout">
+          {filtered.map((lead, i) => (
+            <motion.div
               key={lead.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20, height: 0 }}
+              transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 24 }}
               className={`flex items-center gap-4 px-5 py-3.5 border-b hover:bg-[var(--color-hover)] transition-colors ${i === filtered.length - 1 ? 'border-b-0' : ''}`}
               style={{ borderBottomColor: "var(--color-border)" }}
             >
@@ -305,8 +316,9 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                   <span className="text-[11px] text-red-400/60">Do Not Call</span>
                 )}
               </div>
-            </div>
-          ))
+            </motion.div>
+          ))}
+          </AnimatePresence>
         )}
       </div>
     </div>

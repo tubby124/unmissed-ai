@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { createSoundCues } from '@/components/DemoCallVisuals'
 
 interface ActivityEvent {
   id: string
@@ -106,6 +107,9 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
   const [hasLive, setHasLive] = useState(false)
   const supabase = createBrowserClient()
   const keyCounter = useRef(0)
+  const soundCuesRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
+
+  useEffect(() => { soundCuesRef.current = createSoundCues() }, [])
 
   function makeKey() { return `ev-${++keyCounter.current}` }
 
@@ -167,6 +171,7 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
           setHasLive(next.some(e => e.call_status === 'live'))
           return next
         })
+        if (newEvent.call_status === 'live') soundCuesRef.current?.connectChime()
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'call_logs' }, (payload) => {
         const row = payload.new as { id: string; call_status: string | null; client_id: string | null }
@@ -177,6 +182,7 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
           setHasLive(next.some(e => e.call_status === 'live'))
           return next
         })
+        if (row.call_status === 'HOT') soundCuesRef.current?.tagPop()
       })
       .subscribe()
 

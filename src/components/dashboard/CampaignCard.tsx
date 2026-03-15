@@ -1,4 +1,8 @@
+'use client'
+
 import Link from 'next/link'
+import { motion } from 'motion/react'
+import NumberTicker from '@/components/ui/number-ticker'
 
 interface CampaignStat {
   id: string
@@ -42,9 +46,15 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
     : 0
 
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.12)' }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+    >
     <Link
       href={`/dashboard/calls?client=${campaign.id}`}
-      className="block rounded-2xl border p-5 hover:bg-[var(--color-hover)] transition-all group"
+      className="block relative rounded-2xl border p-5 hover:bg-[var(--color-hover)] transition-all group hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
       style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
     >
       {/* Header */}
@@ -59,7 +69,7 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
         </div>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
-          className="shrink-0 transition-colors mt-0.5"
+          className="shrink-0 transition-all mt-0.5 group-hover:translate-x-0.5"
           style={{ color: "var(--color-text-3)" }}
         >
           <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -70,16 +80,20 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
       <div className="flex items-center gap-4 mb-4">
         <div>
           <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Calls</p>
-          <p className="text-xl font-bold font-mono tabular-nums" style={{ color: "var(--color-text-1)" }}>{campaign.total_calls}</p>
+          <p className="text-xl font-bold font-mono" style={{ color: "var(--color-text-1)" }}>
+            <NumberTicker value={campaign.total_calls} delay={0.1} />
+          </p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot</p>
-          <p className="text-xl font-bold font-mono text-red-300 tabular-nums">{campaign.hot_leads}</p>
+          <p className="text-xl font-bold font-mono text-red-600 dark:text-red-300">
+            <NumberTicker value={campaign.hot_leads} delay={0.2} />
+          </p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot %</p>
-          <p className={`text-xl font-bold font-mono tabular-nums ${hotRate >= 20 ? 'text-green-300' : hotRate >= 10 ? 'text-amber-300' : 'text-zinc-400'}`}>
-            {hotRate}%
+          <p className={`text-xl font-bold font-mono ${hotRate >= 20 ? 'text-green-600 dark:text-green-300' : hotRate >= 10 ? 'text-amber-600 dark:text-amber-300' : 't3'}`}>
+            <NumberTicker value={hotRate} delay={0.3} format={(n) => `${n}%`} />
           </p>
         </div>
       </div>
@@ -88,5 +102,6 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
       <MiniSparkline counts={campaign.daily_counts} />
       <p className="text-[9px] mt-1 font-mono" style={{ color: "var(--color-text-3)" }}>7-day volume</p>
     </Link>
+    </motion.div>
   )
 }

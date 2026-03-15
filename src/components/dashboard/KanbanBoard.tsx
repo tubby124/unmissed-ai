@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'motion/react'
 
 interface CallLog {
   id: string
@@ -94,7 +95,23 @@ export default function KanbanBoard({ calls, showBusiness }: { calls: CallLog[];
             {/* Cards */}
             <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-280px)]">
               {colCalls.length > 0
-                ? colCalls.map(call => <KanbanCard key={call.id} call={call} />)
+                ? (
+                  <AnimatePresence mode="popLayout">
+                    {colCalls.map(call => (
+                      <motion.div
+                        key={call.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.15)' }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        style={col.status === 'live' ? { boxShadow: '0 0 0 1px rgba(16,185,129,0.3), 0 0 12px rgba(16,185,129,0.15)' } : col.status === 'HOT' ? { borderLeft: '3px solid #ef4444' } : undefined}
+                      >
+                        <KanbanCard call={call} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )
                 : (
                   <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-4 text-center">
                     <p className="text-xs text-gray-400 dark:text-gray-600">{col.emptyLabel}</p>

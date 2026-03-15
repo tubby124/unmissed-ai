@@ -4,11 +4,37 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 
 interface AudioWaveformPlayerProps {
   callId: string
+  recordingUrl?: string
   onTimeUpdate?: (currentTime: number) => void
 }
 
-// Generate deterministic waveform bars from callId seed
-function generateBars(seed: string, count = 60): number[] {
+const BAR_COUNT = 80
+const ACCENT = '#007AFF'
+
+// Extract real waveform peaks from decoded audio buffer
+function extractPeaks(buffer: AudioBuffer, barCount: number): number[] {
+  const channel = buffer.getChannelData(0)
+  const samplesPerBar = Math.floor(channel.length / barCount)
+  const peaks: number[] = []
+
+  for (let i = 0; i < barCount; i++) {
+    let max = 0
+    const start = i * samplesPerBar
+    const end = Math.min(start + samplesPerBar, channel.length)
+    for (let j = start; j < end; j++) {
+      const abs = Math.abs(channel[j])
+      if (abs > max) max = abs
+    }
+    peaks.push(max)
+  }
+
+  // Normalize to 0-1 range
+  const maxPeak = Math.max(...peaks, 0.01)
+  return peaks.map(p => Math.max(0.08, p / maxPeak))
+}
+
+// Fallback: deterministic bars from callId when audio can't be decoded
+function generateFallbackBars(seed: string, count: number): number[] {
   let hash = 0
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash) + seed.charCodeAt(i)
@@ -16,22 +42,52 @@ function generateBars(seed: string, count = 60): number[] {
   }
   return Array.from({ length: count }, (_, i) => {
     const n = Math.sin(hash * (i + 1) * 0.3) * 0.5 + 0.5
-    return 0.25 + n * 0.75
+    return 0.15 + n * 0.85
   })
 }
 
-export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWaveformPlayerProps) {
+function fmtTime(s: number) {
+  if (!isFinite(s)) return '0:00'
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+}
+
+export default function AudioWaveformPlayer({ callId, recordingUrl, onTimeUpdate }: AudioWaveformPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const waveformRef = useRef<HTMLDivElement>(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-
-  const bars = generateBars(callId)
+  const [peaks, setPeaks] = useState<number[]>(() => generateFallbackBars(callId, BAR_COUNT))
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null)
 
   const progress = duration > 0 ? currentTime / duration : 0
+  const audioUrl = recordingUrl || `/api/dashboard/calls/${callId}/recording`
 
+  // Decode audio and extract real waveform peaks
+  useEffect(() => {
+    let cancelled = false
+    const ctx = new AudioContext()
+
+    fetch(audioUrl)
+      .then(r => {
+        if (!r.ok) throw new Error('fetch failed')
+        return r.arrayBuffer()
+      })
+      .then(buf => ctx.decodeAudioData(buf))
+      .then(decoded => {
+        if (!cancelled) setPeaks(extractPeaks(decoded, BAR_COUNT))
+      })
+      .catch(() => {
+        // Keep fallback bars — not a fatal error
+      })
+      .finally(() => ctx.close())
+
+    return () => { cancelled = true }
+  }, [audioUrl])
+
+  // Audio element event listeners
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -83,18 +139,17 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
     audio.currentTime = ratio * duration
   }, [duration])
 
-  function fmtTime(s: number) {
-    if (!isFinite(s)) return '0:00'
-    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
-  }
-
-  function handleBarClick(i: number) {
-    seek(i / bars.length)
-  }
-
-  function handleProgressClick(e: React.MouseEvent<HTMLDivElement>) {
+  // Click anywhere on waveform to seek
+  function handleWaveformClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
     seek((e.clientX - rect.left) / rect.width)
+  }
+
+  // Hover tracking for preview
+  function handleWaveformMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ratio = (e.clientX - rect.left) / rect.width
+    setHoveredBar(Math.floor(ratio * BAR_COUNT))
   }
 
   if (error) {
@@ -106,26 +161,47 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
     )
   }
 
+  const currentBar = Math.floor(progress * BAR_COUNT)
+
   return (
     <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4" style={{ color: "var(--color-text-3)" }}>Recording</p>
+      {/* Header row: label + time + download */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>Recording</p>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>
+            {fmtTime(currentTime)} / {fmtTime(duration)}
+          </span>
+          <a
+            href={audioUrl}
+            download={`call-${callId.slice(0, 8)}.mp3`}
+            className="transition-colors hover:opacity-70"
+            style={{ color: "var(--color-text-3)" }}
+            title="Download recording"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </div>
 
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src={`/api/dashboard/calls/${callId}/recording`}
+        src={audioUrl}
         preload="metadata"
         className="hidden"
       />
 
-      {/* Controls row */}
-      <div className="flex items-center gap-4 mb-4">
-        {/* Play/pause */}
+      {/* Play button + waveform row */}
+      <div className="flex items-center gap-4">
+        {/* Play/pause button */}
         <button
           onClick={togglePlay}
           disabled={loading}
-          className="w-10 h-10 rounded-full hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
-          style={{ backgroundColor: "var(--color-primary)" }}
+          className="w-11 h-11 rounded-full disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all shrink-0 hover:scale-105 active:scale-95"
+          style={{ backgroundColor: ACCENT }}
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -136,59 +212,61 @@ export default function AudioWaveformPlayer({ callId, onTimeUpdate }: AudioWavef
             </svg>
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-              <path d="M5 3l14 9-14 9V3z"/>
+              <path d="M6 3l14 9-14 9V3z"/>
             </svg>
           )}
         </button>
 
-        {/* Progress bar */}
+        {/* Waveform — this IS the scrubber */}
         <div
-          className="flex-1 h-1.5 rounded-full cursor-pointer relative overflow-hidden"
-          style={{ backgroundColor: "var(--color-surface)" }}
-          onClick={handleProgressClick}
+          ref={waveformRef}
+          className="flex-1 flex items-center gap-[2px] h-14 cursor-pointer relative"
+          onClick={handleWaveformClick}
+          onMouseMove={handleWaveformMove}
+          onMouseLeave={() => setHoveredBar(null)}
         >
-          <div
-            className="absolute inset-y-0 left-0 rounded-full transition-none"
-            style={{ width: `${progress * 100}%`, backgroundColor: "var(--color-primary)" }}
-          />
-        </div>
+          {peaks.map((peak, i) => {
+            const played = i < currentBar
+            const isCurrent = i === currentBar && playing
+            const isHovered = hoveredBar !== null && i <= hoveredBar
 
-        {/* Time */}
-        <span className="text-xs font-mono shrink-0 tabular-nums" style={{ color: "var(--color-text-3)" }}>
-          {fmtTime(currentTime)} / {fmtTime(duration)}
-        </span>
+            let color: string
+            if (played) {
+              color = ACCENT
+            } else if (isHovered) {
+              color = `${ACCENT}66` // 40% opacity preview
+            } else {
+              color = 'rgba(255,255,255,0.12)'
+            }
 
-        {/* Download */}
-        <a
-          href={`/api/dashboard/calls/${callId}/recording`}
-          download={`call-${callId.slice(0, 8)}.mp3`}
-          className="transition-colors"
-          style={{ color: "var(--color-text-3)" }}
-          title="Download recording"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </a>
-      </div>
+            return (
+              <div
+                key={i}
+                className="flex-1 rounded-full transition-colors duration-75"
+                style={{
+                  height: `${peak * 100}%`,
+                  minHeight: 3,
+                  backgroundColor: color,
+                  boxShadow: isCurrent ? `0 0 8px ${ACCENT}80` : undefined,
+                  transform: isCurrent ? 'scaleY(1.15)' : undefined,
+                  transition: 'background-color 75ms, transform 150ms ease, box-shadow 150ms ease',
+                }}
+              />
+            )
+          })}
 
-      {/* Waveform bars */}
-      <div className="flex items-end gap-px h-12 cursor-pointer">
-        {bars.map((height, i) => {
-          const barProgress = i / bars.length
-          const active = barProgress <= progress
-          return (
+          {/* Playhead line */}
+          {duration > 0 && (
             <div
-              key={i}
-              className="flex-1 rounded-full transition-colors"
+              className="absolute top-0 bottom-0 w-[2px] rounded-full pointer-events-none transition-none"
               style={{
-                height: `${height * 100}%`,
-                backgroundColor: active ? "var(--color-primary)" : "var(--color-surface)",
+                left: `${progress * 100}%`,
+                backgroundColor: ACCENT,
+                boxShadow: playing ? `0 0 6px ${ACCENT}80` : undefined,
               }}
-              onClick={() => handleBarClick(i)}
             />
-          )
-        })}
+          )}
+        </div>
       </div>
     </div>
   )

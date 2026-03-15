@@ -7,56 +7,8 @@ import { createBrowserClient } from '@/lib/supabase/client'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
 import TranscriptTimeline from './TranscriptTimeline'
 import StatusBadge from './StatusBadge'
-
-// Pulsing aura circle — visual indicator for live audio state
-function AudioAura({ lastRole }: { lastRole: 'agent' | 'user' | null }) {
-  const isAgent = lastRole === 'agent'
-  return (
-    <div className="relative flex items-center justify-center w-28 h-28 mx-auto my-2">
-      {/* Outer ring */}
-      <motion.div
-        className="absolute rounded-full"
-        animate={{ scale: [1, 1.18, 1], opacity: [0.15, 0.35, 0.15] }}
-        transition={{ repeat: Infinity, duration: isAgent ? 1.8 : 2.6, ease: 'easeInOut' }}
-        style={{
-          width: '100%', height: '100%',
-          background: isAgent
-            ? 'radial-gradient(circle, rgba(34,197,94,0.5) 0%, transparent 70%)'
-            : 'radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)',
-        }}
-      />
-      {/* Middle ring */}
-      <motion.div
-        className="absolute rounded-full"
-        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ repeat: Infinity, duration: isAgent ? 1.4 : 2.0, ease: 'easeInOut', delay: 0.2 }}
-        style={{
-          width: '65%', height: '65%',
-          background: isAgent
-            ? 'radial-gradient(circle, rgba(34,197,94,0.6) 0%, transparent 70%)'
-            : 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)',
-        }}
-      />
-      {/* Core dot */}
-      <div
-        className="relative rounded-full flex items-center justify-center"
-        style={{
-          width: 36, height: 36,
-          background: isAgent
-            ? 'radial-gradient(circle, rgba(34,197,94,0.9) 0%, rgba(34,197,94,0.3) 100%)'
-            : 'radial-gradient(circle, rgba(59,130,246,0.9) 0%, rgba(59,130,246,0.3) 100%)',
-          boxShadow: isAgent
-            ? '0 0 20px rgba(34,197,94,0.5)'
-            : '0 0 20px rgba(59,130,246,0.5)',
-        }}
-      >
-        <span className="text-[10px] font-bold tracking-wider" style={{ color: "var(--color-text-1)" }}>
-          {isAgent ? 'AI' : 'YOU'}
-        </span>
-      </div>
-    </div>
-  )
-}
+import NumberTicker from '@/components/ui/number-ticker'
+import { VoiceOrb, WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
 
 interface TranscriptMessage {
   role: 'agent' | 'user'
@@ -131,10 +83,10 @@ function QualityGauge({ score }: { score: number }) {
 
 const SENTIMENT_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
   positive:    { label: 'Positive',    color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/25' },
-  neutral:     { label: 'Neutral',     color: 'text-zinc-400',   bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
+  neutral:     { label: 'Neutral',     color: 't2',              bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
   negative:    { label: 'Negative',    color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/25' },
   frustrated:  { label: 'Frustrated',  color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/25' },
-  indifferent: { label: 'Indifferent', color: 'text-zinc-500',   bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
+  indifferent: { label: 'Indifferent', color: 't3',              bg: 'bg-[var(--color-surface)] border-[var(--color-border)]' },
 }
 
 interface CallDetailProps {
@@ -179,8 +131,6 @@ const STATUS_GLOW: Record<string, string> = {
   JUNK: 'border-zinc-500/30',
 }
 
-const BARS = [0.4, 0.9, 0.6, 1, 0.7, 0.85, 0.45, 0.75]
-
 export default function CallDetail({ call, agentName = 'Agent', isLive = false }: CallDetailProps) {
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -194,12 +144,39 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
   const [whisperSent, setWhisperSent] = useState(false)
   const [ending, setEnding] = useState(false)
 
+  const soundCuesRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
+  const prevCallStatusRef = useRef<string | null>(call.call_status)
+
   const transcriptPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const statusPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const handleSeek = useCallback((time: number) => {
     document.dispatchEvent(new CustomEvent('audio-seek', { detail: { time } }))
   }, [])
+
+  useEffect(() => {
+    soundCuesRef.current = createSoundCues()
+  }, [])
+
+  useEffect(() => {
+    const prev = prevCallStatusRef.current
+    prevCallStatusRef.current = callStatus
+
+    if (!prev) return
+
+    // connectChime when call goes live
+    if (prev !== 'live' && callStatus === 'live') {
+      soundCuesRef.current?.connectChime()
+    }
+    // endTone when live call ends
+    if (prev === 'live' && callStatus === 'processing') {
+      soundCuesRef.current?.endTone()
+    }
+    // tagPop when classification arrives
+    if (!['HOT', 'WARM', 'COLD', 'JUNK'].includes(prev ?? '') && ['HOT', 'WARM', 'COLD', 'JUNK'].includes(callStatus ?? '')) {
+      soundCuesRef.current?.tagPop()
+    }
+  }, [callStatus])
 
   const handleWhisper = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -363,16 +340,11 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
         </div>
         {isActuallyLive && (
           <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-px h-5">
-              {BARS.map((peak, i) => (
-                <motion.span
-                  key={i}
-                  className="w-[3px] rounded-full bg-green-400/60"
-                  animate={{ scaleY: [0.15, peak, 0.15] }}
-                  transition={{ repeat: Infinity, duration: 0.6 + (i % 3) * 0.12, delay: i * 0.07, ease: 'easeInOut' }}
-                  style={{ height: '100%', transformOrigin: 'center', display: 'inline-block' }}
-                />
-              ))}
+            <div className="max-w-[100px]">
+              <WaveformBars
+                status={lastRole === 'agent' ? 'speaking' : lastRole === 'user' ? 'listening' : 'idle'}
+                energy={lastRole ? 0.7 : 0.3}
+              />
             </div>
             <button
               onClick={handleEndCall}
@@ -399,12 +371,17 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(34,197,94,0.05) 0%, transparent 70%)' }}
           />
-          <div className="relative flex flex-col items-center py-4">
-            <AudioAura lastRole={lastRole} />
-            <p className="text-[11px] mt-1" style={{ color: "var(--color-text-3)" }}>
-              {lastRole === 'agent' ? 'Agent speaking' : lastRole === 'user' ? 'Caller speaking' : 'Waiting…'}
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-3)" }}>Transcript updates every 2.5s</p>
+          <div className="relative flex flex-col items-center py-4 gap-3">
+            <VoiceOrb
+              status={lastRole === 'agent' ? 'speaking' : lastRole === 'user' ? 'listening' : 'idle'}
+              energy={lastRole ? 0.7 : 0.3}
+              size="md"
+            />
+            <WaveformBars
+              status={lastRole === 'agent' ? 'speaking' : lastRole === 'user' ? 'listening' : 'idle'}
+              energy={lastRole ? 0.7 : 0.3}
+            />
+            <p className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Transcript updates every 2.5s</p>
           </div>
         </div>
       )}
@@ -476,7 +453,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Confidence</span>
-                        <span className="text-[11px] font-mono" style={{ color: "var(--color-text-2)" }}>{displayCall.confidence}%</span>
+                        <span className="text-[11px] font-mono" style={{ color: "var(--color-text-2)" }}><NumberTicker value={displayCall.confidence} delay={0.3} />%</span>
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--color-surface)" }}>
                         <div
@@ -547,6 +524,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
         onSeek={handleSeek}
         agentName={agentName}
         isLive={isActuallyLive}
+        classification={displayCall.call_status}
       />
 
       {/* Supervisor whisper bar — only during live call */}

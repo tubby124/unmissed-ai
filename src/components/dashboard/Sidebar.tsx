@@ -62,6 +62,16 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/lab',
+    label: 'Lab',
+    adminOnly: false,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/clients',
     label: 'Clients',
     adminOnly: true,
@@ -103,6 +113,38 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/calls',
+    label: 'All Calls',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/prompt',
+    label: 'Prompt Editor',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/numbers',
+    label: 'Numbers',
+    adminOnly: true,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
     adminOnly: false,
@@ -120,9 +162,10 @@ interface SidebarProps {
   isAdmin?: boolean
   clientId?: string | null
   setupIncomplete?: boolean
+  telegramConnected?: boolean
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -195,7 +238,15 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                   )}
                 </div>
                 {businessName && (
-                  <span className="text-xs block truncate" style={{ color: "var(--color-text-2)" }}>{businessName}</span>
+                  <span className="text-xs flex items-center gap-1.5 truncate" style={{ color: "var(--color-text-2)" }}>
+                    {businessName}
+                    {!isAdmin && (
+                      <span
+                        className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${telegramConnected ? 'bg-green-500' : 'bg-amber-500'}`}
+                        title={telegramConnected ? 'Telegram connected' : 'Telegram not connected'}
+                      />
+                    )}
+                  </span>
                 )}
                 {isAdmin && (
                   <span className="text-xs block" style={{ color: "var(--color-text-3)" }}>All clients</span>

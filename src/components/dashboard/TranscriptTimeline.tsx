@@ -16,7 +16,14 @@ interface TranscriptTimelineProps {
   onSeek?: (time: number) => void
   agentName?: string
   isLive?: boolean
+  classification?: string | null
 }
+
+// iMessage-style bubble colors based on call classification
+// Blue = good call (iMessage), Green = bad/missed call (Android SMS)
+const IMESSAGE_BLUE = '#007AFF'
+const IMESSAGE_GREEN = '#34C759'
+const GOOD_STATUSES = new Set(['HOT', 'WARM', 'live', 'processing'])
 
 function fmtTime(s?: number) {
   if (s == null || !isFinite(s)) return ''
@@ -39,7 +46,9 @@ export default function TranscriptTimeline({
   onSeek,
   agentName = 'Agent',
   isLive = false,
+  classification,
 }: TranscriptTimelineProps) {
+  const bubbleColor = isLive || GOOD_STATUSES.has(classification ?? '') ? IMESSAGE_BLUE : IMESSAGE_GREEN
   const bottomRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLDivElement>(null)
   const prevLengthRef = useRef(messages.length)
@@ -141,8 +150,8 @@ export default function TranscriptTimeline({
                       : `rounded-tl-sm ${isActive ? 'ring-1 ring-blue-400/40' : ''}`
                   } ${!isLive && msg.startTime != null ? 'cursor-pointer hover:opacity-90' : ''}`}
                   style={{
-                    backgroundColor: isAgent ? "var(--color-primary)" : "var(--color-bg-raised)",
-                    color: "var(--color-text-1)",
+                    backgroundColor: isAgent ? bubbleColor : "var(--color-bg-raised)",
+                    color: isAgent ? "#FFFFFF" : "var(--color-text-1)",
                   }}
                   onClick={() => !isLive && msg.startTime != null && onSeek?.(msg.startTime)}
                   title={!isLive && msg.startTime != null ? `Jump to ${fmtTime(msg.startTime)}` : undefined}

@@ -66,15 +66,15 @@ export default async function CampaignsPage() {
     <div className="p-6 space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-lg font-semibold text-zinc-100">Campaigns</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">
+        <h1 className="text-lg font-semibold t1">Campaigns</h1>
+        <p className="text-xs t3 mt-0.5">
           Per-client call performance — {campaigns.length} active agent{campaigns.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       {/* Campaign grid */}
       {campaigns.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-24 text-zinc-600">
+        <div className="flex flex-col items-center gap-3 py-24 t3">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="opacity-25">
             <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5"/>
             <rect x="10" y="8" width="4" height="13" rx="1" stroke="currentColor" strokeWidth="1.5"/>

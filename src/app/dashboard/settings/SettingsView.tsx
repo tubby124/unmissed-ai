@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
+import BorderBeam from '@/components/ui/border-beam'
+import ShimmerButton from '@/components/ui/shimmer-button'
 
 interface PromptVersion {
   id: string
@@ -29,25 +31,31 @@ const TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
 ]
 
-const NICHE_CONFIG: Record<string, { label: string; color: string; border: string }> = {
-  'auto-glass':          { label: 'Auto Glass',       color: 'text-blue-400',   border: 'border-blue-500/30' },
-  'auto':                { label: 'Automotive',        color: 'text-blue-400',   border: 'border-blue-500/30' },
-  'real-estate':         { label: 'Real Estate',       color: 'text-amber-400',  border: 'border-amber-500/30' },
-  'real_estate':         { label: 'Real Estate',       color: 'text-amber-400',  border: 'border-amber-500/30' },
-  'isa':                 { label: 'ISA / Real Estate',  color: 'text-amber-400',  border: 'border-amber-500/30' },
-  'property-management': { label: 'Property Mgmt',     color: 'text-purple-400', border: 'border-purple-500/30' },
-  'dental':              { label: 'Dental',             color: 'text-teal-400',   border: 'border-teal-500/30' },
-  'hvac':                { label: 'HVAC',               color: 'text-orange-400', border: 'border-orange-500/30' },
-  'plumbing':            { label: 'Plumbing',           color: 'text-cyan-400',   border: 'border-cyan-500/30' },
-  'legal':               { label: 'Legal',              color: 'text-rose-400',   border: 'border-rose-500/30' },
-  'voicemail':           { label: 'Voicemail',          color: 'text-zinc-400',   border: 'border-zinc-500/30' },
-}
+import { NICHE_CONFIG } from '@/lib/niche-config'
 
 const KNOWN_VOICES: Record<string, string> = {
   'aa601962-1cbd-4bbd-9d96-3c7a93c3414a': 'Jacqueline',
   'd766b9e3-69df-4727-b62f-cd0b6772c2ad': 'Nour',
   '3bde8dc5-67c8-4e3f-82e1-b4f8e5c5db1c': 'Mark',
   'b9de4a89-7971-4ac8-aeea-d86fd8543a1a': 'Emily',
+}
+
+function getPlanName(limit: number | null) {
+  if (!limit || limit <= 50) return 'Free'
+  if (limit <= 200) return 'Starter'
+  if (limit <= 500) return 'Growth'
+  return 'Scale'
+}
+
+const RELOAD_OPTIONS = [
+  { minutes: 100, price: 10 },
+  { minutes: 200, price: 20 },
+  { minutes: 300, price: 30 },
+]
+
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function fmtPhone(p: string | null) {
@@ -79,7 +87,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
         setCopied(true)
         setTimeout(() => setCopied(false), 1800)
       }}
-      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-zinc-500 border border-white/[0.07] hover:text-zinc-200 hover:border-white/[0.15] transition-all shrink-0"
+      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium t3 border b-theme hover:t1 hover:b-theme transition-all shrink-0"
     >
       {copied ? (
         <>
@@ -96,11 +104,53 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
   )
 }
 
+// ── CSV upload utilities ──────────────────────────────────────────────────────
+
+function parseCsvRaw(text: string): { headers: string[]; rows: string[][] } {
+  const clean = text.replace(/^\uFEFF/, '').trim()
+  const lines = clean.split(/\r?\n/).filter(l => l.trim())
+  if (lines.length === 0) return { headers: [], rows: [] }
+  function parseRow(line: string): string[] {
+    const cells: string[] = []
+    let cur = '', inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i]
+      if (c === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+        else inQuote = !inQuote
+      } else if (c === ',' && !inQuote) { cells.push(cur.trim()); cur = '' }
+      else cur += c
+    }
+    cells.push(cur.trim())
+    return cells
+  }
+  return { headers: parseRow(lines[0]), rows: lines.slice(1).map(parseRow) }
+}
+
+function detectKeyColumns(headers: string[]): string[] {
+  const key = headers.filter(h =>
+    /unit|suite|apt|apartment|door/i.test(h) ||
+    /address|addr|street|property/i.test(h) ||
+    /name|tenant|resident|renter|owner/i.test(h) ||
+    /phone|tel|mobile|cell|contact/i.test(h) ||
+    /status|active|lease|vacant/i.test(h)
+  )
+  return key.length > 0 ? key : headers.slice(0, Math.min(headers.length, 5))
+}
+
+function columnsToMarkdownTable(headers: string[], selectedCols: string[], rows: string[][]): string {
+  const colIndices = selectedCols.map(c => headers.indexOf(c)).filter(i => i >= 0)
+  const selHeaders = colIndices.map(i => headers[i])
+  const divider = selHeaders.map(() => '---')
+  const dataRows = rows.map(row => colIndices.map(i => row[i] ?? ''))
+  return [selHeaders, divider, ...dataRows].map(row => '| ' + row.join(' | ') + ' |').join('\n')
+}
+
 function UrlRow({ label, url }: { label: string; url: string }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs text-zinc-500 w-24 shrink-0">{label}</span>
-      <span className="flex-1 text-xs font-mono text-zinc-400 truncate">{url}</span>
+    <div className="flex items-center gap-3 py-2.5 border-b b-theme last:border-0">
+      <span className="text-xs t3 w-24 shrink-0">{label}</span>
+      <span className="flex-1 text-xs font-mono t2 truncate">{url}</span>
       <CopyButton value={url} />
     </div>
   )
@@ -108,9 +158,9 @@ function UrlRow({ label, url }: { label: string; url: string }) {
 
 function ConfigRow({ label, value, copyValue }: { label: string; value: string; copyValue?: string }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs text-zinc-500 w-32 shrink-0">{label}</span>
-      <span className="flex-1 text-xs font-mono text-zinc-300 truncate">{value}</span>
+    <div className="flex items-center gap-3 py-2.5 border-b b-theme last:border-0">
+      <span className="text-xs t3 w-32 shrink-0">{label}</span>
+      <span className="flex-1 text-xs font-mono t2 truncate">{value}</span>
       {copyValue && <CopyButton value={copyValue} />}
     </div>
   )
@@ -160,11 +210,33 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [improveState, setImproveState] = useState<ImproveState>('idle')
   const [improveResult, setImproveResult] = useState<{
     improved_prompt: string
-    change_summary: string[]
+    changes: Array<{ type: string; section: string; what: string; why: string; confidence: string }>
     call_count: number
     has_enough_data: boolean
   } | null>(null)
   const [improveError, setImproveError] = useState('')
+
+  // Learning Loop
+  type LearningStatus = {
+    calls_since_last_analysis: number
+    last_analyzed_at: string | null
+    should_analyze: boolean
+    trigger_reason: 'cadence' | 'friction_call' | 'unknown_status' | 'short_call' | 'frustrated' | null
+    pending_report: {
+      id: string
+      recommendations_count: number
+      top_recs: Array<{ title: string; rationale: string; priority: string }>
+    } | null
+  }
+  const [learning, setLearning] = useState<LearningStatus | null>(null)
+  const [learningState, setLearningState] = useState<'checking' | 'analyzing' | 'ready' | 'idle'>('checking')
+  const [learningDismissed, setLearningDismissed] = useState(() => {
+    try { return sessionStorage.getItem(`learning_dismissed_${selectedId}`) === '1' } catch { return false }
+  })
+  const dismissLearning = useCallback(() => {
+    try { sessionStorage.setItem(`learning_dismissed_${selectedId}`, '1') } catch { /* ignore */ }
+    setLearningDismissed(true)
+  }, [selectedId])
 
   // Version History
   const [versionsOpen, setVersionsOpen] = useState(false)
@@ -201,6 +273,34 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [advancedSaving, setAdvancedSaving] = useState(false)
   const [advancedSaved, setAdvancedSaved] = useState(false)
 
+  // Context Data
+  const [contextData, setContextData] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.context_data ?? '']))
+  )
+  const [contextDataLabel, setContextDataLabel] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.context_data_label ?? '']))
+  )
+  const [contextDataSaving, setContextDataSaving] = useState(false)
+  const [contextDataSaved, setContextDataSaved] = useState(false)
+  const [csvUpload, setCsvUpload] = useState<Record<string, {
+    allColumns: string[]
+    allRows: string[][]
+    selectedColumns: string[]
+    rowCount: number
+    truncated: boolean
+  }>>({})
+  const csvInputRef = useRef<HTMLInputElement>(null)
+
+  // Booking / Calendar
+  const [bookingSaving, setBookingSaving] = useState(false)
+  const [bookingSaved, setBookingSaved] = useState(false)
+  const [bookingDuration, setBookingDuration] = useState<Record<string, number>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.booking_service_duration_minutes ?? 60]))
+  )
+  const [bookingBuffer, setBookingBuffer] = useState<Record<string, number>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.booking_buffer_minutes ?? 15]))
+  )
+
   // Test Call
   const [testPhone, setTestPhone] = useState('')
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -231,16 +331,30 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'transfer' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
+  const [reloadMinutes, setReloadMinutes] = useState(100)
+  const [reloadLoading, setReloadLoading] = useState(false)
+  const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const reloaded = params.get('reloaded')
+    if (reloaded) {
+      setReloadSuccess(parseInt(reloaded, 10))
+      window.history.replaceState({}, '', window.location.pathname)
+      setTimeout(() => setReloadSuccess(null), 5000)
+    }
+  }, [])
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
   const niche = client.niche ?? ''
-  const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 'text-zinc-400', border: 'border-zinc-500/30' }
+  const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 't2', border: 'border-zinc-500/30' }
   const voiceName = client.agent_voice_id ? (KNOWN_VOICES[client.agent_voice_id] ?? null) : null
   const minutesUsed = client.minutes_used_this_month ?? 0
   const minuteLimit = client.monthly_minute_limit ?? 500
-  const usagePct = Math.min((minutesUsed / minuteLimit) * 100, 100)
+  const totalAvailable = minuteLimit + (client.bonus_minutes ?? 0)
+  const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0
 
   const currentPrompt = prompt[client.id] ?? ''
   const originalPrompt = client.system_prompt ?? ''
@@ -370,6 +484,52 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     setImproveState('idle')
   }
 
+  // Learning loop: check on mount + when client changes
+  useEffect(() => {
+    let cancelled = false
+    setLearning(null)
+    setLearningState('checking')
+    try { setLearningDismissed(sessionStorage.getItem(`learning_dismissed_${client.id}`) === '1') } catch { setLearningDismissed(false) }
+
+    async function checkLearning() {
+      const params = isAdmin ? `?client_id=${client.id}` : ''
+      const res = await fetch(`/api/dashboard/settings/learning-status${params}`)
+      if (!res.ok || cancelled) return
+      const data: LearningStatus = await res.json()
+      if (cancelled) return
+      setLearning(data)
+
+      if (data.should_analyze) {
+        setLearningState('analyzing')
+        try {
+          const body: Record<string, unknown> = {}
+          if (isAdmin) body.client_id = client.id
+          await fetch('/api/dashboard/analyze-now', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        } catch { /* silent — non-critical */ }
+        if (cancelled) return
+        // Re-fetch to get the new pending report
+        const res2 = await fetch(`/api/dashboard/settings/learning-status${params}`)
+        if (!res2.ok || cancelled) { setLearningState('idle'); return }
+        const data2: LearningStatus = await res2.json()
+        if (cancelled) return
+        setLearning(data2)
+        setLearningState(data2.pending_report ? 'ready' : 'idle')
+      } else if (data.pending_report) {
+        setLearningState('ready')
+      } else {
+        setLearningState('idle')
+      }
+    }
+
+    checkLearning().catch(() => setLearningState('idle'))
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.id])
+
   const loadVersions = useCallback(async () => {
     setVersionsLoading(true)
     const params = isAdmin ? `?client_id=${client.id}` : ''
@@ -477,6 +637,68 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
     }
   }
 
+  async function saveContextData() {
+    setContextDataSaving(true)
+    setContextDataSaved(false)
+    const body: Record<string, unknown> = {
+      context_data: contextData[client.id] ?? '',
+      context_data_label: contextDataLabel[client.id] ?? '',
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setContextDataSaving(false)
+    if (res.ok) {
+      setContextDataSaved(true)
+      setTimeout(() => setContextDataSaved(false), 3000)
+    }
+  }
+
+  function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const { headers, rows } = parseCsvRaw(text)
+      if (headers.length === 0) return
+      const MAX_ROWS = 250
+      const truncated = rows.length > MAX_ROWS
+      const limitedRows = truncated ? rows.slice(0, MAX_ROWS) : rows
+      const selected = detectKeyColumns(headers)
+      const clientId = csvInputRef.current?.dataset.clientid ?? ''
+      setCsvUpload(prev => ({
+        ...prev,
+        [clientId]: { allColumns: headers, allRows: limitedRows, selectedColumns: selected, rowCount: rows.length, truncated },
+      }))
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  async function saveBookingConfig() {
+    setBookingSaving(true)
+    setBookingSaved(false)
+    const body: Record<string, unknown> = {
+      booking_service_duration_minutes: bookingDuration[client.id] ?? 60,
+      booking_buffer_minutes: bookingBuffer[client.id] ?? 15,
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setBookingSaving(false)
+    if (res.ok) {
+      setBookingSaved(true)
+      setTimeout(() => setBookingSaved(false), 3000)
+    }
+  }
+
   async function fireTestSms() {
     if (!testSmsPhone.trim()) return
     setTestSmsState('sending')
@@ -556,16 +778,16 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
 
       {/* Admin — client switcher */}
       {isAdmin && clients.length > 1 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/[0.06]">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+        <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+          <div className="px-5 py-3 border-b b-theme">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">
               All Clients — {clients.length} agents
             </p>
           </div>
           <div className="flex flex-wrap gap-1 p-3">
             {clients.map(c => {
               const n = c.niche ?? ''
-              const nc = NICHE_CONFIG[n] ?? { label: n || 'General', color: 'text-zinc-400', border: 'border-zinc-500/30' }
+              const nc = NICHE_CONFIG[n] ?? { label: n || 'General', color: 't2', border: 'border-zinc-500/30' }
               const isSelected = c.id === selectedId
               return (
                 <button
@@ -577,7 +799,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
                     isSelected
                       ? `bg-blue-500/10 text-blue-300 border-blue-500/30`
-                      : 'text-zinc-400 border-white/[0.07] hover:text-zinc-200 hover:bg-white/[0.04]'
+                      : 't2 b-theme hover:t1 hover:bg-hover'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(c.status ?? 'active') === 'active' ? 'bg-green-500' : 'bg-zinc-600'}`} />
@@ -595,7 +817,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       )}
 
       {/* ─── Tab bar ─────────────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-white/[0.08]">
+      <div className="border-b border-gray-200 dark:b-theme">
         <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Settings tabs">
           {([
             { id: 'general', label: 'General' },
@@ -608,17 +830,40 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 border-b-2 ${
+              className={`relative pb-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
                 activeTab === id
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-zinc-500'
+                  ? 'text-indigo-600 dark:text-indigo-400'
+                  : 'text-gray-500 hover:text-gray-700 dark:t2 dark:hover:t1'
               }`}
             >
               {label}
+              {activeTab === id && (
+                <motion.div
+                  layoutId="settings-tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
             </button>
           ))}
         </nav>
       </div>
+
+      {/* Reload success banner */}
+      {reloadSuccess && (
+        <div className="rounded-lg bg-green-500/10 border border-green-500/25 px-4 py-2 text-xs text-green-400">
+          {reloadSuccess} minutes added to your account!
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24 }}
+        >
 
       {/* ─── General Tab ──────────────────────────────────────────────── */}
       {activeTab === 'general' && (<>
@@ -632,15 +877,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-1.5">Your AI phone number</p>
+              <p className="text-xs t3 mb-1.5">Your AI phone number</p>
               <div className="flex items-center gap-2">
-                <span className="flex-1 text-sm font-mono text-zinc-200">{fmtPhone(client.twilio_number) || 'Not yet assigned'}</span>
+                <span className="flex-1 text-sm font-mono t1">{fmtPhone(client.twilio_number) || 'Not yet assigned'}</span>
                 {client.twilio_number && <CopyButton value={client.twilio_number} label="Copy" />}
               </div>
-              <p className="text-[11px] text-zinc-600 mt-1">Share this number — callers will reach your AI agent here.</p>
+              <p className="text-[11px] t3 mt-1">Share this number — callers will reach your AI agent here.</p>
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 flex items-center gap-2">
+              <label className="text-xs t2 mb-1.5 flex items-center gap-2">
                 Call forwarding number
                 {isAdmin
                   ? <span className="text-[9px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Beta</span>
@@ -653,9 +898,9 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 value={forwardingNumber[client.id] ?? ''}
                 onChange={(e) => setForwardingNumber(prev => ({ ...prev, [client.id]: e.target.value }))}
                 placeholder="+1 (555) 555-5555"
-                className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 ${!isAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
+                className={`w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20 ${!isAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
               />
-              <p className="text-[11px] text-zinc-600 mt-1">
+              <p className="text-[11px] t3 mt-1">
                 {isAdmin
                   ? 'Enter your personal phone number. When a caller asks for a human, they\'ll be transferred here.'
                   : 'Live call transfer to your number — coming soon.'
@@ -663,8 +908,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </p>
             </div>
             {/* Setup checklist */}
-            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-3">
-              <p className="text-xs font-medium text-zinc-300">Setup Checklist</p>
+            <div className="rounded-2xl bg-surface border b-theme p-4 space-y-3">
+              <p className="text-xs font-medium t2">Setup Checklist</p>
               <div className="space-y-2">
                 {/* Item 1: Phone number */}
                 <div className="flex items-center gap-2.5">
@@ -673,7 +918,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   ) : (
                     <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-600 shrink-0" />
                   )}
-                  <span className={`text-xs ${client.twilio_number ? 'text-zinc-300' : 'text-zinc-500'}`}>AI phone number assigned</span>
+                  <span className={`text-xs ${client.twilio_number ? 't2' : 't3'}`}>AI phone number assigned</span>
                 </div>
                 {/* Item 2: Forwarding configured */}
                 <div className="flex items-center gap-2.5">
@@ -682,7 +927,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   ) : (
                     <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-600 shrink-0" />
                   )}
-                  <span className={`text-xs ${forwardingNumber[client.id] ? 'text-zinc-300' : 'text-zinc-500'}`}>Call forwarding configured</span>
+                  <span className={`text-xs ${forwardingNumber[client.id] ? 't2' : 't3'}`}>Call forwarding configured</span>
                 </div>
                 {/* Item 3: Setup complete */}
                 <div className="flex items-center gap-2.5">
@@ -691,7 +936,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   ) : (
                     <span className="w-3.5 h-3.5 rounded-full border-2 border-amber-500/60 shrink-0" />
                   )}
-                  <span className={`text-xs ${setupComplete[client.id] ? 'text-zinc-300' : 'text-zinc-500'}`}>Setup marked complete</span>
+                  <span className={`text-xs ${setupComplete[client.id] ? 't2' : 't3'}`}>Setup marked complete</span>
                 </div>
               </div>
               {/* Activate Agent button — shown when phone + forwarding are set */}
@@ -714,7 +959,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     setTimeout(() => saveSetup(), 0)
                   }}
                   disabled={setupSaving}
-                  className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                  className="text-[11px] t3 hover:t2 transition-colors"
                 >
                   Reset setup status
                 </button>
@@ -730,46 +975,69 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               )}
               {setupSaved && <span className="text-xs text-green-400 block">Saved</span>}
               {setupEditing && (
-                <button onClick={() => setSetupEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors block">Cancel</button>
+                <button onClick={() => setSetupEditing(false)} className="text-xs t3 hover:t1 transition-colors block">Cancel</button>
               )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-3 flex items-center justify-between">
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span className="text-xs text-zinc-400">Setup complete</span>
+            <span className="text-xs t2">Setup complete</span>
             {client.twilio_number && (
-              <span className="text-xs font-mono text-zinc-600">{fmtPhone(client.twilio_number)}</span>
+              <span className="text-xs font-mono t3">{fmtPhone(client.twilio_number)}</span>
             )}
           </div>
-          <button onClick={() => setSetupEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Edit</button>
+          <button onClick={() => setSetupEditing(true)} className="text-xs t3 hover:t1 transition-colors">Edit</button>
+        </div>
+      )}
+
+      {/* Call Forwarding Quick Link */}
+      {!isAdmin && client.twilio_number && (
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="text-xs t2">Need help forwarding calls to <span className="font-mono">{fmtPhone(client.twilio_number)}</span>?</span>
+          </div>
+          <a href="/dashboard/setup" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
+            Carrier instructions
+          </a>
         </div>
       )}
 
       {/* 1 — Agent Overview */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-4">Agent Overview</p>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className="relative rounded-2xl border b-theme bg-surface p-5 overflow-hidden">
+        {client.status === 'active' && <BorderBeam size={250} duration={12} colorFrom="#6366f1" colorTo="#a855f7" />}
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-4">Agent Overview</p>
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-semibold text-zinc-100">{client.business_name}</h2>
+              <h2 className="text-base font-semibold t1">{client.business_name}</h2>
               {niche && (
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${nicheConfig.color} ${nicheConfig.border} bg-transparent`}>
                   {nicheConfig.label}
                 </span>
               )}
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
+                {getPlanName(client.monthly_minute_limit)} · {minuteLimit} min/mo
+                {(client.bonus_minutes ?? 0) > 0 && ` + ${client.bonus_minutes} bonus`}
+              </span>
             </div>
             {/* Agent Name — inline edit */}
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Agent</span>
+              <span className="text-[10px] t3 uppercase tracking-wider">Agent</span>
               <input
                 type="text"
                 value={agentName[client.id] ?? ''}
                 onChange={e => setAgentName(prev => ({ ...prev, [client.id]: e.target.value }))}
                 placeholder="e.g. Aisha"
-                className="text-xs text-zinc-300 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.07] w-28 focus:outline-none focus:border-blue-500/50"
+                className="text-xs t2 bg-hover px-2 py-0.5 rounded border b-theme w-28 focus:outline-none focus:border-blue-500/50"
               />
               {(agentName[client.id] ?? '') !== (client.agent_name ?? '') && (
                 <button
@@ -800,14 +1068,14 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Slug</span>
-                <span className="text-xs font-mono text-zinc-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.07]">
+                <span className="text-[10px] t3 uppercase tracking-wider">Slug</span>
+                <span className="text-xs font-mono t2 bg-hover px-2 py-0.5 rounded border b-theme">
                   {client.slug}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Last updated</span>
-                <span className="text-xs text-zinc-500 font-mono">{timeAgo(client.updated_at)}</span>
+                <span className="text-[10px] t3 uppercase tracking-wider">Last updated</span>
+                <span className="text-xs t3 font-mono">{timeAgo(client.updated_at)}</span>
               </div>
             </div>
           </div>
@@ -822,30 +1090,66 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </button>
             <div className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-              <span className={`text-[11px] font-medium ${isActive ? 'text-green-400' : 'text-zinc-500'}`}>
+              <span className={`text-[11px] font-medium ${isActive ? 'text-green-400' : 't3'}`}>
                 {isActive ? 'Answering calls' : 'Paused'}
               </span>
             </div>
           </div>
         </div>
+
+        {/* Usage bar — inline */}
+        <div className="mt-4 pt-4 border-t b-theme">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Minutes This Month</p>
+            <span className="text-xs font-mono t2 tabular-nums">
+              {minutesUsed} / {totalAvailable} min
+            </span>
+          </div>
+          <div className="h-1.5 bg-hover rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                usagePct > 100 ? 'bg-pink-500' : usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-blue-500'
+              }`}
+              style={{ width: `${Math.min(usagePct, 100)}%` }}
+            />
+          </div>
+          {usagePct > 100 ? (
+              <p className="text-[11px] mt-2 text-amber-400">
+                You&apos;ve used all {totalAvailable} free minutes. Go to Billing &rarr; Buy Minutes to reload.
+              </p>
+          ) : (
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-[11px] t3">Resets 1st of each month</p>
+              <p className="text-[11px] t3 tabular-nums font-mono">
+                {totalAvailable - minutesUsed} min remaining
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+      </motion.div>
 
       {/* 2 — Webhooks + Phone (collapsible) */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
         <button
           onClick={() => setWebhooksCollapsed(p => !p)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface transition-colors"
         >
           <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500 shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
               <polyline points="16 18 22 12 16 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <polyline points="8 6 2 12 8 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Developer Settings</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Developer Settings</p>
           </div>
           <svg
             width="14" height="14" viewBox="0 0 24 24" fill="none"
-            className={`text-zinc-600 transition-transform duration-200 ${webhooksCollapsed ? '' : 'rotate-180'}`}
+            className={`t3 transition-transform duration-200 ${webhooksCollapsed ? '' : 'rotate-180'}`}
           >
             <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -860,13 +1164,13 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               transition={{ duration: 0.2 }}
               style={{ overflow: 'hidden' }}
             >
-              <div className="px-5 pb-5 border-t border-white/[0.06]">
-                <p className="text-[11px] text-zinc-600 mt-4 mb-3">These URLs are pre-configured in your Twilio console. No action needed.</p>
+              <div className="px-5 pb-5 border-t b-theme">
+                <p className="text-[11px] t3 mt-4 mb-3">These URLs are pre-configured in your Twilio console. No action needed.</p>
                 <UrlRow label="Inbound" url={inboundUrl} />
                 <UrlRow label="Completed" url={completedUrl} />
-                <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
-                  <span className="text-xs text-zinc-500 w-24 shrink-0">Twilio Number</span>
-                  <span className="flex-1 text-sm font-mono font-medium text-zinc-200">
+                <div className="flex items-center gap-3 py-2.5 border-b b-theme last:border-0">
+                  <span className="text-xs t3 w-24 shrink-0">Twilio Number</span>
+                  <span className="flex-1 text-sm font-mono font-medium t1">
                     {fmtPhone(client.twilio_number)}
                   </span>
                   {client.twilio_number && <CopyButton value={client.twilio_number} />}
@@ -876,11 +1180,17 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           )}
         </AnimatePresence>
       </div>
+      </motion.div>
 
       {/* 3 — Agent Configuration */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-1">Agent Configuration</p>
-        <p className="text-[11px] text-zinc-600 mb-4">Voice and AI model settings</p>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.12 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Agent Configuration</p>
+        <p className="text-[11px] t3 mb-4">Voice and AI model settings</p>
         {client.agent_voice_id ? (
           <ConfigRow
             label="Voice"
@@ -904,7 +1214,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           <ConfigRow label="Telegram Chat" value={client.telegram_chat_id} copyValue={client.telegram_chat_id} />
         )}
         {client.ultravox_agent_id && (
-          <div className="flex items-center gap-3 pt-3 mt-1 border-t border-white/[0.04]">
+          <div className="flex items-center gap-3 pt-3 mt-1 border-t b-theme">
             <button
               onClick={syncAgent}
               disabled={syncing}
@@ -913,17 +1223,18 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : syncState === 'error'
                   ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-white/[0.07] hover:text-zinc-200'
+                  : 'bg-hover t2 border b-theme hover:bg-hover hover:t1'
               }`}
             >
               {syncing ? 'Syncing…' : syncState === 'ok' ? '✓ Synced' : syncState === 'error' ? '✗ Sync failed' : 'Re-sync Agent'}
             </button>
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-[11px] t3">
               {syncState === 'error' ? syncError : 'Force-push current prompt + voice to Ultravox'}
             </span>
           </div>
         )}
       </div>
+      </motion.div>
 
       {/* 3b — God Mode (admin only) */}
       {isAdmin && godConfig[client.id] && (
@@ -931,7 +1242,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400/80">God Mode</p>
-              <p className="text-[11px] text-zinc-600 mt-0.5">Editable infrastructure settings</p>
+              <p className="text-[11px] t3 mt-0.5">Editable infrastructure settings</p>
             </div>
             <button
               onClick={saveGodConfig}
@@ -949,26 +1260,26 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           <div className="space-y-3">
             {/* Telegram Bot Token */}
             <div>
-              <label className="text-[11px] text-zinc-500 block mb-1">Telegram Bot Token <span className="text-zinc-700">(write-only — current value masked)</span></label>
+              <label className="text-[11px] t3 block mb-1">Telegram Bot Token <span className="t3">(write-only — current value masked)</span></label>
               <input
                 type="password"
                 value={godConfig[client.id].telegram_bot_token}
                 onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], telegram_bot_token: e.target.value } }))}
                 placeholder="Enter new token to update…"
                 autoComplete="off"
-                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
               />
             </div>
 
             {/* Telegram Chat ID */}
             <div>
-              <label className="text-[11px] text-zinc-500 block mb-1">Telegram Chat ID</label>
+              <label className="text-[11px] t3 block mb-1">Telegram Chat ID</label>
               <input
                 type="text"
                 value={godConfig[client.id].telegram_chat_id}
                 onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], telegram_chat_id: e.target.value } }))}
                 placeholder="e.g. 7278536150"
-                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
               />
               <button
                 type="button"
@@ -979,7 +1290,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                     : telegramTest[client.id] === 'fail'
                     ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    : 'bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-white/[0.07]'
+                    : 'bg-hover t2 border b-theme hover:bg-hover'
                 }`}
               >
                 {telegramTest[client.id] === 'testing' ? 'Sending…'
@@ -991,24 +1302,24 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
 
             {/* Twilio Number */}
             <div>
-              <label className="text-[11px] text-zinc-500 block mb-1">Twilio Number</label>
+              <label className="text-[11px] t3 block mb-1">Twilio Number</label>
               <input
                 type="text"
                 value={godConfig[client.id].twilio_number}
                 onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], twilio_number: e.target.value } }))}
                 placeholder="+15871234567"
-                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
               />
             </div>
 
             {/* Timezone + Monthly Limit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-zinc-500 block mb-1">Timezone</label>
+                <label className="text-[11px] t3 block mb-1">Timezone</label>
                 <select
                   value={godConfig[client.id].timezone}
                   onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], timezone: e.target.value } }))}
-                  className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500/40 transition-colors"
+                  className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:border-amber-500/40 transition-colors"
                 >
                   {TIMEZONES.map(tz => (
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -1016,14 +1327,14 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 </select>
               </div>
               <div>
-                <label className="text-[11px] text-zinc-500 block mb-1">Monthly Minute Limit</label>
+                <label className="text-[11px] t3 block mb-1">Monthly Minute Limit</label>
                 <input
                   type="number"
                   value={godConfig[client.id].monthly_minute_limit}
                   onChange={e => setGodConfig(prev => ({ ...prev, [client.id]: { ...prev[client.id], monthly_minute_limit: Number(e.target.value) } }))}
                   min={0}
                   step={50}
-                  className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+                  className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
                 />
               </div>
             </div>
@@ -1031,35 +1342,288 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </div>
       )}
 
-      {/* 4 — Usage */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Minutes This Month</p>
-          <span className="text-xs font-mono text-zinc-400 tabular-nums">
-            {minutesUsed} / {minuteLimit} min
-          </span>
+      {/* 4b — Context Data */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.18 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <input
+          type="file"
+          accept=".csv"
+          className="hidden"
+          ref={csvInputRef}
+          onChange={handleCsvUpload}
+        />
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Context Data</p>
+            <p className="text-[11px] t3 mt-0.5">Injected into every call. Use for tenant lists, menus, service catalogs, or FAQ data.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (csvInputRef.current) {
+                  csvInputRef.current.dataset.clientid = client.id
+                  csvInputRef.current.click()
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold border b-theme t2 hover:t1 transition-all"
+            >
+              Upload CSV
+            </button>
+            <button
+              onClick={saveContextData}
+              disabled={contextDataSaving}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                contextDataSaved
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-blue-500 hover:bg-blue-400 text-white'
+              } disabled:opacity-40`}
+            >
+              {contextDataSaving ? 'Saving…' : contextDataSaved ? '✓ Saved' : 'Save'}
+            </button>
+          </div>
         </div>
-        <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-blue-500'
-            }`}
-            style={{ width: `${usagePct}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[11px] text-zinc-600">Resets 1st of each month</p>
-          <p className="text-[11px] text-zinc-600 tabular-nums font-mono">
-            {minuteLimit - minutesUsed} min remaining
-          </p>
+
+        {/* Column picker — shown after CSV upload, before confirm */}
+        {csvUpload[client.id] && (
+          <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold t1">
+                {csvUpload[client.id].rowCount} rows detected
+                {csvUpload[client.id].truncated && (
+                  <span className="ml-2 text-[10px] text-amber-400/80 font-normal">
+                    (first 250 will be used)
+                  </span>
+                )}
+                {' '}— select columns to include:
+              </p>
+              <button
+                onClick={() => setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })}
+                className="text-[10px] t3 hover:t1"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Column checkboxes */}
+            <div className="flex flex-wrap gap-2">
+              {csvUpload[client.id].allColumns.map(col => {
+                const checked = csvUpload[client.id].selectedColumns.includes(col)
+                return (
+                  <label
+                    key={col}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium cursor-pointer transition-all ${
+                      checked ? 'border-blue-500/40 bg-blue-500/15 text-blue-300' : 'b-theme t3 hover:t2'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      className="hidden"
+                      onChange={() => setCsvUpload(prev => {
+                        const curr = prev[client.id]
+                        const selected = checked
+                          ? curr.selectedColumns.filter(c => c !== col)
+                          : [...curr.selectedColumns, col]
+                        return { ...prev, [client.id]: { ...curr, selectedColumns: selected } }
+                      })}
+                    />
+                    {col}
+                  </label>
+                )
+              })}
+            </div>
+
+            {/* Warning: no address/unit column */}
+            {csvUpload[client.id].selectedColumns.length > 0 &&
+              !csvUpload[client.id].selectedColumns.some(c => /unit|address|addr|suite|apt|door|property/i.test(c)) && (
+              <p className="text-[11px] text-amber-400/80">
+                No unit or address column selected — address lookup may be less accurate.
+              </p>
+            )}
+
+            {/* Row preview */}
+            {csvUpload[client.id].selectedColumns.length > 0 && csvUpload[client.id].allRows.length > 0 && (
+              <div>
+                <p className="text-[10px] t3 mb-1.5">Preview (first 3 rows):</p>
+                <div className="overflow-x-auto rounded-lg border b-theme">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b b-theme">
+                        {csvUpload[client.id].selectedColumns.map(col => (
+                          <th key={col} className="px-2 py-1 text-left text-[10px] font-semibold t3 whitespace-nowrap">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvUpload[client.id].allRows.slice(0, 3).map((row, ri) => (
+                        <tr key={ri} className="border-b b-theme last:border-0">
+                          {csvUpload[client.id].selectedColumns.map((col, ci) => {
+                            const colIdx = csvUpload[client.id].allColumns.indexOf(col)
+                            return (
+                              <td key={ci} className="px-2 py-1 text-[10px] font-mono t2 max-w-36 truncate">
+                                {row[colIdx] ?? ''}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })}
+                className="px-3 py-1.5 rounded-lg text-xs t3 hover:t1 border b-theme transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={csvUpload[client.id].selectedColumns.length === 0}
+                onClick={() => {
+                  const state = csvUpload[client.id]
+                  const markdown = columnsToMarkdownTable(state.allColumns, state.selectedColumns, state.allRows)
+                  setContextData(prev => ({ ...prev, [client.id]: markdown }))
+                  if (!contextDataLabel[client.id]) {
+                    setContextDataLabel(prev => ({ ...prev, [client.id]: 'Tenant List' }))
+                  }
+                  setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white disabled:opacity-40 transition-all"
+              >
+                Use This Data →
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-3 mt-4">
+          <div>
+            <label className="text-[11px] t3 block mb-1">Data label <span className="t3">(e.g. "Tenant List", "Menu", "Price Sheet")</span></label>
+            <input
+              type="text"
+              value={contextDataLabel[client.id] ?? ''}
+              onChange={e => setContextDataLabel(prev => ({ ...prev, [client.id]: e.target.value }))}
+              placeholder="Tenant List"
+              className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] t3 block mb-1">Data <span className="t3">(paste or upload CSV — max ~32,000 chars)</span></label>
+            <textarea
+              value={contextData[client.id] ?? ''}
+              onChange={e => setContextData(prev => ({ ...prev, [client.id]: e.target.value }))}
+              placeholder={`Unit, Tenant, Rent\n4A, John Smith, $1200\n4B, Sarah Lee, $1350`}
+              className="w-full h-40 bg-black/20 border b-theme rounded-xl p-3 text-xs t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+              maxLength={32000}
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[10px] t3">{(contextData[client.id] ?? '').length.toLocaleString()} / 32,000 chars</p>
+              {(contextData[client.id] ?? '').startsWith('|') && (
+                <p className="text-[10px] text-green-400/70">Lookup instructions auto-injected on every call</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+      </motion.div>
+
+      {/* 4c — Booking (calendar_beta_enabled or admin only) */}
+      {(client.calendar_beta_enabled || isAdmin) && (
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-400/80">Booking</p>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">Beta</span>
+            </div>
+          </div>
+          <p className="text-[11px] t3 mb-4">Connect Google Calendar to let your agent check availability and book appointments on live calls.</p>
+
+          {/* Connection status */}
+          {client.calendar_auth_status === 'connected' ? (
+            <div className="flex items-center gap-3 mb-4 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span className="text-xs text-emerald-300">Calendar connected</span>
+              {client.google_calendar_id && (
+                <span className="text-[10px] font-mono t3 truncate">{client.google_calendar_id}</span>
+              )}
+            </div>
+          ) : client.calendar_auth_status === 'expired' ? (
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+              Calendar authorization expired — reconnect below.
+            </div>
+          ) : null}
+
+          {/* Connect button */}
+          <a
+            href={`/api/auth/google${isAdmin ? `?client_id=${client.id}` : ''}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            {client.calendar_auth_status === 'connected' ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
+          </a>
+
+          {/* Duration + buffer settings (only when connected) */}
+          {client.calendar_auth_status === 'connected' && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] t3 block mb-1">Appointment duration</label>
+                  <select
+                    value={bookingDuration[client.id] ?? 60}
+                    onChange={e => setBookingDuration(prev => ({ ...prev, [client.id]: Number(e.target.value) }))}
+                    className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:border-emerald-500/40"
+                  >
+                    {[30, 45, 60, 90, 120].map(m => (
+                      <option key={m} value={m}>{m} min</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] t3 block mb-1">Buffer between appointments</label>
+                  <select
+                    value={bookingBuffer[client.id] ?? 15}
+                    onChange={e => setBookingBuffer(prev => ({ ...prev, [client.id]: Number(e.target.value) }))}
+                    className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:border-emerald-500/40"
+                  >
+                    {[0, 10, 15, 30].map(m => (
+                      <option key={m} value={m}>{m} min</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <button
+                onClick={saveBookingConfig}
+                disabled={bookingSaving}
+                className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  bookingSaved
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30'
+                } disabled:opacity-40`}
+              >
+                {bookingSaving ? 'Saving…' : bookingSaved ? '✓ Saved' : 'Save Booking Config'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5 — System Prompt (collapsible) */}
-      <div className={`rounded-2xl overflow-hidden transition-colors ${promptCollapsed ? 'border border-blue-500/25 bg-blue-500/[0.03]' : 'border border-blue-500/20 bg-white/[0.02]'}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className={`rounded-2xl overflow-hidden transition-colors ${promptCollapsed ? 'border border-blue-500/25 bg-blue-500/[0.03]' : 'border border-blue-500/20 bg-surface'}`}>
         <button
           onClick={() => setPromptCollapsed(p => !p)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03] transition-colors group"
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-hover transition-colors group"
         >
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${promptCollapsed ? 'bg-blue-500/15' : 'bg-blue-500/10'}`}>
@@ -1070,7 +1634,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </div>
             <div>
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Agent Script</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
+              <p className="text-[11px] t3 mt-0.5">
                 {promptCollapsed
                   ? 'Tap to view and edit what your AI agent says on calls'
                   : `${nicheConfig.label} agent instructions`}
@@ -1099,13 +1663,13 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               transition={{ duration: 0.2 }}
               style={{ overflow: 'hidden' }}
             >
-              <div className="px-5 pb-5 border-t border-white/[0.06]">
+              <div className="px-5 pb-5 border-t b-theme">
                 <div className="flex items-center justify-between mt-4 mb-3">
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-[11px] t3">
                     Edit your agent&apos;s script below. Changes go live as soon as you save.
                   </p>
                   <div className="flex items-center gap-3 shrink-0 ml-3">
-                    <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 'text-zinc-600'}`}>
+                    <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
                       {charCount.toLocaleString()} chars
                     </span>
                     {dirty && (
@@ -1114,7 +1678,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                         placeholder="What changed? (optional)"
                         value={changeDesc}
                         onChange={e => setChangeDesc(e.target.value)}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-white/[0.04] border border-white/[0.06] text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 w-48"
+                        className="px-3 py-1.5 rounded-xl text-xs bg-hover border b-theme t2 placeholder:t3 focus:outline-none focus:border-zinc-500 w-48"
                       />
                     )}
                     <button
@@ -1125,10 +1689,34 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                           ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                           : dirty
                           ? 'bg-blue-500 hover:bg-blue-400 text-white'
-                          : 'bg-white/[0.04] text-zinc-600 cursor-not-allowed border border-white/[0.06]'
+                          : 'bg-hover t3 cursor-not-allowed border b-theme'
                       }`}
                     >
-                      {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
+                      {saving ? 'Saving…' : (
+                        <AnimatePresence mode="wait">
+                          {saved ? (
+                            <motion.span
+                              key="saved"
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                            >
+                              Saved ✓
+                            </motion.span>
+                          ) : (
+                            <motion.span
+                              key="unsaved"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              Save Changes
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1164,7 +1752,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 <textarea
                   value={currentPrompt}
                   onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
-                  className="w-full h-[480px] bg-black/20 border border-white/[0.06] rounded-xl p-4 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+                  className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
                   spellCheck={false}
                   placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
                 />
@@ -1173,6 +1761,77 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           )}
         </AnimatePresence>
       </div>
+      </motion.div>
+
+      {/* 5b — Learning Loop */}
+      {learningState === 'checking' && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/[0.02] border b-theme text-xs t3">
+          <div className="w-3 h-3 rounded-full border border-zinc-600 border-t-zinc-400 animate-spin shrink-0" />
+          Checking call patterns…
+        </div>
+      )}
+
+      {learningState === 'analyzing' && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-500/[0.04] border border-blue-500/20 text-xs text-blue-400/80">
+          <div className="w-3 h-3 rounded-full border border-blue-500/30 border-t-blue-400 animate-spin shrink-0" />
+          Analyzing {learning?.calls_since_last_analysis ?? 'recent'} calls for prompt improvements…
+        </div>
+      )}
+
+      {learningState === 'ready' && learning?.pending_report && !learningDismissed && (
+        <div className="rounded-2xl border border-blue-500/25 bg-blue-500/[0.04] p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Learning Loop</p>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wider">Auto</span>
+              </div>
+              <p className="text-xs t2">
+                {learning.trigger_reason === 'friction_call' && 'A recent call had friction — agent may need a prompt update.'}
+                {learning.trigger_reason === 'unknown_status' && "A call couldn't be classified — reviewing prompt gaps."}
+                {learning.trigger_reason === 'frustrated' && 'A caller sounded frustrated — checking for prompt issues.'}
+                {learning.trigger_reason === 'short_call' && 'A caller hung up fast — checking if the agent is missing something.'}
+                {learning.trigger_reason === 'cadence' && `${learning.calls_since_last_analysis} new calls since last analysis.`}
+                {!learning.trigger_reason && 'New learning insights available.'}
+                {' '}Found {learning.pending_report.recommendations_count} suggestion{learning.pending_report.recommendations_count !== 1 ? 's' : ''}.
+              </p>
+            </div>
+            <button
+              onClick={dismissLearning}
+              className="text-[10px] t3 hover:t1 transition-colors shrink-0 mt-0.5"
+            >
+              Dismiss
+            </button>
+          </div>
+
+          {learning.pending_report.top_recs.length > 0 && (
+            <div className="px-3 py-2.5 rounded-xl bg-white/[0.03] border b-theme space-y-2">
+              {learning.pending_report.top_recs.map((rec, i) => (
+                <div key={i} className="text-xs space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded uppercase tracking-wider ${
+                      rec.priority === 'high'
+                        ? 'text-red-400 bg-red-500/10 border border-red-500/20'
+                        : rec.priority === 'medium'
+                        ? 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20'
+                        : 'text-zinc-400 bg-zinc-500/10 border border-zinc-500/20'
+                    }`}>{rec.priority}</span>
+                    <span className="t1 font-medium">{rec.title}</span>
+                  </div>
+                  <p className="t3 leading-relaxed">{rec.rationale}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={generateImprovement}
+            className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 transition-all"
+          >
+            Apply Suggestions to Prompt
+          </button>
+        </div>
+      )}
 
       {/* 6 — AI Improve Prompt (Beta) */}
       <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] p-5">
@@ -1190,12 +1849,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </button>
           )}
         </div>
-        <p className="text-[11px] text-zinc-600 mb-4">
-          AI reads your last 20 calls and your current prompt to suggest improvements. Review before applying.
+        <p className="text-[11px] t3 mb-4">
+          AI reads your last 10 calls and your current prompt to suggest targeted improvements. Review before applying.
         </p>
 
         {improveState === 'loading' && (
-          <div className="flex items-center gap-2 py-4 text-zinc-400 text-xs">
+          <div className="flex items-center gap-2 py-4 t2 text-xs">
             <div className="w-4 h-4 rounded-full border border-purple-400/30 border-t-purple-400 animate-spin shrink-0" />
             Analyzing recent calls and your prompt…
           </div>
@@ -1215,14 +1874,14 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </div>
             )}
 
-            {improveResult.change_summary.length > 0 && (
-              <div className="px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">What changed</p>
+            {improveResult.changes.length > 0 && (
+              <div className="px-3 py-3 rounded-xl bg-hover border b-theme">
+                <p className="text-[10px] font-semibold t3 uppercase tracking-wider mb-2">What changed</p>
                 <ul className="space-y-1">
-                  {improveResult.change_summary.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                  {improveResult.changes.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs t2">
                       <span className="text-purple-400 mt-0.5 shrink-0">·</span>
-                      {item}
+                      <span><span className="font-semibold t1">{item.section}</span> — {item.what}</span>
                     </li>
                   ))}
                 </ul>
@@ -1232,7 +1891,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             <textarea
               readOnly
               value={improveResult.improved_prompt}
-              className="w-full h-48 bg-black/20 border border-white/[0.06] rounded-xl p-4 text-xs text-zinc-400 font-mono resize-none focus:outline-none leading-relaxed"
+              className="w-full h-48 bg-black/20 border b-theme rounded-xl p-4 text-xs t2 font-mono resize-none focus:outline-none leading-relaxed"
             />
 
             <div className="flex gap-2">
@@ -1244,12 +1903,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </button>
               <button
                 onClick={() => { setImproveResult(null); setImproveState('idle') }}
-                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-300 border border-white/[0.06] hover:border-white/[0.12] transition-all"
+                className="px-4 py-1.5 rounded-xl text-xs font-semibold t3 hover:t1 border b-theme hover:b-theme transition-all"
               >
                 Dismiss
               </button>
             </div>
-            <p className="text-[10px] text-zinc-600">
+            <p className="text-[10px] t3">
               After applying, review the prompt above and click &ldquo;Save Changes&rdquo; to deploy it live.
             </p>
           </div>
@@ -1257,32 +1916,46 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       </div>
 
       {/* 7 — Prompt Version History */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
         <button
           onClick={toggleVersions}
-          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface transition-colors"
         >
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Prompt History</p>
-            <p className="text-[11px] text-zinc-600 mt-0.5">View and restore previous system prompt versions</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Prompt History</p>
+            <p className="text-[11px] t3 mt-0.5">View and restore previous system prompt versions</p>
           </div>
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none"
-            className={`text-zinc-600 transition-transform ${versionsOpen ? 'rotate-180' : ''}`}
+            className={`t3 transition-transform ${versionsOpen ? 'rotate-180' : ''}`}
           >
             <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
 
-        {versionsOpen && (
-          <div className="border-t border-white/[0.06]">
+        <AnimatePresence initial={false}>
+          {versionsOpen && (
+            <motion.div
+              key="versions-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              style={{ overflow: 'hidden' }}
+            >
+          <div className="border-t b-theme">
             {versionsLoading ? (
-              <div className="flex items-center gap-2 px-5 py-4 text-xs text-zinc-600">
+              <div className="flex items-center gap-2 px-5 py-4 text-xs t3">
                 <div className="w-3 h-3 rounded-full border border-zinc-600 border-t-zinc-400 animate-spin" />
                 Loading history…
               </div>
             ) : versions.length === 0 ? (
-              <p className="px-5 py-4 text-xs text-zinc-600">No saved versions yet. Saving the prompt creates a version.</p>
+              <p className="px-5 py-4 text-xs t3">No saved versions yet. Saving the prompt creates a version.</p>
             ) : (
               <>
                 <div className="divide-y divide-white/[0.04]">
@@ -1290,21 +1963,21 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     <div key={v.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-semibold text-zinc-300">v{v.version}</span>
+                          <span className="text-xs font-mono font-semibold t2">v{v.version}</span>
                           {v.is_active && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">Active</span>
                           )}
-                          <span className="text-[11px] text-zinc-600">
+                          <span className="text-[11px] t3">
                             {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         </div>
-                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">{v.change_description}</p>
+                        <p className="text-[11px] t3 truncate mt-0.5">{v.change_description}</p>
                       </div>
                       {!v.is_active && (
                         <button
                           onClick={() => restoreVersion(v.id)}
                           disabled={restoring === v.id}
-                          className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 border border-white/[0.06] transition-all disabled:opacity-40"
+                          className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-hover t2 hover:bg-hover hover:t1 border b-theme transition-all disabled:opacity-40"
                         >
                           {restoring === v.id ? 'Restoring…' : 'Restore'}
                         </button>
@@ -1315,7 +1988,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                 {!showAllVersions && versions.length > 5 && (
                   <button
                     onClick={() => setShowAllVersions(true)}
-                    className="w-full px-5 py-2 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                    className="w-full px-5 py-2 text-[11px] t3 hover:t1 transition-colors"
                   >
                     Show {versions.length - 5} older versions
                   </button>
@@ -1323,8 +1996,11 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </>
             )}
           </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+      </motion.div>
 
       </>)}
 
@@ -1332,11 +2008,16 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       {activeTab === 'sms' && (<>
 
       {/* SMS Follow-up */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">SMS Follow-up</p>
-            <p className="text-[11px] text-zinc-600 mt-0.5">Sent to the caller after each call ends. Powered by Twilio.</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">SMS Follow-up</p>
+            <p className="text-[11px] t3 mt-0.5">Sent to the caller after each call ends. Powered by Twilio.</p>
           </div>
           <button
             onClick={saveSms}
@@ -1352,39 +2033,39 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </div>
 
         {/* Toggle */}
-        <div className="flex items-center gap-3 py-3 border-b border-white/[0.04]">
+        <div className="flex items-center gap-3 py-3 border-b b-theme">
           <button
             onClick={() => setSmsEnabled(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
             className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled[client.id] ? 'bg-blue-500' : 'bg-zinc-700'}`}
           >
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${smsEnabled[client.id] ? 'left-4' : 'left-0.5'}`} />
           </button>
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs t2">
             {smsEnabled[client.id] ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
           </span>
         </div>
 
         {/* Template editor */}
         <div className="mt-3">
-          <label className="text-[11px] text-zinc-500 block mb-1.5">Message Template</label>
+          <label className="text-[11px] t3 block mb-1.5">Message Template</label>
           <textarea
             value={smsTemplate[client.id] ?? ''}
             onChange={e => setSmsTemplate(prev => ({ ...prev, [client.id]: e.target.value }))}
             disabled={!smsEnabled[client.id]}
             rows={3}
-            className="w-full bg-black/20 border border-white/[0.06] rounded-xl p-3 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             placeholder="Thanks for calling {{business}}! We'll follow up shortly."
           />
-          <p className="text-[10px] text-zinc-600 mt-1">
-            Placeholders: <span className="font-mono text-zinc-500">{'{{business}}'}</span> = business name &nbsp;·&nbsp; <span className="font-mono text-zinc-500">{'{{summary}}'}</span> = call summary excerpt
+          <p className="text-[10px] t3 mt-1">
+            Placeholders: <span className="font-mono t3">{'{{business}}'}</span> = business name &nbsp;·&nbsp; <span className="font-mono t3">{'{{summary}}'}</span> = call summary excerpt
           </p>
         </div>
 
         {/* Live preview */}
         {smsTemplate[client.id] && (
-          <div className="mt-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-            <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Preview</p>
-            <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+          <div className="mt-3 px-3 py-2.5 rounded-xl bg-surface border b-theme">
+            <p className="text-[10px] font-semibold t3 uppercase tracking-wider mb-1">Preview</p>
+            <p className="text-xs t2 leading-relaxed whitespace-pre-wrap">
               {(smsTemplate[client.id] ?? '')
                 .replace(/\{\{business\}\}/g, client.business_name || '')
                 .replace(/\{\{summary\}\}/g, '[call summary]')}
@@ -1393,8 +2074,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         )}
 
         {/* Test SMS */}
-        <div className="mt-4 pt-4 border-t border-white/[0.04]">
-          <p className="text-[11px] text-zinc-500 mb-2">Send a test SMS to verify delivery</p>
+        <div className="mt-4 pt-4 border-t b-theme">
+          <p className="text-[11px] t3 mb-2">Send a test SMS to verify delivery</p>
           <div className="flex items-center gap-2">
             <input
               type="tel"
@@ -1403,12 +2084,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               onKeyDown={e => e.key === 'Enter' && fireTestSms()}
               placeholder="+14031234567"
               disabled={testSmsState === 'sending'}
-              className="flex-1 bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+              className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
             />
             <button
               onClick={fireTestSms}
               disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate[client.id]}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-all disabled:opacity-40 shrink-0"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 t1 transition-all disabled:opacity-40 shrink-0"
             >
               {testSmsState === 'sending' ? 'Sending…' : 'Send Test'}
             </button>
@@ -1428,7 +2109,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               <span className="text-[11px] text-red-400/90 flex-1">{testSmsError}</span>
               <button
                 onClick={() => setTestSmsState('idle')}
-                className="text-[10px] text-zinc-600 hover:text-zinc-400"
+                className="text-[10px] t3 hover:t2"
               >
                 Dismiss
               </button>
@@ -1436,6 +2117,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           )}
         </div>
       </div>
+      </motion.div>
 
       </>)}
 
@@ -1443,11 +2125,16 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
       {activeTab === 'general' && (<>
 
       {/* 8b — Advanced Context */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">Advanced Context</p>
-            <p className="text-[11px] text-zinc-600 mt-0.5">Extra knowledge injected into your agent&apos;s prompt</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Advanced Context</p>
+            <p className="text-[11px] t3 mt-0.5">Extra knowledge injected into your agent&apos;s prompt</p>
           </div>
           <button
             onClick={saveAdvanced}
@@ -1455,7 +2142,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
               advancedSaved
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-200'
+                : 'bg-zinc-700 hover:bg-zinc-600 t1'
             } disabled:opacity-40`}
           >
             {advancedSaving ? 'Saving…' : advancedSaved ? '✓ Saved' : 'Save'}
@@ -1464,15 +2151,15 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
 
         {/* Business Facts */}
         <div className="space-y-1.5 mb-5">
-          <label className="text-[11px] text-zinc-500 block">Business facts</label>
-          <p className="text-[10px] text-zinc-600">
+          <label className="text-[11px] t3 block">Business facts</label>
+          <p className="text-[10px] t3">
             Anything your agent should always know — hours exceptions, parking, nearby landmarks, key staff names
           </p>
           <textarea
             value={businessFacts[client.id] ?? ''}
             onChange={e => setBusinessFacts(prev => ({ ...prev, [client.id]: e.target.value }))}
             rows={4}
-            className="w-full bg-black/20 border border-white/[0.06] rounded-xl p-3 text-sm text-zinc-200 resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
+            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
             placeholder="e.g. Parking is free out front. We're near the Walmart on 22nd St. Our lead tech is Ryan. Closed Christmas Day and Boxing Day."
           />
         </div>
@@ -1481,8 +2168,8 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-[11px] text-zinc-500 block">Extra Q&amp;A pairs</label>
-              <p className="text-[10px] text-zinc-600">Common caller questions not covered in the wizard</p>
+              <label className="text-[11px] t3 block">Extra Q&amp;A pairs</label>
+              <p className="text-[10px] t3">Common caller questions not covered in the wizard</p>
             </div>
             {(extraQA[client.id]?.length ?? 0) < 10 && (
               <button
@@ -1491,7 +2178,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                   ...prev,
                   [client.id]: [...(prev[client.id] ?? []), { q: '', a: '' }],
                 }))}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-zinc-400 border border-white/[0.07] hover:text-zinc-200 hover:border-white/[0.15] transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium t2 border b-theme hover:t1 hover:b-theme transition-all"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
                 Add
@@ -1500,7 +2187,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
 
           {(extraQA[client.id] ?? []).length === 0 && (
-            <p className="text-[11px] text-zinc-700 py-1">No Q&amp;A pairs yet — add up to 10.</p>
+            <p className="text-[11px] t3 py-1">No Q&amp;A pairs yet — add up to 10.</p>
           )}
 
           <div className="space-y-2">
@@ -1515,7 +2202,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     return { ...prev, [client.id]: updated }
                   })}
                   placeholder="Question…"
-                  className="bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors"
+                  className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                 />
                 <input
                   type="text"
@@ -1526,7 +2213,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     return { ...prev, [client.id]: updated }
                   })}
                   placeholder="Answer…"
-                  className="bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500/40 transition-colors"
+                  className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                 />
                 <button
                   type="button"
@@ -1534,7 +2221,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                     ...prev,
                     [client.id]: (prev[client.id] ?? []).filter((_, i) => i !== idx),
                   }))}
-                  className="p-2 rounded-xl text-zinc-600 hover:text-red-400 hover:bg-red-500/[0.07] transition-all"
+                  className="p-2 rounded-xl t3 hover:text-red-400 hover:bg-red-500/[0.07] transition-all"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
@@ -1543,11 +2230,17 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
           </div>
         </div>
       </div>
+      </motion.div>
 
       {/* 9 — Test Call */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-1">Test Call</p>
-        <p className="text-[11px] text-zinc-600 mb-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Call</p>
+        <p className="text-[11px] t3 mb-4">
           Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.
         </p>
         <div className="flex items-center gap-2">
@@ -1558,15 +2251,18 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             onKeyDown={e => e.key === 'Enter' && fireTestCall()}
             placeholder="+14031234567"
             disabled={testCallState === 'calling'}
-            className="flex-1 bg-black/20 border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+            className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
           />
-          <button
+          <ShimmerButton
             onClick={fireTestCall}
             disabled={!testPhone.trim() || testCallState === 'calling'}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-all disabled:opacity-40 disabled:bg-zinc-700 shrink-0"
+            borderRadius="12px"
+            shimmerColor="rgba(99,102,241,0.5)"
+            background="rgba(59,130,246,1)"
+            className="px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 shrink-0"
           >
             {testCallState === 'calling' ? 'Dialing…' : 'Call Me'}
-          </button>
+          </ShimmerButton>
         </div>
 
         {testCallState === 'done' && testCallResult && (
@@ -1579,7 +2275,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </span>
             <button
               onClick={() => setTestCallState('idle')}
-              className="ml-auto text-[10px] text-zinc-600 hover:text-zinc-400"
+              className="ml-auto text-[10px] t3 hover:t2"
             >
               Dismiss
             </button>
@@ -1591,33 +2287,45 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             <span className="text-[11px] text-red-400/90 flex-1">{testCallError}</span>
             <button
               onClick={() => setTestCallState('idle')}
-              className="text-[10px] text-zinc-600 hover:text-zinc-400"
+              className="text-[10px] t3 hover:t2"
             >
               Dismiss
             </button>
           </div>
         )}
       </div>
+      </motion.div>
 
       </>)}
 
       {/* ─── Transfer Tab ─────────────────────────────────────────── */}
       {activeTab === 'transfer' && (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Call Transfer Rules</p>
-          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Configure scenarios where the agent hands off to a human.</p>
-          <div className="rounded-xl border border-dashed border-gray-200 dark:border-white/[0.06] p-8 text-center">
-            <p className="text-sm text-gray-400 dark:text-zinc-500">Transfer workflows coming soon.</p>
-            <p className="text-xs text-gray-400 dark:text-zinc-600 mt-1">Use your Setup tab to configure the forwarding number for now.</p>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+        >
+        <div className="rounded-2xl border border-gray-200 dark:b-theme bg-white dark:bg-surface p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:t3 mb-1">Call Transfer Rules</p>
+          <p className="text-[11px] text-gray-400 dark:t3 mb-5">Configure scenarios where the agent hands off to a human.</p>
+          <div className="rounded-xl border border-dashed border-gray-200 dark:b-theme p-8 text-center">
+            <p className="text-sm text-gray-400 dark:t3">Transfer workflows coming soon.</p>
+            <p className="text-xs text-gray-400 dark:t3 mt-1">Use your Setup tab to configure the forwarding number for now.</p>
           </div>
         </div>
+        </motion.div>
       )}
 
       {/* ─── Voice Tab ────────────────────────────────────────────── */}
       {activeTab === 'voice' && (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Voice</p>
-          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Your agent&apos;s voice is configured in the Voice Library.</p>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+        >
+        <div className="rounded-2xl border border-gray-200 dark:b-theme bg-white dark:bg-surface p-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:t3 mb-1">Voice</p>
+          <p className="text-[11px] text-gray-400 dark:t3 mb-5">Your agent&apos;s voice is configured in the Voice Library.</p>
           <a
             href="/dashboard/voices"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
@@ -1626,34 +2334,54 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </a>
         </div>
+        </motion.div>
       )}
 
       {/* ─── Notifications Tab ────────────────────────────────────── */}
       {activeTab === 'notifications' && (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Notifications</p>
-          <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-5">Choose how and when you get notified.</p>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+        >
+        <div className="rounded-2xl border b-theme bg-surface p-5">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Notifications</p>
+            {!isAdmin && (
+              <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                client.telegram_bot_token && client.telegram_chat_id
+                  ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                  : 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  client.telegram_bot_token && client.telegram_chat_id ? 'bg-green-500' : 'bg-amber-500'
+                }`} />
+                {client.telegram_bot_token && client.telegram_chat_id ? 'Telegram Connected' : 'Telegram Not Connected'}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] t3 mb-5">Choose how and when you get notified.</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr>
-                  <th className="text-left pb-3 text-gray-400 dark:text-zinc-500 font-medium w-36" />
+                  <th className="text-left pb-3 t3 font-medium w-36" />
                   {(['Telegram', 'SMS', 'Email'] as const).map(ch => (
-                    <th key={ch} className="pb-3 text-gray-400 dark:text-zinc-500 font-medium px-6 text-center">{ch}</th>
+                    <th key={ch} className="pb-3 t3 font-medium px-6 text-center">{ch}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+              <tbody className="divide-y divide-white/[0.04]">
                 {(['HOT lead', 'Missed call', 'Daily digest'] as const).map(event => (
                   <tr key={event}>
-                    <td className="py-3 text-gray-600 dark:text-zinc-400 font-medium pr-4">{event}</td>
+                    <td className="py-3 t2 font-medium pr-4">{event}</td>
                     {(['telegram', 'sms', 'email'] as const).map(ch => (
                       <td key={ch} className="py-3 px-6 text-center">
                         <button
                           role="switch"
                           aria-checked="false"
                           aria-label={`${event} via ${ch}`}
-                          className="w-9 h-5 rounded-full bg-gray-200 dark:bg-zinc-700 relative inline-flex items-center justify-center transition-colors hover:bg-gray-300 dark:hover:bg-zinc-600"
+                          className="w-9 h-5 rounded-full bg-hover relative inline-flex items-center justify-center transition-colors hover:bg-zinc-600"
                         >
                           <span className="w-4 h-4 rounded-full bg-white shadow absolute left-0.5 transition-all" />
                         </button>
@@ -1664,27 +2392,148 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] text-gray-400 dark:text-zinc-600 mt-4">Full notification routing coming in a future update.</p>
+          <p className="text-[10px] t3 mt-4">Full notification routing coming in a future update.</p>
         </div>
+        </motion.div>
       )}
 
       {/* ─── Billing Tab ──────────────────────────────────────────── */}
-      {activeTab === 'billing' && (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-zinc-500 mb-1">Billing</p>
-          <div className="mt-3 flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.04]">
-            <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Starter Plan</p>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Renews monthly · {client.business_name}</p>
+      {activeTab === 'billing' && (() => {
+        const now = new Date()
+        const cycleStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const planName = getPlanName(client.monthly_minute_limit)
+
+        return (
+          <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+            {/* Section A: Your Plan */}
+            <div className="p-5 border-b b-theme">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Your Plan</p>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold t1">{planName}</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
+                  {minuteLimit} min/mo
+                </span>
+                {(client.bonus_minutes ?? 0) > 0 && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
+                    + {client.bonus_minutes} bonus
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] t3 mt-2">
+                {minuteLimit} minutes included per month. Reload anytime below.
+              </p>
             </div>
-            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">$20 / mo</span>
+
+            {/* Section B: Usage This Cycle */}
+            <div className="p-5 border-b b-theme">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Usage This Cycle</p>
+                <span className="text-xs font-mono t2 tabular-nums">
+                  {minutesUsed} / {totalAvailable} min
+                </span>
+              </div>
+              <div className="h-1.5 bg-hover rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    usagePct > 100 ? 'bg-pink-500' : usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min(usagePct, 100)}%` }}
+                />
+              </div>
+              {usagePct > 100 ? (
+                  <p className="text-[11px] mt-2 text-amber-400">
+                    You&apos;ve used all {totalAvailable} free minutes. Buy more below to keep your agent running.
+                  </p>
+              ) : (
+                <div className="flex items-center justify-between mt-1.5">
+                  <p className="text-[11px] t3">{fmtDate(cycleStart.toISOString())} &rarr; {fmtDate(cycleEnd.toISOString())}</p>
+                  <p className="text-[11px] t3 tabular-nums font-mono">
+                    {totalAvailable - minutesUsed} min remaining
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Section C: Buy Minutes */}
+            <div className="p-5 border-b b-theme">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Buy Minutes</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {RELOAD_OPTIONS.map(opt => (
+                  <button
+                    key={opt.minutes}
+                    onClick={() => setReloadMinutes(opt.minutes)}
+                    className={`rounded-lg border p-3 text-center transition-all cursor-pointer ${
+                      reloadMinutes === opt.minutes
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'b-theme hover:bg-hover'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold t1">{opt.minutes} min</p>
+                    <p className="text-xs t3 mt-0.5">${opt.price} CAD</p>
+                  </button>
+                ))}
+              </div>
+              <button
+                disabled={reloadLoading}
+                onClick={async () => {
+                  setReloadLoading(true)
+                  try {
+                    const body: Record<string, unknown> = { minutes: reloadMinutes }
+                    if (isAdmin) body.client_id = client.id
+                    const res = await fetch('/api/stripe/create-reload-checkout', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(body),
+                    })
+                    const data = await res.json()
+                    if (data.url) {
+                      window.location.href = data.url
+                    } else {
+                      setReloadLoading(false)
+                    }
+                  } catch {
+                    setReloadLoading(false)
+                  }
+                }}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {reloadLoading ? 'Redirecting...' : `Reload ${reloadMinutes} min — $${reloadMinutes / 10}`}
+              </button>
+            </div>
+
+            {/* Section D: Account */}
+            <div className="p-5">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Account</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs t3">Joined</span>
+                  <span className="text-xs t2 font-mono">{fmtDate(client.created_at)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs t3">Current cycle</span>
+                  <span className="text-xs t2 font-mono">{fmtDate(cycleStart.toISOString())} &ndash; {fmtDate(cycleEnd.toISOString())}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs t3">Next renewal</span>
+                  <span className="text-xs t2 font-mono">{fmtDate(cycleEnd.toISOString())}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs t3">Setup fee</span>
+                  <span className="text-xs t2 font-mono">$25 (paid)</span>
+                </div>
+              </div>
+              <p className="text-[11px] t3 mt-4">
+                To manage your subscription, email{' '}
+                <span className="font-mono t2">support@unmissed.ai</span>
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-4">
-            To manage your subscription, email{' '}
-            <span className="font-mono text-gray-600 dark:text-zinc-400">support@unmissed.ai</span>
-          </p>
-        </div>
-      )}
+        )
+      })()}
+
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

@@ -4,13 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'motion/react'
+import { createSoundCues } from '@/components/DemoCallVisuals'
 import CallRow from './CallRow'
 import EmptyState from './EmptyState'
 import KanbanBoard from './KanbanBoard'
 import LiveCallBanner from './LiveCallBanner'
 import StatsGrid from './StatsGrid'
+import MinuteUsage from './MinuteUsage'
 import OutcomeCharts from './OutcomeCharts'
 import DialModal from './DialModal'
+import ClientSelector from './ClientSelector'
 
 interface CallLog {
   id: string
@@ -34,6 +37,12 @@ interface ClientInfo {
   id: string
   slug: string
   business_name: string
+  niche?: string | null
+  status?: string | null
+  twilio_number?: string | null
+  minutes_used_this_month?: number | null
+  monthly_minute_limit?: number | null
+  bonus_minutes?: number | null
 }
 
 type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK' | 'UNKNOWN' | 'MISSED'
@@ -66,6 +75,9 @@ interface CallsListProps {
   clientBusinessName?: string | null
   clientId?: string | null
   clientStatus?: string | null
+  minutesUsed?: number
+  minuteLimit?: number
+  bonusMinutes?: number
 }
 
 function dateGroupLabel(iso: string): string {
@@ -106,7 +118,7 @@ function exportCsv(calls: CallLog[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = 200, bonusMinutes = 0 }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
@@ -119,6 +131,9 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const initialIds = useRef(new Set(initialCalls.map(c => c.id)))
   const supabase = createBrowserClient()
+  const soundCuesRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
+
+  useEffect(() => { soundCuesRef.current = createSoundCues() }, [])
 
   // Realtime subscription
   useEffect(() => {
@@ -132,6 +147,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           setTimeout(() => setNewIds(s => { const n = new Set(s); n.delete(row.id); return n }), 2000)
           return [row, ...prev]
         })
+        if (row.call_status === 'live') soundCuesRef.current?.connectChime()
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'call_logs' }, (payload) => {
         const row = payload.new as CallLog
@@ -328,6 +344,16 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         )}
       </AnimatePresence>
 
+      {/* Minute usage — prominent display */}
+      {(() => {
+        if (isAdmin && clientFilter !== 'all') {
+          const sel = adminClients.find(c => c.id === clientFilter)
+          if (sel) return <MinuteUsage minutesUsed={sel.minutes_used_this_month ?? 0} minuteLimit={sel.monthly_minute_limit ?? 200} bonusMinutes={sel.bonus_minutes ?? 0} />
+        }
+        if (!isAdmin) return <MinuteUsage minutesUsed={minutesUsed} minuteLimit={minuteLimit} bonusMinutes={bonusMinutes} />
+        return null
+      })()}
+
       {/* Stats — reactive, updates with every call change */}
       <StatsGrid
         totalCalls={stats.totalCalls}
@@ -366,34 +392,14 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         </AnimatePresence>
 
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-          {/* Admin client tabs */}
+          {/* Admin client selector */}
           {isAdmin && adminClients.length > 0 && (
-            <div className="px-5 flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <button
-                onClick={() => setClientFilter('all')}
-                className={`px-3.5 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                  clientFilter === 'all'
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent hover:text-[var(--color-text-2)]'
-                }`}
-                style={clientFilter === 'all' ? undefined : { color: 'var(--color-text-3)' }}
-              >
-                All Clients
-              </button>
-              {adminClients.map(client => (
-                <button
-                  key={client.id}
-                  onClick={() => setClientFilter(client.id)}
-                  className={`px-3.5 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                    clientFilter === client.id
-                      ? 'border-blue-500 text-blue-400'
-                      : 'border-transparent hover:text-[var(--color-text-2)]'
-                  }`}
-                  style={clientFilter === client.id ? undefined : { color: 'var(--color-text-3)' }}
-                >
-                  {client.business_name}
-                </button>
-              ))}
+            <div className="px-5 py-3 flex items-center" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <ClientSelector
+                clients={adminClients}
+                value={clientFilter}
+                onChange={setClientFilter}
+              />
             </div>
           )}
 
@@ -518,8 +524,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                               : f.value === 'HOT' ? 'bg-red-500/20 text-red-400'
                               : f.value === 'WARM' ? 'bg-amber-500/20 text-amber-400'
                               : f.value === 'COLD' ? 'bg-blue-500/20 text-blue-400'
-                              : f.value === 'JUNK' ? 'bg-zinc-700/50 text-zinc-400'
-                              : 'bg-zinc-800 text-zinc-500'
+                              : f.value === 'JUNK' ? 'bg-hover t3'
+                              : 'bg-hover t3'
                           }`}>
                             {count}
                           </span>

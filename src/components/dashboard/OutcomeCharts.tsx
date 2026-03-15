@@ -1,5 +1,6 @@
 'use client'
 
+import { motion } from 'motion/react'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, ResponsiveContainer,
@@ -232,7 +233,12 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {/* Donut — lead outcomes */}
-      <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0 }}
+        className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+      >
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Outcomes</p>
         <div className="flex items-center gap-4">
           <DonutChart counts={counts} total={classified.length} />
@@ -249,20 +255,30 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stacked bar chart — 7-day volume */}
-      <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+      >
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Last 7 Days</p>
         <DayBarChart days={days} onDayClick={onDayClick} selectedDay={selectedDay} />
         <p className="text-[10px] mt-1 font-mono" style={{ color: "var(--color-text-3)" }}>{todayCount} today</p>
-      </div>
+      </motion.div>
 
       {/* Conversion funnel */}
-      <div className="rounded-2xl border p-4 sm:col-span-2 lg:col-span-1" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="rounded-2xl border p-4 sm:col-span-2 lg:col-span-1" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+      >
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Funnel</p>
         <ConversionFunnel calls={classified} />
-      </div>
+      </motion.div>
     </div>
   )
 }

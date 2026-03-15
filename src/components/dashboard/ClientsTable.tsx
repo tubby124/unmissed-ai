@@ -112,7 +112,7 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
                 onClick={e => { e.stopPropagation(); onActivate(intake) }}
                 className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-3 py-1 transition-colors"
               >
-                Activate ($20)
+                Activate ($25)
               </button>
             )}
             {isActivated && (
@@ -323,7 +323,7 @@ function ActivateModal({ intake, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4" style={{ backgroundColor: "var(--color-surface)" }}>
       <div className="w-full max-w-md rounded-2xl border backdrop-blur-xl p-6 shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Activate Client — $20 Setup</h2>
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Activate Client — $25 Setup</h2>
           <button onClick={onClose} className="transition-colors" style={{ color: "var(--color-text-3)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -334,7 +334,7 @@ function ActivateModal({ intake, onClose }: {
         {!checkoutUrl ? (
           <>
             <p className="text-sm mb-5" style={{ color: "var(--color-text-2)" }}>
-              Send a $20 setup payment link to{' '}
+              Send a $25 setup payment link to{' '}
               <span className="font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</span>
               {intake.contact_email && (
                 <> (<span style={{ color: "var(--color-text-2)" }}>{intake.contact_email}</span>)</>
@@ -503,15 +503,40 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
   )
 }
 
-function ActiveClientCard({ client }: { client: Client }) {
+const PROTECTED_SLUGS = ['hasan-sharif', 'windshield-hub', 'urban-vibe', 'manzil-isa']
+
+function ActiveClientCard({ client, onDeleted }: { client: Client; onDeleted: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const log = client.activation_log
+  const isProtected = PROTECTED_SLUGS.includes(client.slug)
 
   function copyLink(link: string) {
     navigator.clipboard.writeText(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/cleanup-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientSlug: client.slug, deleteUltravox: true }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        alert(json.error || 'Cleanup failed')
+        return
+      }
+      onDeleted()
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
   }
 
   return (
@@ -572,10 +597,10 @@ function ActiveClientCard({ client }: { client: Client }) {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.sms_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.sms_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 't3 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
                   SMS {log.sms_sent ? 'sent' : `skipped${log.sms_skip_reason ? ': ' + log.sms_skip_reason : ''}`}
                 </span>
-                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.email_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
+                <span className={`text-[10px] border rounded-full px-2 py-0.5 ${log.email_sent ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 't3 border-[var(--color-border)] bg-[var(--color-surface)]'}`}>
                   Email {log.email_sent ? 'sent' : 'not configured'}
                 </span>
               </div>
@@ -599,6 +624,53 @@ function ActiveClientCard({ client }: { client: Client }) {
             </div>
           ) : (
             <p className="text-xs" style={{ color: "var(--color-text-3)" }}>No activation log — client was provisioned before this feature was added.</p>
+          )}
+
+          <div className="mt-4 pt-3 border-t flex items-center gap-2" style={{ borderColor: "var(--color-border)" }}>
+            <a
+              href={`/dashboard/lab?client_id=${client.id}`}
+              className="text-[10px] font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Test in Lab →
+            </a>
+            <a
+              href={`/dashboard/settings?client_id=${client.id}`}
+              className="text-[10px] font-medium border rounded-lg px-3 py-1.5 transition-colors"
+              style={{ color: "var(--color-text-2)", borderColor: "var(--color-border)" }}
+            >
+              Settings
+            </a>
+          </div>
+
+          {!isProtected && (
+            <div className="mt-2">
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-[10px] font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  Delete test client
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-red-400">Delete {client.slug}? Ultravox agent will be removed.</span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="text-[10px] font-semibold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-lg px-3 py-1.5 transition-colors"
+                  >
+                    {deleting ? 'Deleting...' : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-[10px] rounded-lg px-2 py-1.5 hover:bg-[var(--color-hover)] transition-colors"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -666,7 +738,7 @@ export default function ClientsTable({ intakes, clients }: {
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-3)" }}>Active Clients</h2>
         <div className="space-y-2">
           {clients.map(c => (
-            <ActiveClientCard key={c.id} client={c} />
+            <ActiveClientCard key={c.id} client={c} onDeleted={() => router.refresh()} />
           ))}
         </div>
       </div>

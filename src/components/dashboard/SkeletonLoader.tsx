@@ -1,5 +1,14 @@
 function SkeletonBox({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-[var(--color-surface)] rounded-lg ${className ?? ''}`} />
+  return (
+    <div
+      className={`rounded-lg ${className ?? ''}`}
+      style={{
+        background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-hover) 50%, var(--color-surface) 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite',
+      }}
+    />
+  )
 }
 
 export function StatsGridSkeleton() {
@@ -60,8 +69,13 @@ export function CallDetailSkeleton() {
           {[...Array(60)].map((_, i) => (
             <div
               key={i}
-              className="flex-1 rounded-full animate-pulse bg-[var(--color-surface)]"
-              style={{ height: `${25 + (i * 17 + 11) % 70}%` }}
+              className="flex-1 rounded-full"
+              style={{
+                height: `${25 + (i * 17 + 11) % 70}%`,
+                background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-hover) 50%, var(--color-surface) 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite',
+              }}
             />
           ))}
         </div>

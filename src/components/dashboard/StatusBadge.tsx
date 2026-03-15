@@ -1,3 +1,7 @@
+'use client'
+
+import { motion, AnimatePresence } from 'motion/react'
+
 interface StatusBadgeProps {
   status: string | null
   showDot?: boolean
@@ -20,14 +24,23 @@ export default function StatusBadge({ status, showDot = true }: StatusBadgeProps
   const isLive = status === 'live'
 
   return (
-    <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}>
-      {isLive && (
-        <span className="relative flex w-1.5 h-1.5 mr-1">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-          <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500" />
-        </span>
-      )}
-      {cfg.label}
-    </span>
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={status ?? 'none'}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 420, damping: 18 }}
+        className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.className}`}
+      >
+        {isLive && (
+          <span className="relative flex w-1.5 h-1.5 mr-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+            <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500" />
+          </span>
+        )}
+        {cfg.label}
+      </motion.span>
+    </AnimatePresence>
   )
 }

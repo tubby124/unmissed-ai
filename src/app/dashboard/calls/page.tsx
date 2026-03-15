@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import CallsList from '@/components/dashboard/CallsList'
 import DemoStats from '@/components/dashboard/DemoStats'
+import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,12 @@ interface ClientInfo {
   id: string
   slug: string
   business_name: string
+  niche?: string | null
+  status?: string | null
+  twilio_number?: string | null
+  minutes_used_this_month?: number | null
+  monthly_minute_limit?: number | null
+  bonus_minutes?: number | null
 }
 
 export default async function CallsPage() {
@@ -22,11 +29,15 @@ export default async function CallsPage() {
   let clientStatus: string | null = null
   let isAdmin = false
   let adminClients: ClientInfo[] = []
+  let minutesUsed = 0
+  let minuteLimit = 200
+  let bonusMinutes = 0
+  let telegramConnected = false
 
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(twilio_number, slug, business_name, status)')
+      .select('client_id, role, clients(twilio_number, slug, business_name, status, minutes_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id)')
       .eq('user_id', user.id)
       .single()
 
@@ -34,16 +45,20 @@ export default async function CallsPage() {
       isAdmin = true
       const { data: allClients } = await supabase
         .from('clients')
-        .select('id, slug, business_name')
+        .select('id, slug, business_name, niche, status, twilio_number, minutes_used_this_month, monthly_minute_limit, bonus_minutes')
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
     } else {
-      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string } | null
+      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; minutes_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null } | null
       clientPhone = clientData?.twilio_number ?? null
       clientSlug = clientData?.slug ?? null
       clientBusinessName = clientData?.business_name ?? null
       clientId = cu?.client_id ?? null
       clientStatus = clientData?.status ?? null
+      minutesUsed = clientData?.minutes_used_this_month ?? 0
+      minuteLimit = clientData?.monthly_minute_limit ?? 200
+      bonusMinutes = clientData?.bonus_minutes ?? 0
+      telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
 
       // Redirect setup clients to setup page
       if (clientStatus === 'setup') {
@@ -67,9 +82,19 @@ export default async function CallsPage() {
     business_name: (c.clients as { business_name?: string } | null)?.business_name ?? null,
   }))
 
+  const hasReceivedCall = allCalls.length > 0
+
   return (
     <div className="p-3 sm:p-6">
       {isAdmin && <DemoStats />}
+      {!isAdmin && clientStatus === 'active' && (
+        <OnboardingChecklist
+          hasPhoneNumber={!!clientPhone}
+          hasReceivedCall={hasReceivedCall}
+          telegramConnected={telegramConnected}
+          twilioNumber={clientPhone}
+        />
+      )}
       <CallsList
         initialCalls={allCalls}
         phone={clientPhone}
@@ -79,6 +104,9 @@ export default async function CallsPage() {
         clientBusinessName={clientBusinessName}
         clientId={clientId}
         clientStatus={clientStatus}
+        minutesUsed={minutesUsed}
+        minuteLimit={minuteLimit}
+        bonusMinutes={bonusMinutes}
       />
     </div>
   )
