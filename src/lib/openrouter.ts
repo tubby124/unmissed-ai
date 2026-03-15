@@ -91,6 +91,11 @@ export async function classifyCall(
     return unknownFallback
   }
 
+  if (transcript.length < 2) {
+    console.warn('[openrouter] classifyCall: transcript too short (< 2 messages) — returning UNKNOWN without API call')
+    return unknownFallback
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     console.error('[openrouter] OPENROUTER_API_KEY not set — returning UNKNOWN. Add to Railway env vars.')

@@ -97,17 +97,6 @@ export async function POST(
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
   // ── Per-client VAD tuning ─────────────────────────────────────────────────
-  // Different niches benefit from different response timing:
-  // - Fast callers (auto glass): 400ms — respond quickly, they're often stressed
-  // - Mixed pace (real estate): 480ms — balanced, varied caller types
-  // - Emotional/hesitant (property mgmt): 608ms — give callers space to think
-  const CLIENT_VAD: Record<string, Record<string, string>> = {
-    'hasan-sharif': { turnEndpointDelay: '0.480s' },
-    'windshield-hub': { turnEndpointDelay: '0.400s' },
-    'urban-vibe': { turnEndpointDelay: '0.608s' },
-  }
-  const clientVad = CLIENT_VAD[slug]
-
   // ── Create Ultravox call ───────────────────────────────────────────────────
   const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }
   const promptWithContext = callerContext
@@ -124,7 +113,6 @@ export async function POST(
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
           ...(callerContext ? { callerContext } : {}),
-          ...(clientVad ? { vadSettings: clientVad } : {}),
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall
