@@ -6,6 +6,17 @@ type Status = typeof VALID_STATUSES[number] | 'UNKNOWN'
 type ServiceType = typeof VALID_SERVICE_TYPES[number]
 type Sentiment = typeof VALID_SENTIMENTS[number]
 
+export interface AutoGlassNicheData {
+  vehicle_year: string | null
+  vehicle_make: string | null
+  vehicle_model: string | null
+  adas: boolean | null
+  vin: string | null
+  caller_name: string | null
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW' | null
+  requested_service: string | null
+}
+
 interface CallClassification {
   status: Status
   summary: string
@@ -15,17 +26,24 @@ interface CallClassification {
   key_topics: string[]
   next_steps: string
   quality_score: number
+  niche_data?: AutoGlassNicheData
 }
 
-function buildSystemPrompt(businessContext?: string, classificationHints?: string) {
+const AUTO_GLASS_SCHEMA = `{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100,"niche_data":{"vehicle_year":"YYYY or null","vehicle_make":"brand or null","vehicle_model":"model name or null","adas":true/false/null,"vin":"VIN string or null","caller_name":"first name or null","urgency":"HIGH"|"MEDIUM"|"LOW"|null,"requested_service":"e.g. Windshield Replacement, Chip Repair, Callback, or null"}}`
+const BASE_SCHEMA = `{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100}`
+
+function buildSystemPrompt(businessContext?: string, classificationHints?: string, niche?: string) {
   const business = businessContext || 'a service business'
   const hintsBlock = classificationHints
     ? `\nCLIENT-SPECIFIC RULES:\n${classificationHints}\n`
     : ''
+  const isAutoGlass = niche === 'auto_glass'
+  const schemaLine = isAutoGlass
+    ? `Required fields — return ALL of these:\n${AUTO_GLASS_SCHEMA}`
+    : `Required fields — return ALL 8, no others:\n${BASE_SCHEMA}`
   return `You classify inbound call transcripts for ${business} and return a single JSON object. Respond ONLY with the JSON object — no markdown fences, no explanation text.${hintsBlock}
 
-Required fields — return ALL 8, no others:
-{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100}
+${schemaLine}
 
 RULES:
 • HOT (confidence 80-100): Booking/buying NOW, urgency, emergency, immediate need
@@ -68,7 +86,8 @@ Now classify this call for ${business}:`
 export async function classifyCall(
   transcript: Array<{ role: string; text: string }>,
   businessContext?: string,
-  classificationHints?: string
+  classificationHints?: string,
+  niche?: string
 ): Promise<CallClassification> {
   const transcriptText = transcript
     .map(m => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
@@ -116,10 +135,10 @@ export async function classifyCall(
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',
         messages: [
-          { role: 'system', content: buildSystemPrompt(businessContext, classificationHints) },
+          { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
           { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
         ],
-        max_tokens: 800,
+        max_tokens: niche === 'auto_glass' ? 1200 : 800,
         temperature: 0,
         response_format: { type: 'json_object' },
       }),
@@ -170,6 +189,20 @@ export async function classifyCall(
       console.warn(`[openrouter] classifyCall: unexpected status="${rawStatus}" — setting UNKNOWN for manual review`)
     }
 
+    const nd = parsed.niche_data as Record<string, unknown> | undefined
+    const nicheData: AutoGlassNicheData | undefined = niche === 'auto_glass' && nd
+      ? {
+          vehicle_year: typeof nd.vehicle_year === 'string' ? nd.vehicle_year : null,
+          vehicle_make: typeof nd.vehicle_make === 'string' ? nd.vehicle_make : null,
+          vehicle_model: typeof nd.vehicle_model === 'string' ? nd.vehicle_model : null,
+          adas: typeof nd.adas === 'boolean' ? nd.adas : null,
+          vin: typeof nd.vin === 'string' ? nd.vin : null,
+          caller_name: typeof nd.caller_name === 'string' ? nd.caller_name : null,
+          urgency: ['HIGH', 'MEDIUM', 'LOW'].includes(nd.urgency as string) ? nd.urgency as 'HIGH' | 'MEDIUM' | 'LOW' : null,
+          requested_service: typeof nd.requested_service === 'string' ? nd.requested_service : null,
+        }
+      : undefined
+
     const result: CallClassification = {
       status: validatedStatus,
       summary: typeof parsed.summary === 'string' ? parsed.summary : unknownFallback.summary,
@@ -183,6 +216,7 @@ export async function classifyCall(
       key_topics: Array.isArray(parsed.key_topics) ? (parsed.key_topics as unknown[]).slice(0, 4).map(String) : [],
       next_steps: typeof parsed.next_steps === 'string' ? parsed.next_steps : 'Review call manually.',
       quality_score: typeof parsed.quality_score === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.quality_score))) : 0,
+      ...(nicheData ? { niche_data: nicheData } : {}),
     }
 
     console.log(`[openrouter] classifyCall: success — status=${result.status} confidence=${result.confidence} sentiment=${result.sentiment}`)

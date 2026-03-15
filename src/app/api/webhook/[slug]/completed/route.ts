@@ -106,7 +106,7 @@ export async function POST(
 
       // Classify with Claude Haiku via OpenRouter
       const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
-      const classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined)
+      const classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined, (client.niche as string | null) || undefined)
       console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
 
       // Update call_log with full data
@@ -137,26 +137,76 @@ export async function POST(
       if (client.telegram_bot_token && client.telegram_chat_id) {
         const mins = Math.floor(durationSeconds / 60)
         const secs = durationSeconds % 60
-        const dur = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : 'n/a'
-        const bizName = client.business_name || slug
         const fullSummary = classification.summary || ultravoxSummary || ''
-        const nextSteps = classification.next_steps || ''
 
-        // One-sentence summary — enough context without overwhelming
-        const dot = fullSummary.search(/[.!?]/)
-        const brief = fullSummary.length === 0 ? '' : (dot > 0 && dot < 130 ? fullSummary.slice(0, dot + 1) : fullSummary.slice(0, 130)).trim()
+        let message: string
 
-        const statusEmoji: Record<string, string> = {
-          HOT: '🔥', WARM: '🌤', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
+        if (client.niche === 'auto_glass') {
+          // Rich auto-glass format — preferred by Windshield Hub (Sabbir)
+          const callEnd = new Date(endedAt)
+          const dateStr = callEnd.toLocaleDateString('en-US', { timeZone: 'America/Regina', month: 'short', day: 'numeric', year: 'numeric' })
+          const timeStr = callEnd.toLocaleTimeString('en-US', { timeZone: 'America/Regina', hour: 'numeric', minute: '2-digit', hour12: true })
+          const dur = durationSeconds > 0 ? `${mins}m ${secs}s` : 'n/a'
+
+          const nd = classification.niche_data
+          const vehicleParts = [nd?.vehicle_year, nd?.vehicle_make, nd?.vehicle_model].filter(Boolean)
+          const vehicleStr = vehicleParts.length > 0 ? vehicleParts.join(' ') : 'Unknown'
+          const adasStr = nd?.adas === true ? 'YES' : nd?.adas === false ? 'NO' : 'Unknown'
+          const vinStr = nd?.vin || 'Not Provided'
+          const nameStr = nd?.caller_name || 'Unknown'
+          const urgencyFallback: Record<string, string> = { HOT: 'HIGH', WARM: 'MEDIUM', COLD: 'LOW', JUNK: 'LOW', UNKNOWN: 'LOW' }
+          const urgencyStr = nd?.urgency || urgencyFallback[classification.status] || 'MEDIUM'
+          const requestedStr = nd?.requested_service || 'None'
+
+          const formatPhone = (p: string) => {
+            const d = p.replace(/\D/g, '')
+            if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`
+            if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`
+            return p
+          }
+
+          message = [
+            `🌡️ WINDSHIELD HUB LEAD: ${classification.status}`,
+            ``,
+            `📅 Date: ${dateStr}`,
+            `🕐 Time: ${timeStr}`,
+            ``,
+            `📝 SUMMARY:`,
+            fullSummary || 'No summary available.',
+            ``,
+            `🚗 VEHICLE DETAILS:`,
+            `• Car: ${vehicleStr}`,
+            `• ADAS: ${adasStr}`,
+            `• VIN: ${vinStr}`,
+            ``,
+            `🔥 LEAD INFO:`,
+            `• Urgency: ${urgencyStr}`,
+            `• Requested: ${requestedStr}`,
+            ``,
+            `👤 CONTACT:`,
+            `• Name: ${nameStr}`,
+            `• Phone: ${formatPhone(callerPhone)}`,
+            `• Duration: ${dur}`,
+          ].join('\n')
+        } else {
+          // Compact format for all other clients
+          const dur = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : 'n/a'
+          const bizName = client.business_name || slug
+          const nextSteps = classification.next_steps || ''
+          const dot = fullSummary.search(/[.!?]/)
+          const brief = fullSummary.length === 0 ? '' : (dot > 0 && dot < 130 ? fullSummary.slice(0, dot + 1) : fullSummary.slice(0, 130)).trim()
+          const statusEmoji: Record<string, string> = {
+            HOT: '🔥', WARM: '🌤', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
+          }
+          const emoji = statusEmoji[classification.status] || '📞'
+          const lines = [
+            `${emoji} <b>${classification.status} — ${bizName}</b>`,
+            `📞 ${callerPhone} · ${dur}`,
+          ]
+          if (brief) lines.push(brief)
+          if (nextSteps) lines.push(`↳ ${nextSteps}`)
+          message = lines.join('\n')
         }
-        const emoji = statusEmoji[classification.status] || '📞'
-        const lines = [
-          `${emoji} <b>${classification.status} — ${bizName}</b>`,
-          `📞 ${callerPhone} · ${dur}`,
-        ]
-        if (brief) lines.push(brief)
-        if (nextSteps) lines.push(`↳ ${nextSteps}`)
-        const message = lines.join('\n')
 
         const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
         if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
