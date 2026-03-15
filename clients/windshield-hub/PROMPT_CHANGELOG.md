@@ -17,3 +17,15 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 
 ## v1 — 2026-03-09
 **Change:** Initial deploy — Windshield Hub Mark agent (Railway native)
+
+## v4 — 2026-03-15 19:29 UTC
+**Change:** Fix double-question (VIN+scheduling split), hangUp same-turn enforcement, timing echo in close, inactivity 8s->30s + END_BEHAVIOR_HANG_UP_SOFT
+**Chars:** 12666 | **Hash:** df24076fe0ccbbce
+**Supabase version_id:** e2f8ee07-7ac0-49bf-95c4-443bb89b6214
+**Ultravox revision:** n/a
+
+## v5 — 2026-03-15 20:57 UTC
+**Change:** Fix test failures: completion check enforced on goodbye, price/cost-factor routing to Sabbir, insurance uses Sabbir+call-you-back, crack triage single question, booking uses gotcha/I'll
+**Chars:** 13761 | **Hash:** bc046eab6eebba69
+**Supabase version_id:** b5ce8586-f35b-4933-873d-2c49d0e8c5b2
+**Ultravox revision:** n/a

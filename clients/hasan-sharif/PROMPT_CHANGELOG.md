@@ -44,3 +44,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 14611 | **Hash:** bbc5f1edd53adcbb
 **Supabase version_id:** cdea87bd-8ddb-438b-9216-b13eff05c211
 **Ultravox revision:** n/a
+
+## v13 — 2026-03-15 20:57 UTC
+**Change:** Fix test failures: suppress opener on mid-conversation turns, single Step 2 question, showing flow one-Q-per-turn, personal number routes cleanly, instructions handler single question
+**Chars:** 16126 | **Hash:** 53af2d801c7c9180
+**Supabase version_id:** cca2909e-42c9-4abb-a345-dcb5f656fd35
+**Ultravox revision:** n/a

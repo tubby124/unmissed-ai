@@ -21,6 +21,25 @@ defaultTest:
     - type: javascript
       value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|mark|the boss|them)/i.test(output)"
       threshold: 1
+    # VOICE LOCK — forbidden filler words for Mark (global, applies to ALL tests)
+    - type: not-icontains
+      value: "certainly"
+    - type: not-icontains
+      value: "absolutely"
+    - type: not-icontains
+      value: "of course"
+    # VOICE LOCK — no markdown formatting (global)
+    - type: javascript
+      value: "!/\\*\\*|#{1,6}\\s|```|\\n-\\s|\\n\\d+\\.\\s/.test(output)"
+      threshold: 1
+    # ONE QUESTION PER TURN — never stack 2 questions (global)
+    - type: javascript
+      value: "(output.match(/\\?/g) || []).length <= 1"
+      threshold: 1
+    # KNOWLEDGE BOUNDARY — never quote prices or percentages (global)
+    - type: javascript
+      value: "!/\\$\\d{2,}|\\d+\\s*%/.test(output)"
+      threshold: 1
 
 tests:
   # ── Test 1: No prompt echo ─────────────────────────────────────────────────
@@ -120,3 +139,76 @@ tests:
           - "call you back"
           - "take care"
           - "boss"
+
+  # ── Core Niche Logic Tests ─────────────────────────────────────────────────
+
+  - description: "Completion check — never closes without year/make/model/timing"
+    vars:
+      caller_message: "Thanks, that's all I needed to know. Bye!"
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT say goodbye or close the call without having collected vehicle year, make, model, and preferred timing. Since none of that was given, it should ask for the missing info before closing."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Knowledge boundary — never quotes repair price when asked"
+    vars:
+      caller_message: "How much does a windshield replacement cost for a 2020 Ford F-150?"
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT quote a specific dollar amount or price range for the repair. It routes to Sabbir for pricing details."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "dollars"
+      - type: not-icontains
+        value: "hundred"
+
+  - description: "Sensor check — asks about camera by mirror before closing"
+    vars:
+      caller_message: "My windshield has a big crack on it, 2022 Toyota RAV4. I want to get it replaced. I can come in next Tuesday."
+    assert:
+      - type: icontains-any
+        value:
+          - "camera"
+          - "sensor"
+          - "mirror"
+          - "ADAS"
+
+  - description: "Insurance routing — routes ICBC or insurance question to Sabbir"
+    vars:
+      caller_message: "I want to use my insurance to cover the repair. Can you help with that?"
+    assert:
+      - type: icontains-any
+        value:
+          - "Sabbir"
+          - "boss"
+          - "call you back"
+      - type: llm-rubric
+        value: "The response does NOT explain the insurance process in detail or commit to what the shop will do with the insurer. It routes the insurance question to Sabbir."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── VOICE LOCK Tests: catch personality/tone drift ────────────────────────
+  - description: "Voice lock — short natural response, not formal or stiff"
+    vars:
+      caller_message: "My rear window got smashed last night."
+    assert:
+      - type: llm-rubric
+        value: "The response is short (1-2 sentences), conversational, and sounds like a friendly shop assistant on the phone — NOT formal or corporate. It should acknowledge the situation and move toward collecting info."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Voice lock — uses contractions not formal phrasing"
+    vars:
+      caller_message: "I would like to book an appointment for a windshield replacement."
+    assert:
+      - type: not-icontains
+        value: "I will"
+      - type: not-icontains
+        value: "he will"
+      - type: icontains-any
+        value:
+          - "I'll"
+          - "boss'll"
+          - "he'll"
+          - "let me"
+          - "what's"
+          - "you got it"
+          - "gotcha"

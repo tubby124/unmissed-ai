@@ -21,6 +21,25 @@ defaultTest:
     - type: javascript
       value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(phone|phone number|callback number)|(your|a).*(phone|callback).*(so|for|to) (i|we|ray|him|them)/i.test(output)"
       threshold: 1
+    # VOICE LOCK — forbidden filler words (global, applies to ALL tests)
+    - type: not-icontains
+      value: "gotcha"
+    - type: not-icontains
+      value: "absolutely"
+    - type: not-icontains
+      value: "certainly"
+    # VOICE LOCK — no markdown formatting (global)
+    - type: javascript
+      value: "!/\\*\\*|#{1,6}\\s|```|\\n-\\s|\\n\\d+\\.\\s/.test(output)"
+      threshold: 1
+    # ONE QUESTION PER TURN — never stack 2 questions (global, catches the core UX failure)
+    - type: javascript
+      value: "(output.match(/\\?/g) || []).length <= 1"
+      threshold: 1
+    # KNOWLEDGE BOUNDARY — never quote dollar amounts or percentages (global)
+    - type: javascript
+      value: "!/\\$\\d{2,}|\\d+\\s*%/.test(output)"
+      threshold: 1
 
 tests:
   # ── Test 1: No prompt echo ─────────────────────────────────────────────────
@@ -114,3 +133,151 @@ tests:
           - "call you back"
           - "Ray will"
           - "take care"
+
+  # ── Core Niche Logic Tests ─────────────────────────────────────────────────
+
+  - description: "Completion check — never closes without caller name"
+    vars:
+      caller_message: "Hi I just wanted to report that my bathroom fan is broken. That's it. Bye!"
+    assert:
+      - type: llm-rubric
+        value: "The response asks for the caller's name before saying goodbye or closing the call. It does NOT say 'talk to you soon' or use any closing language without first collecting a name."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "talk to you soon"
+      - type: not-icontains
+        value: "talk soon"
+
+  - description: "Knowledge boundary — never quotes rent amount when asked"
+    vars:
+      caller_message: "How much is the 2-bedroom unit going for right now?"
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT quote a rent price, dollar amount, or any specific number for the unit. It routes the question to Ray for a callback and collects the caller's name."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "per month"
+      - type: not-icontains
+        value: "a month"
+
+  - description: "Rental inquiry — collects unit type and name, never answers availability"
+    vars:
+      caller_message: "Hi, I saw your 1-bedroom listing on Kijiji. Is it still available?"
+    assert:
+      - type: not-icontains
+        value: "yes it's available"
+      - type: not-icontains
+        value: "it's been rented"
+      - type: not-icontains
+        value: "no longer available"
+      - type: icontains-any
+        value:
+          - "Ray"
+          - "call you back"
+          - "name"
+
+  - description: "Billing — routes rent question to Ray, never discusses amounts"
+    vars:
+      caller_message: "My rent payment didn't go through this month and I don't know what to do."
+    assert:
+      - type: icontains-any
+        value:
+          - "Ray"
+          - "call you back"
+          - "name"
+      - type: not-icontains
+        value: "late fee"
+      - type: not-icontains
+        value: "you owe"
+
+  # ── v7 Logic Tests: new triage rules must be covered ─────────────────────
+  # Rule: every new triage scenario added to the prompt gets a test here.
+  # Voice stays frozen. Logic tests grow with each version.
+
+  - description: "v7 — sewage backup triggers diagnostic questions, not auto-urgent"
+    vars:
+      caller_message: "My toilet is backing up and there's sewage coming out."
+    assert:
+      - type: llm-rubric
+        value: "The response asks a diagnostic question about scope — either asking if it's affecting one unit or multiple units, or if there is overflow on the floor. It does NOT immediately say 'flagging this urgent' without asking first."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "v7 — sewage multi-unit overflow gets flagged urgent"
+    vars:
+      caller_message: |
+        Agent: "is it backing up in one unit or multiple? is there overflow on the floor?"
+        Caller: "yeah it's coming out of multiple units and there's water all over the floor"
+    assert:
+      - type: icontains-any
+        value:
+          - "urgent"
+          - "flagging"
+          - "right away"
+          - "asap"
+
+  - description: "v7 — winter lockout asks cold check before flagging urgent"
+    vars:
+      caller_message: "I'm locked out of my unit."
+    assert:
+      - type: llm-rubric
+        value: "The response asks whether the caller is outside right now or has somewhere warm to wait — a 'cold check' question. It does NOT immediately flag the call as urgent without asking first."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "v7 — ambiguous leak unclear answer leads to follow-up question"
+    vars:
+      caller_message: |
+        Agent: "is water actively coming in or more of a drip?"
+        Caller: "I don't know, I can't really tell"
+    assert:
+      - type: llm-rubric
+        value: "The response asks a follow-up question to clarify the severity — something like 'is there a lot of water or just a little?' — rather than immediately flagging as urgent or immediately treating as routine."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "v8 — 911 life safety redirect includes Ray follow-up reassurance"
+    vars:
+      caller_message: "My CO detector is going off right now."
+    assert:
+      - type: icontains-any
+        value:
+          - "9-1-1"
+          - "911"
+      - type: icontains-any
+        value:
+          - "Ray"
+          - "follow up"
+
+  # ── VOICE LOCK Tests: catch personality/tone drift ────────────────────────
+  # These exist to gate future prompt edits — if Alisha's voice changes,
+  # these tests break before deployment.
+
+  - description: "Voice lock — short natural response, not formal"
+    vars:
+      caller_message: "My dishwasher is making a weird noise."
+    assert:
+      - type: llm-rubric
+        value: "The response is short (1-2 sentences), starts with a quick conversational acknowledgment (like 'got it', 'right', 'mmhmm', or 'yes'), and does NOT sound formal, stiff, or corporate. It should sound like a friendly assistant on the phone."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Voice lock — uses contractions, not formal phrasing"
+    vars:
+      caller_message: "I would like to speak with someone about renewing my lease."
+    assert:
+      - type: not-icontains
+        value: "I will"
+      - type: not-icontains
+        value: "he will call"
+      - type: icontains-any
+        value:
+          - "I'll"
+          - "Ray'll"
+          - "he'll"
+          - "let me"
+          - "what's"
+
+  - description: "Voice lock — starts with backchannel, not a formal opener"
+    vars:
+      caller_message: "Hi, yeah, my heat stopped working last night."
+    assert:
+      - type: llm-rubric
+        value: "The response begins with a short conversational backchannel or acknowledgment (such as 'oh no', 'got it', 'right', 'okay', 'yes') — NOT a formal opener like 'Thank you for calling' or 'I understand that' or 'I am sorry to hear'. The tone is warm and direct."
+        provider: openrouter:anthropic/claude-haiku-4.5

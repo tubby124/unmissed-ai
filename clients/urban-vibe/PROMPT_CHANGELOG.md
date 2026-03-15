@@ -32,3 +32,15 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 18611 | **Hash:** 58846c43b73bec67
 **Supabase version_id:** 5ac90278-93c2-4271-a2cd-8be325d92d18
 **Ultravox revision:** n/a
+
+## v7 — 2026-03-15 20:30 UTC
+**Change:** Revert urgency escalation: restore info-collector model — sewage/lockout use triage questions, ambiguous leak back to diagnostic Q
+**Chars:** 19140 | **Hash:** e8736247b3d368fd
+**Supabase version_id:** dbc7cc58-3e42-4719-849f-33cb2a91307b
+**Ultravox revision:** n/a
+
+## v8 — 2026-03-15 20:32 UTC
+**Change:** Add Ray follow-up reassurance to life safety 911 redirect
+**Chars:** 19176 | **Hash:** 2e6ca35a23b8ec89
+**Supabase version_id:** b67a728c-155b-4b08-bb25-0c22a89ad8b0
+**Ultravox revision:** n/a
