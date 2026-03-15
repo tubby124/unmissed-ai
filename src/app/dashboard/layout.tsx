@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileNav from '@/components/dashboard/MobileNav'
@@ -27,6 +29,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
     clientStatus = isAdmin ? null : clientData?.status ?? null
     telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
+  }
+
+  // Auto-redirect setup-status clients to /dashboard/setup unless they're already there
+  if (!isAdmin && clientStatus === 'setup') {
+    const headersList = await headers()
+    const currentPath = headersList.get('x-pathname')
+    if (currentPath && !currentPath.startsWith('/dashboard/setup')) {
+      redirect('/dashboard/setup')
+    }
   }
 
   return (

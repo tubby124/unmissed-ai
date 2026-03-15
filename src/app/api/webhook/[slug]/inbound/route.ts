@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -121,15 +121,30 @@ export async function POST(
       )
     : ''
 
+  // ── Business facts + extra Q&A injection ─────────────────────────────────
+  const businessFactsStr = (client.business_facts as string | null)
+    ? buildContextBlock('Business Facts', client.business_facts as string)
+    : ''
+
+  const extraQaRaw = (client.extra_qa as { q: string; a: string }[] | null) ?? []
+  const extraQaFormatted = extraQaRaw
+    .filter(p => p.q?.trim() && p.a?.trim())
+    .map(p => `"${p.q}" → "${p.a}"`)
+    .join('\n')
+  const extraQaStr = extraQaFormatted
+    ? buildContextBlock('Q&A', extraQaFormatted)
+    : ''
+
   // ── Per-client VAD tuning ─────────────────────────────────────────────────
   // ── Create Ultravox call ───────────────────────────────────────────────────
   const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }
   const promptWithContext = callerContext
     ? client.system_prompt + `\n\n[${callerContext}]`
     : client.system_prompt
-  const promptFull = contextDataStr
-    ? promptWithContext + `\n\n${contextDataStr}`
-    : promptWithContext
+  let promptFull = promptWithContext
+  if (businessFactsStr) promptFull += `\n\n${businessFactsStr}`
+  if (extraQaStr)       promptFull += `\n\n${extraQaStr}`
+  if (contextDataStr)   promptFull += `\n\n${contextDataStr}`
 
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
@@ -140,8 +155,10 @@ export async function POST(
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
-          ...(callerContext ? { callerContext } : {}),
-          ...(contextDataStr ? { contextData: contextDataStr } : {}),
+          ...(callerContext    ? { callerContext }                    : {}),
+          ...(businessFactsStr ? { businessFacts: businessFactsStr } : {}),
+          ...(extraQaStr       ? { extraQa: extraQaStr }             : {}),
+          ...(contextDataStr   ? { contextData: contextDataStr }     : {}),
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall

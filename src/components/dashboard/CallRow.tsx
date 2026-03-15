@@ -122,7 +122,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
   return (
     <div
-      className="border-b transition-colors"
+      className={`border-b transition-colors${call.call_status === 'JUNK' ? ' opacity-[0.55]' : ''}`}
       style={{ borderBottomColor: "var(--color-border)", borderLeft: `3px solid ${stripeColor}` }}
     >
       {/* Main row — div instead of button to allow nested interactive elements */}
@@ -192,6 +192,13 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             ? `${call.ai_summary.slice(0, 80)}${call.ai_summary.length > 80 ? '…' : ''}`
             : 'No summary yet'}
         </p>
+
+        {/* HOT: inline recommended action */}
+        {call.call_status === 'HOT' && nextSteps && !isProcessingOrLive && (
+          <p className="text-[11px] font-medium truncate mb-1 pr-4" style={{ color: 'rgba(251,191,36,0.85)' }}>
+            → {nextSteps.slice(0, 80)}{nextSteps.length > 80 ? '…' : ''}
+          </p>
+        )}
 
         {/* Line 3: topics + confidence + sentiment */}
         {!isProcessingOrLive && (

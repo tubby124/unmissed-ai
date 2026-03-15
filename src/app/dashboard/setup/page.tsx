@@ -11,6 +11,7 @@ export interface SetupClientConfig {
   niche: string | null
   twilio_number: string | null
   status: string | null
+  setup_complete: boolean | null
 }
 
 export default async function SetupPage() {
@@ -28,7 +29,7 @@ export default async function SetupPage() {
 
   const isAdmin = cu.role === 'admin'
 
-  const SELECT = 'id, slug, business_name, niche, twilio_number, status'
+  const SELECT = 'id, slug, business_name, niche, twilio_number, status, setup_complete'
 
   if (isAdmin) {
     const { data: clients } = await supabase

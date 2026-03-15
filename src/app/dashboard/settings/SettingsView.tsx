@@ -243,6 +243,7 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const [versions, setVersions] = useState<PromptVersion[]>([])
   const [versionsLoading, setVersionsLoading] = useState(false)
   const [restoring, setRestoring] = useState<string | null>(null)
+  const [viewingVersion, setViewingVersion] = useState<PromptVersion | null>(null)
 
   // Re-sync Agent
   const [syncing, setSyncing] = useState(false)
@@ -2009,6 +2010,12 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
                         </div>
                         <p className="text-[11px] t3 truncate mt-0.5">{v.change_description}</p>
                       </div>
+                      <button
+                        onClick={() => setViewingVersion(v)}
+                        className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-hover t2 hover:bg-hover hover:t1 border b-theme transition-all"
+                      >
+                        View →
+                      </button>
                       {!v.is_active && (
                         <button
                           onClick={() => restoreVersion(v.id)}
@@ -2037,6 +2044,36 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
         </AnimatePresence>
       </div>
       </motion.div>
+
+      {/* ─── Prompt Version View Modal ───────────────────────────────── */}
+      {viewingVersion && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setViewingVersion(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[80vh] mx-4 rounded-2xl border b-theme bg-surface overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b b-theme shrink-0">
+              <div>
+                <span className="text-xs font-mono font-semibold t2">v{viewingVersion.version}</span>
+                {viewingVersion.is_active && (
+                  <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">Active</span>
+                )}
+                <span className="text-[11px] t3 ml-2">
+                  {new Date(viewingVersion.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                {viewingVersion.change_description && (
+                  <p className="text-[11px] t3 mt-0.5">{viewingVersion.change_description}</p>
+                )}
+              </div>
+              <button onClick={() => setViewingVersion(null)} className="t3 hover:t1 transition-colors text-xl leading-none ml-4">×</button>
+            </div>
+            <pre className="flex-1 overflow-auto px-5 py-4 text-xs t2 font-mono whitespace-pre-wrap">{viewingVersion.content}</pre>
+          </div>
+        </div>
+      )}
 
       </>)}
 

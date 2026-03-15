@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config (needed by both slots)
   const { data: client } = await svc
     .from('clients')
-    .select('system_prompt, agent_voice_id, context_data, context_data_label')
+    .select('system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa')
     .eq('id', targetClientId)
     .single()
 
@@ -108,7 +108,19 @@ export async function POST(req: NextRequest) {
 
   voiceId = (client?.agent_voice_id as string | null) ?? null
 
-  // Inject context data (tenant list, FAQ, etc.) the same way the inbound webhook does
+  // Inject business facts + Q&A + context data — same order as the inbound webhook
+  const businessFacts = client?.business_facts as string | null
+  if (businessFacts) {
+    systemPrompt = `${systemPrompt}\n\n${buildContextBlock('Business Facts', businessFacts)}`
+  }
+  const extraQaRaw = (client?.extra_qa as { q: string; a: string }[] | null) ?? []
+  const extraQaFormatted = extraQaRaw
+    .filter(p => p.q?.trim() && p.a?.trim())
+    .map(p => `"${p.q}" → "${p.a}"`)
+    .join('\n')
+  if (extraQaFormatted) {
+    systemPrompt = `${systemPrompt}\n\n${buildContextBlock('Q&A', extraQaFormatted)}`
+  }
   const contextData = client?.context_data as string | null
   if (contextData) {
     const label = (client?.context_data_label as string | null) || 'Reference Data'

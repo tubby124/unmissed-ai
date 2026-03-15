@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { SetupClientConfig } from './page'
 
@@ -341,6 +341,40 @@ function MarkActiveButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+function ConfirmActivation({ onConfirmed }: { onConfirmed: () => void }) {
+  const [step, setStep] = useState<'idle' | 'confirm'>('idle')
+  const CheckIcon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+  if (step === 'idle') {
+    return (
+      <button
+        onClick={() => setStep('confirm')}
+        className="w-full py-3.5 rounded-xl bg-input border b-theme t2 font-semibold text-sm hover:bg-hover hover:t1 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+      >
+        {CheckIcon}
+        I&apos;ve dialed all the codes
+      </button>
+    )
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] t3 text-center">
+        Call your business number from another phone. If your AI agent answers, forwarding is live.
+      </p>
+      <button
+        onClick={onConfirmed}
+        className="w-full py-3.5 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20 text-emerald-400 font-semibold text-sm hover:bg-emerald-500/[0.12] hover:border-emerald-500/35 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+      >
+        {CheckIcon}
+        Yes, it worked — agent is live
+      </button>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface SetupViewProps {
@@ -357,7 +391,20 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
   const [voipPlatform, setVoipPlatform] = useState('')
   const [telusOption, setTelusOption] = useState<'A' | 'B'>('A')
   const [isActive, setIsActive] = useState(false)
+  const [step, setStep] = useState(1)
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
+
+  // Restore last-used selections from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('unmissed-setup-v1')
+    if (!saved) return
+    try {
+      const { lt, d, c } = JSON.parse(saved) as { lt?: string; d?: string; c?: string }
+      if (lt === 'mobile' || lt === 'landline' || lt === 'voip') setLineType(lt)
+      if (d === 'iphone' || d === 'android') setDevice(d)
+      if (c) setCarrier(c)
+    } catch { /* ignore corrupt data */ }
+  }, [])
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -443,6 +490,55 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
   return (
     <div className="max-w-xl mx-auto px-5 py-8 space-y-8">
 
+      {/* ── 3-step wizard progress indicator ───────────────────────── */}
+      <div className="flex items-center gap-2">
+        {[
+          { num: 1, label: 'Phone Setup' },
+          { num: 2, label: 'Agent' },
+          { num: 3, label: 'Context' },
+        ].map((s, i) => (
+          <div key={s.num} className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => setStep(s.num)}
+              className="flex items-center gap-2 group"
+            >
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                step === s.num
+                  ? 'bg-blue-500 text-white'
+                  : step > s.num
+                  ? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30'
+                  : 'border text-[var(--color-text-3)]'
+              }`} style={step <= s.num ? { borderColor: 'var(--color-border)' } : undefined}>
+                {step > s.num ? '✓' : s.num}
+              </div>
+              <span className={`text-[11px] font-medium hidden sm:block transition-colors ${
+                step === s.num ? 'text-blue-400' : ''
+              }`} style={step !== s.num ? { color: 'var(--color-text-3)' } : undefined}>
+                {s.label}
+              </span>
+            </button>
+            {i < 2 && <div className="flex-1 h-px mx-1" style={{ backgroundColor: 'var(--color-border)' }} />}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Step 1: Phone Setup ──────────────────────────────────────── */}
+      {step === 1 && <>
+
+      {/* ── Setup complete banner ────────────────────────────────────── */}
+      {client.setup_complete && (
+        <div className="flex items-center gap-3 py-4 px-5 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+          </span>
+          <div>
+            <p className="text-emerald-400 font-semibold text-sm">Forwarding active — agent is live</p>
+            <p className="text-[11px] t3 mt-0.5">You can update your forwarding codes below if needed.</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Admin client selector ────────────────────────────────────── */}
       {isAdmin && clients.length > 1 && (
         <div className="flex flex-wrap gap-2">
@@ -494,14 +590,21 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
             )}
           </div>
 
-          <div className="px-6 py-4 border-t b-theme flex items-start gap-3">
-            <span className="relative flex h-2 w-2 mt-1 shrink-0">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <p className="text-xs t3 leading-relaxed">
-              <span className="t2 font-medium">Conditional forwarding</span> — your phone rings first.
-              If you don&apos;t answer, are busy, or are unreachable, the call routes to your AI agent automatically.
-            </p>
+          <div className="px-6 py-4 border-t b-theme space-y-2.5">
+            {[
+              'Copy the number above',
+              'Select your phone type below',
+              'Pick your carrier or provider',
+              'Dial the 3 forwarding codes',
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-blue-500/15 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-[8px] font-black font-mono text-blue-400">{i + 1}</span>
+                </div>
+                <p className="text-xs t3">{s}</p>
+              </div>
+            ))}
+            <p className="text-[11px] t3 pt-1">Your phone rings first — AI answers only when you&apos;re unavailable.</p>
           </div>
         </div>
       </div>
@@ -516,7 +619,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
           {lineTypeTabs.map(t => (
             <button
               key={t.id}
-              onClick={() => { setLineType(t.id); setIsActive(false) }}
+              onClick={() => { setLineType(t.id); setIsActive(false); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: t.id, d: device, c: carrier })) }}
               className={`flex flex-1 items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all duration-150 cursor-pointer ${
                 lineType === t.id
                   ? 'bg-blue-500/15 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.22)]'
@@ -553,7 +656,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                   {(['iphone', 'android'] as const).map(d => (
                     <button
                       key={d}
-                      onClick={() => setDevice(d)}
+                      onClick={() => { setDevice(d); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: lineType, d, c: carrier })) }}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                         device === d ? 'bg-hover text-white' : 't3 hover:t1'
                       }`}
@@ -580,7 +683,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                 <p className="text-[10px] t3 uppercase tracking-widest font-semibold mb-2">Carrier</p>
                 <select
                   value={carrier}
-                  onChange={e => { setCarrier(e.target.value); setIsActive(false) }}
+                  onChange={e => { setCarrier(e.target.value); setIsActive(false); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: lineType, d: device, c: e.target.value })) }}
                   className="w-full bg-input border b-input rounded-xl px-3 py-[9px] text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors cursor-pointer"
                 >
                   <option value="">Select carrier...</option>
@@ -609,24 +712,38 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
 
             {/* Device instructions */}
             {carrier && (
-              <div className="bg-input border b-theme rounded-xl px-4 py-3">
-                <p className="text-[11px] t3 leading-relaxed">
-                  {device === 'iphone' ? (
-                    <>
-                      Open your <span className="t2 font-medium">Phone app</span> → tap the keypad → dial each code and press the green Call button.{' '}
-                      <span className="text-red-400/80">Do not</span> use Settings → Phone → Call Forwarding.
-                    </>
-                  ) : (
-                    <>
-                      Open <span className="t2 font-medium">Phone app</span> → dial the code and press Call.
-                      Or: Phone → More (⋮) → Settings → Supplementary Services → Call Forwarding.
-                    </>
-                  )}
-                </p>
-              </div>
+              device === 'iphone' ? (
+                <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3 flex items-start gap-2.5">
+                  <svg className="text-amber-500/60 shrink-0 mt-0.5" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+                    <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-200/60 leading-relaxed">
+                    Open your <span className="font-medium">Phone app</span> → tap the keypad → dial each code and press the green Call button. Do <span className="font-medium">not</span> use Settings → Phone → Call Forwarding — those toggles don&apos;t support star codes.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-input border b-theme rounded-xl px-4 py-3">
+                  <p className="text-[11px] t3 leading-relaxed">
+                    Open <span className="t2 font-medium">Phone app</span> → dial the code and press Call.
+                    Or: Phone → More (⋮) → Settings → Supplementary Services → Call Forwarding.
+                  </p>
+                </div>
+              )
             )}
 
             {carrier && carrierNotes.length > 0 && <InlineNotes notes={carrierNotes} />}
+
+            {/* Video walkthrough placeholder */}
+            {carrier && (
+              <div className="rounded-xl border border-dashed b-theme bg-hover flex flex-col items-center justify-center gap-2 py-8 cursor-default">
+                <svg className="t3" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                </svg>
+                <p className="text-[11px] t3">Video walkthrough — coming soon</p>
+              </div>
+            )}
 
             <AnimatePresence mode="wait">
               {showMobileCodes && (
@@ -673,7 +790,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                       </svg>
                     }
                   />
-                  {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
+                  {isActive ? <ActiveBadge /> : <ConfirmActivation onConfirmed={() => setIsActive(true)} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -689,7 +806,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                         <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                         <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
-                      <span className="text-xs font-medium">Full Forwarding — All Calls to Agent</span>
+                      <span className="text-xs font-medium">Send all calls to agent</span>
                       <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -708,7 +825,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      <span className="text-xs font-medium">Rollback — Disable Forwarding</span>
+                      <span className="text-xs font-medium">Turn off forwarding</span>
                       <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -730,7 +847,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                         <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
                         <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       </svg>
-                      <span className="text-xs font-medium">Verify It&apos;s Working</span>
+                      <span className="text-xs font-medium">Check forwarding status</span>
                       <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -836,7 +953,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                   )}
 
                   <p className="text-[10px] t3">No # suffix needed — landline star codes work differently from mobile GSM codes.</p>
-                  {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
+                  {isActive ? <ActiveBadge /> : <ConfirmActivation onConfirmed={() => setIsActive(true)} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -916,7 +1033,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                           <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                           <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                        <span className="text-xs font-medium">Full Forwarding — All Calls to Agent</span>
+                        <span className="text-xs font-medium">Send all calls to agent</span>
                         <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
@@ -936,7 +1053,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      <span className="text-xs font-medium">Rollback — Disable Forwarding</span>
+                      <span className="text-xs font-medium">Turn off forwarding</span>
                       <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -1070,7 +1187,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
                     </div>
                   )}
 
-                  {isActive ? <ActiveBadge /> : <MarkActiveButton onClick={() => setIsActive(true)} />}
+                  {isActive ? <ActiveBadge /> : <ConfirmActivation onConfirmed={() => setIsActive(true)} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1092,6 +1209,89 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
       <p className="text-[11px] t3 text-center pb-4">
         Need help? Contact us and we&apos;ll walk you through it.
       </p>
+
+      {/* Step 1 next button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setStep(2)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+        >
+          Next: Agent
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      </> /* end step 1 */}
+
+      {/* ── Step 2: Agent ────────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-1)' }}>Agent Personality</h2>
+            <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>Choose your agent&apos;s voice and configure how it handles calls.</p>
+          </div>
+          <a
+            href="/dashboard/voices"
+            className="flex items-center justify-between px-5 py-4 rounded-2xl border hover:bg-[var(--color-hover)] transition-colors"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>Voice &amp; Personality</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>Select voice, name, and call handling style</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+          <div className="flex items-center justify-between pt-2">
+            <button onClick={() => setStep(1)} className="text-xs" style={{ color: 'var(--color-text-3)' }}>← Back</button>
+            <button
+              onClick={() => setStep(3)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+            >
+              Next: Context
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Context ──────────────────────────────────────────── */}
+      {step === 3 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-1)' }}>Business Context</h2>
+            <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>Configure notifications, integrations, and advanced settings.</p>
+          </div>
+          <a
+            href="/dashboard/settings"
+            className="flex items-center justify-between px-5 py-4 rounded-2xl border hover:bg-[var(--color-hover)] transition-colors"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>Notifications &amp; Integrations</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>Telegram alerts, calendar sync, advanced settings</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+          <div className="flex items-center justify-between pt-2">
+            <button onClick={() => setStep(2)} className="text-xs" style={{ color: 'var(--color-text-3)' }}>← Back</button>
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-3)' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-500">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Setup complete
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

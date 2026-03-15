@@ -43,8 +43,8 @@ const DEFAULT_VAD = {
 }
 
 const DEFAULT_INACTIVITY = [
-  { duration: '8s',  message: "Hello? You still there?" },
-  { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!" },
+  { duration: '30s', message: "Hello? You still there?" },
+  { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!", endBehavior: 'END_BEHAVIOR_HANG_UP_SOFT' },
 ]
 
 // ── Per-call creation (fallback when no agentId) ─────────────────────────────
@@ -147,7 +147,7 @@ interface AgentConfig {
 export async function createAgent({ systemPrompt, voice, tools, name }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
-    systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
+    systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
     model: 'ultravox-v0.7',
     voice: voice || DEFAULT_VOICE,
     maxDuration: '600s',
@@ -159,8 +159,10 @@ export async function createAgent({ systemPrompt, voice, tools, name }: AgentCon
     contextSchema: {
       type: 'object',
       properties: {
-        callerContext: { type: 'string' },
-        contextData: { type: 'string' },
+        callerContext:  { type: 'string' },
+        businessFacts:  { type: 'string' },
+        extraQa:        { type: 'string' },
+        contextData:    { type: 'string' },
       },
     },
     firstSpeakerSettings: { agent: { uninterruptible: true } },
@@ -198,21 +200,30 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
     contextSchema: {
       type: 'object',
-      properties: { callerContext: { type: 'string' }, contextData: { type: 'string' } },
+      properties: {
+        callerContext:  { type: 'string' },
+        businessFacts:  { type: 'string' },
+        extraQa:        { type: 'string' },
+        contextData:    { type: 'string' },
+      },
     },
     firstSpeakerSettings: { agent: { uninterruptible: true } },
   }
 
   // Client-specific overrides
   if (updates.systemPrompt !== undefined) {
-    // Preserve {{callerContext}} and {{contextData}} placeholders — appended after validation,
+    // Preserve all templateContext placeholders — appended after validation,
     // these resolve at call time via templateContext and must always be present.
+    const INJECTED_DATA_BLOCK = '## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
     let sp = updates.systemPrompt
     if (!sp.includes('{{callerContext}}')) {
-      sp = sp + '\n\n{{callerContext}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
-    } else if (!sp.includes('{{contextData}}')) {
-      // callerContext present but contextData missing — add contextData block
-      sp = sp + '\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
+      // Brand new prompt — append all placeholders in order
+      sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n${INJECTED_DATA_BLOCK}`
+    } else {
+      // callerContext present — ensure newer placeholders are also present
+      if (!sp.includes('{{businessFacts}}')) sp = sp + '\n\n{{businessFacts}}'
+      if (!sp.includes('{{extraQa}}'))       sp = sp + '\n\n{{extraQa}}'
+      if (!sp.includes('{{contextData}}'))   sp = sp + `\n\n${INJECTED_DATA_BLOCK}`
     }
     callTemplate.systemPrompt = sp
   }
@@ -238,6 +249,10 @@ interface CallViaAgentOptions {
   maxDuration?: string
   /** Inject returning-caller context as an initial hidden tool message. */
   callerContext?: string
+  /** Stable business facts (hours, staff, location notes) via {{businessFacts}} templateContext. */
+  businessFacts?: string
+  /** Client-entered Q&A pairs via {{extraQa}} templateContext. */
+  extraQa?: string
   /** Inject per-call reference data (CSV/text) via {{contextData}} templateContext. */
   contextData?: string
 }
@@ -245,15 +260,17 @@ interface CallViaAgentOptions {
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, contextData }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
     metadata: metadata || {},
-    // Always inject templateContext so {{callerContext}} and {{contextData}} placeholders resolve cleanly
+    // Always inject all templateContext keys so placeholders resolve cleanly (empty string = no output)
     templateContext: {
-      callerContext: callerContext || '',
-      contextData: contextData || '',
+      callerContext:  callerContext  || '',
+      businessFacts:  businessFacts  || '',
+      extraQa:        extraQa        || '',
+      contextData:    contextData    || '',
     },
   }
 

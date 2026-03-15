@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { animate } from 'motion/react'
+import Link from 'next/link'
 
 interface CallLog {
   call_status: string | null
@@ -82,9 +83,10 @@ interface StatCardProps {
   delta?: number | null
   liveOrb?: boolean
   index: number
+  footerLink?: { label: string; href: string }
 }
 
-function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOrb, index }: StatCardProps) {
+function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOrb, index, footerLink }: StatCardProps) {
   const numRef = useRef<HTMLSpanElement>(null)
   const t = THEMES[theme]
 
@@ -140,6 +142,17 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
         </div>
         {sparkValues && <Sparkline values={sparkValues} color={t.spark} />}
       </div>
+      {footerLink && (
+        <Link
+          href={footerLink.href}
+          className="mt-1.5 text-[10px] font-medium transition-opacity hover:opacity-80 inline-flex items-center gap-1"
+          style={{ color: 'var(--color-primary)' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {footerLink.label}
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </Link>
+      )}
     </div>
   )
 }
@@ -183,60 +196,52 @@ interface StatsGridProps {
 }
 
 export default function StatsGrid({ totalCalls, hotLeads, missedCalls, calls }: StatsGridProps) {
-  const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK'].includes(c.call_status ?? ''))
+  // Classify calls
+  const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK', 'MISSED'].includes(c.call_status ?? ''))
 
   // Sparklines
   const isHOT = (c: CallLog) => c.call_status === 'HOT'
-
   const totalSpark = weekBuckets(classified, 0)
   const totalPrior = weekBuckets(classified, 1)
-
   const hotSpark = weekBuckets(classified, 0, isHOT)
   const hotPrior = weekBuckets(classified, 1, isHOT)
 
-  // Today's calls — all statuses including live/processing
-  const DAY = 86400000
-  const nowMs = Date.now()
-  const todayStart = new Date().setHours(0, 0, 0, 0)
-  const yesterdayStart = todayStart - DAY
-  const todayCalls = calls.filter(c => new Date(c.started_at).getTime() >= todayStart).length
-  const yesterdayCalls = calls.filter(c => {
-    const t = new Date(c.started_at).getTime()
-    return t >= yesterdayStart && t < todayStart
-  }).length
-  const todayDelta = yesterdayCalls === 0 ? null : ((todayCalls - yesterdayCalls) / yesterdayCalls) * 100
+  // Answer rate — HOT+WARM+COLD / (HOT+WARM+COLD+MISSED)
+  // Exclude JUNK and UNKNOWN from both numerator and denominator
+  const answeredCount = calls.filter(c => ['HOT', 'WARM', 'COLD'].includes(c.call_status ?? '')).length
+  const callableTotal = calls.filter(c => ['HOT', 'WARM', 'COLD', 'MISSED'].includes(c.call_status ?? '')).length
+  const answerRate = Math.round(answeredCount / Math.max(callableTotal, 1) * 100)
 
-  // 7-day sparkline for today's calls (all)
-  const todaySpark = Array.from({ length: 7 }, (_, i) => {
-    const start = nowMs - (6 - i) * DAY
-    const end = start + DAY
-    return calls.filter(c => { const t = new Date(c.started_at).getTime(); return t >= start && t < end }).length
-  })
-
-  // Containment rate — quality calls (HOT+WARM+COLD) / answered calls (non-JUNK classified)
-  const qualityCalls = classified.filter(c => c.call_status !== 'JUNK').length
-  const containmentRate = Math.round(qualityCalls / Math.max(classified.length, 1) * 100)
+  // Hours saved
+  const junkCount = classified.filter(c => c.call_status === 'JUNK').length
+  const resolvedCalls = classified.filter(c => ['HOT', 'WARM', 'COLD'].includes(c.call_status ?? ''))
+  const avgDurMin = resolvedCalls.length > 0
+    ? resolvedCalls.reduce((a, c) => a + (c.duration_seconds ?? 90), 0) / resolvedCalls.length / 60
+    : 1.5
+  const hoursSaved = Math.round((junkCount * 1.5 + resolvedCalls.length * avgDurMin) / 60 * 10) / 10
 
   const stats: StatCardProps[] = [
     {
-      label: 'Total Calls', value: totalCalls, sub: 'classified calls', theme: 'zinc',
+      label: 'AI handled', value: totalCalls, sub: 'calls this month', theme: 'zinc',
       sparkValues: totalSpark, delta: delta(totalSpark, totalPrior), index: 0,
     },
     {
-      label: 'Hot Leads', value: hotLeads, sub: 'high-intent callers', theme: 'red',
+      label: 'Hot leads', value: hotLeads, sub: 'need callback now', theme: 'red',
       sparkValues: hotSpark, delta: delta(hotSpark, hotPrior), index: 1,
+      footerLink: hotLeads > 0 ? { label: 'View queue →', href: '/dashboard/leads' } : undefined,
     },
     {
-      label: 'Today', value: todayCalls, sub: yesterdayCalls > 0 ? `${yesterdayCalls} yesterday` : 'calls so far',
-      theme: 'blue', sparkValues: todaySpark, delta: todayDelta, index: 2,
+      label: 'Answer rate', value: answerRate, sub: `${answeredCount} of ${callableTotal} real calls`,
+      theme: 'blue', format: (n: number) => `${n}%`, index: 2,
     },
     {
-      label: 'Missed Calls', value: missedCalls, sub: 'in last 7 days',
-      theme: missedCalls > 0 ? 'red' : 'zinc', index: 3,
+      label: 'Hours saved', value: hoursSaved, sub: '~1.5 min avg handle',
+      theme: 'green', format: (n: number) => `${n}h`, index: 3,
     },
     {
-      label: 'Containment', value: containmentRate, sub: 'quality calls handled', theme: 'purple',
-      format: (n: number) => `${n}%`, index: 4,
+      label: 'Auto-screened', value: junkCount,
+      sub: `${Math.round(junkCount / Math.max(classified.length, 1) * 100)}% of total volume`,
+      theme: 'purple', index: 4,
     },
   ]
 

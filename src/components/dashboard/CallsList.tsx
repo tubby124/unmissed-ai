@@ -14,6 +14,8 @@ import MinuteUsage from './MinuteUsage'
 import OutcomeCharts from './OutcomeCharts'
 import DialModal from './DialModal'
 import ClientSelector from './ClientSelector'
+import RevenueAtRisk from './RevenueAtRisk'
+import ClientHealthBar from './ClientHealthBar'
 
 interface CallLog {
   id: string
@@ -364,6 +366,12 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
 
       {/* Outcome charts with day click */}
       <OutcomeCharts calls={calls} onDayClick={setDateFilter} selectedDay={dateFilter} />
+
+      {/* Revenue-at-risk urgency banner */}
+      <RevenueAtRisk calls={calls} />
+
+      {/* Admin client health bar */}
+      {isAdmin && <ClientHealthBar adminClients={adminClients} hotLeads={calls.filter(c => c.call_status === 'HOT').map(c => ({ client_id: c.client_id, started_at: c.started_at }))} />}
 
       <div>
 

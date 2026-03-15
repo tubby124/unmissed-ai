@@ -9,11 +9,22 @@ import { motion, AnimatePresence } from 'motion/react'
 const NAV = [
   {
     href: '/dashboard/calls',
-    label: 'Calls',
+    label: 'Overview',
     adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/live',
+    label: 'Live',
+    adminOnly: false,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6.3 6.3a8 8 0 1011.4 11.4M6.3 6.3A8 8 0 0117.7 17.7M6.3 6.3L5 5M17.7 17.7l1.3 1.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
@@ -41,8 +52,8 @@ const NAV = [
   },
   {
     href: '/dashboard/leads',
-    label: 'Lead Queue',
-    adminOnly: true,
+    label: 'Leads',
+    adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -51,7 +62,7 @@ const NAV = [
   },
   {
     href: '/dashboard/setup',
-    label: 'Setup',
+    label: 'Agent',
     adminOnly: false,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -63,7 +74,7 @@ const NAV = [
   {
     href: '/dashboard/voices',
     label: 'Voices',
-    adminOnly: false,
+    adminOnly: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

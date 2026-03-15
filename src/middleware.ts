@@ -67,6 +67,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    response.headers.set('x-pathname', pathname)
     return response
   }
 
