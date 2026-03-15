@@ -1,7 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { OnboardingData, AgentTone, PrimaryGoal, PricingPolicy, NICHE_CONFIG } from "@/types/onboarding";
+import { OnboardingData, AgentTone, PrimaryGoal, PricingPolicy } from "@/types/onboarding";
 
 interface Props {
   data: OnboardingData;
@@ -51,8 +51,9 @@ function CardRadio<T extends string>({
 }
 
 export default function Step6({ data, onUpdate }: Props) {
-  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche] : null;
-  const showPricing = nicheConfig?.showPricingPolicy ?? false;
+  // Step 6 is no longer in the default wizard flow (all niches use 3-step fast-track).
+  // Kept for backwards compat if step 6 is ever re-enabled.
+  const showPricing = ["auto_glass", "hvac", "plumbing", "salon"].includes(data.niche || "");
 
   return (
     <div className="space-y-6">

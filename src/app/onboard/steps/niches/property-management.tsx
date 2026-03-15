@@ -87,6 +87,25 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
           </div>
         </label>
       </div>
+
+      {/* Tenant / Unit Roster (optional) */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium t1">
+          Tenant roster <span className="text-xs t3 font-normal">(optional)</span>
+        </label>
+        <p className="text-xs t3">
+          Paste a CSV or plain list of tenant names, unit numbers, and rent amounts. Your agent will reference this data on calls to identify callers by name or unit.
+        </p>
+        <textarea
+          value={(data.nicheAnswers.tenantRoster as string) ?? ''}
+          onChange={e => onChange("tenantRoster", e.target.value)}
+          placeholder={`Unit, Tenant, Rent\n4A, John Smith, $1,200\n4B, Sarah Lee, $1,350`}
+          rows={5}
+          className="w-full bg-hover border b-theme rounded-xl p-3 text-xs t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+          maxLength={8000}
+        />
+        <p className="text-[10px] t3">{((data.nicheAnswers.tenantRoster as string) ?? '').length.toLocaleString()} / 8,000 chars</p>
+      </div>
     </div>
   );
 }

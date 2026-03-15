@@ -38,8 +38,9 @@ const US_STATES = [
 ];
 
 export default function Step2({ data, onUpdate }: Props) {
-  const isMaleVoice = data.niche === "voicemail" && data.nicheAnswers?.voiceGender === "male";
-  const suggestedName = data.niche === "voicemail"
+  const isVoicemail = data.niche === "voicemail";
+  const isMaleVoice = isVoicemail && data.nicheAnswers?.voiceGender === "male";
+  const suggestedName = isVoicemail
     ? (isMaleVoice ? "Max" : "Sam")
     : (data.niche ? defaultAgentNames[data.niche] : "Sam");
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -50,13 +51,12 @@ export default function Step2({ data, onUpdate }: Props) {
 
   const nicheConfig  = data.niche ? NICHE_CONFIG[data.niche as Niche] : null;
   const showAddress  = nicheConfig?.hasPhysicalAddress ?? false;
-  const isFastTrack  = nicheConfig?.fastTrack ?? false;
   const isRealEstate = data.niche === "real_estate";
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">{isFastTrack ? "Tell us about yourself" : "Tell us about your business"}</h2>
+        <h2 className="text-2xl font-bold text-slate-900">{isVoicemail ? "Tell us about yourself" : "Tell us about your business"}</h2>
         <p className="text-sm text-slate-500 mt-1">
           This shapes how your agent introduces itself and routes calls.
         </p>
@@ -79,13 +79,13 @@ export default function Step2({ data, onUpdate }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="businessName">
-          {isFastTrack ? "Your name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
+          {isVoicemail ? "Your name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
           <span className="text-red-400">*</span>
-          {isFastTrack && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;This is Sam, assistant for [your name]&quot;)</span>}
+          {isVoicemail && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;This is Sam, assistant for [your name]&quot;)</span>}
         </Label>
         <Input
           id="businessName"
-          placeholder={isFastTrack ? "e.g. Hasan Sharif" : isRealEstate ? "e.g. eXp Realty, RE/MAX, Royal LePage" : "e.g. Dallas Quick Glass"}
+          placeholder={isVoicemail ? "e.g. Hasan Sharif" : isRealEstate ? "e.g. eXp Realty, RE/MAX, Royal LePage" : "e.g. Dallas Quick Glass"}
           value={data.businessName}
           onChange={(e) => onUpdate({ businessName: e.target.value })}
         />
@@ -106,7 +106,27 @@ export default function Step2({ data, onUpdate }: Props) {
         </div>
       )}
 
-      {!isFastTrack && (
+      {isVoicemail ? (
+        /* Voicemail: province only (no city needed) */
+        <div className="space-y-2">
+          <Label htmlFor="state">
+            Province <span className="text-red-400">*</span>{" "}
+            <span className="text-slate-400 font-normal text-xs">(used to assign your local AI number)</span>
+          </Label>
+          <select
+            id="state"
+            value={data.state}
+            onChange={(e) => onUpdate({ state: e.target.value })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          >
+            <option value="">Select province…</option>
+            {CA_PROVINCES.map((p) => (
+              <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        /* All other niches: city + province/state */
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="city">City <span className="text-red-400">*</span></Label>
@@ -157,30 +177,10 @@ export default function Step2({ data, onUpdate }: Props) {
         {phoneInvalid && (
           <p className="text-xs text-red-600 mt-1">Phone number must have at least 10 digits</p>
         )}
-        {!phoneInvalid && isFastTrack && (
+        {!phoneInvalid && isVoicemail && (
           <p className="text-xs text-slate-400 mt-1">You&apos;ll receive a setup SMS at this number when your agent goes live.</p>
         )}
       </div>
-
-      {isFastTrack && (
-        <div className="space-y-2">
-          <Label htmlFor="state">
-            Province <span className="text-red-400">*</span>{" "}
-            <span className="text-slate-400 font-normal text-xs">(used to assign your local AI number)</span>
-          </Label>
-          <select
-            id="state"
-            value={data.state}
-            onChange={(e) => onUpdate({ state: e.target.value })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="">Select province…</option>
-            {CA_PROVINCES.map((p) => (
-              <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
-            ))}
-          </select>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="contactEmail">

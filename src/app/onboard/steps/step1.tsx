@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import {
   Car, Flame, Wrench, Stethoscope, Scale, Scissors,
-  Home, Building2, PhoneCall, Voicemail, HelpCircle, Sparkles, type LucideIcon,
+  Home, Building2, PhoneCall, Voicemail, HelpCircle, Sparkles, UtensilsCrossed, type LucideIcon,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Niche, nicheLabels, OnboardingData } from "@/types/onboarding";
@@ -24,23 +24,17 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   property_management: Building2,
   outbound_isa_realtor: PhoneCall,
   voicemail: Voicemail,
+  restaurant: UtensilsCrossed,
   other: HelpCircle,
 };
 
 // Fully built and ready to use
-const LIVE_NICHES: Niche[] = ["real_estate"];
+const LIVE_NICHES: Niche[] = ["auto_glass", "property_management", "real_estate", "voicemail"];
 
 // Available but still in beta
-const BETA_NICHES: Niche[] = ["voicemail"];
+const BETA_NICHES: Niche[] = ["hvac", "plumbing", "dental", "legal", "salon"];
 
 const INBOUND_NICHES: Niche[] = [
-  "auto_glass",
-  "hvac",
-  "plumbing",
-  "dental",
-  "legal",
-  "salon",
-  "property_management",
   "other",
 ];
 

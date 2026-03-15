@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { OnboardingData, defaultOnboardingData, NICHE_CONFIG, Niche } from "@/types/onboarding";
+import { OnboardingData, defaultOnboardingData, Niche } from "@/types/onboarding";
 import Step1 from "./steps/step1";
 import Step2 from "./steps/step2";
 import Step3 from "./steps/step3";
@@ -31,9 +31,10 @@ const STEP_TITLES: Record<number, string> = {
 };
 
 function getStepSequence(niche: string | null): number[] {
-  if (niche === 'voicemail' || niche === 'real_estate') return [1, 2, 4, 7];
-  if (niche && NICHE_CONFIG[niche as Niche]?.fastTrack) return [1, 2, 7];
-  return [1, 2, 3, 4, 5, 6, 7];
+  // voicemail + real_estate + restaurant keep step 4 (their niche Q's feed custom prompt builders)
+  if (niche === 'voicemail' || niche === 'real_estate' || niche === 'restaurant') return [1, 2, 4, 7];
+  // ALL other niches: 3-step fast-track
+  return [1, 2, 7];
 }
 
 function isValidEmail(email: string): boolean {
@@ -41,19 +42,16 @@ function isValidEmail(email: string): boolean {
 }
 
 function canAdvance(step: number, data: OnboardingData): boolean {
-  const isFastTrack = data.niche ? !!NICHE_CONFIG[data.niche as Niche]?.fastTrack : false;
   switch (step) {
     case 1: return !!data.niche;
     case 2: {
-      const noCity = isFastTrack || data.niche === 'real_estate';
-      if (noCity) {
-        const baseValid = !!data.businessName && !!data.state && countDigits(data.callbackPhone) >= 10 && isValidEmail(data.contactEmail);
-        if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim();
-        return baseValid;
-      }
-      return !!data.businessName && !!data.city && !!data.state
+      const skipCity = data.niche === 'voicemail';
+      const baseValid = !!data.businessName && !!data.state
         && countDigits(data.callbackPhone) >= 10
         && isValidEmail(data.contactEmail);
+      if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim();
+      if (skipCity) return baseValid;
+      return baseValid && !!data.city;
     }
     case 3: {
       const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
@@ -92,10 +90,17 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
           <div key={n} className="flex items-center">
             <div
               className={`
-                flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold shrink-0 transition-all duration-300
+                relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold shrink-0
                 ${done ? "bg-indigo-600 text-white" : active ? "ring-2 ring-indigo-600 text-indigo-600 bg-white" : "bg-gray-100 text-gray-400"}
               `}
             >
+              {active && (
+                <motion.div
+                  layoutId="onboard-active-step"
+                  className="absolute inset-0 rounded-full bg-indigo-600 opacity-10"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
               {done ? (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -265,21 +270,25 @@ export default function OnboardPage() {
                 <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
               )}
               {stepIndex < totalSteps - 1 ? (
-                <Button
-                  onClick={goNext}
-                  disabled={!canGoNext}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Continue →
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={goNext}
+                    disabled={!canGoNext}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Continue →
+                  </Button>
+                </motion.div>
               ) : (
-                <Button
-                  onClick={handleActivate}
-                  disabled={isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
-                >
-                  {isSubmitting ? "Activating..." : "Activate My Agent →"}
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={handleActivate}
+                    disabled={isSubmitting}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
+                  >
+                    {isSubmitting ? "Activating..." : "Activate My Agent →"}
+                  </Button>
+                </motion.div>
               )}
             </div>
           </div>

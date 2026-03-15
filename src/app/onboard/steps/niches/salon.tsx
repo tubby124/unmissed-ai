@@ -97,6 +97,32 @@ export default function SalonNiche({ data, onChange }: Props) {
           ))}
         </div>
       </div>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Enable appointment booking? <span className="text-gray-400 font-normal text-xs">(requires Google Calendar — set up in dashboard after sign-up)</span></Label>
+        <div className="space-y-2">
+          {[
+            { value: "yes", label: "Yes — I want the agent to check availability and book appointments" },
+            { value: "no", label: "No — just take messages and answer questions" },
+          ].map(opt => (
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="bookingEnabled"
+                value={opt.value}
+                checked={(answers.bookingEnabled as string || 'no') === opt.value}
+                onChange={() => onChange('bookingEnabled', opt.value)}
+                className="accent-blue-600"
+              />
+              <span className="text-sm text-gray-700">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        {answers.bookingEnabled === 'yes' && (
+          <p className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            After signing up, go to Settings → Booking to connect your Google Calendar. The agent will check availability and book appointments in real time.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

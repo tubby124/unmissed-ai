@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+
+const LiveTestCall = lazy(() => import("@/components/admin/LiveTestCall"));
 
 interface InventoryNumber {
   phone_number: string;
@@ -10,6 +11,356 @@ interface InventoryNumber {
   province: string | null;
   area_code: string | null;
   country: string;
+}
+
+interface AdminResult {
+  clientId: string;
+  agentId: string;
+  clientSlug: string;
+  twilioNumber: string | null;
+  authUserId: string | null;
+  prompt: string;
+  promptCharCount: number;
+  smsTemplate: string;
+  telegramLink: string;
+}
+
+function AdminTestPanel({ intakeId }: { intakeId: string }) {
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [activating, setActivating] = useState(false);
+  const [result, setResult] = useState<AdminResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleaned, setCleaned] = useState(false);
+
+  // Prompt editing + test call state
+  const [editablePrompt, setEditablePrompt] = useState("");
+  const [promptDirty, setPromptDirty] = useState(false);
+  const [testCallJoinUrl, setTestCallJoinUrl] = useState<string | null>(null);
+  const [testCallLoading, setTestCallLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+
+  // Activation options
+  const [buyNumber, setBuyNumber] = useState(false);
+
+  // Test email
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/check")
+      .then((r) => r.json())
+      .then((j) => setIsAdmin(j.isAdmin === true))
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  if (!isAdmin) return null;
+
+  async function handleActivate() {
+    setActivating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/test-activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intakeId, skipTwilio: !buyNumber }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.detail ? `${json.error}: ${json.detail}` : json.error || `Activation failed (${res.status})`);
+      setResult(json);
+      setEditablePrompt(json.prompt);
+      setPromptDirty(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Activation failed");
+    } finally {
+      setActivating(false);
+    }
+  }
+
+  async function handleTestCall() {
+    setTestCallLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/test-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: editablePrompt }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to create test call");
+      setTestCallJoinUrl(json.joinUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Test call failed");
+    } finally {
+      setTestCallLoading(false);
+    }
+  }
+
+  async function handleSavePrompt() {
+    if (!result) return;
+    setSaving(true);
+    setSaveMessage(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/save-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientSlug: result.clientSlug,
+          agentId: result.agentId,
+          prompt: editablePrompt,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Save failed");
+      setPromptDirty(false);
+      setSaveMessage("Saved to Supabase + Ultravox agent");
+      setResult({ ...result, promptCharCount: editablePrompt.length, prompt: editablePrompt });
+      setTimeout(() => setSaveMessage(null), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTestEmail() {
+    if (!result) return;
+    setSendingEmail(true);
+    setEmailMessage(null);
+    try {
+      const res = await fetch("/api/admin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientSlug: result.clientSlug }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Email failed");
+      setEmailMessage(`Sent to ${json.sentTo}`);
+      setTimeout(() => setEmailMessage(null), 6000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Email failed");
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+  function handleResetPrompt() {
+    if (!result) return;
+    setEditablePrompt(result.prompt);
+    setPromptDirty(false);
+  }
+
+  async function handleCleanup() {
+    if (!result) return;
+    setCleaning(true);
+    try {
+      const res = await fetch("/api/admin/cleanup-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientSlug: result.clientSlug, deleteUltravox: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Cleanup failed");
+      setCleaned(true);
+      setResult(null);
+      setEditablePrompt("");
+      setTestCallJoinUrl(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Cleanup failed");
+    } finally {
+      setCleaning(false);
+    }
+  }
+
+  return (
+    <div className="border-2 border-amber-300 bg-amber-50 rounded-xl p-4 text-left space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Admin Testing</span>
+        <span className="text-[10px] text-amber-500 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Skip Stripe</span>
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {saveMessage && <p className="text-xs text-emerald-600 font-medium">{saveMessage}</p>}
+
+      {cleaned && (
+        <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2">
+          <p className="font-medium">Cleaned up. Ultravox agent deleted, DB rows removed. Intake preserved.</p>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => { setCleaned(false); setError(null); }}
+              className="text-xs font-semibold text-amber-800 bg-amber-200 hover:bg-amber-300 rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
+            >
+              Re-activate same intake
+            </button>
+            <a href="/onboard" className="text-xs text-indigo-600 font-medium hover:text-indigo-800 underline underline-offset-2 self-center">
+              Start fresh
+            </a>
+          </div>
+        </div>
+      )}
+
+      {!result && !cleaned && (
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs text-amber-800 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={buyNumber}
+              onChange={(e) => setBuyNumber(e.target.checked)}
+              className="accent-amber-600"
+            />
+            Buy a real Twilio number (costs ~$1.15/mo)
+          </label>
+          <button
+            onClick={handleActivate}
+            disabled={activating}
+            className="w-full text-sm font-semibold text-amber-800 bg-amber-200 hover:bg-amber-300 disabled:opacity-50 rounded-lg px-4 py-2.5 transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            {activating ? "Activating (creating Ultravox agent)..." : `Test Activate — Skip Payment${buyNumber ? " (will buy number)" : ""}`}
+          </button>
+        </div>
+      )}
+
+      {result && (
+        <div className="space-y-3">
+          {/* Result summary */}
+          <div className="bg-white border border-amber-200 rounded-lg p-3 space-y-2 text-xs">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <span className="text-gray-500">Client slug</span>
+              <span className="font-mono text-gray-900">{result.clientSlug}</span>
+              <span className="text-gray-500">Agent ID</span>
+              <span className="font-mono text-gray-900 truncate">{result.agentId}</span>
+              <span className="text-gray-500">Prompt length</span>
+              <span className="text-gray-900">{editablePrompt.length.toLocaleString()} chars{promptDirty && " (edited)"}</span>
+              <span className="text-gray-500">Twilio</span>
+              <span className="text-gray-900">{result.twilioNumber || "Skipped"}</span>
+              <span className="text-gray-500">Auth user</span>
+              <span className="font-mono text-gray-900 truncate">{result.authUserId || "None"}</span>
+              <span className="text-gray-500">Telegram</span>
+              <span className="text-gray-900">
+                {result.telegramLink ? (
+                  <a
+                    href={result.telegramLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2 break-all"
+                  >
+                    Open link
+                  </a>
+                ) : "Not generated"}
+              </span>
+            </div>
+          </div>
+
+          {/* Editable prompt */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-amber-800">System Prompt</span>
+              <div className="flex items-center gap-2">
+                {promptDirty && (
+                  <span className="text-[10px] text-amber-600 bg-amber-100 rounded-full px-2 py-0.5">unsaved</span>
+                )}
+                <button
+                  onClick={() => setPromptExpanded(!promptExpanded)}
+                  className="text-[10px] text-gray-500 hover:text-gray-700 cursor-pointer"
+                >
+                  {promptExpanded ? "Collapse" : "Expand"}
+                </button>
+              </div>
+            </div>
+            <textarea
+              value={editablePrompt}
+              onChange={(e) => {
+                setEditablePrompt(e.target.value);
+                setPromptDirty(true);
+              }}
+              className={`w-full text-xs font-mono bg-white border border-amber-200 rounded-lg p-3 resize-y leading-relaxed text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+                promptExpanded ? "h-96" : "h-48"
+              }`}
+              spellCheck={false}
+            />
+          </div>
+
+          {/* Test Call + Save buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleTestCall}
+              disabled={testCallLoading || !!testCallJoinUrl}
+              className="flex-1 text-xs font-semibold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 disabled:opacity-50 rounded-lg px-3 py-2 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {testCallLoading ? "Starting call..." : testCallJoinUrl ? "Call active" : "Test Call (free, in browser)"}
+            </button>
+            {promptDirty && (
+              <button
+                onClick={handleSavePrompt}
+                disabled={saving}
+                className="flex-1 text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 disabled:opacity-50 rounded-lg px-3 py-2 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save to Agent"}
+              </button>
+            )}
+          </div>
+
+          {/* Reset + Email row */}
+          <div className="flex gap-2">
+            {promptDirty && (
+              <button
+                onClick={handleResetPrompt}
+                className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Reset to Original
+              </button>
+            )}
+            <button
+              onClick={handleTestEmail}
+              disabled={sendingEmail}
+              className="flex-1 text-xs font-medium text-violet-700 border border-violet-200 rounded-lg px-3 py-2 hover:bg-violet-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sendingEmail ? "Sending..." : "Send Test Email"}
+            </button>
+          </div>
+          {emailMessage && <p className="text-xs text-violet-600 font-medium">{emailMessage}</p>}
+
+          {/* Live test call */}
+          {testCallJoinUrl && (
+            <Suspense fallback={<div className="text-xs text-gray-400 p-2">Loading call UI...</div>}>
+              <LiveTestCall
+                joinUrl={testCallJoinUrl}
+                onEnd={() => setTestCallJoinUrl(null)}
+              />
+            </Suspense>
+          )}
+
+          {/* SMS template */}
+          <details className="text-xs">
+            <summary className="cursor-pointer text-amber-700 font-medium hover:text-amber-900">
+              Show SMS template
+            </summary>
+            <p className="mt-2 bg-white border rounded-lg p-3 text-gray-700">{result.smsTemplate}</p>
+          </details>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <a
+              href="/dashboard"
+              className="flex-1 text-center text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg px-3 py-2 hover:bg-indigo-50 transition-colors"
+            >
+              Open Dashboard
+            </a>
+            <button
+              onClick={handleCleanup}
+              disabled={cleaning}
+              className="flex-1 text-xs font-medium text-red-600 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cleaning ? "Cleaning up..." : "Clean Up Test"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function StatusContent() {
@@ -22,7 +373,7 @@ function StatusContent() {
 
   // Inventory number picker
   const [availableNumbers, setAvailableNumbers] = useState<InventoryNumber[]>([]);
-  const [selectedNumber, setSelectedNumber] = useState<string | null>(null); // null = fresh $20
+  const [selectedNumber, setSelectedNumber] = useState<string | null>(null); // null = fresh number
 
   // Success screen: poll for Twilio number
   const [twilioNumber, setTwilioNumber] = useState<string | null>(null);
@@ -58,7 +409,7 @@ function StatusContent() {
     fetch(`/api/public/available-numbers?intakeId=${intakeId}`)
       .then((r) => r.json())
       .then((json) => { if (json.numbers) setAvailableNumbers(json.numbers); })
-      .catch(() => { /* silently ignore — falls back to $20 flow */ });
+      .catch(() => { /* silently ignore — falls back to fresh number flow */ });
   }, [intakeId, success]);
 
   // Poll every 4 seconds until we get the number (Stripe webhook takes ~3-8s)
@@ -102,7 +453,7 @@ function StatusContent() {
     return (
       <div
         className="fixed inset-0 flex items-center justify-center px-4 overflow-y-auto py-8 z-10"
-        style={{ background: "linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #141414 100%)" }}
       >
         <style>{`
           @keyframes confetti-fall {
@@ -263,8 +614,8 @@ function StatusContent() {
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">Pick from available numbers</span>
-                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $3 — $17 CAD</span>
-                  <p className="text-xs text-gray-400 mt-0.5">Ready to go — no wait for provisioning</p>
+                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $5 — $20 CAD</span>
+                  <p className="text-xs text-gray-400 mt-0.5">Ready to go, nothing wrong — just in stock</p>
                 </div>
               </label>
 
@@ -310,7 +661,7 @@ function StatusContent() {
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">Get a fresh local number</span>
-                  <span className="ml-2 text-xs text-gray-500">$20 CAD</span>
+                  <span className="ml-2 text-xs text-gray-500">$25 CAD</span>
                   <p className="text-xs text-gray-400 mt-0.5">Assigned from your province after payment</p>
                 </div>
               </label>
@@ -322,6 +673,8 @@ function StatusContent() {
           <p className="text-sm text-red-600">{payError}</p>
         )}
 
+        <AdminTestPanel intakeId={intakeId} />
+
         <button
           onClick={handlePay}
           disabled={loading}
@@ -330,12 +683,12 @@ function StatusContent() {
           {loading
             ? "Redirecting to checkout…"
             : selectedNumber
-            ? "Activate my agent — $17 CAD"
-            : "Activate my agent — $20 CAD"}
+            ? "Activate my agent — $20 CAD"
+            : "Activate my agent — $25 CAD"}
         </button>
 
         <p className="text-xs text-gray-400">
-          Secure checkout powered by Stripe. No subscription started today.
+          One-time setup fee — includes 50 free minutes. Secure checkout powered by Stripe.
         </p>
       </div>
     );
@@ -344,22 +697,19 @@ function StatusContent() {
   // ── Fallback state (no id, no success) ────────────────────────────────────
   return (
     <div className="max-w-md w-full text-center space-y-6 py-12">
-      <div className="text-5xl">✅</div>
-      <h1 className="text-2xl font-bold text-gray-900">Request received!</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Nothing to show here</h1>
       <p className="text-gray-600 text-sm leading-relaxed">
-        We&apos;ve got your setup details. We&apos;ll reach out within 1–2 business
-        days to get your AI agent live.
+        This page requires a valid intake ID. If you&apos;re setting up a new agent,
+        start from the beginning.
       </p>
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900 text-left space-y-2">
-        <p className="font-semibold">What happens next:</p>
-        <ol className="list-decimal list-inside space-y-1 text-blue-800">
-          <li>We review your setup details</li>
-          <li>We configure your custom AI agent</li>
-          <li>We send you a test number to call before going live</li>
-        </ol>
-      </div>
+      <a
+        href="/onboard"
+        className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-colors text-sm"
+      >
+        Start setup
+      </a>
       <p className="text-xs text-gray-400">
-        Questions? Email{" "}
+        Questions?{" "}
         <a href="mailto:support@unmissed.ai" className="underline">
           support@unmissed.ai
         </a>

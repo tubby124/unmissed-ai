@@ -10,6 +10,7 @@ export type Niche =
   | "real_estate"
   | "property_management"
   | "outbound_isa_realtor"
+  | "restaurant"
   | "voicemail"
   | "other";
 
@@ -78,28 +79,28 @@ export interface OnboardingData {
   agentTone: AgentTone;
   primaryGoal: PrimaryGoal;
   completionFields: string;   // Moved to Settings > Advanced Context
-  pricingPolicy: PricingPolicy; // Sprint 1 — conditional on NICHE_CONFIG.showPricingPolicy
+  pricingPolicy: PricingPolicy;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
-// To change what a niche shows/hides: edit ONE row here, no step files needed.
+// Step sequence logic lives in getStepSequence() in page.tsx.
+// All standard niches use 3-step fast-track [1, 2, 7].
+// voicemail + real_estate use [1, 2, 4, 7] (their niche Q's feed custom prompt builders).
 export const NICHE_CONFIG: Record<Niche, {
   hasPhysicalAddress: boolean;  // show streetAddress in step 2
-  showPricingPolicy: boolean;   // show pricingPolicy in step 6
-  showFullHours: boolean;       // show full 7-day hours picker vs. simplified
-  fastTrack?: boolean;          // skip steps 3-6, show 3-step wizard
 }> = {
-  auto_glass:           { hasPhysicalAddress: true,  showPricingPolicy: true,  showFullHours: true  },
-  hvac:                 { hasPhysicalAddress: false, showPricingPolicy: true,  showFullHours: true  },
-  plumbing:             { hasPhysicalAddress: false, showPricingPolicy: true,  showFullHours: true  },
-  dental:               { hasPhysicalAddress: true,  showPricingPolicy: false, showFullHours: true  },
-  legal:                { hasPhysicalAddress: true,  showPricingPolicy: false, showFullHours: true  },
-  salon:                { hasPhysicalAddress: true,  showPricingPolicy: true,  showFullHours: true  },
-  real_estate:          { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false },
-  property_management:  { hasPhysicalAddress: true,  showPricingPolicy: false, showFullHours: true  },
-  outbound_isa_realtor: { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false },
-  voicemail:            { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: false, fastTrack: true },
-  other:                { hasPhysicalAddress: false, showPricingPolicy: false, showFullHours: true  },
+  auto_glass:           { hasPhysicalAddress: true  },
+  hvac:                 { hasPhysicalAddress: false },
+  plumbing:             { hasPhysicalAddress: false },
+  dental:               { hasPhysicalAddress: true  },
+  legal:                { hasPhysicalAddress: true  },
+  salon:                { hasPhysicalAddress: true  },
+  real_estate:          { hasPhysicalAddress: false },
+  property_management:  { hasPhysicalAddress: true  },
+  outbound_isa_realtor: { hasPhysicalAddress: false },
+  restaurant:           { hasPhysicalAddress: true  },
+  voicemail:            { hasPhysicalAddress: false },
+  other:                { hasPhysicalAddress: false },
 };
 
 export const defaultHours: BusinessHours = {
@@ -154,6 +155,7 @@ export const nicheLabels: Record<Niche, string> = {
   real_estate: "Real Estate Agent",
   property_management: "Property Management",
   outbound_isa_realtor: "Realtor ISA (Outbound)",
+  restaurant: "Restaurant / Food Service",
   voicemail: "Voicemail / Message Taking",
   other: "Other Business",
 };
@@ -168,6 +170,7 @@ export const nicheEmojis: Record<Niche, string> = {
   real_estate: "🏠",
   property_management: "🏘️",
   outbound_isa_realtor: "📞",
+  restaurant: "🍕",
   voicemail: "📬",
   other: "🏢",
 };
@@ -182,6 +185,7 @@ export const defaultAgentNames: Record<Niche, string> = {
   real_estate: "Alex",
   property_management: "Jade",
   outbound_isa_realtor: "Fatima",
+  restaurant: "Sofia",
   voicemail: "Sam",
   other: "Sam",
 };
