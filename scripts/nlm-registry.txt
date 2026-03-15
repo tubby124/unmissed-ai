@@ -1,0 +1,31 @@
+# NotebookLM File Registry — unmissed.ai
+# One file per line. Lines starting with # are comments.
+# Format: PATH | DESCRIPTION
+# PATH is relative to project root (/Users/owner/Downloads/CALLING AGENTs/)
+#
+# To add a new file: append a line here, then run: bash scripts/nlm-sync.sh
+# The sync script copies all listed files to ~/Downloads/unmissed-notebooklm/
+# and shows you what's new or changed so you know what to re-upload to NLM.
+
+# === MASTER CONTEXT (always upload first) ===
+/Users/owner/.claude/projects/-Users-owner-Downloads-CALLING-AGENTs/memory/notebooklm-ua-context.md | Master NLM context — architecture, lifecycle, schema, all systems
+
+# === ARCHITECTURE & OPERATIONS ===
+AGENT_APP_ARCHITECTURE.md | Full system architecture, DB schema, webhook flows
+ONBOARDING_LESSONS.md | 11 deployment gotchas from real client builds
+
+# === BUILD PACKAGES (prompt engineering) ===
+BUILD_PACKAGES/INBOUND_VOICE_AGENT/PROMPT_TEMPLATE_INBOUND.md | v4.0 prompt template, 22 variables, 10 examples, grammar rules
+BUILD_PACKAGES/INBOUND_VOICE_AGENT/VOICE_AGENT_RESEARCH.md | Platform comparison, TTS, VAD, prompt engineering playbook
+BUILD_PACKAGES/INBOUND_VOICE_AGENT/INTAKE_FORM_INBOUND.md | Client intake questions, variable mapping, deployment checklist
+
+# === RESEARCH & REFERENCE ===
+memory/ultravox-api-reference.md | Complete Ultravox API: endpoints, config, gotchas, pricing
+memory/pricing-strategy.md | Cost structure, 3 tiers, margins, competitor benchmarks
+memory/product-roadmap.md | Vision, phases P1-P5, DIY vs hands-off archetypes
+memory/canadian-carrier-call-forwarding.md | All carrier star codes, SK/AB coverage, VoIP platforms
+
+# === ADD NEW FILES BELOW THIS LINE ===
+# memory/ultravox-rag-research.md | Corpus API, RAG vs HTTP tool decision matrix
+# memory/cartesia-tts-integration.md | Voice shortlist, sonic-3, testing workflow
+memory/ai-liability-canada.md | Canadian AI liability law (Moffatt 2024), insurance options, order-error scenarios, ToS guidance

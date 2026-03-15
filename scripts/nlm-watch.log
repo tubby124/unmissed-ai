@@ -1,0 +1,104 @@
+/bin/bash: /Users/owner/Downloads/CALLING AGENTs/scripts/nlm-watch.sh: Operation not permitted
+/bin/bash: /Users/owner/Downloads/CALLING AGENTs/scripts/nlm-watch.sh: Operation not permitted
+/bin/bash: /Users/owner/Downloads/CALLING AGENTs/scripts/nlm-watch.sh: Operation not permitted
+[2026-03-14 13:11:36] nlm-watch started
+[2026-03-14 13:11:47] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 14:41:35] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 14:42:58] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 14:45:21] Change detected — syncing...
+[1;33m  CHANGED[0m  product-roadmap.md                            [0;36mVision, phases P1-P5, DIY vs hands-off archetypes[0m
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 1  Unchanged: 10  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mFiles synced to:[0m /Users/owner/Downloads/unmissed-notebooklm
+
+[1;33mACTION REQUIRED — upload these to NotebookLM:[0m
+  [1;33m~ product-roadmap.md[0m  (replace existing source)
+
+[2026-03-14 14:45:31] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 18:58:42] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 23:11:19] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 23:11:30] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-14 23:11:33] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-15 00:46:49] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-15 03:33:09] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
+[2026-03-15 03:33:25] Change detected — syncing...
+
+────────────────────────────────────
+  [0;32mNew:[0m 0  [1;33mChanged:[0m 0  Unchanged: 11  [0;31mMissing:[0m 0  Total: 11
+────────────────────────────────────
+
+[0;32mEverything up to date. Nothing to upload.[0m
+
