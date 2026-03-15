@@ -364,6 +364,17 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
   const inboundUrl = `${appUrl}/api/webhook/${client.slug}/inbound`
   const completedUrl = `${appUrl}/api/webhook/${client.slug}/completed`
 
+  async function handleMarkSetupComplete() {
+    const body: Record<string, unknown> = { setup_complete: true }
+    if (isAdmin) body.client_id = client.id
+    await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSetupComplete(prev => ({ ...prev, [client.id]: true }))
+  }
+
   async function save() {
     setSaving(true)
     setSaved(false)
@@ -1136,6 +1147,17 @@ export default function SettingsView({ clients, isAdmin, appUrl }: SettingsViewP
             </div>
           )}
         </div>
+        {isAdmin && !setupComplete[client.id] && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={handleMarkSetupComplete}
+              className="text-xs px-3 py-1.5 rounded-lg border"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-3)' }}
+            >
+              Setup incomplete · Mark as done →
+            </button>
+          </div>
+        )}
       </div>
       </motion.div>
 

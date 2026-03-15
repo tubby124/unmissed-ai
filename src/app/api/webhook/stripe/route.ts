@@ -341,6 +341,7 @@ export async function POST(req: NextRequest) {
   try {
     const updatePayload: Record<string, unknown> = {
       status: 'active',
+      setup_complete: true,
       updated_at: new Date().toISOString(),
       telegram_registration_token: telegramRegToken,
       sms_enabled: callerAutoText,
