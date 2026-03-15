@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
 
   const { data: cu } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).single()
-  if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
+  if (!cu || !['admin', 'owner'].includes(cu.role)) return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))
   const clientId = (body.client_id as string | undefined) || cu.client_id
@@ -38,11 +38,34 @@ export async function POST(req: NextRequest) {
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
+  // Idempotency: if a pending report exists created in the last 60 min, return it (prevent TOCTOU duplicate runs)
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { data: existingReport } = await svc
+    .from('call_analysis_reports')
+    .select('id, issues, recommendations')
+    .eq('client_id', clientId)
+    .eq('status', 'pending')
+    .gte('created_at', oneHourAgo)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingReport) {
+    return NextResponse.json({
+      ok: true,
+      report_id: existingReport.id,
+      issues_count: Array.isArray(existingReport.issues) ? existingReport.issues.length : 0,
+      recommendations_count: Array.isArray(existingReport.recommendations) ? existingReport.recommendations.length : 0,
+      deduplicated: true,
+    })
+  }
+
   const { data: calls } = await svc
     .from('call_logs')
     .select('id, call_status, ai_summary, service_type, confidence, sentiment, key_topics, next_steps, quality_score, duration_seconds, ended_at')
     .eq('client_id', clientId)
-    .not('call_status', 'in', '("live","processing")')
+    .not('call_status', 'in', '("live","processing","MISSED","JUNK")')
+    .not('test_call', 'is', true)
     .order('ended_at', { ascending: false })
     .limit(50)
 

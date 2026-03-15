@@ -62,6 +62,21 @@ export async function GET(req: NextRequest) {
   const browserCount = calls.filter(c => c.source === 'browser').length
   const phoneCount = calls.filter(c => c.source === 'phone').length
 
+  // Per-agent breakdown
+  const agentBreakdown: Record<string, { calls: number; avgDuration: number; converted: number }> = {}
+  for (const [agentId, count] of Object.entries(agentCounts)) {
+    const agentCalls = calls.filter(c => c.demo_id === agentId)
+    const agentCompleted = agentCalls.filter(c => c.duration_seconds && c.duration_seconds > 0)
+    const agentAvgDur = agentCompleted.length > 0
+      ? Math.round(agentCompleted.reduce((sum: number, c: { duration_seconds: number }) => sum + c.duration_seconds, 0) / agentCompleted.length)
+      : 0
+    agentBreakdown[agentId] = {
+      calls: count,
+      avgDuration: agentAvgDur,
+      converted: agentCalls.filter(c => c.converted).length,
+    }
+  }
+
   return NextResponse.json({
     stats: {
       totalDemos,
@@ -72,6 +87,7 @@ export async function GET(req: NextRequest) {
       avgDuration,
       browserCount,
       phoneCount,
+      agentBreakdown,
     },
     recentCalls: calls.slice(0, 50).map(c => ({
       id: c.id,

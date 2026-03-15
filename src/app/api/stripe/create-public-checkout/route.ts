@@ -1,7 +1,8 @@
 /**
  * POST /api/stripe/create-public-checkout
  *
- * Public (no auth required). Creates a Stripe Checkout session for the $20 CAD setup fee.
+ * Public (no auth required). Creates a Stripe Checkout session for the setup fee.
+ * Fresh number: $25 CAD. Inventory number: $20 CAD. Both include 50 free minutes.
  * Auto-provisions the clients row + Ultravox agent if not already done by admin.
  *
  * Body: { intakeId: string }
@@ -13,6 +14,8 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent } from '@/lib/ultravox'
+import { getNicheVoice } from '@/lib/niche-config'
+import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -60,7 +63,6 @@ export async function POST(req: NextRequest) {
         status: 'reserved',
         reserved_intake_id: intakeId,
         reserved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
       .eq('phone_number', selectedNumber)
       .or(`status.eq.available,and(status.eq.reserved,reserved_at.lt.${expiryTime})`)
@@ -120,9 +122,22 @@ export async function POST(req: NextRequest) {
     const intakeData = (intake.intake_json as Record<string, unknown>) || {}
     if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
 
+    // ── Website scraping enrichment ────────────────────────────────────────────
+    let websiteContent = ''
+    const websiteUrlForScrape = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
+    if (websiteUrlForScrape) {
+      const rawMarkdown = await scrapeAndExtract(websiteUrlForScrape)
+      if (rawMarkdown) {
+        websiteContent = await extractBusinessContent(rawMarkdown)
+        if (websiteContent) {
+          console.log(`[create-public-checkout] Website scraping: ${websiteContent.length} chars for slug=${clientSlug}`)
+        }
+      }
+    }
+
     let prompt: string
     try {
-      prompt = buildPromptFromIntake(intakeData)
+      prompt = buildPromptFromIntake(intakeData, websiteContent)
     } catch (err) {
       console.error('[create-public-checkout] buildPromptFromIntake failed:', err)
       return NextResponse.json({ error: 'Prompt generation failed', detail: String(err) }, { status: 500 })
@@ -133,11 +148,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt failed validation', errors: validation.errors }, { status: 422 })
     }
 
-    // Voice ID: female default (Ayana), male = Mark's voice
+    // Voice ID: use niche-specific default, with gender override
     const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
     const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
-    const voiceGender = (intakeData.niche_voiceGender as string) || 'female'
-    const voiceId = voiceGender === 'male' ? VOICE_MALE : VOICE_FEMALE
+    const voiceGender = (intakeData.niche_voiceGender as string) || ''
+    const nicheForVoice = intake.niche || 'other'
+    const voiceId = voiceGender === 'male' ? VOICE_MALE
+      : voiceGender === 'female' ? VOICE_FEMALE
+      : getNicheVoice(nicheForVoice)
 
     let agentId: string
     try {
@@ -212,12 +230,12 @@ export async function POST(req: NextRequest) {
         {
           price_data: {
             currency: 'cad',
-            unit_amount: isInventory ? 1700 : 2000,
+            unit_amount: isInventory ? 2000 : 2500,
             product_data: {
               name: isInventory
                 ? `unmissed.ai Voice Agent Setup (${selectedNumber})`
                 : 'unmissed.ai Voice Agent Setup',
-              description: 'Includes your first month of AI call handling — free.',
+              description: 'One-time setup fee — includes 50 free minutes.',
             },
           },
           quantity: 1,

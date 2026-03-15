@@ -57,6 +57,46 @@ export async function POST(req: NextRequest) {
   }
 
   const session = event.data.object as Stripe.Checkout.Session
+
+  // ── Minute reload path ─────────────────────────────────────────────
+  if (session.metadata?.type === 'minute_reload') {
+    const reloadMinutes = parseInt(session.metadata?.minutes ?? '0', 10)
+    const reloadClientId = session.metadata?.client_id
+    const reloadSlug = session.metadata?.client_slug ?? 'unknown'
+
+    if (reloadMinutes > 0 && reloadClientId) {
+      const { data: currentClient } = await adminSupa
+        .from('clients')
+        .select('bonus_minutes, business_name')
+        .eq('id', reloadClientId)
+        .single()
+
+      const currentBonus = (currentClient?.bonus_minutes as number) ?? 0
+      await adminSupa
+        .from('clients')
+        .update({ bonus_minutes: currentBonus + reloadMinutes })
+        .eq('id', reloadClientId)
+
+      console.log(`[stripe-webhook] Minute reload: +${reloadMinutes} min for slug=${reloadSlug} (total bonus: ${currentBonus + reloadMinutes})`)
+
+      const { data: adminCl } = await adminSupa
+        .from('clients')
+        .select('telegram_bot_token, telegram_chat_id')
+        .eq('slug', 'hasan-sharif')
+        .single()
+      if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+        void sendAlert(
+          adminCl.telegram_bot_token as string,
+          adminCl.telegram_chat_id as string,
+          `\u{1F4B0} <b>${currentClient?.business_name ?? reloadSlug}</b> reloaded ${reloadMinutes} min ($${reloadMinutes / 10} CAD)\nNew bonus total: ${currentBonus + reloadMinutes} min`
+        )
+      }
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
+  // ── Activation path ────────────────────────────────────────────────
   const { intake_id, client_id, client_slug, reserved_number: reservedNumberMeta } = session.metadata ?? {}
   const reservedNumber = reservedNumberMeta || null
 
@@ -304,6 +344,7 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
       telegram_registration_token: telegramRegToken,
       sms_enabled: callerAutoText,
+      bonus_minutes: 50,
     }
     if (twilioNumber) updatePayload.twilio_number = twilioNumber
     if (callerAutoTextMessage) updatePayload.sms_template = callerAutoTextMessage

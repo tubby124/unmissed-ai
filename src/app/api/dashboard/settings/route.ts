@@ -44,6 +44,27 @@ export async function PATCH(req: NextRequest) {
   if (Array.isArray(body.extra_qa)) {
     updates.extra_qa = body.extra_qa
   }
+  if (typeof body.context_data === 'string') {
+    updates.context_data = body.context_data || null
+  }
+  if (typeof body.context_data_label === 'string') {
+    updates.context_data_label = body.context_data_label || null
+  }
+  if (typeof body.booking_service_duration_minutes === 'number' && body.booking_service_duration_minutes > 0) {
+    updates.booking_service_duration_minutes = body.booking_service_duration_minutes
+  }
+  if (typeof body.booking_buffer_minutes === 'number' && body.booking_buffer_minutes >= 0) {
+    updates.booking_buffer_minutes = body.booking_buffer_minutes
+  }
+  // Admin only: toggle booking_enabled and calendar_beta_enabled
+  if (cu.role === 'admin') {
+    if (typeof body.booking_enabled === 'boolean') {
+      updates.booking_enabled = body.booking_enabled
+    }
+    if (typeof body.calendar_beta_enabled === 'boolean') {
+      updates.calendar_beta_enabled = body.calendar_beta_enabled
+    }
+  }
   if (typeof body.forwarding_number === 'string') {
     updates.forwarding_number = body.forwarding_number || null
   }
@@ -52,6 +73,11 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
     updates.agent_name = body.agent_name.trim()
+  }
+
+  // Clear or set pending loop suggestion (null = clear after apply/dismiss, object = set by cron)
+  if ('pending_loop_suggestion' in body) {
+    updates.pending_loop_suggestion = body.pending_loop_suggestion ?? null
   }
 
   // God Mode fields — admin only

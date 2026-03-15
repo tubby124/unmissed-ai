@@ -1,7 +1,7 @@
 /**
  * POST /api/stripe/create-checkout
  *
- * Admin only. Creates a Stripe Checkout session for the $20 setup fee.
+ * Admin only. Creates a Stripe Checkout session for the $25 setup fee (fresh number).
  * Returns { url } — admin sends this to the client or opens it themselves.
  *
  * Body: { intakeId: string, clientId: string }
@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
     line_items: [
       {
         price_data: {
-          currency: 'usd',
-          unit_amount: 2000,
+          currency: 'cad',
+          unit_amount: 2500,
           product_data: {
             name: 'unmissed.ai Voice Agent Setup',
-            description: `AI phone agent for ${intake.business_name}`,
+            description: `One-time setup fee — includes 50 free minutes.`,
           },
         },
         quantity: 1,

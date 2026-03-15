@@ -3,8 +3,11 @@ import crypto from 'crypto'
 import { createDemoCall } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
+import { OnboardingData } from '@/types/onboarding'
+import { toIntakePayload } from '@/lib/intake-transform'
+import { buildPromptFromIntake } from '@/lib/prompt-builder'
 
-// Simple in-memory rate limiter: 2 demos per IP per hour
+// Simple in-memory rate limiter: 10 demos per IP per hour
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
@@ -23,6 +26,28 @@ function recordUsage(ip: string) {
   rateLimitMap.set(ip, timestamps)
 }
 
+// Default voices for onboard preview calls
+const VOICE_AISHA      = '87edb04c-06d4-47c2-bd94-683bc47e8fbe' // real estate
+const VOICE_MARK       = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae' // auto glass / trades
+const VOICE_JACQUELINE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a' // everything else
+
+const NICHE_PREVIEW_VOICE: Record<string, string> = {
+  real_estate: VOICE_AISHA,
+  outbound_isa_realtor: VOICE_AISHA,
+  auto_glass: VOICE_MARK,
+  hvac: VOICE_MARK,
+  plumbing: VOICE_MARK,
+}
+
+const NICHE_AGENT_NAME: Record<string, string> = {
+  auto_glass: 'Mark', hvac: 'Mike', plumbing: 'Dave', dental: 'Ashley',
+  legal: 'Jordan', salon: 'Jamie', real_estate: 'Alex',
+  property_management: 'Alisha', outbound_isa_realtor: 'Fatima',
+  voicemail: 'Sam', restaurant: 'Jamie', other: 'Sam',
+}
+
+const MALE_NICHES = new Set(['auto_glass', 'hvac', 'plumbing'])
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
 
@@ -34,8 +59,67 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const demoId = body.demoId as string
   const callerName = (body.callerName as string)?.trim() || 'Friend'
+
+  // ── Preview mode: generate prompt live from onboarding data ─────────────────
+  if (body.mode === 'preview' && body.onboardingData) {
+    const onboardingData = body.onboardingData as OnboardingData
+    const niche = onboardingData.niche || 'other'
+    const agentName = onboardingData.agentName || NICHE_AGENT_NAME[niche] || 'Sam'
+    const companyName = onboardingData.businessName || 'Your Business'
+
+    let prompt: string
+    try {
+      const intake = toIntakePayload(onboardingData)
+      prompt = buildPromptFromIntake(intake as Record<string, unknown>)
+    } catch (err) {
+      return NextResponse.json({ error: `Prompt generation failed: ${err}` }, { status: 500 })
+    }
+
+    const promptWithContext = prompt + `\n\n[PREVIEW MODE — The business owner is testing their own agent before going live. Caller name: "${callerName}". 2-minute preview. Be concise.]
+
+HANG-UP RULES (mandatory — follow exactly):
+- When the caller says "bye", "goodbye", "thanks", "thank you", "okay thanks", "that's all", "I'm good", "I'm done", or any other signal they are finished — say a brief farewell (max 5 words) and invoke hangUp in the SAME response.
+- If there is more than 3 seconds of silence after you have finished speaking and the exchange appears complete — say "take care!" and invoke hangUp.
+- NEVER re-engage or say "hello?" after invoking hangUp. The call is over.
+- NEVER generate any speech after your closing line and the hangUp tool call.`
+
+    const voiceId = NICHE_PREVIEW_VOICE[niche] || VOICE_JACQUELINE
+    const fallbackVoice = MALE_NICHES.has(niche) ? VOICE_MARK : VOICE_JACQUELINE
+
+    try {
+      let call: { joinUrl: string; callId: string }
+      try {
+        call = await createDemoCall({ systemPrompt: promptWithContext, voice: voiceId })
+      } catch {
+        call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice })
+      }
+
+      recordUsage(ip)
+
+      const supabaseLog = createServiceClient()
+      const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
+      supabaseLog.from('demo_calls').insert({
+        demo_id: `preview:${niche}`,
+        caller_name: callerName,
+        ultravox_call_id: call.callId,
+        source: 'onboard-preview',
+        ip_hash: ipHash,
+      }).then(({ error }) => {
+        if (error) console.error(`[demo] Failed to log preview call: ${error.message}`)
+      })
+
+      console.log(`[demo] Onboard preview started: niche=${niche} company="${companyName}" callId=${call.callId}`)
+
+      return NextResponse.json({ joinUrl: call.joinUrl, callId: call.callId, agentName, companyName })
+    } catch (err) {
+      console.error(`[demo] Preview call failed: ${err}`)
+      return NextResponse.json({ error: 'Failed to start preview. Please try again.' }, { status: 500 })
+    }
+  }
+
+  // ── Standard demo mode: DEMO_AGENTS lookup ──────────────────────────────────
+  const demoId = body.demoId as string
 
   if (!demoId || !DEMO_AGENTS[demoId]) {
     return NextResponse.json(
@@ -63,17 +147,14 @@ export async function POST(req: NextRequest) {
     } else {
       console.warn(`[demo] Live prompt fetch failed for slug=${demo.clientSlug}, falling back to hardcoded`)
     }
-    // Use Supabase voice if available so demo stays in sync with production
     if (client?.agent_voice_id) {
       liveVoiceId = client.agent_voice_id as string
     }
   }
 
-  // Inject caller name into the prompt context
   const promptWithContext = basePrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
 
   const voiceId = liveVoiceId || demo.voiceId
-  // Fallback: if the voice ID is rejected by Ultravox (deleted/invalid), retry with a gender-matched default
   const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
   const FALLBACK_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'  // Jacqueline voice
   const fallbackVoice = demo.voiceGender === 'male' ? FALLBACK_MALE : FALLBACK_FEMALE
@@ -81,21 +162,14 @@ export async function POST(req: NextRequest) {
   try {
     let call: { joinUrl: string; callId: string }
     try {
-      call = await createDemoCall({
-        systemPrompt: promptWithContext,
-        voice: voiceId,
-      })
+      call = await createDemoCall({ systemPrompt: promptWithContext, voice: voiceId })
     } catch (firstErr) {
       console.warn(`[demo] Voice ${voiceId} rejected, retrying with ${demo.voiceGender} fallback: ${firstErr}`)
-      call = await createDemoCall({
-        systemPrompt: promptWithContext,
-        voice: fallbackVoice,
-      })
+      call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice })
     }
 
     recordUsage(ip)
 
-    // Log demo call to Supabase (fire-and-forget)
     const supabaseLog = createServiceClient()
     const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
     supabaseLog.from('demo_calls').insert({

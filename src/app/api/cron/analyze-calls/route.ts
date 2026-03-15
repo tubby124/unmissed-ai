@@ -176,6 +176,220 @@ async function analyzeClient(clientId: string): Promise<{
   }
 }
 
+// ─── Learning Loop ─────────────────────────────────────────────────────────
+// After analysis, check if ≥5 new meaningful calls since last prompt version.
+// If so, run improve-prompt logic and send a Telegram with specific suggestions.
+
+const IMPROVE_SYSTEM_PROMPT = `You are a voice agent prompt optimizer for unmissed.ai. You receive a live system prompt and a call intelligence brief showing real caller patterns and friction points.
+
+Your job: suggest MINIMAL, TARGETED changes that improve call handling based on evidence from actual calls.
+
+RULES:
+- Maximum 3 changes per pass. Fewer is better. Zero is fine.
+- Every change MUST cite a specific call pattern or friction point from the brief.
+- NEVER rewrite the full prompt. Only insert, replace, or adjust specific lines.
+- NEVER change: agent name, identity block, opening line, closing sequence, or the hangUp tool behavior.
+- Preserve exact section headers and structure.
+- All new dialogue lines must sound natural when spoken aloud — use contractions, keep under 2 sentences.
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "improved_prompt": "full prompt with changes applied",
+  "changes": [
+    {
+      "type": "new_faq | edge_case | tone_tweak | flow_fix",
+      "section": "which section was modified",
+      "what": "brief description",
+      "why": "which call pattern or friction point motivated this",
+      "confidence": "high | medium | low"
+    }
+  ],
+  "no_changes_needed": false
+}
+
+If calls are going well and the prompt handles everything, return no_changes_needed: true with an empty changes array.`
+
+type LoopChange = { type: string; section: string; what: string; why: string; confidence: string }
+
+async function autoImproveClient(clientId: string): Promise<void> {
+  const supabase = createServiceClient()
+
+  // Check how many new meaningful calls since last prompt version
+  const { data: lastVersion } = await supabase
+    .from('prompt_versions')
+    .select('created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const since = lastVersion?.created_at ?? new Date(0).toISOString()
+
+  const { count } = await supabase
+    .from('call_logs')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+    .not('call_status', 'in', '("live","processing","MISSED","JUNK")')
+    .gt('duration_seconds', 20)
+    .gt('ended_at', since)
+
+  // Only run if at least 5 new meaningful calls since last improvement
+  if (!count || count < 5) return
+
+  const { data: client } = await supabase
+    .from('clients')
+    .select('slug, business_name, niche, system_prompt, forwarding_number, telegram_bot_token, telegram_chat_id, pending_loop_suggestion')
+    .eq('id', clientId)
+    .single()
+
+  if (!client?.system_prompt || !client?.telegram_bot_token || !client?.telegram_chat_id) return
+
+  // Skip if a suggestion was generated within the last 48hrs (prevent cron spam)
+  const existing = client.pending_loop_suggestion as { generated_at?: string } | null
+  if (existing?.generated_at) {
+    const ageMs = Date.now() - new Date(existing.generated_at).getTime()
+    if (ageMs < 48 * 60 * 60 * 1000) {
+      console.log(`[learning-loop] Skipping ${client.slug} — pending suggestion < 48hrs old`)
+      return
+    }
+  }
+
+  const ADMIN_NUMBERS = ['+13068507687']
+  const clientOwnerPhone = client.forwarding_number
+    ? [client.forwarding_number.replace(/\D/g, '').replace(/^1?(\d{10})$/, '+1$1')]
+    : []
+  const excludePhones = [...ADMIN_NUMBERS, ...clientOwnerPhone]
+  const excludeFilter = `(${excludePhones.map(p => `"${p}"`).join(',')})`
+
+  const { data: calls } = await supabase
+    .from('call_logs')
+    .select('id, call_status, ai_summary, service_type, key_topics, sentiment, next_steps, quality_score, duration_seconds')
+    .eq('client_id', clientId)
+    .not('call_status', 'in', '("live","processing","MISSED","JUNK")')
+    .not('caller_phone', 'in', excludeFilter)
+    .gt('duration_seconds', 20)
+    .order('ended_at', { ascending: false })
+    .limit(10)
+
+  if (!calls?.length) return
+
+  // Build topic frequency map
+  const topicFreq: Record<string, number> = {}
+  calls.forEach(c => ((c.key_topics as string[] | null) ?? []).forEach((t: string) => {
+    topicFreq[t] = (topicFreq[t] ?? 0) + 1
+  }))
+  const topTopics = Object.entries(topicFreq).sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+  // Friction calls: quality < 7 or UNKNOWN
+  const frictionIds = calls
+    .filter(c => (c.quality_score != null && c.quality_score < 7) || c.call_status === 'UNKNOWN')
+    .slice(0, 3)
+    .map((c: { id: string }) => c.id)
+
+  const { data: frictionTranscripts } = frictionIds.length
+    ? await supabase.from('call_logs').select('id, transcript').in('id', frictionIds)
+    : { data: [] as Array<{ id: string; transcript: Array<{ role: string; text?: string }> | null }> }
+
+  const transcriptMap = Object.fromEntries((frictionTranscripts ?? []).map(r => [r.id, r.transcript ?? []]))
+  const frictionCalls = calls
+    .filter((c: { id: string; quality_score: number | null; call_status: string | null }) => (c.quality_score != null && c.quality_score < 7) || c.call_status === 'UNKNOWN')
+    .slice(0, 3)
+    .map((c: { id: string; call_status: string | null; quality_score: number | null; duration_seconds: number | null; ai_summary: string | null }) => {
+      const msgs: Array<{ role: string; text?: string }> = transcriptMap[c.id] ?? []
+      const excerpt = msgs.slice(-6).map(m => `  ${m.role}: "${(m.text || '').slice(0, 120)}"`).join('\n')
+      return { ...c, excerpt }
+    })
+
+  const totalCalls = calls.length
+  const topicLines = topTopics.length
+    ? topTopics.map(([t, n]) => `  - ${t}: ${n} calls (${Math.round(n / totalCalls * 100)}%)`).join('\n')
+    : '  (no topics recorded yet)'
+
+  const frictionLines = frictionCalls.map((c, i) =>
+    `Friction call ${i + 1}: status=${c.call_status} quality=${c.quality_score ?? '?'} duration=${c.duration_seconds ?? 0}s\n` +
+    `  Summary: "${(c.ai_summary || 'none').slice(0, 150)}"\n` +
+    (c.excerpt ? `  Dialogue excerpt (last 6 turns):\n${c.excerpt}` : '')
+  ).join('\n\n')
+
+  const callSection = `CALL INTELLIGENCE BRIEF (last ${totalCalls} real conversations)\n\nTOP CALLER INTENTS:\n${topicLines}\n\n` +
+    (frictionCalls.length
+      ? `FRICTION POINTS (quality<7 or UNKNOWN):\n${frictionLines}`
+      : 'No friction calls detected — prompt handling is solid.')
+
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) return
+
+  const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ') || 'service business'
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://unmissed.ai',
+      'X-Title': 'unmissed.ai learning loop',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [
+        { role: 'system', content: IMPROVE_SYSTEM_PROMPT },
+        { role: 'user', content: `Business: ${businessContext}\n\nCurrent system prompt:\n${client.system_prompt}\n\n${callSection}\n\nTask: Based ONLY on the friction points above, suggest 1-2 minimal targeted improvements. Return the complete prompt with changes inline.` },
+      ],
+      max_tokens: 4000,
+      temperature: 0.3,
+    }),
+  })
+
+  if (!res.ok) {
+    console.error(`[learning-loop] OpenRouter ${res.status} for ${client.slug}`)
+    return
+  }
+
+  const data = await res.json()
+  const raw = data.choices?.[0]?.message?.content?.trim() || ''
+  const fencedMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+  const cleaned = fencedMatch
+    ? fencedMatch[1].trim()
+    : (() => { const s = raw.indexOf('{'); const e = raw.lastIndexOf('}'); return s !== -1 && e > s ? raw.slice(s, e + 1) : raw.trim() })()
+
+  let parsed: { improved_prompt?: string; changes?: LoopChange[]; no_changes_needed?: boolean }
+  try { parsed = JSON.parse(cleaned) } catch { console.error('[learning-loop] JSON parse failed'); return }
+
+  const changes = parsed.changes ?? []
+  const changesText = changes.map((c, i) =>
+    `${i + 1}. [${c.type?.toUpperCase() ?? 'CHANGE'}] ${c.section ?? ''}\n   ${c.what ?? ''}\n   Why: ${c.why ?? ''}`
+  ).join('\n\n')
+
+  // Save suggestion to DB so Test Lab / Settings can load it without re-analyzing
+  if (!parsed.no_changes_needed && parsed.improved_prompt) {
+    await supabase
+      .from('clients')
+      .update({
+        pending_loop_suggestion: {
+          improved_prompt: parsed.improved_prompt,
+          changes,
+          generated_at: new Date().toISOString(),
+          calls_analyzed: count,
+        },
+      })
+      .eq('id', clientId)
+  }
+
+  const msg = [
+    `🔄 <b>Learning Loop — ${client.business_name || client.slug}</b>`,
+    `📞 ${count} new conversations since last prompt update`,
+    parsed.no_changes_needed
+      ? '✅ Prompt is solid — no changes needed.'
+      : `💡 <b>${changes.length} improvement${changes.length !== 1 ? 's' : ''} suggested:</b>\n\n${changesText}`,
+    '\n→ Open dashboard → Settings to review and apply',
+  ].join('\n')
+
+  await sendAlert(client.telegram_bot_token, client.telegram_chat_id, msg)
+  console.log(`[learning-loop] Done: client=${client.slug} new_calls=${count} changes=${changes.length}`)
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
   const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
@@ -191,6 +405,7 @@ export async function POST(req: NextRequest) {
 
   if (body.client_id) {
     const result = await analyzeClient(body.client_id)
+    autoImproveClient(body.client_id).catch(err => console.error('[learning-loop] error:', err.message))
     return NextResponse.json({ ok: !result.error, results: [result] })
   }
 
@@ -203,6 +418,9 @@ export async function POST(req: NextRequest) {
   if (!clients?.length) return NextResponse.json({ ok: true, results: [], message: 'No active clients' })
 
   const results = await Promise.all(clients.map(c => analyzeClient(c.id)))
+
+  // Fire learning loop for each client (non-blocking)
+  clients.forEach(c => autoImproveClient(c.id).catch(err => console.error(`[learning-loop] error for ${c.slug}:`, err.message)))
 
   return NextResponse.json({
     ok: true,

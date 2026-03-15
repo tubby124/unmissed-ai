@@ -73,7 +73,7 @@ function extractPatterns(calls: CallRow[], frictionTranscripts: TranscriptRow[])
   const transcriptMap = Object.fromEntries(frictionTranscripts.map(r => [r.id, r.transcript ?? []]))
   const frictionCalls = calls
     .filter(c => (c.quality_score != null && c.quality_score < 6) || c.call_status === 'UNKNOWN')
-    .slice(0, 3)
+    .slice(0, 5)
     .map(c => {
       const msgs = transcriptMap[c.id] ?? []
       const excerpt = msgs.slice(-6)
@@ -122,22 +122,23 @@ export async function POST(req: NextRequest) {
   const excludePhones = [...ADMIN_NUMBERS, ...clientOwnerPhone]
   const excludeFilter = `(${excludePhones.map(p => `"${p}"`).join(',')})`
 
-  // Primary fetch: last 30 calls (no transcript — fast)
+  // Primary fetch: last 10 meaningful calls (real conversations — skip dead/short calls)
   const { data: calls } = await svc
     .from('call_logs')
     .select('id, call_status, ai_summary, service_type, key_topics, sentiment, next_steps, quality_score, duration_seconds')
     .eq('client_id', targetClientId)
-    .not('call_status', 'in', '("live","processing")')
+    .not('call_status', 'in', '("live","processing","MISSED","JUNK")')
     .not('caller_phone', 'in', excludeFilter)
+    .gt('duration_seconds', 20)
     .order('ended_at', { ascending: false })
-    .limit(30)
+    .limit(10)
 
   const callList = (calls ?? []) as CallRow[]
 
-  // Secondary fetch: transcripts for friction calls only (max 3)
+  // Secondary fetch: transcripts for friction calls only (max 5)
   const frictionIds = callList
     .filter(c => (c.quality_score != null && c.quality_score < 6) || c.call_status === 'UNKNOWN')
-    .slice(0, 3)
+    .slice(0, 5)
     .map(c => c.id)
 
   const { data: frictionTranscripts } = frictionIds.length
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
     : { data: [] as TranscriptRow[] }
 
   const { topTopics, frictionCalls, totalCalls } = extractPatterns(callList, frictionTranscripts ?? [])
-  const hasEnoughData = totalCalls >= 5
+  const hasEnoughData = totalCalls >= 3
 
   const topicLines = topTopics.length
     ? topTopics.map(([t, n]) => `  - ${t}: ${n} calls (${Math.round(n / totalCalls * 100)}%)`).join('\n')

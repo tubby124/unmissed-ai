@@ -1,7 +1,7 @@
 /**
  * GET /api/public/available-numbers?intakeId={id}
  *
- * Returns inventory numbers available for selection at the $17 price point.
+ * Returns inventory numbers available for selection during onboarding ($20 CAD vs $25 fresh).
  * Treats reservations older than 30 minutes as expired (available again).
  * Requires a valid intakeId to prevent unguarded enumeration.
  */

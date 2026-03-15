@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
+import { buildContextBlock } from '@/lib/context-data'
 
 export const maxDuration = 15
 
@@ -33,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -50,6 +51,22 @@ export async function POST(
   }
 
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)
+
+  // ── Overage detection (soft enforcement) ────────────────────────────────────
+  const minutesUsed = (client.minutes_used_this_month as number | null) ?? 0
+  const minuteLimit = ((client.monthly_minute_limit as number | null) ?? 500) + ((client.bonus_minutes as number | null) ?? 0)
+  const isOverLimit = minutesUsed >= minuteLimit
+
+  if (isOverLimit) {
+    console.warn(`[inbound] OVERAGE: slug=${slug} used=${minutesUsed} limit=${minuteLimit} — call proceeding (soft enforcement)`)
+    const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
+    const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
+    if (operatorToken && operatorChat) {
+      sendAlert(operatorToken, operatorChat,
+        `⚠️ <b>OVERAGE CALL</b> [${slug}]\nUsed: ${minutesUsed}/${minuteLimit} min\nCaller: ${callerPhone}\nCall proceeding (soft enforcement)`
+      ).catch(() => {})
+    }
+  }
 
   // ── Stale live call cleanup ────────────────────────────────────────────────
   // Any 'live' row older than 15 min for this client = webhook never fired. Mark MISSED.
@@ -96,12 +113,23 @@ export async function POST(
   const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
+  // ── Context data injection ────────────────────────────────────────────────
+  const contextDataStr = (client.context_data as string | null)
+    ? buildContextBlock(
+        (client.context_data_label as string | null) || 'Reference Data',
+        client.context_data as string
+      )
+    : ''
+
   // ── Per-client VAD tuning ─────────────────────────────────────────────────
   // ── Create Ultravox call ───────────────────────────────────────────────────
   const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }
   const promptWithContext = callerContext
     ? client.system_prompt + `\n\n[${callerContext}]`
     : client.system_prompt
+  const promptFull = contextDataStr
+    ? promptWithContext + `\n\n${contextDataStr}`
+    : promptWithContext
 
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
@@ -113,12 +141,13 @@ export async function POST(
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
           ...(callerContext ? { callerContext } : {}),
+          ...(contextDataStr ? { contextData: contextDataStr } : {}),
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall
         console.error(`[inbound] Agents API failed (${agentErr}), falling back to createCall with Supabase prompt`)
         ultravoxCall = await createCall({
-          systemPrompt: promptWithContext,
+          systemPrompt: promptFull,
           voice: client.agent_voice_id,
           tools,
           callbackUrl: signedCallbackUrl,
@@ -130,7 +159,7 @@ export async function POST(
       // Per-call creation — no Agents API profile set up yet
       console.log(`[inbound] Per-call creation (no agentId for slug=${slug})`)
       ultravoxCall = await createCall({
-        systemPrompt: promptWithContext,
+        systemPrompt: promptFull,
         voice: client.agent_voice_id,
         tools,
         callbackUrl: signedCallbackUrl,
@@ -167,6 +196,7 @@ export async function POST(
     twilio_call_sid: body.CallSid || null,
     call_status: 'live',
     started_at: new Date().toISOString(),
+    is_overage: isOverLimit,
   }).then(({ error }) => {
     if (error) console.error('[inbound] Live row insert failed:', error.message)
     else console.log(`[inbound] Live row inserted: callId=${ultravoxCall.callId}`)

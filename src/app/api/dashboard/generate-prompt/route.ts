@@ -17,6 +17,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
+import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -89,9 +90,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Optional website scraping ──────────────────────────────────────────────
+  let websiteContent = ''
+  const websiteUrl = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
+  if (websiteUrl) {
+    const rawMarkdown = await scrapeAndExtract(websiteUrl)
+    if (rawMarkdown) {
+      websiteContent = await extractBusinessContent(rawMarkdown)
+      if (websiteContent) {
+        console.log(`[generate-prompt] Website scraping: ${websiteContent.length} chars extracted from ${websiteUrl}`)
+      }
+    }
+  }
+
   let prompt: string
   try {
-    prompt = buildPromptFromIntake(intakeData)
+    prompt = buildPromptFromIntake(intakeData, websiteContent)
   } catch (err) {
     console.error('[generate-prompt] buildPromptFromIntake failed:', err)
     return NextResponse.json({ error: 'Prompt generation failed', detail: String(err) }, { status: 500 })
