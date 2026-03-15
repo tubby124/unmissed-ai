@@ -12,6 +12,7 @@ import Step4 from "./steps/step4";
 import Step5 from "./steps/step5";
 import Step6 from "./steps/step6";
 import Step7 from "./steps/step7";
+import OnboardLeftPanel from "@/components/onboard/OnboardLeftPanel";
 
 const STORAGE_KEY = "unmissed-onboard-draft";
 
@@ -191,85 +192,96 @@ export default function OnboardPage() {
   const canGoNext = canAdvance(step, data);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-indigo-600 tracking-tight">unmissed.ai</span>
-          <span className="hidden sm:block text-gray-300 text-xs">·</span>
-          <span className="hidden sm:block text-xs text-gray-400">Set up your AI agent — ~5 min</span>
-        </div>
-        <div className="text-xs text-gray-400 font-medium">
-          {stepIndex + 1} / {totalSteps}
-        </div>
-      </div>
+    <div className="min-h-screen flex">
+      {/* Left panel */}
+      <OnboardLeftPanel
+        niche={data.niche}
+        stepTitle={STEP_TITLES[step]}
+        stepIndex={stepIndex + 1}
+        totalSteps={totalSteps}
+      />
 
-      {/* Step indicator */}
-      <div className="bg-white border-b">
-        <StepIndicator current={stepIndex + 1} total={totalSteps} />
-        <div className="text-center pb-3">
-          <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step]}</span>
+      {/* Right panel — existing form, unchanged */}
+      <div className="flex-1 flex flex-col min-h-screen bg-slate-50">
+        {/* Header */}
+        <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-indigo-600 tracking-tight">unmissed.ai</span>
+            <span className="hidden sm:block text-gray-300 text-xs">·</span>
+            <span className="hidden sm:block text-xs text-gray-400">Set up your AI agent — ~5 min</span>
+          </div>
+          <div className="text-xs text-gray-400 font-medium">
+            {stepIndex + 1} / {totalSteps}
+          </div>
         </div>
-      </div>
 
-      {/* Step content — animated */}
-      <div className="flex-1 flex justify-center px-4 py-6 overflow-hidden">
-        <div className="w-full max-w-lg">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.18, ease: "easeOut" }}
+        {/* Step indicator */}
+        <div className="bg-white border-b">
+          <StepIndicator current={stepIndex + 1} total={totalSteps} />
+          <div className="text-center pb-3">
+            <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step]}</span>
+          </div>
+        </div>
+
+        {/* Step content — animated */}
+        <div className="flex-1 flex justify-center px-4 py-6 overflow-hidden">
+          <div className="w-full max-w-lg">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                {step === 1 && <Step1 data={data} onUpdate={update} />}
+                {step === 2 && <Step2 data={data} onUpdate={update} />}
+                {step === 3 && <Step3 data={data} onUpdate={update} />}
+                {step === 4 && <Step4 data={data} onUpdate={update} />}
+                {step === 5 && <Step5 data={data} onUpdate={update} />}
+                {step === 6 && <Step6 data={data} onUpdate={update} />}
+                {step === 7 && <Step7 data={data} stepSequence={stepSequence} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Footer nav */}
+        <div className="bg-white border-t px-4 py-4">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              onClick={goBack}
+              disabled={step === 1}
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
             >
-              {step === 1 && <Step1 data={data} onUpdate={update} />}
-              {step === 2 && <Step2 data={data} onUpdate={update} />}
-              {step === 3 && <Step3 data={data} onUpdate={update} />}
-              {step === 4 && <Step4 data={data} onUpdate={update} />}
-              {step === 5 && <Step5 data={data} onUpdate={update} />}
-              {step === 6 && <Step6 data={data} onUpdate={update} />}
-              {step === 7 && <Step7 data={data} stepSequence={stepSequence} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+              ← Back
+            </Button>
 
-      {/* Footer nav */}
-      <div className="bg-white border-t px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            onClick={goBack}
-            disabled={step === 1}
-            className="text-gray-500 hover:text-gray-700 cursor-pointer"
-          >
-            ← Back
-          </Button>
-
-          <div className="flex items-center gap-3">
-            {error && (
-              <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
-            )}
-            {stepIndex < totalSteps - 1 ? (
-              <Button
-                onClick={goNext}
-                disabled={!canGoNext}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Continue →
-              </Button>
-            ) : (
-              <Button
-                onClick={handleActivate}
-                disabled={isSubmitting}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
-              >
-                {isSubmitting ? "Activating..." : "Activate My Agent →"}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {error && (
+                <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
+              )}
+              {stepIndex < totalSteps - 1 ? (
+                <Button
+                  onClick={goNext}
+                  disabled={!canGoNext}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Continue →
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleActivate}
+                  disabled={isSubmitting}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
+                >
+                  {isSubmitting ? "Activating..." : "Activate My Agent →"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import {
   Car, Flame, Wrench, Stethoscope, Scale, Scissors,
   Home, Building2, PhoneCall, Voicemail, HelpCircle, Sparkles, type LucideIcon,
@@ -126,6 +127,9 @@ function ComingSoonButton({ niche }: { niche: Niche }) {
 }
 
 export default function Step1({ data, onUpdate }: Props) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   return (
     <div className="space-y-6">
       <div>
@@ -194,6 +198,52 @@ export default function Step1({ data, onUpdate }: Props) {
           </div>
         </div>
       </div>
+
+      {data.niche && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 flex items-center gap-3"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (!audioRef.current) return;
+              if (playing) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                setPlaying(false);
+              } else {
+                audioRef.current.play().catch(() => setPlaying(false));
+                setPlaying(true);
+              }
+            }}
+            className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-indigo-700 transition-colors"
+            aria-label={playing ? "Pause greeting preview" : "Play greeting preview"}
+          >
+            {playing ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            )}
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-indigo-900">Hear your agent&apos;s greeting</p>
+            <p className="text-xs text-indigo-500">~8 second demo</p>
+          </div>
+          <audio
+            ref={audioRef}
+            src="/audio/demo-greeting.mp3"
+            onEnded={() => setPlaying(false)}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
