@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eagle Head Auto — Technical Feasibility Assessment v2</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --yellow: #e3b341;
+    --purple: #bc8cff;
+    --cyan: #39d2c0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: #fff; }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: #fff;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem;
+    color: var(--accent);
+  }
+
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem;
+    color: var(--text);
+  }
+
+  p, li { color: var(--text); margin-bottom: 0.5rem; }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.4rem; }
+  strong { color: #fff; }
+
+  code {
+    background: var(--surface-2);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--orange);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-green { border-left: 4px solid var(--green); }
+  .card-red { border-left: 4px solid var(--red); }
+  .card-orange { border-left: 4px solid var(--orange); }
+  .card-blue { border-left: 4px solid var(--accent); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  .card-cyan { border-left: 4px solid var(--cyan); }
+
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-orange { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge-cyan { background: rgba(57,210,192,0.15); color: var(--cyan); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:hover td { background: rgba(88,166,255,0.03); }
+
+  .strikethrough { text-decoration: line-through; color: var(--text-muted); }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  .section-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  @media (max-width: 768px) {
+    .section-grid, .section-grid-3 { grid-template-columns: 1fr; }
+    body { padding: 1rem; }
+    h1 { font-size: 1.5rem; }
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .phase-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .phase-num-green { background: rgba(63,185,80,0.2); color: var(--green); }
+  .phase-num-orange { background: rgba(210,153,34,0.2); color: var(--orange); }
+  .phase-num-red { background: rgba(248,81,73,0.2); color: var(--red); }
+  .phase-num-blue { background: rgba(88,166,255,0.2); color: var(--accent); }
+  .phase-num-purple { background: rgba(188,140,255,0.2); color: var(--purple); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  .highlight-box {
+    background: rgba(88,166,255,0.08);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .warning-box {
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.2);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .verdict-proven { color: var(--green); font-weight: 600; }
+  .verdict-conditional { color: var(--orange); font-weight: 600; }
+  .verdict-impossible { color: var(--red); font-weight: 600; }
+  .verdict-feasible { color: var(--cyan); font-weight: 600; }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .flow-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    background: var(--surface-2);
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .flow-arrow {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    margin: 0.25rem 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Eagle Head Auto <span>— Technical Feasibility v2</span></h1>
+<p class="subtitle">Revised with Barry's requirements, RAG research, RPA assessment, payment flow &middot; unmissed.ai &middot; March 2026</p>
+
+<!-- ====== BARRY'S REALITY CHECK ====== -->
+<h2>Barry's Reality Check <span class="badge badge-red" style="vertical-align:middle">CRITICAL CONTEXT</span></h2>
+
+<div class="warning-box">
+  <p><strong>Barry (Ray's IT contact) explicitly rejected "glorified IVR" message-taking.</strong> He needs the AI to "carry the request through to completion" &mdash; take the call, check stock, get payment, process the order. The goal is to entirely replace the human parts desk person.</p>
+</div>
+
+<div class="section-grid">
+  <div class="card card-red">
+    <h4 style="margin-top:0">What Barry Doesn't Want</h4>
+    <ul style="margin-bottom:0">
+      <li>AI that just takes messages</li>
+      <li>Staff having to call the customer back</li>
+      <li>"Smart voicemail" with extra steps</li>
+      <li>Anything that still needs a human on the phone</li>
+    </ul>
+  </div>
+  <div class="card card-green">
+    <h4 style="margin-top:0">What Barry Wants</h4>
+    <ul style="margin-bottom:0">
+      <li>AI checks inventory live on the call</li>
+      <li>AI quotes price and availability</li>
+      <li>AI takes payment (credit card)</li>
+      <li>AI places the order in their POS</li>
+      <li>Staff only pulls the physical part</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card card-orange">
+  <strong>Key intel:</strong> Barry warned their parts software vendor is "highly unlikely" to give API access. But Eagle Head is willing to ask. <strong>Johnny</strong> (the business owner) needs to greenlight testing.
+</div>
+
+<hr class="divider">
+
+<!-- ====== WHO THEY ARE ====== -->
+<h2>Who They Are (validated)</h2>
+
+<div class="card card-blue">
+  <p><strong>Eagle Head Auto Parts Ltd.</strong> &mdash; 704 Westridge Rd, Strathmore AB T1P 1H8</p>
+  <p style="color:var(--text-muted); margin-top:0.25rem;">~50 km east of Calgary &middot; 403-934-3434 &middot; eaglehead@live.ca &middot; Contacts: John Carreon, Bernie Theoret</p>
+</div>
+
+<ul>
+  <li>Traditional <strong>full-service salvage yard / parts dismantler</strong>. Strips vehicles (e.g. 1999 Ford F-150), logs parts into POS inventory.</li>
+  <li><strong>Listed on car-part.com</strong> &mdash; URG/AARDA affiliated. Likely runs <strong>Checkmate or Pinnacle</strong>.</li>
+  <li><strong>Website:</strong> eaglehead.ca &mdash; basic static HTML, no SSL, no online inventory, no e-commerce.</li>
+  <li><strong>Tech sophistication: LOW.</strong> Phone-first, Hotmail email. Perfect candidate for voice AI &mdash; their entire business runs on phone calls.</li>
+</ul>
+
+<hr class="divider">
+
+<!-- ====== REVISED VERDICTS ====== -->
+<h2>Revised Technical Reality</h2>
+<h3>Claims vs. reality (updated with RAG + payment research)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Requirement</th>
+      <th>Solution</th>
+      <th>Verdict</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AI checks inventory live on the call</td>
+      <td><strong>Ultravox RAG corpus</strong> &mdash; ingest inventory export, AI queries automatically via built-in <code>queryCorpus</code> tool. If supplier exposes API: swap to HTTP tool for real-time.</td>
+      <td><span class="verdict-feasible">FEASIBLE</span> &mdash; needs data export</td>
+    </tr>
+    <tr>
+      <td>AI quotes price and availability</td>
+      <td>Prices come from the same inventory data (corpus or API). AI speaks them naturally on the call.</td>
+      <td><span class="verdict-feasible">FEASIBLE</span> &mdash; same data source</td>
+    </tr>
+    <tr>
+      <td>AI takes credit card payment</td>
+      <td><strong>SMS payment link (Stripe Checkout)</strong> sent mid/post-call. PCI-compliant &mdash; no card data touches our system. Confirmed by Sonar research.</td>
+      <td><span class="verdict-proven">PROVEN PATTERN</span></td>
+    </tr>
+    <tr>
+      <td>AI places order in their POS</td>
+      <td><strong>Post-call RPA</strong> (Claude Computer Use or Playwright). 30-120s per order &mdash; too slow mid-call, but fine as background process after payment.</td>
+      <td><span class="verdict-conditional">FEASIBLE POST-CALL</span> &mdash; 70-90% reliability</td>
+    </tr>
+    <tr>
+      <td>Search external yards (car-part.com)</td>
+      <td>car-part.com has no public API. eBay Motors API is the only accessible option (partial coverage).</td>
+      <td><span class="verdict-impossible">NOT POSSIBLE</span> without partnership</td>
+    </tr>
+    <tr>
+      <td>Full human replacement (Barry's ask)</td>
+      <td>Phases 1-4 combined. Only human actions: (1) confirm part availability, (2) pull the physical part.</td>
+      <td><span class="verdict-conditional">ACHIEVABLE</span> &mdash; phased rollout</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr class="divider">
+
+<!-- ====== THREE PILLARS ====== -->
+<h2>Three Technical Pillars</h2>
+
+<!-- RAG -->
+<h3>1. Inventory Lookup &mdash; Ultravox RAG Corpus <span class="badge badge-cyan">CONFIRMED</span></h3>
+
+<div class="card card-cyan">
+  <p><strong>How it works:</strong> Eagle Head exports their inventory (CSV, text, or database dump) on a schedule. We upload it to an Ultravox corpus. The AI automatically searches it when a caller asks about a part.</p>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Spec</th><th>Detail</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>API</td><td><code>POST /api/corpora</code> &rarr; create corpus &rarr; add sources &rarr; documents auto-chunked/vectorized</td></tr>
+    <tr><td>Agent integration</td><td>Built-in <code>queryCorpus</code> tool &mdash; no custom HTTP tool needed</td></tr>
+    <tr><td>Formats</td><td>PDF, Word, EPUB, PowerPoint, Markdown, plain text, HTML</td></tr>
+    <tr><td>Limits</td><td>20 sources/corpus, 200 docs/source, 10MB/doc</td></tr>
+    <tr><td>Refresh</td><td>PATCH source to recrawl. Corpus stays queryable during refresh (stale until done).</td></tr>
+    <tr><td>Query results</td><td>1-20 ranked chunks with content, score, citations</td></tr>
+    <tr><td>Latency</td><td>Not published &mdash; designed for real-time, presumably sub-second (server-side)</td></tr>
+  </tbody>
+</table>
+
+<div class="section-grid">
+  <div class="card card-green">
+    <h4 style="margin-top:0">RAG Advantages</h4>
+    <ul style="margin-bottom:0">
+      <li>No API from Eagle Head's software needed</li>
+      <li>Just needs a data export (CSV, text file, anything)</li>
+      <li>Ultravox handles search natively &mdash; zero custom code</li>
+      <li>Works even if their POS is a 20-year-old desktop app</li>
+    </ul>
+  </div>
+  <div class="card card-orange">
+    <h4 style="margin-top:0">RAG Limitations</h4>
+    <ul style="margin-bottom:0">
+      <li>Data freshness depends on export frequency (hourly? nightly?)</li>
+      <li>Parts sold since last export may show as available</li>
+      <li>Solved by the <strong>staff confirmation gate</strong> (see Phase 1 flow below)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="highlight-box">
+  <p><strong>If supplier exposes an API:</strong> We swap RAG for an HTTP tool (proven <code>transferCall</code> pattern). Real-time inventory, zero staleness. RAG is the fallback &mdash; API is the upgrade path.</p>
+</div>
+
+<!-- PAYMENT -->
+<h3>2. Payment &mdash; SMS Payment Link <span class="badge badge-green">PCI COMPLIANT</span></h3>
+
+<div class="card card-green">
+  <p><strong>How it works:</strong> Instead of the AI taking a credit card number over the phone (PCI nightmare), we send a Stripe Checkout link via SMS. Customer taps, pays on their phone. No card data ever touches our system.</p>
+</div>
+
+<div class="flow-step"><span class="flow-num">1</span><span>AI captures order details on the call</span></div>
+<div class="flow-step"><span class="flow-num">2</span><span>Staff confirms part is still on the shelf (SMS/WhatsApp: tap YES/NO)</span></div>
+<div class="flow-step"><span class="flow-num">3</span><span>YES &rarr; Stripe Checkout link auto-sends to customer via SMS</span></div>
+<div class="flow-step"><span class="flow-num">4</span><span>Customer taps link, pays on their phone (30 seconds)</span></div>
+<div class="flow-step"><span class="flow-num">5</span><span>Stripe webhook confirms payment &rarr; SMS to customer: "Payment received, your order is confirmed"</span></div>
+<div class="flow-step"><span class="flow-num">6</span><span>Staff notified to pull the part</span></div>
+
+<div class="card card-blue" style="margin-top:1rem">
+  <p><strong>PCI scope: SAQ-A</strong> (lowest). No card numbers in voice transcripts, no card data on our servers. Stripe handles all payment processing. This is the industry-standard approach for voice AI + payments.</p>
+</div>
+
+<!-- RPA -->
+<h3>3. Order Entry &mdash; Post-Call RPA <span class="badge badge-orange">VIABLE BUT COMPLEX</span></h3>
+
+<div class="card card-orange">
+  <p><strong>How it works:</strong> After the call ends and payment is confirmed, a background process enters the order into Eagle Head's POS system. The customer never waits &mdash; it happens in the background.</p>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Approach</th><th>Speed</th><th>Reliability</th><th>Best For</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Claude Computer Use</strong></td>
+      <td>2-10s per step, 30-120s total</td>
+      <td>70-90%</td>
+      <td>Legacy desktop POS with unpredictable UI</td>
+    </tr>
+    <tr>
+      <td><strong>Playwright/Puppeteer</strong></td>
+      <td>&lt;1s per step, 5-15s total</td>
+      <td>High (but brittle on UI changes)</td>
+      <td>Web-based POS with stable interface</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warning-box">
+  <p><strong>Mid-call RPA is NOT viable.</strong> A full order entry takes 30-120 seconds. Our mid-call latency budget is 1-2 seconds. The caller would be sitting in dead air. RPA only works as a <strong>post-call background process</strong>.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ====== PHASED APPROACH ====== -->
+<h2>Recommended Phased Approach</h2>
+
+<!-- PHASE 1 -->
+<div class="card card-green" style="margin-top:1rem">
+  <div class="phase-header">
+    <span class="phase-num phase-num-green">1</span>
+    <div>
+      <strong>Smart Agent + RAG Inventory + Staff Confirmation Gate</strong>
+      <span class="badge badge-green" style="margin-left:0.5rem">NOT A GLORIFIED IVR</span>
+    </div>
+  </div>
+
+  <h4>On the Call:</h4>
+  <div class="flow-step"><span class="flow-num">1</span><span>AI answers: "Hey, you've reached Eagle Head Auto, how can I help?"</span></div>
+  <div class="flow-step"><span class="flow-num">2</span><span>Customer: "I need a brake caliper for a '99 F-150"</span></div>
+  <div class="flow-step"><span class="flow-num">3</span><span>AI searches inventory via <code>queryCorpus</code> (sub-second, server-side)</span></div>
+  <div class="flow-step"><span class="flow-num">4</span><span>AI: "We've got that listed at $45 &mdash; I've got all your details. Our team's gonna confirm it's still on the shelf and text you a payment link within the next few minutes."</span></div>
+  <div class="flow-step"><span class="flow-num">5</span><span>Call ends. Customer got a real answer, not "we'll call you back."</span></div>
+
+  <h4>After the Call (Confirmation Gate):</h4>
+  <div class="flow-step"><span class="flow-num">6</span><span><strong>Staff gets instant notification:</strong> "New order: Brake caliper, '99 F-150, $45. Customer: John Smith (403-555-1234). Still available? Reply YES or NO"</span></div>
+  <div class="flow-step"><span class="flow-num">7</span><span><strong>YES</strong> &rarr; Stripe payment link auto-sends to customer via SMS</span></div>
+  <div class="flow-step"><span class="flow-num">8</span><span><strong>NO</strong> &rarr; Customer gets SMS: "Sorry, that part just sold &mdash; we'll let you know if another comes in"</span></div>
+  <div class="flow-step"><span class="flow-num">9</span><span>Customer pays via Stripe link &rarr; confirmation SMS &rarr; staff pulls part</span></div>
+
+  <div class="card card-blue" style="margin-top:1rem; margin-bottom:0">
+    <h4 style="margin-top:0">Why the confirmation gate matters</h4>
+    <ul style="margin-bottom:0">
+      <li><strong>Prevents ghost-part payments</strong> &mdash; RAG data can be stale (exported hourly/nightly, not real-time)</li>
+      <li>Without gate: customer pays for a part sold since last export &rarr; refund headache</li>
+      <li>With gate: staff verifies in 10 seconds (one tap) before payment link sends &rarr; zero ghost payments</li>
+      <li>As inventory sync improves (real-time API in Phase 2), gate becomes optional for high-confidence matches</li>
+    </ul>
+  </div>
+</div>
+
+<div class="highlight-box">
+  <p><strong>Why this isn't a "glorified IVR":</strong> The customer gets a real inventory answer on the call (not "we'll call you back"). Payment link arrives in minutes. Staff's only action = one tap to confirm + pull the physical part. Nobody calls anybody back.</p>
+</div>
+
+<!-- PHASE 2 -->
+<div class="card card-blue">
+  <div class="phase-header">
+    <span class="phase-num phase-num-blue">2</span>
+    <div>
+      <strong>Supplier API Integration</strong>
+      <span class="badge badge-blue" style="margin-left:0.5rem">IF AVAILABLE</span>
+    </div>
+  </div>
+  <ul style="margin-bottom:0">
+    <li>Replace RAG corpus with HTTP tool hitting supplier's API</li>
+    <li>Real-time inventory &mdash; zero staleness &mdash; confirmation gate becomes optional</li>
+    <li>Same call flow, just swapping the data source</li>
+    <li>Proven pattern: same architecture as our <code>transferCall</code> tool</li>
+    <li><strong>Eagle Head is willing to ask their supplier.</strong> If they get API access, this is the upgrade path.</li>
+  </ul>
+</div>
+
+<!-- PHASE 3 -->
+<div class="card card-purple">
+  <div class="phase-header">
+    <span class="phase-num phase-num-purple">3</span>
+    <div>
+      <strong>Post-Call Order Entry (RPA)</strong>
+      <span class="badge badge-purple" style="margin-left:0.5rem">BACKGROUND PROCESS</span>
+    </div>
+  </div>
+  <ul style="margin-bottom:0">
+    <li>After payment confirmed: background RPA enters order into POS (30-120 seconds)</li>
+    <li>Claude Computer Use (legacy desktop POS) or Playwright (web-based POS)</li>
+    <li>Customer gets SMS when order is entered in the system</li>
+    <li>Staff reviews in POS &mdash; nothing ships without human checking</li>
+    <li><strong>No caller waiting</strong> &mdash; all happens after the call ends</li>
+  </ul>
+</div>
+
+<!-- PHASE 4 -->
+<div class="card card-green">
+  <div class="phase-header">
+    <span class="phase-num phase-num-green">4</span>
+    <div>
+      <strong>Full Automation (Barry's Vision)</strong>
+      <span class="badge badge-green" style="margin-left:0.5rem">PHASES 1-3 COMBINED</span>
+    </div>
+  </div>
+  <ul style="margin-bottom:0">
+    <li>Answer &rarr; check stock &rarr; quote &rarr; staff confirm &rarr; payment &rarr; order entry &rarr; pull part</li>
+    <li>Only human actions: (1) tap YES/NO to confirm availability, (2) pull the physical part</li>
+    <li><strong>This IS "carry to completion"</strong> &mdash; the AI handles the entire customer-facing workflow</li>
+    <li>Even Amazon has humans in the warehouse. The physical pull always requires a person.</li>
+  </ul>
+</div>
+
+<hr class="divider">
+
+<!-- ====== API LANDSCAPE ====== -->
+<h2>API Landscape (unchanged from v1)</h2>
+
+<div class="section-grid-3">
+  <div class="card card-red">
+    <strong>car-part.com</strong><br>
+    <span style="color:var(--text-muted)">No public API. Walled garden.</span>
+  </div>
+  <div class="card card-red">
+    <strong>Hollander / Solera</strong><br>
+    <span style="color:var(--text-muted)">Licensed DB, not REST API. $2K-10K+/yr.</span>
+  </div>
+  <div class="card card-red">
+    <strong>Checkmate / Pinnacle</strong><br>
+    <span style="color:var(--text-muted)">Desktop apps. No REST endpoints.</span>
+  </div>
+  <div class="card card-red">
+    <strong>URG</strong><br>
+    <span style="color:var(--text-muted)">Member-only B2B data pipes.</span>
+  </div>
+  <div class="card card-orange">
+    <strong>eBay Motors API</strong><br>
+    <span style="color:var(--text-muted)">Only accessible option. ~10-30% coverage.</span>
+  </div>
+  <div class="card card-green">
+    <strong>Greenfield</strong><br>
+    <span style="color:var(--text-muted)">Zero AI voice agents exist for salvage yards. First-mover opportunity.</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ====== TALKING POINTS ====== -->
+<h2>Meeting Talking Points (revised for Barry)</h2>
+
+<div class="section-grid">
+  <div class="card card-green">
+    <h3 style="color:var(--green); margin-top:0">SAY</h3>
+    <ul style="margin-bottom:0">
+      <li>"We train the AI on your actual inventory &mdash; it checks stock live on the call and quotes the price"</li>
+      <li>"After the call, your team gets a one-tap confirmation &mdash; hit yes, customer gets a payment link instantly"</li>
+      <li>"No credit cards over the phone &mdash; customer pays on their own device, fully secure"</li>
+      <li>"Once they pay, we can enter the order into your system automatically in the background"</li>
+      <li>"Your staff just pulls the part. The phone work is done."</li>
+      <li>"Nobody has built this for salvage yards &mdash; you'd be the first"</li>
+    </ul>
+  </div>
+
+  <div class="card card-red">
+    <h3 style="color:var(--red); margin-top:0">DON'T SAY</h3>
+    <ul style="margin-bottom:0">
+      <li><span class="strikethrough">"The AI controls your computer screen live on the call"</span> &mdash; too slow mid-call (30-120s). Say "background process" instead.</li>
+      <li><span class="strikethrough">"We'll search car-part.com automatically"</span> &mdash; no API access</li>
+      <li><span class="strikethrough">"The AI takes the credit card over the phone"</span> &mdash; PCI risk. Say "payment link via text" instead.</li>
+      <li><span class="strikethrough">"Real-time inventory"</span> &mdash; say "trained on your latest inventory data" (honest about refresh cycle)</li>
+      <li><span class="strikethrough">"100% automated ordering"</span> &mdash; say "one tap to confirm, then automated from there"</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Questions to Ask</h3>
+<div class="card card-blue">
+  <ol style="margin-bottom:0">
+    <li><strong>"What inventory software do you run?"</strong> <span style="color:var(--text-muted)">(Checkmate? Pinnacle? Custom?)</span></li>
+    <li><strong>"Can you export your inventory as a file?"</strong> <span style="color:var(--text-muted)">(CSV, text, any format &mdash; this is what feeds the RAG)</span></li>
+    <li><strong>"How often does your inventory change?"</strong> <span style="color:var(--text-muted)">(determines refresh frequency)</span></li>
+    <li><strong>"Will you ask your software vendor about API access?"</strong> <span style="color:var(--text-muted)">(Phase 2 unlock)</span></li>
+    <li><strong>"Is your POS web-based or a desktop app?"</strong> <span style="color:var(--text-muted)">(determines RPA approach)</span></li>
+    <li><strong>"What did you mean by 'YouPick'?"</strong> <span style="color:var(--text-muted)">(not a real platform &mdash; clarify)</span></li>
+    <li><strong>"Where should staff confirmations go?"</strong> <span style="color:var(--text-muted)">(SMS, WhatsApp, email?)</span></li>
+    <li><strong>"Are prices fixed per part, or does someone approve pricing?"</strong></li>
+  </ol>
+</div>
+
+<hr class="divider">
+
+<!-- ====== BOTTOM LINE ====== -->
+<h2>Bottom Line</h2>
+
+<div class="card card-green" style="margin-top:1rem">
+  <p><strong>Phase 1 answers Barry's core objection.</strong> This is NOT a glorified IVR. The customer gets a real inventory answer on the call, pays via text within minutes, and staff's only job is one tap + pull the part. No callbacks. No phone tag.</p>
+</div>
+
+<div class="card card-blue">
+  <p><strong>Phase 2 removes the staleness risk.</strong> If the supplier exposes an API, inventory queries become real-time and the confirmation gate becomes optional. Eagle Head is willing to ask &mdash; this is worth pursuing.</p>
+</div>
+
+<div class="card card-purple">
+  <p><strong>Phase 3 closes the loop on order entry.</strong> Post-call RPA enters the order into POS automatically. 70-90% reliability is workable with a human review step. This is the "carry to completion" Barry asked for.</p>
+</div>
+
+<div class="card card-orange">
+  <p><strong>External yard search (car-part.com) is the one thing we genuinely can't do.</strong> No API exists. eBay Motors is the only option and covers a fraction of inventory. Be upfront about this.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ====== NEXT STEPS ====== -->
+<h2>After the Meeting</h2>
+
+<div class="card card-blue">
+  <ol style="margin-bottom:0">
+    <li><strong>Get Johnny's greenlight</strong> &mdash; Barry said he's checking with the business owner</li>
+    <li><strong>Find the software name</strong> &mdash; don't take Barry's word that there's no API. Check dev docs yourself.</li>
+    <li><strong>Get a sample inventory export</strong> &mdash; CSV, text, anything. This feeds the RAG corpus for testing.</li>
+    <li><strong>Build a demo</strong> &mdash; mock inventory, test call, AI checks stock, quotes price. Show Barry it works.</li>
+    <li><strong>Scaffold <code>auto_recycler</code> niche</strong> &mdash; not in registry yet. Build via <code>/niche-new</code></li>
+    <li><strong>Test Ultravox corpus API</strong> &mdash; upload sample inventory, test <code>queryCorpus</code> during a call</li>
+    <li><strong>If API access granted:</strong> build <code>checkOwnInventory</code> HTTP tool (same pattern as <code>transferCall</code>)</li>
+    <li><strong>If POS access granted:</strong> prototype RPA with Claude Computer Use on their system</li>
+  </ol>
+</div>
+
+<p style="color:var(--text-muted); margin-top:2rem; text-align:center; font-size:0.85rem;">
+  unmissed.ai &middot; Internal Pre-Meeting Brief v2 &middot; Not for distribution
+</p>
+
+</body>
+</html>
