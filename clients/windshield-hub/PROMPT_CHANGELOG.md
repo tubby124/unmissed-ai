@@ -29,3 +29,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 13761 | **Hash:** bc046eab6eebba69
 **Supabase version_id:** b5ce8586-f35b-4933-873d-2c49d0e8c5b2
 **Ultravox revision:** n/a
+
+## v6 — 2026-03-15 21:03 UTC
+**Change:** add businessFacts + extraQa templateContext placeholders
+**Chars:** 13761 | **Hash:** bc046eab6eebba69
+**Supabase version_id:** b5027bad-0227-49ec-8b31-54ba20336543
+**Ultravox revision:** n/a

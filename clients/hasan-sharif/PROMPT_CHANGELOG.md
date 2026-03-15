@@ -50,3 +50,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 16126 | **Hash:** 53af2d801c7c9180
 **Supabase version_id:** cca2909e-42c9-4abb-a345-dcb5f656fd35
 **Ultravox revision:** n/a
+
+## v14 — 2026-03-15 21:03 UTC
+**Change:** add businessFacts + extraQa templateContext placeholders
+**Chars:** 16126 | **Hash:** 53af2d801c7c9180
+**Supabase version_id:** 970d1090-9070-49df-8b91-eeafd5dafb30
+**Ultravox revision:** n/a
