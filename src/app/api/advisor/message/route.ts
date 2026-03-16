@@ -132,8 +132,19 @@ export async function POST(req: NextRequest) {
     .limit(1)
     .single()
 
+  // Admin with no client_id defaults to hasan-sharif
   if (cu?.client_id) {
     clientId = cu.client_id
+  } else if (isAdmin) {
+    const { data: defaultClient } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('slug', 'hasan-sharif')
+      .single()
+    if (defaultClient) clientId = defaultClient.id
+  }
+
+  if (clientId) {
     const { data: client } = await supabase
       .from('clients')
       .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, transfer_enabled, system_prompt')
@@ -182,7 +193,8 @@ export async function POST(req: NextRequest) {
       supabase
         .from('call_logs')
         .select('id, call_status, duration_seconds, created_at, sentiment, quality_score, key_topics, next_steps, ai_summary, caller_phone, service_type', { count: 'exact' })
-        .eq('client_id', clientId),
+        .eq('client_id', clientId)
+        .range(0, 4999),
       supabase
         .from('call_logs')
         .select('caller_intent, call_status, summary, next_steps, created_at, duration_seconds, sentiment, quality_score, key_topics, caller_phone, service_type')
@@ -276,18 +288,21 @@ export async function POST(req: NextRequest) {
   // ── 8. Build messages array ───────────────────────────────────────────────
   const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats, trendSummary, gapSummaries, transcriptEntries, clientSetup)
 
+  // Limit history to last 30 messages to avoid token blowout
   const { data: history } = await supabase
     .from('ai_messages')
     .select('role, content')
     .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(30)
 
   const messages: { role: string; content: string }[] = [
     { role: 'system', content: systemPrompt },
   ]
 
   if (history) {
-    for (const msg of history) {
+    // Reverse since we fetched desc order to get the most recent 30
+    for (const msg of history.reverse()) {
       messages.push({ role: msg.role, content: msg.content })
     }
   }

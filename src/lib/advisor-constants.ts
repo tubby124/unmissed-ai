@@ -135,7 +135,7 @@ export function buildAdvisorSystemPrompt(
       if (call.caller_intent) parts.push(`Intent: ${call.caller_intent}`)
       if (call.next_steps) parts.push(`Next steps: ${call.next_steps}`)
       if (call.quality_score !== null && call.quality_score !== undefined) {
-        parts.push(`Quality score: ${call.quality_score}/10`)
+        parts.push(`Quality score: ${call.quality_score}/100`)
       }
     }
   }
