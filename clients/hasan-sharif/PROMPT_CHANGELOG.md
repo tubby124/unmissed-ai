@@ -68,3 +68,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 18043 | **Hash:** ffc1eaf01143c515
 **Supabase version_id:** e0dd3064-8031-47d5-8b7e-3afba0ceec4f
 **Ultravox revision:** n/a
+
+## v18 — 2026-03-16 02:23 UTC
+**Change:** tool descriptions: exact time format + callerPhone required + slot_taken/fallback handling; booking flow steps clarified
+**Chars:** 18527 | **Hash:** 01706519106be290
+**Supabase version_id:** 3f03d7a2-082b-4284-ae4e-9135a48f2ea3
+**Ultravox revision:** n/a

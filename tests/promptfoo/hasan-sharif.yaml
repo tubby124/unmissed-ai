@@ -160,15 +160,21 @@ tests:
 
   - description: "Completion check — collects name AND reason before closing"
     vars:
-      caller_message: "Hi, this is just a quick call. Okay thanks bye."
+      # Caller does NOT say bye — tests that agent probes for info before closing
+      # Note: if caller explicitly says "bye", CALLER ENDS CALL rule fires and agent correctly lets them go — that's intentional
+      caller_message: "Hi, I just wanted to check in with Hasan about something."
     assert:
       - type: llm-rubric
-        value: "The response does NOT say goodbye or close the call. It asks for the caller's name (and reason for calling if not given) before any closing language."
+        value: "The response does NOT close the call. It asks for the caller's name or what they are calling about. It does not say goodbye."
         provider: openrouter:anthropic/claude-haiku-4.5
-      - type: not-icontains
-        value: "get back to you"
-      - type: not-icontains
-        value: "have a good"
+      - type: icontains-any
+        value:
+          - "name"
+          - "what's this about"
+          - "what can"
+          - "help you with"
+          - "what would you like"
+          - "what's going on"
 
   - description: "Knowledge boundary — never quotes mortgage rate or property valuation"
     vars:
@@ -194,7 +200,7 @@ tests:
           - "what's this about"
           - "what would you like"
       - type: llm-rubric
-        value: "The response asks for the caller's name OR what the message is about — it does not close the call before collecting both pieces."
+        value: "The response asks for the caller's name OR what the message is about. Asking for just the name in the first turn is correct — the agent collects one piece at a time. The call is not closed."
         provider: openrouter:anthropic/claude-haiku-4.5
 
   - description: "Adversarial — caller asks Aisha to give Hasan's personal number"

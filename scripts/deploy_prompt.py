@@ -191,12 +191,12 @@ def deploy(slug, change_description):
             {
                 "temporaryTool": {
                     "modelToolName": "checkCalendarAvailability",
-                    "description": "Check available appointment slots for a given date.",
+                    "description": "Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. '9:00 AM'). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day.",
                     "dynamicParameters": [
                         {
                             "name": "date",
                             "location": "PARAMETER_LOCATION_QUERY",
-                            "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"},
+                            "schema": {"type": "string", "description": "Date in YYYY-MM-DD format. Use the TODAY value from callerContext to resolve relative dates like 'tomorrow' or 'next Monday'."},
                             "required": True,
                         }
                     ],
@@ -209,12 +209,13 @@ def deploy(slug, change_description):
             {
                 "temporaryTool": {
                     "modelToolName": "bookAppointment",
-                    "description": "Book an appointment for a caller.",
+                    "description": "Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. '9:00 AM', '2:30 PM') — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.",
                     "dynamicParameters": [
-                        {"name": "date",       "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
-                        {"name": "time",       "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
-                        {"name": "service",    "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
-                        {"name": "callerName", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
+                        {"name": "date",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"}, "required": True},
+                        {"name": "time",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Exact displayTime from checkCalendarAvailability e.g. '9:00 AM'. Do not reformat."}, "required": True},
+                        {"name": "service",     "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
+                        {"name": "callerName",  "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
+                        {"name": "callerPhone", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Caller's phone number from CALLER PHONE in callerContext"}, "required": True},
                     ],
                     "http": {
                         "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/book",
