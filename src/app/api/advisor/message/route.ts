@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getModelById, isFreeTier, estimateCost, estimateClientCost } from '@/lib/ai-models'
-import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall } from '@/lib/advisor-constants'
+import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats } from '@/lib/advisor-constants'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -150,21 +150,53 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 7. Recent calls ───────────────────────────────────────────────────────
+  // ── 7. Call stats + recent calls ──────────────────────────────────────────
   let recentCalls: RecentCall[] = []
+  let callStats: CallStats | null = null
+
   if (clientId) {
+    // Fetch aggregate stats (status + duration for all calls)
+    const { data: allCallData, count: totalCalls } = await supabase
+      .from('call_logs')
+      .select('call_status, duration_seconds, created_at', { count: 'exact' })
+      .eq('client_id', clientId)
+
+    if (allCallData && totalCalls !== null) {
+      const statusBreakdown: Record<string, number> = {}
+      let totalSeconds = 0
+      let firstCall = ''
+      let lastCall = ''
+
+      for (const c of allCallData) {
+        const status = c.call_status || 'UNKNOWN'
+        statusBreakdown[status] = (statusBreakdown[status] || 0) + 1
+        totalSeconds += c.duration_seconds || 0
+        if (!firstCall || c.created_at < firstCall) firstCall = c.created_at
+        if (!lastCall || c.created_at > lastCall) lastCall = c.created_at
+      }
+
+      callStats = {
+        totalCalls,
+        statusBreakdown,
+        totalMinutes: Math.round(totalSeconds / 60),
+        avgDurationSeconds: totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0,
+        dateRange: firstCall ? { first: firstCall, last: lastCall } : null,
+      }
+    }
+
+    // Fetch recent 10 calls with full details
     const { data: calls } = await supabase
       .from('call_logs')
-      .select('caller_intent, call_status, summary, next_steps, created_at')
+      .select('caller_intent, call_status, summary, next_steps, created_at, duration_seconds, sentiment, quality_score, key_topics, caller_phone, service_type')
       .eq('client_id', clientId)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(10)
 
     if (calls) recentCalls = calls
   }
 
   // ── 8. Build messages array ───────────────────────────────────────────────
-  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls)
+  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats)
 
   const { data: history } = await supabase
     .from('ai_messages')

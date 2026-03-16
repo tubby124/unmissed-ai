@@ -114,7 +114,6 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
                   </div>
                   {models.map((model) => {
                     const isSelected = model.id === value
-                    const isFree = model.costPer1kTokens === 0
                     return (
                       <button
                         key={model.id}
@@ -143,11 +142,7 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
                           </span>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          {isFree ? (
-                            <span className="rounded px-1.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30">
-                              Free
-                            </span>
-                          ) : (() => {
+                          {(() => {
                             const clientCost = getClientCostPer1k(model)
                             return (
                               <span
@@ -155,8 +150,8 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
                                 style={{ color: 'var(--color-text-3)' }}
                               >
                                 {clientCost < 1
-                                  ? `${clientCost.toFixed(1)}¢/1k`
-                                  : `${clientCost.toFixed(0)}¢/1k`}
+                                  ? `${clientCost.toFixed(2)}¢/1k`
+                                  : `${clientCost.toFixed(1)}¢/1k`}
                               </span>
                             )
                           })()}

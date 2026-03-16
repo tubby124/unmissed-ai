@@ -37,10 +37,19 @@ export async function GET(req: NextRequest) {
         is_unlimited = true
       }
     } else if (creditsResult.error?.code === 'PGRST116') {
-      // No credit row exists — auto-create with 0 balance
+      // No credit row exists — auto-create with $1 (100 cents) welcome balance
+      const welcomeCredits = 100
       await adminSupa.from('ai_chat_credits').insert({
         user_id: user.id,
-        balance_cents: 0,
+        balance_cents: welcomeCredits,
+      })
+      balance_cents = welcomeCredits
+      // Log the welcome credit grant
+      await adminSupa.from('ai_transactions').insert({
+        user_id: user.id,
+        type: 'grant',
+        amount_cents: welcomeCredits,
+        note: 'Welcome credits — $1 for new users',
       })
     }
 
