@@ -74,6 +74,10 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
     updates.agent_name = body.agent_name.trim()
   }
+  // Timezone — available to all roles (required for correct booking slot times per client)
+  if (typeof body.timezone === 'string' && body.timezone) {
+    updates.timezone = body.timezone
+  }
 
   // Clear or set pending loop suggestion (null = clear after apply/dismiss, object = set by cron)
   if ('pending_loop_suggestion' in body) {
@@ -90,9 +94,6 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof body.twilio_number === 'string' && body.twilio_number) {
       updates.twilio_number = body.twilio_number
-    }
-    if (typeof body.timezone === 'string' && body.timezone) {
-      updates.timezone = body.timezone
     }
     if (typeof body.monthly_minute_limit === 'number' && body.monthly_minute_limit > 0) {
       updates.monthly_minute_limit = body.monthly_minute_limit
@@ -176,6 +177,32 @@ export async function PATCH(req: NextRequest) {
         await supabase.from('clients').update({ tools }).eq('id', targetClientId)
         console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber})`)
         ultravox_synced = true
+
+        // Post-enable verification: when booking_enabled is toggled ON, verify calendar tools are registered
+        if ('booking_enabled' in updates && updates.booking_enabled === true) {
+          const uvKey = process.env.ULTRAVOX_API_KEY
+          if (uvKey) {
+            try {
+              const verifyRes = await fetch(`https://api.ultravox.ai/api/agents/${clientRow.ultravox_agent_id}`, {
+                headers: { 'X-API-Key': uvKey },
+              })
+              if (verifyRes.ok) {
+                const agentData = await verifyRes.json() as { callTemplate?: { selectedTools?: Array<{ temporaryTool?: { modelToolName?: string } }> } }
+                const liveTools = agentData?.callTemplate?.selectedTools ?? []
+                const hasCalendarTool = liveTools.some(t => t.temporaryTool?.modelToolName === 'checkCalendarAvailability')
+                if (hasCalendarTool) {
+                  console.log(`[settings] ✓ Calendar tools verified on agent ${clientRow.ultravox_agent_id}`)
+                } else {
+                  console.warn(`[settings] ⚠ booking_enabled=true but calendar tools NOT found on Ultravox agent — run /prompt-deploy to fix`)
+                  ultravox_error = 'booking_enabled is ON but calendar tools are missing from the Ultravox agent. Run /prompt-deploy to fix.'
+                  ultravox_synced = false
+                }
+              }
+            } catch (verifyErr) {
+              console.warn(`[settings] Calendar tool verification failed: ${verifyErr}`)
+            }
+          }
+        }
       } catch (err) {
         ultravox_error = err instanceof Error ? err.message : String(err)
         console.error(`[settings] Ultravox agent sync failed: ${ultravox_error}`)
