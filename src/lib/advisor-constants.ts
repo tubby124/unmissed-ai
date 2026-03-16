@@ -1,3 +1,7 @@
+import { type ClientSetup, formatClientSetup, PLATFORM_KNOWLEDGE } from './advisor-platform-knowledge'
+
+export type { ClientSetup }
+
 export const MAX_MESSAGES_PER_CONVERSATION = 50
 export const CONVERSATION_SUMMARY_THRESHOLD = 50
 export const CREDIT_REFRESH_INTERVAL_MS = 30_000
@@ -69,10 +73,11 @@ export function buildAdvisorSystemPrompt(
   trends: TrendSummary | null = null,
   gaps: FollowUpGapSummary[] = [],
   transcripts: TranscriptEntry[] = [],
+  clientSetup?: ClientSetup | null,
 ): string {
   const parts: string[] = []
 
-  parts.push(`You are a helpful AI business advisor for the unmissed.ai platform. You help business owners understand their calls, leads, and agent performance. You have FULL ACCESS to their call data, transcripts, trends, and follow-up status — use it to answer questions.`)
+  parts.push(`You are a helpful AI business advisor for the unmissed.ai platform. You help business owners understand their calls, leads, agent performance, AND how to use the platform itself. You have FULL ACCESS to their call data, transcripts, trends, follow-up status, account status, and platform knowledge — use ALL of it to answer questions.`)
 
   if (business) {
     parts.push(`\n## Business Context`)
@@ -176,13 +181,23 @@ export function buildAdvisorSystemPrompt(
     }
   }
 
+  // ── Client Setup + Platform Knowledge ───────────────────────────────────────
+  if (clientSetup) {
+    parts.push(formatClientSetup(clientSetup))
+  }
+
+  parts.push(PLATFORM_KNOWLEDGE)
+
+  // ── Guidelines ─────────────────────────────────────────────────────────────
   parts.push(`\n## Guidelines`)
-  parts.push(`- You HAVE access to call data, weekly trends, follow-up gaps, and full transcripts shown above. Use ALL of it.`)
+  parts.push(`- You HAVE access to call data, weekly trends, follow-up gaps, full transcripts, AND platform knowledge shown above. Use ALL of it.`)
   parts.push(`- Be concise and actionable. Business owners are busy.`)
   parts.push(`- When analyzing calls, reference specific details, numbers, and QUOTE exact words from transcripts.`)
   parts.push(`- Suggest concrete next steps when giving advice.`)
   parts.push(`- If follow-up gaps exist, proactively mention them — these are leads that need attention NOW.`)
   parts.push(`- When discussing trends, compare this week vs last week with specific numbers.`)
+  parts.push(`- When asked about the platform, settings, call forwarding, or setup — reference the Platform Guide section above. Give exact steps.`)
+  parts.push(`- If the user's account is still in "setup" status, proactively help them complete setup.`)
   parts.push(`- If asked about something NOT in the data above (like revenue, specific customer info, etc.), say you don't have that specific data.`)
   parts.push(`- Never make up call data or statistics. Only reference what's provided above.`)
   parts.push(`- Format responses with markdown for readability.`)

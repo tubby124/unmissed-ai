@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getModelById, isFreeTier, estimateCost, estimateClientCost } from '@/lib/ai-models'
-import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats, type TrendSummary, type FollowUpGapSummary, type TranscriptEntry } from '@/lib/advisor-constants'
+import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats, type TrendSummary, type FollowUpGapSummary, type TranscriptEntry, type ClientSetup } from '@/lib/advisor-constants'
 import { computeTrends, findFollowUpGaps, formatTranscriptForPrompt, type CallRow } from '@/lib/advisor-data'
 
 const supabase = createClient(
@@ -120,8 +120,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'message_insert_failed' }, { status: 500 })
   }
 
-  // ── 6. Business context ───────────────────────────────────────────────────
+  // ── 6. Business context + client setup ───────────────────────────────────
   let businessCtx: BusinessContext | null = null
+  let clientSetup: ClientSetup | null = null
   let clientId: string | null = null
 
   const { data: cu } = await supabase
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
     clientId = cu.client_id
     const { data: client } = await supabase
       .from('clients')
-      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts')
+      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, transfer_enabled')
       .eq('id', clientId)
       .single()
 
@@ -147,6 +148,16 @@ export async function POST(req: NextRequest) {
         servicesOffered: client.services_offered,
         hours: client.hours,
         businessFacts: client.business_facts,
+      }
+
+      clientSetup = {
+        status: client.status || 'setup',
+        twilioNumber: client.twilio_number,
+        niche: client.niche,
+        bookingEnabled: client.booking_enabled ?? false,
+        transferEnabled: client.transfer_enabled ?? false,
+        forwardingNumber: client.forwarding_number,
+        agentName: client.agent_name,
       }
     }
   }
@@ -256,7 +267,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 8. Build messages array ───────────────────────────────────────────────
-  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats, trendSummary, gapSummaries, transcriptEntries)
+  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats, trendSummary, gapSummaries, transcriptEntries, clientSetup)
 
   const { data: history } = await supabase
     .from('ai_messages')
