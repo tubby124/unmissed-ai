@@ -74,6 +74,13 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
     updates.agent_name = body.agent_name.trim()
   }
+  if (typeof body.agent_voice_id === 'string' && body.agent_voice_id.trim()) {
+    updates.agent_voice_id = body.agent_voice_id.trim()
+  }
+  if ('injected_note' in body) {
+    const noteText = typeof body.injected_note === 'string' ? body.injected_note.trim() : null
+    updates.injected_note = noteText || null
+  }
   if (typeof body.telegram_style === 'string' && ['compact', 'standard', 'action_card'].includes(body.telegram_style)) {
     updates.telegram_style = body.telegram_style
   }
@@ -119,7 +126,31 @@ export async function PATCH(req: NextRequest) {
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
-  const needsAgentSync = typeof updates.system_prompt === 'string' || 'forwarding_number' in updates || 'booking_enabled' in updates
+  // injected_note: rebuild system_prompt before Supabase update
+  if ('injected_note' in updates) {
+    const { data: promptRow } = await supabase
+      .from('clients')
+      .select('system_prompt')
+      .eq('id', targetClientId)
+      .single()
+
+    if (promptRow) {
+      const INJECT_MARKER = /\n\n## RIGHT NOW — Time-sensitive info[\s\S]*$/
+      let newPrompt = (promptRow.system_prompt ?? '').replace(INJECT_MARKER, '')
+      const noteText = updates.injected_note as string | null
+      if (noteText) {
+        newPrompt += `\n\n## RIGHT NOW — Time-sensitive info\n${noteText}\n`
+      }
+      updates.system_prompt = newPrompt
+      updates.updated_at = new Date().toISOString()
+    }
+  }
+
+  const needsAgentSync =
+    typeof updates.system_prompt === 'string' ||
+    'forwarding_number' in updates ||
+    'booking_enabled' in updates ||
+    'agent_voice_id' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
@@ -167,9 +198,12 @@ export async function PATCH(req: NextRequest) {
         const promptToSync = typeof updates.system_prompt === 'string'
           ? updates.system_prompt
           : (clientRow.system_prompt ?? '')
+        const voiceToSync = 'agent_voice_id' in updates
+          ? (updates.agent_voice_id as string)
+          : clientRow.agent_voice_id
         await updateAgent(clientRow.ultravox_agent_id, {
           systemPrompt: promptToSync,
-          ...(clientRow.agent_voice_id ? { voice: clientRow.agent_voice_id } : {}),
+          ...(voiceToSync ? { voice: voiceToSync } : {}),
           tools,
           booking_enabled: 'booking_enabled' in updates
             ? (updates.booking_enabled as boolean)

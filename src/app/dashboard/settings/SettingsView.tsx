@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
-import BorderBeam from '@/components/ui/border-beam'
 import ShimmerButton from '@/components/ui/shimmer-button'
+import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
 
 interface PromptVersion {
   id: string
@@ -40,42 +40,17 @@ const KNOWN_VOICES: Record<string, string> = {
   'b9de4a89-7971-4ac8-aeea-d86fd8543a1a': 'Emily',
 }
 
-function getPlanName(limit: number | null) {
-  if (!limit || limit <= 50) return 'Free'
-  if (limit <= 200) return 'Starter'
-  if (limit <= 500) return 'Growth'
-  return 'Scale'
-}
-
 const RELOAD_OPTIONS = [
   { minutes: 100, price: 10 },
   { minutes: 200, price: 20 },
   { minutes: 300, price: 30 },
 ]
 
+import { fmtPhone, timeAgo, getPlanName } from '@/lib/settings-utils'
+
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function fmtPhone(p: string | null) {
-  if (!p) return '—'
-  const d = p.replace(/\D/g, '')
-  if (d.length === 11 && d[0] === '1') {
-    return `+1 (${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`
-  }
-  return p
-}
-
-function timeAgo(iso: string | null) {
-  if (!iso) return 'Never'
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86400000)
-  const hrs = Math.floor(diff / 3600000)
-  if (days > 30) return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })
-  if (days > 0) return `${days}d ago`
-  if (hrs > 0) return `${hrs}h ago`
-  return 'Just now'
 }
 
 function CopyButton({ value, label }: { value: string; label?: string }) {
@@ -102,48 +77,6 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
       )}
     </button>
   )
-}
-
-// ── CSV upload utilities ──────────────────────────────────────────────────────
-
-function parseCsvRaw(text: string): { headers: string[]; rows: string[][] } {
-  const clean = text.replace(/^\uFEFF/, '').trim()
-  const lines = clean.split(/\r?\n/).filter(l => l.trim())
-  if (lines.length === 0) return { headers: [], rows: [] }
-  function parseRow(line: string): string[] {
-    const cells: string[] = []
-    let cur = '', inQuote = false
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i]
-      if (c === '"') {
-        if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
-        else inQuote = !inQuote
-      } else if (c === ',' && !inQuote) { cells.push(cur.trim()); cur = '' }
-      else cur += c
-    }
-    cells.push(cur.trim())
-    return cells
-  }
-  return { headers: parseRow(lines[0]), rows: lines.slice(1).map(parseRow) }
-}
-
-function detectKeyColumns(headers: string[]): string[] {
-  const key = headers.filter(h =>
-    /unit|suite|apt|apartment|door/i.test(h) ||
-    /address|addr|street|property/i.test(h) ||
-    /name|tenant|resident|renter|owner/i.test(h) ||
-    /phone|tel|mobile|cell|contact/i.test(h) ||
-    /status|active|lease|vacant/i.test(h)
-  )
-  return key.length > 0 ? key : headers.slice(0, Math.min(headers.length, 5))
-}
-
-function columnsToMarkdownTable(headers: string[], selectedCols: string[], rows: string[][]): string {
-  const colIndices = selectedCols.map(c => headers.indexOf(c)).filter(i => i >= 0)
-  const selHeaders = colIndices.map(i => headers[i])
-  const divider = selHeaders.map(() => '---')
-  const dataRows = rows.map(row => colIndices.map(i => row[i] ?? ''))
-  return [selHeaders, divider, ...dataRows].map(row => '| ' + row.join(' | ') + ' |').join('\n')
 }
 
 function UrlRow({ label, url }: { label: string; url: string }) {
@@ -288,24 +221,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [advancedSaving, setAdvancedSaving] = useState(false)
   const [advancedSaved, setAdvancedSaved] = useState(false)
 
-  // Context Data
-  const [contextData, setContextData] = useState<Record<string, string>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.context_data ?? '']))
-  )
-  const [contextDataLabel, setContextDataLabel] = useState<Record<string, string>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.context_data_label ?? '']))
-  )
-  const [contextDataSaving, setContextDataSaving] = useState(false)
-  const [contextDataSaved, setContextDataSaved] = useState(false)
-  const [csvUpload, setCsvUpload] = useState<Record<string, {
-    allColumns: string[]
-    allRows: string[][]
-    selectedColumns: string[]
-    rowCount: number
-    truncated: boolean
-  }>>({})
-  const csvInputRef = useRef<HTMLInputElement>(null)
-
   // Booking / Calendar
   const [bookingSaving, setBookingSaving] = useState(false)
   const [bookingSaved, setBookingSaved] = useState(false)
@@ -333,16 +248,14 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [setupComplete, setSetupComplete] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.setup_complete ?? false]))
   )
+  const [setupCollapsed, setSetupCollapsed] = useState(() => {
+    const c = (initialClientId && clients.find(c => c.id === initialClientId)) || clients[0]
+    return !!(c?.setup_complete || c?.twilio_number)
+  })
   const [setupSaving, setSetupSaving] = useState(false)
   const [setupSaved, setSetupSaved] = useState(false)
   const [setupEditing, setSetupEditing] = useState(false)
 
-  // Agent Name
-  const [agentName, setAgentName] = useState<Record<string, string>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.agent_name ?? '']))
-  )
-  const [nameSaving, setNameSaving] = useState(false)
-  const [nameSaved, setNameSaved] = useState(false)
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'transfer' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
@@ -674,48 +587,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     }
   }
 
-  async function saveContextData() {
-    setContextDataSaving(true)
-    setContextDataSaved(false)
-    const body: Record<string, unknown> = {
-      context_data: contextData[client.id] ?? '',
-      context_data_label: contextDataLabel[client.id] ?? '',
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setContextDataSaving(false)
-    if (res.ok) {
-      setContextDataSaved(true)
-      setTimeout(() => setContextDataSaved(false), 3000)
-    }
-  }
-
-  function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string
-      const { headers, rows } = parseCsvRaw(text)
-      if (headers.length === 0) return
-      const MAX_ROWS = 250
-      const truncated = rows.length > MAX_ROWS
-      const limitedRows = truncated ? rows.slice(0, MAX_ROWS) : rows
-      const selected = detectKeyColumns(headers)
-      const clientId = csvInputRef.current?.dataset.clientid ?? ''
-      setCsvUpload(prev => ({
-        ...prev,
-        [clientId]: { allColumns: headers, allRows: limitedRows, selectedColumns: selected, rowCount: rows.length, truncated },
-      }))
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
-
   async function saveBookingConfig() {
     setBookingSaving(true)
     setBookingSaved(false)
@@ -910,10 +781,30 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       {/* 0 — Setup */}
       {!isAdmin && ((!setupComplete[client.id] || setupEditing) ? (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] overflow-hidden">
-          <div className="px-5 py-3 border-b border-amber-500/20 flex items-center gap-2">
+          <button
+            onClick={() => setSetupCollapsed(c => !c)}
+            className="w-full px-5 py-3 border-b border-amber-500/20 flex items-center gap-2 hover:bg-amber-500/[0.04] transition-colors"
+          >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400">Start here — complete your setup</p>
-          </div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400 flex-1 text-left">Start here — complete your setup</p>
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              className="text-amber-400/60 shrink-0 transition-transform duration-200"
+              style={{ transform: setupCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <AnimatePresence initial={false}>
+          {!setupCollapsed && (
+          <motion.div
+            key="setup-body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
           <div className="p-5 space-y-4">
             <div>
               <p className="text-xs t3 mb-1.5">Your AI phone number</p>
@@ -1018,6 +909,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               )}
             </div>
           </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
@@ -1051,128 +945,12 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
       >
-      <div className="relative rounded-2xl border b-theme bg-surface p-5 overflow-hidden">
-        {client.status === 'active' && <BorderBeam size={250} duration={12} colorFrom="#6366f1" colorTo="#a855f7" />}
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-4">Agent overview</p>
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-semibold t1">{client.business_name}</h2>
-              {niche && (
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${nicheConfig.color} ${nicheConfig.border} bg-transparent`}>
-                  {nicheConfig.label}
-                </span>
-              )}
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
-                {getPlanName(client.monthly_minute_limit)} · {minuteLimit} min/mo
-                {(client.bonus_minutes ?? 0) > 0 && ` + ${client.bonus_minutes} bonus`}
-              </span>
-            </div>
-            {/* Agent Name — inline edit */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] t3 uppercase tracking-wider">Agent</span>
-              <input
-                type="text"
-                value={agentName[client.id] ?? ''}
-                onChange={e => setAgentName(prev => ({ ...prev, [client.id]: e.target.value }))}
-                placeholder="e.g. Aisha"
-                className="text-xs t2 bg-hover px-2 py-0.5 rounded border b-theme w-28 focus:outline-none focus:border-blue-500/50"
-              />
-              {(agentName[client.id] ?? '') !== (client.agent_name ?? '') && (
-                <button
-                  disabled={nameSaving}
-                  onClick={async () => {
-                    setNameSaving(true)
-                    setNameSaved(false)
-                    const body: Record<string, unknown> = { agent_name: agentName[client.id]?.trim() }
-                    if (isAdmin) body.client_id = client.id
-                    const res = await fetch('/api/dashboard/settings', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(body),
-                    })
-                    setNameSaving(false)
-                    if (res.ok) {
-                      setNameSaved(true)
-                      client.agent_name = agentName[client.id]?.trim() ?? null
-                      setTimeout(() => setNameSaved(false), 3000)
-                    }
-                  }}
-                  className="text-[10px] px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
-                >
-                  {nameSaving ? 'Saving...' : 'Save'}
-                </button>
-              )}
-              {nameSaved && <span className="text-[10px] text-green-400">Saved</span>}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {voiceName && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] t3 uppercase tracking-wider">Voice</span>
-                  <span className="text-xs t2 bg-hover px-2 py-0.5 rounded border b-theme">{voiceName}</span>
-                </div>
-              )}
-              {isAdmin && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] t3 uppercase tracking-wider">Slug</span>
-                  <span className="text-xs font-mono t2 bg-hover px-2 py-0.5 rounded border b-theme">
-                    {client.slug}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] t3 uppercase tracking-wider">Last updated</span>
-                <span className="text-xs t3 font-mono">{timeAgo(client.updated_at)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Status toggle */}
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <button
-              onClick={toggleStatus}
-              className={`relative w-11 h-6 rounded-full transition-colors ${isActive ? 'bg-blue-500' : 'bg-zinc-700'}`}
-            >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
-            </button>
-            <div className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-              <span className={`text-[11px] font-medium ${isActive ? 'text-green-400' : 't3'}`}>
-                {isActive ? 'Answering calls' : 'Paused'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Usage bar — inline */}
-        <div className="mt-4 pt-4 border-t b-theme">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Minutes This Month</p>
-            <span className="text-xs font-mono t2 tabular-nums">
-              {minutesUsed} / {totalAvailable} min
-            </span>
-          </div>
-          <div className="h-1.5 bg-hover rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${
-                usagePct > 100 ? 'bg-pink-500' : usagePct >= 95 ? 'bg-red-500' : usagePct >= 80 ? 'bg-amber-500' : 'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(usagePct, 100)}%` }}
-            />
-          </div>
-          {usagePct > 100 ? (
-              <p className="text-[11px] mt-2 text-amber-400">
-                You&apos;ve used all {totalAvailable} free minutes. Go to Billing &rarr; Buy Minutes to reload.
-              </p>
-          ) : (
-            <div className="flex items-center justify-between mt-1.5">
-              <p className="text-[11px] t3">Resets 1st of each month</p>
-              <p className="text-[11px] t3 tabular-nums font-mono">
-                {totalAvailable - minutesUsed} min remaining
-              </p>
-            </div>
-          )}
-        </div>
+        <AgentOverviewCard
+          client={client}
+          isAdmin={isAdmin}
+          isActive={isActive}
+          onToggleStatus={toggleStatus}
+        />
         {isAdmin && !setupComplete[client.id] && (
           <div className="mt-3 flex justify-end">
             <button
@@ -1184,7 +962,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             </button>
           </div>
         )}
-      </div>
       </motion.div>
 
       {/* 2 — Webhooks + Phone (collapsible, admin only) */}
@@ -1403,198 +1180,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </div>
         </div>
       )}
-
-      {/* 4b — Context Data */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.18 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <input
-          type="file"
-          accept=".csv"
-          className="hidden"
-          ref={csvInputRef}
-          onChange={handleCsvUpload}
-        />
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Context Data</p>
-            <p className="text-[11px] t3 mt-0.5">Injected into every call. Use for tenant lists, menus, service catalogs, or FAQ data.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (csvInputRef.current) {
-                  csvInputRef.current.dataset.clientid = client.id
-                  csvInputRef.current.click()
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold border b-theme t2 hover:t1 transition-all"
-            >
-              Upload CSV
-            </button>
-            <button
-              onClick={saveContextData}
-              disabled={contextDataSaving}
-              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                contextDataSaved
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-blue-500 hover:bg-blue-400 text-white'
-              } disabled:opacity-40`}
-            >
-              {contextDataSaving ? 'Saving…' : contextDataSaved ? '✓ Saved' : 'Save'}
-            </button>
-          </div>
-        </div>
-
-        {/* Column picker — shown after CSV upload, before confirm */}
-        {csvUpload[client.id] && (
-          <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold t1">
-                {csvUpload[client.id].rowCount} rows detected
-                {csvUpload[client.id].truncated && (
-                  <span className="ml-2 text-[10px] text-amber-400/80 font-normal">
-                    (first 250 will be used)
-                  </span>
-                )}
-                {' '}— select columns to include:
-              </p>
-              <button
-                onClick={() => setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })}
-                className="text-[10px] t3 hover:t1"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Column checkboxes */}
-            <div className="flex flex-wrap gap-2">
-              {csvUpload[client.id].allColumns.map(col => {
-                const checked = csvUpload[client.id].selectedColumns.includes(col)
-                return (
-                  <label
-                    key={col}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium cursor-pointer transition-all ${
-                      checked ? 'border-blue-500/40 bg-blue-500/15 text-blue-300' : 'b-theme t3 hover:t2'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      className="hidden"
-                      onChange={() => setCsvUpload(prev => {
-                        const curr = prev[client.id]
-                        const selected = checked
-                          ? curr.selectedColumns.filter(c => c !== col)
-                          : [...curr.selectedColumns, col]
-                        return { ...prev, [client.id]: { ...curr, selectedColumns: selected } }
-                      })}
-                    />
-                    {col}
-                  </label>
-                )
-              })}
-            </div>
-
-            {/* Warning: no address/unit column */}
-            {csvUpload[client.id].selectedColumns.length > 0 &&
-              !csvUpload[client.id].selectedColumns.some(c => /unit|address|addr|suite|apt|door|property/i.test(c)) && (
-              <p className="text-[11px] text-amber-400/80">
-                No unit or address column selected — address lookup may be less accurate.
-              </p>
-            )}
-
-            {/* Row preview */}
-            {csvUpload[client.id].selectedColumns.length > 0 && csvUpload[client.id].allRows.length > 0 && (
-              <div>
-                <p className="text-[10px] t3 mb-1.5">Preview (first 3 rows):</p>
-                <div className="overflow-x-auto rounded-lg border b-theme">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b b-theme">
-                        {csvUpload[client.id].selectedColumns.map(col => (
-                          <th key={col} className="px-2 py-1 text-left text-[10px] font-semibold t3 whitespace-nowrap">{col}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csvUpload[client.id].allRows.slice(0, 3).map((row, ri) => (
-                        <tr key={ri} className="border-b b-theme last:border-0">
-                          {csvUpload[client.id].selectedColumns.map((col, ci) => {
-                            const colIdx = csvUpload[client.id].allColumns.indexOf(col)
-                            return (
-                              <td key={ci} className="px-2 py-1 text-[10px] font-mono t2 max-w-36 truncate">
-                                {row[colIdx] ?? ''}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                onClick={() => setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })}
-                className="px-3 py-1.5 rounded-lg text-xs t3 hover:t1 border b-theme transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={csvUpload[client.id].selectedColumns.length === 0}
-                onClick={() => {
-                  const state = csvUpload[client.id]
-                  const markdown = columnsToMarkdownTable(state.allColumns, state.selectedColumns, state.allRows)
-                  setContextData(prev => ({ ...prev, [client.id]: markdown }))
-                  if (!contextDataLabel[client.id]) {
-                    setContextDataLabel(prev => ({ ...prev, [client.id]: 'Tenant List' }))
-                  }
-                  setCsvUpload(prev => { const c = { ...prev }; delete c[client.id]; return c })
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white disabled:opacity-40 transition-all"
-              >
-                Use This Data →
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3 mt-4">
-          <div>
-            <label className="text-[11px] t3 block mb-1">Data label <span className="t3">(e.g. "Tenant List", "Menu", "Price Sheet")</span></label>
-            <input
-              type="text"
-              value={contextDataLabel[client.id] ?? ''}
-              onChange={e => setContextDataLabel(prev => ({ ...prev, [client.id]: e.target.value }))}
-              placeholder="Tenant List"
-              className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] t3 block mb-1">Data <span className="t3">(paste or upload CSV — max ~32,000 chars)</span></label>
-            <textarea
-              value={contextData[client.id] ?? ''}
-              onChange={e => setContextData(prev => ({ ...prev, [client.id]: e.target.value }))}
-              placeholder={`Unit, Tenant, Rent\n4A, John Smith, $1200\n4B, Sarah Lee, $1350`}
-              className="w-full h-40 bg-black/20 border b-theme rounded-xl p-3 text-xs t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
-              maxLength={32000}
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-[10px] t3">{(contextData[client.id] ?? '').length.toLocaleString()} / 32,000 chars</p>
-              {(contextData[client.id] ?? '').startsWith('|') && (
-                <p className="text-[10px] text-green-400/70">Lookup instructions auto-injected on every call</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      </motion.div>
 
       {/* 4c — Booking (calendar_beta_enabled or admin only) */}
       {(client.calendar_beta_enabled || isAdmin) && (
