@@ -549,7 +549,18 @@ export default function LabView({
                           promptSnapshot: draftPrompt || livePrompt,
                         }),
                       })
-                      setSaveState(res.ok ? 'saved' : 'error')
+                      if (res.ok) {
+                        const { id } = await res.json()
+                        setSessions(prev => [{
+                          id,
+                          created_at: new Date().toISOString(),
+                          transcript_json: resultA.transcripts as unknown[],
+                          prompt_snapshot: draftPrompt || livePrompt || null,
+                        }, ...prev])
+                        setSaveState('saved')
+                      } else {
+                        setSaveState('error')
+                      }
                       setTimeout(() => setSaveState('idle'), 3000)
                     } catch {
                       setSaveState('error')

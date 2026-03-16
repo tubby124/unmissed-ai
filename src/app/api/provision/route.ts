@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
   }
 
+  if (!data.businessHoursText?.trim() && data.niche !== 'voicemail') {
+    return NextResponse.json({ error: "Business hours are required" }, { status: 400 });
+  }
+
   const intakePayload = toIntakePayload(data);
 
   // For real_estate the display name is the agent's personal name (ownerName),

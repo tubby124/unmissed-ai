@@ -8,6 +8,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeAndExtract } from '@/lib/firecrawl'
 
+const rateLimitMap = new Map<string, number[]>()
+const RATE_LIMIT = 5
+const RATE_WINDOW_MS = 60 * 1000 // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
+  rateLimitMap.set(ip, timestamps)
+  return timestamps.length >= RATE_LIMIT
+}
+
+function recordUsage(ip: string) {
+  const timestamps = rateLimitMap.get(ip) || []
+  timestamps.push(Date.now())
+  rateLimitMap.set(ip, timestamps)
+}
+
 async function extractHoursAndServices(markdown: string): Promise<{ hours?: string; services?: string }> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey || !markdown) return {}
@@ -47,6 +64,12 @@ ${markdown.slice(0, 3000)}`,
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip') || 'unknown'
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   try {
     const { url } = await req.json()
     if (!url || typeof url !== 'string') return NextResponse.json({})
@@ -64,6 +87,7 @@ export async function POST(req: NextRequest) {
       if (!markdown) return NextResponse.json({})
 
       const extracted = await extractHoursAndServices(markdown)
+      recordUsage(ip)
       return NextResponse.json(extracted || {})
     } catch {
       clearTimeout(timer)

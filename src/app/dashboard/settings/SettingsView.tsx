@@ -212,7 +212,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   )
 
   // Re-generate from template
-  const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error'>('idle')
 
   // AI Improve Prompt
   const [improveState, setImproveState] = useState<ImproveState>('idle')
@@ -1774,8 +1774,14 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                               body: JSON.stringify({ clientId: selectedId }),
                             })
                             if (!res.ok) throw new Error(await res.text())
-                            setRegenState('done')
-                            setTimeout(() => setRegenState('idle'), 3000)
+                            const json = await res.json()
+                            if (json.synced === false) {
+                              setRegenState('partial')
+                              setTimeout(() => setRegenState('idle'), 4000)
+                            } else {
+                              setRegenState('done')
+                              setTimeout(() => setRegenState('idle'), 3000)
+                            }
                           } catch (e) {
                             console.error('[regen]', e)
                             setRegenState('error')
@@ -1786,7 +1792,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                         className="text-sm"
                         shimmerColor="rgba(99,102,241,0.5)"
                       >
-                        {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
+                        {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
                       </ShimmerButton>
                     )}
                   </div>
