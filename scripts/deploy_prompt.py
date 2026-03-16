@@ -57,7 +57,7 @@ CLIENT_CONFIG = {
     },
     "hasan-sharif": {
         "ultravox_agent_id": "f19b4ad7-233e-4125-a547-94e007238cf8",
-        "voice": "f90da51d-8133-4d19-aa0f-4ec99e14cb85",  # Riya (professional, clean, articulate)
+        "voice": "87edb04c-06d4-47c2-bd94-683bc47e8fbe",  # Monika-English-Indian (original hyper lady — never change without explicit --voice)
         "greeting": None,
         "vad_min_interruption": "0.400s",
     },
@@ -191,13 +191,21 @@ def deploy(slug, change_description):
             {
                 "temporaryTool": {
                     "modelToolName": "checkCalendarAvailability",
-                    "description": "Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. '9:00 AM'). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day.",
+                    "precomputable": True,
+                    "timeout": "10s",
+                    "description": "Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. '9:00 AM'). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day. When the caller asks for a specific time, pass it as the time parameter — the tool returns the 3 closest available slots to that time. If the exact time isn't available, say 'I don't have exactly [time] but I can do [closest slot] — does that work?' — NEVER say a time is 'booked' unless the tool explicitly says so.",
                     "dynamicParameters": [
                         {
                             "name": "date",
                             "location": "PARAMETER_LOCATION_QUERY",
                             "schema": {"type": "string", "description": "Date in YYYY-MM-DD format. Use the TODAY value from callerContext to resolve relative dates like 'tomorrow' or 'next Monday'."},
                             "required": True,
+                        },
+                        {
+                            "name": "time",
+                            "location": "PARAMETER_LOCATION_QUERY",
+                            "schema": {"type": "string", "description": "Preferred time in 24h HH:MM format (e.g. '16:00' for 4 PM). When provided, returns 3 slots closest to this time. Omit if caller has no preference."},
+                            "required": False,
                         }
                     ],
                     "http": {
@@ -209,6 +217,7 @@ def deploy(slug, change_description):
             {
                 "temporaryTool": {
                     "modelToolName": "bookAppointment",
+                    "timeout": "10s",
                     "description": "Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. '9:00 AM', '2:30 PM') — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.",
                     "dynamicParameters": [
                         {"name": "date",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"}, "required": True},
@@ -226,21 +235,37 @@ def deploy(slug, change_description):
         ]
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
 
+    # Read current voice from live Ultravox agent — NEVER overwrite voice on prompt deploy
+    live_agent = uv_get(cfg["ultravox_agent_id"])
+    live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
+    # Allow explicit --voice override; otherwise preserve whatever is live
+    deploy_voice = cfg.get("_voice_override") or live_voice
+    print(f"  Voice: {deploy_voice} ({'overridden' if cfg.get('_voice_override') else 'preserved from live agent'})")
+
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
     call_template = {
         "systemPrompt": prompt,
-        "voice": cfg["voice"],
+        "voice": deploy_voice,
         "model": "ultravox-v0.7",
         "maxDuration": "600s",
         "medium": {"twilio": {}},
         "recordingEnabled": True,
         "selectedTools": selected_tools,
-        "contextSchema": {"type": "object", "properties": {"callerContext": {"type": "string"}}},
+        "contextSchema": {
+            "type": "object",
+            "properties": {
+                "callerContext":  {"type": "string"},
+                "businessFacts":  {"type": "string"},
+                "extraQa":        {"type": "string"},
+                "contextData":    {"type": "string"},
+            }
+        },
         "vadSettings": {
             "turnEndpointDelay": "0.640s",
             "minimumTurnDuration": "0.100s",
             "minimumInterruptionDuration": cfg.get("vad_min_interruption", "0.200s"),
         },
+        "timeExceededMessage": "I need to wrap up \u2014 feel free to call back or text this number. Bye!",
         "inactivityMessages": [
             {"duration": "30s", "message": "Hello? You still there?"},
             {"duration": "15s", "message": "I'll let you go \u2014 feel free to call back anytime. Bye!", "endBehavior": "END_BEHAVIOR_HANG_UP_SOFT"},
@@ -251,14 +276,14 @@ def deploy(slug, change_description):
         call_template["firstSpeakerSettings"]["agent"]["text"] = cfg["greeting"]
 
     uv_result = uv_patch(cfg["ultravox_agent_id"], call_template)
-    uv_revision = uv_result.get("currentRevision", {}).get("revisionId", "n/a")
+    uv_revision = uv_result.get("publishedRevisionId", "n/a")
 
     # Post-PATCH verification — read back live agent and check required fields
     # Ultravox PATCH is a full callTemplate replace; missing fields are silently wiped.
     uv_live = uv_get(cfg["ultravox_agent_id"])
     live_ct = uv_live.get("callTemplate", {})
     required = ["systemPrompt", "voice", "medium", "recordingEnabled", "selectedTools",
-                "inactivityMessages", "firstSpeakerSettings", "vadSettings"]
+                "inactivityMessages", "firstSpeakerSettings", "vadSettings", "timeExceededMessage"]
     missing = [f for f in required if not live_ct.get(f)]
     if missing:
         print(f"  ⚠ DEPLOY WARNING: live agent missing fields after PATCH: {missing}")
@@ -436,6 +461,7 @@ if __name__ == "__main__":
     parser.add_argument("description", nargs="?", default="", help="Change description (required for normal deploy)")
     parser.add_argument("--dry-run", action="store_true", help="Show diff vs live without deploying")
     parser.add_argument("--rollback", type=int, metavar="N", help="Roll back to version N")
+    parser.add_argument("--voice", type=str, metavar="UUID", help="Override voice UUID (one-time). Omit to preserve current live voice.")
     args = parser.parse_args()
 
     if args.dry_run:
@@ -445,4 +471,8 @@ if __name__ == "__main__":
     else:
         if not args.description:
             parser.error("A change description is required for normal deploys.")
+        # Pass voice override through CLIENT_CONFIG if provided
+        if args.voice:
+            if args.slug in CLIENT_CONFIG:
+                CLIENT_CONFIG[args.slug]["_voice_override"] = args.voice
         deploy(args.slug, args.description)
