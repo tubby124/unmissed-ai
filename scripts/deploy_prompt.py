@@ -143,15 +143,24 @@ def deploy(slug, change_description):
     with open(prompt_path, "r") as f:
         prompt = f.read()
 
-    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
-
     # Get client row
-    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,injected_note")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
     client_id = rows[0]["id"]
     booking_enabled = rows[0].get("booking_enabled") or False
+    injected_note = (rows[0].get("injected_note") or "").strip()
+
+    # Strip any stale injected_note block from the file, then re-apply the live DB value
+    INJECT_MARKER = '\n\n## RIGHT NOW — Time-sensitive info'
+    if INJECT_MARKER in prompt:
+        prompt = prompt.split(INJECT_MARKER)[0]
+    if injected_note:
+        prompt += f"{INJECT_MARKER}\n{injected_note}\n"
+        print(f"  Re-applying injected_note ({len(injected_note)} chars)")
+
+    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
 
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
