@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     clientId = cu.client_id
     const { data: client } = await supabase
       .from('clients')
-      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, transfer_enabled')
+      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, transfer_enabled, system_prompt')
       .eq('id', clientId)
       .single()
 
@@ -150,6 +150,11 @@ export async function POST(req: NextRequest) {
         businessFacts: client.business_facts,
       }
 
+      // Trim system_prompt to ~2000 chars for advisor context (avoids token bloat)
+      const promptSummary = client.system_prompt
+        ? client.system_prompt.slice(0, 2000) + (client.system_prompt.length > 2000 ? '\n[...truncated — full prompt is ' + Math.round(client.system_prompt.length / 4) + ' tokens]' : '')
+        : null
+
       clientSetup = {
         status: client.status || 'setup',
         twilioNumber: client.twilio_number,
@@ -158,6 +163,8 @@ export async function POST(req: NextRequest) {
         transferEnabled: client.transfer_enabled ?? false,
         forwardingNumber: client.forwarding_number,
         agentName: client.agent_name,
+        userName: user.user_metadata?.full_name || user.email?.split('@')[0] || null,
+        agentPromptSummary: promptSummary,
       }
     }
   }

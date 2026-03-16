@@ -14,10 +14,21 @@ export interface ClientSetup {
   transferEnabled: boolean
   forwardingNumber: string | null
   agentName: string | null
+  userName: string | null
+  agentPromptSummary: string | null  // first ~2000 chars of system_prompt
 }
 
 export function formatClientSetup(setup: ClientSetup): string {
   const parts: string[] = []
+
+  // Current date/time context
+  const now = new Date()
+  const timeStr = now.toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+  parts.push(`\n## Current Context`)
+  parts.push(`- **Current date/time:** ${timeStr} (Central Time)`)
+  if (setup.userName) {
+    parts.push(`- **User name:** ${setup.userName} — address them by first name`)
+  }
 
   parts.push(`\n## Your Account Status`)
 
@@ -63,6 +74,14 @@ export function formatClientSetup(setup: ClientSetup): string {
       parts.push(`2. Make a test call from another phone to verify your agent answers`)
       parts.push(`3. Once confirmed, your agent goes live automatically`)
     }
+  }
+
+  // Agent prompt summary — the "answer key" for coaching
+  if (setup.agentPromptSummary) {
+    parts.push(`\n## Your Agent's Current Instructions (summary)`)
+    parts.push(`Below is the beginning of your AI agent's system prompt — what it's told to do on calls. Use this to identify gaps between what the agent SHOULD do vs what it ACTUALLY did in transcripts.`)
+    parts.push(`\n\`\`\`\n${setup.agentPromptSummary}\n\`\`\``)
+    parts.push(`When coaching on agent performance, reference specific sections from these instructions. If a caller asked about something the prompt doesn't cover, suggest adding it.`)
   }
 
   return parts.join('\n')
