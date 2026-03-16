@@ -37,10 +37,11 @@ export async function listSlots(
   bufferMinutes: number,
   workdayStart = '09:00',
   workdayEnd = '18:00',
+  maxSlots = 3,     // Return at most this many slots — keeps agent responses concise
 ): Promise<TimeSlot[]> {
-  // Build time range for the day in client's timezone
-  const dayStart = new Date(`${dateStr}T${workdayStart}:00`)
-  const dayEnd = new Date(`${dateStr}T${workdayEnd}:00`)
+  // Build time range for the day in the client's local timezone (not UTC)
+  const dayStart = parseLocalTime(dateStr, workdayStart, timezone)
+  const dayEnd   = parseLocalTime(dateStr, workdayEnd,   timezone)
 
   // Fetch existing events for the day
   const params = new URLSearchParams({
@@ -80,7 +81,7 @@ export async function listSlots(
 
     cursor = new Date(cursor.getTime() + (durationMinutes + bufferMinutes) * 60_000)
   }
-  return slots
+  return slots.slice(0, maxSlots)
 }
 
 /** Create a calendar event (booking) */
@@ -117,19 +118,25 @@ export async function createEvent(
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Convert a local date+time string in a given timezone to a UTC ISO string.
+ * Uses the Intl offset trick: compare what the naive Date looks like in UTC
+ * vs the target timezone to derive the UTC offset, then apply it.
+ */
 function toUtc(dateStr: string, timeStr: string, timezone: string): string {
-  // Build a date string with timezone offset using Intl
-  const dt = new Date(`${dateStr}T${timeStr}:00`)
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  })
-  // We approximate: just use the local Date constructed from the string
-  // (Railway runs UTC; we pass tz-aware strings so Google handles conversion)
-  void formatter // keep import
-  return `${dateStr}T${timeStr}:00Z` // simplified — Google converts from tz specified in events
+  const naive = new Date(`${dateStr}T${timeStr}:00`)
+  const utcDate  = new Date(naive.toLocaleString('en-US', { timeZone: 'UTC' }))
+  const localDate = new Date(naive.toLocaleString('en-US', { timeZone: timezone }))
+  const offsetMs = utcDate.getTime() - localDate.getTime()
+  return new Date(naive.getTime() + offsetMs).toISOString()
+}
+
+/**
+ * Parse a local date+time string in a given timezone into a UTC Date object.
+ * Used to build correct slot start/end cursors.
+ */
+function parseLocalTime(dateStr: string, timeStr: string, timezone: string): Date {
+  return new Date(toUtc(dateStr, timeStr, timezone))
 }
 
 function formatLocal(date: Date, timezone: string): string {

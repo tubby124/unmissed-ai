@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -82,10 +82,14 @@ export async function POST(
     })
 
   // ── Returning caller detection ─────────────────────────────────────────────
-  // Always inject TODAY'S DATE so agent never uses a stale/wrong year for bookings
-  const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD UTC
+  // Inject rich datetime context so agent can resolve "tomorrow", "next Tuesday", etc.
+  const clientTz = (client.timezone as string | null) || 'America/Regina'
+  const now = new Date()
+  const todayIso  = now.toLocaleDateString('en-CA', { timeZone: clientTz })           // YYYY-MM-DD
+  const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: clientTz, weekday: 'long' })
+  const timeNow   = now.toLocaleTimeString('en-US', { timeZone: clientTz, hour: 'numeric', minute: '2-digit', hour12: true })
   // Always inject CALLER PHONE — agent should never ask for it; we already have it from Twilio
-  let callerContext = `TODAY'S DATE: ${todayStr}`
+  let callerContext = `TODAY: ${todayIso} (${dayOfWeek})\nCURRENT TIME: ${timeNow} (${clientTz})`
   if (callerPhone !== 'unknown') callerContext += `\nCALLER PHONE: ${callerPhone}`
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
