@@ -56,3 +56,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 16126 | **Hash:** 53af2d801c7c9180
 **Supabase version_id:** 970d1090-9070-49df-8b91-eeafd5dafb30
 **Ultravox revision:** n/a
+
+## v16 — 2026-03-16 00:33 UTC
+**Change:** add live calendar booking flow for showings (checkCalendarAvailability + bookAppointment)
+**Chars:** 18043 | **Hash:** ffc1eaf01143c515
+**Supabase version_id:** 54288151-76c3-4765-8118-a7ed6c9e8f1a
+**Ultravox revision:** n/a

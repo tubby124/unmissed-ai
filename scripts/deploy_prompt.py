@@ -146,11 +146,12 @@ def deploy(slug, change_description):
     prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
 
     # Get client row
-    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
     client_id = rows[0]["id"]
+    booking_enabled = rows[0].get("booking_enabled") or False
 
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
@@ -182,6 +183,48 @@ def deploy(slug, change_description):
     })
     print(f"  ✓ clients.system_prompt + active_prompt_version_id updated")
 
+    # Build selectedTools — always include hangUp; add calendar tools if booking_enabled
+    APP_URL = "https://unmissed-ai-production.up.railway.app"
+    selected_tools = [{"toolName": "hangUp"}]
+    if booking_enabled:
+        selected_tools += [
+            {
+                "temporaryTool": {
+                    "modelToolName": "checkCalendarAvailability",
+                    "description": "Check available appointment slots for a given date.",
+                    "dynamicParameters": [
+                        {
+                            "name": "date",
+                            "location": "PARAMETER_LOCATION_QUERY",
+                            "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"},
+                            "required": True,
+                        }
+                    ],
+                    "http": {
+                        "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/slots",
+                        "httpMethod": "GET",
+                    },
+                }
+            },
+            {
+                "temporaryTool": {
+                    "modelToolName": "bookAppointment",
+                    "description": "Book an appointment for a caller.",
+                    "dynamicParameters": [
+                        {"name": "date",       "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
+                        {"name": "time",       "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
+                        {"name": "service",    "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
+                        {"name": "callerName", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
+                    ],
+                    "http": {
+                        "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/book",
+                        "httpMethod": "POST",
+                    },
+                }
+            },
+        ]
+        print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
+
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
     call_template = {
         "systemPrompt": prompt,
@@ -190,7 +233,7 @@ def deploy(slug, change_description):
         "maxDuration": "600s",
         "medium": {"twilio": {}},
         "recordingEnabled": True,
-        "selectedTools": [{"toolName": "hangUp"}],
+        "selectedTools": selected_tools,
         "contextSchema": {"type": "object", "properties": {"callerContext": {"type": "string"}}},
         "vadSettings": {
             "turnEndpointDelay": "0.640s",
