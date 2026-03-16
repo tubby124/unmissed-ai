@@ -37,3 +37,13 @@ archive/
 
 # macOS
 .DS_Store
+
+# dependencies / build (agent-app subdir)
+node_modules/
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*

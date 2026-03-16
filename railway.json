@@ -1,0 +1,26 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "npm run start",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "cron": [
+    {
+      "schedule": "0 2 * * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/analyze-calls -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{\"all_clients\":true}'"
+    },
+    {
+      "schedule": "0 14 * * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/daily-digest -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
+    },
+    {
+      "schedule": "0 6 1 * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/reset-minutes -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
+    }
+  ]
+}
