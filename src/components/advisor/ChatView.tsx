@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import InsightCards from '@/components/advisor/InsightCards'
 
 interface Message {
   id?: string
@@ -105,9 +106,8 @@ export default function ChatView({
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`
   }, [])
 
-  const handleSubmit = useCallback(async () => {
-    const trimmed = input.trim()
-    if (!trimmed || isStreaming) return
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text || isStreaming) return
 
     setInput('')
     setError(null)
@@ -115,7 +115,7 @@ export default function ChatView({
       textareaRef.current.style.height = 'auto'
     }
 
-    const userMsg: Message = { role: 'user', content: trimmed }
+    const userMsg: Message = { role: 'user', content: text }
     setMessages(prev => [...prev, userMsg])
 
     setIsStreaming(true)
@@ -141,7 +141,7 @@ export default function ChatView({
         },
         body: JSON.stringify({
           conversationId: currentConvIdRef.current,
-          message: trimmed,
+          message: text,
           model: selectedModel,
         }),
       })
@@ -212,7 +212,15 @@ export default function ChatView({
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, selectedModel, onConversationCreated])
+  }, [isStreaming, selectedModel, onConversationCreated])
+
+  const handleSubmit = useCallback(() => {
+    sendMessage(input.trim())
+  }, [input, sendMessage])
+
+  const handleInsightPrompt = useCallback((prompt: string) => {
+    sendMessage(prompt)
+  }, [sendMessage])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -243,9 +251,7 @@ export default function ChatView({
       <div className={`flex-1 overflow-y-auto px-4 ${isFullPage ? 'py-6' : 'py-3'}`}>
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>
-              Ask anything about your business, calls, or agent.
-            </p>
+            <InsightCards onSelectPrompt={handleInsightPrompt} />
           </div>
         )}
 

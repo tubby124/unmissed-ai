@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getModelById, isFreeTier, estimateCost, estimateClientCost } from '@/lib/ai-models'
-import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats } from '@/lib/advisor-constants'
+import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats, type TrendSummary, type FollowUpGapSummary, type TranscriptEntry } from '@/lib/advisor-constants'
+import { computeTrends, findFollowUpGaps, formatTranscriptForPrompt, type CallRow } from '@/lib/advisor-data'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -150,17 +151,38 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 7. Call stats + recent calls ──────────────────────────────────────────
+  // ── 7. Call stats + recent calls + trends + transcripts + gaps ────────────
   let recentCalls: RecentCall[] = []
   let callStats: CallStats | null = null
+  let trendSummary: TrendSummary | null = null
+  let gapSummaries: FollowUpGapSummary[] = []
+  let transcriptEntries: TranscriptEntry[] = []
 
   if (clientId) {
-    // Fetch aggregate stats (status + duration for all calls)
-    const { data: allCallData, count: totalCalls } = await supabase
-      .from('call_logs')
-      .select('call_status, duration_seconds, created_at', { count: 'exact' })
-      .eq('client_id', clientId)
+    // Fetch all calls for aggregate stats + trend computation (last 30 days for trends)
+    const [allCallResult, recentCallResult, transcriptResult] = await Promise.all([
+      supabase
+        .from('call_logs')
+        .select('id, call_status, duration_seconds, created_at, sentiment, quality_score, key_topics, next_steps, ai_summary, caller_phone, service_type', { count: 'exact' })
+        .eq('client_id', clientId),
+      supabase
+        .from('call_logs')
+        .select('caller_intent, call_status, summary, next_steps, created_at, duration_seconds, sentiment, quality_score, key_topics, caller_phone, service_type')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('call_logs')
+        .select('call_status, created_at, ai_summary, transcript')
+        .eq('client_id', clientId)
+        .not('transcript', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(3),
+    ])
 
+    // Aggregate stats
+    const allCallData = allCallResult.data
+    const totalCalls = allCallResult.count
     if (allCallData && totalCalls !== null) {
       const statusBreakdown: Record<string, number> = {}
       let totalSeconds = 0
@@ -182,21 +204,59 @@ export async function POST(req: NextRequest) {
         avgDurationSeconds: totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0,
         dateRange: firstCall ? { first: firstCall, last: lastCall } : null,
       }
+
+      // Compute trends + gaps from the full call data
+      const callRows: CallRow[] = allCallData.map(c => ({
+        ...c,
+        transcript: null,
+      }))
+
+      const trends = computeTrends(callRows)
+      const peakH = trends.peakHour
+      const peakHourFormatted = peakH !== null
+        ? (peakH === 0 ? '12 AM' : peakH < 12 ? `${peakH} AM` : peakH === 12 ? '12 PM' : `${peakH - 12} PM`)
+        : null
+
+      trendSummary = {
+        thisWeekCalls: trends.thisWeek.totalCalls,
+        lastWeekCalls: trends.lastWeek.totalCalls,
+        callsDelta: trends.callsDelta,
+        thisWeekHot: trends.thisWeek.hotLeads,
+        hotLeadsDelta: trends.hotLeadsDelta,
+        avgQuality: trends.thisWeek.avgQuality,
+        qualityDelta: trends.qualityDelta,
+        peakHour: peakHourFormatted,
+        peakDay: trends.peakDay,
+      }
+
+      const gaps = findFollowUpGaps(callRows)
+      gapSummaries = gaps.slice(0, 5).map(g => ({
+        callerPhone: g.callerPhone,
+        callStatus: g.callStatus,
+        summary: g.summary,
+        nextSteps: g.nextSteps,
+        hoursSince: g.hoursSince,
+      }))
     }
 
-    // Fetch recent 10 calls with full details
-    const { data: calls } = await supabase
-      .from('call_logs')
-      .select('caller_intent, call_status, summary, next_steps, created_at, duration_seconds, sentiment, quality_score, key_topics, caller_phone, service_type')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false })
-      .limit(10)
+    // Recent calls for summary section
+    if (recentCallResult.data) recentCalls = recentCallResult.data
 
-    if (calls) recentCalls = calls
+    // Transcripts for deep analysis
+    if (transcriptResult.data) {
+      transcriptEntries = transcriptResult.data
+        .filter(c => c.transcript && Array.isArray(c.transcript) && c.transcript.length > 1)
+        .map(c => ({
+          callDate: new Date(c.created_at).toLocaleDateString(),
+          callStatus: c.call_status || 'UNKNOWN',
+          summary: c.ai_summary,
+          transcript: formatTranscriptForPrompt(c.transcript),
+        }))
+    }
   }
 
   // ── 8. Build messages array ───────────────────────────────────────────────
-  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats)
+  const systemPrompt = buildAdvisorSystemPrompt(businessCtx, recentCalls, callStats, trendSummary, gapSummaries, transcriptEntries)
 
   const { data: history } = await supabase
     .from('ai_messages')

@@ -35,14 +35,44 @@ export interface RecentCall {
   service_type: string | null
 }
 
+export interface TrendSummary {
+  thisWeekCalls: number
+  lastWeekCalls: number
+  callsDelta: number
+  thisWeekHot: number
+  hotLeadsDelta: number
+  avgQuality: number | null
+  qualityDelta: number | null
+  peakHour: string | null
+  peakDay: string | null
+}
+
+export interface FollowUpGapSummary {
+  callerPhone: string | null
+  callStatus: string
+  summary: string | null
+  nextSteps: string | null
+  hoursSince: number
+}
+
+export interface TranscriptEntry {
+  callDate: string
+  callStatus: string
+  summary: string | null
+  transcript: string // formatted text
+}
+
 export function buildAdvisorSystemPrompt(
   business: BusinessContext | null,
   recentCalls: RecentCall[] = [],
-  callStats: CallStats | null = null
+  callStats: CallStats | null = null,
+  trends: TrendSummary | null = null,
+  gaps: FollowUpGapSummary[] = [],
+  transcripts: TranscriptEntry[] = [],
 ): string {
   const parts: string[] = []
 
-  parts.push(`You are a helpful AI business advisor for the unmissed.ai platform. You help business owners understand their calls, leads, and agent performance. You have FULL ACCESS to their call data — use it to answer questions.`)
+  parts.push(`You are a helpful AI business advisor for the unmissed.ai platform. You help business owners understand their calls, leads, and agent performance. You have FULL ACCESS to their call data, transcripts, trends, and follow-up status — use it to answer questions.`)
 
   if (business) {
     parts.push(`\n## Business Context`)
@@ -105,15 +135,59 @@ export function buildAdvisorSystemPrompt(
     }
   }
 
+  // ── Trends (Phase 2) ──────────────────────────────────────────────────────
+  if (trends) {
+    parts.push(`\n## Weekly Trends`)
+    parts.push(`- **This week:** ${trends.thisWeekCalls} calls, ${trends.thisWeekHot} HOT leads`)
+    parts.push(`- **Last week:** ${trends.lastWeekCalls} calls`)
+    parts.push(`- **Call volume change:** ${trends.callsDelta > 0 ? '+' : ''}${trends.callsDelta}%`)
+    if (trends.hotLeadsDelta !== 0) {
+      parts.push(`- **HOT leads change:** ${trends.hotLeadsDelta > 0 ? '+' : ''}${trends.hotLeadsDelta}%`)
+    }
+    if (trends.avgQuality !== null) {
+      const qd = trends.qualityDelta !== null
+        ? ` (${trends.qualityDelta > 0 ? '+' : ''}${trends.qualityDelta} pts vs last week)`
+        : ''
+      parts.push(`- **Avg quality:** ${trends.avgQuality}/100${qd}`)
+    }
+    if (trends.peakHour) parts.push(`- **Peak hour:** ${trends.peakHour}`)
+    if (trends.peakDay) parts.push(`- **Busiest day:** ${trends.peakDay}`)
+  }
+
+  // ── Follow-Up Gaps (Phase 2) ─────────────────────────────────────────────
+  if (gaps.length > 0) {
+    parts.push(`\n## Follow-Up Gaps (leads waiting 24+ hours)`)
+    for (const gap of gaps.slice(0, 5)) {
+      const phone = gap.callerPhone ? gap.callerPhone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3') : 'unknown'
+      parts.push(`\n### **${gap.callStatus}** — ${phone} — ${gap.hoursSince}h ago`)
+      if (gap.summary) parts.push(`Summary: ${gap.summary}`)
+      if (gap.nextSteps) parts.push(`Needed: ${gap.nextSteps}`)
+    }
+  }
+
+  // ── Full Transcripts (Phase 2) ───────────────────────────────────────────
+  if (transcripts.length > 0) {
+    parts.push(`\n## Full Call Transcripts (last ${transcripts.length})`)
+    parts.push(`Use these to quote exact words, spot patterns, and identify where the agent excelled or struggled.`)
+    for (const t of transcripts) {
+      parts.push(`\n### [${t.callDate}] ${t.callStatus}`)
+      if (t.summary) parts.push(`Summary: ${t.summary}`)
+      parts.push(`\n\`\`\`\n${t.transcript}\n\`\`\``)
+    }
+  }
+
   parts.push(`\n## Guidelines`)
-  parts.push(`- You HAVE access to the call data shown above. Use it to answer questions about total calls, lead quality, performance, patterns, etc.`)
+  parts.push(`- You HAVE access to call data, weekly trends, follow-up gaps, and full transcripts shown above. Use ALL of it.`)
   parts.push(`- Be concise and actionable. Business owners are busy.`)
-  parts.push(`- When analyzing calls, reference specific details and numbers from the data above.`)
+  parts.push(`- When analyzing calls, reference specific details, numbers, and QUOTE exact words from transcripts.`)
   parts.push(`- Suggest concrete next steps when giving advice.`)
+  parts.push(`- If follow-up gaps exist, proactively mention them — these are leads that need attention NOW.`)
+  parts.push(`- When discussing trends, compare this week vs last week with specific numbers.`)
   parts.push(`- If asked about something NOT in the data above (like revenue, specific customer info, etc.), say you don't have that specific data.`)
   parts.push(`- Never make up call data or statistics. Only reference what's provided above.`)
   parts.push(`- Format responses with markdown for readability.`)
-  parts.push(`- When asked for "stats" or "analytics", provide the aggregate numbers from Call Statistics section.`)
+  parts.push(`- When asked for "stats" or "analytics", include aggregate stats AND weekly trends.`)
+  parts.push(`- When asked about a specific call, use the full transcript to provide detailed analysis.`)
 
   return parts.join('\n')
 }
