@@ -115,12 +115,12 @@ export async function PATCH(req: NextRequest) {
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
-  const needsAgentSync = typeof updates.system_prompt === 'string' || 'forwarding_number' in updates
+  const needsAgentSync = typeof updates.system_prompt === 'string' || 'forwarding_number' in updates || 'booking_enabled' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled')
       .eq('id', targetClientId)
       .single()
 
@@ -167,6 +167,10 @@ export async function PATCH(req: NextRequest) {
           systemPrompt: promptToSync,
           ...(clientRow.agent_voice_id ? { voice: clientRow.agent_voice_id } : {}),
           tools,
+          booking_enabled: 'booking_enabled' in updates
+            ? (updates.booking_enabled as boolean)
+            : (clientRow.booking_enabled ?? false),
+          slug: clientRow.slug,
         })
         // Keep clients.tools in sync for the createCall fallback path in the inbound route
         await supabase.from('clients').update({ tools }).eq('id', targetClientId)

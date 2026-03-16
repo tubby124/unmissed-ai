@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, ultravox_agent_id')
+    .select('id, slug, system_prompt, agent_voice_id, ultravox_agent_id, booking_enabled')
     .eq('id', targetClientId)
     .single()
 
@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     await updateAgent(client.ultravox_agent_id, {
       systemPrompt: client.system_prompt,
       ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+      booking_enabled: client.booking_enabled ?? false,
+      slug: client.slug,
     })
     console.log(`[sync-agent] Synced client=${targetClientId} agent=${client.ultravox_agent_id}`)
     return NextResponse.json({ ok: true, agent_id: client.ultravox_agent_id })
