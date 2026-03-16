@@ -166,6 +166,57 @@ If refresh token fails: `calendar_auth_status` set to `'expired'` in DB, endpoin
 
 ---
 
+## Feature 5 — Business Facts + Extra Q&A Runtime Injection
+
+**Date:** 2026-03-15
+
+### What it does
+Two new per-client knowledge fields, editable from the dashboard Settings → General tab, injected at call time via Ultravox `templateContext` — same runtime injection pattern as `context_data` (Feature 2).
+
+- **Business Facts** — stable prose a client types once: hours exceptions, key staff names, parking notes, nearby landmarks. Injected as `## Business Facts\n[text]`.
+- **Extra Q&A** — up to 10 custom Q&A pairs covering questions the wizard didn't ask. Formatted as `"[question]" → "[answer]"` and injected as `## Q&A\n[pairs]`.
+
+Both are skipped silently if empty (null, `[]`, or all-blank pairs — no empty block appears in the prompt).
+
+### Injection order (stable → dynamic)
+```
+[system prompt]
+[callerContext]         ← returning-caller history
+[businessFacts]         ← stable business info (new)
+[extraQa]               ← custom Q&A pairs (new)
+## INJECTED REFERENCE DATA
+[contextData]           ← per-call lookup data (tenant roster, menu, etc.)
+```
+
+### Files modified
+| File | Change |
+|------|--------|
+| `agent-app/src/app/api/webhook/[slug]/inbound/route.ts` | SELECT adds `business_facts, extra_qa`; builds injection blocks; passes to `templateContext` + fallback `promptFull` |
+| `agent-app/src/lib/ultravox.ts` | `createAgent` + `updateAgent` contextSchema adds `businessFacts`/`extraQa`; systemPrompt template includes new placeholders; `updateAgent` guard is backwards-compatible (appends missing placeholders on next deploy); `callViaAgent` always passes all 4 templateContext keys |
+| `agent-app/src/app/api/dashboard/browser-test-call/route.ts` | SELECT + same injection blocks as inbound webhook |
+| `agent-app/src/app/dashboard/settings/SettingsView.tsx` | `saveAdvanced()` + card UI already existed — this session: no changes needed |
+
+### Supabase columns
+`business_facts TEXT` and `extra_qa JSONB` — already existed on `clients` table before this session. Settings PATCH route was already writing to them.
+
+### Prompt deploys
+After implementing, all 3 prod clients were redeployed to patch the Ultravox agents with the updated contextSchema:
+- hasan-sharif v14 | windshield-hub v6 | urban-vibe v9
+- Backwards-compat guard in `updateAgent()` ensures existing agents missing the new placeholders get them on next `/prompt-deploy`.
+
+### Extra Q&A shape
+```ts
+{ q: string, a: string }[]   // stored as JSONB in clients.extra_qa
+```
+Formatted at injection time — never stored pre-formatted.
+
+### Prompt History "View →" modal
+Also added in this session: each Prompt History entry now has a "View →" button that opens a read-only modal showing the full prompt text. Closes on backdrop click or ×.
+- New state: `viewingVersion: PromptVersion | null`
+- Modal renders inside the General tab, outside the accordion
+
+---
+
 ## Build Status
 
 ```

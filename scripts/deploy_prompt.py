@@ -308,31 +308,49 @@ def dry_run(slug):
 
     local_hash = hashlib.sha256(local_prompt.encode()).hexdigest()[:16]
 
-    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
 
     sb_prompt = rows[0].get("system_prompt") or ""
     sb_hash = hashlib.sha256(sb_prompt.encode()).hexdigest()[:16]
+    booking_enabled = rows[0].get("booking_enabled") or False
 
     client_id = rows[0]["id"]
     vers = sb_get(f"prompt_versions?client_id=eq.{client_id}&is_active=eq.true&select=version,change_description")
     sb_ver = f"v{vers[0]['version']}" if vers else "?"
     sb_desc = vers[0].get("change_description", "") if vers else ""
 
-    # Ultravox live hash
+    # Ultravox live state (hash + tool list)
+    uv_hash = "ERROR"
+    uv_tools = []
     try:
         uv_data = uv_get(cfg["ultravox_agent_id"])
         uv_prompt = uv_data.get("callTemplate", {}).get("systemPrompt", "")
         uv_hash = hashlib.sha256(uv_prompt.encode()).hexdigest()[:16]
+        raw_tools = uv_data.get("callTemplate", {}).get("selectedTools") or []
+        for t in raw_tools:
+            if t.get("toolName"):
+                uv_tools.append(t["toolName"])
+            elif t.get("temporaryTool", {}).get("modelToolName"):
+                uv_tools.append(t["temporaryTool"]["modelToolName"])
     except Exception:
-        uv_hash = "ERROR"
+        pass
+
+    # What tools would be injected on next deploy
+    would_inject = ["hangUp"]
+    if booking_enabled:
+        would_inject += ["checkCalendarAvailability", "bookAppointment"]
 
     print(f"\n[{slug}] Dry run")
     print(f"  Current Supabase: {sb_ver} ({sb_hash}) — \"{sb_desc}\"")
     print(f"  Local file:       {local_hash}  ({len(local_prompt)} chars)")
     print(f"  Ultravox live:    {uv_hash}")
+    print(f"  Tools (live UV):  {uv_tools if uv_tools else 'unknown'}")
+    print(f"  Tools (on deploy):{would_inject}  (booking_enabled={booking_enabled})")
+    if sorted(uv_tools) != sorted(would_inject) and uv_tools:
+        print(f"  ⚠ TOOL CHANGE: live tools differ from what would be injected on next deploy")
 
     if local_hash == sb_hash:
         print("\n  No content changes — local file matches Supabase.")

@@ -237,6 +237,65 @@ tests:
           - "what's"
           - "got it"
 
+  # ── Calendar Booking Tests ────────────────────────────────────────────────
+
+  - description: "Calendar offer — agent offers book OR message for showing request"
+    vars:
+      caller_message: "Hi, I'd like to schedule a showing for a condo in Saskatoon."
+    assert:
+      - type: icontains-any
+        value:
+          - "book"
+          - "showing slot"
+          - "30-minute"
+          - "take a message"
+          - "right now"
+          - "check"
+      # Must offer the choice (book vs message) — not just default to message
+      - type: llm-rubric
+        value: "The response offers to book a showing slot directly OR to take a message for Hasan — it does not just default to taking a message without offering the live booking option."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "what is your phone number"
+      - type: not-icontains
+        value: "what's your phone"
+
+  - description: "Calendar flow — asks for day not phone number when caller wants to book"
+    vars:
+      caller_message: "Yes please book me in for the showing, I want to do it now."
+    assert:
+      - type: icontains-any
+        value:
+          - "what day"
+          - "which day"
+          - "when were you thinking"
+          - "what date"
+          - "day works"
+      - type: not-icontains
+        value: "phone number"
+      - type: not-icontains
+        value: "best number"
+      - type: not-icontains
+        value: "callback number"
+
+  - description: "Calendar flow — uses date context from callerContext for relative day resolution"
+    vars:
+      # Simulates callerContext with date injection (as Railway webhook injects at call time)
+      caller_message: "[TODAY: 2026-03-16 (Monday)\nCURRENT TIME: 2:30 PM (America/Regina)\nCALLER PHONE: 306-555-4321]\n\nI want to book a showing. Can I come in this Wednesday?"
+    assert:
+      - type: icontains-any
+        value:
+          - "Wednesday"
+          - "March 18"
+          - "checking"
+          - "let me check"
+          - "got it"
+      # Must not ask for callback number (already have it from callerContext)
+      - type: not-icontains
+        value: "phone number"
+      - type: not-icontains
+        value: "what's your number"
+
   - description: "Full closing — Hasan will get back to caller via known number"
     vars:
       # Simulates callerContext that the Railway inbound webhook always injects in production

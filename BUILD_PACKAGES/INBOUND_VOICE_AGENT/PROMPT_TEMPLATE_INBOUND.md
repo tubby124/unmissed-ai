@@ -41,6 +41,35 @@
 | `{{OWNER_PHONE}}` | (587) 355-1834 | Owner's real phone for live transfers (leave blank to disable transfer) |
 | `{{TRANSFER_ENABLED}}` | true | Set "true" to enable live transfer, "false" for callback-only mode |
 
+---
+
+## Auto-Injected Context Variables (call-time only — not template variables)
+
+These are **NOT** `{{VARIABLE}}` placeholders you fill in. They are automatically appended to the system prompt as a bracketed block by the Railway inbound webhook at the start of every call. You cannot control them at build time — they change per call.
+
+**Current injected format:**
+```
+[TODAY: 2026-03-16 (Monday)
+CURRENT TIME: 2:30 PM (America/Regina)
+CALLER PHONE: +13065559876
+CALLER NAME: David          ← only if a prior call logged their name
+RETURNING CALLER — 3 prior calls. Most recent: Mar 10. Last call: Wanted to book a showing for 123 Main...]
+```
+
+| Variable | When present | What to use it for |
+|----------|-------------|-------------------|
+| `TODAY` | Always | Resolving "tomorrow", "next Tuesday", "this Friday" → exact YYYY-MM-DD for calendar tools |
+| `CURRENT TIME` | Always | Time-of-day awareness ("are you open?"), urgency detection |
+| `CALLER PHONE` | When Twilio has caller ID | Agent must NEVER ask for phone number — it's already known |
+| `CALLER NAME` | Only when prior call logged it | Personalized greeting ("welcome back, Mike") |
+| `RETURNING CALLER` | Only when prior calls exist | Use for warm reconnection, skip intro questions already answered |
+
+**Booking prompt guidance:** When writing a booking flow, always reference TODAY for date resolution. Example prompt instruction: `"Use the TODAY date from context to convert relative day references ('next Thursday', 'this weekend') to YYYY-MM-DD before calling checkCalendarAvailability."`
+
+**Timezone:** The timezone shown in CURRENT TIME comes from `clients.timezone` in Supabase. Default is `America/Regina`. **Must be set correctly for booking clients** — wrong timezone = wrong slot times. Set via admin settings before enabling `booking_enabled`.
+
+---
+
 ### Insurance Status Options (pick one set):
 
 | Situation | `{{INSURANCE_STATUS}}` | `{{INSURANCE_DETAIL}}` |
