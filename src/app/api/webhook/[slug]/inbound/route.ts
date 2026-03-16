@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, minutes_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -52,18 +52,20 @@ export async function POST(
 
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)
 
-  // ── Overage detection (soft enforcement) ────────────────────────────────────
-  const minutesUsed = (client.minutes_used_this_month as number | null) ?? 0
-  const minuteLimit = ((client.monthly_minute_limit as number | null) ?? 500) + ((client.bonus_minutes as number | null) ?? 0)
-  const isOverLimit = minutesUsed >= minuteLimit
+  // ── Overage detection (soft enforcement — seconds-based) ─────────────────────
+  const secondsUsed = (client.seconds_used_this_month as number | null) ?? 0
+  const secondLimit = (((client.monthly_minute_limit as number | null) ?? 500) + ((client.bonus_minutes as number | null) ?? 0)) * 60
+  const isOverLimit = secondsUsed >= secondLimit
 
   if (isOverLimit) {
-    console.warn(`[inbound] OVERAGE: slug=${slug} used=${minutesUsed} limit=${minuteLimit} — call proceeding (soft enforcement)`)
+    const minsUsed = Math.ceil(secondsUsed / 60)
+    const minsLimit = Math.ceil(secondLimit / 60)
+    console.warn(`[inbound] OVERAGE: slug=${slug} used=${minsUsed} limit=${minsLimit} min — call proceeding (soft enforcement)`)
     const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
     const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
     if (operatorToken && operatorChat) {
       sendAlert(operatorToken, operatorChat,
-        `⚠️ <b>OVERAGE CALL</b> [${slug}]\nUsed: ${minutesUsed}/${minuteLimit} min\nCaller: ${callerPhone}\nCall proceeding (soft enforcement)`
+        `⚠️ <b>OVERAGE CALL</b> [${slug}]\nUsed: ${minsUsed}/${minsLimit} min\nCaller: ${callerPhone}\nCall proceeding (soft enforcement)`
       ).catch(() => {})
     }
   }

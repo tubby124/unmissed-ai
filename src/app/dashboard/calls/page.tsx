@@ -13,7 +13,7 @@ interface ClientInfo {
   niche?: string | null
   status?: string | null
   twilio_number?: string | null
-  minutes_used_this_month?: number | null
+  seconds_used_this_month?: number | null
   monthly_minute_limit?: number | null
   bonus_minutes?: number | null
 }
@@ -37,7 +37,7 @@ export default async function CallsPage() {
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(twilio_number, slug, business_name, status, minutes_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id)')
+      .select('client_id, role, clients(twilio_number, slug, business_name, status, seconds_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id)')
       .eq('user_id', user.id)
       .single()
 
@@ -45,17 +45,17 @@ export default async function CallsPage() {
       isAdmin = true
       const { data: allClients } = await supabase
         .from('clients')
-        .select('id, slug, business_name, niche, status, twilio_number, minutes_used_this_month, monthly_minute_limit, bonus_minutes')
+        .select('id, slug, business_name, niche, status, twilio_number, seconds_used_this_month, monthly_minute_limit, bonus_minutes')
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
     } else {
-      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; minutes_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null } | null
+      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null } | null
       clientPhone = clientData?.twilio_number ?? null
       clientSlug = clientData?.slug ?? null
       clientBusinessName = clientData?.business_name ?? null
       clientId = cu?.client_id ?? null
       clientStatus = clientData?.status ?? null
-      minutesUsed = clientData?.minutes_used_this_month ?? 0
+      minutesUsed = Math.ceil((clientData?.seconds_used_this_month ?? 0) / 60)
       minuteLimit = clientData?.monthly_minute_limit ?? 200
       bonusMinutes = clientData?.bonus_minutes ?? 0
       telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
@@ -67,11 +67,14 @@ export default async function CallsPage() {
     }
   }
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+
   let q = supabase
     .from('call_logs')
     .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, confidence, sentiment, key_topics, next_steps, quality_score, clients(business_name, slug)')
+    .gte('started_at', monthStart)
     .order('started_at', { ascending: false })
-    .limit(200)
+    .limit(500)
 
   if (!isAdmin && clientId) q = q.eq('client_id', clientId)
 

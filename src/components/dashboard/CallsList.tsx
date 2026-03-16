@@ -42,7 +42,7 @@ interface ClientInfo {
   niche?: string | null
   status?: string | null
   twilio_number?: string | null
-  minutes_used_this_month?: number | null
+  seconds_used_this_month?: number | null
   monthly_minute_limit?: number | null
   bonus_minutes?: number | null
 }
@@ -350,7 +350,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       {(() => {
         if (isAdmin && clientFilter !== 'all') {
           const sel = adminClients.find(c => c.id === clientFilter)
-          if (sel) return <MinuteUsage minutesUsed={sel.minutes_used_this_month ?? 0} minuteLimit={sel.monthly_minute_limit ?? 200} bonusMinutes={sel.bonus_minutes ?? 0} />
+          if (sel) return <MinuteUsage minutesUsed={Math.ceil((sel.seconds_used_this_month ?? 0) / 60)} minuteLimit={sel.monthly_minute_limit ?? 200} bonusMinutes={sel.bonus_minutes ?? 0} />
         }
         if (!isAdmin) return <MinuteUsage minutesUsed={minutesUsed} minuteLimit={minuteLimit} bonusMinutes={bonusMinutes} />
         return null

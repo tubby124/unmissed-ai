@@ -7,7 +7,7 @@ interface ClientInfo {
   niche?: string | null
   status?: string | null
   twilio_number?: string | null
-  minutes_used_this_month?: number | null
+  seconds_used_this_month?: number | null
   monthly_minute_limit?: number | null
   bonus_minutes?: number | null
 }
@@ -49,7 +49,7 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
       </div>
       <div>
         {adminClients.map((client, i) => {
-          const minutesUsed = client.minutes_used_this_month ?? 0
+          const minutesUsed = Math.ceil((client.seconds_used_this_month ?? 0) / 60)
           const minuteLimit = (client.monthly_minute_limit ?? 200) + (client.bonus_minutes ?? 0)
           const usagePct = minuteLimit > 0 ? (minutesUsed / minuteLimit) * 100 : 0
           const barColor =

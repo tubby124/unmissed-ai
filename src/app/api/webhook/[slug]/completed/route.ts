@@ -263,15 +263,14 @@ export async function POST(
         }
       }
 
-      // ── Increment minutes used ─────────────────────────────────────────────
+      // ── Increment seconds used (accurate — rounded to minutes at display time) ──
       if (durationSeconds > 0) {
-        const minutesUsed = Math.ceil(durationSeconds / 60)
-        const { error: rpcError } = await supabase.rpc('increment_minutes_used', {
+        const { error: rpcError } = await supabase.rpc('increment_seconds_used', {
           p_client_id: client.id,
-          p_minutes: minutesUsed,
+          p_seconds: durationSeconds,
         })
-        if (rpcError) console.error('[completed] Minute increment failed:', rpcError.message)
-        else console.log(`[completed] Minutes incremented: clientId=${client.id} +${minutesUsed}min`)
+        if (rpcError) console.error('[completed] Seconds increment failed:', rpcError.message)
+        else console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
       }
 
       // ── Recording upload ───────────────────────────────────────────────────

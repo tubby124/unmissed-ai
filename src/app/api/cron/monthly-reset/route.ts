@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   // Reset minutes_used_this_month for all clients
   const { data: clients, error } = await svc
     .from('clients')
-    .update({ minutes_used_this_month: 0 })
+    .update({ minutes_used_this_month: 0, seconds_used_this_month: 0 })
     .eq('status', 'active')
     .select('id, slug, business_name, minutes_used_this_month')
 

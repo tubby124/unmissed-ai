@@ -164,7 +164,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
   // Derived display values
   const niche = client.niche ?? ''
   const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 't2', border: 'border-zinc-500/30' }
-  const minutesUsed = client.minutes_used_this_month ?? 0
+  const minutesUsed = client.seconds_used_this_month != null ? Math.ceil(client.seconds_used_this_month / 60) : (client.minutes_used_this_month ?? 0)
   const minuteLimit = client.monthly_minute_limit ?? 500
   const totalAvailable = minuteLimit + (client.bonus_minutes ?? 0)
   const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0

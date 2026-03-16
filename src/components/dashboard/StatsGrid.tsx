@@ -197,7 +197,7 @@ interface StatsGridProps {
 
 export default function StatsGrid({ totalCalls, hotLeads, missedCalls, calls }: StatsGridProps) {
   // Classify calls
-  const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK', 'MISSED'].includes(c.call_status ?? ''))
+  const classified = calls.filter(c => ['HOT', 'WARM', 'COLD', 'JUNK', 'MISSED', 'UNKNOWN'].includes(c.call_status ?? ''))
 
   // Sparklines
   const isHOT = (c: CallLog) => c.call_status === 'HOT'
@@ -206,10 +206,10 @@ export default function StatsGrid({ totalCalls, hotLeads, missedCalls, calls }: 
   const hotSpark = weekBuckets(classified, 0, isHOT)
   const hotPrior = weekBuckets(classified, 1, isHOT)
 
-  // Answer rate — HOT+WARM+COLD / (HOT+WARM+COLD+MISSED)
-  // Exclude JUNK and UNKNOWN from both numerator and denominator
-  const answeredCount = calls.filter(c => ['HOT', 'WARM', 'COLD'].includes(c.call_status ?? '')).length
-  const callableTotal = calls.filter(c => ['HOT', 'WARM', 'COLD', 'MISSED'].includes(c.call_status ?? '')).length
+  // Answer rate — (HOT+WARM+COLD+UNKNOWN) / (HOT+WARM+COLD+UNKNOWN+MISSED)
+  // UNKNOWN = AI picked up but classification failed — still counts as answered
+  const answeredCount = calls.filter(c => ['HOT', 'WARM', 'COLD', 'UNKNOWN'].includes(c.call_status ?? '')).length
+  const callableTotal = calls.filter(c => ['HOT', 'WARM', 'COLD', 'UNKNOWN', 'MISSED'].includes(c.call_status ?? '')).length
   const answerRate = Math.round(answeredCount / Math.max(callableTotal, 1) * 100)
 
   // Hours saved

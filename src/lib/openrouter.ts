@@ -95,26 +95,38 @@ export async function classifyCall(
     .map(m => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
     .join('\n')
 
-  // UNKNOWN — not COLD — so it appears in dashboard for manual review
+  // Short/empty transcripts = junk (robocalls, hang-ups, accidental dials)
+  const shortCallFallback: CallClassification = {
+    status: 'JUNK',
+    summary: 'Ultra-short call — no conversation (likely robocall or hang-up).',
+    serviceType: 'spam',
+    confidence: 0.9,
+    sentiment: 'neutral',
+    key_topics: [],
+    next_steps: '',
+    quality_score: 0,
+  }
+
+  // UNKNOWN only for operational errors (API key missing, etc.)
   const unknownFallback: CallClassification = {
     status: 'UNKNOWN',
-    summary: 'Call transcript unavailable or too short to classify.',
+    summary: 'Classification failed — check OpenRouter API key.',
     serviceType: 'other',
     confidence: 0,
     sentiment: 'neutral',
     key_topics: [],
-    next_steps: 'Review call manually in dashboard.',
+    next_steps: 'Check OPENROUTER_API_KEY in Railway env vars.',
     quality_score: 0,
   }
 
   if (!transcriptText.trim()) {
-    console.warn('[openrouter] classifyCall: empty transcript — returning UNKNOWN')
-    return unknownFallback
+    console.warn('[openrouter] classifyCall: empty transcript — returning JUNK')
+    return shortCallFallback
   }
 
   if (transcript.length < 2) {
-    console.warn('[openrouter] classifyCall: transcript too short (< 2 messages) — returning UNKNOWN without API call')
-    return unknownFallback
+    console.warn('[openrouter] classifyCall: transcript too short (< 2 messages) — returning JUNK without API call')
+    return shortCallFallback
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY

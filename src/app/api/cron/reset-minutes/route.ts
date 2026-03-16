@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     .from('clients')
     .update({
       minutes_used_this_month: 0,
+      seconds_used_this_month: 0,
       last_minute_reset_at: now,
     })
     .in('status', ['active', 'paused'])
