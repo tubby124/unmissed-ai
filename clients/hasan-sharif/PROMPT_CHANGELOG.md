@@ -86,3 +86,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 19505 | **Hash:** 9a44356c75815313
 **Supabase version_id:** 286b46fc-4bc3-4e1e-8f87-64b407e7ea50
 **Ultravox revision:** 8d65dd62-f2d7-4b7b-83b4-1b9de242a92a
+
+## v21 — 2026-03-16 03:47 UTC
+**Change:** calendar preferred time handling, hang-up command, bridging phrases
+**Chars:** 19891 | **Hash:** 2f5e3c246384247b
+**Supabase version_id:** 9be03800-3738-494b-9819-e00bbc63e1d4
+**Ultravox revision:** c92a232e-49d5-4930-9707-98422b8938e3
