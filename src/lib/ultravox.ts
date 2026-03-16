@@ -136,8 +136,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
 
 // ── Agents API ───────────────────────────────────────────────────────────────
 
-interface UltravoxTool {
-  toolName?: string
+interface UltravoxToolDefinition {
   modelToolName?: string
   description?: string
   dynamicParameters?: Array<{
@@ -152,37 +151,46 @@ interface UltravoxTool {
   }
 }
 
+interface UltravoxTool {
+  toolName?: string
+  temporaryTool?: UltravoxToolDefinition
+}
+
 function buildCalendarTools(slug: string): UltravoxTool[] {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   return [
     {
-      modelToolName: 'checkCalendarAvailability',
-      description: 'Check available appointment slots for a given date.',
-      dynamicParameters: [
-        {
-          name: 'date',
-          location: 'PARAMETER_LOCATION_QUERY',
-          schema: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-          required: true,
+      temporaryTool: {
+        modelToolName: 'checkCalendarAvailability',
+        description: 'Check available appointment slots for a given date.',
+        dynamicParameters: [
+          {
+            name: 'date',
+            location: 'PARAMETER_LOCATION_QUERY',
+            schema: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+            required: true,
+          },
+        ],
+        http: {
+          baseUrlPattern: `${appUrl}/api/calendar/${slug}/slots`,
+          httpMethod: 'GET',
         },
-      ],
-      http: {
-        baseUrlPattern: `${appUrl}/api/calendar/${slug}/slots`,
-        httpMethod: 'GET',
       },
     },
     {
-      modelToolName: 'bookAppointment',
-      description: 'Book an appointment for a caller.',
-      dynamicParameters: [
-        { name: 'date',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
-        { name: 'time',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
-        { name: 'service',    location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
-        { name: 'callerName', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
-      ],
-      http: {
-        baseUrlPattern: `${appUrl}/api/calendar/${slug}/book`,
-        httpMethod: 'POST',
+      temporaryTool: {
+        modelToolName: 'bookAppointment',
+        description: 'Book an appointment for a caller.',
+        dynamicParameters: [
+          { name: 'date',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
+          { name: 'time',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
+          { name: 'service',    location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
+          { name: 'callerName', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
+        ],
+        http: {
+          baseUrlPattern: `${appUrl}/api/calendar/${slug}/book`,
+          httpMethod: 'POST',
+        },
       },
     },
   ]
