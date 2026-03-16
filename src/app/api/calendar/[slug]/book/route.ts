@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots, createEvent } from '@/lib/google-calendar'
 
+/** Normalize time strings to "H:MM AM/PM" format to match displayTime from checkCalendarAvailability */
+function normalizeTime(input: string): string {
+  const s = input.trim()
+  // Already "H:MM AM/PM" or "HH:MM AM/PM"
+  const standard = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (standard) return `${parseInt(standard[1])}:${standard[2]} ${standard[3].toUpperCase()}`
+  // "9:00am" / "1:30pm" (no space)
+  const compact = s.match(/^(\d{1,2}):(\d{2})(AM|PM)$/i)
+  if (compact) return `${parseInt(compact[1])}:${compact[2]} ${compact[3].toUpperCase()}`
+  // "9am" / "1pm"
+  const short = s.match(/^(\d{1,2})(AM|PM)$/i)
+  if (short) return `${parseInt(short[1])}:00 ${short[2].toUpperCase()}`
+  // 24-hour "13:00" / "09:00"
+  const military = s.match(/^(\d{2}):(\d{2})$/)
+  if (military) {
+    const h = parseInt(military[1]), m = military[2]
+    if (h === 0) return `12:${m} AM`
+    if (h < 12) return `${h}:${m} AM`
+    if (h === 12) return `12:${m} PM`
+    return `${h - 12}:${m} PM`
+  }
+  return s // passthrough — match attempt will fail gracefully
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -43,8 +67,10 @@ export async function POST(
 
     // G11: Re-verify the slot is still available before booking (race condition prevention)
     const freshSlots = await listSlots(accessToken, calendarId, date, timezone, durationMinutes, bufferMinutes)
-    // Match the requested time (accept partial match — "2:00 PM" vs "2:00 PM")
+    // Normalize input time to "H:MM AM/PM" before matching displayTime
+    const normalizedTime = normalizeTime(time)
     const matchedSlot = freshSlots.find(s =>
+      s.displayTime.toLowerCase().includes(normalizedTime.toLowerCase()) ||
       s.displayTime.toLowerCase().includes(time.toLowerCase()) ||
       s.start.includes(time)
     )
