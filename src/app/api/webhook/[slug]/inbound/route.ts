@@ -82,8 +82,11 @@ export async function POST(
     })
 
   // ── Returning caller detection ─────────────────────────────────────────────
+  // Always inject TODAY'S DATE so agent never uses a stale/wrong year for bookings
+  const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD UTC
   // Always inject CALLER PHONE — agent should never ask for it; we already have it from Twilio
-  let callerContext = callerPhone !== 'unknown' ? `CALLER PHONE: ${callerPhone}` : ''
+  let callerContext = `TODAY'S DATE: ${todayStr}`
+  if (callerPhone !== 'unknown') callerContext += `\nCALLER PHONE: ${callerPhone}`
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
       .from('call_logs')

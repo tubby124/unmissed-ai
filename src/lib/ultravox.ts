@@ -182,10 +182,11 @@ function buildCalendarTools(slug: string): UltravoxTool[] {
         modelToolName: 'bookAppointment',
         description: 'Book an appointment for a caller.',
         dynamicParameters: [
-          { name: 'date',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
-          { name: 'time',       location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: true },
-          { name: 'service',    location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
-          { name: 'callerName', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string' }, required: false },
+          { name: 'date',        location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Date in YYYY-MM-DD format' }, required: true },
+          { name: 'time',        location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Time slot e.g. "2:00 PM"' }, required: true },
+          { name: 'callerName',  location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: "Caller's full name" }, required: true },
+          { name: 'service',     location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Type of appointment or service' }, required: false },
+          { name: 'callerPhone', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: "Caller's phone number" }, required: false },
         ],
         http: {
           baseUrlPattern: `${appUrl}/api/calendar/${slug}/book`,

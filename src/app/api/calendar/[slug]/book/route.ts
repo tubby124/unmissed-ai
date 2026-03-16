@@ -17,9 +17,10 @@ export async function POST(
     callerPhone?: string
   }
 
-  if (!date || !time || !callerName) {
+  if (!date || !time) {
     return NextResponse.json({ booked: false, reason: 'missing_fields' }, { status: 400 })
   }
+  const resolvedCallerName = callerName || 'Caller'
 
   const supabase = createServiceClient()
   const { data: client } = await supabase
@@ -58,7 +59,7 @@ export async function POST(
       })
     }
 
-    const title = `${service || 'Appointment'} — ${callerName}`
+    const title = `${service || 'Appointment'} — ${resolvedCallerName}`
     const description = [
       service ? `Service: ${service}` : null,
       callerPhone ? `Phone: ${callerPhone}` : null,
