@@ -692,34 +692,69 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               All Clients — {clients.length} agents
             </p>
           </div>
-          <div className="flex flex-wrap gap-1 p-3">
-            {clients.map(c => {
-              const n = c.niche ?? ''
-              const nc = NICHE_CONFIG[n] ?? { label: n || 'General', color: 't2', border: 'border-zinc-500/30' }
-              const isSelected = c.id === selectedId
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    setSelectedId(c.id)
-                    if (!prompt[c.id]) setPrompt(prev => ({ ...prev, [c.id]: c.system_prompt ?? '' }))
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-                    isSelected
-                      ? `bg-blue-500/10 text-blue-300 border-blue-500/30`
-                      : 't2 b-theme hover:t1 hover:bg-hover'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(c.status ?? 'active') === 'active' ? 'bg-green-500' : 'bg-zinc-600'}`} />
-                  {c.business_name}
-                  {n && (
-                    <span className={`text-[9px] font-semibold uppercase tracking-wider ${isSelected ? 'text-blue-400/70' : nc.color + '/60'}`}>
-                      {nc.label}
+          <div className="py-1">
+            {(() => {
+              const activeClients = clients.filter(c => c.twilio_number)
+              const unassignedClients = clients.filter(c => !c.twilio_number)
+
+              function renderRow(c: ClientConfig) {
+                const n = c.niche ?? ''
+                const nc = NICHE_CONFIG[n] ?? { label: n || 'General', color: 'text-zinc-400', border: 'border-zinc-500/30', bg: 'bg-zinc-500/10' }
+                const isSelected = c.id === selectedId
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedId(c.id)
+                      if (!prompt[c.id]) setPrompt(prev => ({ ...prev, [c.id]: c.system_prompt ?? '' }))
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
+                      isSelected ? 'bg-blue-500/10' : 'hover:bg-hover'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${c.twilio_number ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
+                    <span className={`text-xs font-medium truncate flex-1 min-w-0 ${isSelected ? 'text-blue-400' : 't1'}`}>
+                      {c.business_name}
                     </span>
+                    {n && (
+                      <span className={`text-[9px] font-medium ${nc.color} ${nc.bg} ${nc.border} border rounded-full px-1.5 py-0.5 leading-none shrink-0`}>
+                        {nc.label}
+                      </span>
+                    )}
+                    {c.twilio_number && (
+                      <span className="text-[10px] font-mono shrink-0 t3">
+                        {fmtPhone(c.twilio_number)}
+                      </span>
+                    )}
+                  </button>
+                )
+              }
+
+              return (
+                <>
+                  {activeClients.length > 0 && (
+                    <>
+                      <div className="px-4 pt-3 pb-1.5">
+                        <span className="text-[9px] font-semibold tracking-[0.18em] uppercase t3">
+                          Active ({activeClients.length})
+                        </span>
+                      </div>
+                      {activeClients.map(renderRow)}
+                    </>
                   )}
-                </button>
+                  {unassignedClients.length > 0 && (
+                    <>
+                      <div className="px-4 pt-3 pb-1.5">
+                        <span className="text-[9px] font-semibold tracking-[0.18em] uppercase t3">
+                          Unassigned ({unassignedClients.length})
+                        </span>
+                      </div>
+                      {unassignedClients.map(renderRow)}
+                    </>
+                  )}
+                </>
               )
-            })}
+            })()}
           </div>
         </div>
       )}
