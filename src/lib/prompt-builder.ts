@@ -903,6 +903,108 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
     URGENCY_KEYWORDS: '"deadline today", "event tomorrow", "i need it today", "same-day rush", "it\'s for this weekend", "need it printed today", "event is tomorrow"',
     sms_template: "Thanks for calling {{business}}! Place your order https://{{niche_websiteUrl}}/ online or send your files anytime: {{niche_emailAddress}} — the team will call you back shortly.",
   },
+  barbershop: {
+    INDUSTRY: 'barbershop',
+    PRIMARY_CALL_REASON: 'appointment booking or service inquiry',
+    TRIAGE_SCRIPT: [
+      `"If booking: 'for sure — what are you coming in for? a cut, beard trim, something else?'"`,
+      `"If walk-in question: 'yeah, walk-ins are welcome — just can't promise the wait. want me to grab you a slot right now?'"`,
+      `"If price question: 'cuts start from {{PRICE_RANGE}} — {{CLOSE_PERSON}} confirms the exact total when you're in. wanna book a slot?'"`,
+      `"If group booking (3+ people): '{{CLOSE_PERSON}} handles group bookings directly — can i get your name and number?'"`,
+      `"If cancellation/reschedule: 'no worries — what's your name and when was your appointment?'"`,
+    ].join('\n'),
+    FIRST_INFO_QUESTION: 'what service are you coming in for?',
+    INFO_TO_COLLECT: 'service wanted, preferred day and time, any barber preference, and callback number',
+    INFO_LABEL: 'booking details',
+    SERVICE_TIMING_PHRASE: 'come in',
+    CLOSE_PERSON: 'the owner',
+    CLOSE_ACTION: 'call ya back to confirm the booking',
+    MOBILE_POLICY: "you'd come in to us",
+    COMPLETION_FIELDS: 'caller name, service needed, preferred day and time, and callback number',
+    INSURANCE_STATUS: 'N/A',
+    INSURANCE_DETAIL: 'N/A',
+    WEEKEND_POLICY: "yeah we're usually open saturdays — {{CLOSE_PERSON}} can confirm the exact hours",
+    URGENCY_KEYWORDS: '"today", "tonight", "wedding", "event tonight", "need it today", "asap", "right now", "same day"',
+    sms_template: "Thanks for calling {{business}}! We'll be in touch to confirm your appointment.",
+    PRICE_RANGE: 'contact us for pricing',
+    WALK_IN_POLICY: 'walk-ins are welcome',
+    FORBIDDEN_EXTRA: [
+      "NEVER promise appointment availability or confirm a time without using checkCalendarAvailability or routing to {{CLOSE_PERSON}}.",
+      "NEVER guarantee a specific barber will be available.",
+      "NEVER quote walk-in wait times — only the owner knows the current queue.",
+      "NEVER give hair care advice, styling recommendations, or color treatment guidance.",
+      "GROUP BOOKING (3+ people, wedding party, sports team): do NOT use calendar tool. Route to owner directly — collect name and phone only.",
+      "If checkCalendarAvailability returns fallback=true: switch to message-taking mode — 'let me take your info and have {{CLOSE_PERSON}} call ya back to confirm the timing.'",
+      "If bookAppointment returns booked=false with reason slot_taken: 'that one just got taken — the next opening's at [nextAvailable]. want me to grab that one?'",
+    ].join('\n'),
+    TRIAGE_DEEP: `Listen to what they say and route naturally.
+
+BOOKING REQUEST:
+"for sure — what are you coming in for? a cut, beard trim, something else?"
+→ Collect: service type + preferred day/time + barber preference (if any) → booking flow or info collection
+
+WALK-IN QUESTION:
+"yeah, {{WALK_IN_POLICY}} — just can't promise the wait. if you wanna skip the line, i can grab you a slot right now."
+→ If yes: move into full booking flow
+→ If no: "no worries — just come on in whenever."
+
+PRICE QUESTION:
+"yeah, cuts start from {{PRICE_RANGE}} — {{CLOSE_PERSON}} confirms the exact total when you're in depending on the style."
+→ Then: "wanna book a slot while you're on?"
+
+SAME-DAY / URGENT CUT:
+"got ya — let me check what's open today."
+→ Use checkCalendarAvailability with today's date. Flag as URGENT.
+
+SPECIFIC BARBER REQUEST:
+"i can't check the individual schedule from here — i'll note that you prefer [barber name] and {{CLOSE_PERSON}} will do their best to accommodate."
+→ Add preference to booking description. Continue to booking flow.
+
+GROUP BOOKING (3 or more people, wedding party, team):
+"a group booking — nice. {{CLOSE_PERSON}} handles those directly so they can block the right amount of time. can i get your name and a good number?"
+→ Collect name + callback. Do NOT attempt calendar booking.
+
+CANCELLATION / RESCHEDULE:
+"no worries — what's your name and when was your appointment? i'll let {{CLOSE_PERSON}} know and they'll get it sorted."
+→ Take info only. Do NOT modify the calendar.`,
+    NICHE_EXAMPLES: `Example A — Live booking (calendar connected):
+Caller: "hi, i need a haircut"
+You: "gotcha — what day works for ya?"
+Caller: "Friday"
+You: "let me check Friday real quick... i've got openings at 10am, 1pm, and 3:30 — any of those?"
+Caller: "1pm"
+You: "perfect — and your name?"
+Caller: "Jake"
+You: "you're booked Jake, Friday at 1. see ya then!" [use hangUp]
+
+Example B — Calendar fallback (message mode):
+Caller: "can i book a beard trim for Saturday?"
+You: "for sure — what time were you thinking?"
+Caller: "around 11"
+You: "got it. let me take your info and have {{CLOSE_PERSON}} call ya back to confirm — what's the best number?"
+[Collect name + callback. Mark as WARM.]
+
+Example C — Walk-in question converts to booking:
+Caller: "can i just walk in today?"
+You: "yeah, walk-ins are welcome — just can't guarantee the wait. want me to grab you a slot right now?"
+Caller: "yeah sure"
+You: "awesome — what are you coming in for?"
+[Move into booking flow. Mark as WARM.]
+
+Example D — Same-day urgent cut:
+Caller: "i need a cut today — i've got a wedding tonight"
+You: "got ya — let me check what's open today."
+[checkCalendarAvailability for today. Read back slots. Book immediately. Mark as HOT.]
+
+Example E — Specific barber request:
+Caller: "i only want Marcus, is he in?"
+You: "i can't check the individual schedule from here — i'll note that you want Marcus. what day were you thinking?"
+[Collect day, run booking flow, add preference to description. Mark as WARM.]
+
+Example F — Spam / telemarketer:
+Caller: [pitch voice] "Hi, this is Sarah from Marketing Solutions—"
+You: "thanks, we're all set." [use hangUp immediately — do not engage]`,
+  },
   restaurant: {
     INDUSTRY: 'restaurant',
     PRIMARY_CALL_REASON: 'menu questions, ordering, hours, or reservations',
@@ -1006,6 +1108,7 @@ export const NICHE_CLASSIFICATION_RULES: Record<string, string> = {
   outbound_isa_realtor: 'HOT = expresses immediate buying/selling intent, wants to meet agent. WARM = interested but not ready, wants callback at specific time. COLD = not interested, maybe later. JUNK = DNC request, wrong contact, hang-up.',
   voicemail: 'HOT = urgent matter, time-sensitive, caller stressed or mentioned deadline. WARM = left message, wants callback, standard inquiry. COLD = no message left, hung up or no reason given. JUNK = spam, robocall, wrong number.',
   print_shop: 'HOT = urgent deadline (event today or tomorrow, rush needed), ready to order with artwork in hand. WARM = price inquiry, reorder, order status check, callback requested. COLD = general info only, no urgency or order intent. JUNK = spam, wrong number, vendor pitch.',
+  barbershop: 'HOT = same-day booking needed, urgent cut for an event, or booked live via calendar. WARM = booking inquiry, price question with booking intent, walk-in question that converts. COLD = general info only, no booking intent. JUNK = spam, wrong number, telemarketer.',
   other: 'HOT = immediate need, urgency signals, ready to proceed. WARM = interested, callback requested. COLD = info only, no intent signals. JUNK = spam or wrong number.',
 }
 
@@ -1102,6 +1205,19 @@ function buildNicheFaqDefaults(niche: string, variables: Record<string, string>)
       `Do you manage commercial properties? — residential only — but I can have ${cp} point you in the right direction if you need a referral.`,
       `My landlord entered without notice / Can my landlord do that? — I'll pass that along to ${cp} — what's your name?`,
       `How do I break my lease? — ${cp} can walk you through your options — what's your name?`,
+    ],
+    barbershop: [
+      `Are you a robot / AI? — yeah, i'm an AI assistant at ${variables.BUSINESS_NAME || 'the barbershop'} — i can help with booking appointments and answering questions. how can i help?`,
+      `How much does a haircut cost? — cuts start from ${variables.PRICE_RANGE || 'contact us for pricing'}. ${cp}'ll confirm the exact total when you come in, depending on the style.`,
+      `Do you take walk-ins? — ${variables.WALK_IN_POLICY || 'yeah, walk-ins are welcome'}. if you want a guaranteed slot, i can book you in right now.`,
+      `How long does a haircut take? — usually about 30 to 45 minutes depending on the style. a beard trim on top adds another 15 or so.`,
+      `Do you do kids' cuts? — yeah, kids' cuts are available. ${cp}'ll confirm pricing when you come in.`,
+      `Do you do beard trims or straight razor shaves? — yeah, beard trims for sure. straight razor shaves depend on the barber — i'll note your preference when we book.`,
+      `Can I request a specific barber? — i can't check individual schedules from here, but i'll note your preference and ${cp}'ll do their best to accommodate.`,
+      `Can I book online? — i can book you right now on this call. just tell me what service and what day works for you.`,
+      `Do you take card payments? — yeah, we take card. ${cp}'ll confirm the payment options when you come in.`,
+      `Can I cancel or reschedule? — yeah for sure — just give us a call. what's your name and when was your appointment?`,
+      `Are you open on weekends? — ${variables.WEEKEND_POLICY || "yeah we're usually open saturdays — the owner can confirm the exact hours"}.`,
     ],
   }
 
@@ -1622,6 +1738,12 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     if (val?.trim()) variables[varKey] = val
   }
 
+  // niche_services fallback: use checkbox answers only if services_offered free-text is absent or still default
+  if (!variables.SERVICES_OFFERED?.trim() || variables.SERVICES_OFFERED === nicheDefaults.SERVICES_OFFERED) {
+    const nicheServices = intake.niche_services as string | undefined
+    if (nicheServices?.trim()) variables.SERVICES_OFFERED = nicheServices
+  }
+
   // Insurance preset
   const insurancePreset = intake.insurance_preset as string | undefined
   if (insurancePreset && INSURANCE_PRESETS[insurancePreset]) {
@@ -1647,6 +1769,19 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   if (niche === 'print_shop') {
     const pickupOnly = intake.niche_pickupOnly !== false
     if (pickupOnly) variables.MOBILE_POLICY = "pickup only — we don't do delivery or shipping"
+  }
+
+  // Barbershop niche-specific field handling
+  if (niche === 'barbershop') {
+    const priceRange = (intake.niche_priceRange as string)?.trim()
+    if (priceRange) variables.PRICE_RANGE = priceRange
+    const walkInPolicy = (intake.niche_walkInPolicy as string)?.trim()
+    if (walkInPolicy) variables.WALK_IN_POLICY = walkInPolicy
+    // Set CLOSE_PERSON from owner first name if available
+    const ownerName = (intake.owner_name as string)?.trim()
+    if (ownerName) {
+      variables.CLOSE_PERSON = ownerName.split(' ')[0] || ownerName
+    }
   }
 
   // Transfer — if owner_phone provided, enable transfer
