@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileNav from '@/components/dashboard/MobileNav'
 import ActivityFeed from '@/components/dashboard/ActivityFeed'
+import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -58,6 +59,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto">
           {children}
+          <FloatingAdvisorBubble isAdmin={isAdmin} />
         </main>
 
         {/* Activity feed — XL+ right panel */}

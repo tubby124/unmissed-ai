@@ -96,6 +96,44 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // ── Advisor credits topup path ─────────────────────────────────────
+  if (session.metadata?.product === 'advisor_credits') {
+    const userId = session.metadata.user_id
+    const creditsCents = parseInt(session.metadata.credits_cents, 10)
+    const sessionId = session.id
+
+    if (!userId || isNaN(creditsCents)) {
+      console.error('[stripe-webhook] Advisor topup: missing metadata on session:', sessionId)
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    // Idempotency: check if already processed
+    const { data: existing } = await adminSupa
+      .from('ai_transactions')
+      .select('id')
+      .eq('stripe_session_id', sessionId)
+      .single()
+
+    if (!existing) {
+      await adminSupa.rpc('add_advisor_credits', {
+        p_user_id: userId,
+        p_amount_cents: creditsCents,
+      })
+      await adminSupa.from('ai_transactions').insert({
+        user_id: userId,
+        type: 'topup',
+        amount_cents: creditsCents,
+        stripe_session_id: sessionId,
+        note: `Stripe topup — ${session.metadata.pack_id ?? 'unknown'}`,
+      })
+      console.log(`[stripe-webhook] Advisor credits: +${creditsCents}¢ for user=${userId}`)
+    } else {
+      console.log(`[stripe-webhook] Advisor topup already processed: session=${sessionId}`)
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
   // ── Activation path ────────────────────────────────────────────────
   const { intake_id, client_id, client_slug, reserved_number: reservedNumberMeta } = session.metadata ?? {}
   const reservedNumber = reservedNumberMeta || null
