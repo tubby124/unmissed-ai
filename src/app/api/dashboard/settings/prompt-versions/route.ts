@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   // Sync restored prompt to Ultravox agent (if one exists)
   const { data: clientRow } = await supabase
     .from('clients')
-    .select('slug, ultravox_agent_id, agent_voice_id, forwarding_number')
+    .select('slug, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled')
     .eq('id', client_id)
     .single()
 
@@ -121,6 +121,8 @@ export async function POST(req: NextRequest) {
       systemPrompt: versionRow.content,
       ...(clientRow.agent_voice_id ? { voice: clientRow.agent_voice_id } : {}),
       tools,
+      booking_enabled: clientRow.booking_enabled ?? false,
+      slug: clientRow.slug,
     })
       .then(() => console.log(`[prompt-versions] Ultravox agent ${clientRow.ultravox_agent_id} synced to v${versionRow.version}`))
       .catch(err => console.error(`[prompt-versions] Ultravox agent sync failed: ${err}`))

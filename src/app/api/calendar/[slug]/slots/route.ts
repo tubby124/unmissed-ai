@@ -8,6 +8,7 @@ export async function GET(
 ) {
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD
+  const time = req.nextUrl.searchParams.get('time')  // HH:MM (24h) — optional preferred time
 
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ available: false, reason: 'invalid_date' }, { status: 400 })
@@ -38,6 +39,10 @@ export async function GET(
       (client.timezone as string) || 'America/Chicago',
       (client.booking_service_duration_minutes as number) || 60,
       (client.booking_buffer_minutes as number) || 15,
+      '09:00',
+      '18:00',
+      3,
+      time || undefined,
     )
     return NextResponse.json({ available: slots.length > 0, slots })
   } catch (err) {

@@ -49,7 +49,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client } = await supabase
     .from('clients')
-    .select('google_refresh_token, google_calendar_id, booking_service_duration_minutes, booking_buffer_minutes, timezone, booking_enabled, business_name')
+    .select('id, google_refresh_token, google_calendar_id, booking_service_duration_minutes, booking_buffer_minutes, timezone, booking_enabled, business_name')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -92,18 +92,33 @@ export async function POST(
       `Booked via ${client.business_name || 'unmissed.ai'}`,
     ].filter(Boolean).join('\n')
 
-    await createEvent(accessToken, calendarId, {
+    const event = await createEvent(accessToken, calendarId, {
       title,
       start: matchedSlot.start,
       end: matchedSlot.end,
       description,
     })
 
-    console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName}`)
+    // Store booking record so completed webhook can include calendar URL in Telegram
+    if (client.id) {
+      await supabase.from('bookings').insert({
+        client_id: client.id,
+        slug,
+        caller_phone: callerPhone || null,
+        caller_name: resolvedCallerName,
+        appointment_time: matchedSlot.displayTime,
+        appointment_date: date,
+        service: service || null,
+        calendar_url: event.htmlLink || null,
+      })
+    }
+
+    console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
 
     return NextResponse.json({
       booked: true,
       confirmationTime: matchedSlot.displayTime,
+      calendarUrl: event.htmlLink || null,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -37,9 +37,11 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
 
   // Fetch active clients that have an Ultravox agent
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+
   let query = supabase
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, ultravox_agent_id')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, booking_enabled, ultravox_agent_id')
     .eq('status', 'active')
     .not('ultravox_agent_id', 'is', null)
 
@@ -81,9 +83,35 @@ export async function POST(req: NextRequest) {
         return
       }
 
-      // Drift detected — patch agent with Supabase version
+      // Drift detected — patch agent with Supabase version (full payload to avoid wiping callTemplate)
       console.log(`[sync-agents] Drift detected for ${client.slug} — patching agent ${client.ultravox_agent_id}`)
-      await updateAgent(client.ultravox_agent_id, { systemPrompt: client.system_prompt })
+      const transferTool = {
+        temporaryTool: {
+          modelToolName: 'transferCall',
+          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+          dynamicParameters: [
+            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
+          ],
+          automaticParameters: [
+            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+          ],
+          http: {
+            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
+            httpMethod: 'POST',
+            staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          },
+        },
+      }
+      const tools = client.forwarding_number
+        ? [{ toolName: 'hangUp' }, transferTool]
+        : [{ toolName: 'hangUp' }]
+      await updateAgent(client.ultravox_agent_id, {
+        systemPrompt: client.system_prompt,
+        ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+        tools,
+        booking_enabled: client.booking_enabled ?? false,
+        slug: client.slug,
+      })
       synced.push(client.slug)
 
     } catch (err) {

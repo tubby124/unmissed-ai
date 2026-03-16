@@ -211,6 +211,12 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     Object.fromEntries(clients.map(c => [c.id, 'idle' as const]))
   )
 
+  // Telegram style
+  const [tgStyle, setTgStyle] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.telegram_style ?? 'standard']))
+  )
+  const [tgStyleSaving, setTgStyleSaving] = useState(false)
+
   // Re-generate from template
   const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error'>('idle')
 
@@ -442,6 +448,17 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     const data = await res.json().catch(() => ({ ok: false }))
     setTelegramTest(prev => ({ ...prev, [client.id]: data.ok ? 'ok' : 'fail' }))
     setTimeout(() => setTelegramTest(prev => ({ ...prev, [client.id]: 'idle' })), 3000)
+  }
+
+  async function saveTelegramStyle(style: string) {
+    setTgStyle(prev => ({ ...prev, [client.id]: style }))
+    setTgStyleSaving(true)
+    await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: client.id, telegram_style: style }),
+    })
+    setTgStyleSaving(false)
   }
 
   async function saveGodConfig() {
@@ -2474,6 +2491,40 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             )}
           </div>
           <p className="text-[11px] t3 mb-5">Coming soon — we&apos;ll notify you here when enabled.</p>
+
+          {/* Telegram Message Style */}
+          {client.telegram_bot_token && client.telegram_chat_id && (
+            <div className="mb-5 p-4 rounded-xl border b-theme bg-black/20">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs font-semibold t1">Telegram Message Style</p>
+                  <p className="text-[11px] t3 mt-0.5">Choose how call summaries appear in Telegram</p>
+                </div>
+                {tgStyleSaving && <span className="text-[10px] t3 animate-pulse">Saving...</span>}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: 'compact', label: 'Compact', desc: 'Status + phone + summary in 2-3 lines' },
+                  { id: 'standard', label: 'Standard', desc: 'Summary, contact, and next steps separated' },
+                  { id: 'action_card', label: 'Action Card', desc: 'Structured with date, booking, and action' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => saveTelegramStyle(opt.id)}
+                    className={`text-left p-3 rounded-lg border transition-all ${
+                      tgStyle[client.id] === opt.id
+                        ? 'border-blue-500/50 bg-blue-500/10'
+                        : 'b-theme bg-hover hover:border-white/10'
+                    }`}
+                  >
+                    <p className={`text-xs font-semibold ${tgStyle[client.id] === opt.id ? 'text-blue-400' : 't1'}`}>{opt.label}</p>
+                    <p className="text-[10px] t3 mt-1 leading-relaxed">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>

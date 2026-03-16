@@ -19,6 +19,23 @@ import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
+const rateLimitMap = new Map<string, number[]>()
+const RATE_LIMIT = 10
+const RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
+  rateLimitMap.set(ip, timestamps)
+  return timestamps.length >= RATE_LIMIT
+}
+
+function recordUsage(ip: string) {
+  const timestamps = rateLimitMap.get(ip) || []
+  timestamps.push(Date.now())
+  rateLimitMap.set(ip, timestamps)
+}
+
 const svc = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -30,6 +47,13 @@ function slugify(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip') || 'unknown'
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+  recordUsage(ip)
+
   const body = await req.json().catch(() => ({})) as { intakeId?: string; selectedNumber?: string }
   const { intakeId, selectedNumber } = body
 

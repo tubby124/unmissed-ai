@@ -139,6 +139,8 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
 interface UltravoxToolDefinition {
   modelToolName?: string
   description?: string
+  precomputable?: boolean
+  timeout?: string
   dynamicParameters?: Array<{
     name: string
     location: string
@@ -162,13 +164,21 @@ function buildCalendarTools(slug: string): UltravoxTool[] {
     {
       temporaryTool: {
         modelToolName: 'checkCalendarAvailability',
-        description: 'Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. "9:00 AM"). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day.',
+        precomputable: true,
+        timeout: '10s',
+        description: 'Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. "9:00 AM"). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day. When the caller asks for a specific time, pass it as the time parameter — the tool returns the 3 closest available slots to that time. If the exact time is not available, say "I don\'t have exactly [time] but I can do [closest slot] — does that work?" — NEVER say a time is "booked" unless the tool explicitly says so.',
         dynamicParameters: [
           {
             name: 'date',
             location: 'PARAMETER_LOCATION_QUERY',
             schema: { type: 'string', description: 'Date in YYYY-MM-DD format. Use the TODAY value from callerContext to resolve relative dates like "tomorrow" or "next Monday".' },
             required: true,
+          },
+          {
+            name: 'time',
+            location: 'PARAMETER_LOCATION_QUERY',
+            schema: { type: 'string', description: 'Preferred time in 24h HH:MM format (e.g. "16:00" for 4 PM). When provided, returns 3 slots closest to this time. Omit if caller has no preference.' },
+            required: false,
           },
         ],
         http: {
@@ -180,6 +190,7 @@ function buildCalendarTools(slug: string): UltravoxTool[] {
     {
       temporaryTool: {
         modelToolName: 'bookAppointment',
+        timeout: '10s',
         description: 'Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. "9:00 AM", "2:30 PM") — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.',
         dynamicParameters: [
           { name: 'date',        location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Date in YYYY-MM-DD format' }, required: true },

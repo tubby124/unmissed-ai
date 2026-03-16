@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
+import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-formats'
 import twilio from 'twilio'
 
 export const maxDuration = 120
@@ -85,7 +86,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, sms_enabled, sms_template, twilio_number, classification_rules')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone')
         .eq('slug', slug)
         .single()
 
@@ -135,17 +136,18 @@ export async function POST(
 
       // ── Telegram alert ───────────────────────────────────────────────────────
       if (client.telegram_bot_token && client.telegram_chat_id) {
-        const mins = Math.floor(durationSeconds / 60)
-        const secs = durationSeconds % 60
         const fullSummary = classification.summary || ultravoxSummary || ''
+        const clientTz = (client.timezone as string | null) || 'America/Regina'
 
         let message: string
 
         if (client.niche === 'auto_glass') {
           // Rich auto-glass format — preferred by Windshield Hub (Sabbir)
+          const mins = Math.floor(durationSeconds / 60)
+          const secs = durationSeconds % 60
           const callEnd = new Date(endedAt)
-          const dateStr = callEnd.toLocaleDateString('en-US', { timeZone: 'America/Regina', month: 'short', day: 'numeric', year: 'numeric' })
-          const timeStr = callEnd.toLocaleTimeString('en-US', { timeZone: 'America/Regina', hour: 'numeric', minute: '2-digit', hour12: true })
+          const dateStr = callEnd.toLocaleDateString('en-US', { timeZone: clientTz, month: 'short', day: 'numeric', year: 'numeric' })
+          const timeStr = callEnd.toLocaleTimeString('en-US', { timeZone: clientTz, hour: 'numeric', minute: '2-digit', hour12: true })
           const dur = durationSeconds > 0 ? `${mins}m ${secs}s` : 'n/a'
 
           const nd = classification.niche_data
@@ -158,7 +160,7 @@ export async function POST(
           const urgencyStr = nd?.urgency || urgencyFallback[classification.status] || 'MEDIUM'
           const requestedStr = nd?.requested_service || 'None'
 
-          const formatPhone = (p: string) => {
+          const fmtPhone = (p: string) => {
             const d = p.replace(/\D/g, '')
             if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`
             if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`
@@ -185,27 +187,50 @@ export async function POST(
             ``,
             `👤 CONTACT:`,
             `• Name: ${nameStr}`,
-            `• Phone: ${formatPhone(callerPhone)}`,
+            `• Phone: ${fmtPhone(callerPhone)}`,
             `• Duration: ${dur}`,
           ].join('\n')
         } else {
-          // Compact format for all other clients
-          const dur = durationSeconds > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : 'n/a'
-          const bizName = client.business_name || slug
-          const nextSteps = classification.next_steps || ''
-          const dot = fullSummary.search(/[.!?]/)
-          const brief = fullSummary.length === 0 ? '' : (dot > 0 && dot < 130 ? fullSummary.slice(0, dot + 1) : fullSummary.slice(0, 130)).trim()
-          const statusEmoji: Record<string, string> = {
-            HOT: '🔥', WARM: '🌤', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
+          // Configurable format — uses client.telegram_style (compact / standard / action_card)
+          const style = ((client.telegram_style as string | null) || 'standard') as TelegramStyle
+
+          // Check for a recent booking (made within this call window — last 2 hours)
+          let booking: { callerName: string | null; appointmentTime: string; calendarUrl: string | null } | null = null
+          if (callerPhone !== 'unknown') {
+            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+            const { data: bk } = await supabase
+              .from('bookings')
+              .select('caller_name, appointment_time, appointment_date, calendar_url')
+              .eq('slug', slug)
+              .eq('caller_phone', callerPhone)
+              .gte('booked_at', twoHoursAgo)
+              .order('booked_at', { ascending: false })
+              .limit(1)
+              .single()
+
+            if (bk) {
+              booking = {
+                callerName: bk.caller_name,
+                appointmentTime: bk.appointment_time,
+                calendarUrl: bk.calendar_url,
+              }
+            }
           }
-          const emoji = statusEmoji[classification.status] || '📞'
-          const lines = [
-            `${emoji} <b>${classification.status} — ${bizName}</b>`,
-            `📞 ${callerPhone} · ${dur}`,
-          ]
-          if (brief) lines.push(brief)
-          if (nextSteps) lines.push(`↳ ${nextSteps}`)
-          message = lines.join('\n')
+
+          const cd = classification.caller_data
+          message = formatTelegramMessage(style, {
+            status: classification.status,
+            businessName: client.business_name || slug,
+            callerPhone,
+            durationSeconds,
+            summary: fullSummary,
+            nextSteps: classification.next_steps || '',
+            serviceType: classification.serviceType || 'other',
+            endedAt,
+            timezone: clientTz,
+            callerData: cd ? { callerName: cd.caller_name, serviceRequested: cd.service_requested } : null,
+            booking,
+          })
         }
 
         const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)

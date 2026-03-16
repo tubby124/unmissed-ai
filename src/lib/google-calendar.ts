@@ -38,6 +38,7 @@ export async function listSlots(
   workdayStart = '09:00',
   workdayEnd = '18:00',
   maxSlots = 3,     // Return at most this many slots — keeps agent responses concise
+  preferredTime?: string,  // HH:MM (24h) — if provided, return slots closest to this time
 ): Promise<TimeSlot[]> {
   // Build time range for the day in the client's local timezone (not UTC)
   const dayStart = parseLocalTime(dateStr, workdayStart, timezone)
@@ -63,8 +64,8 @@ export async function listSlots(
     end: new Date(ev.end?.dateTime ?? ''),
   }))
 
-  // Generate candidate slots every (duration + buffer) minutes
-  const slots: TimeSlot[] = []
+  // Generate ALL candidate slots for the day (don't cap during generation)
+  const allSlots: TimeSlot[] = []
   let cursor = dayStart
   while (cursor < dayEnd) {
     const slotEnd = new Date(cursor.getTime() + durationMinutes * 60_000)
@@ -72,7 +73,7 @@ export async function listSlots(
 
     const busy = busyBlocks.some(b => cursor < b.end && slotEnd > b.start)
     if (!busy) {
-      slots.push({
+      allSlots.push({
         start: cursor.toISOString(),
         end: slotEnd.toISOString(),
         displayTime: formatLocal(cursor, timezone),
@@ -81,7 +82,18 @@ export async function listSlots(
 
     cursor = new Date(cursor.getTime() + (durationMinutes + bufferMinutes) * 60_000)
   }
-  return slots.slice(0, maxSlots)
+
+  // If preferredTime provided, sort by proximity to that time, then take maxSlots
+  if (preferredTime && /^\d{2}:\d{2}$/.test(preferredTime)) {
+    const prefTarget = parseLocalTime(dateStr, preferredTime, timezone).getTime()
+    allSlots.sort((a, b) => {
+      const distA = Math.abs(new Date(a.start).getTime() - prefTarget)
+      const distB = Math.abs(new Date(b.start).getTime() - prefTarget)
+      return distA - distB
+    })
+  }
+
+  return allSlots.slice(0, maxSlots)
 }
 
 /** Create a calendar event (booking) */
@@ -94,7 +106,7 @@ export async function createEvent(
     end,
     description,
   }: { title: string; start: string; end: string; description?: string }
-): Promise<string> {
+): Promise<{ id: string; htmlLink: string }> {
   const res = await fetch(`${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(calendarId)}/events`, {
     method: 'POST',
     headers: {
@@ -113,7 +125,7 @@ export async function createEvent(
     throw new Error(`Google Calendar createEvent failed: ${res.status} ${err}`)
   }
   const data = await res.json()
-  return data.id as string
+  return { id: data.id as string, htmlLink: data.htmlLink as string }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

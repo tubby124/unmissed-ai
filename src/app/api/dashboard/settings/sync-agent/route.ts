@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, ultravox_agent_id, booking_enabled')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled')
     .eq('id', targetClientId)
     .single()
 
@@ -38,9 +38,31 @@ export async function POST(req: NextRequest) {
   if (!client.system_prompt) return NextResponse.json({ error: 'No system prompt to sync' }, { status: 422 })
 
   try {
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+    const transferTool = {
+      temporaryTool: {
+        modelToolName: 'transferCall',
+        description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+        dynamicParameters: [
+          { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
+        ],
+        automaticParameters: [
+          { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+        ],
+        http: {
+          baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
+          httpMethod: 'POST',
+          staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+        },
+      },
+    }
+    const tools = client.forwarding_number
+      ? [{ toolName: 'hangUp' }, transferTool]
+      : [{ toolName: 'hangUp' }]
     await updateAgent(client.ultravox_agent_id, {
       systemPrompt: client.system_prompt,
       ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+      tools,
       booking_enabled: client.booking_enabled ?? false,
       slug: client.slug,
     })

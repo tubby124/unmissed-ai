@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Fetch full client row — need both agentId and current prompt to avoid wiping config on PATCH
+  // Fetch full client row — need all fields to send complete updateAgent payload
   const { data: client } = await supabase
     .from('clients')
-    .select('ultravox_agent_id, system_prompt')
+    .select('ultravox_agent_id, system_prompt, forwarding_number, booking_enabled, slug')
     .eq('id', targetClientId)
     .single()
 
@@ -63,9 +63,33 @@ export async function POST(req: NextRequest) {
 
   if (client?.ultravox_agent_id) {
     try {
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+      const transferTool = {
+        temporaryTool: {
+          modelToolName: 'transferCall',
+          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+          dynamicParameters: [
+            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
+          ],
+          automaticParameters: [
+            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+          ],
+          http: {
+            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
+            httpMethod: 'POST',
+            staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          },
+        },
+      }
+      const tools = client.forwarding_number
+        ? [{ toolName: 'hangUp' }, transferTool]
+        : [{ toolName: 'hangUp' }]
       await updateAgent(client.ultravox_agent_id, {
         voice: voiceId,
         ...(client.system_prompt ? { systemPrompt: client.system_prompt } : {}),
+        tools,
+        booking_enabled: client.booking_enabled ?? false,
+        slug: client.slug,
       })
       console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`)
       ultravox_synced = true

@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Load full client row first — needed for Ultravox sync (partial PATCH wipes callTemplate)
+    const { data: client } = await svc
+      .from('clients')
+      .select('id, slug, agent_voice_id, forwarding_number, booking_enabled')
+      .eq('slug', body.clientSlug)
+      .single()
+
     // Update Supabase clients.system_prompt
     const { error: dbErr } = await svc
       .from('clients')
@@ -50,16 +57,43 @@ export async function POST(req: NextRequest) {
 
     if (dbErr) throw new Error(`DB update failed: ${dbErr.message}`)
 
-    // PATCH Ultravox agent with new prompt
-    await updateAgent(body.agentId, { systemPrompt: body.prompt })
+    // PATCH Ultravox agent with full payload
+    if (client) {
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+      const transferTool = {
+        temporaryTool: {
+          modelToolName: 'transferCall',
+          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+          dynamicParameters: [
+            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
+          ],
+          automaticParameters: [
+            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+          ],
+          http: {
+            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
+            httpMethod: 'POST',
+            staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          },
+        },
+      }
+      const tools = client.forwarding_number
+        ? [{ toolName: 'hangUp' }, transferTool]
+        : [{ toolName: 'hangUp' }]
+
+      await updateAgent(body.agentId, {
+        systemPrompt: body.prompt,
+        ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+        tools,
+        booking_enabled: client.booking_enabled ?? false,
+        slug: client.slug,
+      })
+    } else {
+      // Client row not found — send minimal payload (best effort)
+      await updateAgent(body.agentId, { systemPrompt: body.prompt })
+    }
 
     // Insert prompt version
-    const { data: client } = await svc
-      .from('clients')
-      .select('id')
-      .eq('slug', body.clientSlug)
-      .single()
-
     if (client) {
       const { data: latestVersion } = await svc
         .from('prompt_versions')
