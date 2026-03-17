@@ -45,12 +45,13 @@ function canAdvance(step: number, data: OnboardingData): boolean {
   switch (step) {
     case 1: return !!data.niche;
     case 2: {
-      const skipCity = data.niche === 'voicemail';
-      const baseValid = !!data.businessName && !!data.state
+      const isVM = data.niche === 'voicemail';
+      const baseValid = !!data.businessName
+        && (!isVM ? !!data.state : true)
         && countDigits(data.callbackPhone) >= 10
         && isValidEmail(data.contactEmail);
       if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim() && !!data.businessHoursText?.trim();
-      if (skipCity) return baseValid;
+      if (isVM) return baseValid;
       return baseValid && !!data.city && !!data.businessHoursText?.trim();
     }
     case 3: {

@@ -24,6 +24,7 @@ import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
+import { getNicheMinuteLimit } from '@/lib/niche-config'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
   // ── Guard: skip if already active ─────────────────────────────────────────
   const { data: existingClient } = await adminSupa
     .from('clients')
-    .select('status, business_name')
+    .select('status, business_name, niche')
     .eq('id', client_id)
     .single()
 
@@ -384,6 +385,8 @@ export async function POST(req: NextRequest) {
       telegram_registration_token: telegramRegToken,
       sms_enabled: callerAutoText,
       bonus_minutes: 50,
+      monthly_minute_limit: getNicheMinuteLimit((existingClient?.niche as string) || null),
+      contact_email: contactEmail,
     }
     if (twilioNumber) updatePayload.twilio_number = twilioNumber
     if (callerAutoTextMessage) updatePayload.sms_template = callerAutoTextMessage
@@ -410,7 +413,7 @@ export async function POST(req: NextRequest) {
       if (createErr) {
         // User may already exist (e.g. repeat purchase, test run) — look them up
         console.warn(`[stripe-webhook] createUser failed for ${contactEmail}: ${createErr.message} — attempting lookup`)
-        const { data: existingUsers } = await adminSupa.auth.admin.listUsers()
+        const { data: existingUsers } = await adminSupa.auth.admin.listUsers({ perPage: 1000 })
         const found = existingUsers?.users?.find((u) => u.email === contactEmail)
         if (found) {
           resolvedUserId = found.id

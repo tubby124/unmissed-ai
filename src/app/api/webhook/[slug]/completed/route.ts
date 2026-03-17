@@ -86,7 +86,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email')
         .eq('slug', slug)
         .single()
 
@@ -260,6 +260,49 @@ export async function POST(
           }
         } catch (smsErr) {
           console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
+        }
+      }
+
+      // ── Voicemail-to-email transcription ─────────────────────────────────────
+      if (client.niche === 'voicemail' && client.contact_email && classification.status !== 'JUNK') {
+        try {
+          const resendKey = process.env.RESEND_API_KEY
+          if (resendKey) {
+            const { Resend } = await import('resend')
+            const resend = new Resend(resendKey)
+            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+
+            const transcriptText = transcript
+              .map((m: { role: string; text: string }) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
+              .join('\n')
+
+            const callerName = classification.caller_data?.caller_name || 'Unknown caller'
+            const fmtPhone = callerPhone !== 'unknown' ? callerPhone : 'Unknown'
+            const mins = Math.floor(durationSeconds / 60)
+            const secs = durationSeconds % 60
+
+            const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+            await resend.emails.send({
+              from: fromAddress,
+              to: client.contact_email as string,
+              subject: `Voicemail from ${callerName} — ${client.business_name || slug}`,
+              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
+                <h2 style="margin:0 0 16px">New voicemail message</h2>
+                <p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
+                <p><strong>Duration:</strong> ${mins}m ${secs}s</p>
+                <p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
+                <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+                <h3 style="margin:0 0 8px">Transcript</h3>
+                <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>
+                <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+                <p style="font-size:12px;color:#888">unmissed.ai — AI voicemail for your business</p>
+              </div>`,
+            })
+            console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId}`)
+          }
+        } catch (emailErr) {
+          console.error(`[completed] Voicemail email failed for callId=${callId}:`, emailErr)
         }
       }
 

@@ -80,13 +80,13 @@ export default function Step2({ data, onUpdate }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="businessName">
-          {isVoicemail ? "Your name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
+          {isVoicemail ? "Your name or business name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
           <span className="text-red-400">*</span>
-          {isVoicemail && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;This is Sam, assistant for [your name]&quot;)</span>}
+          {isVoicemail && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;assistant for [name]&quot;)</span>}
         </Label>
         <Input
           id="businessName"
-          placeholder={isVoicemail ? "e.g. Hasan Sharif" : isRealEstate ? "e.g. eXp Realty, RE/MAX, Royal LePage" : "e.g. Dallas Quick Glass"}
+          placeholder={isVoicemail ? "e.g. Hasan Sharif or Sharif Consulting" : isRealEstate ? "e.g. eXp Realty, RE/MAX, Royal LePage" : "e.g. Dallas Quick Glass"}
           value={data.businessName}
           onChange={(e) => onUpdate({ businessName: e.target.value })}
         />
@@ -107,27 +107,8 @@ export default function Step2({ data, onUpdate }: Props) {
         </div>
       )}
 
-      {isVoicemail ? (
-        /* Voicemail: province only (no city needed) */
-        <div className="space-y-2">
-          <Label htmlFor="state">
-            Province <span className="text-red-400">*</span>{" "}
-            <span className="text-slate-400 font-normal text-xs">(used to assign your local AI number)</span>
-          </Label>
-          <select
-            id="state"
-            value={data.state}
-            onChange={(e) => onUpdate({ state: e.target.value })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="">Select province…</option>
-            {CA_PROVINCES.map((p) => (
-              <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
-            ))}
-          </select>
-        </div>
-      ) : (
-        /* All other niches: city + province/state */
+      {/* Voicemail: no city/province needed — number assigned separately */}
+      {!isVoicemail && (
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="city">City <span className="text-red-400">*</span></Label>
@@ -235,7 +216,7 @@ export default function Step2({ data, onUpdate }: Props) {
           />
         </div>
 
-        {!isRealEstate && (
+        {!isRealEstate && !isVoicemail && (
           <div className="space-y-2">
             <Label htmlFor="ownerName">Your name</Label>
             <Input

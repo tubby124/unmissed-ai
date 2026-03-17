@@ -31,7 +31,7 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   hvac:                 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
   plumbing:             'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
   legal:                'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — professional
-  voicemail:            'b9de4a89-7971-4ac8-aeea-d86fd8543a1a', // Emily — friendly
+  voicemail:            '87edb04c-06d4-47c2-bd94-683bc47e8fbe', // Monika — warm, natural (upgraded from Emily)
   other:                'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — safe default
 }
 
@@ -43,4 +43,14 @@ export function getNicheVoice(niche: string | null | undefined): string {
 export function getNicheConfig(niche: string | null | undefined) {
   if (!niche) return null
   return NICHE_CONFIG[niche] ?? NICHE_CONFIG['other']
+}
+
+/** Monthly minute limits per niche — voicemail is lower tier */
+export const NICHE_MINUTE_LIMITS: Record<string, number> = {
+  voicemail: 50,
+}
+
+export function getNicheMinuteLimit(niche: string | null | undefined): number {
+  if (!niche) return 100
+  return NICHE_MINUTE_LIMITS[niche] ?? 100
 }

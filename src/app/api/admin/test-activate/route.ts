@@ -20,6 +20,7 @@ import {
 import { createAgent } from '@/lib/ultravox'
 import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
+import { getNicheVoice, getNicheMinuteLimit } from '@/lib/niche-config'
 import { randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
@@ -85,11 +86,19 @@ export async function POST(req: NextRequest) {
   // ── Generate SMS template ──────────────────────────────────────────────────
   const smsTemplate = buildSmsTemplate(intakeData)
 
+  // ── Resolve voice from intake gender selection ────────────────────────────
+  const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+  const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+  const voiceGender = (intakeData.niche_voiceGender as string) || ''
+  const voiceId = voiceGender === 'male' ? VOICE_MALE
+    : voiceGender === 'female' ? VOICE_FEMALE
+    : getNicheVoice(niche)
+
   // ── Create Ultravox agent ──────────────────────────────────────────────────
   let agentId: string
   try {
     const agentName = clientSlug.slice(0, 64) || 'test-agent'
-    agentId = await createAgent({ systemPrompt: prompt, name: agentName })
+    agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId })
     console.log(`[test-activate] Ultravox agent created: ${agentId} for "${businessName}"`)
   } catch (err) {
     return NextResponse.json({ error: 'Ultravox agent creation failed', detail: String(err) }, { status: 502 })
@@ -118,6 +127,8 @@ export async function POST(req: NextRequest) {
         sms_template: smsTemplate,
         status: 'active',
         bonus_minutes: 50,
+        monthly_minute_limit: getNicheMinuteLimit(niche),
+        contact_email: contactEmail,
         updated_at: new Date().toISOString(),
       })
       .eq('id', clientId)
@@ -136,6 +147,8 @@ export async function POST(req: NextRequest) {
         sms_template: smsTemplate,
         timezone,
         bonus_minutes: 50,
+        monthly_minute_limit: getNicheMinuteLimit(niche),
+        contact_email: contactEmail,
       })
       .select('id')
       .single()
@@ -253,10 +266,16 @@ export async function POST(req: NextRequest) {
     })
 
     if (createErr) {
-      // User may already exist
-      const { data: existingUsers } = await svc.auth.admin.listUsers()
+      // User may already exist — use higher page size to find them
+      console.warn(`[test-activate] createUser failed for ${contactEmail}: ${createErr.message} — attempting lookup`)
+      const { data: existingUsers } = await svc.auth.admin.listUsers({ perPage: 1000 })
       const found = existingUsers?.users?.find((u) => u.email === contactEmail)
-      if (found) authUserId = found.id
+      if (found) {
+        authUserId = found.id
+        console.log(`[test-activate] Found existing auth user ${authUserId} for ${contactEmail}`)
+      } else {
+        console.error(`[test-activate] Could not resolve auth user for ${contactEmail}: ${createErr.message}`)
+      }
     } else if (newUser?.user) {
       authUserId = newUser.user.id
     }

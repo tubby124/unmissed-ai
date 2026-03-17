@@ -1771,7 +1771,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </div>
           <button
             onClick={saveSms}
-            disabled={smsSaving}
+            disabled={smsSaving || !client.twilio_number}
             className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               smsSaved
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -1782,16 +1782,29 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </button>
         </div>
 
+        {/* No Twilio number warning */}
+        {!client.twilio_number && (
+          <div className="flex items-center gap-2.5 mt-3 px-3.5 py-3 rounded-xl bg-amber-500/[0.07] border border-amber-500/20">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+              <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-[11px] text-amber-400/90">SMS requires a phone number. Contact support to add one.</span>
+          </div>
+        )}
+
         {/* Toggle */}
         <div className="flex items-center gap-3 py-3 border-b b-theme">
           <button
             onClick={() => setSmsEnabled(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
-            className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled[client.id] ? 'bg-blue-500' : 'bg-zinc-700'}`}
+            disabled={!client.twilio_number}
+            className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled[client.id] ? 'bg-blue-500' : 'bg-zinc-700'} disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${smsEnabled[client.id] ? 'left-4' : 'left-0.5'}`} />
           </button>
           <span className="text-xs t2">
-            {smsEnabled[client.id] ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
+            {!client.twilio_number
+              ? 'SMS unavailable — no phone number assigned'
+              : smsEnabled[client.id] ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
           </span>
         </div>
 
@@ -1801,7 +1814,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           <textarea
             value={smsTemplate[client.id] ?? ''}
             onChange={e => setSmsTemplate(prev => ({ ...prev, [client.id]: e.target.value }))}
-            disabled={!smsEnabled[client.id]}
+            disabled={!smsEnabled[client.id] || !client.twilio_number}
             rows={3}
             className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             placeholder="Thanks for calling {{business}}! We'll follow up shortly."
@@ -1838,7 +1851,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             />
             <button
               onClick={fireTestSms}
-              disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate[client.id]}
+              disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate[client.id] || !client.twilio_number}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 t1 transition-all disabled:opacity-40 shrink-0"
             >
               {testSmsState === 'sending' ? 'Sending…' : 'Send Test'}
