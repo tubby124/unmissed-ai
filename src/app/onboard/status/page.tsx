@@ -521,7 +521,7 @@ function StatusContent() {
           <div className="space-y-3">
             {([
               { d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z", text: "Call your number to test it" },
-               { d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z", text: "Connect Telegram via the link in your SMS" },
+               { d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z", text: "Download Telegram, then tap the link in your SMS" },
                { d: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Log in to see your call log" },
             ] as { d: string; text: string }[]).map((step, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -534,6 +534,20 @@ function StatusContent() {
               </div>
             ))}
           </div>
+
+          {/* Download Telegram CTA */}
+          <a
+            href="https://t.me/hassitant_1bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-full font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ background: "rgba(41,182,246,0.15)", border: "1px solid rgba(41,182,246,0.30)", color: "#7dd3fc" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.9l-2.972-.924c-.643-.204-.657-.643.136-.953l11.567-4.461c.537-.194 1.006.131.993.659z"/>
+            </svg>
+            Download Telegram
+          </a>
 
           {/* CTA */}
           <a
