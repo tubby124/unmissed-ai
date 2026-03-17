@@ -7,6 +7,11 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  // On Railway, request.url has localhost as origin — use forwarded headers for the real public URL
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:8080'
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = `${proto}://${host}`
+
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -27,9 +32,9 @@ export async function GET(request: NextRequest) {
     )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url))
+      return NextResponse.redirect(new URL(next, baseUrl))
     }
   }
 
-  return NextResponse.redirect(new URL('/login?error=auth_callback_failed', request.url))
+  return NextResponse.redirect(new URL('/login?error=auth_callback_failed', baseUrl))
 }
