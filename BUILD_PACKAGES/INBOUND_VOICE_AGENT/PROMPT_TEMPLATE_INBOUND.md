@@ -40,6 +40,8 @@
 | `{{COMPLETION_FIELDS}}` | vehicle year, make, model, and preferred timing | REQUIRED: exact fields that MUST be collected before hangUp |
 | `{{OWNER_PHONE}}` | (587) 355-1834 | Owner's real phone for live transfers (leave blank to disable transfer) |
 | `{{TRANSFER_ENABLED}}` | true | Set "true" to enable live transfer, "false" for callback-only mode |
+| `{{AFTER_HOURS_BLOCK}}` | (auto-generated) | After-hours behavior instructions — built from `afterHoursBehavior` setting |
+| `{{EMERGENCY_PHONE}}` | (306) 555-1234 | Emergency phone for after-hours urgent calls (used when afterHoursBehavior = "route_emergency") |
 
 ---
 
@@ -286,6 +288,9 @@ Do NOT use closing language until COMPLETION CHECK passes.]
 "alright, i'll let {{CLOSE_PERSON}} know and they'll give ya a call back shortly. this the best number to reach ya?"
 If yes or confirms number: "perfect. talk soon." then use hangUp tool.
 If unclear or mumbles: "sorry, line broke up there — what number's best for ya?"
+
+## AFTER HOURS
+{{AFTER_HOURS_BLOCK}}
 
 # ESCALATION AND TRANSFER
 
