@@ -6,7 +6,7 @@
  * webhook/stripe into a single call for testing.
  *
  * Body: { intakeId: string, skipTwilio?: boolean }
- * Returns: { clientId, agentId, twilioNumber, authUserId, prompt, smsTemplate }
+ * Returns: { clientId, agentId, twilioNumber, authUserId, prompt, smsTemplate, smsSent, emailSent, telegramLink }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -21,6 +21,8 @@ import { createAgent } from '@/lib/ultravox'
 import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { randomUUID } from 'crypto'
+import { Resend } from 'resend'
+import { sendAlert } from '@/lib/telegram'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
   const niche = intake.niche || 'other'
   const clientSlug = intake.client_slug || slugify(businessName)
   const contactEmail = intake.contact_email || null
+  const callbackPhone = (intakeData.callback_phone as string) || null
 
   // ── Generate prompt ────────────────────────────────────────────────────────
   let prompt: string
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existingClient } = await svc
     .from('clients')
-    .select('id, ultravox_agent_id')
+    .select('id, ultravox_agent_id, twilio_number')
     .eq('slug', clientSlug)
     .maybeSingle()
 
@@ -234,6 +237,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Fall back to existing Twilio number from client row (no purchase needed)
+  if (!twilioNumber && existingClient?.twilio_number) {
+    twilioNumber = existingClient.twilio_number as string
+    console.log(`[test-activate] Using existing Twilio number: ${twilioNumber}`)
+  }
+
   // ── Create auth user + link ────────────────────────────────────────────────
   let authUserId: string | null = null
 
@@ -272,6 +281,133 @@ export async function POST(req: NextRequest) {
   const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
   await svc.from('clients').update({ telegram_registration_token: telegramRegToken }).eq('id', clientId)
 
+  const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
+
+  // ── Step 1.5: Onboarding SMS (non-blocking) ─────────────────────────────────
+  let smsSent = false
+  let smsSkipReason: string | null = null
+
+  if (twilioNumber && callbackPhone) {
+    try {
+      const accountSid = process.env.TWILIO_ACCOUNT_SID!
+      const authToken = process.env.TWILIO_AUTH_TOKEN!
+      const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+      const smsBody = new URLSearchParams({
+        From: twilioNumber,
+        To: callbackPhone,
+        Body: `Welcome to unmissed.ai!\n\nYour AI receptionist is now live at ${twilioNumber}.\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+      })
+      const smsRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: smsBody.toString(),
+        },
+      )
+      if (smsRes.ok) {
+        smsSent = true
+        console.log(`[test-activate] SMS sent to ${callbackPhone} from ${twilioNumber}`)
+      } else {
+        smsSkipReason = `Twilio error: ${(await smsRes.text()).slice(0, 200)}`
+        console.error(`[test-activate] SMS failed: ${smsSkipReason}`)
+      }
+    } catch (err) {
+      smsSkipReason = `threw: ${err}`
+      console.error(`[test-activate] SMS threw: ${err}`)
+    }
+  } else {
+    smsSkipReason = !twilioNumber ? 'no Twilio number' : 'no callbackPhone in intake'
+  }
+
+  // ── Step 5: Welcome email via Resend (non-blocking) ──────────────────────────
+  let emailSent = false
+  let emailSkipReason: string | null = null
+
+  if (contactEmail && authUserId) {
+    const resendKey = process.env.RESEND_API_KEY
+    if (resendKey) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+        const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
+        const actionLink = linkData?.properties?.action_link ?? ''
+        let setupUrl = `${appUrl}/dashboard`
+        if (actionLink) {
+          try {
+            const parsed = new URL(actionLink)
+            const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+            if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+          } catch { setupUrl = `${appUrl}/login` }
+        }
+        const resend = new Resend(resendKey)
+        const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+        await resend.emails.send({
+          from: fromAddress,
+          to: contactEmail,
+          subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
+  <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
+  <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
+  ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
+  <p><strong>Set up your dashboard password</strong></p>
+  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Create my password &rarr;</a>
+  <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
+  ${telegramLink ? `<p><strong>Connect Telegram:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+</div>`,
+        })
+        emailSent = true
+        console.log(`[test-activate] Welcome email sent to ${contactEmail}`)
+      } catch (err) {
+        emailSkipReason = String(err)
+        console.error(`[test-activate] Email failed: ${err}`)
+      }
+    } else {
+      emailSkipReason = 'RESEND_API_KEY not set'
+    }
+  } else {
+    emailSkipReason = !contactEmail ? 'no contact email' : 'no auth user resolved'
+  }
+
+  // ── Step 7: Telegram admin alert ─────────────────────────────────────────────
+  try {
+    const { data: adminClient } = await svc
+      .from('clients')
+      .select('telegram_bot_token, telegram_chat_id')
+      .eq('slug', 'hasan-sharif')
+      .single()
+    if (adminClient?.telegram_bot_token && adminClient?.telegram_chat_id) {
+      await sendAlert(
+        adminClient.telegram_bot_token as string,
+        adminClient.telegram_chat_id as string,
+        `🧪 TEST ACTIVATE: <b>${businessName}</b> | ${niche}\nSMS: ${smsSent ? 'sent' : smsSkipReason}\nEmail: ${emailSent ? 'sent' : emailSkipReason}\nTwilio: ${twilioNumber ?? 'none'}`,
+      )
+    }
+  } catch { /* non-blocking */ }
+
+  // ── Step 8: Write activation_log JSONB ───────────────────────────────────────
+  try {
+    await svc
+      .from('clients')
+      .update({
+        activation_log: {
+          tested_at: new Date().toISOString(),
+          twilio_number: twilioNumber ?? 'skipped',
+          sms_sent: smsSent,
+          sms_skip_reason: smsSent ? null : smsSkipReason,
+          email_sent: emailSent,
+          email_skip_reason: emailSent ? null : emailSkipReason,
+          intake_id: intakeId,
+          source: 'test-activate',
+        },
+      })
+      .eq('id', clientId)
+    console.log(`[test-activate] activation_log written for ${clientSlug}`)
+  } catch (err) {
+    console.error(`[test-activate] activation_log write failed: ${err}`)
+  }
+
   console.log(`[test-activate] Done — intake ${intakeId} → client ${clientSlug} (${clientId}) → agent ${agentId}`)
 
   return NextResponse.json({
@@ -283,6 +419,8 @@ export async function POST(req: NextRequest) {
     prompt,
     promptCharCount: validation.charCount,
     smsTemplate,
-    telegramLink: `https://t.me/${botUsername}?start=${telegramRegToken}`,
+    smsSent,
+    emailSent,
+    telegramLink,
   })
 }
