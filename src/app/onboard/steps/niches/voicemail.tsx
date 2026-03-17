@@ -5,26 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { OnboardingData } from "@/types/onboarding";
+import VoicePicker from "@/components/onboard/VoicePicker";
 
 interface Props {
   data: OnboardingData;
   onChange: (key: string, value: string | string[] | boolean) => void;
 }
-
-const VOICE_GENDER_OPTIONS = [
-  {
-    value: "female",
-    label: "Female voice — Monika",
-    desc: "Warm, natural, conversational — sounds like a real person picking up the phone",
-    emoji: "👩",
-  },
-  {
-    value: "male",
-    label: "Male voice — Mark",
-    desc: "Calm, confident, professional — friendly and approachable",
-    emoji: "👨",
-  },
-];
 
 const MESSAGE_RECIPIENT_OPTIONS = [
   { value: "owner",       label: "The owner", desc: "Messages go directly to you" },
@@ -51,40 +37,18 @@ export default function VoicemailNiche({ data, onChange }: Props) {
   const customRecipient = (answers.customRecipient as string) || "";
   const behavior = (answers.voicemailBehavior as string) || "message_only";
   const extraContext = (answers.voicemailContext as string) || "";
-  const voiceGender = (answers.voiceGender as string) || "female";
+  const selectedVoiceId = (answers.voiceId as string) || null;
 
   return (
     <div className="space-y-6">
-      {/* Voice gender preference */}
+      {/* Voice selection */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Prefer a male or female voice?</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {VOICE_GENDER_OPTIONS.map((opt) => (
-            <label
-              key={opt.value}
-              className={`
-                flex flex-col gap-1 p-3 rounded-xl border-2 cursor-pointer transition-all
-                ${voiceGender === opt.value
-                  ? "border-indigo-600 bg-indigo-50"
-                  : "border-gray-200 hover:border-gray-300"
-                }
-              `}
-            >
-              <input
-                type="radio"
-                name="voiceGender"
-                value={opt.value}
-                checked={voiceGender === opt.value}
-                onChange={() => onChange("voiceGender", opt.value)}
-                className="sr-only"
-              />
-              <span className="text-xl">{opt.emoji}</span>
-              <span className="text-sm font-semibold text-slate-900">{opt.label}</span>
-              <span className="text-xs text-slate-500">{opt.desc}</span>
-            </label>
-          ))}
-        </div>
-        <p className="text-xs text-slate-400">You can change this anytime in your dashboard settings.</p>
+        <Label className="text-sm font-medium">Pick a voice for your agent</Label>
+        <p className="text-xs text-slate-500 -mt-1">Click the play button to preview, then click to select. You can change this anytime in your dashboard.</p>
+        <VoicePicker
+          selectedVoiceId={selectedVoiceId}
+          onSelect={(voiceId) => onChange("voiceId", voiceId)}
+        />
       </div>
 
       {/* Who receives messages */}

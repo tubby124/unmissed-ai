@@ -86,13 +86,13 @@ export async function POST(req: NextRequest) {
   // ── Generate SMS template ──────────────────────────────────────────────────
   const smsTemplate = buildSmsTemplate(intakeData)
 
-  // ── Resolve voice from intake gender selection ────────────────────────────
+  // ── Resolve voice: direct voiceId from picker > gender fallback > niche default
   const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
   const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+  const directVoiceId = (intakeData.niche_voiceId as string) || ''
   const voiceGender = (intakeData.niche_voiceGender as string) || ''
-  const voiceId = voiceGender === 'male' ? VOICE_MALE
-    : voiceGender === 'female' ? VOICE_FEMALE
-    : getNicheVoice(niche)
+  const voiceId = directVoiceId
+    || (voiceGender === 'male' ? VOICE_MALE : voiceGender === 'female' ? VOICE_FEMALE : getNicheVoice(niche))
 
   // ── Create Ultravox agent ──────────────────────────────────────────────────
   let agentId: string
