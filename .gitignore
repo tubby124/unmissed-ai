@@ -28,6 +28,8 @@ e2e-test-report.md
 *.m4a
 *.vtt
 *.png
+!public/og-image.png
+!public/apple-touch-icon.png
 
 # Archive (legacy/dead files)
 archive/
