@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
 import ShimmerButton from '@/components/ui/shimmer-button'
@@ -16,6 +16,14 @@ interface PromptVersion {
 }
 
 type ImproveState = 'idle' | 'loading' | 'done' | 'error'
+
+interface VoiceTabVoice {
+  voiceId: string
+  name: string
+  description: string
+  provider: string
+  previewUrl: string
+}
 
 const TIMEZONES = [
   { value: 'America/Edmonton', label: 'Mountain (Edmonton)' },
@@ -258,10 +266,49 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
-  const [activeTab, setActiveTab] = useState<'general' | 'transfer' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
   const [reloadMinutes, setReloadMinutes] = useState(100)
   const [reloadLoading, setReloadLoading] = useState(false)
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
+
+  // Voice tab state
+  const [voices, setVoices] = useState<VoiceTabVoice[]>([])
+  const [voicesLoading, setVoicesLoading] = useState(true)
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    fetch('/api/dashboard/voices')
+      .then(r => r.json())
+      .then(d => setVoices(d.voices || []))
+      .catch(() => {})
+      .finally(() => setVoicesLoading(false))
+  }, [])
+
+  useEffect(() => () => {
+    if (audioRef.current) {
+      audioRef.current.onended = null
+      audioRef.current.onerror = null
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+  }, [])
+
+  function playVoice(vid: string, previewUrl: string) {
+    if (audioRef.current) {
+      audioRef.current.onended = null
+      audioRef.current.onerror = null
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+    setPlayingVoiceId(vid)
+    const url = previewUrl || `/api/dashboard/voices/${vid}/preview`
+    const audio = new Audio(url)
+    audio.onended = () => setPlayingVoiceId(null)
+    audio.onerror = () => setPlayingVoiceId(null)
+    audio.play().catch(() => setPlayingVoiceId(null))
+    audioRef.current = audio
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -760,32 +807,34 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       )}
 
       {/* ─── Tab bar ─────────────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:b-theme">
-        <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Settings tabs">
+      <div className="border-b b-theme">
+        <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
           {([
-            { id: 'general',       label: 'Agent',    adminOnly: false },
-            { id: 'transfer',      label: 'Transfer', adminOnly: true  },
-            { id: 'sms',           label: 'SMS',      adminOnly: false },
-            { id: 'voice',         label: 'Voice',    adminOnly: true  },
-            { id: 'notifications', label: 'Alerts',   adminOnly: false },
-            { id: 'billing',       label: 'Billing',  adminOnly: false },
-          ] as { id: typeof activeTab; label: string; adminOnly: boolean }[])
+            { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+            { id: 'sms',           label: 'SMS',      adminOnly: false, icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
+            { id: 'voice',         label: 'Voice',    adminOnly: false, icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
+            { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
+            { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
+          ] as { id: typeof activeTab; label: string; adminOnly: boolean; icon: string }[])
             .filter(t => !t.adminOnly || isAdmin)
-            .map(({ id, label }) => (
+            .map(({ id, label, icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`relative pb-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
+              className={`relative flex items-center gap-1.5 px-3 pb-3 pt-1 text-sm font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
                 activeTab === id
-                  ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:t2 dark:hover:t1'
+                  ? 'text-blue-400'
+                  : 't3 hover:t1'
               }`}
             >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className={`transition-colors duration-200 ${activeTab === id ? 'text-blue-400' : ''}`}>
+                <path d={icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
               {label}
               {activeTab === id && (
                 <motion.div
                   layoutId="settings-tab-indicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-blue-500"
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
               )}
@@ -2061,57 +2110,151 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       </>)}
 
-      {/* ─── Transfer Tab ─────────────────────────────────────────── */}
-      {activeTab === 'transfer' && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
-        >
-        <div className="rounded-2xl border border-gray-200 dark:b-theme bg-white dark:bg-surface p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:t3 mb-1">Call Transfer Rules</p>
-          <p className="text-[11px] text-gray-400 dark:t3 mb-5">Configure scenarios where the agent hands off to a human.</p>
-          <div className="rounded-xl border border-dashed border-gray-200 dark:b-theme p-8 text-center">
-            <p className="text-sm text-gray-400 dark:t3">Transfer workflows coming soon.</p>
-            <p className="text-xs text-gray-400 dark:t3 mt-1">Use your Setup tab to configure the forwarding number for now.</p>
-          </div>
-        </div>
-        </motion.div>
-      )}
-
       {/* ─── Voice Tab ────────────────────────────────────────────── */}
-      {activeTab === 'voice' && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
-        >
-        <div className="rounded-2xl border border-gray-200 dark:b-theme bg-white dark:bg-surface p-5">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-gray-500 dark:t3 mb-1">Voice</p>
-          <p className="text-[11px] text-gray-400 dark:t3 mb-5">Your agent&apos;s voice is configured in the Voice Library.</p>
-          <a
-            href="/dashboard/voices"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+      {activeTab === 'voice' && (() => {
+        const voiceId = client.agent_voice_id ?? ''
+        const currentVoice = voices.find(v => v.voiceId === voiceId)
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+            className="space-y-4"
           >
-            Open Voice Library
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </a>
-        </div>
-        </motion.div>
-      )}
+            {/* Current voice card */}
+            <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+              <div className="p-5 border-b b-theme">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Current Voice</p>
+                <p className="text-[11px] t3">The voice your callers hear when they reach your agent.</p>
+              </div>
 
-      {/* ─── Notifications Tab ────────────────────────────────────── */}
+              <div className="p-5">
+                {voicesLoading ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-28 rounded bg-white/[0.06] animate-pulse" />
+                      <div className="h-3 w-44 rounded bg-white/[0.04] animate-pulse" />
+                    </div>
+                  </div>
+                ) : currentVoice ? (
+                  <div className="flex items-center gap-4">
+                    {/* Avatar + play */}
+                    <button
+                      onClick={() => {
+                        if (playingVoiceId === currentVoice.voiceId) {
+                          audioRef.current?.pause()
+                          setPlayingVoiceId(null)
+                        } else {
+                          playVoice(currentVoice.voiceId, currentVoice.previewUrl)
+                        }
+                      }}
+                      className="relative w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500/20 to-blue-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 group cursor-pointer transition-all hover:border-indigo-400/50 hover:shadow-[0_0_16px_rgba(99,102,241,0.15)]"
+                    >
+                      {playingVoiceId === currentVoice.voiceId ? (
+                        <div className="flex items-center gap-[3px]">
+                          {[0, 1, 2].map(i => (
+                            <span key={i} className="w-[3px] rounded-full bg-indigo-400 animate-pulse" style={{ height: `${10 + i * 4}px`, animationDelay: `${i * 150}ms` }} />
+                          ))}
+                        </div>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-400 ml-0.5 group-hover:text-indigo-300 transition-colors">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Voice info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <p className="text-sm font-semibold t1 truncate">{currentVoice.name}</p>
+                        <span className={`inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                          currentVoice.provider === 'Cartesia' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                          : currentVoice.provider === 'Eleven Labs' ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
+                          : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        }`}>
+                          {currentVoice.provider}
+                        </span>
+                      </div>
+                      <p className="text-[11px] t3 leading-relaxed line-clamp-2">{currentVoice.description || 'No description available'}</p>
+                    </div>
+                  </div>
+                ) : voiceId ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-white/[0.04] border b-theme flex items-center justify-center shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="t3"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="1.5"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4m-4 0h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium t2">Custom Voice</p>
+                      <p className="text-[10px] font-mono t3 truncate max-w-[200px]">{voiceId}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+                      <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-[11px] text-amber-400/90">No voice selected yet. Browse the Voice Library to choose one.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action bar */}
+              <div className="px-5 py-3 border-t b-theme bg-white/[0.01] flex items-center justify-between">
+                <p className="text-[10px] t3">
+                  {playingVoiceId === currentVoice?.voiceId ? 'Playing preview...' : 'Click the avatar to hear a preview'}
+                </p>
+                <a
+                  href="/dashboard/voices"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors duration-200"
+                >
+                  Browse Voice Library
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </a>
+              </div>
+            </div>
+
+            {/* Voice tips card */}
+            <div className="rounded-2xl border b-theme bg-surface p-5">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Voice Tips</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z', title: 'Match your brand', desc: 'Choose a voice that reflects your business personality and caller expectations.' },
+                  { icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', title: 'Test with callers', desc: 'Make a few test calls after switching to ensure the voice feels natural.' },
+                  { icon: 'M22 11.08V12a10 10 0 1 1-5.93-9.14', title: 'Switch anytime', desc: 'You can change your agent\'s voice as often as you\'d like from the library.' },
+                ].map(tip => (
+                  <div key={tip.title} className="p-3 rounded-xl bg-white/[0.02] border b-theme">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-indigo-400/70 mb-2">
+                      <path d={tip.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <p className="text-xs font-semibold t1 mb-0.5">{tip.title}</p>
+                    <p className="text-[10px] t3 leading-relaxed">{tip.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )
+      })()}
+
+      {/* ─── Alerts Tab ────────────────────────────────────────────── */}
       {activeTab === 'notifications' && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+          className="space-y-4"
         >
-        <div className="rounded-2xl border b-theme bg-surface p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Alerts</p>
-            {!isAdmin && (
-              <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+
+        {/* Telegram connection status card */}
+        <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+          <div className="p-5 border-b b-theme">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Alert Channels</p>
+                <p className="text-[11px] t3">How you receive call notifications from your agent.</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
                 client.telegram_bot_token && client.telegram_chat_id
                   ? 'text-green-400 border-green-500/30 bg-green-500/10'
                   : 'text-amber-400 border-amber-500/30 bg-amber-500/10'
@@ -2121,77 +2264,191 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 }`} />
                 {client.telegram_bot_token && client.telegram_chat_id ? 'Telegram Connected' : 'Telegram Not Connected'}
               </span>
-            )}
+            </div>
           </div>
-          <p className="text-[11px] t3 mb-5">Coming soon — we&apos;ll notify you here when enabled.</p>
 
-          {/* Telegram Message Style */}
-          {client.telegram_bot_token && client.telegram_chat_id && (
-            <div className="mb-5 p-4 rounded-xl border b-theme bg-black/20">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs font-semibold t1">Telegram Message Style</p>
-                  <p className="text-[11px] t3 mt-0.5">Choose how call summaries appear in Telegram</p>
+          {/* Active channels */}
+          <div className="p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Telegram — active */}
+              <div className={`p-4 rounded-xl border transition-all ${
+                client.telegram_bot_token && client.telegram_chat_id
+                  ? 'border-blue-500/20 bg-blue-500/[0.04]'
+                  : 'b-theme bg-white/[0.01]'
+              }`}>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    client.telegram_bot_token && client.telegram_chat_id
+                      ? 'bg-blue-500/15'
+                      : 'bg-white/[0.04]'
+                  }`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={client.telegram_bot_token && client.telegram_chat_id ? 'text-blue-400' : 't3'}>
+                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold t1">Telegram</p>
+                    <p className="text-[10px] t3">
+                      {client.telegram_bot_token && client.telegram_chat_id ? 'Active' : 'Not configured'}
+                    </p>
+                  </div>
                 </div>
-                {tgStyleSaving && <span className="text-[10px] t3 animate-pulse">Saving...</span>}
+                <p className="text-[10px] t3 leading-relaxed">Instant call summaries with lead classification and next steps.</p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { id: 'compact', label: 'Compact', desc: 'Status + phone + summary in 2-3 lines' },
-                  { id: 'standard', label: 'Standard', desc: 'Summary, contact, and next steps separated' },
-                  { id: 'action_card', label: 'Action Card', desc: 'Structured with date, booking, and action' },
-                ] as const).map(opt => (
-                  <button
-                    key={opt.id}
-                    onClick={() => saveTelegramStyle(opt.id)}
-                    className={`text-left p-3 rounded-lg border transition-all ${
-                      tgStyle[client.id] === opt.id
-                        ? 'border-blue-500/50 bg-blue-500/10'
-                        : 'b-theme bg-hover hover:border-white/10'
-                    }`}
-                  >
-                    <p className={`text-xs font-semibold ${tgStyle[client.id] === opt.id ? 'text-blue-400' : 't1'}`}>{opt.label}</p>
-                    <p className="text-[10px] t3 mt-1 leading-relaxed">{opt.desc}</p>
-                  </button>
-                ))}
+
+              {/* SMS — coming soon */}
+              <div className="p-4 rounded-xl border b-theme bg-white/[0.01] opacity-60">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold t1">SMS Alerts</p>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.06] t3">Coming soon</span>
+                  </div>
+                </div>
+                <p className="text-[10px] t3 leading-relaxed">Receive text alerts for hot leads and missed calls.</p>
+              </div>
+
+              {/* Email — coming soon */}
+              <div className="p-4 rounded-xl border b-theme bg-white/[0.01] opacity-60">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
+                      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold t1">Email</p>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.06] t3">Coming soon</span>
+                  </div>
+                </div>
+                <p className="text-[10px] t3 leading-relaxed">Daily digest and critical alerts delivered to your inbox.</p>
               </div>
             </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr>
-                  <th className="text-left pb-3 t3 font-medium w-36" />
-                  {(['Telegram', 'SMS', 'Email'] as const).map(ch => (
-                    <th key={ch} className="pb-3 t3 font-medium px-6 text-center">{ch}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {(['HOT lead', 'Missed call', 'Daily digest'] as const).map(event => (
-                  <tr key={event}>
-                    <td className="py-3 t2 font-medium pr-4">{event}</td>
-                    {(['telegram', 'sms', 'email'] as const).map(ch => (
-                      <td key={ch} className="py-3 px-6 text-center">
-                        <button
-                          role="switch"
-                          aria-checked="false"
-                          aria-label={`${event} via ${ch}`}
-                          title="We'll notify you here once enabled"
-                          disabled
-                          className="w-9 h-5 rounded-full bg-hover relative inline-flex items-center justify-center transition-colors opacity-50 cursor-not-allowed"
-                        >
-                          <span className="w-4 h-4 rounded-full bg-white shadow absolute left-0.5 transition-all" />
-                        </button>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
+
+        {/* Telegram Message Style — only when connected */}
+        {client.telegram_bot_token && client.telegram_chat_id && (
+          <div className="rounded-2xl border b-theme bg-surface p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Message Style</p>
+                <p className="text-[11px] t3">Choose how call summaries appear in your Telegram chat.</p>
+              </div>
+              {tgStyleSaving && (
+                <span className="text-[10px] t3 animate-pulse flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+                  Saving...
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {([
+                { id: 'compact', label: 'Compact', desc: 'Status + phone + summary in 2-3 lines', icon: 'M4 6h16M4 12h10' },
+                { id: 'standard', label: 'Standard', desc: 'Summary, contact, and next steps separated', icon: 'M4 6h16M4 10h16M4 14h12M4 18h8' },
+                { id: 'action_card', label: 'Action Card', desc: 'Structured with date, booking, and action items', icon: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => saveTelegramStyle(opt.id)}
+                  className={`text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer group ${
+                    tgStyle[client.id] === opt.id
+                      ? 'border-blue-500/40 bg-blue-500/[0.08] shadow-[0_0_12px_rgba(59,130,246,0.06)]'
+                      : 'b-theme bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/[0.12]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      tgStyle[client.id] === opt.id ? 'bg-blue-500/15' : 'bg-white/[0.04] group-hover:bg-white/[0.06]'
+                    }`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className={tgStyle[client.id] === opt.id ? 'text-blue-400' : 't3'}>
+                        <path d={opt.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <p className={`text-xs font-semibold transition-colors ${tgStyle[client.id] === opt.id ? 'text-blue-400' : 't1'}`}>{opt.label}</p>
+                  </div>
+                  <p className="text-[10px] t3 leading-relaxed">{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Notification preferences matrix */}
+        <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+          <div className="p-5 border-b b-theme">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Notification Preferences</p>
+            <p className="text-[11px] t3">Fine-grained control over which events trigger alerts. SMS and Email channels are in development.</p>
+          </div>
+          <div className="p-5">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr>
+                    <th className="text-left pb-3 t3 font-medium w-36" />
+                    {(['Telegram', 'SMS', 'Email'] as const).map(ch => (
+                      <th key={ch} className="pb-3 font-medium px-6 text-center">
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] ${
+                          ch === 'Telegram' && client.telegram_bot_token && client.telegram_chat_id
+                            ? 'text-blue-400'
+                            : 't3'
+                        }`}>
+                          {ch}
+                          {ch !== 'Telegram' && (
+                            <span className="text-[8px] font-semibold px-1 py-px rounded bg-white/[0.06] t3">Soon</span>
+                          )}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {([
+                    { event: 'HOT lead', active: true },
+                    { event: 'Missed call', active: true },
+                    { event: 'Daily digest', active: false },
+                  ] as const).map(({ event, active }) => (
+                    <tr key={event} className="group">
+                      <td className="py-3.5 t2 font-medium pr-4">
+                        <div className="flex items-center gap-2">
+                          {event}
+                          {active && client.telegram_bot_token && client.telegram_chat_id && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Active" />
+                          )}
+                        </div>
+                      </td>
+                      {(['telegram', 'sms', 'email'] as const).map(ch => {
+                        const isActive = ch === 'telegram' && active && !!(client.telegram_bot_token && client.telegram_chat_id)
+                        return (
+                          <td key={ch} className="py-3.5 px-6 text-center">
+                            <span
+                              aria-label={`${event} via ${ch}: ${isActive ? 'active' : 'not available'}`}
+                              className={`w-9 h-5 rounded-full relative inline-flex items-center transition-colors duration-200 ${
+                                isActive
+                                  ? 'bg-blue-500'
+                                  : 'bg-white/[0.06] opacity-40'
+                              }`}
+                            >
+                              <span className={`w-4 h-4 rounded-full bg-white shadow-sm absolute transition-all duration-200 ${
+                                isActive ? 'left-[18px]' : 'left-0.5'
+                              }`} />
+                            </span>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         </motion.div>
       )}
 
@@ -2204,6 +2461,16 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
         return (
           <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+            {/* Past-due warning banner */}
+            {client.subscription_status === 'past_due' && (
+              <div className="border-b border-red-500/30 bg-red-500/[0.06] p-4">
+                <p className="text-xs font-medium text-red-400">
+                  Payment failed — your agent will pause on {fmtDate(client.grace_period_end)}.
+                  Please update your payment method.
+                </p>
+              </div>
+            )}
+
             {/* Section A: Your Plan */}
             <div className="p-5 border-b b-theme">
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Your Plan</p>
@@ -2219,7 +2486,15 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 )}
               </div>
               <p className="text-[11px] t3 mt-2">
-                {minuteLimit} minutes included per month. Reload anytime below.
+                {client.subscription_status === 'trialing'
+                  ? `Free trial — $10/mo starts on ${fmtDate(client.subscription_current_period_end)}`
+                  : client.subscription_status === 'active'
+                    ? `Active — $10/mo. Renews ${fmtDate(client.subscription_current_period_end)}`
+                    : client.subscription_status === 'past_due'
+                      ? `Payment failed — update your payment method or your agent will pause on ${fmtDate(client.grace_period_end)}`
+                      : client.subscription_status === 'canceled'
+                        ? 'No active subscription'
+                        : `${minuteLimit} minutes included per month. Reload anytime below.`}
               </p>
             </div>
 
@@ -2314,7 +2589,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs t3">Next renewal</span>
-                  <span className="text-xs t2 font-mono">{fmtDate(cycleEnd.toISOString())}</span>
+                  <span className="text-xs t2 font-mono">{fmtDate(client.subscription_current_period_end ?? cycleEnd.toISOString())}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs t3">Setup fee</span>
