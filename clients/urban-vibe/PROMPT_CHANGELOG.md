@@ -50,3 +50,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 19176 | **Hash:** 2e6ca35a23b8ec89
 **Supabase version_id:** f5758578-66f1-4fa9-a6c9-bde6906bfbee
 **Ultravox revision:** n/a
+
+## v10 — 2026-03-16 19:30 UTC
+**Change:** security: rule 14 unconditional refusal + unintelligible caller handling (Example G)
+**Chars:** 20577 | **Hash:** 527348da0cf3e3a4
+**Supabase version_id:** efbc4f4f-bd53-4d09-979e-0946845bbb68
+**Ultravox revision:** ed98cb66-11f0-417a-9993-c530c986bcec

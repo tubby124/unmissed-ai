@@ -4,11 +4,11 @@
  * Handles Stripe checkout.session.completed events.
  * Runs the full activation chain:
  *   1.   Buy Twilio number
- *   1.5  Send onboarding SMS from new number to client's callbackPhone
+ *   1.1  Create Supabase auth user + client_users link
+ *   1.2  Generate recovery link (setupUrl for SMS)
+ *   1.3  Send welcome email (separate recovery token)
+ *   1.5  Send onboarding SMS with setupUrl + Telegram link
  *   2.   Update clients row (status=active, twilio_number, telegram_registration_token)
- *   3.   Create Supabase auth user
- *   4.   Insert client_users row
- *   5.   Send password reset email
  *   6.   Mark intake progress_status = 'activated'
  *   7.   Telegram alert to admin
  *   8.   Write activation_log JSONB to clients row (full audit trail)
@@ -51,6 +51,143 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[stripe-webhook] Signature verification failed:', err)
     return new NextResponse('Invalid signature', { status: 400 })
+  }
+
+  // ── invoice.payment_succeeded (subscription renewal) ──────────────────────
+  if (event.type === 'invoice.payment_succeeded') {
+    const invoice = event.data.object as Stripe.Invoice
+    const parentSub = invoice.parent?.subscription_details?.subscription
+    const subId = typeof parentSub === 'string' ? parentSub : (parentSub as Stripe.Subscription | undefined)?.id ?? null
+
+    // Only handle subscription renewals — skip initial trial invoice
+    if (subId && invoice.billing_reason === 'subscription_cycle') {
+      const { data: cl } = await adminSupa
+        .from('clients')
+        .select('id, slug, business_name, niche')
+        .eq('stripe_subscription_id', subId)
+        .single()
+
+      if (cl) {
+        const sub = await stripe.subscriptions.retrieve(subId)
+        await adminSupa.from('clients').update({
+          subscription_status: 'active',
+          monthly_minute_limit: 100,
+          minutes_used_this_month: 0,
+          seconds_used_this_month: 0,
+          grace_period_end: null,
+          subscription_current_period_end: new Date(sub.items.data[0]?.current_period_end * 1000).toISOString(),
+        }).eq('id', cl.id)
+
+        console.log(`[stripe-webhook] Subscription renewed for ${cl.slug} — 100 min/mo, reset usage`)
+
+        // Telegram notification
+        try {
+          const { data: adminCl } = await adminSupa
+            .from('clients')
+            .select('telegram_bot_token, telegram_chat_id')
+            .eq('slug', 'hasan-sharif')
+            .single()
+          if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+            await sendAlert(
+              adminCl.telegram_bot_token as string,
+              adminCl.telegram_chat_id as string,
+              `💰 Subscription renewed: ${cl.business_name} (${cl.slug})\n` +
+              `Plan: $10/mo — 100 min\n` +
+              `Next renewal: ${new Date((sub.items.data[0]?.current_period_end ?? 0) * 1000).toLocaleDateString()}`
+            )
+          }
+        } catch (tgErr) {
+          console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+        }
+      }
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
+  // ── invoice.payment_failed ───────────────────────────────────────────────
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object as Stripe.Invoice
+    const parentSub = invoice.parent?.subscription_details?.subscription
+    const subId = typeof parentSub === 'string' ? parentSub : (parentSub as Stripe.Subscription | undefined)?.id ?? null
+
+    if (subId) {
+      const { data: cl } = await adminSupa
+        .from('clients')
+        .select('id, slug, business_name')
+        .eq('stripe_subscription_id', subId)
+        .single()
+
+      if (cl) {
+        const graceEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        await adminSupa.from('clients').update({
+          subscription_status: 'past_due',
+          grace_period_end: graceEnd,
+        }).eq('id', cl.id)
+
+        console.log(`[stripe-webhook] Payment failed for ${cl.slug} — grace period until ${graceEnd}`)
+
+        try {
+          const { data: adminCl } = await adminSupa
+            .from('clients')
+            .select('telegram_bot_token, telegram_chat_id')
+            .eq('slug', 'hasan-sharif')
+            .single()
+          if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+            await sendAlert(
+              adminCl.telegram_bot_token as string,
+              adminCl.telegram_chat_id as string,
+              `⚠️ Payment failed: ${cl.business_name} (${cl.slug})\n` +
+              `Grace period: 7 days (until ${new Date(graceEnd).toLocaleDateString()})\n` +
+              `Agent will pause if not resolved.`
+            )
+          }
+        } catch (tgErr) {
+          console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+        }
+      }
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
+  // ── customer.subscription.deleted ────────────────────────────────────────
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as Stripe.Subscription
+    const { data: cl } = await adminSupa
+      .from('clients')
+      .select('id, slug, business_name')
+      .eq('stripe_subscription_id', sub.id)
+      .single()
+
+    if (cl) {
+      await adminSupa.from('clients').update({
+        subscription_status: 'canceled',
+        status: 'paused',
+      }).eq('id', cl.id)
+
+      console.log(`[stripe-webhook] Subscription canceled for ${cl.slug} — agent paused`)
+
+      try {
+        const { data: adminCl } = await adminSupa
+          .from('clients')
+          .select('telegram_bot_token, telegram_chat_id')
+          .eq('slug', 'hasan-sharif')
+          .single()
+        if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+          await sendAlert(
+            adminCl.telegram_bot_token as string,
+            adminCl.telegram_chat_id as string,
+            `🚫 Subscription canceled: ${cl.business_name} (${cl.slug})\n` +
+            `Agent has been paused.`
+          )
+        }
+      } catch (tgErr) {
+        console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+      }
+    }
+
+    return new NextResponse('OK', { status: 200 })
   }
 
   if (event.type !== 'checkout.session.completed') {
@@ -336,70 +473,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Step 1.5: Onboarding SMS from new number to client's callbackPhone ──────
-  // SMS comes from their new AI line — strong brand impression on first contact.
-  // Body includes their Telegram setup link so they can connect call alerts.
-  let smsSent = false
-  let smsSkipReason: string | null = null
-
-  if (twilioNumber && callbackPhone) {
-    try {
-      const smsBody = new URLSearchParams({
-        From: twilioNumber,
-        To: callbackPhone,
-        Body: `Your AI agent is live! Check your email to set up your dashboard password, then log in at https://unmissed.ai/dashboard\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
-      })
-      const smsRes = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: smsBody.toString(),
-        }
-      )
-      if (smsRes.ok) {
-        smsSent = true
-        console.log(`[stripe-webhook] Onboarding SMS sent to ${callbackPhone} from ${twilioNumber}`)
-        void notifyAdmin(adminBot, adminChat, `📤 Onboarding SMS sent to ${callbackPhone}`)
-      } else {
-        const errText = await smsRes.text()
-        smsSkipReason = `Twilio error: ${errText.slice(0, 200)}`
-        console.error(`[stripe-webhook] SMS failed for slug=${client_slug}: ${smsSkipReason}`)
-        void notifyAdmin(adminBot, adminChat, `⚠️ SMS failed: ${smsSkipReason.slice(0, 100)}`)
-      }
-    } catch (err) {
-      smsSkipReason = `threw: ${err}`
-      console.error(`[stripe-webhook] SMS threw: ${err}`)
-    }
-  } else {
-    smsSkipReason = !twilioNumber ? 'no Twilio number purchased' : 'no callbackPhone in intake'
-    console.warn(`[stripe-webhook] SMS skipped for slug=${client_slug}: ${smsSkipReason}`)
-  }
-
-  // ── Step 2: Update clients row + store Telegram registration token ─────────
-  try {
-    const updatePayload: Record<string, unknown> = {
-      status: 'active',
-      setup_complete: true,
-      updated_at: new Date().toISOString(),
-      telegram_registration_token: telegramRegToken,
-      sms_enabled: callerAutoText,
-      bonus_minutes: 50,
-      monthly_minute_limit: getNicheMinuteLimit((existingClient?.niche as string) || null),
-      contact_email: contactEmail,
-    }
-    if (twilioNumber) updatePayload.twilio_number = twilioNumber
-    if (callerAutoTextMessage) updatePayload.sms_template = callerAutoTextMessage
-
-    await adminSupa.from('clients').update(updatePayload).eq('id', client_id)
-    console.log(`[stripe-webhook] clients.status → active for slug=${client_slug}`)
-  } catch (err) {
-    console.error(`[stripe-webhook] clients update threw: ${err}`)
-  }
-
-  // ── Steps 3-5: Create auth user + link + send password email ───────────────
+  // ── Steps 3-5 (moved before SMS): Create auth user + generate setup URL ────
+  // Auth user creation + recovery link must happen BEFORE SMS so we can include
+  // the password setup URL in the SMS body instead of "check your email".
   let emailActuallySent = false
   let emailFailReason: string | null = null
+  let setupUrl = `${appUrl}/login`
 
   if (contactEmail) {
     try {
@@ -442,31 +521,48 @@ export async function POST(req: NextRequest) {
           .update({ supabase_user_id: newUserId })
           .eq('id', intake_id)
 
+        // Generate recovery link for SMS setup URL
+        try {
+          const { data: smsLinkData } = await adminSupa.auth.admin.generateLink({
+            type: 'recovery',
+            email: contactEmail,
+          })
+          const smsActionLink = smsLinkData?.properties?.action_link ?? ''
+          if (smsActionLink) {
+            try {
+              const parsed = new URL(smsActionLink)
+              const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+              if (tokenHash) {
+                setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+              }
+            } catch { /* use fallback login URL */ }
+          }
+        } catch (linkErr2) {
+          console.warn(`[stripe-webhook] SMS recovery link generation failed: ${linkErr2} — using fallback login URL`)
+        }
+
         // Send welcome + password setup email via Resend (if key is configured)
+        // Generates a SECOND recovery token (separate from the SMS one) so both links work independently.
         const resendKey = process.env.RESEND_API_KEY
         if (resendKey) {
           try {
-            // Generate password setup link without sending Supabase's default email.
-            // We extract the token_hash and build our own /auth/confirm URL so the
-            // link stays on our domain — bypasses Supabase redirect-allowlist issues.
             const { data: linkData } = await adminSupa.auth.admin.generateLink({
               type: 'recovery',
               email: contactEmail,
             })
             const actionLink = linkData?.properties?.action_link ?? ''
-            let setupUrl = `${appUrl}/dashboard`
+            let emailSetupUrl = `${appUrl}/dashboard`
             if (actionLink) {
               try {
                 const parsed = new URL(actionLink)
                 const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
                 if (tokenHash) {
-                  setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+                  emailSetupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
                 }
-              } catch { setupUrl = `${appUrl}/login` }
+              } catch { emailSetupUrl = `${appUrl}/login` }
             }
 
             const resend = new Resend(resendKey)
-            // Use sandbox domain until custom domain is verified — swap 'from' to your domain after setup
             const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
             await resend.emails.send({
               from: fromAddress,
@@ -480,7 +576,7 @@ export async function POST(req: NextRequest) {
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
 
   <p><strong>Set up your dashboard password</strong></p>
-  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">
+  <a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">
     Create my password →
   </a>
   <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
@@ -523,6 +619,86 @@ export async function POST(req: NextRequest) {
   } else {
     emailFailReason = 'no contact email on intake'
     console.warn(`[stripe-webhook] No contact_email on intake ${intake_id} — skipping auth user creation`)
+  }
+
+  // ── Step 1.5: Onboarding SMS from new number to client's callbackPhone ──────
+  // SMS comes from their new AI line — strong brand impression on first contact.
+  // Body includes setup URL + Telegram link so they can set up immediately.
+  let smsSent = false
+  let smsSkipReason: string | null = null
+
+  if (twilioNumber && callbackPhone) {
+    try {
+      const smsBody = new URLSearchParams({
+        From: twilioNumber,
+        To: callbackPhone,
+        Body: `Your AI agent is live!\n\nSet up your dashboard:\n${setupUrl}\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+      })
+      const smsRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: smsBody.toString(),
+        }
+      )
+      if (smsRes.ok) {
+        smsSent = true
+        console.log(`[stripe-webhook] Onboarding SMS sent to ${callbackPhone} from ${twilioNumber}`)
+        void notifyAdmin(adminBot, adminChat, `📤 Onboarding SMS sent to ${callbackPhone}`)
+      } else {
+        const errText = await smsRes.text()
+        smsSkipReason = `Twilio error: ${errText.slice(0, 200)}`
+        console.error(`[stripe-webhook] SMS failed for slug=${client_slug}: ${smsSkipReason}`)
+        void notifyAdmin(adminBot, adminChat, `⚠️ SMS failed: ${smsSkipReason.slice(0, 100)}`)
+      }
+    } catch (err) {
+      smsSkipReason = `threw: ${err}`
+      console.error(`[stripe-webhook] SMS threw: ${err}`)
+    }
+  } else {
+    smsSkipReason = !twilioNumber ? 'no Twilio number purchased' : 'no callbackPhone in intake'
+    console.warn(`[stripe-webhook] SMS skipped for slug=${client_slug}: ${smsSkipReason}`)
+  }
+
+  // ── Step 2: Update clients row + store Telegram registration token ─────────
+  try {
+    const updatePayload: Record<string, unknown> = {
+      status: 'active',
+      setup_complete: false,
+      updated_at: new Date().toISOString(),
+      telegram_registration_token: telegramRegToken,
+      sms_enabled: callerAutoText,
+      bonus_minutes: 50,
+      monthly_minute_limit: getNicheMinuteLimit((existingClient?.niche as string) || null),
+      contact_email: contactEmail,
+    }
+    if (twilioNumber) updatePayload.twilio_number = twilioNumber
+    if (callerAutoTextMessage) updatePayload.sms_template = callerAutoTextMessage
+
+    await adminSupa.from('clients').update(updatePayload).eq('id', client_id)
+    console.log(`[stripe-webhook] clients.status → active for slug=${client_slug}`)
+  } catch (err) {
+    console.error(`[stripe-webhook] clients update threw: ${err}`)
+  }
+
+  // ── Store subscription info ───────────────────────────────────────────────
+  const subscriptionId = typeof session.subscription === 'string'
+    ? session.subscription : (session.subscription as { id: string })?.id
+  if (subscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId)
+      await adminSupa.from('clients').update({
+        stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+        stripe_subscription_id: subscriptionId,
+        subscription_status: sub.status,
+        subscription_current_period_end: new Date((sub.items.data[0]?.current_period_end ?? sub.trial_end ?? 0) * 1000).toISOString(),
+      }).eq('id', client_id)
+      console.log(`[stripe-webhook] Stored subscription ${subscriptionId} status=${sub.status} for client=${client_id}`)
+    } catch (subErr) {
+      console.error('[stripe-webhook] Failed to store subscription info:', subErr)
+      // Non-fatal — activation already succeeded
+    }
   }
 
   // ── Step 6: Mark intake as activated ──────────────────────────────────────

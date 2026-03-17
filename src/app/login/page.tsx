@@ -1,22 +1,31 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'motion/react'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [forgotMode, setForgotMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError === 'invalid_link') {
+      setError('Your login link has expired or was already used. Use "Forgot password" below or sign in with Google.')
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -65,6 +74,25 @@ export default function LoginPage() {
       setError(resetError.message)
     } else {
       setResetSent(true)
+    }
+  }
+
+  async function handleMagicLink() {
+    setError('')
+    setLoading(true)
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
+    })
+
+    setLoading(false)
+    if (otpError) {
+      setError(otpError.message)
+    } else {
+      setMagicLinkSent(true)
     }
   }
 
@@ -325,6 +353,24 @@ export default function LoginPage() {
                     {loading ? 'Signing in…' : 'Sign in →'}
                   </motion.button>
                 </form>
+
+                <div className="relative flex items-center gap-3 my-3">
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <span className="text-[11px] text-zinc-600 font-medium">or</span>
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                </div>
+
+                <motion.button
+                  type="button"
+                  onClick={handleMagicLink}
+                  disabled={loading || !email || magicLinkSent}
+                  className="w-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-300 font-medium text-sm rounded-xl py-3 transition-all"
+                  style={{ touchAction: 'manipulation' }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {magicLinkSent ? 'Link sent — check your inbox' : 'Email me a sign-in link'}
+                </motion.button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -335,5 +381,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-zinc-950" />}>
+      <LoginContent />
+    </Suspense>
   )
 }

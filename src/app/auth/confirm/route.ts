@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url))
+      const destination = type === 'recovery' ? '/auth/set-password' : next
+      return NextResponse.redirect(new URL(destination, request.url))
     }
     console.error('[auth/confirm] verifyOtp failed:', error.message)
   }

@@ -721,6 +721,35 @@ function StatusContent() {
             </div>
           )}
 
+          {/* Call forwarding card */}
+          {twilioNumber && (
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.18)" }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                    <polyline points="17 1 21 5 17 9" />
+                    <line x1="21" y1="5" x2="14" y2="5" />
+                  </svg>
+                </div>
+                <p className="text-amber-300 font-semibold text-sm">Forward your calls to your AI agent</p>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Set up call forwarding on your phone so incoming calls ring your AI number.
+                Step-by-step instructions are in your dashboard.
+              </p>
+              <a
+                href="/dashboard/setup"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+              >
+                View setup instructions
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
+          )}
+
           {/* 3 next steps */}
           <div className="space-y-3">
             {([

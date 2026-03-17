@@ -127,6 +127,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const rawEmail = intake.contact_email ?? ''
+  const customerEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : undefined
+
+  let stripeCustomerId: string | undefined
+  if (customerEmail) {
+    const existing = await stripe.customers.list({ email: customerEmail, limit: 1 })
+    stripeCustomerId = existing.data[0]?.id
+    if (!stripeCustomerId) {
+      const cust = await stripe.customers.create({ email: customerEmail, name: businessName })
+      stripeCustomerId = cust.id
+    }
+  }
+
   // Check for existing client linked to this intake
   const { data: existingClient } = alreadyLinkedClientId
     ? await svc.from('clients').select('id, status').eq('id', alreadyLinkedClientId).maybeSingle()
@@ -140,6 +153,10 @@ export async function POST(req: NextRequest) {
 
     if (existingClient.status === 'active') {
       return NextResponse.json({ error: 'This agent is already active' }, { status: 409 })
+    }
+
+    if (stripeCustomerId) {
+      await svc.from('clients').update({ stripe_customer_id: stripeCustomerId }).eq('id', clientId)
     }
   } else {
     // Self-serve path: generate prompt + create Ultravox agent + insert clients row
@@ -209,6 +226,7 @@ export async function POST(req: NextRequest) {
         agent_voice_id: voiceId,
         classification_rules: classificationRules,
         timezone,
+        stripe_customer_id: stripeCustomerId ?? null,
       })
       .select('id')
       .single()
@@ -241,37 +259,38 @@ export async function POST(req: NextRequest) {
   // ── Create Stripe Checkout session ─────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
-  // Validate email before passing to Stripe — invalid format causes email_invalid error
-  const rawEmail = intake.contact_email ?? ''
-  const customerEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : undefined
-
   let session: { url: string | null }
   try {
     const isInventory = !!selectedNumber
     session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: 'subscription',
+      customer: stripeCustomerId,
       line_items: [
         {
-          price_data: {
-            currency: 'cad',
-            unit_amount: isInventory ? 2000 : 2500,
-            product_data: {
-              name: isInventory
-                ? `unmissed.ai Voice Agent Setup (${selectedNumber})`
-                : 'unmissed.ai Voice Agent Setup',
-              description: 'One-time setup fee — includes 50 free minutes.',
-            },
-          },
+          price: isInventory
+            ? process.env.STRIPE_SETUP_INVENTORY_PRICE_ID!
+            : process.env.STRIPE_SETUP_PRICE_ID!,
+          quantity: 1,
+        },
+        {
+          price: process.env.STRIPE_MONTHLY_PRICE_ID!,
           quantity: 1,
         },
       ],
+      subscription_data: {
+        trial_period_days: 30,
+        metadata: {
+          client_id: clientId,
+          client_slug: clientSlug,
+          intake_id: intakeId,
+        },
+      },
       metadata: {
         intake_id: intakeId,
         client_id: clientId,
         client_slug: clientSlug,
         reserved_number: selectedNumber ?? '',
       },
-      customer_email: customerEmail,
       success_url: `${appUrl}/onboard/status?success=true&id=${intakeId}`,
       cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
     })

@@ -21,10 +21,11 @@ export function timeAgo(iso: string | null): string {
 }
 
 export function getPlanName(limit: number | null): string {
-  if (!limit || limit <= 50) return 'Free'
-  if (limit <= 200) return 'Starter'
-  if (limit <= 500) return 'Growth'
-  return 'Scale'
+  if (!limit || limit <= 50) return 'Starter (Trial)'
+  if (limit <= 100) return 'Starter'
+  if (limit <= 200) return 'Growth'
+  if (limit <= 500) return 'Scale'
+  return 'Enterprise'
 }
 
 // ── CSV utilities ──────────────────────────────────────────────────────────────

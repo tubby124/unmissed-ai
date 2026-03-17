@@ -182,13 +182,13 @@ export async function POST(req: NextRequest) {
 
   // ── Optional: Buy Twilio number ────────────────────────────────────────────
   let twilioNumber: string | null = null
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
   if (!skipTwilio) {
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID!
       const authToken = process.env.TWILIO_AUTH_TOKEN!
       const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
       const areaCode = (intakeData.area_code as string) || '587'
       const province = (intakeData.province as string) || null
@@ -289,6 +289,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Generate setup URL from recovery link (before SMS) ──────────────────────
+  let setupUrl = `${appUrl}/login`
+  if (authUserId && contactEmail) {
+    try {
+      const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
+      const actionLink = linkData?.properties?.action_link ?? ''
+      if (actionLink) {
+        const parsed = new URL(actionLink)
+        const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+        if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+      }
+    } catch { /* use fallback login URL */ }
+  }
+
   // ── Mark intake ────────────────────────────────────────────────────────────
   await svc
     .from('intake_submissions')
@@ -314,7 +328,7 @@ export async function POST(req: NextRequest) {
       const smsBody = new URLSearchParams({
         From: twilioNumber,
         To: callbackPhone,
-        Body: `Your AI agent is live! Check your email to set up your dashboard password, then log in at https://unmissed.ai/dashboard\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+        Body: `Your AI agent is live!\n\nSet up your dashboard:\n${setupUrl}\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
       })
       const smsRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -347,7 +361,6 @@ export async function POST(req: NextRequest) {
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
         const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
         const actionLink = linkData?.properties?.action_link ?? ''
         let setupUrl = `${appUrl}/dashboard`
