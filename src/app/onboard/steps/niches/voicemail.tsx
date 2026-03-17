@@ -47,7 +47,7 @@ export default function VoicemailNiche({ data, onChange }: Props) {
         <p className="text-xs text-slate-500 -mt-1">Click the play button to preview, then click to select. You can change this anytime in your dashboard.</p>
         <VoicePicker
           selectedVoiceId={selectedVoiceId}
-          onSelect={(voiceId) => onChange("voiceId", voiceId)}
+          onSelect={(voiceId, voiceName) => { onChange("voiceId", voiceId); onChange("voiceName", voiceName); }}
         />
       </div>
 

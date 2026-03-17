@@ -47,11 +47,11 @@ function AnimatedNumber({ value, sublabel }: { value: string; sublabel?: string 
 
   return (
     <div>
-      <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "var(--color-primary)" }}>
+      <p className="text-3xl md:text-4xl font-black mb-1 text-gray-900 dark:text-white">
         {prefix}{display.toLocaleString()}{suffix}
       </p>
       {sublabel && (
-        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>{sublabel}</p>
+        <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">{sublabel}</p>
       )}
     </div>
   );
@@ -72,10 +72,14 @@ export default function StatsSection({ stats }: { stats: Stat[] }) {
     return () => observer.disconnect();
   }, []);
 
+  const colClass = stats.length === 3
+    ? "grid-cols-1 sm:grid-cols-3"
+    : "grid-cols-2 md:grid-cols-4";
+
   return (
     <div
       ref={ref}
-      className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center"
+      className={`max-w-4xl mx-auto grid ${colClass} gap-6 text-center bg-transparent dark:bg-black/20`}
     >
       {stats.map((s, i) => (
         <motion.div
@@ -88,11 +92,11 @@ export default function StatsSection({ stats }: { stats: Stat[] }) {
           {visible ? (
             <AnimatedNumber value={s.value} sublabel={s.sublabel} />
           ) : (
-            <p className="text-3xl md:text-4xl font-black mb-1" style={{ color: "var(--color-primary)" }}>
+            <p className="text-3xl md:text-4xl font-black mb-1 text-gray-900 dark:text-white">
               {s.value}
             </p>
           )}
-          <p className="text-sm" style={{ color: "var(--color-text-2)" }}>{s.label}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">{s.label}</p>
         </motion.div>
       ))}
     </div>

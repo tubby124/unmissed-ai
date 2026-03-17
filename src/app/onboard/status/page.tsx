@@ -60,7 +60,7 @@ function ActivationProgress({ active, done }: { active: boolean; done: boolean }
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            <span className={completed ? "text-emerald-700" : "text-gray-600"}>
+            <span className={completed ? "text-emerald-700" : "text-muted-foreground"}>
               {step}
             </span>
           </div>
@@ -350,20 +350,20 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
       {result && (
         <div className="space-y-3">
           {/* Result summary */}
-          <div className="bg-white border border-amber-200 rounded-lg p-3 space-y-2 text-xs">
+          <div className="bg-background border border-amber-200 rounded-lg p-3 space-y-2 text-xs">
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              <span className="text-gray-500">Client slug</span>
-              <span className="font-mono text-gray-900">{result.clientSlug}</span>
-              <span className="text-gray-500">Agent ID</span>
-              <span className="font-mono text-gray-900 truncate">{result.agentId}</span>
-              <span className="text-gray-500">Prompt length</span>
-              <span className="text-gray-900">{editablePrompt.length.toLocaleString()} chars{promptDirty && " (edited)"}</span>
-              <span className="text-gray-500">Twilio</span>
-              <span className="text-gray-900">{result.twilioNumber || "Skipped"}</span>
-              <span className="text-gray-500">Auth user</span>
-              <span className="font-mono text-gray-900 truncate">{result.authUserId || "None"}</span>
-              <span className="text-gray-500">Telegram</span>
-              <span className="text-gray-900">
+              <span className="text-muted-foreground">Client slug</span>
+              <span className="font-mono text-foreground">{result.clientSlug}</span>
+              <span className="text-muted-foreground">Agent ID</span>
+              <span className="font-mono text-foreground truncate">{result.agentId}</span>
+              <span className="text-muted-foreground">Prompt length</span>
+              <span className="text-foreground">{editablePrompt.length.toLocaleString()} chars{promptDirty && " (edited)"}</span>
+              <span className="text-muted-foreground">Twilio</span>
+              <span className="text-foreground">{result.twilioNumber || "Skipped"}</span>
+              <span className="text-muted-foreground">Auth user</span>
+              <span className="font-mono text-foreground truncate">{result.authUserId || "None"}</span>
+              <span className="text-muted-foreground">Telegram</span>
+              <span className="text-foreground">
                 {result.telegramLink ? (
                   <a
                     href={result.telegramLink}
@@ -388,7 +388,7 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
                 )}
                 <button
                   onClick={() => setPromptExpanded(!promptExpanded)}
-                  className="text-[10px] text-gray-500 hover:text-gray-700 cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   {promptExpanded ? "Collapse" : "Expand"}
                 </button>
@@ -400,7 +400,7 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
                 setEditablePrompt(e.target.value);
                 setPromptDirty(true);
               }}
-              className={`w-full text-xs font-mono bg-white border border-amber-200 rounded-lg p-3 resize-y leading-relaxed text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+              className={`w-full text-xs font-mono bg-background border border-amber-200 rounded-lg p-3 resize-y leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-amber-300 ${
                 promptExpanded ? "h-96" : "h-48"
               }`}
               spellCheck={false}
@@ -432,7 +432,7 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
             {promptDirty && (
               <button
                 onClick={handleResetPrompt}
-                className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex-1 text-xs font-medium text-muted-foreground border border-border rounded-lg px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer"
               >
                 Reset to Original
               </button>
@@ -449,7 +449,7 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
 
           {/* Live test call */}
           {testCallJoinUrl && (
-            <Suspense fallback={<div className="text-xs text-gray-400 p-2">Loading call UI...</div>}>
+            <Suspense fallback={<div className="text-xs text-muted-foreground p-2">Loading call UI...</div>}>
               <LiveTestCall
                 joinUrl={testCallJoinUrl}
                 onEnd={() => setTestCallJoinUrl(null)}
@@ -462,7 +462,7 @@ function AdminTestPanel({ intakeId }: { intakeId: string }) {
             <summary className="cursor-pointer text-amber-700 font-medium hover:text-amber-900">
               Show SMS template
             </summary>
-            <p className="mt-2 bg-white border rounded-lg p-3 text-gray-700">{result.smsTemplate}</p>
+            <p className="mt-2 bg-background border border-border rounded-lg p-3 text-foreground">{result.smsTemplate}</p>
           </details>
 
           {/* Actions */}
@@ -540,26 +540,157 @@ function AgentPreviewCard({ preview }: { preview: IntakePreview }) {
           {agentName[0]}
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">Your Agent Preview</p>
-          <p className="text-xs text-gray-500">Here is what your AI receptionist will look like</p>
+          <p className="text-sm font-semibold text-foreground">Your Agent Preview</p>
+          <p className="text-xs text-muted-foreground">Here is what your AI receptionist will look like</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <span className="text-gray-500">Agent name</span>
-        <span className="font-medium text-gray-900">{agentName}</span>
-        <span className="text-gray-500">Business</span>
-        <span className="font-medium text-gray-900">{businessName}</span>
-        <span className="text-gray-500">Voice</span>
-        <span className="font-medium text-gray-900">{voiceLabel}</span>
-        <span className="text-gray-500">Industry</span>
-        <span className="font-medium text-gray-900">{nicheLabel}</span>
+        <span className="text-muted-foreground">Agent name</span>
+        <span className="font-medium text-foreground">{agentName}</span>
+        <span className="text-muted-foreground">Business</span>
+        <span className="font-medium text-foreground">{businessName}</span>
+        <span className="text-muted-foreground">Voice</span>
+        <span className="font-medium text-foreground">{voiceLabel}</span>
+        <span className="text-muted-foreground">Industry</span>
+        <span className="font-medium text-foreground">{nicheLabel}</span>
       </div>
 
-      <div className="bg-white border border-indigo-100 rounded-lg p-3">
+      <div className="bg-background border border-indigo-100 rounded-lg p-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 mb-1.5">Sample greeting</p>
-        <p className="text-sm text-gray-700 italic leading-relaxed">{greeting}</p>
+        <p className="text-sm text-muted-foreground italic leading-relaxed">{greeting}</p>
       </div>
+    </div>
+  );
+}
+
+// ── Trial Success Screen ─────────────────────────────────────────────────────
+
+function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: string | null; setupUrl: string | null; telegramLink: string | null }) {
+  const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiryStr = trialExpiry.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  useEffect(() => {
+    try { localStorage.removeItem("unmissed-onboard-draft"); } catch { /* ignore */ }
+  }, []);
+
+  return (
+    <div className="max-w-md w-full text-center space-y-6 py-12">
+      {/* Success icon */}
+      <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+        <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+
+      {/* Heading */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">Your agent is ready to test!</h1>
+        <p className="text-muted-foreground text-sm">
+          Your AI receptionist is set up. Try it out with a demo call from your dashboard.
+        </p>
+      </div>
+
+      {/* Trial info card */}
+      <div className="border border-indigo-200 bg-indigo-50/50 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-3 py-1">
+            7-day free trial
+          </span>
+        </div>
+
+        <div className="space-y-2 text-sm text-foreground">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Trial expires</span>
+            <span className="font-medium">{expiryStr}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Phone number</span>
+            <span className="font-medium text-amber-600">Included with paid plan</span>
+          </div>
+        </div>
+
+        <div className="bg-background border border-indigo-100 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Test your agent with a WebRTC demo call from your dashboard.
+            Upgrade anytime to get a dedicated phone number and go live.
+          </p>
+        </div>
+      </div>
+
+      {/* What you can do */}
+      <div className="bg-muted/30 border border-border rounded-xl p-4 text-sm text-left space-y-2">
+        <p className="font-semibold text-foreground">During your trial:</p>
+        <ul className="space-y-1.5 text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
+            Test your agent with in-browser demo calls
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
+            Customize voice, tone, and responses
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
+            View call logs and transcripts
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
+            Upload knowledge docs and FAQ
+          </li>
+        </ul>
+      </div>
+
+      {/* CTA buttons */}
+      <div className="space-y-3">
+        {setupUrl ? (
+          <a
+            href={setupUrl}
+            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base text-center"
+          >
+            Open your Dashboard →
+          </a>
+        ) : (
+          <a
+            href="/dashboard"
+            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base text-center"
+          >
+            Go to Dashboard
+          </a>
+        )}
+
+        {telegramLink && (
+          <div className="border border-indigo-200 bg-indigo-50/50 rounded-xl p-4 text-left space-y-2">
+            <p className="text-sm font-semibold text-foreground">Connect Telegram for instant call alerts</p>
+            <p className="text-xs text-muted-foreground">Get notified the moment your AI agent takes a call.</p>
+            <a
+              href={telegramLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-indigo-300 hover:border-indigo-500 text-indigo-700 hover:text-indigo-900 font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+            >
+              Set up Telegram alerts →
+            </a>
+          </div>
+        )}
+
+        {clientId && (
+          <a
+            href={`/api/stripe/trial-convert?clientId=${clientId}`}
+            className="block w-full border-2 border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-700 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
+          >
+            Upgrade to get a phone number
+          </a>
+        )}
+      </div>
+
+      {/* Footer */}
+      <p className="text-xs text-muted-foreground/70">
+        Questions?{" "}
+        <a href="mailto:support@unmissed.ai" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
+          support@unmissed.ai
+        </a>
+      </p>
     </div>
   );
 }
@@ -568,6 +699,10 @@ function StatusContent() {
   const searchParams = useSearchParams();
   const intakeId = searchParams.get("id");
   const success = searchParams.get("success");
+  const isTrial = searchParams.get("trial") === "true";
+  const trialClientId = searchParams.get("clientId");
+  const trialSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
+  const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
 
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -609,7 +744,7 @@ function StatusContent() {
 
   // Fetch agent preview + available inventory numbers for the picker
   useEffect(() => {
-    if (!intakeId || success) return;
+    if (!intakeId || success || isTrial) return;
     fetch(`/api/public/intake-preview?intakeId=${intakeId}`)
       .then((r) => r.json())
       .then((json) => { if (json.businessName !== undefined) setPreview(json); })
@@ -618,7 +753,7 @@ function StatusContent() {
       .then((r) => r.json())
       .then((json) => { if (json.numbers) setAvailableNumbers(json.numbers); })
       .catch(() => { /* silently ignore — falls back to fresh number flow */ });
-  }, [intakeId, success]);
+  }, [intakeId, success, isTrial]);
 
   // Poll every 4 seconds until we get the number (Stripe webhook takes ~3-8s)
   useEffect(() => {
@@ -654,6 +789,11 @@ function StatusContent() {
       setPayError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setLoading(false);
     }
+  }
+
+  // ── Trial success screen ────────────────────────────────────────────────────
+  if (isTrial) {
+    return <TrialSuccessScreen clientId={trialClientId} setupUrl={trialSetupUrl} telegramLink={trialTelegramLink} />;
   }
 
   // ── Success state ──────────────────────────────────────────────────────────
@@ -788,7 +928,7 @@ function StatusContent() {
             className="block w-full text-center py-3 px-6 rounded-full text-white font-semibold text-sm transition-opacity hover:opacity-90"
             style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
           >
-            Set up my dashboard →
+            Set up my dashboard &rarr;
           </a>
 
           {/* Footer */}
@@ -813,8 +953,8 @@ function StatusContent() {
           </svg>
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">One last step</h1>
-          <p className="text-gray-500 text-sm">
+          <h1 className="text-2xl font-bold text-foreground">One last step</h1>
+          <p className="text-muted-foreground text-sm">
             Your setup details are saved. Complete payment to activate your AI agent.
           </p>
         </div>
@@ -823,23 +963,23 @@ function StatusContent() {
         {preview && <AgentPreviewCard preview={preview} />}
 
         {/* What's included */}
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-left space-y-2">
-          <p className="font-semibold text-gray-800">What&apos;s included:</p>
-          <ul className="space-y-1.5 text-gray-600">
+        <div className="bg-muted/30 border border-border rounded-xl p-4 text-sm text-left space-y-2">
+          <p className="font-semibold text-foreground">What&apos;s included:</p>
+          <ul className="space-y-1.5 text-muted-foreground">
             <li className="flex items-start gap-2">
-              <span className="text-emerald-500 mt-0.5">✓</span>
+              <span className="text-emerald-500 mt-0.5">&#10003;</span>
               Dedicated AI phone number (Canadian local)
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-emerald-500 mt-0.5">✓</span>
+              <span className="text-emerald-500 mt-0.5">&#10003;</span>
               Custom voicemail agent — trained on your info
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-emerald-500 mt-0.5">✓</span>
+              <span className="text-emerald-500 mt-0.5">&#10003;</span>
               Dashboard access + call logs
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-emerald-500 mt-0.5">✓</span>
+              <span className="text-emerald-500 mt-0.5">&#10003;</span>
               <span><strong>First month free</strong> — no recurring charge today</span>
             </li>
           </ul>
@@ -847,9 +987,9 @@ function StatusContent() {
 
         {/* Number picker — only shown when inventory numbers are available */}
         {availableNumbers.length > 0 && (
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <p className="text-sm font-semibold text-gray-800">Choose your phone number</p>
+          <div className="border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-muted/30 border-b border-border">
+              <p className="text-sm font-semibold text-foreground">Choose your phone number</p>
             </div>
 
             {/* Inventory option */}
@@ -863,9 +1003,9 @@ function StatusContent() {
                   className="mt-0.5 accent-indigo-600"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-900">Pick from available numbers</span>
+                  <span className="text-sm font-medium text-foreground">Pick from available numbers</span>
                   <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $5 — $20 CAD</span>
-                  <p className="text-xs text-gray-400 mt-0.5">Ready to go, nothing wrong — just in stock</p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">Ready to go, nothing wrong — just in stock</p>
                 </div>
               </label>
 
@@ -877,7 +1017,7 @@ function StatusContent() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                       selectedNumber === num.phone_number
                         ? "border-indigo-400 bg-indigo-50"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                        : "border-border hover:border-border bg-background"
                     }`}
                   >
                     <input
@@ -888,16 +1028,16 @@ function StatusContent() {
                       onChange={() => setSelectedNumber(num.phone_number)}
                       className="accent-indigo-600"
                     />
-                    <span className="text-sm font-mono font-medium text-gray-900">{num.display}</span>
+                    <span className="text-sm font-mono font-medium text-foreground">{num.display}</span>
                     {num.province && (
-                      <span className="text-xs text-gray-400 ml-auto">{num.province}</span>
+                      <span className="text-xs text-muted-foreground/70 ml-auto">{num.province}</span>
                     )}
                   </label>
                 ))}
               </div>
             </div>
 
-            <div className="border-t border-gray-200 h-px" />
+            <div className="border-t border-border h-px" />
 
             {/* Fresh number option */}
             <div className="p-4">
@@ -910,9 +1050,9 @@ function StatusContent() {
                   className="mt-0.5 accent-indigo-600"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-900">Get a fresh local number</span>
-                  <span className="ml-2 text-xs text-gray-500">$25 CAD</span>
-                  <p className="text-xs text-gray-400 mt-0.5">Assigned from your province after payment</p>
+                  <span className="text-sm font-medium text-foreground">Get a fresh local number</span>
+                  <span className="ml-2 text-xs text-muted-foreground">$25 CAD</span>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">Assigned from your province after payment</p>
                 </div>
               </label>
             </div>
@@ -931,20 +1071,20 @@ function StatusContent() {
           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 px-6 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed text-base"
         >
           {loading
-            ? "Redirecting to checkout…"
+            ? "Redirecting to checkout..."
             : selectedNumber
             ? "Activate my agent — $20 CAD"
             : "Activate my agent — $25 CAD"}
         </button>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground/70">
           By continuing, you agree to our{" "}
-          <Link href="/terms" className="underline underline-offset-2 hover:text-gray-600 transition-colors">Terms of Service</Link>{" "}
+          <Link href="/terms" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Terms of Service</Link>{" "}
           and{" "}
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-600 transition-colors">Privacy Policy</Link>.
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Privacy Policy</Link>.
         </p>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground/70">
           One-time setup fee — includes 50 free minutes. Secure checkout powered by Stripe.
         </p>
       </div>
@@ -954,8 +1094,8 @@ function StatusContent() {
   // ── Fallback state (no id, no success) ────────────────────────────────────
   return (
     <div className="max-w-md w-full text-center space-y-6 py-12">
-      <h1 className="text-2xl font-bold text-gray-900">Nothing to show here</h1>
-      <p className="text-gray-600 text-sm leading-relaxed">
+      <h1 className="text-2xl font-bold text-foreground">Nothing to show here</h1>
+      <p className="text-muted-foreground text-sm leading-relaxed">
         This page requires a valid intake ID. If you&apos;re setting up a new agent,
         start from the beginning.
       </p>
@@ -965,7 +1105,7 @@ function StatusContent() {
       >
         Start setup
       </a>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-muted-foreground/70">
         Questions?{" "}
         <a href="mailto:support@unmissed.ai" className="underline">
           support@unmissed.ai
@@ -977,8 +1117,8 @@ function StatusContent() {
 
 export default function StatusPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Suspense fallback={<div className="text-gray-400 text-sm">Loading…</div>}>
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
         <StatusContent />
       </Suspense>
     </div>

@@ -106,9 +106,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Fetch knowledge docs uploaded during onboarding
+  let knowledgeDocs = ''
+  const { data: kDocs } = await svc
+    .from('client_knowledge_docs')
+    .select('content_text')
+    .eq('intake_id', intakeId)
+  if (kDocs && kDocs.length > 0) {
+    knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
+  }
+
   let prompt: string
   try {
-    prompt = buildPromptFromIntake(intakeData, websiteContent)
+    prompt = buildPromptFromIntake(intakeData, websiteContent, knowledgeDocs)
   } catch (err) {
     console.error('[generate-prompt] buildPromptFromIntake failed:', err)
     return NextResponse.json({ error: 'Prompt generation failed', detail: String(err) }, { status: 500 })

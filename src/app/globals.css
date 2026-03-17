@@ -7,6 +7,15 @@
   50%       { transform: scaleY(1); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
@@ -50,46 +59,43 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --animate-border-beam: border-beam calc(var(--duration, 15s)) infinite linear;
-  --animate-shimmer-slide: shimmer-slide var(--speed, 3s) ease-in-out infinite alternate;
-  --animate-spin-around: spin-around calc(var(--speed, 3s) * 2) infinite linear;
 }
 
-/* ─── Shadcn layer — Theme 1 (Twitter-blue aesthetic) ──────────────── */
+/* ─── Shadcn layer — Light theme (indigo) ──────────────────────────── */
 :root {
   --radius: 1.3rem;
   --background: #ffffff;
-  --foreground: #0f1419;
-  --card: #f7f8f8;
-  --card-foreground: #0f1419;
+  --foreground: #111827;
+  --card: #f9fafb;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #0f1419;
-  --primary: #1e9df1;
+  --popover-foreground: #111827;
+  --primary: #4F46E5;
   --primary-foreground: #ffffff;
-  --secondary: #0f1419;
+  --secondary: #111827;
   --secondary-foreground: #ffffff;
-  --muted: #E5E5E6;
-  --muted-foreground: #6b7780;
-  --accent: #E3ECF6;
-  --accent-foreground: #1e9df1;
-  --destructive: #f4212e;
+  --muted: #E5E7EB;
+  --muted-foreground: #6B7280;
+  --accent: #EEF2FF;
+  --accent-foreground: #4F46E5;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: #e1eaef;
-  --input: #f7f9fa;
-  --ring: #1da1f2;
-  --chart-1: #1e9df1;
-  --chart-2: #00b87a;
-  --chart-3: #f7b928;
-  --chart-4: #17bf63;
-  --chart-5: #e0245e;
-  --sidebar: #f7f8f8;
-  --sidebar-foreground: #0f1419;
-  --sidebar-primary: #1e9df1;
+  --border: #E5E7EB;
+  --input: #F9FAFB;
+  --ring: #4F46E5;
+  --chart-1: #4F46E5;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #06B6D4;
+  --chart-5: #EF4444;
+  --sidebar: #f9fafb;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #4F46E5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #E3ECF6;
-  --sidebar-accent-foreground: #1e9df1;
-  --sidebar-border: #e1e8ed;
-  --sidebar-ring: #1da1f2;
+  --sidebar-accent: #EEF2FF;
+  --sidebar-accent-foreground: #4F46E5;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #4F46E5;
 }
 
 /* ─── Shadcn dark layer — uses data-theme to match app system ──────── */
@@ -100,32 +106,32 @@
   --card-foreground: #d9d9d9;
   --popover: #000000;
   --popover-foreground: #e7e9ea;
-  --primary: #1c9cf0;
+  --primary: #6366F1;
   --primary-foreground: #ffffff;
   --secondary: #f0f3f4;
   --secondary-foreground: #0f1419;
   --muted: #181818;
   --muted-foreground: #72767a;
-  --accent: #061622;
-  --accent-foreground: #1c9cf0;
-  --destructive: #f4212e;
+  --accent: #1e1b4b;
+  --accent-foreground: #818CF8;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
   --border: #242628;
   --input: #22303c;
-  --ring: #1da1f2;
-  --chart-1: #1e9df1;
-  --chart-2: #00b87a;
-  --chart-3: #f7b928;
-  --chart-4: #17bf63;
-  --chart-5: #e0245e;
+  --ring: #6366F1;
+  --chart-1: #6366F1;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #06B6D4;
+  --chart-5: #EF4444;
   --sidebar: #17181c;
   --sidebar-foreground: #d9d9d9;
-  --sidebar-primary: #1da1f2;
+  --sidebar-primary: #6366F1;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #061622;
-  --sidebar-accent-foreground: #1c9cf0;
+  --sidebar-accent: #1e1b4b;
+  --sidebar-accent-foreground: #818CF8;
   --sidebar-border: #38444d;
-  --sidebar-ring: #1da1f2;
+  --sidebar-ring: #6366F1;
 }
 
 @layer base {
@@ -139,24 +145,24 @@
 
 /* ─── unmissed.ai Design System ────────────────────────────────────── */
 :root {
-  --color-primary: #1e9df1;
-  --color-primary-hover: #1a8fd1;
+  --color-primary: #4F46E5;
+  --color-primary-hover: #4338CA;
   --color-cta: #10B981;
   --color-cta-hover: #059669;
   --color-surface: #FFFFFF;
   --color-bg: #F9FAFB;
   --color-bg-raised: #FFFFFF;
   --color-border: #E5E7EB;
-  --color-border-focus: #1e9df1;
+  --color-border-focus: #4F46E5;
   --color-text-1: #111827;
-  --color-text-2: #4B5563;
-  --color-text-3: #6B7280;
+  --color-text-2: #6B7280;
+  --color-text-3: #9CA3AF;
   --color-hot: #EF4444;
   --color-warm: #F59E0B;
   --color-cold: #3B82F6;
   --color-junk: #9CA3AF;
   --color-live: #10B981;
-  --color-nav-bg: rgba(255,255,255,0.92);
+  --color-nav-bg: rgba(255,255,255,0.85);
   --color-nav-border: #E5E7EB;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -168,17 +174,17 @@
 }
 
 [data-theme="dark"] {
-  --color-primary: #1c9cf0;
-  --color-primary-hover: #1886d8;
+  --color-primary: #6366F1;
+  --color-primary-hover: #818CF8;
   --color-surface: #0a0a0a;
   --color-bg: #000000;
   --color-bg-raised: #141414;
   --color-border: #1f1f1f;
-  --color-border-focus: #1c9cf0;
+  --color-border-focus: #6366F1;
   --color-text-1: #F1F5F9;
   --color-text-2: #94A3B8;
   --color-text-3: #64748B;
-  --color-nav-bg: rgba(0,0,0,0.92);
+  --color-nav-bg: rgba(0,0,0,0.85);
   --color-nav-border: #1f1f1f;
   --color-hover: rgba(255,255,255,0.04);
   --color-input-bg: #141414;
@@ -201,89 +207,17 @@
 .hover\:b-theme:hover { border-color: var(--color-border); }
 .hover\:bg-hover:hover { background-color: var(--color-hover); }
 
-/* ─── Marquee Animations (CSS-only, GPU-composited) ─────────────────── */
-@keyframes marquee-left {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
-}
-
-@keyframes marquee-right {
-  from { transform: translate3d(-50%, 0, 0); }
-  to   { transform: translate3d(0, 0, 0); }
-}
-
-.marquee-left {
-  animation: marquee-left 35s linear infinite;
-  will-change: transform;
-}
-
-.marquee-right {
-  animation: marquee-right 35s linear infinite;
-  will-change: transform;
-}
-
-.marquee-left:hover,
-.marquee-right:hover {
-  animation-play-state: paused;
-}
-
-/* ─── Activity Ticker ────────────────────────────────────────────────── */
-@keyframes ticker-fade {
-  0%   { opacity: 0; transform: translateY(6px); }
-  10%  { opacity: 1; transform: translateY(0); }
-  85%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-6px); }
-}
-
-.ticker-item {
-  animation: ticker-fade 4s ease-in-out infinite;
-}
-
-/* ─── Gradient Fade Masks (for marquee edges) ────────────────────────── */
-.marquee-mask {
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
-}
-
-/* ─── Spotlight Animation ────────────────────────────────────────────── */
-@keyframes spotlight {
-  0% {
-    opacity: 0;
-    transform: translate(-72%, -62%) scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -40%) scale(1);
-  }
-}
-
-.animate-spotlight {
-  animation: spotlight 2s ease 0.75s 1 forwards;
-}
-
 /* ─── Smooth Scroll ──────────────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
 }
 
-/* ─── Audio Player Custom Styling ───────────────────────────────────── */
+/* ─── Audio Player — Theme-aware ─────────────────────────────────────── */
 audio::-webkit-media-controls-panel {
-  background-color: #111111;
+  background-color: var(--color-surface);
 }
 
-/* ─── Focus Ring Override for Dark Pages ────────────────────────────── */
+/* ─── Focus Ring Override ────────────────────────────────────────────── */
 .brand-focus:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -293,35 +227,6 @@ audio::-webkit-media-controls-panel {
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-10px); }
-}
-
-/* ─── Border Beam (21st.dev / Magic UI) ─────────────────────────────── */
-@keyframes border-beam {
-  100% { offset-distance: 100%; }
-}
-
-/* ─── Shimmer Button (21st.dev / Magic UI) ──────────────────────────── */
-@keyframes shimmer-slide {
-  to { transform: translate(calc(100cqw - 100%), 0); }
-}
-
-@keyframes spin-around {
-  0%   { transform: translateZ(0) rotate(0); }
-  15%, 35% { transform: translateZ(0) rotate(90deg); }
-  65%, 85% { transform: translateZ(0) rotate(270deg); }
-  100% { transform: translateZ(0) rotate(360deg); }
-}
-
-/* ─── Demo Call: VoiceOrb sonar rings ──────────────────────────────── */
-@keyframes sonar-ring {
-  0%   { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-
-/* ─── Demo Call: VoiceOrb breathing (reduced-motion fallback) ──────── */
-@keyframes orb-breathing {
-  0%, 100% { transform: scale(0.97); opacity: 0.7; }
-  50%      { transform: scale(1.03); opacity: 1; }
 }
 
 /* ─── Skeleton Shimmer ──────────────────────────────────────────────── */

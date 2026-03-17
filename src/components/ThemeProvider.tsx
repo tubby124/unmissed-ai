@@ -12,11 +12,11 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
     const stored = localStorage.getItem('unmissed-theme') as Theme | null
-    const initial = stored === 'light' ? 'light' : 'dark'
+    const initial = stored === 'dark' ? 'dark' : 'light'
     setTheme(initial)
     document.documentElement.setAttribute('data-theme', initial)
   }, [])

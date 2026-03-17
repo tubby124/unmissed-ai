@@ -3,11 +3,18 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OnboardingData, defaultAgentNames, NICHE_CONFIG, Niche } from "@/types/onboarding";
+import { OnboardingData, NICHE_CONFIG, Niche } from "@/types/onboarding";
+import { TIMEZONE_MAP } from "@/lib/intake-transform";
 
 function countDigits(s: string): number {
   return (s.match(/\d/g) || []).length;
 }
+
+// Niches that have a Places-type → services mapping (mirrors PLACES_TYPE_TO_SERVICES in step1)
+const NICHES_WITH_PLACES_SERVICES = new Set<Niche>([
+  'auto_glass', 'dental', 'salon', 'plumbing', 'hvac', 'legal',
+  'real_estate', 'restaurant',
+])
 
 interface Props {
   data: OnboardingData;
@@ -37,25 +44,25 @@ const US_STATES = [
   "VA","WA","WV","WI","WY",
 ];
 
-export default function Step2({ data, onUpdate }: Props) {
+export default function Step3Basics({ data, onUpdate }: Props) {
   const isVoicemail = data.niche === "voicemail";
-  const suggestedName = data.niche ? defaultAgentNames[data.niche] : "Sam";
+  const isRealEstate = data.niche === "real_estate";
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
-  const [autofillState, setAutofillState] = useState<'idle' | 'loading' | 'done'>('idle');
   const phoneDigits = countDigits(data.callbackPhone);
   const phoneInvalid = phoneTouched && data.callbackPhone.length > 0 && phoneDigits < 10;
   const emailInvalid = emailTouched && data.contactEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail.trim());
 
-  const nicheConfig  = data.niche ? NICHE_CONFIG[data.niche as Niche] : null;
-  const showAddress  = nicheConfig?.hasPhysicalAddress ?? false;
-  const isRealEstate = data.niche === "real_estate";
+  const nicheConfig = data.niche ? NICHE_CONFIG[data.niche as Niche] : null;
+  const showAddress = nicheConfig?.hasPhysicalAddress ?? false;
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">{isVoicemail ? "Tell us about yourself" : "Tell us about your business"}</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-2xl font-bold text-foreground">
+          {isVoicemail ? "Tell us about yourself" : "Tell us about your business"}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
           This shapes how your agent introduces itself and routes calls.
         </p>
       </div>
@@ -64,7 +71,9 @@ export default function Step2({ data, onUpdate }: Props) {
         <div className="space-y-2">
           <Label htmlFor="ownerNameTop">
             Your full name <span className="text-red-400">*</span>
-            <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;from [your name]&apos;s office at [brokerage]&quot;)</span>
+            <span className="text-muted-foreground/70 font-normal text-xs ml-1">
+              (callers hear: &quot;from [your name]&apos;s office at [brokerage]&quot;)
+            </span>
           </Label>
           <Input
             id="ownerNameTop"
@@ -77,13 +86,27 @@ export default function Step2({ data, onUpdate }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="businessName">
-          {isVoicemail ? "Your name or business name" : isRealEstate ? "Your brokerage" : "Business name"}{" "}
+          {isVoicemail
+            ? "Your name"
+            : isRealEstate
+              ? "Your brokerage"
+              : "Business name"}{" "}
           <span className="text-red-400">*</span>
-          {isVoicemail && <span className="text-slate-400 font-normal text-xs ml-1">(callers hear: &quot;assistant for [name]&quot;)</span>}
+          {isVoicemail && (
+            <span className="text-muted-foreground/70 font-normal text-xs ml-1">
+              (callers hear: &quot;you&apos;ve reached [name]&apos;s AI assistant&quot;)
+            </span>
+          )}
         </Label>
         <Input
           id="businessName"
-          placeholder={isVoicemail ? "e.g. Hasan Sharif or Sharif Consulting" : isRealEstate ? "e.g. eXp Realty, RE/MAX, Royal LePage" : "e.g. Dallas Quick Glass"}
+          placeholder={
+            isVoicemail
+              ? "e.g. John Smith"
+              : isRealEstate
+                ? "e.g. eXp Realty, RE/MAX, Royal LePage"
+                : "e.g. Dallas Quick Glass"
+          }
           value={data.businessName}
           onChange={(e) => onUpdate({ businessName: e.target.value })}
         />
@@ -93,7 +116,9 @@ export default function Step2({ data, onUpdate }: Props) {
         <div className="space-y-2">
           <Label htmlFor="streetAddress">
             Street address{" "}
-            <span className="text-slate-400 font-normal text-xs">(optional — helps agent answer &quot;where are you located?&quot;)</span>
+            <span className="text-muted-foreground/70 font-normal text-xs">
+              (optional — helps agent answer &quot;where are you located?&quot;)
+            </span>
           </Label>
           <Input
             id="streetAddress"
@@ -104,7 +129,6 @@ export default function Step2({ data, onUpdate }: Props) {
         </div>
       )}
 
-      {/* Voicemail: no city/province needed — number assigned separately */}
       {!isVoicemail && (
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
@@ -121,10 +145,17 @@ export default function Step2({ data, onUpdate }: Props) {
             <select
               id="state"
               value={data.state}
-              onChange={(e) => onUpdate({ state: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                const detectedTz = TIMEZONE_MAP[value.toUpperCase()];
+                onUpdate({
+                  state: value,
+                  ...(detectedTz ? { timezone: detectedTz } : {}),
+                });
+              }}
               className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             >
-              <option value="">Select…</option>
+              <option value="">Select...</option>
               <optgroup label="Canada">
                 {CA_PROVINCES.map((p) => (
                   <option key={p.code} value={p.code}>{p.label} ({p.code})</option>
@@ -147,32 +178,41 @@ export default function Step2({ data, onUpdate }: Props) {
           </Label>
           <Input
             id="businessHoursText"
-            placeholder="e.g. Mon–Fri 9am–5pm, Sat 10am–2pm"
+            placeholder="e.g. Mon-Fri 9am-5pm, Sat 10am-2pm"
             value={data.businessHoursText}
             onChange={(e) => onUpdate({ businessHoursText: e.target.value })}
           />
-          <p className="text-xs text-slate-400">When is your business open? Your agent will use this to handle after-hours calls.</p>
+          <p className="text-xs text-muted-foreground/70">
+            When is your business open? Your agent will use this to handle after-hours calls.
+          </p>
         </div>
       )}
 
       <div className="space-y-2">
         <Label htmlFor="callbackPhone">
           Your real callback number <span className="text-red-400">*</span>{" "}
-          <span className="text-slate-400 font-normal text-xs">(NOT the AI line — sent to callers via SMS)</span>
+          <span className="text-muted-foreground/70 font-normal text-xs">
+            (NOT the AI line — sent to callers via SMS)
+          </span>
         </Label>
         <Input
           id="callbackPhone"
           type="tel"
           placeholder="(403) 555-1234"
           value={data.callbackPhone}
-          onChange={(e) => onUpdate({ callbackPhone: e.target.value })}
+          onChange={(e) => {
+            if (e.target.value.length > 0) setPhoneTouched(true);
+            onUpdate({ callbackPhone: e.target.value });
+          }}
           onBlur={() => setPhoneTouched(true)}
         />
         {phoneInvalid && (
-          <p className="text-xs text-red-600 mt-1">Phone number must have at least 10 digits</p>
+          <p className="text-xs text-red-400 mt-1">Need at least 10 digits</p>
         )}
         {!phoneInvalid && isVoicemail && (
-          <p className="text-xs text-slate-400 mt-1">You&apos;ll receive a setup SMS at this number when your agent goes live.</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            You&apos;ll receive a setup SMS at this number when your agent goes live.
+          </p>
         )}
       </div>
 
@@ -191,27 +231,12 @@ export default function Step2({ data, onUpdate }: Props) {
         {emailInvalid ? (
           <p className="text-xs text-red-600 mt-1">Please enter a valid email address</p>
         ) : (
-          <p className="text-xs text-slate-400">Used for setup updates — not shared with callers</p>
+          <p className="text-xs text-muted-foreground/70">Used for setup updates — not shared with callers</p>
         )}
       </div>
 
-      <div className="pt-1 space-y-4 border-t border-gray-100">
-        <p className="text-xs text-slate-400 pt-2">Optional — fill in what you know now, skip the rest</p>
-
-        <div className="space-y-2">
-          <Label htmlFor="agentName">
-            Agent name{" "}
-            <span className="text-slate-400 font-normal text-xs">
-              (suggested: {suggestedName})
-            </span>
-          </Label>
-          <Input
-            id="agentName"
-            placeholder={suggestedName}
-            value={data.agentName}
-            onChange={(e) => onUpdate({ agentName: e.target.value })}
-          />
-        </div>
+      <div className="pt-1 space-y-4 border-t border-border">
+        <p className="text-xs text-muted-foreground/70 pt-2">Optional — fill in what you know now, skip the rest</p>
 
         {!isRealEstate && !isVoicemail && (
           <div className="space-y-2">
@@ -233,51 +258,16 @@ export default function Step2({ data, onUpdate }: Props) {
               rows={2}
               placeholder="e.g. windshield repair, chip filling, ADAS recalibration"
               value={data.servicesOffered}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onUpdate({ servicesOffered: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                onUpdate({ servicesOffered: e.target.value })
+              }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             />
+            {data.servicesOffered && data.niche && NICHES_WITH_PLACES_SERVICES.has(data.niche as Niche) && (
+              <p className="text-xs text-muted-foreground/60 mt-1">(edit if needed)</p>
+            )}
           </div>
         )}
-
-        <div className="space-y-2">
-          <Label htmlFor="websiteUrl">Business website</Label>
-          <Input
-            id="websiteUrl"
-            type="url"
-            placeholder="https://yourshop.com"
-            value={data.websiteUrl}
-            onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
-            onBlur={async (e) => {
-              const url = e.target.value.trim()
-              if (!url || autofillState !== 'idle') return
-              try { new URL(url) } catch { return }
-              setAutofillState('loading')
-              try {
-                const res = await fetch('/api/onboard/autofill', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url }),
-                })
-                if (res.ok) {
-                  const json = await res.json()
-                  if (json.hours && !data.businessHoursText?.trim()) onUpdate({ businessHoursText: json.hours })
-                  if (json.services && !data.servicesOffered?.trim()) onUpdate({ servicesOffered: json.services })
-                  setAutofillState('done')
-                } else {
-                  setAutofillState('idle')
-                }
-              } catch {
-                setAutofillState('idle')
-              }
-            }}
-          />
-          {autofillState === 'loading' && (
-            <p className="text-xs text-indigo-500 mt-1">Fetching info from your site…</p>
-          )}
-          {autofillState === 'done' && (
-            <p className="text-xs text-green-600 mt-1">Auto-filled from your website</p>
-          )}
-        </div>
       </div>
     </div>
   );

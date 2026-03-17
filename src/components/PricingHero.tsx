@@ -14,10 +14,10 @@ export function GuaranteeBar() {
       viewport={{ once: true }}
     >
       <p className="text-green-400 font-semibold text-sm">
-        ✅ 30-day money-back guarantee · No contracts · Cancel anytime with 30 days notice
+        30-day money-back guarantee · No contracts · Cancel anytime with 30 days notice
       </p>
       <p className="text-gray-500 text-xs mt-1">
-        Your call log data lives in your Google Sheet — you keep it if you ever leave.
+        Your call log data lives in your dashboard — you own it and keep it if you ever leave.
       </p>
     </motion.div>
   )
@@ -68,7 +68,7 @@ export default function PricingHero() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.05 }}
         >
-          🔒 Founding Member Pricing — locked for life for the first 50 clients
+          Founding Member Pricing — locked for life for the first 50 clients
         </motion.div>
       </div>
     </section>

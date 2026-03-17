@@ -18,7 +18,7 @@ const plans = [
       "AI agent answers every call",
       "Structured lead card per call",
       "Instant Telegram notification",
-      "Google Sheets call log",
+      "Dashboard call log",
       "Up to 100 calls/month",
       "48-hour setup",
       "Email support",

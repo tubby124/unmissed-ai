@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -76,6 +76,13 @@ export async function POST(
     console.warn(`[inbound] GRACE EXPIRED: slug=${slug}, grace_period_end=${graceEnd}`)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response><Say>This number is temporarily unavailable. Please try again later.</Say></Response>`
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  // ── Trial expiry guard ───────────────────────────────────────────────────
+  if (client.trial_expires_at && !client.trial_converted && new Date() > new Date(client.trial_expires_at as string)) {
+    console.warn(`[inbound] TRIAL EXPIRED: slug=${slug}, trial_expires_at=${client.trial_expires_at}`)
+    const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>This trial has expired. Please upgrade your account to continue receiving calls.</Say></Response>'
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   }
 

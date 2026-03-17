@@ -67,10 +67,20 @@ export async function POST(req: NextRequest) {
   const contactEmail = intake.contact_email || null
   const callbackPhone = (intakeData.callback_phone as string) || null
 
+  // ── Fetch knowledge docs ───────────────────────────────────────────────────
+  let knowledgeDocs = ''
+  const { data: kDocs } = await svc
+    .from('client_knowledge_docs')
+    .select('content_text')
+    .eq('intake_id', intakeId)
+  if (kDocs && kDocs.length > 0) {
+    knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
+  }
+
   // ── Generate prompt ────────────────────────────────────────────────────────
   let prompt: string
   try {
-    prompt = buildPromptFromIntake(intakeData)
+    prompt = buildPromptFromIntake(intakeData, '', knowledgeDocs)
   } catch (err) {
     return NextResponse.json({ error: 'Prompt generation failed', detail: String(err) }, { status: 500 })
   }

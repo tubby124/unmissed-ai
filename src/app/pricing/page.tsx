@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PricingCards from "@/components/PricingCards";
 import CostComparisonTable from "@/components/CostComparisonTable";
+import RoiCalculator from "@/components/RoiCalculator";
 import FaqAccordion from "@/components/FaqAccordion";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { pricingSchema } from "@/lib/schema";
@@ -13,6 +14,9 @@ export const metadata: Metadata = {
   title: "Pricing — unmissed.ai AI Receptionist",
   description:
     "Simple monthly pricing, no contracts. AI receptionist plans starting at $147/mo. Cancel anytime.",
+  alternates: {
+    canonical: "https://unmissed.ai/pricing",
+  },
   openGraph: {
     title: "Pricing — unmissed.ai",
     description: "AI receptionist plans from $147/mo. No contracts, no per-minute charges.",
@@ -35,7 +39,7 @@ const comparisonRows = [
   { feature: "Booking on all plans", myai: "No ($149+)", goodcall: "No ($99+)", rosie: "No ($149+)", smithai: "No ($270+)", unmissed: "Add-on available" },
   { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", unmissed: "Yes" },
   { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", unmissed: "Yes (Learning Loop)" },
-  { feature: "Your data, your sheet", myai: "No", goodcall: "No", rosie: "No", smithai: "No", unmissed: "Google Sheets" },
+  { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", unmissed: "Supabase (yours)" },
   { feature: "Instant mobile alerts", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", unmissed: "Telegram + SMS" },
   { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", unmissed: "None — cancel anytime" },
 ];
@@ -76,10 +80,10 @@ export default function PricingPage() {
               >
                 The per-minute trap
               </p>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+              <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
                 $29/mo sounds cheap. Until the phone rings.
               </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              <p className="text-lg max-w-2xl mx-auto" style={{ color: "var(--color-text-2)" }}>
                 Most AI receptionists advertise low prices — then bill you per minute,
                 per call, or per unique caller. The busier your business gets,
                 the more you pay. Here&apos;s what that actually looks like:
@@ -90,11 +94,11 @@ export default function PricingPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
-                    <th className="text-left p-4 text-gray-400 font-medium">Competitor</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">Advertised</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">Included</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">At 200 calls/mo</th>
-                    <th className="text-center p-4 text-gray-400 font-medium">The catch</th>
+                    <th className="text-left p-4 font-medium" style={{ color: "var(--color-text-2)" }}>Competitor</th>
+                    <th className="text-center p-4 font-medium" style={{ color: "var(--color-text-2)" }}>Advertised</th>
+                    <th className="text-center p-4 font-medium" style={{ color: "var(--color-text-2)" }}>Included</th>
+                    <th className="text-center p-4 font-medium" style={{ color: "var(--color-text-2)" }}>At 200 calls/mo</th>
+                    <th className="text-center p-4 font-medium" style={{ color: "var(--color-text-2)" }}>The catch</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,14 +110,14 @@ export default function PricingPage() {
                         borderBottom: "1px solid var(--color-border)",
                       }}
                     >
-                      <td className="p-4 text-gray-300 font-medium">{row.competitor}</td>
-                      <td className="p-4 text-center text-gray-400">{row.plan}</td>
-                      <td className="p-4 text-center text-gray-500">{row.minutes}</td>
-                      <td className="p-4 text-center text-red-400 font-semibold">{row.at200Calls}</td>
-                      <td className="p-4 text-center text-gray-500 text-xs">{row.catch}</td>
+                      <td className="p-4 font-medium" style={{ color: "var(--color-text-1)" }}>{row.competitor}</td>
+                      <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.plan}</td>
+                      <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.minutes}</td>
+                      <td className="p-4 text-center font-semibold text-red-500">{row.at200Calls}</td>
+                      <td className="p-4 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.catch}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#0d0d0d", borderBottom: "1px solid #1f1f1f" }}>
+                  <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>unmissed.ai</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>All calls</td>
@@ -126,9 +130,9 @@ export default function PricingPage() {
 
             <div
               className="rounded-xl p-5 text-center"
-              style={{ backgroundColor: "#0D1F0D", border: "1px solid #166534" }}
+              style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)" }}
             >
-              <p className="text-green-400 font-semibold text-sm">
+              <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
                 With unmissed.ai, you pay the same whether you get 10 calls or 1,000.
                 The more your phone rings, the more value you get — not the more you owe.
               </p>
@@ -146,10 +150,10 @@ export default function PricingPage() {
               >
                 Feature comparison
               </p>
-              <h2 className="text-3xl font-bold text-white mb-3">
+              <h2 className="text-3xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
                 How we stack up against every alternative.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 Real features. Real pricing. No marketing spin.
               </p>
             </div>
@@ -158,14 +162,14 @@ export default function PricingPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
-                    <th className="text-left p-3 text-gray-400 font-medium text-xs">Feature</th>
-                    <th className="text-center p-3 text-gray-400 font-medium text-xs">My AI Front Desk</th>
-                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Goodcall</th>
-                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Rosie</th>
-                    <th className="text-center p-3 text-gray-400 font-medium text-xs">Smith.ai</th>
+                    <th className="text-left p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Feature</th>
+                    <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>My AI Front Desk</th>
+                    <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Goodcall</th>
+                    <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Rosie</th>
+                    <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Smith.ai</th>
                     <th
                       className="text-center p-3 font-semibold text-xs"
-                      style={{ color: "var(--color-primary)", backgroundColor: "#0d0d0d" }}
+                      style={{ color: "var(--color-primary)", backgroundColor: "var(--color-accent,#EEF2FF)" }}
                     >
                       unmissed.ai
                     </th>
@@ -180,11 +184,11 @@ export default function PricingPage() {
                         borderBottom: "1px solid var(--color-border)",
                       }}
                     >
-                      <td className="p-3 text-gray-300 font-medium text-xs">{row.feature}</td>
-                      <td className="p-3 text-center text-gray-500 text-xs">{row.myai}</td>
-                      <td className="p-3 text-center text-gray-500 text-xs">{row.goodcall}</td>
-                      <td className="p-3 text-center text-gray-500 text-xs">{row.rosie}</td>
-                      <td className="p-3 text-center text-gray-500 text-xs">{row.smithai}</td>
+                      <td className="p-3 font-medium text-xs" style={{ color: "var(--color-text-1)" }}>{row.feature}</td>
+                      <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.myai}</td>
+                      <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.goodcall}</td>
+                      <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.rosie}</td>
+                      <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.smithai}</td>
                       <td
                         className="p-3 text-center font-semibold text-xs"
                         style={{ color: "#22C55E", backgroundColor: "rgba(34,197,94,0.04)" }}
@@ -204,15 +208,64 @@ export default function PricingPage() {
           <CostComparisonTable />
         </ErrorBoundary>
 
+        {/* ROI Calculator */}
+        <ErrorBoundary>
+          <RoiCalculator />
+        </ErrorBoundary>
+
         {/* FAQ */}
         <ErrorBoundary>
           <FaqAccordion />
         </ErrorBoundary>
 
+        {/* Is unmissed.ai right for you? */}
+        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
+              Is unmissed.ai right for you?
+            </h2>
+            <p className="mb-8" style={{ color: "var(--color-text-2)" }}>
+              Great fit if you answer yes to any of these:
+            </p>
+            <ul className="text-left space-y-3 mb-8">
+              {[
+                "You're often on a job site and can't answer the phone",
+                "You've lost a customer because they called a competitor when you didn't pick up",
+                "You rely on voicemail but most callers don't leave a message",
+                "You want to know which leads are hot before you call back",
+                "You run a service business with 1–20 employees",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <svg
+                    className="w-5 h-5 flex-shrink-0 mt-0.5"
+                    style={{ color: "var(--color-primary)" }}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span style={{ color: "var(--color-text-1)" }}>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/onboard"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              Get My Agent
+            </Link>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="py-20 px-4 text-center" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
               Ready to stop missing calls?
             </h2>
             <Link

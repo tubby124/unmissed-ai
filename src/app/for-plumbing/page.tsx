@@ -8,11 +8,16 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Droplets, AlertTriangle, Home, MapPin, Calendar, Phone, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for Plumbers — unmissed.ai",
   description:
     "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-plumbing",
+  },
   openGraph: {
     title: "AI Receptionist for Plumbers — unmissed.ai",
     description: "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
@@ -24,14 +29,14 @@ const plumbingSchema = nicheSchema(
   "AI receptionist for plumbing companies. Triages emergency calls, collects issue details, and delivers structured lead cards."
 );
 
-const collected = [
-  { icon: "\u{1F6BF}", label: "Type of issue (leak, clog, water heater, sewer)" },
-  { icon: "\u{26A0}\u{FE0F}", label: "Emergency level (flooding, no water, can wait)" },
-  { icon: "\u{1F3E0}", label: "Residential or commercial?" },
-  { icon: "\u{1F4CD}", label: "Service address" },
-  { icon: "\u{1F4C5}", label: "Preferred timing" },
-  { icon: "\u{1F4DE}", label: "Caller name + callback" },
-  { icon: "\u{1F527}", label: "Anything they've already tried" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Droplets, label: "Type of issue (leak, clog, water heater, sewer)" },
+  { icon: AlertTriangle, label: "Emergency level (flooding, no water, can wait)" },
+  { icon: Home, label: "Residential or commercial?" },
+  { icon: MapPin, label: "Service address" },
+  { icon: Calendar, label: "Preferred timing" },
+  { icon: Phone, label: "Caller name + callback" },
+  { icon: Wrench, label: "Anything they've already tried" },
 ];
 
 export default function ForPlumbingPage() {
@@ -144,7 +149,7 @@ export default function ForPlumbingPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
@@ -169,34 +174,6 @@ export default function ForPlumbingPage() {
             >
               Try a Live Demo Agent
             </Link>
-          </div>
-        </section>
-
-        {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;Plumbing emergencies don&apos;t wait for business hours. My agent
-                catches the 2 AM pipe burst calls, the weekend toilet overflows &mdash;
-                all of it. I wake up to a lead card with every detail I need.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  D
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Dave P.</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Plumbing company owner &middot; Calgary, AB</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 

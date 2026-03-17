@@ -83,6 +83,7 @@ You are energetic, capable, and efficient. You are NOT a robot — you are a rea
 
 # TONE AND STYLE
 
+{{TONE_INSTRUCTIONS}}
 Upbeat and alert. Sound relaxed but sharp — never tired or flat.
 Speak at a relaxed, natural speed. Slow down slightly when confirming important info.
 Keep responses very short — 1 to 2 sentences max. Punchy and direct.
@@ -124,6 +125,7 @@ If you hear a pre-recorded message, sales pitch, or any of these phrases: "your 
 HOURS / LOCATION / "ARE YOU OPEN":
 "yeah we're open {{HOURS_WEEKDAY}}. anything i can help with today?"
 If no further relevant question: "alright take care." then use hangUp tool.
+{{AFTER_HOURS_INSTRUCTIONS}}
 
 "AM I TALKING TO AI?" / "ARE YOU A ROBOT?" / "IS THIS A REAL PERSON?":
 "yeah, I'm an AI assistant here at {{BUSINESS_NAME}} — how can I help ya?"
@@ -245,6 +247,12 @@ Example F — Spam robocall detected:
 Caller: [pre-recorded voice] "...your vehicle's extended warranty is about to expire..."
 You: "thanks, but we're not interested. have a good day."
 [Use hangUp tool immediately. Do not engage with pre-recorded messages or sales pitches.]
+
+## CALL HANDLING MODE
+{{CALL_HANDLING_MODE_INSTRUCTIONS}}
+
+## FREQUENTLY ASKED QUESTIONS
+{{FAQ_PAIRS}}
 
 # PRODUCT KNOWLEDGE BASE
 
@@ -1738,7 +1746,7 @@ TECHNICAL RULES
 
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
-export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string): string {
+export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
   // ── Website content injection ──────────────────────────────────────────────
   if (websiteContent) {
     const existingFaq = (intake.caller_faq as string) || ''
@@ -1772,6 +1780,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     ['weekend_policy', 'WEEKEND_POLICY'],
     ['callback_phone', 'CALLBACK_PHONE'],
     ['services_not_offered', 'SERVICES_NOT_OFFERED'],
+    ['emergency_phone', 'EMERGENCY_PHONE'],
   ]
   for (const [intakeKey, varKey] of directMappings) {
     const val = intake[intakeKey] as string | undefined
@@ -1837,6 +1846,28 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     variables.CLOSE_PERSON = 'our team'
   }
 
+  // Tone instructions based on agent_tone
+  if (agentTone === 'casual') {
+    variables.TONE_INSTRUCTIONS = "Use contractions, colloquial language, and a friendly, laid-back tone. Say things like 'hey there', 'no worries', 'you betcha'."
+  } else if (agentTone === 'professional') {
+    variables.TONE_INSTRUCTIONS = "Use formal, polished language. Avoid slang, contractions where possible, and maintain a business-appropriate demeanor."
+  } else {
+    // match_industry (default) — let the niche defaults guide the tone
+    variables.TONE_INSTRUCTIONS = ''
+  }
+
+  // After-hours behavior
+  const afterHoursBehavior = intake.after_hours_behavior as string | undefined
+  const emergencyPhone = variables.EMERGENCY_PHONE || ''
+  if (afterHoursBehavior === 'route_emergency' && emergencyPhone) {
+    variables.AFTER_HOURS_INSTRUCTIONS = `If the caller mentions it's after hours or an emergency: "for emergencies, i can connect ya to ${emergencyPhone} — want me to do that?" If yes, use transferCall tool. If no: "no worries, i'll take a message and {{CLOSE_PERSON}} will call ya back first thing."`
+  } else if (afterHoursBehavior === 'standard') {
+    variables.AFTER_HOURS_INSTRUCTIONS = 'If the caller mentions it\'s after hours: "we\'re closed right now — our hours are {{HOURS_WEEKDAY}}. i can take a message and have {{CLOSE_PERSON}} call ya back when we open."'
+  } else {
+    // take_message (default) — same behavior during and after hours
+    variables.AFTER_HOURS_INSTRUCTIONS = ''
+  }
+
   // Completion fields from intake (if provided)
   const completionFields = intake.completion_fields as string | undefined
   if (completionFields?.trim()) variables.COMPLETION_FIELDS = completionFields
@@ -1844,6 +1875,41 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Compute LOCATION_STRING — empty if city is missing or "N/A" (e.g. voicemail fast-track)
   const rawCity = variables.CITY || ''
   variables.LOCATION_STRING = rawCity && rawCity !== 'N/A' ? ` in ${rawCity}` : ''
+
+  // Call handling mode instructions
+  const callHandlingMode = (intake.call_handling_mode as string) || 'triage'
+  if (callHandlingMode === 'message_only') {
+    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "Your ONLY goal is to collect the caller's name, phone number, and a brief message. Do not ask follow-up questions, do not triage, do not offer information. Get the 3 fields and close."
+  } else if (callHandlingMode === 'full_service') {
+    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "You are a full-service receptionist. Answer detailed questions from the KNOWLEDGE BASE and FAQ sections. If the caller wants to book an appointment, collect their preferred date/time and confirm you'll have " + (variables.CLOSE_PERSON || 'the team') + " confirm the booking."
+  } else {
+    // triage (default) — existing template behavior
+    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback."
+  }
+
+  // FAQ pairs from structured input
+  const faqPairsRaw = intake.niche_faq_pairs as string | undefined
+  let faqPairsFormatted = ''
+  if (faqPairsRaw) {
+    try {
+      const pairs = JSON.parse(faqPairsRaw) as { question: string; answer: string }[]
+      if (pairs.length > 0) {
+        faqPairsFormatted = pairs
+          .filter(p => p.question?.trim() && p.answer?.trim())
+          .map(p => `**Q: ${p.question.trim()}**\n"${p.answer.trim()}"`)
+          .join('\n\n')
+      }
+    } catch { /* invalid JSON — skip */ }
+  }
+  // Merge with legacy caller_faq if present
+  const legacyFaq = (intake.caller_faq as string)?.trim() || ''
+  variables.FAQ_PAIRS = [faqPairsFormatted, legacyFaq].filter(Boolean).join('\n\n') || 'No FAQ pairs configured yet.'
+
+  // Knowledge base documents injection
+  if (knowledgeDocs?.trim()) {
+    const kbDocsSection = `\n\n## KNOWLEDGE BASE DOCUMENTS\n\n${knowledgeDocs}\n`
+    variables._KNOWLEDGE_DOCS = kbDocsSection
+  }
 
   // Fallback defaults
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
@@ -1983,6 +2049,11 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     } else {
       prompt = prompt.slice(0, kbStart) + kbContent
     }
+  }
+
+  // Append knowledge base documents if provided
+  if (variables._KNOWLEDGE_DOCS) {
+    prompt += variables._KNOWLEDGE_DOCS
   }
 
   return prompt

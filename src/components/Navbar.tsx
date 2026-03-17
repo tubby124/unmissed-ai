@@ -1,12 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+
+const INDUSTRIES = [
+  { label: "Auto Glass", href: "/for-auto-glass" },
+  { label: "Real Estate", href: "/for-realtors" },
+  { label: "HVAC", href: "/for-hvac" },
+  { label: "Plumbing", href: "/for-plumbing" },
+  { label: "Dental", href: "/for-dental" },
+  { label: "Legal", href: "/for-legal" },
+];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [industriesOpen, setIndustriesOpen] = useState(false);
+  const [mobileIndustriesOpen, setMobileIndustriesOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close desktop dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIndustriesOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function handleMouseEnter() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIndustriesOpen(true);
+  }
+
+  function handleMouseLeave() {
+    timeoutRef.current = setTimeout(() => setIndustriesOpen(false), 150);
+  }
 
   return (
     <nav
@@ -43,22 +76,6 @@ export default function Navbar() {
             How It Works
           </Link>
           <Link
-            href="/try"
-            className="text-sm font-semibold transition-colors"
-            style={{ color: "var(--color-primary)" }}
-          >
-            Try Free
-          </Link>
-          <Link
-            href="/#demo"
-            className="text-sm transition-colors"
-            style={{ color: "var(--color-text-2)" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
-          >
-            Demo
-          </Link>
-          <Link
             href="/pricing"
             className="text-sm transition-colors"
             style={{ color: "var(--color-text-2)" }}
@@ -67,23 +84,65 @@ export default function Navbar() {
           >
             Pricing
           </Link>
-          <Link
-            href="/for-auto-glass"
-            className="text-sm transition-colors"
-            style={{ color: "var(--color-text-2)" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
+
+          {/* Industries Dropdown */}
+          <div
+            ref={dropdownRef}
+            className="relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
-            For Glass Shops
-          </Link>
+            <button
+              className="flex items-center gap-1 text-sm transition-colors"
+              style={{ color: "var(--color-text-2)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
+              onClick={() => setIndustriesOpen(prev => !prev)}
+            >
+              Industries
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${industriesOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {industriesOpen && (
+              <div
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl border shadow-lg py-2"
+                style={{
+                  backgroundColor: "var(--color-bg)",
+                  borderColor: "var(--color-nav-border)",
+                }}
+              >
+                {INDUSTRIES.map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block px-4 py-2 text-sm transition-colors"
+                    style={{ color: "var(--color-text-2)" }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.color = "var(--color-text-1)";
+                      e.currentTarget.style.backgroundColor = "var(--color-nav-border)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = "var(--color-text-2)";
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    onClick={() => setIndustriesOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           <Link
-            href="/for-realtors"
-            className="text-sm transition-colors"
-            style={{ color: "var(--color-text-2)" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
+            href="/onboard"
+            className="text-sm font-semibold transition-colors"
+            style={{ color: "var(--color-primary)" }}
           >
-            For Realtors
+            Try Free
           </Link>
         </div>
 
@@ -108,7 +167,7 @@ export default function Navbar() {
               ((e.target as HTMLElement).style.backgroundColor = "var(--color-primary)")
             }
           >
-            Get My Agent →
+            Get My Agent
           </Link>
         </div>
 
@@ -126,7 +185,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div
-          className="md:hidden border-t px-4 py-4 flex flex-col gap-4 rounded-b-2xl"
+          className="md:hidden border-t px-4 py-4 flex flex-col gap-3 rounded-b-2xl"
           style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-nav-border)" }}
         >
           <Link
@@ -138,22 +197,6 @@ export default function Navbar() {
             How It Works
           </Link>
           <Link
-            href="/try"
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-primary)" }}
-            onClick={() => setOpen(false)}
-          >
-            Try Free
-          </Link>
-          <Link
-            href="/#demo"
-            className="text-sm"
-            style={{ color: "var(--color-text-2)" }}
-            onClick={() => setOpen(false)}
-          >
-            Demo
-          </Link>
-          <Link
             href="/pricing"
             className="text-sm"
             style={{ color: "var(--color-text-2)" }}
@@ -161,46 +204,67 @@ export default function Navbar() {
           >
             Pricing
           </Link>
-          <Link
-            href="/for-auto-glass"
-            className="text-sm"
-            style={{ color: "var(--color-text-2)" }}
-            onClick={() => setOpen(false)}
-          >
-            For Glass Shops
-          </Link>
-          <Link
-            href="/for-realtors"
-            className="text-sm"
-            style={{ color: "var(--color-text-2)" }}
-            onClick={() => setOpen(false)}
-          >
-            For Realtors
-          </Link>
+
+          {/* Mobile Industries Accordion */}
+          <div>
+            <button
+              className="flex items-center gap-1 text-sm w-full"
+              style={{ color: "var(--color-text-2)" }}
+              onClick={() => setMobileIndustriesOpen(prev => !prev)}
+            >
+              Industries
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${mobileIndustriesOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {mobileIndustriesOpen && (
+              <div className="flex flex-col gap-2 pl-4 pt-2">
+                {INDUSTRIES.map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm"
+                    style={{ color: "var(--color-text-2)" }}
+                    onClick={() => {
+                      setOpen(false);
+                      setMobileIndustriesOpen(false);
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           <Link
             href="/onboard"
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white text-center"
-            style={{ backgroundColor: "var(--color-primary)" }}
+            className="text-sm font-semibold"
+            style={{ color: "var(--color-primary)" }}
             onClick={() => setOpen(false)}
           >
-            Get My Agent →
+            Try Free
           </Link>
-          <Link
-            href="/login"
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-center border"
-            style={{ color: "var(--color-text-2)", borderColor: "var(--color-nav-border)", backgroundColor: "transparent" }}
-            onClick={() => setOpen(false)}
-          >
-            Sign In to Dashboard
-          </Link>
-          <Link
-            href="/try"
-            className="flex items-center gap-2 text-sm"
-            style={{ color: "var(--color-text-2)" }}
-          >
-            <Phone size={14} />
-            Try our AI agent
-          </Link>
+
+          <div className="border-t pt-3 flex flex-col gap-3" style={{ borderColor: "var(--color-nav-border)" }}>
+            <Link
+              href="/onboard"
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white text-center"
+              style={{ backgroundColor: "var(--color-primary)" }}
+              onClick={() => setOpen(false)}
+            >
+              Get My Agent
+            </Link>
+            <Link
+              href="/login"
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold text-center border"
+              style={{ color: "var(--color-text-2)", borderColor: "var(--color-nav-border)", backgroundColor: "transparent" }}
+              onClick={() => setOpen(false)}
+            >
+              Sign In to Dashboard
+            </Link>
+          </div>
         </div>
       )}
     </nav>

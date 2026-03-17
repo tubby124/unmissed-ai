@@ -54,7 +54,17 @@ export async function POST(req: NextRequest) {
     intakeData.db_agent_name = client.agent_name
   }
 
-  const newPrompt = buildPromptFromIntake(intakeData, undefined)
+  // Fetch knowledge docs — try by client_id first, fallback to intake_id
+  let knowledgeDocs = ''
+  const { data: kDocs } = await svc
+    .from('client_knowledge_docs')
+    .select('content_text')
+    .eq('client_id', clientId)
+  if (kDocs && kDocs.length > 0) {
+    knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
+  }
+
+  const newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
 
   // Insert prompt_versions record before overwriting system_prompt
   const { data: latestVersion } = await svc

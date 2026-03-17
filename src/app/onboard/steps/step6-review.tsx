@@ -1,0 +1,518 @@
+"use client";
+
+import { useState } from "react";
+import { OnboardingData, nicheLabels, Niche, defaultAgentNames } from "@/types/onboarding";
+import DemoCall from "@/components/DemoCall";
+
+interface Props {
+  data: OnboardingData;
+  stepSequence: number[];
+  onEdit: (step: number) => void;
+  onActivate: (mode: "trial" | "paid") => void;
+  isSubmitting: boolean;
+  error: string | null;
+}
+
+interface PreviewResult {
+  prompt: string;
+  charCount: number;
+  valid: boolean;
+  warnings: string[];
+  errors: string[];
+  niche: string;
+  smsTemplate: string;
+  classificationRules: string;
+  variableDebug: {
+    fromIntake: Record<string, string>;
+    fromDefaults: Record<string, string>;
+    merged: Record<string, string>;
+  };
+}
+
+const NICHE_AGENT_NAME: Record<string, string> = {
+  auto_glass: "Mark", hvac: "Mike", plumbing: "Dave", dental: "Ashley",
+  legal: "Jordan", salon: "Jamie", real_estate: "Alex",
+  property_management: "Alisha", outbound_isa_realtor: "Fatima",
+  voicemail: "Sam", restaurant: "Jamie", other: "Sam",
+};
+
+const NICHE_COLOR: Record<string, string> = {
+  auto_glass: "#3B82F6", hvac: "#F59E0B", plumbing: "#06B6D4",
+  dental: "#8B5CF6", legal: "#6B7280", salon: "#EC4899",
+  real_estate: "#10B981", property_management: "#8B5CF6",
+  outbound_isa_realtor: "#10B981", voicemail: "#6366F1",
+  restaurant: "#EF4444", other: "#6366F1",
+};
+
+const HANDLING_LABELS: Record<string, string> = {
+  message_only: "Message taking",
+  triage: "Triage + message",
+  full_service: "Full service",
+};
+
+const AFTER_HOURS_LABELS: Record<string, string> = {
+  take_message: "Take a message",
+  standard: "Tell caller hours & take message",
+  route_emergency: "Route to emergency line",
+};
+
+// ── Demo Call Section ────────────────────────────────────────────────────────
+
+function OnboardDemoSection({ data }: { data: OnboardingData }) {
+  const [phase, setPhase] = useState<"prompt" | "calling" | "done">("prompt");
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const niche = data.niche || "other";
+  const agentName = data.agentName || NICHE_AGENT_NAME[niche] || "Sam";
+  const companyName = data.businessName || "Your Business";
+  const agentColor = NICHE_COLOR[niche] || "#6366F1";
+
+  if (phase === "calling") {
+    return (
+      <DemoCall
+        demoId="onboard-preview"
+        callerName="you"
+        agentName={agentName}
+        companyName={companyName}
+        agentColor={agentColor}
+        extraBody={{ mode: "preview", onboardingData: data }}
+        onEnd={() => setPhase("done")}
+      />
+    );
+  }
+
+  if (phase === "done") {
+    return (
+      <div className="rounded-xl p-5 border border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/30 space-y-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0"
+            style={{ backgroundColor: agentColor }}
+          >
+            {agentName[0]}
+          </div>
+          <div>
+            <p className="font-semibold text-foreground text-sm">That&apos;s {agentName}.</p>
+            <p className="text-xs text-muted-foreground">How did it sound?</p>
+          </div>
+        </div>
+
+        {!feedback ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { key: "friendly", label: "More friendly" },
+                { key: "professional", label: "More professional" },
+                { key: "perfect", label: "Sounds perfect!" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setFeedback(key);
+                    // TODO: wire onUpdate once prop is added to Step6Review:
+                    // if (key === "friendly") onUpdate({ agentTone: "casual" });
+                    // if (key === "professional") onUpdate({ agentTone: "professional" });
+                    // "perfect" requires no data change
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all hover:opacity-80 cursor-pointer ${
+                    key === "perfect"
+                      ? "text-white"
+                      : "bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                  }`}
+                  style={
+                    key === "perfect"
+                      ? { backgroundColor: agentColor, color: "#fff", borderColor: agentColor }
+                      : undefined
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPhase("prompt")}
+              className="w-full text-xs text-muted-foreground/70 hover:text-muted-foreground py-1 cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-lg bg-card border border-indigo-100 dark:border-indigo-800 px-4 py-3 space-y-1">
+            {feedback === "perfect" ? (
+              <p className="text-sm font-medium text-foreground">You&apos;re all set.</p>
+            ) : (
+              <p className="text-sm font-medium text-foreground">
+                {feedback === "friendly" ? "Want a friendlier tone?" : "Want a more professional tone?"}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              You can tune {agentName}&apos;s tone, voice, and behavior anytime in{" "}
+              <span className="font-medium text-indigo-600 dark:text-indigo-400">Settings</span> after activation.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-xl p-5 border"
+      style={{ borderColor: agentColor + "40", backgroundColor: agentColor + "08" }}
+    >
+      <div className="flex items-center gap-4 mb-4">
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
+          style={{ backgroundColor: agentColor }}
+        >
+          {agentName[0]}
+        </div>
+        <div>
+          <p className="font-semibold text-foreground">{agentName} is ready for {companyName}</p>
+          <p className="text-sm text-muted-foreground">Hear exactly what your callers will hear</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setPhase("calling")}
+        className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 cursor-pointer"
+        style={{ backgroundColor: agentColor }}
+      >
+        Talk to {agentName} — Free 2-min demo
+      </button>
+      <p className="text-xs text-center mt-2 text-muted-foreground/70">Uses your mic · No sign-up needed</p>
+    </div>
+  );
+}
+
+// ── Admin Prompt Preview ─────────────────────────────────────────────────────
+
+function PromptPreview({ data }: { data: OnboardingData }) {
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  const fetchPreview = async () => {
+    if (preview) {
+      setShowPrompt(!showPrompt);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/preview-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.status === 401 || res.status === 403) {
+        setHidden(true);
+        return;
+      }
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || `Preview failed (${res.status})`);
+      }
+      const result: PreviewResult = await res.json();
+      setPreview(result);
+      setShowPrompt(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (hidden) return null;
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={fetchPreview}
+        disabled={loading}
+        className="w-full text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors disabled:opacity-50 cursor-pointer"
+      >
+        {loading ? "Generating preview..." : showPrompt ? "Hide Prompt Preview" : "Preview Agent Prompt"}
+      </button>
+
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400 px-1">{error}</p>
+      )}
+
+      {preview && showPrompt && (
+        <div className="border border-indigo-200 dark:border-indigo-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-950/30 border-b border-indigo-200 dark:border-indigo-800 flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">System Prompt</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              preview.valid
+                ? "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800"
+                : "bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800"
+            }`}>
+              {preview.valid ? "Valid" : "Invalid"}
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground bg-muted border border-border rounded-full px-2 py-0.5">
+              {preview.charCount.toLocaleString()} chars
+            </span>
+            <span className="text-[10px] font-medium text-indigo-500 bg-indigo-100 border border-indigo-200 dark:text-indigo-400 dark:bg-indigo-950/30 dark:border-indigo-800 rounded-full px-2 py-0.5">
+              {preview.niche.replace(/_/g, " ")}
+            </span>
+          </div>
+
+          {preview.errors.length > 0 && (
+            <div className="px-4 py-2 bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800">
+              {preview.errors.map((e, i) => (
+                <p key={i} className="text-xs text-red-700 dark:text-red-400">{e}</p>
+              ))}
+            </div>
+          )}
+          {preview.warnings.length > 0 && (
+            <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+              {preview.warnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700 dark:text-amber-400">{w}</p>
+              ))}
+            </div>
+          )}
+
+          <pre className="px-4 py-3 text-xs text-foreground bg-card max-h-96 overflow-y-auto whitespace-pre-wrap break-words font-mono leading-relaxed">
+            {preview.prompt}
+          </pre>
+
+          <div className="px-4 py-3 bg-muted/30 border-t">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">SMS Follow-up Template</p>
+            <p className="text-xs text-foreground bg-card rounded-lg px-3 py-2 border">{preview.smsTemplate}</p>
+          </div>
+
+          <div className="px-4 py-3 bg-muted/30 border-t">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Classification Rules (HOT/WARM/COLD)</p>
+            <p className="text-xs text-foreground bg-card rounded-lg px-3 py-2 border">{preview.classificationRules}</p>
+          </div>
+
+          <div className="px-4 py-3 bg-muted/30 border-t">
+            <button
+              type="button"
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
+            >
+              {showDebug ? "Hide" : "Show"} Variable Sources ({Object.keys(preview.variableDebug.fromIntake).length} from intake, {Object.keys(preview.variableDebug.fromDefaults).length} defaults)
+            </button>
+            {showDebug && (
+              <div className="mt-2 max-h-64 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-muted-foreground">
+                      <th className="pb-1 font-medium">Variable</th>
+                      <th className="pb-1 font-medium">Source</th>
+                      <th className="pb-1 font-medium">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(preview.variableDebug.fromIntake).map(([key, val]) => (
+                      <tr key={`i-${key}`} className="border-t border-border">
+                        <td className="py-1 font-mono text-foreground">{key}</td>
+                        <td className="py-1"><span className="text-emerald-600 dark:text-emerald-400 font-medium">intake</span></td>
+                        <td className="py-1 text-muted-foreground truncate max-w-[200px]">{val}</td>
+                      </tr>
+                    ))}
+                    {Object.entries(preview.variableDebug.fromDefaults).map(([key, val]) => (
+                      <tr key={`d-${key}`} className="border-t border-border">
+                        <td className="py-1 font-mono text-foreground">{key}</td>
+                        <td className="py-1"><span className="text-muted-foreground/70 font-medium">default</span></td>
+                        <td className="py-1 text-muted-foreground/70 truncate max-w-[200px]">{val}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Step 6 — Review & Activate ──────────────────────────────────────────
+
+export default function Step6Review({ data, stepSequence, onEdit, onActivate, isSubmitting, error }: Props) {
+  // ── Completeness score ──────────────────────────────────────────────────────
+  const defaultAgentName = data.niche ? (defaultAgentNames[data.niche as Niche] ?? "") : "";
+  const agentNameCustomized = data.agentName.trim() !== "" && data.agentName.trim() !== defaultAgentName;
+  const faqHasPair = data.faqPairs.some(p => p.question.trim() && p.answer.trim());
+
+  let completeness = 20; // base
+  if (data.servicesOffered.trim()) completeness += 10;
+  if (data.businessHoursText.trim()) completeness += 10;
+  if (faqHasPair) completeness += 10;
+  if (data.knowledgeDocs.length > 0) completeness += 10;
+  if (agentNameCustomized) completeness += 10;
+  if (data.callbackPhone.trim()) completeness += 10;
+  if (data.contactEmail.trim()) completeness += 20;
+
+  // ── Summary rows ────────────────────────────────────────────────────────────
+  const rows: Array<{ label: string; value: string; editStep: number }> = [
+    { label: "Industry", value: data.niche ? nicheLabels[data.niche as Niche] : "---", editStep: 1 },
+    { label: "Voice", value: data.voiceName || "Default", editStep: 2 },
+    { label: "Agent name", value: data.agentName || "(using default)", editStep: 2 },
+    { label: "Business", value: data.businessName || "---", editStep: 3 },
+    { label: "Location", value: [data.city, data.state].filter(Boolean).join(", ") || "---", editStep: 3 },
+    { label: "Callback #", value: data.callbackPhone || "---", editStep: 3 },
+    ...(data.servicesOffered.trim() ? [{ label: "Services", value: data.servicesOffered, editStep: 3 }] : []),
+    ...(data.businessHoursText.trim() ? [{ label: "Hours", value: data.businessHoursText, editStep: 3 }] : []),
+    { label: "After hours", value: AFTER_HOURS_LABELS[data.afterHoursBehavior] || data.afterHoursBehavior, editStep: 5 },
+    { label: "SMS follow-up", value: data.callerAutoText ? "On" : "Off", editStep: 5 },
+    { label: "Call handling", value: HANDLING_LABELS[data.callHandlingMode] || data.callHandlingMode, editStep: 5 },
+    { label: "Knowledge docs", value: data.knowledgeDocs.length > 0 ? `${data.knowledgeDocs.length} file${data.knowledgeDocs.length !== 1 ? "s" : ""}` : "None", editStep: 4 },
+    { label: "FAQ pairs", value: data.faqPairs.length > 0 ? `${data.faqPairs.length} pair${data.faqPairs.length !== 1 ? "s" : ""}` : "None", editStep: 4 },
+  ];
+
+  // Only show rows whose edit step is in the step sequence
+  const visibleRows = rows.filter(r => stepSequence.includes(r.editStep));
+
+  // ── No-FAQ warning ──────────────────────────────────────────────────────────
+  const showNoFaqWarning = data.faqPairs.length === 0 && data.knowledgeDocs.length === 0;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Review your setup</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Everything looks right? Activate to go live, or start a free trial.
+        </p>
+      </div>
+
+      {/* Completeness score */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">Your agent is {completeness}% configured</span>
+          <span className="text-xs text-muted-foreground">{completeness}/100</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+            style={{ width: `${completeness}%` }}
+          />
+        </div>
+      </div>
+
+      {/* No-FAQ warning */}
+      {showNoFaqWarning && stepSequence.includes(4) && (
+        <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2.5">
+          <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <p className="text-xs text-amber-800 dark:text-amber-200 flex-1">
+            No FAQs or documents added. Your agent will use default responses.{" "}
+            <button
+              type="button"
+              onClick={() => onEdit(4)}
+              className="font-medium underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 cursor-pointer"
+            >
+              Add FAQs in step 4
+            </button>{" "}
+            for better accuracy.
+          </p>
+        </div>
+      )}
+
+      {/* Demo call section */}
+      <OnboardDemoSection data={data} />
+
+      {/* Summary card */}
+      <div className="border rounded-xl overflow-hidden">
+        {visibleRows.map((row, i) => (
+          <div
+            key={row.label}
+            className={`flex items-center justify-between px-4 py-3 ${i < visibleRows.length - 1 ? "border-b" : ""}`}
+          >
+            <span className="text-sm text-muted-foreground w-32 shrink-0">{row.label}</span>
+            <span className="text-sm text-foreground flex-1 truncate">{row.value}</span>
+            <button
+              type="button"
+              onClick={() => onEdit(row.editStep)}
+              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer"
+            >
+              Edit
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Niche-specific answers (if step 4 was part of the flow) */}
+      {Object.keys(data.nicheAnswers).length > 0 && stepSequence.includes(4) && (
+        <div className="border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 bg-muted/30 border-b">
+            <span className="text-sm font-medium text-foreground">Industry Details</span>
+            <button
+              type="button"
+              onClick={() => onEdit(4)}
+              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 cursor-pointer"
+            >
+              Edit
+            </button>
+          </div>
+          {Object.entries(data.nicheAnswers).map(([key, value]) => (
+            <div key={key} className="flex items-start px-4 py-2.5 border-b last:border-b-0">
+              <span className="text-sm text-muted-foreground w-40 shrink-0">
+                {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim()}
+              </span>
+              <span className="text-sm text-foreground flex-1">
+                {typeof value === "boolean" ? (value ? "Yes" : "No") : Array.isArray(value) ? value.join(", ") : String(value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Admin-only prompt preview */}
+      <PromptPreview data={data} />
+
+      {/* Post-activation notes */}
+      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 space-y-1">
+        <p className="font-medium">After activation — 2 quick manual steps:</p>
+        <p>1. Set up Telegram notifications (we&apos;ll send instructions)</p>
+        <p>2. Forward your business phone to your new AI number (2-min guide included)</p>
+      </div>
+
+      {/* CTA buttons */}
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => onActivate("trial")}
+          disabled={isSubmitting}
+          className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-base transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Activating...
+            </span>
+          ) : (
+            "Start Free Trial — 7 days, no credit card"
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onActivate("paid")}
+          disabled={isSubmitting}
+          className="w-full py-3 rounded-xl border-2 border-border/80 hover:border-indigo-400 text-foreground hover:text-indigo-700 dark:hover:text-indigo-400 font-medium text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Skip trial, activate now — $20/mo
+        </button>
+
+        {error && (
+          <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Phone } from "lucide-react";
 
 export default function StickyMobileCta() {
   const [visible, setVisible] = useState(false);
@@ -30,7 +29,6 @@ export default function StickyMobileCta() {
             border: "1px solid var(--color-border)",
           }}
         >
-          <Phone size={14} />
           Try Demo
         </Link>
         <Link
@@ -38,7 +36,7 @@ export default function StickyMobileCta() {
           className="flex-1 text-center py-2.5 rounded-lg text-white text-sm font-semibold transition-colors"
           style={{ backgroundColor: "var(--color-primary)" }}
         >
-          Get My Agent →
+          Get Started
         </Link>
       </div>
     </div>

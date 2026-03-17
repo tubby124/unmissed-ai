@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s | unmissed.ai",
   },
   description:
-    "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you instant notifications. 8,445+ calls handled. Starts at $147/mo.",
+    "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you instant notifications. AI receptionist for small businesses.",
   keywords: [
     "AI receptionist",
     "AI answering service",
@@ -36,14 +36,17 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "unmissed.ai" }],
   creator: "unmissed.ai",
+  other: {
+    "theme-color": "#F9FAFB",
+  },
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "en_CA",
     url: siteUrl,
     siteName: "unmissed.ai",
     title: "unmissed.ai — AI Receptionist for Service Businesses",
     description:
-      "Stop losing leads to voicemail. Your AI agent answers every call 24/7, knows your business, and sends you the lead instantly. 8,445+ calls handled.",
+      "Stop losing leads to voicemail. Your AI agent answers every call 24/7, knows your business, and sends you the lead instantly. AI receptionist for small businesses.",
     images: [
       {
         url: "/og-image.png",
@@ -57,7 +60,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "unmissed.ai — AI Receptionist for Service Businesses",
     description:
-      "Stop losing leads to voicemail. AI agent answers every call 24/7. 8,445+ calls handled.",
+      "Stop losing leads to voicemail. AI agent answers every call 24/7. AI receptionist for small businesses.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -72,7 +75,10 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
@@ -96,24 +102,40 @@ const organizationSchema = {
   serviceType: "AI Receptionist Service",
 };
 
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "unmissed.ai",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "297",
+    priceCurrency: "CAD",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="light">
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('unmissed-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark')})()`,
+            __html: `(function(){var t=localStorage.getItem('unmissed-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light')})()`,
           }}
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
-        {/* Google Analytics 4 — replace G-XXXXXXXXXX with real ID when ready */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+        />
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
             <script
@@ -136,8 +158,16 @@ export default function RootLayout({
         )}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg"
+        >
+          Skip to content
+        </a>
         <ThemeProvider>
-          {children}
+          <main id="main">
+            {children}
+          </main>
         </ThemeProvider>
       </body>
     </html>

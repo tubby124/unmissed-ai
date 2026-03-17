@@ -3,38 +3,10 @@
 import { motion } from 'motion/react'
 import Link from 'next/link'
 
-interface HeroContentProps {
-  callsStat: string
-}
-
-export default function HeroContent({ callsStat }: HeroContentProps) {
+export default function HeroContent(_props: { callsStat?: string } = {}) {
   return (
     <div className="text-center z-10">
-      {/* Live badge — delay 0.1 */}
-      <motion.div
-        className="flex justify-center mb-6"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.1 }}
-      >
-        <span
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono"
-          style={{
-            backgroundColor: 'var(--color-surface)',
-            color: 'var(--color-primary)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          {/* animate-pulse MUST stay — this is the live indicator dot */}
-          <span
-            className="w-1.5 h-1.5 rounded-full animate-pulse"
-            style={{ backgroundColor: 'var(--color-live)' }}
-          />
-          {callsStat} calls answered · live
-        </span>
-      </motion.div>
-
-      {/* Eyebrow + H1 — delay 0.1 */}
+      {/* Eyebrow + H1 */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -59,7 +31,7 @@ export default function HeroContent({ callsStat }: HeroContentProps) {
         </h1>
       </motion.div>
 
-      {/* Subtitle paragraphs — delay 0.2 */}
+      {/* Subtitle */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -80,48 +52,39 @@ export default function HeroContent({ callsStat }: HeroContentProps) {
         </p>
       </motion.div>
 
-      {/* CTA buttons — delay 0.35 */}
+      {/* CTAs */}
       <motion.div
-        className="flex flex-col sm:flex-row gap-4 justify-center mb-6"
+        className="flex flex-col sm:flex-row items-center gap-4 justify-center mb-6"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.35 }}
       >
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
           <Link
-            href="#demo"
+            href="/onboard"
             className="block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors cursor-pointer"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
-            Hear a Real Demo Call →
+            Get My Agent
           </Link>
         </motion.div>
-        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-          <Link
-            href="/onboard"
-            className="block px-8 py-4 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              color: 'var(--color-text-2)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            Get My Agent Set Up
-          </Link>
-        </motion.div>
+        <Link
+          href="#demo"
+          className="text-sm font-medium transition-opacity hover:opacity-80"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          Hear a Demo →
+        </Link>
       </motion.div>
 
-      {/* Trusted-by / calls stat line — delay 0.5 */}
+      {/* Trust line */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.5 }}
       >
         <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-          Trusted by service businesses in Alberta · Saskatchewan
-        </p>
-        <p className="text-xs mt-2" style={{ color: 'var(--color-text-3)' }}>
-          No contracts · Cancel anytime · 30-day money-back guarantee
+          No contracts · Cancel anytime · Setup in 5 minutes
         </p>
       </motion.div>
     </div>

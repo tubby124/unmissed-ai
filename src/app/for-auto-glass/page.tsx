@@ -8,11 +8,16 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Car, Zap, MapPin, Wrench, Clock, Phone, Shield } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for Auto Glass Shops — unmissed.ai",
   description:
     "Never lose another windshield job to voicemail. Your AI agent handles calls while you do installs — 24/7, with instant lead cards delivered to your phone.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-auto-glass",
+  },
   openGraph: {
     title: "AI Receptionist for Auto Glass Shops — unmissed.ai",
     description: "Stop losing $150–$800 windshield jobs to voicemail. AI agent answers every call, collects vehicle details, ADAS requirements, and sends instant alerts.",
@@ -24,14 +29,14 @@ const autoGlassSchema = nicheSchema(
   "AI receptionist service for auto glass shops. Answers inbound calls, collects vehicle details, damage description, and ADAS calibration requirements. Delivers structured lead cards via Telegram/SMS."
 );
 
-const collected = [
-  { icon: "🚗", label: "Year, Make, Model" },
-  { icon: "💥", label: "Damage type & size" },
-  { icon: "📍", label: "Damage location on glass" },
-  { icon: "🔧", label: "ADAS calibration required?" },
-  { icon: "⏰", label: "Urgency (driving today?)" },
-  { icon: "📞", label: "Caller name + callback number" },
-  { icon: "🛡️", label: "Insurance or cash pay?" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Car, label: "Year, Make, Model" },
+  { icon: Zap, label: "Damage type & size" },
+  { icon: MapPin, label: "Damage location on glass" },
+  { icon: Wrench, label: "ADAS calibration required?" },
+  { icon: Clock, label: "Urgency (driving today?)" },
+  { icon: Phone, label: "Caller name + callback number" },
+  { icon: Shield, label: "Insurance or cash pay?" },
 ];
 
 export default function ForAutoGlassPage() {
@@ -144,7 +149,7 @@ export default function ForAutoGlassPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
@@ -169,34 +174,6 @@ export default function ForAutoGlassPage() {
             >
               Try a Live Demo Agent
             </Link>
-          </div>
-        </section>
-
-        {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;I used to lose 3–4 windshield jobs a week to voicemail while I was
-                doing installs. My agent catches everything now — even at 11pm.
-                The lead card hits my phone before I&apos;m done with the job I&apos;m on.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  M
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Shop Owner</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Auto Glass Shop · Calgary, AB</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 

@@ -1,3 +1,5 @@
+import { Niche } from '@/types/onboarding'
+
 export const NICHE_CONFIG: Record<string, { label: string; color: string; border: string; bg: string }> = {
   'auto-glass':          { label: 'Auto Glass',        color: 'text-blue-400',   border: 'border-blue-500/30',   bg: 'bg-blue-500/10' },
   'auto_glass':          { label: 'Auto Glass',        color: 'text-blue-400',   border: 'border-blue-500/30',   bg: 'bg-blue-500/10' },
@@ -23,6 +25,9 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   'auto-glass':         'b0e6b5c1-3100-44d5-8578-9015aa3023ae',
   property_mgmt:        'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — empathic, warm
   'property-management':'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
+  property_management:  'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — fix key mismatch (was property_mgmt)
+  salon:                'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — warm for beauty/wellness
+  restaurant:           'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — warm for hospitality
   real_estate:          'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline
   'real-estate':        'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
   outbound_isa_realtor: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
@@ -33,6 +38,22 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   legal:                'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — professional
   voicemail:            '87edb04c-06d4-47c2-bd94-683bc47e8fbe', // Monika — warm, natural (upgraded from Emily)
   other:                'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — safe default
+}
+
+export const NICHE_PRODUCTION_READY: Record<Niche, boolean> = {
+  auto_glass:           true,
+  hvac:                 true,
+  plumbing:             true,
+  dental:               true,
+  legal:                true,
+  salon:                true,
+  real_estate:          true,
+  property_management:  true,
+  outbound_isa_realtor: false,  // admin-only — hidden from self-serve
+  restaurant:           true,
+  voicemail:            true,
+  print_shop:           true,
+  other:                true,
 }
 
 export function getNicheVoice(niche: string | null | undefined): string {

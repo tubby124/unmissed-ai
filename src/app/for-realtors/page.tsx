@@ -7,14 +7,19 @@ import FaqAccordion from "@/components/FaqAccordion";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Home, DollarSign, BadgeCheck, Calendar, MapPin, Phone, Key } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for Real Estate Agents — unmissed.ai",
   description:
-    "Handle every buyer and seller inquiry while you're showing properties. Your AI handles calls, qualifies leads, and sends instant alerts. 2,082+ calls handled for realtors.",
+    "Handle every buyer and seller inquiry while you're showing properties. Your AI handles calls, qualifies leads, and sends instant alerts — 24/7.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-realtors",
+  },
   openGraph: {
     title: "AI Receptionist for Real Estate Agents — unmissed.ai",
-    description: "Your AI that handles calls while you show properties. 2,082 calls handled for Hasan Sharif at eXp Realty.",
+    description: "Your AI that handles calls while you show properties. Qualifies buyers and sellers, sends instant lead cards — 24/7.",
   },
 };
 
@@ -23,14 +28,14 @@ const realtySchema = nicheSchema(
   "AI receptionist and lead qualification service for real estate agents. Handles inbound buyer and seller inquiries, qualifies leads by budget, timeline, and pre-approval status, and delivers structured lead cards via Telegram/SMS."
 );
 
-const collected = [
-  { icon: "🏠", label: "Buying or selling?" },
-  { icon: "💰", label: "Budget range" },
-  { icon: "✅", label: "Pre-approved?" },
-  { icon: "📅", label: "Timeline to move" },
-  { icon: "📍", label: "Preferred area" },
-  { icon: "📞", label: "Name + callback number" },
-  { icon: "🔑", label: "Bedrooms / property type" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Home, label: "Buying or selling?" },
+  { icon: DollarSign, label: "Budget range" },
+  { icon: BadgeCheck, label: "Pre-approved?" },
+  { icon: Calendar, label: "Timeline to move" },
+  { icon: MapPin, label: "Preferred area" },
+  { icon: Phone, label: "Name + callback number" },
+  { icon: Key, label: "Bedrooms / property type" },
 ];
 
 export default function ForRealtorsPage() {
@@ -148,50 +153,10 @@ export default function ForRealtorsPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Case study — Hasan */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-3xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p
-                className="text-xs font-mono uppercase tracking-widest mb-3"
-                style={{ color: "var(--color-primary)" }}
-              >
-                Live Client Case Study
-              </p>
-              <p className="text-xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
-                Hasan Sharif — eXp Realty, Saskatoon SK
-              </p>
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;Aisha handled 2,082 calls while I was showing properties. Every lead card
-                hit my Telegram before I was done with the walkthrough. I know exactly who
-                called, what they&apos;re looking for, and whether they&apos;re pre-approved
-                before I even call back.&rdquo;
-              </p>
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-6" style={{ borderTop: "1px solid var(--color-border)" }}>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ color: "var(--color-text-1)" }}>2,082</p>
-                  <p className="text-xs" style={{ color: "var(--color-text-2)" }}>Calls handled</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ color: "var(--color-text-1)" }}>0</p>
-                  <p className="text-xs" style={{ color: "var(--color-text-2)" }}>Missed inquiries</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ color: "var(--color-text-1)" }}>24/7</p>
-                  <p className="text-xs" style={{ color: "var(--color-text-2)" }}>Coverage</p>
-                </div>
-              </div>
             </div>
           </div>
         </section>

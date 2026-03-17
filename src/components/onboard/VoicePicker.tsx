@@ -26,7 +26,7 @@ function inferGender(desc: string, name: string): 'female' | 'male' | 'unknown' 
 
 interface Props {
   selectedVoiceId: string | null
-  onSelect: (voiceId: string) => void
+  onSelect: (voiceId: string, voiceName: string) => void
 }
 
 export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
@@ -34,6 +34,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
   const [loading, setLoading] = useState(true)
   const [gender, setGender] = useState<Gender>('all')
   const [playingId, setPlayingId] = useState<string | null>(null)
+  const [errorVoiceId, setErrorVoiceId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
   }, [])
 
   const play = useCallback((voiceId: string) => {
+    setErrorVoiceId(null)
     if (audioRef.current) {
       audioRef.current.onended = null
       audioRef.current.onerror = null
@@ -53,7 +55,11 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
     }
     const audio = new Audio(`/api/public/voice-preview/${voiceId}`)
     audio.onended = () => setPlayingId(null)
-    audio.onerror = () => setPlayingId(null)
+    audio.onerror = () => {
+      setPlayingId(null)
+      setErrorVoiceId(voiceId)
+      setTimeout(() => setErrorVoiceId(v => v === voiceId ? null : v), 3000)
+    }
     audio.play().catch(() => setPlayingId(null))
     audioRef.current = audio
     setPlayingId(voiceId)
@@ -85,10 +91,10 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -98,7 +104,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
   return (
     <div className="space-y-3">
       {/* Gender filter */}
-      <div className="flex gap-1 p-0.5 rounded-lg bg-slate-100 w-fit">
+      <div className="flex gap-1 p-0.5 rounded-lg bg-muted w-fit">
         {genderTabs.map(t => (
           <button
             key={t.key}
@@ -106,8 +112,8 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
             onClick={() => setGender(t.key)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               gender === t.key
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {t.label}
@@ -124,12 +130,12 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
           return (
             <div
               key={voice.voiceId}
-              onClick={() => onSelect(voice.voiceId)}
+              onClick={() => onSelect(voice.voiceId, voice.name)}
               className={`
                 relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
                 ${isSelected
                   ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  : 'border-border hover:border-border bg-card'
                 }
               `}
             >
@@ -143,7 +149,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
                   isPlaying
                     ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                    : 'bg-muted text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
                 title={isPlaying ? 'Stop' : 'Play preview'}
               >
@@ -156,7 +162,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
                           width: 2,
                           height: 10,
                           borderRadius: 2,
-                          background: 'white',
+                          background: 'currentColor',
                           transformOrigin: 'bottom',
                           animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
                         }}
@@ -173,7 +179,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
               {/* Voice info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-900 truncate">{voice.name}</span>
+                  <span className="text-sm font-semibold text-foreground truncate">{voice.name}</span>
                   {isSelected && (
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-indigo-600">
                       <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5" />
@@ -182,16 +188,21 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
                   )}
                 </div>
                 {voice.description && (
-                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{voice.description}</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug mt-0.5 line-clamp-2">{voice.description}</p>
                 )}
               </div>
+              {errorVoiceId === voice.voiceId && (
+                <span className="absolute top-1.5 right-1.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                  Preview unavailable
+                </span>
+              )}
             </div>
           )
         })}
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-xs text-slate-400 text-center py-4">No voices match this filter</p>
+        <p className="text-xs text-muted-foreground/70 text-center py-4">No voices match this filter</p>
       )}
 
       {/* Waveform animation keyframes */}

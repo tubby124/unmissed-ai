@@ -1,12 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Car, Flame, Wrench, Stethoscope, Scale, Scissors,
-  Home, Building2, PhoneCall, Voicemail, HelpCircle, Sparkles, UtensilsCrossed, type LucideIcon,
+  Home, Building2, PhoneCall, Voicemail, HelpCircle, UtensilsCrossed, Printer,
+  type LucideIcon,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { Niche, nicheLabels, OnboardingData } from "@/types/onboarding";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NICHE_PRODUCTION_READY } from '@/lib/niche-config'
+import PlacesAutocomplete from '@/components/onboard/PlacesAutocomplete'
 
 interface Props {
   data: OnboardingData;
@@ -25,219 +30,356 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   outbound_isa_realtor: PhoneCall,
   voicemail: Voicemail,
   restaurant: UtensilsCrossed,
+  print_shop: Printer,
   other: HelpCircle,
 };
 
-// Fully built and ready to use
-const LIVE_NICHES: Niche[] = ["auto_glass", "property_management", "real_estate", "voicemail"];
-
-// Available but still in beta
-const BETA_NICHES: Niche[] = ["hvac", "plumbing", "dental", "legal", "salon"];
-
-const INBOUND_NICHES: Niche[] = [
-  "other",
-];
-
-const OUTBOUND_NICHES: Niche[] = [
-  "outbound_isa_realtor",
-];
-
-function LiveNicheButton({ niche, selected, onSelect }: { niche: Niche; selected: boolean; onSelect: () => void }) {
-  const Icon = nicheIcons[niche];
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      animate={selected ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className={`
-        relative w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer min-h-[64px]
-        ${selected
-          ? "border-indigo-600 bg-indigo-50 text-indigo-900 shadow-md shadow-indigo-100"
-          : "border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50 hover:border-emerald-500 text-gray-800"
-        }
-      `}
-    >
-      <Icon className={`w-5 h-5 shrink-0 ${selected ? "text-indigo-600" : "text-emerald-600"}`} />
-      <span className="text-sm font-semibold leading-tight flex items-center gap-1.5">
-        {nicheLabels[niche]}
-        <Sparkles className={`w-3.5 h-3.5 ${selected ? "text-indigo-400" : "text-emerald-500"}`} />
-      </span>
-
-      {/* Live badge */}
-      <span className="ml-auto flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-0.5 shrink-0">
-        <span className="relative flex h-1.5 w-1.5 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-        </span>
-        Live
-      </span>
-    </motion.button>
-  );
+interface Category {
+  label: string;
+  icon: LucideIcon;
+  niches: Niche[];
 }
 
-function BetaNicheButton({ niche, selected, onSelect }: { niche: Niche; selected: boolean; onSelect: () => void }) {
-  const Icon = nicheIcons[niche];
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      animate={selected ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className={`
-        relative w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer min-h-[64px]
-        ${selected
-          ? "border-indigo-600 bg-indigo-50 text-indigo-900 shadow-md shadow-indigo-100"
-          : "border-amber-300 bg-amber-50/40 hover:bg-amber-50 hover:border-amber-400 text-gray-800"
-        }
-      `}
-    >
-      <Icon className={`w-5 h-5 shrink-0 ${selected ? "text-indigo-600" : "text-amber-600"}`} />
-      <span className="text-sm font-semibold leading-tight">
-        {nicheLabels[niche]}
-      </span>
+const CATEGORIES: Category[] = [
+  { label: "Services", icon: Wrench, niches: ["auto_glass", "hvac", "plumbing", "print_shop"] },
+  { label: "Property", icon: Building2, niches: ["property_management", "real_estate"] },
+  { label: "Beauty & Wellness", icon: Scissors, niches: ["salon"] },
+  { label: "Food & Hospitality", icon: UtensilsCrossed, niches: ["restaurant"] },
+  { label: "Other", icon: HelpCircle, niches: ["voicemail", "dental", "legal", "other"] },
+];
 
-      {/* Beta badge */}
-      <span className="ml-auto text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-2 py-0.5 shrink-0">
-        Beta
-      </span>
-    </motion.button>
-  );
+// Maps Google Places types[] → default servicesOffered text
+const PLACES_TYPE_TO_SERVICES: Partial<Record<string, string>> = {
+  car_repair: 'Auto repair, windshield replacement, glass services',
+  dentist: 'General dentistry, cleanings, fillings, extractions',
+  hair_care: 'Haircuts, styling, coloring, treatments',
+  plumber: 'Plumbing repair, drain cleaning, pipe installation',
+  electrician: 'Electrical repair, installation, inspections',
+  locksmith: 'Lock installation, emergency lockout, key cutting',
+  lawyer: 'Legal consultation, case representation, document drafting',
+  real_estate_agency: 'Buying, selling, and renting properties',
+  restaurant: 'Dine-in, takeout, and catering services',
+  gym: 'Personal training, group classes, fitness coaching',
+  spa: 'Massage therapy, facials, body treatments',
+  veterinary_care: 'Pet exams, vaccinations, surgery',
 }
 
-function ComingSoonButton({ niche }: { niche: Niche }) {
-  const Icon = nicheIcons[niche];
-  return (
-    <div
-      className="relative flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-left min-h-[56px] opacity-45 cursor-not-allowed select-none"
-    >
-      <Icon className="w-5 h-5 shrink-0 text-gray-400" />
-      <span className="text-sm font-medium text-gray-400 leading-tight">{nicheLabels[niche]}</span>
-      <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-200 rounded-full px-2 py-0.5 shrink-0">
-        Soon
-      </span>
-    </div>
-  );
+function detectServicesFromTypes(types: string[]): string | null {
+  for (const t of types) {
+    if (PLACES_TYPE_TO_SERVICES[t]) return PLACES_TYPE_TO_SERVICES[t]!
+  }
+  return null
+}
+
+// Maps Google Places types[] → our Niche values
+const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
+  // Auto glass / car repair
+  auto_glass_shop: 'auto_glass',
+  car_repair: 'auto_glass',
+  car_wash: 'auto_glass',
+  // HVAC
+  hvac_contractor: 'hvac',
+  // Plumbing
+  plumber: 'plumbing',
+  // Dental
+  dentist: 'dental',
+  dental_clinic: 'dental',
+  // Legal
+  lawyer: 'legal',
+  legal_services: 'legal',
+  // Salon / beauty
+  hair_care: 'salon',
+  beauty_salon: 'salon',
+  nail_salon: 'salon',
+  spa: 'salon',
+  // Real estate
+  real_estate_agency: 'real_estate',
+  real_estate: 'real_estate',
+  // Property management
+  property_management_company: 'property_management',
+  // Restaurant / food
+  restaurant: 'restaurant',
+  food: 'restaurant',
+  cafe: 'restaurant',
+  meal_takeaway: 'restaurant',
+  // Print shop
+  print_shop: 'print_shop',
+  // Electrician → hvac (closest bucket)
+  electrician: 'hvac',
+}
+
+function detectNicheFromTypes(types: string[]): Niche | null {
+  for (const t of types) {
+    if (PLACES_TYPE_TO_NICHE[t]) return PLACES_TYPE_TO_NICHE[t]
+  }
+  return null
+}
+
+function parseAddressParts(address: string): { city: string; state: string; streetAddress: string } {
+  // Google formatted_address: "123 Main St, Saskatoon, SK S7L 0V5, Canada"
+  const parts = address.split(",").map((s) => s.trim());
+  const streetAddress = parts[0] || "";
+  const city = parts[1] || "";
+  // Province/state is usually the 3rd part before postal code: "SK S7L 0V5"
+  const stateChunk = parts[2] || "";
+  const state = stateChunk.split(" ")[0] || "";
+  return { city, state, streetAddress };
 }
 
 export default function Step1({ data, onUpdate }: Props) {
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(() => {
+    // Auto-expand the category containing the already-selected niche
+    if (data.niche) {
+      const cat = CATEGORIES.find((c) => c.niches.includes(data.niche!));
+      return cat?.label ?? null;
+    }
+    return null;
+  });
+  const [autofilling, setAutofilling] = useState(false);
+
+  const toggleCategory = useCallback(
+    (label: string) => {
+      setExpandedCategory((prev) => (prev === label ? null : label));
+    },
+    [],
+  );
+
+  const handleWebsiteBlur = useCallback(
+    async (url: string) => {
+      if (!url) return;
+
+      // Normalize URL
+      let normalizedUrl = url.trim();
+      if (!/^https?:\/\//i.test(normalizedUrl)) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+
+      setAutofilling(true);
+
+      try {
+        // 1. Try Places API if we have a business name
+        let placesAvailable = false;
+        if (data.businessName) {
+          try {
+            const placesRes = await fetch(
+              `/api/onboard/places-lookup?q=${encodeURIComponent(data.businessName)}&city=${encodeURIComponent(data.city || "")}`,
+            );
+            if (placesRes.ok) {
+              const placesData = await placesRes.json();
+              if (placesData.available && placesData.name) {
+                placesAvailable = true;
+                const updates: Partial<OnboardingData> = {};
+                if (placesData.name) updates.businessName = placesData.name;
+                if (placesData.address) {
+                  const { city, state, streetAddress } = parseAddressParts(placesData.address);
+                  if (city) updates.city = city;
+                  if (state) updates.state = state;
+                  if (streetAddress) updates.streetAddress = streetAddress;
+                }
+                if (placesData.phone) updates.callbackPhone = placesData.phone;
+                if (placesData.hours && Array.isArray(placesData.hours)) {
+                  updates.businessHoursText = placesData.hours.join(", ");
+                }
+                if (Object.keys(updates).length > 0) onUpdate(updates);
+              }
+            }
+          } catch {
+            // Silently fall through to autofill
+          }
+        }
+
+        // 2. Always run autofill for hours/services (fills gaps)
+        if (!placesAvailable || !data.businessHoursText || !data.servicesOffered) {
+          try {
+            const autofillRes = await fetch("/api/onboard/autofill", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: normalizedUrl }),
+            });
+            if (autofillRes.ok) {
+              const autofillData = await autofillRes.json();
+              const updates: Partial<OnboardingData> = {};
+              if (autofillData.hours && !data.businessHoursText) {
+                updates.businessHoursText = autofillData.hours;
+              }
+              if (autofillData.services && !data.servicesOffered) {
+                updates.servicesOffered = autofillData.services;
+              }
+              if (Object.keys(updates).length > 0) onUpdate(updates);
+            }
+          } catch {
+            // Silent — autofill is best-effort
+          }
+        }
+      } finally {
+        setAutofilling(false);
+      }
+    },
+    [data.businessName, data.city, data.businessHoursText, data.servicesOffered, onUpdate],
+  );
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">What type of business are you?</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-2xl font-bold text-foreground">What type of business are you?</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Your agent will be customized with industry-specific knowledge.
         </p>
       </div>
 
-      <div className="space-y-5">
-        {/* Live niches — full width, prominent */}
-        <div>
-          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-3">
-            Available now
-          </p>
-          <div className="flex flex-col gap-3">
-            {LIVE_NICHES.map((niche) => (
-              <LiveNicheButton
-                key={niche}
-                niche={niche}
-                selected={data.niche === niche}
-                onSelect={() => onUpdate({ niche })}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Beta niches */}
-        <div>
-          <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-3">
-            In beta — available now
-          </p>
-          <div className="flex flex-col gap-3">
-            {BETA_NICHES.map((niche) => (
-              <BetaNicheButton
-                key={niche}
-                niche={niche}
-                selected={data.niche === niche}
-                onSelect={() => onUpdate({ niche })}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Coming soon — inbound */}
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Coming soon — receives calls
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {INBOUND_NICHES.map((niche) => (
-              <ComingSoonButton key={niche} niche={niche} />
-            ))}
-          </div>
-        </div>
-
-        {/* Coming soon — outbound */}
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Coming soon — makes calls
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {OUTBOUND_NICHES.map((niche) => (
-              <ComingSoonButton key={niche} niche={niche} />
-            ))}
-          </div>
-        </div>
+      {/* Business search — Places autocomplete */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">
+          Search your business <span className="text-muted-foreground/70 font-normal">(optional — auto-fills details)</span>
+        </label>
+        <PlacesAutocomplete
+          initialValue={data.businessName}
+          onSelect={(result) => {
+            const updates: Partial<OnboardingData> = {}
+            if (result.name) updates.businessName = result.name
+            if (result.address) {
+              const { city, state, streetAddress } = parseAddressParts(result.address)
+              if (city) updates.city = city
+              if (state) updates.state = state
+              if (streetAddress) updates.streetAddress = streetAddress
+            }
+            if (result.phone) updates.callbackPhone = result.phone
+            if (result.hours && Array.isArray(result.hours)) {
+              updates.businessHoursText = result.hours.join(', ')
+            }
+            if (result.photoUrl) updates.placesPhotoUrl = result.photoUrl
+            if (result.rating) updates.placesRating = result.rating
+            if (result.reviewCount) updates.placesReviewCount = result.reviewCount
+            if (result.placeId) updates.placeId = result.placeId
+            // Auto-detect niche from Places types[]
+            if (result.types && Array.isArray(result.types)) {
+              const detected = detectNicheFromTypes(result.types)
+              if (detected && NICHE_PRODUCTION_READY[detected]) {
+                updates.niche = detected
+                // Auto-expand that category so the user sees the selection
+                const cat = CATEGORIES.find((c) => c.niches.includes(detected))
+                if (cat) setExpandedCategory(cat.label)
+              }
+              // Auto-fill servicesOffered if not already set
+              if (!data.servicesOffered) {
+                const services = detectServicesFromTypes(result.types)
+                if (services) updates.servicesOffered = services
+              }
+            }
+            if (Object.keys(updates).length > 0) onUpdate(updates)
+          }}
+        />
       </div>
 
-      {data.niche && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 flex items-center gap-3"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (!audioRef.current) return;
-              if (playing) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-                setPlaying(false);
-              } else {
-                audioRef.current.play().catch(() => setPlaying(false));
-                setPlaying(true);
-              }
-            }}
-            className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-indigo-700 transition-colors"
-            aria-label={playing ? "Pause greeting preview" : "Play greeting preview"}
-          >
-            {playing ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16" rx="1"/>
-                <rect x="14" y="4" width="4" height="16" rx="1"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            )}
-          </button>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-indigo-900">Hear your agent&apos;s greeting</p>
-            <p className="text-xs text-indigo-500">~8 second demo</p>
-          </div>
-          <audio
-            ref={audioRef}
-            src="/audio/demo-greeting.mp3"
-            onEnded={() => setPlaying(false)}
+      {/* Category cards */}
+      <div className="space-y-3">
+        {CATEGORIES.map((category) => {
+          const isExpanded = expandedCategory === category.label;
+          const CategoryIcon = category.icon;
+          const hasSelected = category.niches.includes(data.niche as Niche);
+
+          return (
+            <div key={category.label}>
+              <button
+                type="button"
+                onClick={() => toggleCategory(category.label)}
+                className={`
+                  w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all cursor-pointer
+                  ${hasSelected
+                    ? "border-indigo-600 bg-indigo-50 shadow-md shadow-indigo-100"
+                    : isExpanded
+                      ? "border-border/80 bg-muted/30"
+                      : "border-border bg-card hover:border-border hover:bg-muted/30"
+                  }
+                `}
+              >
+                <CategoryIcon
+                  className={`w-5 h-5 shrink-0 ${hasSelected ? "text-indigo-600" : "text-muted-foreground"}`}
+                />
+                <span
+                  className={`text-sm font-semibold ${hasSelected ? "text-indigo-900" : "text-foreground"}`}
+                >
+                  {category.label}
+                </span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className={`ml-auto shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${
+                    hasSelected ? "text-indigo-400" : "text-muted-foreground/70"
+                  }`}
+                >
+                  <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-wrap gap-2 pt-3 pb-1 px-1">
+                      {category.niches.filter(niche => NICHE_PRODUCTION_READY[niche]).map((niche) => {
+                        const NicheIcon = nicheIcons[niche];
+                        const isSelected = data.niche === niche;
+
+                        return (
+                          <button
+                            key={niche}
+                            type="button"
+                            onClick={() => onUpdate({ niche })}
+                            className={`
+                              flex items-center gap-2 px-3.5 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer
+                              ${isSelected
+                                ? "border-indigo-600 bg-indigo-100 text-indigo-900"
+                                : "border-border bg-card text-foreground hover:border-border hover:bg-muted/30"
+                              }
+                            `}
+                          >
+                            <NicheIcon
+                              className={`w-4 h-4 shrink-0 ${isSelected ? "text-indigo-600" : "text-muted-foreground/70"}`}
+                            />
+                            {nicheLabels[niche]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Website URL input */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <Label htmlFor="websiteUrl">Website URL <span className="text-muted-foreground/70 font-normal text-xs">(optional)</span></Label>
+        <div className="relative">
+          <Input
+            id="websiteUrl"
+            type="url"
+            placeholder="https://yourbusiness.com"
+            value={data.websiteUrl}
+            onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
+            onBlur={(e) => handleWebsiteBlur(e.target.value)}
           />
-        </motion.div>
-      )}
+          {autofilling && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-muted-foreground/70">
+              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Looking up your business...
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

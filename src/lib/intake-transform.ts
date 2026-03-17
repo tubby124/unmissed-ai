@@ -89,7 +89,6 @@ export function toIntakePayload(data: OnboardingData) {
   const defaultName = niche ? defaultAgentNames[niche as Niche] : "Sam";
   const stateCode = (data.state || "AB").toUpperCase();
   const country = detectCountry(stateCode);
-  const timezone = TIMEZONE_MAP[stateCode] || "America/Edmonton";
 
   const rawInsurance = (data.nicheAnswers.insurance as string) || "";
   const insurancePreset = rawInsurance ? mapInsuranceToPreset(rawInsurance) : "private_only";
@@ -109,7 +108,7 @@ export function toIntakePayload(data: OnboardingData) {
     country,
     city: data.city || "N/A",
     province: stateCode,
-    timezone,
+    timezone: data.timezone || TIMEZONE_MAP[stateCode] || 'America/Edmonton',
     owner_name: data.ownerName || "",
     contact_email: data.contactEmail || "",
     website_url: data.websiteUrl || "",
@@ -124,6 +123,7 @@ export function toIntakePayload(data: OnboardingData) {
     weekend_policy: weekendPolicy,
     callback_phone: data.callbackPhone,
     after_hours_behavior: data.afterHoursBehavior || "take_message",
+    emergency_phone: data.emergencyPhone || "",
     agent_tone: data.agentTone || "casual",
     caller_faq: data.callerFAQ || "",
     agent_restrictions: data.agentRestrictions || "",
@@ -131,6 +131,9 @@ export function toIntakePayload(data: OnboardingData) {
       (Array.isArray(data.nicheAnswers?.services)
         ? (data.nicheAnswers.services as string[]).join(', ')
         : (data.nicheAnswers?.services as string) || ''),
+    call_handling_mode: data.callHandlingMode || 'triage',
+    voice_id: data.voiceId || null,
+    niche_faq_pairs: JSON.stringify(data.faqPairs || []),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>
         [`niche_${k}`, Array.isArray(v) ? (v as string[]).join(", ") : String(v)]

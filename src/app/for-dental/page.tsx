@@ -8,11 +8,16 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Stethoscope, HeartPulse, Clock, Shield, Calendar, Phone, ClipboardList } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for Dental Offices — unmissed.ai",
   description:
     "Never lose a new patient to voicemail. Your AI receptionist answers calls 24/7, books appointments, and sends you instant patient cards.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-dental",
+  },
   openGraph: {
     title: "AI Receptionist for Dental Offices — unmissed.ai",
     description: "Never lose a new patient to voicemail. Your AI receptionist answers calls 24/7, books appointments, and sends you instant patient cards.",
@@ -24,14 +29,14 @@ const dentalSchema = nicheSchema(
   "AI receptionist for dental offices. Answers calls, screens new patients, collects insurance info, and schedules appointments."
 );
 
-const collected = [
-  { icon: "\u{1F9B7}", label: "New or existing patient?" },
-  { icon: "\u{1F915}", label: "Reason for call (pain, cleaning, cosmetic, emergency)" },
-  { icon: "\u23F0", label: "Urgency level" },
-  { icon: "\u{1F6E1}\uFE0F", label: "Insurance provider" },
-  { icon: "\u{1F4C5}", label: "Preferred appointment time" },
-  { icon: "\u{1F4DE}", label: "Patient name + callback" },
-  { icon: "\u{1F4CB}", label: "Any relevant medical notes" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Stethoscope, label: "New or existing patient?" },
+  { icon: HeartPulse, label: "Reason for call (pain, cleaning, cosmetic, emergency)" },
+  { icon: Clock, label: "Urgency level" },
+  { icon: Shield, label: "Insurance provider" },
+  { icon: Calendar, label: "Preferred appointment time" },
+  { icon: Phone, label: "Patient name + callback" },
+  { icon: ClipboardList, label: "Any relevant medical notes" },
 ];
 
 export default function ForDentalPage() {
@@ -145,7 +150,7 @@ export default function ForDentalPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
@@ -170,35 +175,6 @@ export default function ForDentalPage() {
             >
               Try a Live Demo Agent
             </Link>
-          </div>
-        </section>
-
-        {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;Our front desk was drowning in calls during lunch breaks and
-                after hours. Now every call gets answered professionally, insurance
-                info collected, and appointment preferences noted. We&apos;ve added
-                12 new patients a month we were losing to voicemail.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  A
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Dr. Ashley K.</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Family Dental &middot; Saskatoon, SK</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 

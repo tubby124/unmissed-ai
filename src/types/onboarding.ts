@@ -12,6 +12,7 @@ export type Niche =
   | "outbound_isa_realtor"
   | "restaurant"
   | "voicemail"
+  | "print_shop"
   | "other";
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
@@ -49,6 +50,10 @@ export interface OnboardingData {
   ownerName: string;
   contactEmail: string;
   websiteUrl: string;
+  placeId?: string;               // Google Places place_id from autocomplete selection
+  placesPhotoUrl?: string;        // Business photo URL from Google Places
+  placesRating?: number;          // Google rating (1-5)
+  placesReviewCount?: number;     // Total review count from Google
   businessHoursText: string;   // e.g. "Mon–Fri 9am–5pm, Sat 10am–2pm" — used when step 3 is skipped
   servicesOffered: string;     // brief services description — optional, used when step 4 is skipped
 
@@ -82,6 +87,14 @@ export interface OnboardingData {
   primaryGoal: PrimaryGoal;
   completionFields: string;   // Moved to Settings > Advanced Context
   pricingPolicy: PricingPolicy;
+
+  // New: voice + call handling + knowledge
+  voiceId: string | null;
+  voiceName: string;
+  callHandlingMode: 'message_only' | 'triage' | 'full_service';
+  faqPairs: { question: string; answer: string }[];
+  knowledgeDocs: { id: string; filename: string; charCount: number }[];
+  timezone: string;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -102,6 +115,7 @@ export const NICHE_CONFIG: Record<Niche, {
   outbound_isa_realtor: { hasPhysicalAddress: false },
   restaurant:           { hasPhysicalAddress: true  },
   voicemail:            { hasPhysicalAddress: false },
+  print_shop:           { hasPhysicalAddress: true  },
   other:                { hasPhysicalAddress: false },
 };
 
@@ -147,6 +161,12 @@ export const defaultOnboardingData: OnboardingData = {
   primaryGoal: "",
   completionFields: "",
   pricingPolicy: "",
+  voiceId: null,
+  voiceName: '',
+  callHandlingMode: 'triage',
+  faqPairs: [],
+  knowledgeDocs: [],
+  timezone: '',
 };
 
 export const nicheLabels: Record<Niche, string> = {
@@ -161,6 +181,7 @@ export const nicheLabels: Record<Niche, string> = {
   outbound_isa_realtor: "Realtor ISA (Outbound)",
   restaurant: "Restaurant / Food Service",
   voicemail: "Voicemail / Message Taking",
+  print_shop: "Print Shop",
   other: "Other Business",
 };
 
@@ -176,6 +197,7 @@ export const nicheEmojis: Record<Niche, string> = {
   outbound_isa_realtor: "📞",
   restaurant: "🍕",
   voicemail: "📬",
+  print_shop: "🖨️",
   other: "🏢",
 };
 
@@ -191,5 +213,6 @@ export const defaultAgentNames: Record<Niche, string> = {
   outbound_isa_realtor: "Fatima",
   restaurant: "Sofia",
   voicemail: "Sam",
+  print_shop: "Alex",
   other: "Sam",
 };

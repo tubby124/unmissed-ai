@@ -1,40 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { OnboardingData, defaultOnboardingData, Niche } from "@/types/onboarding";
 import Step1 from "./steps/step1";
-import Step2 from "./steps/step2";
-import Step3 from "./steps/step3";
+import Step2Voice from "./steps/step2-voice";
+import Step3Basics from "./steps/step3-basics";
 import Step4 from "./steps/step4";
-import Step5 from "./steps/step5";
-import Step6 from "./steps/step6";
-import Step7 from "./steps/step7";
+import Step5Handling from "./steps/step5-handling";
+import Step6Review from "./steps/step6-review";
 import OnboardLeftPanel from "@/components/onboard/OnboardLeftPanel";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const STORAGE_KEY = "unmissed-onboard-draft";
 
-function countDigits(s: string): number {
-  return (s.match(/\d/g) || []).length;
+function getStepSequence(niche: Niche | null): number[] {
+  if (niche === "voicemail") return [1, 2, 3, 6]; // skip Knowledge (4) and Call Handling (5)
+  return [1, 2, 3, 4, 5, 6]; // full flow for all other niches
 }
 
 const STEP_TITLES: Record<number, string> = {
   1: "Your industry",
-  2: "Business basics",
-  3: "Hours",
-  4: "Customize your agent",
-  5: "Notifications",
-  6: "Preferences",
-  7: "Review & activate",
+  2: "Your agent's voice",
+  3: "Business basics",
+  4: "Knowledge & FAQ",
+  5: "Call handling",
+  6: "Review & activate",
 };
 
-function getStepSequence(niche: string | null): number[] {
-  // voicemail + real_estate + restaurant keep step 4 (their niche Q's feed custom prompt builders)
-  if (niche === 'voicemail' || niche === 'real_estate' || niche === 'restaurant') return [1, 2, 4, 7];
-  // ALL other niches: 3-step fast-track
-  return [1, 2, 7];
+function countDigits(s: string): number {
+  return (s.match(/\d/g) || []).length;
 }
 
 function isValidEmail(email: string): boolean {
@@ -44,37 +41,19 @@ function isValidEmail(email: string): boolean {
 function canAdvance(step: number, data: OnboardingData): boolean {
   switch (step) {
     case 1: return !!data.niche;
-    case 2: {
-      const isVM = data.niche === 'voicemail';
+    case 2: return true; // voice has a default
+    case 3: {
+      const isVM = data.niche === "voicemail";
       const baseValid = !!data.businessName
-        && (!isVM ? !!data.state : true)
         && countDigits(data.callbackPhone) >= 10
         && isValidEmail(data.contactEmail);
-      if (data.niche === 'real_estate') return baseValid && !!data.ownerName?.trim() && !!data.businessHoursText?.trim();
+      if (data.niche === "real_estate") return baseValid && !!data.ownerName?.trim() && !!data.businessHoursText?.trim();
       if (isVM) return baseValid;
       return baseValid && !!data.city && !!data.businessHoursText?.trim();
     }
-    case 3: {
-      const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
-      for (const day of days) {
-        const h = data.hours[day];
-        if (!h.closed && h.open && h.close && h.close <= h.open) return false;
-      }
-      if (data.afterHoursBehavior === "route_emergency" && countDigits(data.emergencyPhone) < 10) {
-        return false;
-      }
-      return true;
-    }
-    case 4: return true;
-    case 5: {
-      if (!data.notificationMethod) return false;
-      const m = data.notificationMethod;
-      if ((m === "sms" || m === "both") && countDigits(data.notificationPhone) < 10) return false;
-      if ((m === "email" || m === "both") && !data.notificationEmail.trim()) return false;
-      return true;
-    }
-    case 6: return true;
-    case 7: return true;
+    case 4: return true; // knowledge + FAQ optional
+    case 5: return true; // all have defaults
+    case 6: return true; // review page
     default: return true;
   }
 }
@@ -92,7 +71,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             <div
               className={`
                 relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold shrink-0
-                ${done ? "bg-indigo-600 text-white" : active ? "ring-2 ring-indigo-600 text-indigo-600 bg-white" : "bg-gray-100 text-gray-400"}
+                ${done ? "bg-indigo-600 text-white" : active ? "ring-2 ring-indigo-600 text-indigo-600 bg-background" : "bg-muted text-muted-foreground"}
               `}
             >
               {active && (
@@ -109,7 +88,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
               ) : n}
             </div>
             {n < total && (
-              <div className={`w-6 sm:w-10 h-0.5 transition-colors duration-300 ${done ? "bg-indigo-600" : "bg-gray-200"}`} />
+              <div className={`w-6 sm:w-10 h-0.5 transition-colors duration-300 ${done ? "bg-indigo-600" : "bg-border"}`} />
             )}
           </div>
         );
@@ -121,42 +100,60 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 export default function OnboardPage() {
   const router = useRouter();
   const [step, setStep] = useState<number>(() => {
-    if (typeof window === 'undefined') return 1
+    if (typeof window === "undefined") return 1;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved)
-        return typeof parsed.step === 'number' ? parsed.step : 1
+        const parsed = JSON.parse(saved);
+        const s = typeof parsed.step === "number" ? parsed.step : 1;
+        // G10: stale localStorage fix — old 7-step wizard saved step > 6
+        return s > 6 ? 1 : s;
       }
     } catch { /* ignore */ }
-    return 1
-  })
+    return 1;
+  });
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const [data, setData] = useState<OnboardingData>(() => {
-    if (typeof window === 'undefined') return defaultOnboardingData
+    if (typeof window === "undefined") return defaultOnboardingData;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed.data && typeof parsed.data === 'object') {
-          return { ...defaultOnboardingData, ...parsed.data }
+        const parsed = JSON.parse(saved);
+        if (parsed.data && typeof parsed.data === "object") {
+          return { ...defaultOnboardingData, ...parsed.data };
         }
       }
     } catch { /* ignore */ }
-    return defaultOnboardingData
-  })
+    return defaultOnboardingData;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTrainingAnimation, setShowTrainingAnimation] = useState(false);
+  const trainingShownRef = useRef(false);
 
-  // Derived step sequence based on selected niche
   const stepSequence = getStepSequence(data.niche);
   const stepIndex = stepSequence.indexOf(step);
   const totalSteps = stepSequence.length;
 
+  // Reset to step 1 if niche changes and current step is no longer in the new sequence
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!stepSequence.includes(step)) {
+      setStep(1);
+    }
+  }, [data.niche]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-detect timezone on mount
+  useEffect(() => {
+    if (!data.timezone) {
+      update({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }));
     } catch { /* localStorage full */ }
   }, [step, data]);
 
@@ -167,6 +164,16 @@ export default function OnboardPage() {
   const goNext = () => {
     if (stepIndex < stepSequence.length - 1) {
       setDirection(1);
+      // Training animation: only once, only when step 1→2 with a business name
+      if (step === 1 && data.businessName && !trainingShownRef.current) {
+        trainingShownRef.current = true;
+        setShowTrainingAnimation(true);
+        setTimeout(() => {
+          setShowTrainingAnimation(false);
+          setStep(stepSequence[stepIndex + 1]);
+        }, 2000);
+        return;
+      }
       setStep(stepSequence[stepIndex + 1]);
     }
   };
@@ -178,19 +185,32 @@ export default function OnboardPage() {
     }
   };
 
-  const handleActivate = async () => {
+  const handleActivate = async (mode: "trial" | "paid") => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/provision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Submission failed");
-      if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-      router.push(`/onboard/status?id=${json.jobId}`);
+      if (mode === "trial") {
+        const res = await fetch("/api/provision/trial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Trial signup failed");
+        if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+        router.push(`/onboard/status?trial=true&clientId=${json.clientId}&setupUrl=${encodeURIComponent(json.setupUrl || '')}&telegramLink=${encodeURIComponent(json.telegramLink || '')}`);
+      } else {
+        // Existing paid path
+        const res = await fetch("/api/provision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Submission failed");
+        if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+        router.push(`/onboard/status?id=${json.jobId}`);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setIsSubmitting(false);
@@ -204,33 +224,67 @@ export default function OnboardPage() {
   };
 
   const canGoNext = canAdvance(step, data);
+  const isLastStep = stepIndex === totalSteps - 1;
 
   return (
     <div className="min-h-screen flex">
+      {/* Training animation overlay */}
+      {showTrainingAnimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
+          <div className="text-center space-y-4 px-8 max-w-sm">
+            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <p className="text-lg font-semibold text-foreground">
+              Training your agent on {data.businessName}...
+            </p>
+            {/* Progress bar */}
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-indigo-600 rounded-full transition-all"
+                style={{ width: '100%', transition: 'width 1.9s ease-out', transitionDelay: '0.05s' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left panel */}
       <OnboardLeftPanel
         niche={data.niche}
         stepTitle={STEP_TITLES[step]}
         stepIndex={stepIndex + 1}
         totalSteps={totalSteps}
+        businessName={data.businessName}
+        city={data.city}
+        placesPhotoUrl={data.placesPhotoUrl}
+        placesRating={data.placesRating}
+        placesReviewCount={data.placesReviewCount}
+        voiceName={data.voiceName}
+        isReviewStep={step === 6}
       />
 
-      {/* Right panel — existing form, unchanged */}
-      <div className="flex-1 flex flex-col min-h-screen bg-slate-50">
+      {/* Right panel */}
+      <div className="flex-1 flex flex-col min-h-screen bg-muted/30">
         {/* Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <div className="bg-background border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-indigo-600 tracking-tight">unmissed.ai</span>
-            <span className="hidden sm:block text-gray-300 text-xs">·</span>
-            <span className="hidden sm:block text-xs text-gray-400">Set up your AI agent — ~5 min</span>
+            <span className="hidden sm:block text-muted-foreground/70 text-xs">·</span>
+            <span className="hidden sm:block text-xs text-muted-foreground">Set up your AI agent — ~5 min</span>
           </div>
-          <div className="text-xs text-gray-400 font-medium">
-            {stepIndex + 1} / {totalSteps}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <span className="text-xs text-muted-foreground font-medium">
+              {stepIndex + 1} / {totalSteps}
+            </span>
           </div>
         </div>
 
         {/* Step indicator */}
-        <div className="bg-white border-b">
+        <div className="bg-background border-b">
           <StepIndicator current={stepIndex + 1} total={totalSteps} />
           <div className="text-center pb-3">
             <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step]}</span>
@@ -251,51 +305,46 @@ export default function OnboardPage() {
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 {step === 1 && <Step1 data={data} onUpdate={update} />}
-                {step === 2 && <Step2 data={data} onUpdate={update} />}
-                {step === 3 && <Step3 data={data} onUpdate={update} />}
+                {step === 2 && <Step2Voice data={data} onUpdate={update} />}
+                {step === 3 && <Step3Basics data={data} onUpdate={update} />}
                 {step === 4 && <Step4 data={data} onUpdate={update} />}
-                {step === 5 && <Step5 data={data} onUpdate={update} />}
-                {step === 6 && <Step6 data={data} onUpdate={update} />}
-                {step === 7 && <Step7 data={data} stepSequence={stepSequence} onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }} />}
+                {step === 5 && <Step5Handling data={data} onUpdate={update} />}
+                {step === 6 && (
+                  <Step6Review
+                    data={data}
+                    stepSequence={stepSequence}
+                    onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }}
+                    onActivate={handleActivate}
+                    isSubmitting={isSubmitting}
+                    error={error}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
 
         {/* Footer nav */}
-        <div className="bg-white border-t px-4 py-4">
+        <div className="bg-background border-t px-4 py-4">
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <Button
               variant="ghost"
               onClick={goBack}
               disabled={step === 1}
-              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+              className="text-muted-foreground hover:text-foreground cursor-pointer"
             >
-              ← Back
+              &larr; Back
             </Button>
 
             <div className="flex items-center gap-3">
-              {error && (
-                <p className="text-xs text-red-600 max-w-[200px] text-right">{error}</p>
-              )}
-              {stepIndex < totalSteps - 1 ? (
+              {!isLastStep && (
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     onClick={goNext}
                     disabled={!canGoNext}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    Continue →
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={handleActivate}
-                    disabled={isSubmitting}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 cursor-pointer"
-                  >
-                    {isSubmitting ? "Activating..." : "Activate My Agent →"}
+                    Continue &rarr;
                   </Button>
                 </motion.div>
               )}

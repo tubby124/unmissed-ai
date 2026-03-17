@@ -21,6 +21,10 @@
     {
       "schedule": "0 6 1 * *",
       "command": "curl -s -X POST http://localhost:3000/api/cron/reset-minutes -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
+    },
+    {
+      "schedule": "0 7 * * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/trial-expiry -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
     }
   ]
 }

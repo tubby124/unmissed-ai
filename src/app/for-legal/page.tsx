@@ -8,11 +8,16 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Scale, ClipboardList, Clock, Calendar, Phone, Users, MapPin } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for Law Firms — unmissed.ai",
   description:
     "Never lose a potential client to voicemail. Your AI receptionist screens calls, collects case details, and sends instant consultation requests.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-legal",
+  },
   openGraph: {
     title: "AI Receptionist for Law Firms — unmissed.ai",
     description: "Never lose a potential client to voicemail. Your AI receptionist screens calls, collects case details, and sends instant consultation requests.",
@@ -24,14 +29,14 @@ const legalSchema = nicheSchema(
   "AI receptionist for law firms. Screens potential clients, collects case type and details, and delivers structured intake cards."
 );
 
-const collected = [
-  { icon: "\u2696\uFE0F", label: "Area of law (PI, family, criminal, business, real estate)" },
-  { icon: "\u{1F4CB}", label: "Brief case description" },
-  { icon: "\u23F0", label: "Urgency (active case, deadline, general inquiry)" },
-  { icon: "\u{1F4C5}", label: "Consultation preference" },
-  { icon: "\u{1F4DE}", label: "Caller name + callback" },
-  { icon: "\u{1F91D}", label: "Have they spoken to other firms?" },
-  { icon: "\u{1F4CD}", label: "Jurisdiction / location" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Scale, label: "Area of law (PI, family, criminal, business, real estate)" },
+  { icon: ClipboardList, label: "Brief case description" },
+  { icon: Clock, label: "Urgency (active case, deadline, general inquiry)" },
+  { icon: Calendar, label: "Consultation preference" },
+  { icon: Phone, label: "Caller name + callback" },
+  { icon: Users, label: "Have they spoken to other firms?" },
+  { icon: MapPin, label: "Jurisdiction / location" },
 ];
 
 export default function ForLegalPage() {
@@ -144,7 +149,7 @@ export default function ForLegalPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
@@ -169,35 +174,6 @@ export default function ForLegalPage() {
             >
               Try a Live Demo Agent
             </Link>
-          </div>
-        </section>
-
-        {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;Personal injury leads don&apos;t call during business hours. My
-                agent screens every call, collects case details, and I wake up to a
-                full intake card. We&apos;ve signed 3 extra clients a month we would
-                have lost.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  J
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Jordan M.</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>Personal injury firm &middot; Calgary, AB</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 

@@ -8,11 +8,16 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import TryDemoPopup from "@/components/TryDemoPopup";
 import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
+import { Home, Thermometer, Clock, Calendar, MapPin, Phone, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Receptionist for HVAC Companies — unmissed.ai",
   description:
     "Never lose a furnace repair call to voicemail. Your AI agent handles calls 24/7 — even during emergency season.",
+  alternates: {
+    canonical: "https://unmissed.ai/for-hvac",
+  },
   openGraph: {
     title: "AI Receptionist for HVAC Companies — unmissed.ai",
     description: "Never lose a furnace repair call to voicemail. Your AI agent handles calls 24/7 — even during emergency season.",
@@ -24,14 +29,14 @@ const hvacSchema = nicheSchema(
   "AI receptionist for HVAC companies. Answers inbound calls, triages heating/cooling emergencies, collects system details and schedules service."
 );
 
-const collected = [
-  { icon: "\u{1F3E0}", label: "Heating or cooling issue?" },
-  { icon: "\u{1F321}\u{FE0F}", label: "System type (furnace, AC, heat pump)" },
-  { icon: "\u{23F0}", label: "How urgent? (no heat, uncomfortable, maintenance)" },
-  { icon: "\u{1F4C5}", label: "Preferred service window" },
-  { icon: "\u{1F4CD}", label: "Service address" },
-  { icon: "\u{1F4DE}", label: "Caller name + callback" },
-  { icon: "\u{1F527}", label: "System age if known" },
+const collected: { icon: LucideIcon; label: string }[] = [
+  { icon: Home, label: "Heating or cooling issue?" },
+  { icon: Thermometer, label: "System type (furnace, AC, heat pump)" },
+  { icon: Clock, label: "How urgent? (no heat, uncomfortable, maintenance)" },
+  { icon: Calendar, label: "Preferred service window" },
+  { icon: MapPin, label: "Service address" },
+  { icon: Phone, label: "Caller name + callback" },
+  { icon: Wrench, label: "System age if known" },
 ];
 
 export default function ForHvacPage() {
@@ -144,7 +149,7 @@ export default function ForHvacPage() {
                   className="rounded-xl p-4 text-center"
                   style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="flex justify-center mb-2"><item.icon size={22} style={{ color: "var(--color-primary)" }} /></div>
                   <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>{item.label}</p>
                 </div>
               ))}
@@ -169,34 +174,6 @@ export default function ForHvacPage() {
             >
               Try a Live Demo Agent
             </Link>
-          </div>
-        </section>
-
-        {/* Testimonial */}
-        <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="rounded-2xl p-8"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="text-lg leading-relaxed mb-4 italic" style={{ color: "var(--color-text-1)" }}>
-                &ldquo;We get slammed with no-heat calls every winter. Before, half went
-                to voicemail after hours. Now every call gets answered, triaged, and I
-                get a lead card before I finish the job I&apos;m on.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  M
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>Mike R.</p>
-                  <p className="text-sm" style={{ color: "var(--color-text-2)" }}>HVAC company owner &middot; Edmonton, AB</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
