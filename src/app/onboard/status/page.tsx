@@ -522,7 +522,7 @@ interface IntakePreview {
   businessName: string;
   niche: string;
   agentName: string;
-  voiceGender: string;
+  voiceId: string;
 }
 
 function AgentPreviewCard({ preview }: { preview: IntakePreview }) {
@@ -530,7 +530,7 @@ function AgentPreviewCard({ preview }: { preview: IntakePreview }) {
   const agentName = preview.agentName || DEFAULT_AGENT_NAMES[niche] || "Sam";
   const businessName = preview.businessName || "Your Business";
   const nicheLabel = NICHE_LABELS[niche] || niche.replace(/_/g, " ");
-  const voiceLabel = preview.voiceGender === "male" ? "Male" : preview.voiceGender === "female" ? "Female" : "Auto (based on niche)";
+  const voiceLabel = preview.voiceId ? "Custom voice selected" : "Auto (based on niche)";
   const greeting = getSampleGreeting(niche, businessName, agentName);
 
   return (

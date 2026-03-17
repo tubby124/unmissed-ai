@@ -39,10 +39,7 @@ const US_STATES = [
 
 export default function Step2({ data, onUpdate }: Props) {
   const isVoicemail = data.niche === "voicemail";
-  const isMaleVoice = isVoicemail && data.nicheAnswers?.voiceGender === "male";
-  const suggestedName = isVoicemail
-    ? (isMaleVoice ? "Max" : "Sam")
-    : (data.niche ? defaultAgentNames[data.niche] : "Sam");
+  const suggestedName = data.niche ? defaultAgentNames[data.niche] : "Sam";
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [autofillState, setAutofillState] = useState<'idle' | 'loading' | 'done'>('idle');
