@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import CallsList from '@/components/dashboard/CallsList'
 import DemoStats from '@/components/dashboard/DemoStats'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
@@ -84,6 +84,28 @@ export default async function CallsPage() {
     ...c,
     business_name: (c.clients as { business_name?: string } | null)?.business_name ?? null,
   }))
+
+  // Resolve calls stuck in 'processing' for >5min (after() callback died on Railway restart)
+  const now = Date.now()
+  const stuckIds = allCalls
+    .filter(c =>
+      c.call_status === 'processing' &&
+      now - new Date(c.started_at).getTime() > 5 * 60 * 1000
+    )
+    .map(c => c.ultravox_call_id)
+
+  if (stuckIds.length > 0) {
+    const svc = createServiceClient()
+    await svc.from('call_logs')
+      .update({ call_status: 'UNKNOWN', ai_summary: 'Classification timed out — review manually.' })
+      .in('ultravox_call_id', stuckIds)
+    for (const c of allCalls) {
+      if (stuckIds.includes(c.ultravox_call_id)) {
+        c.call_status = 'UNKNOWN'
+        c.ai_summary = 'Classification timed out — review manually.'
+      }
+    }
+  }
 
   const hasReceivedCall = allCalls.length > 0
 
