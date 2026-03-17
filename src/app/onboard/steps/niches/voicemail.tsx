@@ -14,14 +14,14 @@ interface Props {
 const VOICE_GENDER_OPTIONS = [
   {
     value: "female",
-    label: "Female voice",
-    desc: "Warm, professional — suggested name: Sam, Alex, or Jade",
+    label: "Female voice — Monika",
+    desc: "Warm, natural, conversational — sounds like a real person picking up the phone",
     emoji: "👩",
   },
   {
     value: "male",
-    label: "Male voice",
-    desc: "Calm, confident — suggested name: Max, Jordan, or Marcus",
+    label: "Male voice — Mark",
+    desc: "Calm, confident, professional — friendly and approachable",
     emoji: "👨",
   },
 ];

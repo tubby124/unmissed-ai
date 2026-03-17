@@ -347,7 +347,7 @@ export async function POST(req: NextRequest) {
       const smsBody = new URLSearchParams({
         From: twilioNumber,
         To: callbackPhone,
-        Body: `Welcome to unmissed.ai!\n\nYour AI receptionist is now live at ${twilioNumber}.\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+        Body: `Your AI agent is live! Check your email to set up your dashboard password, then log in at https://unmissed.ai/dashboard\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
       })
       const smsRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
