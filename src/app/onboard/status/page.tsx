@@ -675,7 +675,9 @@ function StatusContent() {
   const success = searchParams.get("success");
   const isTrial = searchParams.get("trial") === "true";
   const trialClientId = searchParams.get("clientId");
-  const trialSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
+  const rawSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
+  // Sanitize: if the stored URL has localhost (from a dev-environment test), fall back to /dashboard
+  const trialSetupUrl = rawSetupUrl && !rawSetupUrl.includes("localhost") ? rawSetupUrl : "/dashboard";
   const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
   const tierParam = searchParams.get("tier") ?? "starter";
 
