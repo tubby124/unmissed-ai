@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
+import GuidedPromptEditor from '@/components/dashboard/GuidedPromptEditor'
 
 interface PromptVersion {
   id: string
@@ -1518,11 +1519,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                   </div>
                 )}
 
-                <textarea
+                <GuidedPromptEditor
                   value={currentPrompt}
-                  onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
-                  className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
-                  spellCheck={false}
+                  onChange={(val) => setPrompt(prev => ({ ...prev, [client.id]: val }))}
                   placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
                 />
               </div>
