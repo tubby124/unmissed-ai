@@ -23,6 +23,25 @@ import { activateClient } from '@/lib/activate-client'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
+type BillingTier = 'starter' | 'growth' | 'pro'
+
+const TIER_MINUTE_LIMITS: Record<BillingTier, number> = {
+  starter: 100,
+  growth:  250,
+  pro:     500,
+}
+
+function getTierMinuteLimit(tier: string | undefined | null): number {
+  if (tier && tier in TIER_MINUTE_LIMITS) return TIER_MINUTE_LIMITS[tier as BillingTier]
+  return TIER_MINUTE_LIMITS.starter // default to starter
+}
+
+function getTierLabel(tier: string | undefined | null): string {
+  const labels: Record<BillingTier, string> = { starter: 'Starter ($49)', growth: 'Growth ($99)', pro: 'Pro ($199)' }
+  if (tier && tier in labels) return labels[tier as BillingTier]
+  return labels.starter
+}
+
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -59,16 +78,20 @@ export async function POST(req: NextRequest) {
 
       if (cl) {
         const sub = await stripe.subscriptions.retrieve(subId)
+        const tier = sub.metadata?.tier ?? null
+        const minuteLimit = getTierMinuteLimit(tier)
+        const tierLabel = getTierLabel(tier)
+
         await adminSupa.from('clients').update({
           subscription_status: 'active',
-          monthly_minute_limit: 100,
+          monthly_minute_limit: minuteLimit,
           minutes_used_this_month: 0,
           seconds_used_this_month: 0,
           grace_period_end: null,
           subscription_current_period_end: new Date(sub.items.data[0]?.current_period_end * 1000).toISOString(),
         }).eq('id', cl.id)
 
-        console.log(`[stripe-webhook] Subscription renewed for ${cl.slug} — 100 min/mo, reset usage`)
+        console.log(`[stripe-webhook] Subscription renewed for ${cl.slug} — ${tierLabel} ${minuteLimit} min/mo, reset usage`)
 
         // Telegram notification
         try {
@@ -82,7 +105,7 @@ export async function POST(req: NextRequest) {
               adminCl.telegram_bot_token as string,
               adminCl.telegram_chat_id as string,
               `💰 Subscription renewed: ${cl.business_name} (${cl.slug})\n` +
-              `Plan: $10/mo — 100 min\n` +
+              `Plan: ${tierLabel} — ${minuteLimit} min\n` +
               `Next renewal: ${new Date((sub.items.data[0]?.current_period_end ?? 0) * 1000).toLocaleDateString()}`
             )
           }
@@ -303,6 +326,16 @@ export async function POST(req: NextRequest) {
 
   if (!result.success) {
     console.error(`[stripe-webhook] activateClient failed for slug=${client_slug}: ${result.error}`)
+  }
+
+  // ── Set tier-based minute limit (overrides niche default from activateClient) ─
+  const sessionTier = session.metadata?.tier ?? null
+  if (sessionTier) {
+    const tierMinutes = getTierMinuteLimit(sessionTier)
+    await adminSupa.from('clients').update({
+      monthly_minute_limit: tierMinutes,
+    }).eq('id', client_id)
+    console.log(`[stripe-webhook] Set tier=${sessionTier} minute_limit=${tierMinutes} for slug=${client_slug}`)
   }
 
   // ── Store subscription info (Stripe-specific — session only available here) ─
