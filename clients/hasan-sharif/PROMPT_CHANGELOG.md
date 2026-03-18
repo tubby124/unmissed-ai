@@ -98,3 +98,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 20065 | **Hash:** bfe0351874c6f965
 **Supabase version_id:** 741597dc-51e7-476b-9f93-1f59a32a3133
 **Ultravox revision:** a913ebf7-41af-4171-aba4-8e0efbd8b898
+
+## v24 — 2026-03-18 05:12 UTC
+**Change:** B2: add identity section markers
+**Chars:** 20119 | **Hash:** 821fae0f7fb0e4f7
+**Supabase version_id:** 173585ce-3343-46ca-9843-2924f7992415
+**Ultravox revision:** 534a1d41-8ed3-4f2a-a7f2-7c6f27b712ed

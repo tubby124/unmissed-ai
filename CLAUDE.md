@@ -18,6 +18,27 @@ If ambiguous: ask one clarifying question. Never assume scope on client-affectin
 
 ---
 
+## BEFORE BUILDING (mandatory gates)
+
+### Touching any of these → read the architecture doc first:
+- `lib/ultravox.ts` → read `memory/system-architecture.md` §2 (agent anatomy) + §5 (tools)
+- `api/webhook/[slug]/inbound` or `completed` → read `memory/system-architecture.md` §7 + §8
+- `lib/prompt-builder.ts` → read `memory/system-architecture.md` §3 (prompt assembly)
+- Any corpus/RAG route → read `memory/system-architecture.md` §6
+- Any new Ultravox feature → read `memory/advanced-features-plan.md` + `BUILD_PACKAGES/INBOUND_VOICE_AGENT/ULTRAVOX_ADVANCED_PATTERNS.md`
+
+### Advanced features status (check before starting any Ultravox work):
+| Pattern | Status | Next step |
+|---------|--------|-----------|
+| A — Tool Response Instructions | **NOT DONE** | Add `_instruction` to book/slots routes + 1 prompt line |
+| B — Deferred Messages | **NOT DONE** | Add priming line to all prompts first, then whisper route |
+| C — Tool State | **NOT DONE** | Only if booking retry tracking becomes a production problem |
+| D — Call Stages | **NOT DONE** | Only if monoprompt fails for a complex client |
+
+Full plan: `memory/advanced-features-plan.md` | Full code: `BUILD_PACKAGES/INBOUND_VOICE_AGENT/ULTRAVOX_ADVANCED_PATTERNS.md`
+
+---
+
 ## AUTOMATIC REMINDERS
 
 ### After editing any `*_SYSTEM_PROMPT*` or `*_PROMPT*.txt`:

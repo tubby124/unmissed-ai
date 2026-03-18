@@ -29,3 +29,6 @@ memory/canadian-carrier-call-forwarding.md | All carrier star codes, SK/AB cover
 # memory/ultravox-rag-research.md | Corpus API, RAG vs HTTP tool decision matrix
 # memory/cartesia-tts-integration.md | Voice shortlist, sonic-3, testing workflow
 memory/ai-liability-canada.md | Canadian AI liability law (Moffatt 2024), insurance options, order-error scenarios, ToS guidance
+memory/system-architecture.md | DEFINITIVE reference — call lifecycle, agent anatomy, prompt assembly, tools, RAG, inbound/completed webhook flows, gotchas
+memory/advanced-features-plan.md | Phased plan for 4 advanced Ultravox patterns (Tool Response Instructions, Deferred Messages, Tool State, Call Stages) — all NOT DONE as of Mar 17 2026
+BUILD_PACKAGES/INBOUND_VOICE_AGENT/ULTRAVOX_ADVANCED_PATTERNS.md | Production-ready code for all 4 advanced patterns with promptfoo tests

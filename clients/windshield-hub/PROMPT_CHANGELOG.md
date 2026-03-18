@@ -41,3 +41,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 13933 | **Hash:** ccd0f3d47d1f2d41
 **Supabase version_id:** dd5ae78f-cffd-41b6-ac17-4f00e5a7abd1
 **Ultravox revision:** 7f781b93-9792-4def-8579-39f1343fae4c
+
+## v8 — 2026-03-18 05:12 UTC
+**Change:** B2: add identity section markers
+**Chars:** 13987 | **Hash:** 1e8f78db2acaebc4
+**Supabase version_id:** c48bb565-4115-413e-b73a-995782e4fab6
+**Ultravox revision:** 1968d13b-8c86-44cd-b9a5-c1d122350d39
