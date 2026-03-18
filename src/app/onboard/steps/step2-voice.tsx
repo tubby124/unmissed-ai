@@ -19,15 +19,16 @@ export default function Step2Voice({ data, onUpdate }: Props) {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-fill agent name from niche default if not yet set
+  // Auto-fill agent name from niche default if not yet set or still a default
   useEffect(() => {
-    if (!data.agentName && data.niche) {
-      const defaultName = defaultAgentNames[data.niche as Niche];
-      if (defaultName) {
-        onUpdate({ agentName: defaultName });
+    if (data.niche) {
+      const nicheDefault = defaultAgentNames[data.niche as Niche];
+      const isDefaultName = !data.agentName || Object.values(defaultAgentNames).includes(data.agentName);
+      if (isDefaultName && nicheDefault && data.agentName !== nicheDefault) {
+        onUpdate({ agentName: nicheDefault });
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data.niche]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggestedName = data.niche ? defaultAgentNames[data.niche as Niche] : "Sam";
 

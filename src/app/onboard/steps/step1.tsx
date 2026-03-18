@@ -7,11 +7,13 @@ import {
   Home, Building2, PhoneCall, Voicemail, HelpCircle, UtensilsCrossed, Printer,
   type LucideIcon,
 } from "lucide-react";
-import { Niche, nicheLabels, OnboardingData } from "@/types/onboarding";
+import { Niche, nicheLabels, OnboardingData, defaultAgentNames } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NICHE_PRODUCTION_READY } from '@/lib/niche-config'
 import PlacesAutocomplete from '@/components/onboard/PlacesAutocomplete'
+
+const DEFAULT_AGENT_NAME_SET = new Set(Object.values(defaultAgentNames))
 
 interface Props {
   data: OnboardingData;
@@ -175,8 +177,18 @@ const NICHE_INSIGHTS: Partial<Record<Niche, string[]>> = {
   ],
 };
 
+/** Returns the default agent name for a niche if the current name is uncustomized. */
+function resolveAgentName(currentName: string, newNiche: Niche): string | undefined {
+  if (!currentName || DEFAULT_AGENT_NAME_SET.has(currentName)) {
+    return defaultAgentNames[newNiche]
+  }
+  return undefined
+}
+
 export default function Step1({ data, onUpdate }: Props) {
   const [autofilling, setAutofilling] = useState(false);
+  const [googleFilled, setGoogleFilled] = useState(false);
+  const [websiteFilled, setWebsiteFilled] = useState(false);
 
   const handleWebsiteBlur = useCallback(
     async (url: string) => {
@@ -248,7 +260,10 @@ export default function Step1({ data, onUpdate }: Props) {
                   source: 'scraped' as const,
                 }));
               }
-              if (Object.keys(updates).length > 0) onUpdate(updates);
+              if (Object.keys(updates).length > 0) {
+                onUpdate(updates);
+                setWebsiteFilled(true);
+              }
             }
           } catch {
             // Silent — autofill is best-effort
@@ -299,6 +314,9 @@ export default function Step1({ data, onUpdate }: Props) {
               const detected = detectNicheFromTypes(result.types)
               if (detected && NICHE_PRODUCTION_READY[detected]) {
                 updates.niche = detected
+                // Auto-fill agent name if not customized
+                const newName = resolveAgentName(data.agentName, detected)
+                if (newName) updates.agentName = newName
               }
               // Auto-fill servicesOffered if not already set
               if (!data.servicesOffered) {
@@ -306,10 +324,26 @@ export default function Step1({ data, onUpdate }: Props) {
                 if (services) updates.servicesOffered = services
               }
             }
-            if (Object.keys(updates).length > 0) onUpdate(updates)
+            if (Object.keys(updates).length > 0) {
+              onUpdate(updates)
+              setGoogleFilled(true)
+              setWebsiteFilled(false)
+            }
           }}
         />
       </div>
+
+      {/* Autofill confirmed badge */}
+      {(googleFilled || websiteFilled) && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2">
+          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-xs text-emerald-800 dark:text-emerald-200 font-medium">
+            {googleFilled ? "Auto-filled from Google — check details below" : "Pulled info from your website — check details below"}
+          </p>
+        </div>
+      )}
 
       {/* Flat niche chip grid */}
       <div className="space-y-2">
@@ -326,7 +360,12 @@ export default function Step1({ data, onUpdate }: Props) {
                 <button
                   key={niche}
                   type="button"
-                  onClick={() => onUpdate({ niche })}
+                  onClick={() => {
+                    const updates: Partial<OnboardingData> = { niche }
+                    const newName = resolveAgentName(data.agentName, niche)
+                    if (newName) updates.agentName = newName
+                    onUpdate(updates)
+                  }}
                   className={`
                     flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer
                     ${isSelected

@@ -256,6 +256,7 @@ export async function POST(
         callbackUrl: signedCallbackUrl,
         metadata: callMeta,
         languageHint: 'en',
+        ...(firstPriorCallId ? { priorCallId: firstPriorCallId } : {}),
       })
     }
   } catch (error) {
