@@ -42,34 +42,34 @@ def _load_env():
     ULTRAVOX_KEY = os.environ["ULTRAVOX_API_KEY"]
 
 # Per-client Ultravox settings — add new clients here
+# VOICE IS NOT STORED HERE. Voice always comes from:
+#   1. --voice CLI flag (one-time override)
+#   2. clients.agent_voice_id in Supabase (authoritative — set via dashboard)
+#   3. Live Ultravox agent (preserved if DB has no voice set)
+# If none of the above have a voice, deploy fails with a clear error.
 CLIENT_CONFIG = {
     "urban-vibe": {
         "ultravox_agent_id": "5f88f03b-5aaf-40fc-a608-2f7ed765d6a6",
-        "voice": "df0b14d7-945f-41b2-989a-7c8c57688ddf",  # Ashley (Ray's preference, confirmed Mar 16 from live agent)
         "greeting": "Thanks for calling Urban Vibe Properties — I'm Alisha, Ray's virtual assistant. How can I help?",
         "vad_min_interruption": "0.400s",
     },
     "windshield-hub": {
         "ultravox_agent_id": "00652ba8-5580-4632-97be-0fd2090bbb71",
-        "voice": "b0e6b5c1-3100-44d5-8578-9015aa3023ae",
-        "greeting": None,  # uses generated greeting
+        "greeting": None,
         "vad_min_interruption": "0.400s",
     },
     "hasan-sharif": {
         "ultravox_agent_id": "f19b4ad7-233e-4125-a547-94e007238cf8",
-        "voice": "87edb04c-06d4-47c2-bd94-683bc47e8fbe",  # Monika-English-Indian (original hyper lady — never change without explicit --voice)
         "greeting": None,
         "vad_min_interruption": "0.400s",
     },
     "exp-realty": {
         "ultravox_agent_id": "c9019927-49a7-4676-b97b-5c6395e58a37",
-        "voice": "441ec053-5566-4d18-9752-452dd5120071",
         "greeting": None,
         "vad_min_interruption": "0.400s",
     },
     "true-color-display-printing-ltd": {
         "ultravox_agent_id": "ce4bbe2b-6f7d-4f32-b3ce-e9b044aeef3e",
-        "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",
         "greeting": None,
         "vad_min_interruption": "0.400s",
         "local_dir": "true-color",
@@ -237,12 +237,12 @@ def deploy(slug, change_description):
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
 
     # Voice priority chain:
-    #   1. --voice CLI flag (highest)
-    #   2. clients.agent_voice_id from DB (dashboard selection)
-    #   3. Live Ultravox agent voice
-    #   4. CLIENT_CONFIG fallback (lowest)
+    #   1. --voice CLI flag (highest — one-time override, also updates clients.agent_voice_id)
+    #   2. clients.agent_voice_id from Supabase (authoritative — set via dashboard Voice tab)
+    #   3. Live Ultravox agent voice (fallback if DB has no voice yet)
+    # CLIENT_CONFIG no longer stores voice — prevents stale values from silently overwriting live config.
     live_agent = uv_get(cfg["ultravox_agent_id"])
-    live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
+    live_voice = live_agent.get("callTemplate", {}).get("voice")
 
     if cfg.get("_voice_override"):
         deploy_voice = cfg["_voice_override"]
@@ -252,10 +252,13 @@ def deploy(slug, change_description):
         voice_source = "from DB (clients.agent_voice_id)"
     elif live_voice:
         deploy_voice = live_voice
-        voice_source = "preserved from live agent"
+        voice_source = "preserved from live Ultravox agent"
     else:
-        deploy_voice = cfg["voice"]
-        voice_source = "CLIENT_CONFIG fallback"
+        raise SystemExit(
+            f"ERROR: No voice found for {slug}.\n"
+            "  Set one via the dashboard Voice tab (updates clients.agent_voice_id)\n"
+            "  or pass --voice <uuid> to deploy with a specific voice."
+        )
     print(f"  Voice: {deploy_voice} ({voice_source})")
 
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
@@ -399,9 +402,10 @@ def dry_run(slug):
     print(f"  Ultravox live:    {uv_hash}")
     print(f"  Voice (DB):       {db_voice_id or 'not set'}")
     print(f"  Voice (live UV):  {uv_voice or 'unknown'}")
-    print(f"  Voice (config):   {cfg['voice']}")
     if db_voice_id and uv_voice and db_voice_id != uv_voice:
-        print(f"  ⚠ VOICE DRIFT: DB ({db_voice_id}) ≠ Ultravox ({uv_voice}). Re-deploy to sync.")
+        print(f"  ⚠ VOICE DRIFT: DB ({db_voice_id}) ≠ Ultravox ({uv_voice}). Deploy will sync to DB voice.")
+    if not db_voice_id and not uv_voice:
+        print(f"  ✗ NO VOICE SET: deploy will fail. Set voice via dashboard or use --voice <uuid>.")
     print(f"  Tools (live UV):  {uv_tools if uv_tools else 'unknown'}")
     print(f"  Tools (on deploy):{would_inject}  (booking_enabled={booking_enabled})")
     if sorted(uv_tools) != sorted(would_inject) and uv_tools:
