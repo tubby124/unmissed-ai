@@ -2,9 +2,26 @@
 
 import { useCallback, useRef, useState } from 'react'
 
-// Canonical voice IDs
-const JACQUELINE_ID = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
-const MARK_ID = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+interface VoiceOption {
+  id: string
+  name: string
+  gender: 'Female' | 'Male'
+  personality: string
+}
+
+const VOICES: VoiceOption[] = [
+  // Female voices
+  { id: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', name: 'Jacqueline', gender: 'Female', personality: 'Warm, friendly, empathetic' },
+  { id: '87edb04c-06d4-47c2-bd94-683bc47e8fbe', name: 'Monika', gender: 'Female', personality: 'Energetic, confident, upbeat' },
+  { id: 'df0b14d7-945f-41b2-989a-7c8c57688ddf', name: 'Ashley', gender: 'Female', personality: 'Calm, professional, reassuring' },
+  // Male voices
+  { id: 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', name: 'Mark', gender: 'Male', personality: 'Clear, direct, professional' },
+  { id: 'd766b9e3-69df-4727-b62f-cd0b6772c2ad', name: 'Nour', gender: 'Male', personality: 'Warm, patient, trustworthy' },
+  { id: '7d0bcff3-77ec-48ea-83d6-40ca0095e80c', name: 'Terrence', gender: 'Male', personality: 'Confident, authoritative, steady' },
+]
+
+const FEMALE_VOICES = VOICES.filter(v => v.gender === 'Female')
+const MALE_VOICES = VOICES.filter(v => v.gender === 'Male')
 
 interface Props {
   selectedVoiceId: string | null
@@ -46,129 +63,105 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
     setPlayingId(null)
   }, [])
 
-  const cards = [
-    {
-      id: JACQUELINE_ID,
-      name: 'Jacqueline',
-      gender: 'Female',
-      description: 'Warm, friendly, empathetic',
-      // Venus symbol ♀
-      icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-rose-400">
-          <circle cx="12" cy="9" r="5"/>
-          <line x1="12" y1="14" x2="12" y2="21"/>
-          <line x1="9" y1="18" x2="15" y2="18"/>
-        </svg>
-      ),
-    },
-    {
-      id: MARK_ID,
-      name: 'Mark',
-      gender: 'Male',
-      description: 'Clear, direct, professional',
-      // Mars symbol ♂
-      icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
-          <circle cx="10" cy="13" r="5"/>
-          <line x1="14.5" y1="8.5" x2="21" y2="2"/>
-          <polyline points="16,2 21,2 21,7"/>
-        </svg>
-      ),
-    },
-  ]
+  function renderVoiceCard(voice: VoiceOption) {
+    const isSelected = selectedVoiceId === voice.id
+    const isPlaying = playingId === voice.id
+    const hasError = errorId === voice.id
+
+    return (
+      <div
+        key={voice.id}
+        onClick={() => onSelect(voice.id, voice.name)}
+        className={`
+          relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all
+          ${isSelected
+            ? 'border-indigo-600 bg-indigo-50/50 shadow-md'
+            : 'border-border bg-card hover:border-border hover:bg-muted/30'
+          }
+        `}
+      >
+        {/* Voice name */}
+        <div className="text-center">
+          <div className={`text-sm font-semibold ${isSelected ? 'text-indigo-900' : 'text-foreground'}`}>
+            {voice.name}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{voice.personality}</div>
+        </div>
+
+        {/* Preview button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            isPlaying ? stop() : play(voice.id)
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            isPlaying
+              ? 'bg-indigo-600 text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          {isPlaying ? (
+            <>
+              <div className="flex items-end gap-0.5" style={{ height: 12 }}>
+                {[0, 100, 200].map((delay, i) => (
+                  <div key={i} style={{
+                    width: 2,
+                    height: 10,
+                    borderRadius: 2,
+                    background: 'white',
+                    transformOrigin: 'bottom',
+                    animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
+                  }} />
+                ))}
+              </div>
+              Stop
+            </>
+          ) : (
+            <>
+              <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor">
+                <path d="M0 0L8 5L0 10V0Z"/>
+              </svg>
+              Preview
+            </>
+          )}
+        </button>
+
+        {/* Error badge */}
+        {hasError && (
+          <span className="absolute top-2 right-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+            Preview unavailable
+          </span>
+        )}
+
+        {/* Selected checkmark */}
+        {isSelected && (
+          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        {cards.map((card) => {
-          const isSelected = selectedVoiceId === card.id
-          const isPlaying = playingId === card.id
-          const hasError = errorId === card.id
+    <div className="space-y-5">
+      {/* Female voices */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">Female</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {FEMALE_VOICES.map(renderVoiceCard)}
+        </div>
+      </div>
 
-          return (
-            <div
-              key={card.id}
-              onClick={() => onSelect(card.id, card.name)}
-              className={`
-                relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 cursor-pointer transition-all
-                ${isSelected
-                  ? 'border-indigo-600 bg-indigo-50/50 shadow-md'
-                  : 'border-border bg-card hover:border-border hover:bg-muted/30'
-                }
-              `}
-            >
-              {/* Gender icon */}
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
-                isSelected ? 'bg-indigo-100' : 'bg-muted'
-              }`}>
-                {card.icon}
-              </div>
-
-              {/* Label */}
-              <div className="text-center">
-                <div className={`text-sm font-semibold ${isSelected ? 'text-indigo-900' : 'text-foreground'}`}>
-                  {card.gender}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{card.description}</div>
-              </div>
-
-              {/* Preview button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  isPlaying ? stop() : play(card.id)
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  isPlaying
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <div className="flex items-end gap-0.5" style={{ height: 12 }}>
-                      {[0, 100, 200].map((delay, i) => (
-                        <div key={i} style={{
-                          width: 2,
-                          height: 10,
-                          borderRadius: 2,
-                          background: 'white',
-                          transformOrigin: 'bottom',
-                          animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
-                        }} />
-                      ))}
-                    </div>
-                    Stop
-                  </>
-                ) : (
-                  <>
-                    <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor">
-                      <path d="M0 0L8 5L0 10V0Z"/>
-                    </svg>
-                    Preview
-                  </>
-                )}
-              </button>
-
-              {/* Error badge */}
-              {hasError && (
-                <span className="absolute top-2 right-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
-                  Preview unavailable
-                </span>
-              )}
-
-              {/* Selected checkmark */}
-              {isSelected && (
-                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-          )
-        })}
+      {/* Male voices */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">Male</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {MALE_VOICES.map(renderVoiceCard)}
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground/70 text-center">More voices available in your dashboard after setup.</p>

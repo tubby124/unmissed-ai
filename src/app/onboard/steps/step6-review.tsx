@@ -4,11 +4,13 @@ import { useState } from "react";
 import { OnboardingData, nicheLabels, Niche, defaultAgentNames } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
 
+type BillingTier = "starter" | "growth" | "pro";
+
 interface Props {
   data: OnboardingData;
   stepSequence: number[];
   onEdit: (step: number) => void;
-  onActivate: (mode: "trial" | "paid") => void;
+  onActivate: (mode: "trial" | "paid", tier?: BillingTier) => void;
   isSubmitting: boolean;
   error: string | null;
 }
@@ -339,7 +341,15 @@ function PromptPreview({ data }: { data: OnboardingData }) {
 
 // ── Main Step 6 — Review & Activate ──────────────────────────────────────────
 
+const TIERS: { id: BillingTier; name: string; price: number; minutes: number; popular?: boolean }[] = [
+  { id: "starter", name: "Starter", price: 49, minutes: 100 },
+  { id: "growth",  name: "Growth",  price: 99, minutes: 250, popular: true },
+  { id: "pro",     name: "Pro",     price: 199, minutes: 500 },
+];
+
 export default function Step6Review({ data, stepSequence, onEdit, onActivate, isSubmitting, error }: Props) {
+  const [selectedTier, setSelectedTier] = useState<BillingTier>("starter");
+
   // ── Completeness score ──────────────────────────────────────────────────────
   const defaultAgentName = data.niche ? (defaultAgentNames[data.niche as Niche] ?? "") : "";
   const agentNameCustomized = data.agentName.trim() !== "" && data.agentName.trim() !== defaultAgentName;
@@ -475,6 +485,84 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
       {/* Admin-only prompt preview */}
       <PromptPreview data={data} />
 
+      {/* Pricing tiers */}
+      <div>
+        <p className="text-sm font-semibold text-foreground mb-3">Choose your plan</p>
+        <div className="grid grid-cols-3 gap-2">
+          {TIERS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSelectedTier(t.id)}
+              className={`relative rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                selectedTier === t.id
+                  ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"
+                  : "border-border hover:border-indigo-300 bg-card"
+              }`}
+            >
+              {t.popular && (
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+                  Popular
+                </span>
+              )}
+              <p className="font-bold text-foreground text-sm">{t.name}</p>
+              <p className="text-indigo-600 dark:text-indigo-400 text-lg font-bold">${t.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-xs text-muted-foreground mt-1">{t.minutes} min/mo</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* What you're getting — preview before payment */}
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-5 space-y-5">
+        {/* Included features */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">What you&apos;re getting</h3>
+          <ul className="space-y-2">
+            {[
+              { text: "Dedicated phone number for your business", show: true },
+              { text: `AI agent trained on your industry (${data.niche ? nicheLabels[data.niche as Niche] : "your niche"})`, show: true },
+              { text: "SMS follow-up to every caller", show: !!data.callerAutoText },
+              { text: "Telegram/email notifications for every call", show: true },
+              { text: "Voicemail-to-email transcripts", show: data.niche === "voicemail" },
+              { text: `${data.faqPairs.filter(p => p.question.trim() && p.answer.trim()).length} FAQ answers loaded`, show: data.faqPairs.some(p => p.question.trim() && p.answer.trim()) },
+              { text: `${data.knowledgeDocs.length} knowledge document${data.knowledgeDocs.length !== 1 ? "s" : ""} uploaded`, show: data.knowledgeDocs.length > 0 },
+            ]
+              .filter(item => item.show)
+              .map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-foreground">{item.text}</span>
+                </li>
+              ))}
+          </ul>
+        </div>
+
+        {/* What happens next — 3-step timeline */}
+        <div className="border-t border-indigo-200 dark:border-indigo-800 pt-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">What happens next</h3>
+          <div className="space-y-3">
+            {[
+              { step: "1", title: "Pay & activate", desc: "Your agent goes live in ~2 minutes" },
+              { step: "2", title: "Forward your phone", desc: "We'll send a step-by-step guide for your carrier" },
+              { step: "3", title: "Start receiving calls", desc: "Every call is answered, summarized, and sent to you" },
+            ].map((item) => (
+              <div key={item.step} className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shrink-0">
+                  <span className="text-[11px] font-bold text-white">{item.step}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground leading-tight">{item.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* CTA cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Trial card */}
@@ -496,13 +584,15 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
         {/* Paid card */}
         <button
           type="button"
-          onClick={() => onActivate("paid")}
+          onClick={() => onActivate("paid", selectedTier)}
           disabled={isSubmitting}
           className="rounded-xl border-2 border-border hover:border-indigo-400 bg-card hover:bg-muted/30 p-4 text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="space-y-1">
             <p className="text-foreground font-bold text-base leading-tight">Activate now</p>
-            <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">$20 / month</p>
+            <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
+              ${TIERS.find(t => t.id === selectedTier)?.price ?? 49} / month · {TIERS.find(t => t.id === selectedTier)?.minutes ?? 100} min
+            </p>
             <p className="text-muted-foreground text-xs mt-2">Real number · Full SMS · Live today</p>
           </div>
         </button>

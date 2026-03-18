@@ -21,10 +21,10 @@ export function timeAgo(iso: string | null): string {
 }
 
 export function getPlanName(limit: number | null): string {
-  if (!limit || limit <= 50) return 'Starter (Trial)'
+  if (!limit || limit <= 50) return 'Trial'
   if (limit <= 100) return 'Starter'
-  if (limit <= 200) return 'Growth'
-  if (limit <= 500) return 'Scale'
+  if (limit <= 250) return 'Growth'
+  if (limit <= 500) return 'Pro'
   return 'Enterprise'
 }
 
