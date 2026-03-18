@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
+import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 
 interface PromptVersion {
   id: string
@@ -273,7 +274,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
-  const [activeTab, setActiveTab] = useState<'general' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'sms' | 'voice' | 'notifications' | 'billing' | 'knowledge'>('general')
   const [reloadMinutes, setReloadMinutes] = useState(100)
   const [reloadLoading, setReloadLoading] = useState(false)
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
@@ -824,6 +825,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             { id: 'voice',         label: 'Voice',    adminOnly: false, icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
             { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
             { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
+            { id: 'knowledge',     label: 'Knowledge', adminOnly: false, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
           ] as { id: typeof activeTab; label: string; adminOnly: boolean; icon: string }[])
             .filter(t => !t.adminOnly || isAdmin)
             .map(({ id, label, icon }) => (
@@ -2671,6 +2673,19 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </div>
         )
       })()}
+
+      {/* ─── Knowledge Tab ──────────────────────────────────────────── */}
+      {activeTab === 'knowledge' && (
+        <motion.div
+          key="knowledge"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.2 }}
+        >
+          <KnowledgeBaseTab clientId={client.id} isAdmin={isAdmin} />
+        </motion.div>
+      )}
 
         </motion.div>
       </AnimatePresence>

@@ -55,9 +55,10 @@ interface CreateCallOptions {
   metadata?: Record<string, string>
   callbackUrl?: string
   tools?: object[]
+  priorCallId?: string
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -74,7 +75,12 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (tools?.length) body.selectedTools = tools
 
-  const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
+  // priorCallId reuses conversation history from a prior call — only works with POST /api/calls (not agent calls)
+  const url = priorCallId
+    ? `${ULTRAVOX_BASE}/calls?priorCallId=${priorCallId}`
+    : `${ULTRAVOX_BASE}/calls`
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: ultravoxHeaders(),
     body: JSON.stringify(body),
@@ -156,6 +162,8 @@ interface UltravoxToolDefinition {
 interface UltravoxTool {
   toolName?: string
   temporaryTool?: UltravoxToolDefinition
+  toolId?: string
+  parameterOverrides?: Record<string, unknown>
 }
 
 function buildCalendarTools(slug: string): UltravoxTool[] {
@@ -217,10 +225,42 @@ interface AgentConfig {
   slug?: string
   /** When true, inject Google Calendar availability + booking tools into selectedTools. */
   booking_enabled?: boolean
+  /** E.164 number for live call transfer (e.g. '+13065551234'). */
+  forwarding_number?: string
+  /** When true AND forwarding_number is set, inject coldTransfer tool into selectedTools. */
+  transfer_enabled?: boolean
+}
+
+/** Build coldTransfer tool entries for native SIP transfer via Ultravox. */
+export function buildTransferTools(forwardingNumber: string): UltravoxTool[] {
+  return [{
+    toolName: 'coldTransfer',
+    parameterOverrides: {
+      target: forwardingNumber,
+      sipVerb: 'INVITE',  // safer for Twilio — REFER may not work
+    },
+  }]
+}
+
+/** Build queryCorpus tool entry if ULTRAVOX_CORPUS_ID env var is set. Returns empty array if not configured. */
+export function buildCorpusTools(): UltravoxTool[] {
+  const corpusId = process.env.ULTRAVOX_CORPUS_ID
+  if (!corpusId) {
+    console.warn('[ultravox] ULTRAVOX_CORPUS_ID not set — skipping corpus tool')
+    return []
+  }
+  return [{
+    toolName: 'queryCorpus',
+    parameterOverrides: {
+      corpus_id: corpusId,
+      max_results: 5,
+      minimum_score: 0.85,
+    },
+  }]
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, transfer_enabled }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -247,7 +287,9 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
   const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools]
+  const transferTools: object[] = (transfer_enabled && forwarding_number) ? buildTransferTools(forwarding_number) : []
+  const corpusTools: object[] = buildCorpusTools()
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -309,7 +351,9 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
   const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools]
+  const transferTools: object[] = (updates.transfer_enabled && updates.forwarding_number) ? buildTransferTools(updates.forwarding_number) : []
+  const corpusTools: object[] = buildCorpusTools()
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',
@@ -426,4 +470,229 @@ export async function getRecordingStream(callId: string) {
   })
   console.log(`[ultravox] getRecordingStream: callId=${callId} status=${res.status} ok=${res.ok}`)
   return res
+}
+
+// ── Corpora API (A1) ────────────────────────────────────────────────────────
+
+export async function createCorpus(name: string, description?: string): Promise<{ corpusId: string }> {
+  const body: Record<string, unknown> = { name }
+  if (description) body.description = description
+
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox createCorpus failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return { corpusId: data.corpusId as string }
+}
+
+export async function getCorpus(corpusId: string) {
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}`, {
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox getCorpus failed: ${res.status} ${err}`)
+  }
+
+  return await res.json()
+}
+
+export async function deleteCorpus(corpusId: string): Promise<void> {
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}`, {
+    method: 'DELETE',
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox deleteCorpus failed: ${res.status} ${err}`)
+  }
+}
+
+export async function getUploadUrl(corpusId: string, mimeType: string): Promise<{ uploadUrl: string; documentId: string }> {
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/uploads`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify({ mimeType }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox getUploadUrl failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return { uploadUrl: data.uploadUrl as string, documentId: data.documentId as string }
+}
+
+interface CreateSourceOptions {
+  documentIds?: string[]
+  name?: string
+  startUrls?: string[]
+  maxDepth?: number
+}
+
+export async function createSource(corpusId: string, opts: CreateSourceOptions): Promise<{ sourceId: string }> {
+  const body: Record<string, unknown> = {}
+  if (opts.documentIds) body.documentIds = opts.documentIds
+  if (opts.name) body.name = opts.name
+  if (opts.startUrls) body.startUrls = opts.startUrls
+  if (opts.maxDepth !== undefined) body.maxDepth = opts.maxDepth
+
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox createSource failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return { sourceId: data.sourceId as string }
+}
+
+export async function listSources(corpusId: string) {
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources`, {
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox listSources failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return data.results || []
+}
+
+export async function deleteSource(corpusId: string, sourceId: string): Promise<void> {
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources/${sourceId}`, {
+    method: 'DELETE',
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox deleteSource failed: ${res.status} ${err}`)
+  }
+}
+
+export async function queryCorpus(
+  corpusId: string,
+  query: string,
+  maxResults?: number,
+  minimumScore?: number
+) {
+  const body: Record<string, unknown> = { query }
+  if (maxResults !== undefined) body.maxResults = maxResults
+  if (minimumScore !== undefined) body.minimumScore = minimumScore
+
+  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/query`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox queryCorpus failed: ${res.status} ${err}`)
+  }
+
+  return await res.json()
+}
+
+// ── Durable Tools API (D1+D2) ───────────────────────────────────────────────
+
+export async function createDurableTool(definition: object): Promise<{ toolId: string }> {
+  const res = await fetch(`${ULTRAVOX_BASE}/tools`, {
+    method: 'POST',
+    headers: ultravoxHeaders(),
+    body: JSON.stringify({ definition }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox createDurableTool failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return { toolId: data.toolId as string }
+}
+
+export async function getDurableTool(toolId: string) {
+  const res = await fetch(`${ULTRAVOX_BASE}/tools/${toolId}`, {
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox getDurableTool failed: ${res.status} ${err}`)
+  }
+
+  return await res.json()
+}
+
+export async function deleteDurableTool(toolId: string): Promise<void> {
+  const res = await fetch(`${ULTRAVOX_BASE}/tools/${toolId}`, {
+    method: 'DELETE',
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox deleteDurableTool failed: ${res.status} ${err}`)
+  }
+}
+
+export async function listDurableTools() {
+  const res = await fetch(`${ULTRAVOX_BASE}/tools`, {
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox listDurableTools failed: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  return data.results || []
+}
+
+// ── Coaching Tool (G1) ─────────────────────────────────────────────────────
+
+/** Build the checkForCoaching temporaryTool for live coaching during calls. */
+export function buildCoachingTool(slug: string): object {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  return {
+    temporaryTool: {
+      modelToolName: 'checkForCoaching',
+      description:
+        'Check if the manager has sent coaching guidance. Call this every 30 seconds during a live call. If coaching is available, smoothly incorporate it.',
+      timeout: '10s',
+      dynamicParameters: [
+        {
+          name: 'ultravox_call_id',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: 'The current Ultravox call ID' },
+          required: true,
+        },
+      ],
+      http: {
+        baseUrlPattern: `${appUrl}/api/coaching/${slug}/check`,
+        httpMethod: 'POST',
+      },
+    },
+  }
 }
