@@ -138,25 +138,33 @@ export async function classifyCall(
   console.log(`[openrouter] classifyCall: starting — ${transcript.length} messages, context="${businessContext || 'none'}"`)
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai call classifier',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-haiku-4.5',
-        messages: [
-          { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
-          { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
-        ],
-        max_tokens: niche === 'auto_glass' ? 1200 : 1000,
-        temperature: 0,
-        response_format: { type: 'json_object' },
-      }),
-    })
+    const abort = new AbortController()
+    const abortTimer = setTimeout(() => abort.abort(), 30_000) // 30s hard timeout
+    let res: Response
+    try {
+      res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        signal: abort.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://unmissed.ai',
+          'X-Title': 'unmissed.ai call classifier',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-haiku-4.5',
+          messages: [
+            { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
+            { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
+          ],
+          max_tokens: niche === 'auto_glass' ? 1200 : 1000,
+          temperature: 0,
+          response_format: { type: 'json_object' },
+        }),
+      })
+    } finally {
+      clearTimeout(abortTimer)
+    }
 
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
