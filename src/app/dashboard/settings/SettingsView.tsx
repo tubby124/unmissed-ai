@@ -451,6 +451,19 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         ...prev,
         [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: content },
       }))
+      // Bug 6: sync A3 form state when hours section saved via section editor
+      if (sectionId === 'hours') {
+        const WEEKDAY_RE = /\b(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri|weekday|weekdays|daily|monday.{0,10}friday|mon.{0,5}fri)\b/i
+        const WEEKEND_RE = /\b(saturday|sunday|weekend|sat|sun|saturday.{0,10}sunday|sat.{0,5}sun)\b/i
+        for (const raw of content.split('\n')) {
+          const line = raw.trim()
+          if (!line) continue
+          if (WEEKDAY_RE.test(line) && !WEEKEND_RE.test(line))
+            setHoursWeekday(prev => ({ ...prev, [client.id]: line }))
+          else if (WEEKEND_RE.test(line) && !WEEKDAY_RE.test(line))
+            setHoursWeekend(prev => ({ ...prev, [client.id]: line }))
+        }
+      }
       setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
       setTimeout(() => setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } })), 2500)
     } catch (err) {
@@ -2230,33 +2243,30 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               </button>
               {!collapsed && (
                 <div className="mt-4 space-y-3">
-                  {!hasMarker ? (
-                    <p className="text-[11px] t3 italic">Contact support to enable this section.</p>
-                  ) : (
-                    <>
-                      <textarea
-                        rows={rows}
-                        className="w-full rounded-xl border b-theme bg-input px-3 py-2 text-[12px] t1 resize-y font-mono"
-                        placeholder={`Enter ${label.toLowerCase()} content...`}
-                        value={value}
-                        onChange={e => setSectionContent(prev => ({
-                          ...prev,
-                          [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: e.target.value },
-                        }))}
-                      />
-                      {error && <p className="text-[11px] text-red-500">{error}</p>}
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => saveSection(sectionId, value)}
-                          disabled={saving}
-                          className="px-4 py-1.5 rounded-xl text-[11px] font-semibold bg-accent text-white disabled:opacity-50"
-                        >
-                          {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}
-                        </button>
-                        <p className="text-[10px] t3">Changes take effect on the next call.</p>
-                      </div>
-                    </>
+                  {!hasMarker && (
+                    <p className="text-[10px] t3 italic">This section wasn&apos;t found in your prompt — saving will add it automatically.</p>
                   )}
+                  <textarea
+                    rows={rows}
+                    className="w-full rounded-xl border b-theme bg-input px-3 py-2 text-[12px] t1 resize-y font-mono"
+                    placeholder={`Enter ${label.toLowerCase()} content...`}
+                    value={value}
+                    onChange={e => setSectionContent(prev => ({
+                      ...prev,
+                      [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: e.target.value },
+                    }))}
+                  />
+                  {error && <p className="text-[11px] text-red-500">{error}</p>}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => saveSection(sectionId, value)}
+                      disabled={saving}
+                      className="px-4 py-1.5 rounded-xl text-[11px] font-semibold bg-accent text-white disabled:opacity-50"
+                    >
+                      {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
+                    </button>
+                    <p className="text-[10px] t3">Changes sync to your agent immediately.</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -2274,7 +2284,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Advanced Context</p>
-            <p className="text-[11px] t3 mt-0.5">Extra knowledge injected into your agent&apos;s prompt</p>
+            <p className="text-[11px] t3 mt-0.5">Extra knowledge injected at call time — not stored in the prompt</p>
           </div>
           <button
             onClick={saveAdvanced}
@@ -2285,7 +2295,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 : 'bg-zinc-700 hover:bg-zinc-600 t1'
             } disabled:opacity-40`}
           >
-            {advancedSaving ? 'Saving…' : advancedSaved ? '✓ Saved' : 'Save'}
+            {advancedSaving ? 'Saving…' : advancedSaved ? '✓ Active on next call' : 'Save'}
           </button>
         </div>
 
@@ -2382,7 +2392,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           />
           <label className="text-[11px] t3 block mt-3">Context data</label>
           <p className="text-[10px] t3">
-            Structured text your agent can reference during calls -- service menus, price lists, inventory notes
+            Structured text your agent can reference during calls — service menus, price lists, inventory notes. Appended to every call automatically. Save and make a test call to verify.
           </p>
           <textarea
             value={contextData[client.id] ?? ''}
@@ -2404,7 +2414,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
             </svg>
             <span className="font-medium">Current system prompt</span>
-            <span className="text-[10px] t3 ml-1">({(client.system_prompt ?? '').length} chars)</span>
+            <span className="text-[10px] t3 ml-1">({(prompt[client.id] ?? '').length} chars — context data &amp; facts appended at call time)</span>
             <svg
               width="10" height="10" viewBox="0 0 24 24" fill="none"
               className="ml-auto shrink-0 transition-transform duration-200"
@@ -2424,7 +2434,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 style={{ overflow: 'hidden' }}
               >
                 <pre className="mt-3 p-4 rounded-xl bg-black/30 border b-theme text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
-                  {client.system_prompt || 'No prompt configured'}
+                  {prompt[client.id] || 'No prompt configured'}
                 </pre>
               </motion.div>
             )}

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled, transfer_conditions')
     .eq('id', targetClientId)
     .single()
 
@@ -39,10 +39,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+    const transferConditions = client.transfer_conditions as string | null
+    const transferDescription = transferConditions
+      ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
+      : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
     const transferTool = {
       temporaryTool: {
         modelToolName: 'transferCall',
-        description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+        description: transferDescription,
         dynamicParameters: [
           { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
         ],

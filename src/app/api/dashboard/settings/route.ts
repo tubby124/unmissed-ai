@@ -120,6 +120,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   // A3 — After-hours config (stored on clients table, injected into callerContext at call time)
+  const a3HoursChanged = typeof body.business_hours_weekday === 'string' || typeof body.business_hours_weekend === 'string'
   if (typeof body.business_hours_weekday === 'string') {
     updates.business_hours_weekday = body.business_hours_weekday.trim() || null
   }
@@ -131,6 +132,33 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.after_hours_emergency_phone === 'string') {
     updates.after_hours_emergency_phone = body.after_hours_emergency_phone.trim() || null
+  }
+
+  // A3a — When hours change, also update the `hours` section in the stored system_prompt so the
+  // agent says the correct hours to callers. This syncs A3 → B1 (reverse of B1a which syncs B1 → A3).
+  if (a3HoursChanged) {
+    const { data: promptRow } = await supabase
+      .from('clients')
+      .select('system_prompt')
+      .eq('id', targetClientId)
+      .single()
+    if (promptRow?.system_prompt) {
+      const weekday = typeof body.business_hours_weekday === 'string'
+        ? (body.business_hours_weekday.trim() || null)
+        : null
+      const weekend = typeof body.business_hours_weekend === 'string'
+        ? (body.business_hours_weekend.trim() || null)
+        : null
+      const hoursText = [weekday, weekend].filter(Boolean).join('\n')
+      if (hoursText) {
+        updates.system_prompt = replacePromptSection(
+          promptRow.system_prompt as string,
+          'hours',
+          hoursText
+        )
+        updates.updated_at = new Date().toISOString()
+      }
+    }
   }
 
   // B2 — Live transfer conditions: text describing when the agent should use transferCall
