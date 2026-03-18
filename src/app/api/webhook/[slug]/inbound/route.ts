@@ -139,7 +139,7 @@ export async function POST(
   // Parse business_hours_weekday / business_hours_weekend to determine if this call
   // is outside business hours. If so, append AFTER_HOURS context so the agent
   // knows to apply the configured after-hours behavior without a prompt rebuild.
-  const weekdayHours = (client.business_hours_weekday as string | null) || 'Monday to Friday, 9am to 5pm'
+  const weekdayHours = client.business_hours_weekday as string | null
   const weekendHours = (client.business_hours_weekend as string | null) || null
   const afterHoursBehavior = (client.after_hours_behavior as string | null) || 'take_message'
   const afterHoursPhone = (client.after_hours_emergency_phone as string | null) || null
