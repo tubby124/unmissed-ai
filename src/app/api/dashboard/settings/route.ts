@@ -3,6 +3,30 @@ import { createServerClient } from '@/lib/supabase/server'
 import { updateAgent, createCorpus } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 
+/**
+ * Parse free-form hours section content into structured weekday/weekend strings.
+ * Looks for lines that clearly indicate weekday vs weekend patterns.
+ * Returns null for a field if it can't be determined (caller should leave DB field as-is).
+ */
+function parseHoursSection(content: string): { weekday: string | null; weekend: string | null } {
+  const WEEKDAY_RE = /\b(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri|weekday|weekdays|daily|monday.{0,10}friday|mon.{0,5}fri)\b/i
+  const WEEKEND_RE = /\b(saturday|sunday|weekend|sat|sun|saturday.{0,10}sunday|sat.{0,5}sun)\b/i
+
+  let weekday: string | null = null
+  let weekend: string | null = null
+
+  for (const raw of content.split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const hasWeekday = WEEKDAY_RE.test(line)
+    const hasWeekend = WEEKEND_RE.test(line)
+    if (hasWeekday && !hasWeekend && !weekday) weekday = line
+    else if (hasWeekend && !hasWeekday && !weekend) weekend = line
+  }
+
+  return { weekday, weekend }
+}
+
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
 
@@ -109,6 +133,11 @@ export async function PATCH(req: NextRequest) {
     updates.after_hours_emergency_phone = body.after_hours_emergency_phone.trim() || null
   }
 
+  // B2 — Live transfer conditions: text describing when the agent should use transferCall
+  if (typeof body.transfer_conditions === 'string') {
+    updates.transfer_conditions = body.transfer_conditions.trim() || null
+  }
+
   // B1 — Section editor: replace a named section in the stored prompt
   // section_id must be a client-editable section; admins can also edit locked sections
   if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {
@@ -178,6 +207,20 @@ export async function PATCH(req: NextRequest) {
       )
       updates.updated_at = new Date().toISOString()
     }
+
+    // B1a — Hours section DB sync: when the hours section is saved, also write structured
+    // business_hours_weekday / business_hours_weekend so the inbound route's after-hours
+    // detection stays in sync with what the agent actually says about its hours.
+    if (body.section_id === 'hours') {
+      const { weekday, weekend } = parseHoursSection(body.section_content as string)
+      if (weekday !== null) updates.business_hours_weekday = weekday
+      if (weekend !== null) updates.business_hours_weekend = weekend
+      // Blank section = clear both fields (agent has no hours configured)
+      if (!(body.section_content as string).trim()) {
+        updates.business_hours_weekday = null
+        updates.business_hours_weekend = null
+      }
+    }
   }
 
   if (!Object.keys(updates).length) {
@@ -219,6 +262,7 @@ export async function PATCH(req: NextRequest) {
   const needsAgentSync =
     typeof updates.system_prompt === 'string' ||
     'forwarding_number' in updates ||
+    'transfer_conditions' in updates ||
     'booking_enabled' in updates ||
     'agent_voice_id' in updates ||
     'corpus_enabled' in updates ||
@@ -227,7 +271,7 @@ export async function PATCH(req: NextRequest) {
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled, transfer_conditions')
       .eq('id', targetClientId)
       .single()
 
@@ -238,10 +282,16 @@ export async function PATCH(req: NextRequest) {
         : clientRow.forwarding_number
 
       const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+      const transferConditions = 'transfer_conditions' in updates
+        ? (updates.transfer_conditions as string | null)
+        : (clientRow.transfer_conditions as string | null)
+      const transferDescription = transferConditions
+        ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
+        : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
       const transferTool = {
         temporaryTool: {
           modelToolName: 'transferCall',
-          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
+          description: transferDescription,
           dynamicParameters: [
             {
               name: 'reason',

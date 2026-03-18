@@ -172,10 +172,10 @@ export async function POST(
 
   if (isAfterHours) {
     const behaviorNote = afterHoursBehavior === 'route_emergency' && afterHoursPhone
-      ? `AFTER HOURS: We are currently closed. If this is an emergency, transfer to ${afterHoursPhone}. Otherwise take a message.`
+      ? `AFTER HOURS: This call is outside business hours. If this is an emergency, transfer to ${afterHoursPhone}. Otherwise take their details and let them know someone will follow up next business day.`
       : afterHoursBehavior === 'take_message'
-        ? 'AFTER HOURS: We are currently closed. Take a message and let the caller know someone will follow up during business hours.'
-        : `AFTER HOURS: We are currently closed. ${afterHoursBehavior}`
+        ? 'AFTER HOURS: This call is outside business hours. Still help the caller, take their details, and let them know someone will follow up next business day.'
+        : `AFTER HOURS: This call is outside business hours. ${afterHoursBehavior}`
     callerContext += `\n${behaviorNote}`
     console.log(`[inbound] After-hours detected for slug=${slug}, behavior=${afterHoursBehavior}`)
   }

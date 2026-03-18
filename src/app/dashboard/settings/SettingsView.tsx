@@ -302,6 +302,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [forwardingNumber, setForwardingNumber] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.forwarding_number ?? '']))
   )
+  const [transferConditions, setTransferConditions] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.transfer_conditions ?? '']))
+  )
   const [setupComplete, setSetupComplete] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.setup_complete ?? false]))
   )
@@ -836,6 +839,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     setSetupSaved(false)
     const body: Record<string, unknown> = {
       forwarding_number: forwardingNumber[client.id] || '',
+      transfer_conditions: transferConditions[client.id] || '',
       setup_complete: setupComplete[client.id],
     }
     if (isAdmin) body.client_id = client.id
@@ -1026,25 +1030,27 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             <div>
               <label className="text-xs t2 mb-1.5 flex items-center gap-2">
                 Call forwarding number
-                {isAdmin
-                  ? <span className="text-[9px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Beta</span>
-                  : <span className="text-[9px] font-bold tracking-wider uppercase bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Coming Soon</span>
-                }
+                <span className="text-[9px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Beta</span>
               </label>
               <input
                 type="tel"
-                disabled={!isAdmin}
                 value={forwardingNumber[client.id] ?? ''}
                 onChange={(e) => setForwardingNumber(prev => ({ ...prev, [client.id]: e.target.value }))}
                 placeholder="+1 (555) 555-5555"
-                className={`w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20 ${!isAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
+                className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20"
               />
-              <p className="text-[11px] t3 mt-1">
-                {isAdmin
-                  ? 'Enter your personal phone number. When a caller asks for a human, they\'ll be transferred here.'
-                  : 'Live call transfer to your number — coming soon.'
-                }
-              </p>
+              <p className="text-[11px] t3 mt-1">Your personal number. When a live transfer is triggered, the caller is connected here immediately.</p>
+            </div>
+            <div>
+              <label className="text-xs t2 mb-1.5 block">Transfer conditions</label>
+              <textarea
+                rows={2}
+                value={transferConditions[client.id] ?? ''}
+                onChange={(e) => setTransferConditions(prev => ({ ...prev, [client.id]: e.target.value }))}
+                placeholder="e.g. the caller explicitly says it's an emergency or urgently insists on speaking to a human"
+                className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20 resize-none"
+              />
+              <p className="text-[11px] t3 mt-1">Describe when your agent should offer a live transfer. Leave blank to use the default (emergency or explicit human request only).</p>
             </div>
             {/* Setup checklist */}
             <div className="rounded-2xl bg-surface border b-theme p-4 space-y-3">
