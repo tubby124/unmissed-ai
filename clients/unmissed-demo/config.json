@@ -1,0 +1,20 @@
+{
+  "_comment": "unmissed.ai Demo Agent (Aria) | Railway native | Webhook: /api/webhook/unmissed-demo/inbound | Twilio: +15878014602",
+  "client_name":          "unmissed.ai Demo",
+  "agent_name":           "Aria",
+  "business_name":        "unmissed.ai",
+  "host_name":            "Hasan",
+  "host_phone_display":   "(306) 850-7687",
+  "twilio_from":          "+15878014602",
+  "voice_number":         "+15878014602",
+  "telegram_chat_id":     "7278536150",
+  "business_hours_start": 0,
+  "business_hours_end":   24,
+  "work_days":            "Mon-Sun",
+  "timezone":             "America/Regina",
+  "timezone_display":     "Saskatchewan",
+  "utc_offset":           "-06:00",
+  "vertical":             "saas_demo",
+  "deployed_at":          "2026-03-17T00:00:00Z",
+  "notes":                "Internal marketing/sales agent. Always available. Qualifies inbound prospects and outbound widget callers. Live transfer to Hasan (+13068507687) for HOT leads. No after-hours block."
+}

@@ -251,11 +251,15 @@ def deploy(slug, change_description):
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
 
     # Read current voice from live Ultravox agent — NEVER overwrite voice on prompt deploy
-    live_agent = uv_get(cfg["ultravox_agent_id"])
-    live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
-    # Allow explicit --voice override; otherwise preserve whatever is live
-    deploy_voice = cfg.get("_voice_override") or live_voice
-    print(f"  Voice: {deploy_voice} ({'overridden' if cfg.get('_voice_override') else 'preserved from live agent'})")
+    if cfg.get("ultravox_agent_id"):
+        live_agent = uv_get(cfg["ultravox_agent_id"])
+        live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
+        # Allow explicit --voice override; otherwise preserve whatever is live
+        deploy_voice = cfg.get("_voice_override") or live_voice
+        print(f"  Voice: {deploy_voice} ({'overridden' if cfg.get('_voice_override') else 'preserved from live agent'})")
+    else:
+        deploy_voice = cfg["voice"]
+        print(f"  Voice: {deploy_voice} (config default — no live agent)")
 
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
     call_template = {
