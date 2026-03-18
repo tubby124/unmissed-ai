@@ -100,7 +100,7 @@ export interface OnboardingData {
   voiceId: string | null;
   voiceName: string;
   callHandlingMode: 'message_only' | 'triage' | 'full_service';
-  faqPairs: { question: string; answer: string }[];
+  faqPairs: { question: string; answer: string; source?: 'scraped' | 'manual' }[];
   knowledgeDocs: { id: string; filename: string; charCount: number }[];
   timezone: string;
 }
@@ -155,7 +155,7 @@ export const defaultOnboardingData: OnboardingData = {
     saturday: { open: "", close: "", closed: true },
     sunday: { open: "", close: "", closed: true },
   },
-  afterHoursBehavior: "take_message",
+  afterHoursBehavior: "standard",
   emergencyPhone: "",
   nicheAnswers: {},
   notificationMethod: "telegram",

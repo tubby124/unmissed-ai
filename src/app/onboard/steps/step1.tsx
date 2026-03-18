@@ -189,6 +189,7 @@ export default function Step1({ data, onUpdate }: Props) {
       }
 
       setAutofilling(true);
+      let placesFilledHours = false;
 
       try {
         // 1. Try Places API if we have a business name
@@ -213,6 +214,7 @@ export default function Step1({ data, onUpdate }: Props) {
                 if (placesData.phone) updates.callbackPhone = placesData.phone;
                 if (placesData.hours && Array.isArray(placesData.hours)) {
                   updates.businessHoursText = placesData.hours.join(", ");
+                  placesFilledHours = true;
                 }
                 if (Object.keys(updates).length > 0) onUpdate(updates);
               }
@@ -223,7 +225,7 @@ export default function Step1({ data, onUpdate }: Props) {
         }
 
         // 2. Always run autofill for hours/services (fills gaps)
-        if (!placesAvailable || !data.businessHoursText || !data.servicesOffered) {
+        if (!placesAvailable || (!data.businessHoursText && !placesFilledHours) || !data.servicesOffered) {
           try {
             const autofillRes = await fetch("/api/onboard/autofill", {
               method: "POST",
@@ -243,6 +245,7 @@ export default function Step1({ data, onUpdate }: Props) {
                 updates.faqPairs = autofillData.faqs.slice(0, 3).map((faq: { question: string; answer: string }) => ({
                   question: faq.question || '',
                   answer: faq.answer || '',
+                  source: 'scraped' as const,
                 }));
               }
               if (Object.keys(updates).length > 0) onUpdate(updates);
@@ -311,7 +314,7 @@ export default function Step1({ data, onUpdate }: Props) {
       {/* Flat niche chip grid */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground">
-          What type of business are you?
+          Select your industry
         </label>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(nicheIcons) as Niche[])

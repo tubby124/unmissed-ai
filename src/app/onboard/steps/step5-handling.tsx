@@ -124,7 +124,7 @@ export default function Step5Handling({ data, onUpdate }: Props) {
                   key={mode.id}
                   type="button"
                   onClick={() => onUpdate({ callHandlingMode: mode.id })}
-                  className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                  className={`w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer ${
                     isSelected
                       ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-600/20"
                       : "border-border hover:border-border bg-card"

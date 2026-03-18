@@ -211,7 +211,7 @@ export default function OnboardPage() {
   const isLastStep = stepIndex === totalSteps - 1;
 
   return (
-    <div className="min-h-screen flex">
+    <>
       {/* Training animation overlay */}
       {showTrainingAnimation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
@@ -321,6 +321,6 @@ export default function OnboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
