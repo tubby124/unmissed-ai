@@ -386,17 +386,18 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
         </p>
       </div>
 
-      {/* Completeness score */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Your agent is {completeness}% configured</span>
-          <span className="text-xs text-muted-foreground">{completeness}/100</span>
-        </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full bg-indigo-600 transition-all duration-500"
-            style={{ width: `${completeness}%` }}
-          />
+      {/* Ready badge */}
+      <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3">
+        <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Your agent is ready to activate</p>
+          {(completeness < 80) && (
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+              Add FAQs (+{faqHasPair ? 0 : 10}pts) or upload docs to improve accuracy
+            </p>
+          )}
         </div>
       </div>
 
@@ -424,7 +425,8 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
       <OnboardDemoSection data={data} />
 
       {/* Summary card */}
-      <div className="border rounded-xl overflow-hidden">
+      <div className="overflow-x-auto rounded-xl">
+      <div className="border rounded-xl overflow-hidden min-w-[320px]">
         {visibleRows.map((row, i) => (
           <div
             key={row.label}
@@ -435,12 +437,13 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
             <button
               type="button"
               onClick={() => onEdit(row.editStep)}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer"
+              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer py-1.5 px-2 -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
             >
               Edit
             </button>
           </div>
         ))}
+      </div>
       </div>
 
       {/* Niche-specific answers (if step 4 was part of the flow) */}
@@ -451,7 +454,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
             <button
               type="button"
               onClick={() => onEdit(4)}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 cursor-pointer"
+              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer py-1.5 px-2 -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
             >
               Edit
             </button>
@@ -472,46 +475,48 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
       {/* Admin-only prompt preview */}
       <PromptPreview data={data} />
 
+      {/* CTA cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Trial card */}
+        <button
+          type="button"
+          onClick={() => onActivate("trial")}
+          disabled={isSubmitting}
+          className="rounded-xl border-2 border-indigo-600 bg-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 p-4 text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
+        >
+          <div className="space-y-1">
+            <p className="text-white font-bold text-base leading-tight">
+              {isSubmitting ? "Activating..." : "Start free trial"}
+            </p>
+            <p className="text-indigo-100 text-xs font-medium">7 days · No credit card</p>
+            <p className="text-indigo-200 text-xs mt-2">Demo call included · Forwarding guide sent</p>
+          </div>
+        </button>
+
+        {/* Paid card */}
+        <button
+          type="button"
+          onClick={() => onActivate("paid")}
+          disabled={isSubmitting}
+          className="rounded-xl border-2 border-border hover:border-indigo-400 bg-card hover:bg-muted/30 p-4 text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="space-y-1">
+            <p className="text-foreground font-bold text-base leading-tight">Activate now</p>
+            <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">$20 / month</p>
+            <p className="text-muted-foreground text-xs mt-2">Real number · Full SMS · Live today</p>
+          </div>
+        </button>
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+      )}
+
       {/* Post-activation notes */}
       <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 space-y-1">
         <p className="font-medium">After activation — 2 quick manual steps:</p>
         <p>1. Set up Telegram notifications (we&apos;ll send instructions)</p>
         <p>2. Forward your business phone to your new AI number (2-min guide included)</p>
-      </div>
-
-      {/* CTA buttons */}
-      <div className="space-y-3">
-        <button
-          type="button"
-          onClick={() => onActivate("trial")}
-          disabled={isSubmitting}
-          className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-base transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Activating...
-            </span>
-          ) : (
-            "Start Free Trial — 7 days, no credit card"
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onActivate("paid")}
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl border-2 border-border/80 hover:border-indigo-400 text-foreground hover:text-indigo-700 dark:hover:text-indigo-400 font-medium text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Skip trial, activate now — $20/mo
-        </button>
-
-        {error && (
-          <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
-        )}
       </div>
     </div>
   );

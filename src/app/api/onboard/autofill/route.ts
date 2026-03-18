@@ -2,7 +2,7 @@
  * POST /api/onboard/autofill
  * Public — no auth. Scrapes a business website and extracts hours + services.
  * Body: { url: string }
- * Returns: { hours?: string, services?: string }
+ * Returns: { hours?: string, services?: string, faqs?: Array<{question: string, answer: string}> }
  * Times out after 8s. Returns {} on any failure.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -25,7 +25,7 @@ function recordUsage(ip: string) {
   rateLimitMap.set(ip, timestamps)
 }
 
-async function extractHoursAndServices(markdown: string): Promise<{ hours?: string; services?: string }> {
+async function extractBusinessInfo(markdown: string): Promise<{ hours?: string; services?: string; faqs?: Array<{question: string; answer: string}> }> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey || !markdown) return {}
   try {
@@ -38,10 +38,11 @@ async function extractHoursAndServices(markdown: string): Promise<{ hours?: stri
           role: 'user',
           content: `From this website content, extract:
 1. Business hours (as a brief string like "Mon–Fri 9am–5pm, Sat 10am–2pm") — return null if not found
-2. Main services offered (as a comma-separated list) — return null if not found
+2. Main services offered (as a comma-separated list, max 10 items) — return null if not found
+3. Top 3 FAQ questions and answers callers might ask — return null if not enough content
 
-Return ONLY valid JSON: {"hours": "...", "services": "..."}
-Use null for any field you cannot find.
+Return ONLY valid JSON: {"hours": "...", "services": "...", "faqs": [{"question": "...", "answer": "..."}]}
+Use null for hours/services if not found. Use null for faqs if there isn't enough content to generate good FAQs. Never invent answers — only extract what is clearly stated on the website.
 
 Website content:
 ${markdown.slice(0, 3000)}`,
@@ -57,6 +58,7 @@ ${markdown.slice(0, 3000)}`,
     return {
       hours: parsed.hours || undefined,
       services: parsed.services || undefined,
+      faqs: Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : undefined,
     }
   } catch {
     return {}
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
       clearTimeout(timer)
       if (!markdown) return NextResponse.json({})
 
-      const extracted = await extractHoursAndServices(markdown)
+      const extracted = await extractBusinessInfo(markdown)
       recordUsage(ip)
       return NextResponse.json(extracted || {})
     } catch {

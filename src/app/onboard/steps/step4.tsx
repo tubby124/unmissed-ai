@@ -106,9 +106,7 @@ export default function Step4({ data, onUpdate }: Props) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intake_id: intakeId, niche: niche || "other" }),
-    }).catch((err) => {
-      console.error("[step4] Failed to create draft intake:", err);
-    });
+    }).catch(() => {/* silent — best-effort */});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize FAQ pairs on first visit if empty and niche has defaults
@@ -270,12 +268,19 @@ export default function Step4({ data, onUpdate }: Props) {
           </p>
         </div>
 
-        {data.websiteUrl && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
-            <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-            <p className="text-sm text-green-800 dark:text-green-200">Website content loaded from {data.websiteUrl}</p>
-          </div>
-        )}
+        {data.websiteUrl && (() => {
+          const scrapedFaqCount = data.faqPairs.filter(p => p.answer.trim()).length;
+          return (
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                {scrapedFaqCount > 0
+                  ? `Loaded ${scrapedFaqCount} FAQ${scrapedFaqCount !== 1 ? 's' : ''} from your website — review and edit below`
+                  : `Website content loaded — add your FAQ answers below`}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Drop zone */}
         <div
@@ -391,7 +396,17 @@ export default function Step4({ data, onUpdate }: Props) {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Answer</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-muted-foreground">Answer</label>
+                    {pair.answer.trim() && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        AI filled
+                      </span>
+                    )}
+                  </div>
                   <textarea
                     rows={2}
                     value={pair.answer}

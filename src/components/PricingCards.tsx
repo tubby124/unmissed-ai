@@ -11,7 +11,7 @@ const plans = [
     monthly: 147,
     annual: 122,
     description: "Perfect for solo tradespeople or small shops just getting started.",
-    cta: "Start Free Trial",
+    cta: "Get Started Free",
     ctaHref: "/onboard",
     highlighted: false,
     features: [
@@ -30,7 +30,7 @@ const plans = [
     monthly: 247,
     annual: 206,
     description: "Best for growing service businesses ready to capture every lead.",
-    cta: "Start Free Trial",
+    cta: "Get Started Free",
     ctaHref: "/onboard",
     highlighted: true,
     badge: "Most Popular",

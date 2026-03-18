@@ -567,81 +567,70 @@ function AgentPreviewCard({ preview }: { preview: IntakePreview }) {
 // ── Trial Success Screen ─────────────────────────────────────────────────────
 
 function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: string | null; setupUrl: string | null; telegramLink: string | null }) {
-  const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const expiryStr = trialExpiry.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-
   useEffect(() => {
     try { localStorage.removeItem("unmissed-onboard-draft"); } catch { /* ignore */ }
   }, []);
 
+  const checklistItems = [
+    { label: "Agent configured", done: true, link: null as string | null },
+    { label: "Trial activated — 7 days free", done: true, link: null as string | null },
+    { label: "Set up Telegram to receive call notifications", done: false, link: telegramLink },
+    { label: "Forward your business phone to your new AI number", done: false, link: setupUrl },
+  ];
+
   return (
-    <div className="max-w-md w-full text-center space-y-6 py-12">
-      {/* Success icon */}
-      <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
-        <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-
-      {/* Heading */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Your agent is ready to test!</h1>
-        <p className="text-muted-foreground text-sm">
-          Your AI receptionist is set up. Try it out with a demo call from your dashboard.
-        </p>
-      </div>
-
-      {/* Trial info card */}
-      <div className="border border-indigo-200 bg-indigo-50/50 rounded-xl p-5 space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-3 py-1">
-            7-day free trial
-          </span>
-        </div>
-
-        <div className="space-y-2 text-sm text-foreground">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Trial expires</span>
-            <span className="font-medium">{expiryStr}</span>
+    <div className="max-w-md w-full space-y-6 py-12">
+      {/* Trial activation success */}
+      <div className="space-y-6">
+        {/* Hero */}
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-950/30 flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Phone number</span>
-            <span className="font-medium text-amber-600">Included with paid plan</span>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">You&apos;re live!</h1>
+          <p className="text-sm text-muted-foreground">Your 7-day trial has started. Here&apos;s what to do next:</p>
         </div>
 
-        <div className="bg-background border border-indigo-100 rounded-lg p-3">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Test your agent with a WebRTC demo call from your dashboard.
-            Upgrade anytime to get a dedicated phone number and go live.
-          </p>
+        {/* Animated checklist */}
+        <div className="space-y-2">
+          {checklistItems.map((item, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-3 rounded-xl border p-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                item.done
+                  ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30"
+                  : "border-border bg-card"
+              }`}
+              style={{ animationDelay: `${i * 150}ms` }}
+            >
+              {item.done ? (
+                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-border shrink-0" />
+              )}
+              <span className={`text-sm flex-1 ${item.done ? "text-emerald-800 dark:text-emerald-200" : "text-foreground font-medium"}`}>
+                {item.label}
+              </span>
+              {item.link && (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+                >
+                  Set up →
+                </a>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* What you can do */}
-      <div className="bg-muted/30 border border-border rounded-xl p-4 text-sm text-left space-y-2">
-        <p className="font-semibold text-foreground">During your trial:</p>
-        <ul className="space-y-1.5 text-muted-foreground">
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
-            Test your agent with in-browser demo calls
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
-            Customize voice, tone, and responses
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
-            View call logs and transcripts
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
-            Upload knowledge docs and FAQ
-          </li>
-        </ul>
-      </div>
-
-      {/* CTA buttons */}
+      {/* Dashboard CTA */}
       <div className="space-y-3">
         {setupUrl ? (
           <a
@@ -659,21 +648,6 @@ function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: st
           </a>
         )}
 
-        {telegramLink && (
-          <div className="border border-indigo-200 bg-indigo-50/50 rounded-xl p-4 text-left space-y-2">
-            <p className="text-sm font-semibold text-foreground">Connect Telegram for instant call alerts</p>
-            <p className="text-xs text-muted-foreground">Get notified the moment your AI agent takes a call.</p>
-            <a
-              href={telegramLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 border border-indigo-300 hover:border-indigo-500 text-indigo-700 hover:text-indigo-900 font-medium px-4 py-2 rounded-lg transition-colors text-sm"
-            >
-              Set up Telegram alerts →
-            </a>
-          </div>
-        )}
-
         {clientId && (
           <a
             href={`/api/stripe/trial-convert?clientId=${clientId}`}
@@ -685,7 +659,7 @@ function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: st
       </div>
 
       {/* Footer */}
-      <p className="text-xs text-muted-foreground/70">
+      <p className="text-xs text-muted-foreground/70 text-center">
         Questions?{" "}
         <a href="mailto:support@unmissed.ai" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
           support@unmissed.ai

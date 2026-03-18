@@ -34,20 +34,6 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   other: HelpCircle,
 };
 
-interface Category {
-  label: string;
-  icon: LucideIcon;
-  niches: Niche[];
-}
-
-const CATEGORIES: Category[] = [
-  { label: "Services", icon: Wrench, niches: ["auto_glass", "hvac", "plumbing", "print_shop"] },
-  { label: "Property", icon: Building2, niches: ["property_management", "real_estate"] },
-  { label: "Beauty & Wellness", icon: Scissors, niches: ["salon"] },
-  { label: "Food & Hospitality", icon: UtensilsCrossed, niches: ["restaurant"] },
-  { label: "Other", icon: HelpCircle, niches: ["voicemail", "dental", "legal", "other"] },
-];
-
 // Maps Google Places types[] → default servicesOffered text
 const PLACES_TYPE_TO_SERVICES: Partial<Record<string, string>> = {
   car_repair: 'Auto repair, windshield replacement, glass services',
@@ -126,23 +112,71 @@ function parseAddressParts(address: string): { city: string; state: string; stre
   return { city, state, streetAddress };
 }
 
-export default function Step1({ data, onUpdate }: Props) {
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(() => {
-    // Auto-expand the category containing the already-selected niche
-    if (data.niche) {
-      const cat = CATEGORIES.find((c) => c.niches.includes(data.niche!));
-      return cat?.label ?? null;
-    }
-    return null;
-  });
-  const [autofilling, setAutofilling] = useState(false);
+const NICHE_INSIGHTS: Partial<Record<Niche, string[]>> = {
+  auto_glass: [
+    "Triage windshield chips vs. full replacements",
+    "Collect vehicle make, model, and insurance info",
+    "Route urgent mobile dispatch calls",
+  ],
+  hvac: [
+    "Qualify heating/cooling emergencies vs. routine service",
+    "Collect system type, age, and issue description",
+    "Book service windows and route after-hours calls",
+  ],
+  plumbing: [
+    "Triage emergency leaks vs. scheduled repairs",
+    "Collect address, issue type, and urgency level",
+    "Route after-hours emergency calls appropriately",
+  ],
+  dental: [
+    "Qualify new patient inquiries vs. emergencies",
+    "Collect patient name, concern, and preferred time",
+    "Handle appointment requests and insurance questions",
+  ],
+  legal: [
+    "Qualify case type and urgency level",
+    "Collect contact info and matter description",
+    "Route to the right practice area",
+  ],
+  salon: [
+    "Handle appointment requests and availability questions",
+    "Collect service type and stylist preference",
+    "Manage waitlist and callback requests",
+  ],
+  real_estate: [
+    "Qualify buyers, sellers, and rental inquiries",
+    "Capture property address and timeline",
+    "Book showing requests and callback times",
+  ],
+  property_management: [
+    "Triage emergency maintenance vs. routine requests",
+    "Collect unit number, issue type, and entry permission",
+    "Route after-hours emergencies to on-call staff",
+  ],
+  print_shop: [
+    "Capture job type, quantity, and deadline",
+    "Handle file submission and artwork questions",
+    "Route rush orders and quote requests",
+  ],
+  restaurant: [
+    "Handle reservation requests and hours questions",
+    "Capture party size and special requests",
+    "Route catering inquiries to the right contact",
+  ],
+  voicemail: [
+    "Capture caller name, number, and message",
+    "Send SMS confirmation after every call",
+    "Deliver messages instantly via Telegram",
+  ],
+  other: [
+    "Capture caller name, phone, and reason for calling",
+    "Send SMS follow-up after every call",
+    "Route urgent calls to your callback number",
+  ],
+};
 
-  const toggleCategory = useCallback(
-    (label: string) => {
-      setExpandedCategory((prev) => (prev === label ? null : label));
-    },
-    [],
-  );
+export default function Step1({ data, onUpdate }: Props) {
+  const [autofilling, setAutofilling] = useState(false);
 
   const handleWebsiteBlur = useCallback(
     async (url: string) => {
@@ -205,6 +239,12 @@ export default function Step1({ data, onUpdate }: Props) {
               if (autofillData.services && !data.servicesOffered) {
                 updates.servicesOffered = autofillData.services;
               }
+              if (autofillData.faqs && Array.isArray(autofillData.faqs) && !data.faqPairs.length) {
+                updates.faqPairs = autofillData.faqs.slice(0, 3).map((faq: { question: string; answer: string }) => ({
+                  question: faq.question || '',
+                  answer: faq.answer || '',
+                }));
+              }
               if (Object.keys(updates).length > 0) onUpdate(updates);
             }
           } catch {
@@ -215,7 +255,7 @@ export default function Step1({ data, onUpdate }: Props) {
         setAutofilling(false);
       }
     },
-    [data.businessName, data.city, data.businessHoursText, data.servicesOffered, onUpdate],
+    [data.businessName, data.city, data.businessHoursText, data.servicesOffered, data.faqPairs, onUpdate],
   );
 
   return (
@@ -229,8 +269,8 @@ export default function Step1({ data, onUpdate }: Props) {
 
       {/* Business search — Places autocomplete */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Search your business <span className="text-muted-foreground/70 font-normal">(optional — auto-fills details)</span>
+        <label className="text-sm font-semibold text-foreground">
+          Search your business to get started
         </label>
         <PlacesAutocomplete
           initialValue={data.businessName}
@@ -256,9 +296,6 @@ export default function Step1({ data, onUpdate }: Props) {
               const detected = detectNicheFromTypes(result.types)
               if (detected && NICHE_PRODUCTION_READY[detected]) {
                 updates.niche = detected
-                // Auto-expand that category so the user sees the selection
-                const cat = CATEGORIES.find((c) => c.niches.includes(detected))
-                if (cat) setExpandedCategory(cat.label)
               }
               // Auto-fill servicesOffered if not already set
               if (!data.servicesOffered) {
@@ -271,95 +308,73 @@ export default function Step1({ data, onUpdate }: Props) {
         />
       </div>
 
-      {/* Category cards */}
-      <div className="space-y-3">
-        {CATEGORIES.map((category) => {
-          const isExpanded = expandedCategory === category.label;
-          const CategoryIcon = category.icon;
-          const hasSelected = category.niches.includes(data.niche as Niche);
-
-          return (
-            <div key={category.label}>
-              <button
-                type="button"
-                onClick={() => toggleCategory(category.label)}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all cursor-pointer
-                  ${hasSelected
-                    ? "border-indigo-600 bg-indigo-50 shadow-md shadow-indigo-100"
-                    : isExpanded
-                      ? "border-border/80 bg-muted/30"
-                      : "border-border bg-card hover:border-border hover:bg-muted/30"
-                  }
-                `}
-              >
-                <CategoryIcon
-                  className={`w-5 h-5 shrink-0 ${hasSelected ? "text-indigo-600" : "text-muted-foreground"}`}
-                />
-                <span
-                  className={`text-sm font-semibold ${hasSelected ? "text-indigo-900" : "text-foreground"}`}
+      {/* Flat niche chip grid */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-foreground">
+          What type of business are you?
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(nicheIcons) as Niche[])
+            .filter((niche) => NICHE_PRODUCTION_READY[niche])
+            .map((niche) => {
+              const NicheIcon = nicheIcons[niche];
+              const isSelected = data.niche === niche;
+              return (
+                <button
+                  key={niche}
+                  type="button"
+                  onClick={() => onUpdate({ niche })}
+                  className={`
+                    flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer
+                    ${isSelected
+                      ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-sm shadow-indigo-100 dark:shadow-none"
+                      : "border-border bg-card text-foreground hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20"
+                    }
+                  `}
                 >
-                  {category.label}
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  className={`ml-auto shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${
-                    hasSelected ? "text-indigo-400" : "text-muted-foreground/70"
-                  }`}
-                >
-                  <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex flex-wrap gap-2 pt-3 pb-1 px-1">
-                      {category.niches.filter(niche => NICHE_PRODUCTION_READY[niche]).map((niche) => {
-                        const NicheIcon = nicheIcons[niche];
-                        const isSelected = data.niche === niche;
-
-                        return (
-                          <button
-                            key={niche}
-                            type="button"
-                            onClick={() => onUpdate({ niche })}
-                            className={`
-                              flex items-center gap-2 px-3.5 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer
-                              ${isSelected
-                                ? "border-indigo-600 bg-indigo-100 text-indigo-900"
-                                : "border-border bg-card text-foreground hover:border-border hover:bg-muted/30"
-                              }
-                            `}
-                          >
-                            <NicheIcon
-                              className={`w-4 h-4 shrink-0 ${isSelected ? "text-indigo-600" : "text-muted-foreground/70"}`}
-                            />
-                            {nicheLabels[niche]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
+                  <NicheIcon
+                    className={`w-4 h-4 shrink-0 ${isSelected ? "text-indigo-600" : "text-muted-foreground/70"}`}
+                  />
+                  {nicheLabels[niche]}
+                </button>
+              );
+            })}
+        </div>
       </div>
+
+      {/* Insight card — appears after niche selection */}
+      <AnimatePresence>
+        {data.niche && NICHE_INSIGHTS[data.niche] && (
+          <motion.div
+            key={data.niche}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+            className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/20 p-4"
+          >
+            <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide mb-2">
+              Your agent will handle
+            </p>
+            <ul className="space-y-1.5">
+              {NICHE_INSIGHTS[data.niche]!.map((bullet, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-indigo-900 dark:text-indigo-200">
+                  <svg className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {bullet}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Website URL input */}
       <div className="space-y-2 pt-2 border-t border-border">
-        <Label htmlFor="websiteUrl">Website URL <span className="text-muted-foreground/70 font-normal text-xs">(optional)</span></Label>
+        <Label htmlFor="websiteUrl" className="text-sm font-medium text-foreground">
+          Your website <span className="text-xs text-muted-foreground font-normal">(we&apos;ll use it to train your agent)</span>
+        </Label>
         <div className="relative">
           <Input
             id="websiteUrl"

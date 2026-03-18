@@ -19,6 +19,16 @@ export default function Step2Voice({ data, onUpdate }: Props) {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-fill agent name from niche default if not yet set
+  useEffect(() => {
+    if (!data.agentName && data.niche) {
+      const defaultName = defaultAgentNames[data.niche as Niche];
+      if (defaultName) {
+        onUpdate({ agentName: defaultName });
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const suggestedName = data.niche ? defaultAgentNames[data.niche as Niche] : "Sam";
 
   return (
@@ -36,9 +46,11 @@ export default function Step2Voice({ data, onUpdate }: Props) {
       />
 
       <div className="space-y-2 pt-2 border-t border-border">
-        <Label htmlFor="agentName">
-          Agent name{" "}
-          <span className="text-muted-foreground/70 font-normal text-xs">(suggested: {suggestedName})</span>
+        <Label htmlFor="agentName" className="flex items-center gap-1.5">
+          Agent name
+          <svg className="w-3.5 h-3.5 text-muted-foreground/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
         </Label>
         <Input
           id="agentName"
@@ -47,7 +59,7 @@ export default function Step2Voice({ data, onUpdate }: Props) {
           onChange={(e) => onUpdate({ agentName: e.target.value })}
         />
         <p className="text-xs text-muted-foreground/70">
-          This is the name your agent uses to introduce itself on calls.
+          Callers will hear: &quot;Hi, you&apos;ve reached {data.agentName || suggestedName} from [your business]&quot;
         </p>
       </div>
     </div>

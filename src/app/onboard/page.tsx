@@ -11,7 +11,6 @@ import Step3Basics from "./steps/step3-basics";
 import Step4 from "./steps/step4";
 import Step5Handling from "./steps/step5-handling";
 import Step6Review from "./steps/step6-review";
-import OnboardLeftPanel from "@/components/onboard/OnboardLeftPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const STORAGE_KEY = "unmissed-onboard-draft";
@@ -58,39 +57,24 @@ function canAdvance(step: number, data: OnboardingData): boolean {
   }
 }
 
-// Step indicator — numbered circles with connecting lines
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center justify-center gap-0 px-4 py-4">
+    <div className="flex items-center justify-center gap-2 py-4 px-4">
       {Array.from({ length: total }, (_, i) => {
         const n = i + 1;
         const done = n < current;
         const active = n === current;
         return (
-          <div key={n} className="flex items-center">
-            <div
-              className={`
-                relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold shrink-0
-                ${done ? "bg-indigo-600 text-white" : active ? "ring-2 ring-indigo-600 text-indigo-600 bg-background" : "bg-muted text-muted-foreground"}
-              `}
-            >
-              {active && (
-                <motion.div
-                  layoutId="onboard-active-step"
-                  className="absolute inset-0 rounded-full bg-indigo-600 opacity-10"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                />
-              )}
-              {done ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : n}
-            </div>
-            {n < total && (
-              <div className={`w-6 sm:w-10 h-0.5 transition-colors duration-300 ${done ? "bg-indigo-600" : "bg-border"}`} />
-            )}
-          </div>
+          <div
+            key={n}
+            className={`rounded-full transition-all duration-300 ${
+              active
+                ? "w-6 h-2 bg-indigo-600"
+                : done
+                ? "w-2 h-2 bg-indigo-400"
+                : "w-2 h-2 bg-muted-foreground/25"
+            }`}
+          />
         );
       })}
     </div>
@@ -251,23 +235,8 @@ export default function OnboardPage() {
         </div>
       )}
 
-      {/* Left panel */}
-      <OnboardLeftPanel
-        niche={data.niche}
-        stepTitle={STEP_TITLES[step]}
-        stepIndex={stepIndex + 1}
-        totalSteps={totalSteps}
-        businessName={data.businessName}
-        city={data.city}
-        placesPhotoUrl={data.placesPhotoUrl}
-        placesRating={data.placesRating}
-        placesReviewCount={data.placesReviewCount}
-        voiceName={data.voiceName}
-        isReviewStep={step === 6}
-      />
-
-      {/* Right panel */}
-      <div className="flex-1 flex flex-col min-h-screen bg-muted/30">
+      {/* Main panel */}
+      <div className="min-h-screen flex flex-col bg-muted/30">
         {/* Header */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -287,13 +256,13 @@ export default function OnboardPage() {
         <div className="bg-background border-b">
           <StepIndicator current={stepIndex + 1} total={totalSteps} />
           <div className="text-center pb-3">
-            <span className="text-xs font-medium text-indigo-600">{STEP_TITLES[step]}</span>
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">{STEP_TITLES[step]}</span>
           </div>
         </div>
 
         {/* Step content — animated */}
-        <div className="flex-1 flex justify-center px-4 py-6 overflow-hidden">
-          <div className="w-full max-w-lg">
+        <div className="flex-1 flex justify-center px-4 py-8 overflow-hidden">
+          <div className="w-full max-w-xl">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -325,8 +294,8 @@ export default function OnboardPage() {
         </div>
 
         {/* Footer nav */}
-        <div className="bg-background border-t px-4 py-4">
-          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+        <div className="bg-background border-t px-4 py-4 sticky bottom-0 z-10">
+          <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             <Button
               variant="ghost"
               onClick={goBack}
