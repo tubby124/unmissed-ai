@@ -13,6 +13,7 @@ import StatsSection from "@/components/StatsSection";
 import { faqSchema } from "@/lib/schema";
 import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
+import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 
 export const metadata: Metadata = {
   title: "unmissed.ai — AI Receptionist for Service Businesses",
@@ -150,6 +151,7 @@ export default async function HomePage() {
       </main>
 
       <Footer />
+      <TalkToAgentWidget />
     </>
   );
 }

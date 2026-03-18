@@ -74,6 +74,12 @@ CLIENT_CONFIG = {
         "vad_min_interruption": "0.400s",
         "local_dir": "true-color",
     },
+    "unmissed-demo": {
+        "ultravox_agent_id": None,  # Demo uses ephemeral calls (useLivePrompt from Supabase) — no Agents API agent
+        "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",  # Jacqueline (Aria)
+        "greeting": None,
+        "vad_min_interruption": "0.400s",
+    },
 }
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -284,25 +290,29 @@ def deploy(slug, change_description):
     if cfg.get("greeting"):
         call_template["firstSpeakerSettings"]["agent"]["text"] = cfg["greeting"]
 
-    uv_result = uv_patch(cfg["ultravox_agent_id"], call_template)
-    uv_revision = uv_result.get("publishedRevisionId", "n/a")
+    if cfg.get("ultravox_agent_id"):
+        uv_result = uv_patch(cfg["ultravox_agent_id"], call_template)
+        uv_revision = uv_result.get("publishedRevisionId", "n/a")
 
-    # Post-PATCH verification — read back live agent and check required fields
-    # Ultravox PATCH is a full callTemplate replace; missing fields are silently wiped.
-    uv_live = uv_get(cfg["ultravox_agent_id"])
-    live_ct = uv_live.get("callTemplate", {})
-    required = ["systemPrompt", "voice", "medium", "recordingEnabled", "selectedTools",
-                "inactivityMessages", "firstSpeakerSettings", "vadSettings", "timeExceededMessage"]
-    missing = [f for f in required if not live_ct.get(f)]
-    if missing:
-        print(f"  ⚠ DEPLOY WARNING: live agent missing fields after PATCH: {missing}")
-        print(f"    Re-run deploy or manually patch agent {cfg['ultravox_agent_id']}")
+        # Post-PATCH verification — read back live agent and check required fields
+        # Ultravox PATCH is a full callTemplate replace; missing fields are silently wiped.
+        uv_live = uv_get(cfg["ultravox_agent_id"])
+        live_ct = uv_live.get("callTemplate", {})
+        required = ["systemPrompt", "voice", "medium", "recordingEnabled", "selectedTools",
+                    "inactivityMessages", "firstSpeakerSettings", "vadSettings", "timeExceededMessage"]
+        missing = [f for f in required if not live_ct.get(f)]
+        if missing:
+            print(f"  ⚠ DEPLOY WARNING: live agent missing fields after PATCH: {missing}")
+            print(f"    Re-run deploy or manually patch agent {cfg['ultravox_agent_id']}")
+        else:
+            print(f"  ✓ Live agent verified — all required fields present")
+
+        # Mark ultravox_synced
+        sb_patch(f"prompt_versions?id=eq.{new_version_id}", {"ultravox_synced": True})
+        print(f"  ✓ Ultravox PATCH — revision: {uv_revision}")
     else:
-        print(f"  ✓ Live agent verified — all required fields present")
-
-    # Mark ultravox_synced
-    sb_patch(f"prompt_versions?id=eq.{new_version_id}", {"ultravox_synced": True})
-    print(f"  ✓ Ultravox PATCH — revision: {uv_revision}")
+        uv_revision = "n/a (no Agents API agent — uses ephemeral calls)"
+        print(f"  ↷ Skipping Ultravox PATCH — client has no ultravox_agent_id (ephemeral call mode)")
 
     # Append to local changelog
     changelog_path = os.path.join(BASE_DIR, "clients", local_dir, "PROMPT_CHANGELOG.md")

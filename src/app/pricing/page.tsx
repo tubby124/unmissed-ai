@@ -9,6 +9,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
+import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 
 export const metadata: Metadata = {
   title: "Pricing — unmissed.ai AI Receptionist",
@@ -283,6 +284,7 @@ export default function PricingPage() {
       </main>
 
       <Footer />
+      <TalkToAgentWidget />
     </>
   );
 }

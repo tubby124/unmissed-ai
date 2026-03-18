@@ -151,23 +151,35 @@ export default function Navbar() {
           <ThemeToggle />
           <Link
             href="/login"
-            className="text-sm hover:text-white transition-colors"
-            style={{ color: "var(--color-text-2)" }}
+            className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
+            style={{
+              color: "var(--color-text-2)",
+              borderColor: "var(--color-nav-border)",
+              backgroundColor: "transparent",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--color-text-1)";
+              (e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-nav-border)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--color-text-2)";
+              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+            }}
           >
-            Sign In
+            Log In
           </Link>
           <Link
             href="/onboard"
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: "var(--color-primary)" }}
             onMouseEnter={(e) =>
-              ((e.target as HTMLElement).style.backgroundColor = "var(--color-primary-hover)")
+              ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary-hover)")
             }
             onMouseLeave={(e) =>
-              ((e.target as HTMLElement).style.backgroundColor = "var(--color-primary)")
+              ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary)")
             }
           >
-            Get My Agent
+            Sign Up Free
           </Link>
         </div>
 
@@ -254,7 +266,7 @@ export default function Navbar() {
               style={{ backgroundColor: "var(--color-primary)" }}
               onClick={() => setOpen(false)}
             >
-              Get My Agent
+              Sign Up Free
             </Link>
             <Link
               href="/login"
@@ -262,7 +274,7 @@ export default function Navbar() {
               style={{ color: "var(--color-text-2)", borderColor: "var(--color-nav-border)", backgroundColor: "transparent" }}
               onClick={() => setOpen(false)}
             >
-              Sign In to Dashboard
+              Log In
             </Link>
           </div>
         </div>

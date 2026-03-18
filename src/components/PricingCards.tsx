@@ -11,7 +11,7 @@ const plans = [
     monthly: 147,
     annual: 122,
     description: "Perfect for solo tradespeople or small shops just getting started.",
-    cta: "Get Started",
+    cta: "Start Free Trial",
     ctaHref: "/onboard",
     highlighted: false,
     features: [
@@ -30,7 +30,7 @@ const plans = [
     monthly: 247,
     annual: 206,
     description: "Best for growing service businesses ready to capture every lead.",
-    cta: "Get Started",
+    cta: "Start Free Trial",
     ctaHref: "/onboard",
     highlighted: true,
     badge: "Most Popular",
@@ -203,7 +203,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                 {plan.cta} →
               </Link>
               <p className="text-center text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
-                No contracts · Cancel anytime
+                {plan.name === "Business" ? "No contracts · Cancel anytime" : "7-day free trial · No contracts · Cancel anytime"}
               </p>
             </div>
           </motion.div>
