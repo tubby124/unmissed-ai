@@ -74,3 +74,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 20927 | **Hash:** 5ced03cca3c8a3fb
 **Supabase version_id:** 22ba4738-0b53-42c2-a1fc-8db5815a718b
 **Ultravox revision:** 9d392a2f-9313-4723-8c6d-daa90493a8b0
+
+## v14 — 2026-03-18 07:19 UTC
+**Change:** fix: 3 promptfoo failures — virtual assistant language, one-question rule (no compound name+unit), prompt injection close-without-follow-up
+**Chars:** 21151 | **Hash:** 698869c9277f745c
+**Supabase version_id:** 7acfb694-121b-47ba-a727-eb6881cc826a
+**Ultravox revision:** b15d24d6-5b4a-44fb-bb60-99db375c57b6
