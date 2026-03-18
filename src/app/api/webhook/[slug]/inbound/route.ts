@@ -109,10 +109,11 @@ export async function POST(
   // Always inject CALLER PHONE — agent should never ask for it; we already have it from Twilio
   let callerContext = `TODAY: ${todayIso} (${dayOfWeek})\nCURRENT TIME: ${timeNow} (${clientTz})`
   if (callerPhone !== 'unknown') callerContext += `\nCALLER PHONE: ${callerPhone}`
+  let firstPriorCallId: string | undefined
   if (callerPhone !== 'unknown') {
     const { data: priorCalls } = await supabase
       .from('call_logs')
-      .select('started_at, call_status, ai_summary, caller_name')
+      .select('started_at, call_status, ai_summary, caller_name, ultravox_call_id')
       .eq('caller_phone', callerPhone)
       .eq('client_id', client.id)
       .order('started_at', { ascending: false })
@@ -129,6 +130,7 @@ export async function POST(
       const knownName = priorCalls.find(c => c.caller_name)?.caller_name as string | undefined
       if (knownName) callerContext += `\nCALLER NAME: ${knownName}`
       callerContext += `\nRETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
+      firstPriorCallId = (priorCalls[0].ultravox_call_id as string | null) ?? undefined
       console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls${knownName ? `, name=${knownName}` : ''}, context injected`)
     }
   }
@@ -225,6 +227,7 @@ export async function POST(
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
+          languageHint: 'en',
           ...(callerContext    ? { callerContext }                    : {}),
           ...(businessFactsStr ? { businessFacts: businessFactsStr } : {}),
           ...(extraQaStr       ? { extraQa: extraQaStr }             : {}),
@@ -239,6 +242,8 @@ export async function POST(
           tools,
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
+          languageHint: 'en',
+          ...(firstPriorCallId ? { priorCallId: firstPriorCallId } : {}),
         })
         console.log(`[inbound] createCall fallback succeeded: callId=${ultravoxCall.callId}`)
       }
@@ -251,6 +256,7 @@ export async function POST(
         tools,
         callbackUrl: signedCallbackUrl,
         metadata: callMeta,
+        languageHint: 'en',
       })
     }
   } catch (error) {

@@ -57,9 +57,10 @@ interface CreateCallOptions {
   callbackUrl?: string
   tools?: object[]
   priorCallId?: string
+  languageHint?: string
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId, languageHint }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -75,6 +76,7 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (tools?.length) body.selectedTools = tools
+  if (languageHint) body.languageHint = languageHint
 
   // priorCallId reuses conversation history from a prior call — only works with POST /api/calls (not agent calls)
   const url = priorCallId
@@ -386,12 +388,14 @@ interface CallViaAgentOptions {
   extraQa?: string
   /** Inject per-call reference data (CSV/text) via {{contextData}} templateContext. */
   contextData?: string
+  /** BCP-47 language hint for transcription accuracy (e.g. 'en', 'en-CA'). */
+  languageHint?: string
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, languageHint }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -407,6 +411,7 @@ export async function callViaAgent(
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
+  if (languageHint) body.languageHint = languageHint
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',

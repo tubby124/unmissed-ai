@@ -42,6 +42,7 @@ const TIMEZONES = [
 ]
 
 import { NICHE_CONFIG } from '@/lib/niche-config'
+import { parsePromptSections } from '@/lib/prompt-sections'
 
 const KNOWN_VOICES: Record<string, string> = {
   'aa601962-1cbd-4bbd-9d96-3c7a93c3414a': 'Jacqueline',
@@ -249,6 +250,17 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     Object.fromEntries(clients.map(c => [c.id, c.corpus_enabled ?? false]))
   )
 
+  // Section editors (B1 — client-editable prompt sections)
+  const [sectionContent, setSectionContent] = useState<Record<string, Record<string, string>>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.system_prompt ? parsePromptSections(c.system_prompt) : {}]))
+  )
+  const [sectionSaving, setSectionSaving] = useState<Record<string, Record<string, boolean>>>({})
+  const [sectionSaved, setSectionSaved] = useState<Record<string, Record<string, boolean>>>({})
+  const [sectionError, setSectionError] = useState<Record<string, Record<string, string>>>({})
+  const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, Record<string, boolean>>>(
+    () => Object.fromEntries(clients.map(c => [c.id, {}]))
+  )
+
   // Advanced Context
   const [businessFacts, setBusinessFacts] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.business_facts ?? '']))
@@ -413,6 +425,38 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       const d = await res.json().catch(() => ({}))
       setSaveError(d.error || 'Save failed — try again.')
       setTimeout(() => setSaveError(''), 5000)
+    }
+  }
+
+  async function saveSection(sectionId: string, content: string) {
+    setSectionSaving(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
+    setSectionError(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: '' } }))
+    setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } }))
+    const body: Record<string, unknown> = { section_id: sectionId, section_content: content }
+    if (isAdmin) body.client_id = client.id
+    try {
+      const res = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Save failed')
+      }
+      setSectionContent(prev => ({
+        ...prev,
+        [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: content },
+      }))
+      setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
+      setTimeout(() => setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } })), 2500)
+    } catch (err) {
+      setSectionError(prev => ({
+        ...prev,
+        [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: String(err instanceof Error ? err.message : err) },
+      }))
+    } finally {
+      setSectionSaving(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } }))
     }
   }
 
@@ -2138,6 +2182,81 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       </div>
       </motion.div>
+
+      {/* 8c — Section Editors */}
+      {([
+        { id: 'identity', label: 'Agent Identity', desc: 'Agent name, greeting, and personality', rows: 6 },
+        { id: 'hours', label: 'Business Hours', desc: 'Hours your agent mentions to callers', rows: 3 },
+        { id: 'knowledge', label: 'Knowledge Base', desc: 'Services, pricing, and FAQs your agent knows', rows: 10 },
+      ] as const).map(({ id: sectionId, label, desc, rows }) => {
+        const parsed = sectionContent[client.id] ?? {}
+        const hasMarker = sectionId in parsed
+        const collapsed = sectionCollapsed[client.id]?.[sectionId] ?? true
+        const saving = sectionSaving[client.id]?.[sectionId] ?? false
+        const saved = sectionSaved[client.id]?.[sectionId] ?? false
+        const error = sectionError[client.id]?.[sectionId] ?? ''
+        const value = parsed[sectionId] ?? ''
+        return (
+          <motion.div
+            key={sectionId}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.0 }}
+          >
+            <div className="rounded-2xl border b-theme bg-surface p-5">
+              <button
+                className="flex items-center justify-between w-full text-left"
+                onClick={() => setSectionCollapsed(prev => ({
+                  ...prev,
+                  [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: !collapsed },
+                }))}
+              >
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{label}</p>
+                  <p className="text-[11px] t3 mt-0.5">{desc}</p>
+                </div>
+                <svg
+                  className={`w-4 h-4 t3 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {!collapsed && (
+                <div className="mt-4 space-y-3">
+                  {!hasMarker ? (
+                    <p className="text-[11px] t3 italic">Contact support to enable this section.</p>
+                  ) : (
+                    <>
+                      <textarea
+                        rows={rows}
+                        className="w-full rounded-xl border b-theme bg-input px-3 py-2 text-[12px] t1 resize-y font-mono"
+                        placeholder={`Enter ${label.toLowerCase()} content...`}
+                        value={value}
+                        onChange={e => setSectionContent(prev => ({
+                          ...prev,
+                          [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: e.target.value },
+                        }))}
+                      />
+                      {error && <p className="text-[11px] text-red-500">{error}</p>}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => saveSection(sectionId, value)}
+                          disabled={saving}
+                          className="px-4 py-1.5 rounded-xl text-[11px] font-semibold bg-accent text-white disabled:opacity-50"
+                        >
+                          {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}
+                        </button>
+                        <p className="text-[10px] t3">Changes take effect on the next call.</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )
+      })}
 
       {/* 8b — Advanced Context */}
       <motion.div

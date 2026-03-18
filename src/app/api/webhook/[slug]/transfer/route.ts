@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { redirectCall } from '@/lib/twilio'
+import { redirectCall, sendSms } from '@/lib/twilio'
 
 export const maxDuration = 10
 
@@ -34,7 +34,7 @@ export async function POST(
   // Fetch forwarding_number for this client
   const { data: client } = await supabase
     .from('clients')
-    .select('id, forwarding_number')
+    .select('id, forwarding_number, twilio_number')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -47,7 +47,7 @@ export async function POST(
   // Look up Twilio callSid from call_logs
   const { data: log } = await supabase
     .from('call_logs')
-    .select('twilio_call_sid')
+    .select('twilio_call_sid, caller_phone')
     .eq('ultravox_call_id', call_id)
     .eq('client_id', client.id)
     .limit(1)
@@ -59,7 +59,20 @@ export async function POST(
   }
 
   try {
-    await redirectCall(log.twilio_call_sid, client.forwarding_number)
+    const callerPhone = (log.caller_phone as string | null) ?? 'unknown'
+    const clientNumber = (client.twilio_number as string | null) ?? undefined
+    if (clientNumber) {
+      const smsBody = callerPhone !== 'unknown'
+        ? `Incoming transfer to you. Caller: ${callerPhone}. Your agent is connecting them now.`
+        : `Incoming transfer. Your agent is connecting a caller to you now.`
+      sendSms(client.forwarding_number, clientNumber, smsBody).catch(err =>
+        console.warn(`[transfer] SMS alert failed: ${err}`)
+      )
+    }
+    await redirectCall(log.twilio_call_sid, client.forwarding_number, {
+      callerPhone: callerPhone !== 'unknown' ? callerPhone : undefined,
+      clientNumber,
+    })
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     return NextResponse.json({ result: 'Transfer initiated' })
   } catch (err) {

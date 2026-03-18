@@ -1,10 +1,22 @@
 import twilio from 'twilio'
 
-export async function redirectCall(callSid: string, toNumber: string): Promise<void> {
+export async function redirectCall(
+  callSid: string,
+  toNumber: string,
+  opts?: { callerPhone?: string; clientNumber?: string }
+): Promise<void> {
   const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+  const announcement = '<Say voice="Polly.Amy">Please hold while I connect you to our team.</Say>'
+  const fallback = '<Say>Sorry, no one was available to take your call. Please try again later.</Say>'
+  const dialAttrs = opts?.clientNumber ? ` callerId="${opts.clientNumber}"` : ''
   await client.calls(callSid).update({
-    twiml: `<Response><Dial><Number>${toNumber}</Number></Dial></Response>`,
+    twiml: `<Response>${announcement}<Dial${dialAttrs} timeout="30"><Number>${toNumber}</Number></Dial>${fallback}</Response>`,
   })
+}
+
+export async function sendSms(to: string, from: string, body: string): Promise<void> {
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+  await twilioClient.messages.create({ to, from, body })
 }
 
 export function validateSignature(
