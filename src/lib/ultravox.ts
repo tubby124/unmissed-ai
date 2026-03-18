@@ -289,7 +289,8 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (transfer_enabled && forwarding_number) ? buildTransferTools(forwarding_number) : []
   const corpusTools: object[] = buildCorpusTools()
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools]
+  const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -353,7 +354,8 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.transfer_enabled && updates.forwarding_number) ? buildTransferTools(updates.forwarding_number) : []
   const corpusTools: object[] = buildCorpusTools()
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools]
+  const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',
