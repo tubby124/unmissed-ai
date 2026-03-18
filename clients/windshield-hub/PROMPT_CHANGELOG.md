@@ -47,3 +47,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 13987 | **Hash:** 1e8f78db2acaebc4
 **Supabase version_id:** c48bb565-4115-413e-b73a-995782e4fab6
 **Ultravox revision:** 1968d13b-8c86-44cd-b9a5-c1d122350d39
+
+## v9 — 2026-03-18 06:14 UTC
+**Change:** feat: add empty hours + knowledge section markers for dashboard editors
+**Chars:** 14093 | **Hash:** 743329e12cc486b1
+**Supabase version_id:** fa4b7867-5d30-4800-ae94-41ffc90fd67e
+**Ultravox revision:** a54a0523-5eed-4f8b-bb43-bb8d6ec59d02

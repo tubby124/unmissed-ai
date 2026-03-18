@@ -110,3 +110,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 20225 | **Hash:** f5b7b0539554d5aa
 **Supabase version_id:** cf20878e-c48b-4032-9119-9984c7ae606d
 **Ultravox revision:** ea7cdf8f-4470-4f45-ae1e-29a48fe23bec
+
+## v26 — 2026-03-18 06:13 UTC
+**Change:** fix: booking name gate mandatory + after-hours injection now requires DB hours config
+**Chars:** 20476 | **Hash:** 92a5b7835b8e967c
+**Supabase version_id:** 6dc6b244-828f-43b6-9f48-98f17daf6571
+**Ultravox revision:** 6bc1a02b-3b0e-4946-b61c-b6be826ad556

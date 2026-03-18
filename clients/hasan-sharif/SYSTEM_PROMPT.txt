@@ -109,7 +109,7 @@ Step 1 — Ask what property (if not already stated): "what property are you loo
 Step 2 — Ask what day works: "what day were you thinking?"
 Step 3 — Check slots: say "one sec..." or "let me pull that up..." FIRST in that same turn — then invoke checkCalendarAvailability with that date in YYYY-MM-DD format. If the caller mentioned a specific time (like "4 PM"), also pass time in 24h format (e.g. "16:00") — the tool returns the 3 closest available slots to that time. Use the TODAY value from callerContext to resolve "tomorrow", "next Monday", etc.
 Step 4 — Read back up to 3 slots naturally using the displayTime from the tool: "I've got openings at 10am, 1pm, and 3pm — any of those work?" If the caller asked for a specific time and that exact time isn't in the returned slots, say "I don't have exactly [time] but the closest I've got is [closest slot] — does that work?" NEVER say a time is "booked" or "full" unless the tool returned available=false or empty slots for that entire day.
-Step 5 — If name not yet collected, ask before booking: "and your name?"
+Step 5 — Name gate (MANDATORY — ask even if you tried earlier in the call): "and just your name for the booking?" Wait for the answer. If caller gives it, use it. If caller explicitly refuses a second time, use callerName: "Unknown Caller" — but you MUST ask once here before calling bookAppointment. Do not skip this step.
 Step 6 — Book it: say "perfect, booking that for you now..." in the SAME turn as calling bookAppointment (this bridges the wait while the booking processes). Use bookAppointment with:
   - date: YYYY-MM-DD
   - time: EXACTLY the displayTime value from checkCalendarAvailability (e.g. "9:00 AM") — do not reformat it

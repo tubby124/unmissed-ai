@@ -68,3 +68,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 20878 | **Hash:** 45ae3524774bf814
 **Supabase version_id:** 2e86cccd-ccfc-44ec-a888-b1b36f3571b2
 **Ultravox revision:** 6cd88445-bea7-4837-b323-7665c7102751
+
+## v13 — 2026-03-18 06:14 UTC
+**Change:** feat: add empty hours section marker for dashboard editors
+**Chars:** 20927 | **Hash:** 5ced03cca3c8a3fb
+**Supabase version_id:** 22ba4738-0b53-42c2-a1fc-8db5815a718b
+**Ultravox revision:** 9d392a2f-9313-4723-8c6d-daa90493a8b0
