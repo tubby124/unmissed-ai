@@ -35,3 +35,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 13761 | **Hash:** bc046eab6eebba69
 **Supabase version_id:** b5027bad-0227-49ec-8b31-54ba20336543
 **Ultravox revision:** n/a
+
+## v7 — 2026-03-18 04:40 UTC
+**Change:** Pattern B deferred messages priming line
+**Chars:** 13933 | **Hash:** ccd0f3d47d1f2d41
+**Supabase version_id:** dd5ae78f-cffd-41b6-ac17-4f00e5a7abd1
+**Ultravox revision:** 7f781b93-9792-4def-8579-39f1343fae4c

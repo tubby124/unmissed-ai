@@ -45,7 +45,7 @@ def _load_env():
 CLIENT_CONFIG = {
     "urban-vibe": {
         "ultravox_agent_id": "5f88f03b-5aaf-40fc-a608-2f7ed765d6a6",
-        "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",  # Jacqueline (confirmed Mar 11)
+        "voice": "df0b14d7-945f-41b2-989a-7c8c57688ddf",  # Ashley (Ray's preference, confirmed Mar 16 from live agent)
         "greeting": "Thanks for calling Urban Vibe Properties — I'm Alisha, Ray's virtual assistant. How can I help?",
         "vad_min_interruption": "0.400s",
     },

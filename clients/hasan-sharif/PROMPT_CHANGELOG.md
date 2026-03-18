@@ -92,3 +92,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 19891 | **Hash:** 2f5e3c246384247b
 **Supabase version_id:** 9be03800-3738-494b-9819-e00bbc63e1d4
 **Ultravox revision:** c92a232e-49d5-4930-9707-98422b8938e3
+
+## v23 — 2026-03-18 04:40 UTC
+**Change:** Pattern B deferred messages priming line
+**Chars:** 20065 | **Hash:** bfe0351874c6f965
+**Supabase version_id:** 741597dc-51e7-476b-9f93-1f59a32a3133
+**Ultravox revision:** a913ebf7-41af-4171-aba4-8e0efbd8b898
