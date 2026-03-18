@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
-import GuidedPromptEditor from '@/components/dashboard/GuidedPromptEditor'
+import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 
 interface PromptVersion {
   id: string
@@ -220,6 +220,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [testSmsError, setTestSmsError] = useState('')
 
+  // Right Now (injected_note)
+  const [injectedNote, setInjectedNote] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.injected_note ?? '']))
+  )
+  const [injectedNoteSaving, setInjectedNoteSaving] = useState(false)
+  const [injectedNoteSaved, setInjectedNoteSaved] = useState(false)
+
   // Advanced Context
   const [businessFacts, setBusinessFacts] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.business_facts ?? '']))
@@ -274,7 +281,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
   const [changeDesc, setChangeDesc] = useState('')
   const [showAllVersions, setShowAllVersions] = useState(false)
-  const [activeTab, setActiveTab] = useState<'general' | 'sms' | 'voice' | 'notifications' | 'billing'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'sms' | 'voice' | 'notifications' | 'billing' | 'knowledge'>('general')
   const [reloadMinutes, setReloadMinutes] = useState(100)
   const [reloadLoading, setReloadLoading] = useState(false)
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
@@ -644,6 +651,25 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     }
   }
 
+  async function saveInjectedNote(clearNote = false) {
+    setInjectedNoteSaving(true)
+    setInjectedNoteSaved(false)
+    const note = clearNote ? null : (injectedNote[client.id] ?? '').trim() || null
+    if (clearNote) setInjectedNote(prev => ({ ...prev, [client.id]: '' }))
+    const body: Record<string, unknown> = { injected_note: note }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setInjectedNoteSaving(false)
+    if (res.ok) {
+      setInjectedNoteSaved(true)
+      setTimeout(() => setInjectedNoteSaved(false), 3000)
+    }
+  }
+
   async function saveBookingConfig() {
     setBookingSaving(true)
     setBookingSaved(false)
@@ -825,6 +851,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             { id: 'voice',         label: 'Voice',    adminOnly: false, icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
             { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
             { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
+            { id: 'knowledge',     label: 'Knowledge', adminOnly: false, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
           ] as { id: typeof activeTab; label: string; adminOnly: boolean; icon: string }[])
             .filter(t => !t.adminOnly || isAdmin)
             .map(({ id, label, icon }) => (
@@ -1519,9 +1546,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                   </div>
                 )}
 
-                <GuidedPromptEditor
+                <textarea
                   value={currentPrompt}
-                  onChange={(val) => setPrompt(prev => ({ ...prev, [client.id]: val }))}
+                  onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
+                  className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+                  spellCheck={false}
                   placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
                 />
               </div>
@@ -1940,6 +1969,57 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── General Tab (continued) ──────────────────────────────── */}
       {activeTab === 'general' && (<>
+
+      {/* 8a — Right Now (injected_note) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className={`rounded-2xl border p-5 ${injectedNote[client.id] ? 'border-amber-500/40 bg-amber-500/[0.04]' : 'b-theme bg-surface'}`}>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Right Now</p>
+              {injectedNote[client.id] && (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">ACTIVE</span>
+              )}
+            </div>
+            <p className="text-[11px] t3 mt-0.5">Inject a time-sensitive note into your agent&apos;s active prompt — no redeploy needed</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {injectedNote[client.id] && (
+              <button
+                onClick={() => saveInjectedNote(true)}
+                disabled={injectedNoteSaving}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold t3 hover:text-red-400 border b-theme hover:border-red-500/30 transition-all disabled:opacity-40"
+              >
+                Clear
+              </button>
+            )}
+            <button
+              onClick={() => saveInjectedNote(false)}
+              disabled={injectedNoteSaving}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                injectedNoteSaved
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20'
+              } disabled:opacity-40`}
+            >
+              {injectedNoteSaving ? 'Saving…' : injectedNoteSaved ? '✓ Live' : 'Push Live'}
+            </button>
+          </div>
+        </div>
+        <textarea
+          value={injectedNote[client.id] ?? ''}
+          onChange={e => setInjectedNote(prev => ({ ...prev, [client.id]: e.target.value }))}
+          rows={3}
+          className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-amber-500/40 transition-colors placeholder:t3"
+          placeholder="e.g. We're closed this Saturday. The owner is traveling and unavailable until Monday. All urgent requests go to Ryan at 306-555-0101."
+        />
+        <p className="text-[10px] t3 mt-1.5">This note is appended to your active prompt immediately. Clear it when it&apos;s no longer relevant.</p>
+      </div>
+      </motion.div>
 
       {/* 8b — Advanced Context */}
       <motion.div
@@ -2670,6 +2750,19 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </div>
         )
       })()}
+
+      {/* ─── Knowledge Tab ──────────────────────────────────────────── */}
+      {activeTab === 'knowledge' && (
+        <motion.div
+          key="knowledge"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.2 }}
+        >
+          <KnowledgeBaseTab clientId={client.id} isAdmin={isAdmin} />
+        </motion.div>
+      )}
 
         </motion.div>
       </AnimatePresence>
