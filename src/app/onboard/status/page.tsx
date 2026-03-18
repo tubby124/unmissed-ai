@@ -677,6 +677,7 @@ function StatusContent() {
   const trialClientId = searchParams.get("clientId");
   const trialSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
   const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
+  const tierParam = searchParams.get("tier") ?? "starter";
 
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -746,7 +747,7 @@ function StatusContent() {
       const res = await fetch("/api/stripe/create-public-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intakeId, selectedNumber: selectedNumber ?? undefined }),
+        body: JSON.stringify({ intakeId, selectedNumber: selectedNumber ?? undefined, tier: tierParam }),
       });
       const json = await res.json();
       if (res.status === 409 && json.error?.includes("Number just taken")) {
@@ -978,7 +979,7 @@ function StatusContent() {
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">Pick from available numbers</span>
-                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $5 — $20 CAD</span>
+                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $5 — $20 CAD setup</span>
                   <p className="text-xs text-muted-foreground/70 mt-0.5">Ready to go, nothing wrong — just in stock</p>
                 </div>
               </label>
@@ -1046,9 +1047,7 @@ function StatusContent() {
         >
           {loading
             ? "Redirecting to checkout..."
-            : selectedNumber
-            ? "Activate my agent — $20 CAD"
-            : "Activate my agent — $25 CAD"}
+            : `Activate my agent — ${selectedNumber ? "$20" : "$25"} setup + subscription`}
         </button>
 
         <p className="text-xs text-muted-foreground/70">
@@ -1059,7 +1058,7 @@ function StatusContent() {
         </p>
 
         <p className="text-xs text-muted-foreground/70">
-          One-time setup fee — includes 50 free minutes. Secure checkout powered by Stripe.
+          One-time setup fee + monthly subscription. 30-day free trial included. Secure checkout powered by Stripe.
         </p>
       </div>
     );

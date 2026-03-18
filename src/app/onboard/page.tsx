@@ -169,7 +169,7 @@ export default function OnboardPage() {
     }
   };
 
-  const handleActivate = async (mode: "trial" | "paid") => {
+  const handleActivate = async (mode: "trial" | "paid", tier?: string) => {
     setIsSubmitting(true);
     setError(null);
     try {
@@ -193,7 +193,8 @@ export default function OnboardPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Submission failed");
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-        router.push(`/onboard/status?id=${json.jobId}`);
+        const tierParam = tier ? `&tier=${tier}` : '';
+        router.push(`/onboard/status?id=${json.jobId}${tierParam}`);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
