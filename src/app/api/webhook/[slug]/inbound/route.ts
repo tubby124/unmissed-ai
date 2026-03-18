@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted')
+    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -131,6 +131,51 @@ export async function POST(
       callerContext += `\nRETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
       console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls${knownName ? `, name=${knownName}` : ''}, context injected`)
     }
+  }
+
+  // ── After-hours injection ──────────────────────────────────────────────────
+  // Parse business_hours_weekday / business_hours_weekend to determine if this call
+  // is outside business hours. If so, append AFTER_HOURS context so the agent
+  // knows to apply the configured after-hours behavior without a prompt rebuild.
+  const weekdayHours = (client.business_hours_weekday as string | null) || 'Monday to Friday, 9am to 5pm'
+  const weekendHours = (client.business_hours_weekend as string | null) || null
+  const afterHoursBehavior = (client.after_hours_behavior as string | null) || 'take_message'
+  const afterHoursPhone = (client.after_hours_emergency_phone as string | null) || null
+
+  const isAfterHours = (() => {
+    try {
+      const localNow = new Date(now.toLocaleString('en-US', { timeZone: clientTz }))
+      const dow = localNow.getDay() // 0=Sun,1=Mon,...,6=Sat
+      const isWeekend = dow === 0 || dow === 6
+      const hoursStr = isWeekend ? weekendHours : weekdayHours
+      if (!hoursStr) return false
+      // Parse "9am to 5pm" / "9:00 to 17:00" / "closed" style strings
+      const lower = hoursStr.toLowerCase().trim()
+      if (lower === 'closed' || lower === 'n/a' || lower === '') return true
+      const hourMatch = lower.match(/(\d{1,2})(?::(\d{2}))?(?:\s*)(am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?(?:\s*)(am|pm)?/)
+      if (!hourMatch) return false
+      const toH12 = (h: number, min: number, meridian?: string): number => {
+        if (meridian === 'pm' && h < 12) return (h + 12) * 60 + min
+        if (meridian === 'am' && h === 12) return min
+        return h * 60 + min
+      }
+      const openMin  = toH12(parseInt(hourMatch[1]), parseInt(hourMatch[2] || '0'), hourMatch[3])
+      const closeMin = toH12(parseInt(hourMatch[4]), parseInt(hourMatch[5] || '0'), hourMatch[6])
+      const nowMin   = localNow.getHours() * 60 + localNow.getMinutes()
+      return nowMin < openMin || nowMin >= closeMin
+    } catch {
+      return false
+    }
+  })()
+
+  if (isAfterHours) {
+    const behaviorNote = afterHoursBehavior === 'route_emergency' && afterHoursPhone
+      ? `AFTER HOURS: We are currently closed. If this is an emergency, transfer to ${afterHoursPhone}. Otherwise take a message.`
+      : afterHoursBehavior === 'take_message'
+        ? 'AFTER HOURS: We are currently closed. Take a message and let the caller know someone will follow up during business hours.'
+        : `AFTER HOURS: We are currently closed. ${afterHoursBehavior}`
+    callerContext += `\n${behaviorNote}`
+    console.log(`[inbound] After-hours detected for slug=${slug}, behavior=${afterHoursBehavior}`)
   }
 
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed

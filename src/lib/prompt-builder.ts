@@ -1,3 +1,5 @@
+import { wrapSection } from '@/lib/prompt-sections'
+
 /**
  * prompt-builder.ts — TypeScript port of PROVISIONING/app/prompt_builder.py
  *
@@ -2253,7 +2255,30 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     prompt += '\n\n' + buildCalendarBlock(serviceType, closePerson)
   }
 
+  // B4 — Wrap named sections in markers so clients can edit them via the settings UI.
+  // Markers are stripped before sending to Ultravox (see stripPromptMarkers in prompt-sections.ts).
+  prompt = wrapSectionIfPresent(prompt, '# IDENTITY', '# VOICE NATURALNESS', 'identity')
+  prompt = wrapSectionIfPresent(prompt, '# PRODUCT KNOWLEDGE BASE', null, 'knowledge')
+
   return prompt
+}
+
+/**
+ * Helper: wrap a named section in unmissed section markers if the start heading is present.
+ * endHeading = the next heading that marks the end of the section (null = to end of prompt).
+ */
+function wrapSectionIfPresent(prompt: string, startHeading: string, endHeading: string | null, sectionId: string): string {
+  const startIdx = prompt.indexOf(startHeading)
+  if (startIdx === -1) return prompt
+  const endIdx = endHeading ? prompt.indexOf(endHeading, startIdx + 1) : -1
+  const sectionContent = endIdx !== -1
+    ? prompt.slice(startIdx, endIdx).trimEnd()
+    : prompt.slice(startIdx).trimEnd()
+  const wrapped = wrapSection(sectionContent, sectionId)
+  if (endIdx !== -1) {
+    return prompt.slice(0, startIdx) + wrapped + '\n\n' + prompt.slice(endIdx)
+  }
+  return prompt.slice(0, startIdx) + wrapped
 }
 
 // ── Validation pass ───────────────────────────────────────────────────────────

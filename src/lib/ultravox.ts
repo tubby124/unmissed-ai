@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { stripPromptMarkers } from '@/lib/prompt-sections'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -229,6 +230,8 @@ interface AgentConfig {
   forwarding_number?: string
   /** When true AND forwarding_number is set, inject coldTransfer tool into selectedTools. */
   transfer_enabled?: boolean
+  /** Per-client Ultravox corpus ID. When set (and corpus_enabled), injects queryCorpus tool. */
+  corpus_id?: string | null
 }
 
 /** Build coldTransfer tool entries for native SIP transfer via Ultravox. */
@@ -242,17 +245,18 @@ export function buildTransferTools(forwardingNumber: string): UltravoxTool[] {
   }]
 }
 
-/** Build queryCorpus tool entry if ULTRAVOX_CORPUS_ID env var is set. Returns empty array if not configured. */
-export function buildCorpusTools(): UltravoxTool[] {
-  const corpusId = process.env.ULTRAVOX_CORPUS_ID
-  if (!corpusId) {
-    console.warn('[ultravox] ULTRAVOX_CORPUS_ID not set — skipping corpus tool')
-    return []
-  }
+/**
+ * Build queryCorpus tool entry for a client.
+ * Prefers the per-client corpusId arg, falls back to ULTRAVOX_CORPUS_ID env var.
+ * Returns empty array if neither is set.
+ */
+export function buildCorpusTools(corpusId?: string | null): UltravoxTool[] {
+  const id = corpusId ?? process.env.ULTRAVOX_CORPUS_ID
+  if (!id) return []
   return [{
     toolName: 'queryCorpus',
     parameterOverrides: {
-      corpus_id: corpusId,
+      corpus_id: id,
       max_results: 5,
       minimum_score: 0.85,
     },
@@ -260,7 +264,7 @@ export function buildCorpusTools(): UltravoxTool[] {
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, transfer_enabled }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, transfer_enabled, corpus_id }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -288,7 +292,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (transfer_enabled && forwarding_number) ? buildTransferTools(forwarding_number) : []
-  const corpusTools: object[] = buildCorpusTools()
+  const corpusTools: object[] = buildCorpusTools(corpus_id)
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
 
@@ -333,10 +337,11 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
 
   // Client-specific overrides
   if (updates.systemPrompt !== undefined) {
+    // Strip section markers before sending to Ultravox — they are storage metadata only
     // Preserve all templateContext placeholders — appended after validation,
     // these resolve at call time via templateContext and must always be present.
     const INJECTED_DATA_BLOCK = '## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
-    let sp = updates.systemPrompt
+    let sp = stripPromptMarkers(updates.systemPrompt)
     if (!sp.includes('{{callerContext}}')) {
       // Brand new prompt — append all placeholders in order
       sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n${INJECTED_DATA_BLOCK}`
@@ -353,7 +358,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.transfer_enabled && updates.forwarding_number) ? buildTransferTools(updates.forwarding_number) : []
-  const corpusTools: object[] = buildCorpusTools()
+  const corpusTools: object[] = buildCorpusTools(updates.corpus_id)
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
 

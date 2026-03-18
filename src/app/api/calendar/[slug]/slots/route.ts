@@ -44,7 +44,14 @@ export async function GET(
       3,
       time || undefined,
     )
-    return NextResponse.json({ available: slots.length > 0, slots })
+    if (slots.length === 0) {
+      return NextResponse.json({
+        available: false,
+        slots: [],
+        _instruction: `No slots are available on that day. Ask what other day works for them.`,
+      })
+    }
+    return NextResponse.json({ available: true, slots })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[calendar/slots] Failed for slug=${slug}: ${msg}`)
@@ -54,6 +61,8 @@ export async function GET(
       await supabase.from('clients').update({ calendar_auth_status: 'expired' }).eq('slug', slug)
     }
 
-    return NextResponse.json({ available: false, fallback: true, reason: 'calendar_auth_expired' })
+    return NextResponse.json({ available: false, fallback: true, reason: 'calendar_auth_expired',
+      _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule, and use hangUp.`,
+    })
   }
 }

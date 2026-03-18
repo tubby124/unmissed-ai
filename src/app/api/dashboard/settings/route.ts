@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, createCorpus } from '@/lib/ultravox'
+import { replacePromptSection } from '@/lib/prompt-sections'
 
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
@@ -94,6 +95,30 @@ export async function PATCH(req: NextRequest) {
     updates.pending_loop_suggestion = body.pending_loop_suggestion ?? null
   }
 
+  // A3 — After-hours config (stored on clients table, injected into callerContext at call time)
+  if (typeof body.business_hours_weekday === 'string') {
+    updates.business_hours_weekday = body.business_hours_weekday.trim() || null
+  }
+  if (typeof body.business_hours_weekend === 'string') {
+    updates.business_hours_weekend = body.business_hours_weekend.trim() || null
+  }
+  if (typeof body.after_hours_behavior === 'string' && ['take_message', 'route_emergency', 'custom_message'].includes(body.after_hours_behavior)) {
+    updates.after_hours_behavior = body.after_hours_behavior
+  }
+  if (typeof body.after_hours_emergency_phone === 'string') {
+    updates.after_hours_emergency_phone = body.after_hours_emergency_phone.trim() || null
+  }
+
+  // B1 — Section editor: replace a named section in the stored prompt
+  // section_id must be a client-editable section; admins can also edit locked sections
+  if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {
+    const ADMIN_ONLY = ['tone', 'flow', 'technical']
+    if (ADMIN_ONLY.includes(body.section_id) && cu.role !== 'admin') {
+      return new NextResponse('Forbidden — admin-only section', { status: 403 })
+    }
+    // We'll apply the section edit after fetching the current prompt below
+  }
+
   // God Mode fields — admin only
   if (cu.role === 'admin') {
     if (typeof body.telegram_bot_token === 'string' && body.telegram_bot_token) {
@@ -107,6 +132,51 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof body.monthly_minute_limit === 'number' && body.monthly_minute_limit > 0) {
       updates.monthly_minute_limit = body.monthly_minute_limit
+    }
+  }
+
+  // A4 — corpus_enabled toggle (available to all roles — clients can enable their own KB)
+  // When toggling ON with no corpus_id yet, create a new corpus and store the ID.
+  if (typeof body.corpus_enabled === 'boolean') {
+    if (body.corpus_enabled) {
+      // Fetch current corpus_id + business name to create corpus if needed
+      const { data: corpusRow } = await supabase
+        .from('clients')
+        .select('corpus_id, business_name')
+        .eq('id', targetClientId)
+        .single()
+      if (corpusRow && !corpusRow.corpus_id) {
+        try {
+          const { corpusId } = await createCorpus(
+            (corpusRow.business_name as string) || `client-${targetClientId}`,
+            'Per-client knowledge base'
+          )
+          updates.corpus_id = corpusId
+        } catch (err) {
+          console.error(`[settings] createCorpus failed: ${err}`)
+          return NextResponse.json({ error: 'Failed to create knowledge base' }, { status: 500 })
+        }
+      }
+      updates.corpus_enabled = true
+    } else {
+      updates.corpus_enabled = false
+    }
+  }
+
+  // B1 — Section edit: apply section marker replacement to current system_prompt
+  if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {
+    const { data: promptRow } = await supabase
+      .from('clients')
+      .select('system_prompt')
+      .eq('id', targetClientId)
+      .single()
+    if (promptRow?.system_prompt) {
+      updates.system_prompt = replacePromptSection(
+        promptRow.system_prompt as string,
+        body.section_id as string,
+        body.section_content as string
+      )
+      updates.updated_at = new Date().toISOString()
     }
   }
 
@@ -150,12 +220,14 @@ export async function PATCH(req: NextRequest) {
     typeof updates.system_prompt === 'string' ||
     'forwarding_number' in updates ||
     'booking_enabled' in updates ||
-    'agent_voice_id' in updates
+    'agent_voice_id' in updates ||
+    'corpus_enabled' in updates ||
+    'corpus_id' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled')
       .eq('id', targetClientId)
       .single()
 
@@ -201,6 +273,12 @@ export async function PATCH(req: NextRequest) {
         const voiceToSync = 'agent_voice_id' in updates
           ? (updates.agent_voice_id as string)
           : clientRow.agent_voice_id
+        const corpusIdToSync = 'corpus_id' in updates
+          ? (updates.corpus_id as string | null)
+          : (clientRow.corpus_id as string | null)
+        const corpusEnabledToSync = 'corpus_enabled' in updates
+          ? (updates.corpus_enabled as boolean)
+          : (clientRow.corpus_enabled ?? false)
         await updateAgent(clientRow.ultravox_agent_id, {
           systemPrompt: promptToSync,
           ...(voiceToSync ? { voice: voiceToSync } : {}),
@@ -209,6 +287,7 @@ export async function PATCH(req: NextRequest) {
             ? (updates.booking_enabled as boolean)
             : (clientRow.booking_enabled ?? false),
           slug: clientRow.slug,
+          corpus_id: corpusEnabledToSync ? corpusIdToSync : null,
         })
         // Keep clients.tools in sync for the createCall fallback path in the inbound route
         await supabase.from('clients').update({ tools }).eq('id', targetClientId)

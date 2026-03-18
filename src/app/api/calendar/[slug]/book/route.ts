@@ -82,6 +82,7 @@ export async function POST(
         booked: false,
         reason: 'slot_taken',
         nextAvailable,
+        _instruction: `That slot was just taken. ${nextAvailable ? `Offer ${nextAvailable} instead and ask if that works.` : 'Ask what other time works for them.'}`,
       })
     }
 
@@ -119,6 +120,7 @@ export async function POST(
       booked: true,
       confirmationTime: matchedSlot.displayTime,
       calendarUrl: event.htmlLink || null,
+      _instruction: `Appointment confirmed for ${date} at ${matchedSlot.displayTime}. Tell the caller that in one natural sentence, then ask if there's anything else, and if not, use hangUp.`,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -128,6 +130,8 @@ export async function POST(
       await supabase.from('clients').update({ calendar_auth_status: 'expired' }).eq('slug', slug)
     }
 
-    return NextResponse.json({ booked: false, reason: 'calendar_error', fallback: true })
+    return NextResponse.json({ booked: false, reason: 'calendar_error', fallback: true,
+      _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule a time, and use hangUp.`,
+    })
   }
 }

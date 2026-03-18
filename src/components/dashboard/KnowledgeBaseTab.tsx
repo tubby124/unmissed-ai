@@ -5,6 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 interface KnowledgeBaseTabProps {
   clientId: string
   isAdmin: boolean
+  corpusEnabled?: boolean
+  corpusId?: string | null
+  onToggleEnabled?: (enabled: boolean) => Promise<void>
 }
 
 interface CorpusDoc {
@@ -64,7 +67,7 @@ function StatusBadge({ status }: { status: CorpusDoc['status'] }) {
   )
 }
 
-export default function KnowledgeBaseTab({ clientId, isAdmin }: KnowledgeBaseTabProps) {
+export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = true, corpusId, onToggleEnabled }: KnowledgeBaseTabProps) {
   const [docs, setDocs] = useState<CorpusDoc[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -79,6 +82,7 @@ export default function KnowledgeBaseTab({ clientId, isAdmin }: KnowledgeBaseTab
   const [testLoading, setTestLoading] = useState(false)
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
   const [testError, setTestError] = useState('')
+  const [togglingEnabled, setTogglingEnabled] = useState(false)
 
   const fetchDocs = useCallback(async () => {
     try {
@@ -218,15 +222,66 @@ export default function KnowledgeBaseTab({ clientId, isAdmin }: KnowledgeBaseTab
     }
   }
 
+  async function handleToggleEnabled() {
+    if (!onToggleEnabled) return
+    setTogglingEnabled(true)
+    await onToggleEnabled(!corpusEnabled)
+    setTogglingEnabled(false)
+    if (!corpusEnabled) fetchDocs()
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h3 className="text-sm font-semibold t1">Knowledge Base</h3>
-        <p className="text-xs t3 mt-1">
-          Upload business documents so your agent can answer detailed questions during calls
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-sm font-semibold t1">Knowledge Base</h3>
+          <p className="text-xs t3 mt-1">
+            Upload business documents so your agent can answer detailed questions during calls
+          </p>
+        </div>
+        {onToggleEnabled && (
+          <button
+            onClick={handleToggleEnabled}
+            disabled={togglingEnabled}
+            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              corpusEnabled
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
+                : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20'
+            } disabled:opacity-40`}
+          >
+            {togglingEnabled ? '…' : corpusEnabled ? '✓ Enabled' : 'Enable'}
+          </button>
+        )}
       </div>
+
+      {/* Disabled state */}
+      {!corpusEnabled && (
+        <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-6 text-center space-y-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto text-zinc-600">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <div>
+            <p className="text-sm font-medium t2">Knowledge base not enabled</p>
+            <p className="text-xs t3 mt-1">Enable the knowledge base to upload documents your agent can reference during calls</p>
+          </div>
+          {onToggleEnabled && (
+            <button
+              onClick={handleToggleEnabled}
+              disabled={togglingEnabled}
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40"
+            >
+              {togglingEnabled ? 'Enabling…' : 'Enable Knowledge Base'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Only show the rest when enabled */}
+      {corpusEnabled && (<>
 
       {/* Upload Area */}
       <div
@@ -434,6 +489,7 @@ export default function KnowledgeBaseTab({ clientId, isAdmin }: KnowledgeBaseTab
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }

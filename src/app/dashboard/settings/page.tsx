@@ -44,6 +44,14 @@ export interface ClientConfig {
   subscription_current_period_end: string | null
   grace_period_end: string | null
   stripe_customer_id: string | null
+  // A3 — After-hours config
+  business_hours_weekday: string | null
+  business_hours_weekend: string | null
+  after_hours_behavior: string | null
+  after_hours_emergency_phone: string | null
+  // A4 — Per-client corpus
+  corpus_id: string | null
+  corpus_enabled: boolean | null
 }
 
 export default async function SettingsPage({
@@ -68,7 +76,7 @@ export default async function SettingsPage({
   const isAdmin = cu.role === 'admin'
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
 
-  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, telegram_style, timezone, minutes_used_this_month, seconds_used_this_month, monthly_minute_limit, updated_at, created_at, bonus_minutes, sms_enabled, sms_template, business_facts, extra_qa, forwarding_number, setup_complete, agent_name, context_data, context_data_label, google_calendar_id, booking_enabled, booking_service_duration_minutes, booking_buffer_minutes, calendar_beta_enabled, calendar_auth_status, injected_note, subscription_status, subscription_current_period_end, grace_period_end, stripe_customer_id'
+  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, telegram_style, timezone, minutes_used_this_month, seconds_used_this_month, monthly_minute_limit, updated_at, created_at, bonus_minutes, sms_enabled, sms_template, business_facts, extra_qa, forwarding_number, setup_complete, agent_name, context_data, context_data_label, google_calendar_id, booking_enabled, booking_service_duration_minutes, booking_buffer_minutes, calendar_beta_enabled, calendar_auth_status, injected_note, subscription_status, subscription_current_period_end, grace_period_end, stripe_customer_id, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_id, corpus_enabled'
 
   if (isAdmin) {
     const { data: clients } = await supabase

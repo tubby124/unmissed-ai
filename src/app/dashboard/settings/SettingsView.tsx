@@ -228,6 +228,27 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [injectedNoteSaving, setInjectedNoteSaving] = useState(false)
   const [injectedNoteSaved, setInjectedNoteSaved] = useState(false)
 
+  // After-Hours Config (A3)
+  const [hoursWeekday, setHoursWeekday] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.business_hours_weekday ?? 'Monday to Friday, 9am to 5pm']))
+  )
+  const [hoursWeekend, setHoursWeekend] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.business_hours_weekend ?? '']))
+  )
+  const [afterHoursBehavior, setAfterHoursBehavior] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.after_hours_behavior ?? 'take_message']))
+  )
+  const [afterHoursPhone, setAfterHoursPhone] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.after_hours_emergency_phone ?? '']))
+  )
+  const [hoursSaving, setHoursSaving] = useState(false)
+  const [hoursSaved, setHoursSaved] = useState(false)
+
+  // Corpus / Knowledge Base (A4)
+  const [corpusEnabled, setCorpusEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.corpus_enabled ?? false]))
+  )
+
   // Advanced Context
   const [businessFacts, setBusinessFacts] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.business_facts ?? '']))
@@ -649,6 +670,28 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     if (res.ok) {
       setAdvancedSaved(true)
       setTimeout(() => setAdvancedSaved(false), 3000)
+    }
+  }
+
+  async function saveHoursConfig() {
+    setHoursSaving(true)
+    setHoursSaved(false)
+    const body: Record<string, unknown> = {
+      business_hours_weekday: hoursWeekday[client.id] ?? '',
+      business_hours_weekend: hoursWeekend[client.id] ?? '',
+      after_hours_behavior: afterHoursBehavior[client.id] ?? 'take_message',
+      after_hours_emergency_phone: afterHoursPhone[client.id] ?? '',
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setHoursSaving(false)
+    if (res.ok) {
+      setHoursSaved(true)
+      setTimeout(() => setHoursSaved(false), 3000)
     }
   }
 
@@ -2022,6 +2065,80 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       </div>
       </motion.div>
 
+      {/* 8a2 — Hours & After-Hours (A3) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Hours &amp; After-Hours</p>
+            <p className="text-[11px] t3 mt-0.5">Configure when your agent treats calls as after-hours</p>
+          </div>
+          <button
+            onClick={saveHoursConfig}
+            disabled={hoursSaving}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              hoursSaved
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
+            } disabled:opacity-40`}
+          >
+            {hoursSaving ? 'Saving…' : hoursSaved ? '✓ Saved' : 'Save'}
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-[11px] font-medium t2 mb-1.5">Weekday hours</p>
+            <input
+              type="text"
+              value={hoursWeekday[client.id] ?? ''}
+              onChange={e => setHoursWeekday(prev => ({ ...prev, [client.id]: e.target.value }))}
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+              placeholder="e.g. Monday to Friday, 9am to 5pm"
+            />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium t2 mb-1.5">Weekend hours <span className="t3 font-normal">(leave blank if closed)</span></p>
+            <input
+              type="text"
+              value={hoursWeekend[client.id] ?? ''}
+              onChange={e => setHoursWeekend(prev => ({ ...prev, [client.id]: e.target.value }))}
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+              placeholder="e.g. Saturday 10am to 2pm, or leave blank for closed"
+            />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium t2 mb-1.5">After-hours behaviour</p>
+            <select
+              value={afterHoursBehavior[client.id] ?? 'take_message'}
+              onChange={e => setAfterHoursBehavior(prev => ({ ...prev, [client.id]: e.target.value }))}
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+            >
+              <option value="take_message">Take a message</option>
+              <option value="route_emergency">Route emergencies to a phone number</option>
+              <option value="custom_message">Custom message only</option>
+            </select>
+          </div>
+          {afterHoursBehavior[client.id] === 'route_emergency' && (
+            <div>
+              <p className="text-[11px] font-medium t2 mb-1.5">Emergency phone number</p>
+              <input
+                type="tel"
+                value={afterHoursPhone[client.id] ?? ''}
+                onChange={e => setAfterHoursPhone(prev => ({ ...prev, [client.id]: e.target.value }))}
+                className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+                placeholder="e.g. +13065550101"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      </motion.div>
+
       {/* 8b — Advanced Context */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -2764,7 +2881,24 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.2 }}
         >
-          <KnowledgeBaseTab clientId={client.id} isAdmin={isAdmin} />
+          <KnowledgeBaseTab
+            clientId={client.id}
+            isAdmin={isAdmin}
+            corpusEnabled={corpusEnabled[client.id] ?? false}
+            corpusId={client.corpus_id}
+            onToggleEnabled={async (enabled) => {
+              const body: Record<string, unknown> = { corpus_enabled: enabled }
+              if (isAdmin) body.client_id = client.id
+              const res = await fetch('/api/dashboard/settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              })
+              if (res.ok) {
+                setCorpusEnabled(prev => ({ ...prev, [client.id]: enabled }))
+              }
+            }}
+          />
         </motion.div>
       )}
 
