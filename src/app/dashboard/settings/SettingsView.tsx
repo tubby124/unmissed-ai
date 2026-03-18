@@ -6,6 +6,7 @@ import type { ClientConfig } from './page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
+import UsageSummary from '@/components/dashboard/UsageSummary'
 
 interface PromptVersion {
   id: string
@@ -2747,6 +2748,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 <span className="font-mono t2">support@unmissed.ai</span>
               </p>
             </div>
+
+            {/* Admin: Ultravox account-level usage */}
+            {isAdmin && <UsageSummary isAdmin={isAdmin} />}
           </div>
         )
       })()}

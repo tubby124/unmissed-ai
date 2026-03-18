@@ -72,6 +72,9 @@ export async function activateClient(params: {
   const callbackPhone = (intakeJson.callback_phone as string | null) || null
   const callerAutoText = intakeJson.callerAutoText !== false  // default true
   const callerAutoTextMessage = (intakeJson.callerAutoTextMessage as string | null) || null
+  const ownerName = (intakeJson.ownerName as string | null) || null
+  const intakeCity = (intakeJson.city as string | null) || null
+  const intakeState = (intakeJson.state as string | null) || null
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
@@ -502,7 +505,15 @@ export async function activateClient(params: {
     if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
       let msg: string
       if (mode === 'trial') {
-        msg = `🧪 <b>${businessName}</b> started a ${trialDays}-day trial\n\n📧 ${contactEmail || 'no email'}\n${emailActuallySent ? '✅ Welcome email sent' : `⚠️ Email not sent: ${emailFailReason}`}`
+        const locationLine = [intakeCity, intakeState].filter(Boolean).join(', ')
+        msg = `🧪 <b>${businessName}</b> started a ${trialDays}-day trial\n\n` +
+          `👤 ${ownerName || 'no name'}\n` +
+          `📧 ${contactEmail || 'no email'}\n` +
+          `📞 ${callbackPhone || 'no phone'}\n` +
+          (locationLine ? `📍 ${locationLine}\n` : '') +
+          `🏷️ ${(existingClient?.niche as string || 'other').replace(/_/g, ' ')}\n\n` +
+          `🔗 <b>Dashboard link (send manually if email failed):</b>\n${setupUrl}\n\n` +
+          `${emailActuallySent ? '✅ Welcome email sent' : `⚠️ Email not sent: ${emailFailReason}`}`
       } else {
         msg = twilioNumber
           ? `✅ <b>${businessName}</b> activated — ${twilioNumber}\n\n📱 <b>Client Telegram setup link:</b>\n${telegramLink}\n\n${smsSent ? '📤 Onboarding SMS sent to client.' : `⚠️ SMS not sent: ${smsSkipReason}`}\n\n<i>Forward link if SMS didn't reach them.</i>`

@@ -7,6 +7,8 @@ import { createBrowserClient } from '@/lib/supabase/client'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
 import TranscriptTimeline from './TranscriptTimeline'
 import StatusBadge from './StatusBadge'
+import CallEventsPanel from './CallEventsPanel'
+import LiveCoachingPanel from './LiveCoachingPanel'
 import NumberTicker from '@/components/ui/number-ticker'
 import { VoiceOrb, WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
 
@@ -527,32 +529,39 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
         classification={displayCall.call_status}
       />
 
-      {/* Supervisor whisper bar — only during live call */}
+      {/* Supervisor whisper bar + coaching — only during live call */}
       {isActuallyLive && (
-        <form onSubmit={handleWhisper} className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={whisper}
-              onChange={e => setWhisper(e.target.value)}
-              placeholder="Whisper to agent (caller won't hear)…"
-              className="w-full border rounded-xl px-4 py-3 text-sm placeholder-zinc-700 focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
-              style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
-            />
-            {whisperSent && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-amber-400 font-medium">
-                Sent ✓
-              </span>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={whisperSending || !whisper.trim()}
-            className="shrink-0 px-4 py-3 rounded-xl text-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/35 transition-all disabled:opacity-30"
-          >
-            {whisperSending ? '…' : 'Whisper'}
-          </button>
-        </form>
+        <>
+          <form onSubmit={handleWhisper} className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={whisper}
+                onChange={e => setWhisper(e.target.value)}
+                placeholder="Whisper to agent (caller won't hear)…"
+                className="w-full border rounded-xl px-4 py-3 text-sm placeholder-zinc-700 focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
+                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
+              />
+              {whisperSent && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-amber-400 font-medium">
+                  Sent ✓
+                </span>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={whisperSending || !whisper.trim()}
+              className="shrink-0 px-4 py-3 rounded-xl text-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/35 transition-all disabled:opacity-30"
+            >
+              {whisperSending ? '…' : 'Whisper'}
+            </button>
+          </form>
+          <LiveCoachingPanel
+            callLogId={call.id}
+            ultravoxCallId={call.ultravox_call_id}
+            isAdmin={true}
+          />
+        </>
       )}
 
       {/* Metadata — post-call only */}
@@ -570,6 +579,11 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             <span className="font-mono text-xs break-all" style={{ color: "var(--color-text-3)" }}>{displayCall.ultravox_call_id}</span>
           </div>
         </div>
+      )}
+
+      {/* Call Events — classified calls only */}
+      {isClassified && (
+        <CallEventsPanel callId={call.ultravox_call_id} />
       )}
     </div>
   )
