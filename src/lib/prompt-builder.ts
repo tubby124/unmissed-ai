@@ -341,6 +341,7 @@ export const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
   auto_glass: {
     INDUSTRY: 'auto glass shop',
     PRIMARY_CALL_REASON: 'windshield repair or replacement',
+    SERVICE_APPOINTMENT_TYPE: 'service appointment',
     TRIAGE_SCRIPT: [
       `"If chip: 'gotcha, just a chip? we can usually fix those if it's smaller than a quarter.'"`,
       `"If crack or smashed: 'oof, yeah that sounds like a full replacement.'"`,
@@ -430,6 +431,7 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
   hvac: {
     INDUSTRY: 'heating and cooling company',
     PRIMARY_CALL_REASON: 'heating or cooling issue',
+    SERVICE_APPOINTMENT_TYPE: 'service call',
     TRIAGE_SCRIPT: [
       `"If heating: 'gotcha, furnace trouble. is it not turning on at all, or just not heating right?'"`,
       `"If cooling: 'okay, AC issue. is it not blowing cold, or not running at all?'"`,
@@ -495,6 +497,7 @@ You: "okay — call your gas company emergency line right now and get everyone o
   plumbing: {
     INDUSTRY: 'plumbing company',
     PRIMARY_CALL_REASON: 'plumbing issue or repair',
+    SERVICE_APPOINTMENT_TYPE: 'service call',
     TRIAGE_SCRIPT: [
       `"If emergency (flooding, no water, burst pipe): 'okay, sounds urgent. is this an active leak or no water at all?'"`,
       `"If routine: 'got it. is it a repair, install, or do you need someone to take a look first?'"`,
@@ -557,6 +560,7 @@ You: "got it — what's your name and address, and when works best for you?"
   dental: {
     INDUSTRY: 'dental office',
     PRIMARY_CALL_REASON: 'dental appointment or tooth issue',
+    SERVICE_APPOINTMENT_TYPE: 'appointment',
     TRIAGE_SCRIPT: [
       `"If pain/emergency: 'okay, sounds urgent. are you in pain right now, like can't wait level?'"`,
       `"If cleaning/checkup: 'totally, we can book that. are you a new patient with us or have you been here before?'"`,
@@ -616,6 +620,7 @@ You: "we work with most dental insurance — just bring your card and we'll sort
   legal: {
     INDUSTRY: 'law firm',
     PRIMARY_CALL_REASON: 'legal question or consultation',
+    SERVICE_APPOINTMENT_TYPE: 'consultation',
     TRIAGE_SCRIPT: [
       `"If urgent matter: 'got it. is this something time-sensitive, like a court deadline coming up?'"`,
       `"If general inquiry: 'okay, what area is this regarding — family, real estate, business, or something else?'"`,
@@ -678,6 +683,7 @@ You: "{{CLOSE_PERSON}}'ll go over fees with you when they call — the first cha
   salon: {
     INDUSTRY: 'salon',
     PRIMARY_CALL_REASON: 'appointment or booking',
+    SERVICE_APPOINTMENT_TYPE: 'appointment',
     TRIAGE_SCRIPT: [
       `"If haircut/color: 'for sure. are you looking for a cut, color, or both?'"`,
       `"If specific service: 'got it. have you been to us before or would this be your first time?'"`,
@@ -765,6 +771,7 @@ You: "pricing depends on the service and length — {{CLOSE_PERSON}}'ll call you
   property_management: {
     INDUSTRY: 'property management company',
     PRIMARY_CALL_REASON: 'maintenance request, viewing inquiry, billing question, or general inquiry',
+    SERVICE_APPOINTMENT_TYPE: 'maintenance visit',
     TRIAGE_SCRIPT: [
       `"If maintenance: 'got it — is this an emergency like no heat or a water leak, or more of a routine repair?'"`,
       `"If emergency maintenance (flooding, no heat, gas, fire): 'okay that sounds urgent — if you're in danger, call 9-1-1 right now. what's your name and unit?'"`,
@@ -941,6 +948,7 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
   barbershop: {
     INDUSTRY: 'barbershop',
     PRIMARY_CALL_REASON: 'appointment booking or service inquiry',
+    SERVICE_APPOINTMENT_TYPE: 'appointment',
     TRIAGE_SCRIPT: [
       `"If booking: 'for sure — what are you coming in for? a cut, beard trim, something else?'"`,
       `"If walk-in question: 'yeah, walk-ins are welcome — just can't promise the wait. want me to grab you a slot right now?'"`,
@@ -1043,6 +1051,7 @@ You: "thanks, we're all set." [use hangUp immediately — do not engage]`,
   restaurant: {
     INDUSTRY: 'restaurant',
     PRIMARY_CALL_REASON: 'menu questions, ordering, hours, or reservations',
+    SERVICE_APPOINTMENT_TYPE: 'reservation',
     TRIAGE_SCRIPT: [
       `"If menu question: 'for sure — what are you curious about? i can help with that.'"`,
       `"If ordering (phone orders accepted): 'yeah, we take phone orders. what can i get started for ya?'"`,
@@ -1111,6 +1120,7 @@ You: "talk soon!" [use hangUp immediately]`,
   other: {
     INDUSTRY: 'business',
     PRIMARY_CALL_REASON: 'service or inquiry',
+    SERVICE_APPOINTMENT_TYPE: 'appointment',
     TRIAGE_SCRIPT: [
       `"If clear request: 'gotcha. let me grab a few details so we can help ya out.'"`,
       `"If unclear: 'no worries — tell me a bit about what you need and we'll figure it out.'"`,
@@ -1786,6 +1796,31 @@ function buildAfterHoursBlock(behavior: string, emergencyPhone?: string): string
   }
 }
 
+// ── Calendar booking block (injected when booking_enabled=true) ───────────────
+
+function buildCalendarBlock(serviceType: string, closePerson: string): string {
+  return `
+# CALENDAR BOOKING FLOW
+
+Use this when a caller wants to book a ${serviceType} directly on the call.
+
+Step 1 — Ask what day works: "what day were you thinking?"
+Step 2 — Check slots: say "one sec, let me pull that up..." in that SAME turn, then call checkCalendarAvailability with date in YYYY-MM-DD format. Use TODAY from callerContext to resolve "tomorrow", "next Monday", etc.
+Step 3 — Read back up to 3 slots: "I've got [time], [time], and [time] — any of those work?"
+Step 4 — If name not yet collected: "and your name?"
+Step 5 — Book it: say "perfect, booking that now..." in the SAME turn as calling bookAppointment with:
+  - date: YYYY-MM-DD
+  - time: EXACTLY the displayTime from checkCalendarAvailability (do not reformat)
+  - service: "${serviceType}"
+  - callerName: caller's name
+  - callerPhone: the CALLER PHONE from callerContext — always include this
+Step 6 — Confirm and close: "you're booked — [day] at [time]. ${closePerson} will reach out before then!" → hangUp
+
+SLOT TAKEN (booked=false, nextAvailable present): "that one just got taken — the next opening I've got is [nextAvailable]. does that work?"
+DAY FULL (available=false or no slots): say "looks like we're full that day — let me check the next one..." then call checkCalendarAvailability for the following day. If also full, fall back to message mode.
+TOOL ERROR (fallback=true or no response): fall back to message mode — collect preferred day/time and close as normal.`.trim()
+}
+
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
@@ -2198,6 +2233,13 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Append knowledge base documents if provided
   if (variables._KNOWLEDGE_DOCS) {
     prompt += variables._KNOWLEDGE_DOCS
+  }
+
+  // Append calendar booking block if booking_enabled
+  if (intake.booking_enabled === true) {
+    const serviceType = variables.SERVICE_APPOINTMENT_TYPE || 'appointment'
+    const closePerson = variables.CLOSE_PERSON || 'the team'
+    prompt += '\n\n' + buildCalendarBlock(serviceType, closePerson)
   }
 
   return prompt

@@ -1274,13 +1274,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
-      {/* 4c — Booking (calendar_beta_enabled or admin only) */}
-      {(client.calendar_beta_enabled || isAdmin) && (
+      {/* 4c — Booking (visible to all clients — booking_enabled still admin-gated at API layer) */}
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-400/80">Booking</p>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">Beta</span>
             </div>
           </div>
           <p className="text-[11px] t3 mb-4">Connect Google Calendar to let your agent check availability and book appointments on live calls.</p>
@@ -1352,7 +1350,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             </div>
           )}
         </div>
-      )}
 
       {/* 5 — System Prompt (collapsible) */}
       <motion.div
