@@ -104,3 +104,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 20119 | **Hash:** 821fae0f7fb0e4f7
 **Supabase version_id:** 173585ce-3343-46ca-9843-2924f7992415
 **Ultravox revision:** 534a1d41-8ed3-4f2a-a7f2-7c6f27b712ed
+
+## v25 — 2026-03-18 05:53 UTC
+**Change:** Wave 1: add hours+knowledge section markers for UI editors
+**Chars:** 20225 | **Hash:** f5b7b0539554d5aa
+**Supabase version_id:** cf20878e-c48b-4032-9119-9984c7ae606d
+**Ultravox revision:** ea7cdf8f-4470-4f45-ae1e-29a48fe23bec
