@@ -388,14 +388,12 @@ interface CallViaAgentOptions {
   extraQa?: string
   /** Inject per-call reference data (CSV/text) via {{contextData}} templateContext. */
   contextData?: string
-  /** BCP-47 language hint for transcription accuracy (e.g. 'en', 'en-CA'). */
-  languageHint?: string
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, languageHint }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -411,7 +409,7 @@ export async function callViaAgent(
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
-  if (languageHint) body.languageHint = languageHint
+  // languageHint is NOT supported in StartAgentCallRequest — agents API rejects it with 400
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',

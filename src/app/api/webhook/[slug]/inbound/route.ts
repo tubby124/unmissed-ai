@@ -227,7 +227,6 @@ export async function POST(
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
-          languageHint: 'en',
           ...(callerContext    ? { callerContext }                    : {}),
           ...(businessFactsStr ? { businessFacts: businessFactsStr } : {}),
           ...(extraQaStr       ? { extraQa: extraQaStr }             : {}),
