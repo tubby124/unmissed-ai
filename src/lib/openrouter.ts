@@ -100,7 +100,7 @@ export async function classifyCall(
     status: 'JUNK',
     summary: 'Ultra-short call — no conversation (likely robocall or hang-up).',
     serviceType: 'spam',
-    confidence: 0.9,
+    confidence: 90,
     sentiment: 'neutral',
     key_topics: [],
     next_steps: '',
