@@ -475,6 +475,56 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
       {/* Admin-only prompt preview */}
       <PromptPreview data={data} />
 
+      {/* What you're getting — preview before payment */}
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-5 space-y-5">
+        {/* Included features */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">What you&apos;re getting</h3>
+          <ul className="space-y-2">
+            {[
+              { text: "Dedicated phone number for your business", show: true },
+              { text: `AI agent trained on your industry (${data.niche ? nicheLabels[data.niche as Niche] : "your niche"})`, show: true },
+              { text: "SMS follow-up to every caller", show: !!data.callerAutoText },
+              { text: "Telegram/email notifications for every call", show: true },
+              { text: "Voicemail-to-email transcripts", show: data.niche === "voicemail" },
+              { text: `${data.faqPairs.filter(p => p.question.trim() && p.answer.trim()).length} FAQ answers loaded`, show: data.faqPairs.some(p => p.question.trim() && p.answer.trim()) },
+              { text: `${data.knowledgeDocs.length} knowledge document${data.knowledgeDocs.length !== 1 ? "s" : ""} uploaded`, show: data.knowledgeDocs.length > 0 },
+            ]
+              .filter(item => item.show)
+              .map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-foreground">{item.text}</span>
+                </li>
+              ))}
+          </ul>
+        </div>
+
+        {/* What happens next — 3-step timeline */}
+        <div className="border-t border-indigo-200 dark:border-indigo-800 pt-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">What happens next</h3>
+          <div className="space-y-3">
+            {[
+              { step: "1", title: "Pay & activate", desc: "Your agent goes live in ~2 minutes" },
+              { step: "2", title: "Forward your phone", desc: "We'll send a step-by-step guide for your carrier" },
+              { step: "3", title: "Start receiving calls", desc: "Every call is answered, summarized, and sent to you" },
+            ].map((item) => (
+              <div key={item.step} className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shrink-0">
+                  <span className="text-[11px] font-bold text-white">{item.step}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground leading-tight">{item.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* CTA cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Trial card */}
