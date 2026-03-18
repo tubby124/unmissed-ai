@@ -13,12 +13,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=access_denied`)
   }
 
-  let slug: string, clientId: string, nonce: string
+  let slug: string, clientId: string, nonce: string, isAdmin: boolean
   try {
     const parsed = JSON.parse(Buffer.from(stateParam, 'base64url').toString())
     slug = parsed.slug
     clientId = parsed.clientId
     nonce = parsed.nonce
+    isAdmin = parsed.isAdmin === true
   } catch {
     return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=invalid_state`)
   }
@@ -89,7 +90,11 @@ export async function GET(req: NextRequest) {
 
   console.log(`[google-callback] Calendar connected for slug=${slug} calendarId=${calendarId}`)
 
-  const response = NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_connected=1`)
+  const successUrl = isAdmin
+    ? `${appUrl}/admin/clients?calendar_connected=1`
+    : `${appUrl}/dashboard/settings?calendar_connected=1`
+
+  const response = NextResponse.redirect(successUrl)
   response.cookies.delete('google_oauth_nonce')
   return response
 }

@@ -133,6 +133,13 @@ export function toIntakePayload(data: OnboardingData) {
         : (data.nicheAnswers?.services as string) || ''),
     call_handling_mode: data.callHandlingMode || 'triage',
     voice_id: data.voiceId || null,
+
+    pricing_policy: data.pricingPolicy || "",
+    unknown_answer_behavior: data.unknownAnswerBehavior || "",
+    common_objections: JSON.stringify(
+      (data.commonObjections || []).filter(p => p.question?.trim() && p.answer?.trim())
+    ),
+
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>

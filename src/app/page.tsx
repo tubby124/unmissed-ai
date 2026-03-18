@@ -13,6 +13,7 @@ import StatsSection from "@/components/StatsSection";
 import { faqSchema } from "@/lib/schema";
 import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
+import CallMeNowWidget from "@/components/CallMeNowWidget";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 
 export const metadata: Metadata = {
@@ -52,6 +53,11 @@ export default async function HomePage() {
         <section className="relative pt-32 pb-20 px-4 overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
           <div className="relative max-w-6xl mx-auto">
             <HeroContent />
+
+            {/* Call Me Now — hero inline phone input */}
+            <div className="max-w-md mx-auto mt-8">
+              <CallMeNowWidget compact niche="unmissed_demo" />
+            </div>
 
             {/* Animated call mockup */}
             <div className="mt-14 pb-20">

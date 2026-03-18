@@ -1,9 +1,8 @@
 const integrations = [
   { name: "Twilio", description: "Call routing & SMS", icon: "📞" },
   { name: "Telegram", description: "Instant lead alerts", icon: "📲" },
-  { name: "Google Sheets", description: "Your call log lives here", icon: "📊" },
-  { name: "n8n", description: "Workflow automation", icon: "⚙️" },
-  { name: "AI Engine", description: "Voice intelligence", icon: "🧠" },
+  { name: "Google Calendar", description: "Booking & scheduling", icon: "📅" },
+  { name: "Supabase", description: "Secure data platform", icon: "🗄️" },
   { name: "Ultravox", description: "Natural voice AI", icon: "🎙️" },
 ];
 
@@ -15,7 +14,7 @@ export default function IntegrationLogos() {
           Built on enterprise-grade infrastructure
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
           {integrations.map((integration) => (
             <div
               key={integration.name}

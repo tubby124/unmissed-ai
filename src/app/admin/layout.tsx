@@ -39,6 +39,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <Link href="/admin/numbers" className="text-gray-400 hover:text-white transition-colors">
           Numbers
         </Link>
+        <Link href="/admin/clients" className="text-gray-400 hover:text-white transition-colors">
+          Clients
+        </Link>
+        <Link href="/admin/calendar" className="text-gray-400 hover:text-white transition-colors">
+          Calendar
+        </Link>
         <Link
           href="/onboard"
           className="ml-auto text-indigo-400 hover:text-indigo-300 transition-colors font-medium"

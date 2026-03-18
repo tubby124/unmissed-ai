@@ -45,7 +45,7 @@ def _load_env():
 CLIENT_CONFIG = {
     "urban-vibe": {
         "ultravox_agent_id": "5f88f03b-5aaf-40fc-a608-2f7ed765d6a6",
-        "voice": "df0b14d7-945f-41b2-989a-7c8c57688ddf",  # Ashley — Ray's preference (confirmed Mar 16 from live agent)
+        "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",  # Jacqueline (confirmed Mar 11)
         "greeting": "Thanks for calling Urban Vibe Properties — I'm Alisha, Ray's virtual assistant. How can I help?",
         "vad_min_interruption": "0.400s",
     },
@@ -73,12 +73,6 @@ CLIENT_CONFIG = {
         "greeting": None,
         "vad_min_interruption": "0.400s",
         "local_dir": "true-color",
-    },
-    "unmissed-demo": {
-        "ultravox_agent_id": None,  # Demo uses ephemeral calls (useLivePrompt from Supabase) — no Agents API agent
-        "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",  # Jacqueline (Aria)
-        "greeting": None,
-        "vad_min_interruption": "0.400s",
     },
 }
 
@@ -149,24 +143,16 @@ def deploy(slug, change_description):
     with open(prompt_path, "r") as f:
         prompt = f.read()
 
-    # Get client row
-    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,injected_note")
+    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
+
+    # Get client row (includes agent_voice_id for voice priority chain)
+    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,agent_voice_id")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
     client_id = rows[0]["id"]
     booking_enabled = rows[0].get("booking_enabled") or False
-    injected_note = (rows[0].get("injected_note") or "").strip()
-
-    # Strip any stale injected_note block from the file, then re-apply the live DB value
-    INJECT_MARKER = '\n\n## RIGHT NOW — Time-sensitive info'
-    if INJECT_MARKER in prompt:
-        prompt = prompt.split(INJECT_MARKER)[0]
-    if injected_note:
-        prompt += f"{INJECT_MARKER}\n{injected_note}\n"
-        print(f"  Re-applying injected_note ({len(injected_note)} chars)")
-
-    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
+    db_voice_id = rows[0].get("agent_voice_id") or None
 
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
@@ -250,16 +236,27 @@ def deploy(slug, change_description):
         ]
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
 
-    # Read current voice from live Ultravox agent — NEVER overwrite voice on prompt deploy
-    if cfg.get("ultravox_agent_id"):
-        live_agent = uv_get(cfg["ultravox_agent_id"])
-        live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
-        # Allow explicit --voice override; otherwise preserve whatever is live
-        deploy_voice = cfg.get("_voice_override") or live_voice
-        print(f"  Voice: {deploy_voice} ({'overridden' if cfg.get('_voice_override') else 'preserved from live agent'})")
+    # Voice priority chain:
+    #   1. --voice CLI flag (highest)
+    #   2. clients.agent_voice_id from DB (dashboard selection)
+    #   3. Live Ultravox agent voice
+    #   4. CLIENT_CONFIG fallback (lowest)
+    live_agent = uv_get(cfg["ultravox_agent_id"])
+    live_voice = live_agent.get("callTemplate", {}).get("voice", cfg["voice"])
+
+    if cfg.get("_voice_override"):
+        deploy_voice = cfg["_voice_override"]
+        voice_source = "overridden via --voice flag"
+    elif db_voice_id:
+        deploy_voice = db_voice_id
+        voice_source = "from DB (clients.agent_voice_id)"
+    elif live_voice:
+        deploy_voice = live_voice
+        voice_source = "preserved from live agent"
     else:
         deploy_voice = cfg["voice"]
-        print(f"  Voice: {deploy_voice} (config default — no live agent)")
+        voice_source = "CLIENT_CONFIG fallback"
+    print(f"  Voice: {deploy_voice} ({voice_source})")
 
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
     call_template = {
@@ -294,29 +291,25 @@ def deploy(slug, change_description):
     if cfg.get("greeting"):
         call_template["firstSpeakerSettings"]["agent"]["text"] = cfg["greeting"]
 
-    if cfg.get("ultravox_agent_id"):
-        uv_result = uv_patch(cfg["ultravox_agent_id"], call_template)
-        uv_revision = uv_result.get("publishedRevisionId", "n/a")
+    uv_result = uv_patch(cfg["ultravox_agent_id"], call_template)
+    uv_revision = uv_result.get("publishedRevisionId", "n/a")
 
-        # Post-PATCH verification — read back live agent and check required fields
-        # Ultravox PATCH is a full callTemplate replace; missing fields are silently wiped.
-        uv_live = uv_get(cfg["ultravox_agent_id"])
-        live_ct = uv_live.get("callTemplate", {})
-        required = ["systemPrompt", "voice", "medium", "recordingEnabled", "selectedTools",
-                    "inactivityMessages", "firstSpeakerSettings", "vadSettings", "timeExceededMessage"]
-        missing = [f for f in required if not live_ct.get(f)]
-        if missing:
-            print(f"  ⚠ DEPLOY WARNING: live agent missing fields after PATCH: {missing}")
-            print(f"    Re-run deploy or manually patch agent {cfg['ultravox_agent_id']}")
-        else:
-            print(f"  ✓ Live agent verified — all required fields present")
-
-        # Mark ultravox_synced
-        sb_patch(f"prompt_versions?id=eq.{new_version_id}", {"ultravox_synced": True})
-        print(f"  ✓ Ultravox PATCH — revision: {uv_revision}")
+    # Post-PATCH verification — read back live agent and check required fields
+    # Ultravox PATCH is a full callTemplate replace; missing fields are silently wiped.
+    uv_live = uv_get(cfg["ultravox_agent_id"])
+    live_ct = uv_live.get("callTemplate", {})
+    required = ["systemPrompt", "voice", "medium", "recordingEnabled", "selectedTools",
+                "inactivityMessages", "firstSpeakerSettings", "vadSettings", "timeExceededMessage"]
+    missing = [f for f in required if not live_ct.get(f)]
+    if missing:
+        print(f"  ⚠ DEPLOY WARNING: live agent missing fields after PATCH: {missing}")
+        print(f"    Re-run deploy or manually patch agent {cfg['ultravox_agent_id']}")
     else:
-        uv_revision = "n/a (no Agents API agent — uses ephemeral calls)"
-        print(f"  ↷ Skipping Ultravox PATCH — client has no ultravox_agent_id (ephemeral call mode)")
+        print(f"  ✓ Live agent verified — all required fields present")
+
+    # Mark ultravox_synced
+    sb_patch(f"prompt_versions?id=eq.{new_version_id}", {"ultravox_synced": True})
+    print(f"  ✓ Ultravox PATCH — revision: {uv_revision}")
 
     # Append to local changelog
     changelog_path = os.path.join(BASE_DIR, "clients", local_dir, "PROMPT_CHANGELOG.md")
@@ -357,7 +350,7 @@ def dry_run(slug):
 
     local_hash = hashlib.sha256(local_prompt.encode()).hexdigest()[:16]
 
-    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled,agent_voice_id")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
@@ -365,6 +358,7 @@ def dry_run(slug):
     sb_prompt = rows[0].get("system_prompt") or ""
     sb_hash = hashlib.sha256(sb_prompt.encode()).hexdigest()[:16]
     booking_enabled = rows[0].get("booking_enabled") or False
+    db_voice_id = rows[0].get("agent_voice_id") or None
 
     client_id = rows[0]["id"]
     vers = sb_get(f"prompt_versions?client_id=eq.{client_id}&is_active=eq.true&select=version,change_description")
@@ -392,10 +386,22 @@ def dry_run(slug):
     if booking_enabled:
         would_inject += ["checkCalendarAvailability", "bookAppointment"]
 
+    # Voice drift check
+    uv_voice = None
+    try:
+        uv_voice = uv_data.get("callTemplate", {}).get("voice")
+    except Exception:
+        pass
+
     print(f"\n[{slug}] Dry run")
     print(f"  Current Supabase: {sb_ver} ({sb_hash}) — \"{sb_desc}\"")
     print(f"  Local file:       {local_hash}  ({len(local_prompt)} chars)")
     print(f"  Ultravox live:    {uv_hash}")
+    print(f"  Voice (DB):       {db_voice_id or 'not set'}")
+    print(f"  Voice (live UV):  {uv_voice or 'unknown'}")
+    print(f"  Voice (config):   {cfg['voice']}")
+    if db_voice_id and uv_voice and db_voice_id != uv_voice:
+        print(f"  ⚠ VOICE DRIFT: DB ({db_voice_id}) ≠ Ultravox ({uv_voice}). Re-deploy to sync.")
     print(f"  Tools (live UV):  {uv_tools if uv_tools else 'unknown'}")
     print(f"  Tools (on deploy):{would_inject}  (booking_enabled={booking_enabled})")
     if sorted(uv_tools) != sorted(would_inject) and uv_tools:

@@ -120,9 +120,26 @@ function exportCsv(calls: CallLog[]) {
   URL.revokeObjectURL(url)
 }
 
+function CallsListSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex gap-3 p-4 rounded-xl" style={{ backgroundColor: 'var(--color-surface)' }}>
+          <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 rounded bg-gray-300 dark:bg-gray-700 w-1/3" />
+            <div className="h-3 rounded bg-gray-300 dark:bg-gray-700 w-2/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = 200, bonusMinutes = 0 }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
+  const [loading, setLoading] = useState(initialCalls.length === 0)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [clientFilter, setClientFilter] = useState<string>(() => searchParams.get('client') ?? 'all')
@@ -172,6 +189,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       if (!isAdmin && clientId) q = q.eq('client_id', clientId)
       const { data } = await q
 
+      setLoading(false)
       if (!data) return
 
       setCalls(prev => {
@@ -549,7 +567,19 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           {/* Rows — kanban or date-grouped list */}
           {viewMode === 'kanban' ? (
             <div className="p-4">
-              <KanbanBoard calls={filtered} showBusiness={showBusiness} />
+              <KanbanBoard
+                calls={filtered}
+                showBusiness={showBusiness}
+                onStatusChange={(callId, newStatus) => {
+                  setCalls(prev => prev.map(c =>
+                    c.id === callId ? { ...c, call_status: newStatus } : c
+                  ))
+                }}
+              />
+            </div>
+          ) : loading ? (
+            <div className="p-4">
+              <CallsListSkeleton />
             </div>
           ) : filtered.length === 0 ? (
             <EmptyState phone={phone} />

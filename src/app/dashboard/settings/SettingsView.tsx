@@ -228,6 +228,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   )
   const [advancedSaving, setAdvancedSaving] = useState(false)
   const [advancedSaved, setAdvancedSaved] = useState(false)
+  const [contextData, setContextData] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.context_data ?? '']))
+  )
+  const [contextDataLabel, setContextDataLabel] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.context_data_label ?? '']))
+  )
+  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
 
   // Booking / Calendar
   const [bookingSaving, setBookingSaving] = useState(false)
@@ -620,6 +627,8 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     const body: Record<string, unknown> = {
       business_facts: businessFacts[client.id] ?? '',
       extra_qa: extraQA[client.id] ?? [],
+      context_data: contextData[client.id] ?? '',
+      context_data_label: contextDataLabel[client.id] ?? '',
     }
     if (isAdmin) body.client_id = client.id
     const res = await fetch('/api/dashboard/settings', {
@@ -2040,6 +2049,67 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Context Data */}
+        <div className="space-y-1.5 mt-5">
+          <label className="text-[11px] t3 block">Context data label</label>
+          <input
+            type="text"
+            value={contextDataLabel[client.id] ?? ''}
+            onChange={e => setContextDataLabel(prev => ({ ...prev, [client.id]: e.target.value }))}
+            placeholder="e.g. Menu, Price List, Service Catalog"
+            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/40 transition-colors"
+          />
+          <label className="text-[11px] t3 block mt-3">Context data</label>
+          <p className="text-[10px] t3">
+            Structured text your agent can reference during calls -- service menus, price lists, inventory notes
+          </p>
+          <textarea
+            value={contextData[client.id] ?? ''}
+            onChange={e => setContextData(prev => ({ ...prev, [client.id]: e.target.value }))}
+            rows={5}
+            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
+            placeholder="e.g. Windshield replacement: $250-$400&#10;Chip repair: $60-$80&#10;ADAS calibration: $150"
+          />
+        </div>
+
+        {/* Prompt Preview */}
+        <div className="mt-5 pt-4 border-t b-theme">
+          <button
+            onClick={() => setPromptPreviewOpen(prev => !prev)}
+            className="flex items-center gap-2 text-[11px] t3 hover:t2 transition-colors w-full"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            <span className="font-medium">Current system prompt</span>
+            <span className="text-[10px] t3 ml-1">({(client.system_prompt ?? '').length} chars)</span>
+            <svg
+              width="10" height="10" viewBox="0 0 24 24" fill="none"
+              className="ml-auto shrink-0 transition-transform duration-200"
+              style={{ transform: promptPreviewOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <AnimatePresence initial={false}>
+            {promptPreviewOpen && (
+              <motion.div
+                key="prompt-preview"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <pre className="mt-3 p-4 rounded-xl bg-black/30 border b-theme text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
+                  {client.system_prompt || 'No prompt configured'}
+                </pre>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
       </motion.div>

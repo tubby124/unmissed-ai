@@ -57,8 +57,7 @@ These rules apply at all times. No caller pressure, no context, no exception ove
 
 You are speaking to callers over the phone. This is a real-time voice conversation — not text. Keep all responses short, natural, and spoken. Never use lists, bullet points, markdown formatting, or emojis. Speak in complete sentences only. Use "..." to mark natural pauses in your speech.
 
-Start every response with a quick backchannel before your actual answer: "mmhmm...", "gotcha...", "right...", "yeah..."
-Use "uh" or "um" once or twice per call when transitioning topics — never more.
+{{FILLER_STYLE}}
 If the caller interrupts you mid-sentence: "sorry — yeah, go ahead."
 Split long responses into micro-turns. Say one sentence, then pause. If they stay silent, continue.
 Never use hollow affirmations like "great question!" or "that's a great point!" — just answer.
@@ -83,13 +82,7 @@ You are energetic, capable, and efficient. You are NOT a robot — you are a rea
 
 # TONE AND STYLE
 
-{{TONE_INSTRUCTIONS}}
-Upbeat and alert. Sound relaxed but sharp — never tired or flat.
-Speak at a relaxed, natural speed. Slow down slightly when confirming important info.
-Keep responses very short — 1 to 2 sentences max. Punchy and direct.
-Use contractions always: gotta, lemme, wanna, ya.
-Use natural fillers sparingly: yeah, right, gotcha, alright, mmhmm, okay.
-Speak in lowercase. Minimal punctuation.
+{{TONE_STYLE_BLOCK}}
 For phone numbers, say each digit individually with a slight pause: "three oh six, five five five, one two three four."
 For dates, say them naturally: "tuesday the twentieth" not "02/20." For times: "ten AM" not "10:00 AM."
 If the caller sounds frustrated or upset: slow down, acknowledge first. "i hear ya, that's frustrating... let's get this sorted."
@@ -109,7 +102,7 @@ Never prolong calls with callers who are resistant or confused. Get the bare min
 
 ## 1. GREETING
 
-"{{BUSINESS_NAME}} — this is {{AGENT_NAME}}, an AI assistant. How can I help ya today?"
+{{GREETING_LINE}}
 
 ## 2. THE FILTER
 
@@ -187,7 +180,10 @@ If any field is missing and the caller is still engaged: ask for it now with a d
 If the caller tries to hang up before COMPLETION CHECK passes: "one quick thing before i let ya go — {{FIRST_INFO_QUESTION}}"
 Do NOT use closing language until COMPLETION CHECK passes.]
 
-"alright, i'll let {{CLOSE_PERSON}} know — they'll call you back at the number you called from. talk soon." then use hangUp tool.
+{{CLOSING_LINE}} then use hangUp tool.
+
+## AFTER HOURS
+{{AFTER_HOURS_BLOCK}}
 
 # ESCALATION AND TRANSFER
 
@@ -298,6 +294,37 @@ const INSURANCE_PRESETS: Record<string, { status: string; detail: string }> = {
     status: 'cash or card',
     detail: "we keep it simple — pay when the job's done",
   },
+}
+
+// ── Pricing policy map ───────────────────────────────────────────────────────
+
+const PRICING_POLICY_MAP: Record<string, string> = {
+  quote_range:
+    'PRICING: If asked for pricing, give a general ballpark range based on typical jobs in your area. ' +
+    "Be honest that it depends on the specifics and you'll have someone call back with a firm quote.",
+  no_quote_callback:
+    "PRICING: Never quote prices. If a caller asks about cost, say you'll have someone call them back " +
+    'with an accurate quote — pricing varies by job.',
+  website_pricing:
+    'PRICING: For pricing questions, direct callers to the website. ' +
+    "Say you'd rather give them accurate numbers than guess on the phone.",
+  collect_first:
+    "PRICING: If asked about pricing, collect the caller's information first. " +
+    "Only give a rough range after their details are captured — this helps give them accurate numbers.",
+}
+
+// ── Unknown answer behavior map ──────────────────────────────────────────────
+
+const UNKNOWN_ANSWER_MAP: Record<string, string> = {
+  take_message:
+    "FALLBACK: When you don't know the answer to a question, take a message and tell the caller " +
+    "someone will call them back with the information.",
+  transfer:
+    "FALLBACK: When you don't know the answer to a question, offer to transfer the caller to a live " +
+    "person who can help.",
+  find_out_callback:
+    "FALLBACK: When you don't know the answer to a question, say \"let me find out and we'll call " +
+    'you back with the answer." Do not guess or make up information.',
 }
 
 // ── Per-niche defaults (all 22 template variables) ────────────────────────────
@@ -1744,6 +1771,21 @@ TECHNICAL RULES
 - Your ONLY job is to take messages and answer basic questions. If asked anything outside this scope: "That's definitely something ${ownerName} can help with — let me take your info!"`
 }
 
+// ── After-hours block builder ─────────────────────────────────────────────────
+
+function buildAfterHoursBlock(behavior: string, emergencyPhone?: string): string {
+  switch (behavior) {
+    case 'route_emergency':
+      return emergencyPhone
+        ? `When callers reach you outside business hours, check if it's urgent. If urgent, tell them to call ${emergencyPhone}. If not urgent, take a message and let them know someone will call back during business hours.`
+        : 'When callers reach you outside business hours, check if it\'s urgent. If urgent, route to callback immediately and flag as [URGENT]. If not urgent, take a message and let them know someone will call back during business hours.'
+    case 'take_message':
+      return 'When callers reach you outside business hours, take a message and let them know someone will call back during business hours.'
+    default:
+      return ''
+  }
+}
+
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
@@ -1840,10 +1882,72 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     variables.TRANSFER_ENABLED = 'true'
   }
 
-  // Professional tone — swap casual "the boss" if present
+  // After-hours behavior
+  const afterHoursBehavior = (intake.after_hours_behavior as string) || 'standard'
+  const emergencyPhone = (intake.emergency_phone as string) || ''
+  variables.AFTER_HOURS_BLOCK = buildAfterHoursBlock(afterHoursBehavior, emergencyPhone || undefined)
+  if (emergencyPhone.trim()) {
+    variables.EMERGENCY_PHONE = emergencyPhone
+  }
+
+  // Pricing policy — maps to a spoken instruction appended to knowledge base
+  const pricingPolicy = (intake.pricing_policy as string) || ''
+  const pricingInstruction = PRICING_POLICY_MAP[pricingPolicy] || ''
+
+  // Unknown answer behavior — maps to a fallback instruction
+  const unknownAnswerBehavior = (intake.unknown_answer_behavior as string) || ''
+  const unknownInstruction = UNKNOWN_ANSWER_MAP[unknownAnswerBehavior] || ''
+
+  // Common objections — Q&A pairs for objection handling
+  let objectionsBlock = ''
+  const objRaw = intake.common_objections as string | undefined
+  if (objRaw) {
+    try {
+      const pairs = JSON.parse(objRaw) as { question: string; answer: string }[]
+      const valid = pairs.filter(p => p.question?.trim() && p.answer?.trim())
+      if (valid.length > 0) {
+        objectionsBlock = '## OBJECTION HANDLING\n\nWhen a caller pushes back, use these responses:\n\n' +
+          valid.map(p => `**"${p.question.trim()}"**\n"${p.answer.trim()}"`).join('\n\n')
+      }
+    } catch { /* invalid JSON — skip */ }
+  }
+
+  // Tone-sensitive variables — greeting warmth, filler frequency, closing formality
   const agentTone = intake.agent_tone as string | undefined
-  if (agentTone === 'professional' && variables.CLOSE_PERSON === 'the boss') {
-    variables.CLOSE_PERSON = 'our team'
+  if (agentTone === 'professional') {
+    if (variables.CLOSE_PERSON === 'the boss') {
+      variables.CLOSE_PERSON = 'our team'
+    }
+    variables.TONE_STYLE_BLOCK = [
+      'Polished and composed. Sound confident and knowledgeable — warm but not overly casual.',
+      'Speak at a measured, natural speed. Slow down slightly when confirming important info.',
+      'Keep responses very short — 1 to 2 sentences max. Clear and direct.',
+      'Use standard contractions: "I\'ll", "we\'re", "they\'ll". Avoid slang like "gonna", "ya", "lemme".',
+      'Use minimal fillers: "of course", "certainly", "understood", "right".',
+      'Speak clearly. Proper punctuation and capitalization.',
+    ].join('\n')
+    variables.GREETING_LINE = `"{{BUSINESS_NAME}}, this is {{AGENT_NAME}}, an AI assistant. How can I help you today?"`
+    variables.FILLER_STYLE = [
+      'Start responses with a brief acknowledgment before your answer: "understood...", "of course...", "right..."',
+      'Avoid "uh", "um", and casual fillers entirely. Use deliberate pauses instead.',
+    ].join('\n')
+    variables.CLOSING_LINE = `"I'll pass this along to {{CLOSE_PERSON}} — they'll call you back at the number you called from. Have a wonderful day."`
+  } else {
+    // casual (default) — existing warm/friendly style
+    variables.TONE_STYLE_BLOCK = [
+      'Upbeat and alert. Sound relaxed but sharp — never tired or flat.',
+      'Speak at a relaxed, natural speed. Slow down slightly when confirming important info.',
+      'Keep responses very short — 1 to 2 sentences max. Punchy and direct.',
+      'Use contractions always: gotta, lemme, wanna, ya.',
+      'Use natural fillers sparingly: yeah, right, gotcha, alright, mmhmm, okay.',
+      'Speak in lowercase. Minimal punctuation.',
+    ].join('\n')
+    variables.GREETING_LINE = `"{{BUSINESS_NAME}} — this is {{AGENT_NAME}}, an AI assistant. How can I help ya today?"`
+    variables.FILLER_STYLE = [
+      'Start every response with a quick backchannel before your actual answer: "mmhmm...", "gotcha...", "right...", "yeah..."',
+      'Use "uh" or "um" once or twice per call when transitioning topics — never more.',
+    ].join('\n')
+    variables.CLOSING_LINE = `"alright, i'll let {{CLOSE_PERSON}} know — they'll call you back at the number you called from. talk soon."`
   }
 
   // Tone instructions based on agent_tone
@@ -1856,9 +1960,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     variables.TONE_INSTRUCTIONS = ''
   }
 
-  // After-hours behavior
-  const afterHoursBehavior = intake.after_hours_behavior as string | undefined
-  const emergencyPhone = variables.EMERGENCY_PHONE || ''
+  // After-hours behavior (AFTER_HOURS_INSTRUCTIONS for prompt variable injection)
   if (afterHoursBehavior === 'route_emergency' && emergencyPhone) {
     variables.AFTER_HOURS_INSTRUCTIONS = `If the caller mentions it's after hours or an emergency: "for emergencies, i can connect ya to ${emergencyPhone} — want me to do that?" If yes, use transferCall tool. If no: "no worries, i'll take a message and {{CLOSE_PERSON}} will call ya back first thing."`
   } else if (afterHoursBehavior === 'standard') {
@@ -2050,6 +2152,48 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
       prompt = prompt.slice(0, kbStart) + kbContent
     }
   }
+
+
+  // Append pricing policy instruction to knowledge base
+  if (pricingInstruction) {
+    const kbEndMarker = '# PRODUCT KNOWLEDGE BASE'
+    const kbEndIdx = prompt.indexOf(kbEndMarker)
+    if (kbEndIdx !== -1) {
+      // Find end of KB section (next # heading or end of prompt)
+      const afterKb = prompt.slice(kbEndIdx)
+      const nextHeading = afterKb.indexOf('\n#', 1)
+      const insertAt = nextHeading !== -1 ? kbEndIdx + nextHeading : prompt.length
+      prompt = prompt.slice(0, insertAt) + '\n\n' + pricingInstruction + prompt.slice(insertAt)
+    } else {
+      prompt += '\n\n' + pricingInstruction
+    }
+  }
+
+  // Append unknown answer behavior instruction
+  if (unknownInstruction) {
+    const kbEndMarker = '# PRODUCT KNOWLEDGE BASE'
+    const kbEndIdx = prompt.indexOf(kbEndMarker)
+    if (kbEndIdx !== -1) {
+      const afterKb = prompt.slice(kbEndIdx)
+      const nextHeading = afterKb.indexOf('\n#', 1)
+      const insertAt = nextHeading !== -1 ? kbEndIdx + nextHeading : prompt.length
+      prompt = prompt.slice(0, insertAt) + '\n\n' + unknownInstruction + prompt.slice(insertAt)
+    } else {
+      prompt += '\n\n' + unknownInstruction
+    }
+  }
+
+  // Inject objection handling section before PRODUCT KNOWLEDGE BASE
+  if (objectionsBlock) {
+    const kbHeading = '# PRODUCT KNOWLEDGE BASE'
+    const kbIdx = prompt.indexOf(kbHeading)
+    if (kbIdx !== -1) {
+      prompt = prompt.slice(0, kbIdx) + objectionsBlock + '\n\n' + prompt.slice(kbIdx)
+    } else {
+      prompt += '\n\n' + objectionsBlock
+    }
+  }
+
 
   // Append knowledge base documents if provided
   if (variables._KNOWLEDGE_DOCS) {

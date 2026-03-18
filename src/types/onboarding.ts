@@ -30,6 +30,12 @@ export type PricingPolicy =
   | "collect_first"     // Collect info first, then give a range
   | "";
 
+export type UnknownAnswerBehavior =
+  | "take_message"      // Take a message and promise callback
+  | "transfer"          // Transfer to live person
+  | "find_out_callback" // Say "I'll find out and we'll call you back"
+  | "";
+
 export interface BusinessHours {
   open: string;   // "09:00" or ""
   close: string;  // "17:00" or ""
@@ -87,6 +93,8 @@ export interface OnboardingData {
   primaryGoal: PrimaryGoal;
   completionFields: string;   // Moved to Settings > Advanced Context
   pricingPolicy: PricingPolicy;
+  unknownAnswerBehavior: UnknownAnswerBehavior;
+  commonObjections: { question: string; answer: string }[];
 
   // New: voice + call handling + knowledge
   voiceId: string | null;
@@ -161,6 +169,8 @@ export const defaultOnboardingData: OnboardingData = {
   primaryGoal: "",
   completionFields: "",
   pricingPolicy: "",
+  unknownAnswerBehavior: "",
+  commonObjections: [],
   voiceId: null,
   voiceName: '',
   callHandlingMode: 'triage',

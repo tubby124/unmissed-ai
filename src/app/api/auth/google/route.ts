@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
 
   if (!clientRow) return new NextResponse('Client not found', { status: 404 })
 
+  const isAdmin = cu.role === 'admin' && req.nextUrl.searchParams.has('client_id')
   const nonce = crypto.randomUUID()
-  const state = Buffer.from(JSON.stringify({ slug: clientRow.slug, nonce, clientId })).toString('base64url')
+  const state = Buffer.from(JSON.stringify({ slug: clientRow.slug, nonce, clientId, isAdmin })).toString('base64url')
 
   // Store nonce in cookie for CSRF verification
   const response = NextResponse.redirect(buildOAuthUrl(state))

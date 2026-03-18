@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Phone, X } from "lucide-react"
+import { Phone, Mic, X } from "lucide-react"
 import DemoCall from "./DemoCall"
+import CallMeNowWidget from "./CallMeNowWidget"
 
 const AGENTS = [
   {
@@ -28,7 +29,7 @@ const AGENTS = [
   },
 ]
 
-type Step = "closed" | "select" | "name" | "call"
+type Step = "closed" | "select" | "mode" | "name" | "call" | "phone-calling"
 
 interface State {
   step: Step
@@ -45,6 +46,17 @@ export default function TryItNowWidget() {
   function close() {
     setState({ step: "closed" })
     setNameInput("")
+  }
+
+  function getHeaderText(): string {
+    switch (state.step) {
+      case "select": return "Pick an agent to try"
+      case "mode": return `Try ${selectedAgent?.agent}`
+      case "name": return `Talk to ${selectedAgent?.agent}`
+      case "call": return `${selectedAgent?.agent} · ${selectedAgent?.company}`
+      case "phone-calling": return `Calling you · ${selectedAgent?.agent}`
+      default: return ""
+    }
   }
 
   return (
@@ -82,9 +94,7 @@ export default function TryItNowWidget() {
               style={{ borderBottom: "1px solid var(--color-border)" }}
             >
               <p className="font-bold text-sm" style={{ color: "var(--color-text-1)" }}>
-                {state.step === "select" && "Pick an agent to try"}
-                {state.step === "name" && `Talk to ${selectedAgent?.agent}`}
-                {state.step === "call" && `${selectedAgent?.agent} · ${selectedAgent?.company}`}
+                {getHeaderText()}
               </p>
               <button onClick={close} style={{ color: "var(--color-text-3)" }}>
                 <X size={18} />
@@ -98,7 +108,7 @@ export default function TryItNowWidget() {
                   {AGENTS.map(agent => (
                     <button
                       key={agent.id}
-                      onClick={() => setState({ step: "name", agentId: agent.id })}
+                      onClick={() => setState({ step: "mode", agentId: agent.id })}
                       className="w-full text-left rounded-xl px-4 py-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
                       style={{
                         backgroundColor: "var(--color-bg)",
@@ -124,12 +134,78 @@ export default function TryItNowWidget() {
                     </button>
                   ))}
                   <p className="text-xs text-center pt-1" style={{ color: "var(--color-text-3)" }}>
-                    Uses your mic · No sign-up required
+                    No sign-up required
                   </p>
                 </div>
               )}
 
-              {/* Step 2: Enter name */}
+              {/* Step 2: Choose mode — mic or phone */}
+              {state.step === "mode" && selectedAgent && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setState({ step: "name", agentId: state.agentId })}
+                    className="w-full text-left rounded-xl px-4 py-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    style={{
+                      backgroundColor: "var(--color-bg)",
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: "rgba(99,102,241,0.12)" }}
+                      >
+                        <Mic size={18} style={{ color: "var(--color-primary)" }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+                          Talk in browser
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
+                          Uses your mic — instant start
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setState({ step: "phone-calling", agentId: state.agentId })}
+                    className="w-full text-left rounded-xl px-4 py-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    style={{
+                      backgroundColor: "var(--color-bg)",
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: "rgba(16,185,129,0.12)" }}
+                      >
+                        <Phone size={18} style={{ color: "#10B981" }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+                          Call my phone
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
+                          We call you — hear exactly what your customers hear
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setState({ step: "select" })}
+                    className="w-full text-xs pt-1"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    &larr; Pick a different agent
+                  </button>
+                </div>
+              )}
+
+              {/* Step 3a: Enter name (mic flow) */}
               {state.step === "name" && selectedAgent && (
                 <form
                   onSubmit={e => {
@@ -160,16 +236,31 @@ export default function TryItNowWidget() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setState({ step: "select" })}
+                    onClick={() => setState({ step: "mode", agentId: state.agentId })}
                     className="w-full text-xs"
                     style={{ color: "var(--color-text-3)" }}
                   >
-                    ← Pick a different agent
+                    &larr; Back
                   </button>
                 </form>
               )}
 
-              {/* Step 3: Active call */}
+              {/* Step 3b: Phone input (phone flow) */}
+              {state.step === "phone-calling" && selectedAgent && (
+                <div className="space-y-4">
+                  <CallMeNowWidget niche={state.agentId} />
+                  <button
+                    type="button"
+                    onClick={() => setState({ step: "mode", agentId: state.agentId })}
+                    className="w-full text-xs"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    &larr; Back
+                  </button>
+                </div>
+              )}
+
+              {/* Step 4: Active browser call */}
               {state.step === "call" && selectedAgent && (
                 <DemoCall
                   demoId={state.agentId!}
