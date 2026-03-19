@@ -192,32 +192,10 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // A4 — corpus_enabled toggle (available to all roles — clients can enable their own KB)
-  // When toggling ON with no corpus_id yet, create a new corpus and store the ID.
+  // A4 — corpus_enabled toggle. All clients share the global corpus (ULTRAVOX_CORPUS_ID env var).
+  // Documents are scoped per-client by source naming (client-{slug}-{filename}).
   if (typeof body.corpus_enabled === 'boolean') {
-    if (body.corpus_enabled) {
-      // Fetch current corpus_id + business name to create corpus if needed
-      const { data: corpusRow } = await supabase
-        .from('clients')
-        .select('corpus_id, business_name')
-        .eq('id', targetClientId)
-        .single()
-      if (corpusRow && !corpusRow.corpus_id) {
-        try {
-          const { corpusId } = await createCorpus(
-            (corpusRow.business_name as string) || `client-${targetClientId}`,
-            'Per-client knowledge base'
-          )
-          updates.corpus_id = corpusId
-        } catch (err) {
-          console.error(`[settings] createCorpus failed: ${err}`)
-          return NextResponse.json({ error: 'Failed to create knowledge base' }, { status: 500 })
-        }
-      }
-      updates.corpus_enabled = true
-    } else {
-      updates.corpus_enabled = false
-    }
+    updates.corpus_enabled = body.corpus_enabled
   }
 
   // B1 — Section edit: apply section marker replacement to current system_prompt

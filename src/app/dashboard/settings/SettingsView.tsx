@@ -222,12 +222,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [testSmsError, setTestSmsError] = useState('')
 
-  // Right Now (injected_note)
-  const [injectedNote, setInjectedNote] = useState<Record<string, string>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.injected_note ?? '']))
-  )
-  const [injectedNoteSaving, setInjectedNoteSaving] = useState(false)
-  const [injectedNoteSaved, setInjectedNoteSaved] = useState(false)
+  // Right Now (injected_note) — state removed, Quick Inject lives in AgentOverviewCard
 
   // After-Hours Config (A3)
   const [hoursWeekday, setHoursWeekday] = useState<Record<string, string>>(() =>
@@ -755,24 +750,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     }
   }
 
-  async function saveInjectedNote(clearNote = false) {
-    setInjectedNoteSaving(true)
-    setInjectedNoteSaved(false)
-    const note = clearNote ? null : (injectedNote[client.id] ?? '').trim() || null
-    if (clearNote) setInjectedNote(prev => ({ ...prev, [client.id]: '' }))
-    const body: Record<string, unknown> = { injected_note: note }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setInjectedNoteSaving(false)
-    if (res.ok) {
-      setInjectedNoteSaved(true)
-      setTimeout(() => setInjectedNoteSaved(false), 3000)
-    }
-  }
+  // saveInjectedNote removed — Quick Inject lives in AgentOverviewCard
 
   async function saveBookingConfig() {
     setBookingSaving(true)
@@ -1508,13 +1486,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Agent Script</p>
               <p className="text-[11px] t3 mt-0.5">
                 {promptCollapsed
-                  ? 'Tap to view and edit what your AI agent says on calls'
+                  ? (isAdmin ? 'Tap to view and edit what your AI agent says on calls' : 'Tap to view your agent\'s script')
                   : `${nicheConfig.label} agent instructions`}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-3">
-            {promptCollapsed && (
+            {promptCollapsed && isAdmin && (
               <span className="text-[10px] font-medium text-blue-400/60 group-hover:text-blue-400/90 transition-colors hidden sm:block">Edit</span>
             )}
             <svg
@@ -1536,134 +1514,239 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               style={{ overflow: 'hidden' }}
             >
               <div className="px-5 pb-5 border-t b-theme">
-                <div className="flex items-center justify-between mt-4 mb-3">
-                  <p className="text-[11px] t3">
-                    Edit your agent&apos;s script below. Changes go live as soon as you save.
-                  </p>
-                  <div className="flex items-center gap-3 shrink-0 ml-3">
-                    <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
-                      {charCount.toLocaleString()} chars
-                    </span>
-                    {dirty && (
-                      <input
-                        type="text"
-                        placeholder="What changed? (optional)"
-                        value={changeDesc}
-                        onChange={e => setChangeDesc(e.target.value)}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-hover border b-theme t2 placeholder:t3 focus:outline-none focus:border-zinc-500 w-48"
-                      />
-                    )}
-                    <button
-                      onClick={save}
-                      disabled={!dirty || saving}
-                      className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                        saved
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : dirty
-                          ? 'bg-blue-500 hover:bg-blue-400 text-white'
-                          : 'bg-hover t3 cursor-not-allowed border b-theme'
-                      }`}
-                    >
-                      {saving ? 'Saving…' : (
-                        <AnimatePresence mode="wait">
-                          {saved ? (
-                            <motion.span
-                              key="saved"
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                            >
-                              Saved ✓
-                            </motion.span>
-                          ) : (
-                            <motion.span
-                              key="unsaved"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.15 }}
-                            >
-                              Save Changes
-                            </motion.span>
+                {isAdmin ? (
+                  <>
+                    <div className="flex items-center justify-between mt-4 mb-3">
+                      <p className="text-[11px] t3">
+                        Edit your agent&apos;s script below. Changes go live as soon as you save.
+                      </p>
+                      <div className="flex items-center gap-3 shrink-0 ml-3">
+                        <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
+                          {charCount.toLocaleString()} chars
+                        </span>
+                        {dirty && (
+                          <input
+                            type="text"
+                            placeholder="What changed? (optional)"
+                            value={changeDesc}
+                            onChange={e => setChangeDesc(e.target.value)}
+                            className="px-3 py-1.5 rounded-xl text-xs bg-hover border b-theme t2 placeholder:t3 focus:outline-none focus:border-zinc-500 w-48"
+                          />
+                        )}
+                        <button
+                          onClick={save}
+                          disabled={!dirty || saving}
+                          className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                            saved
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : dirty
+                              ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                              : 'bg-hover t3 cursor-not-allowed border b-theme'
+                          }`}
+                        >
+                          {saving ? 'Saving…' : (
+                            <AnimatePresence mode="wait">
+                              {saved ? (
+                                <motion.span
+                                  key="saved"
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                >
+                                  Saved ✓
+                                </motion.span>
+                              ) : (
+                                <motion.span
+                                  key="unsaved"
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ duration: 0.15 }}
+                                >
+                                  Save Changes
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
                           )}
-                        </AnimatePresence>
-                      )}
-                    </button>
-                    {isAdmin && (
-                      <ShimmerButton
-                        onClick={async () => {
-                          setRegenState('loading')
-                          try {
-                            const res = await fetch('/api/dashboard/regenerate-prompt', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ clientId: selectedId }),
-                            })
-                            if (!res.ok) throw new Error(await res.text())
-                            const json = await res.json()
-                            if (json.synced === false) {
-                              setRegenState('partial')
-                              setTimeout(() => setRegenState('idle'), 4000)
-                            } else {
-                              setRegenState('done')
+                        </button>
+                        <ShimmerButton
+                          onClick={async () => {
+                            setRegenState('loading')
+                            try {
+                              const res = await fetch('/api/dashboard/regenerate-prompt', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: selectedId }),
+                              })
+                              if (!res.ok) throw new Error(await res.text())
+                              const json = await res.json()
+                              if (json.synced === false) {
+                                setRegenState('partial')
+                                setTimeout(() => setRegenState('idle'), 4000)
+                              } else {
+                                setRegenState('done')
+                                setTimeout(() => setRegenState('idle'), 3000)
+                              }
+                            } catch (e) {
+                              console.error('[regen]', e)
+                              setRegenState('error')
                               setTimeout(() => setRegenState('idle'), 3000)
                             }
-                          } catch (e) {
-                            console.error('[regen]', e)
-                            setRegenState('error')
-                            setTimeout(() => setRegenState('idle'), 3000)
-                          }
-                        }}
-                        disabled={regenState === 'loading'}
-                        className="text-sm"
-                        shimmerColor="rgba(99,102,241,0.5)"
-                      >
-                        {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
-                      </ShimmerButton>
+                          }}
+                          disabled={regenState === 'loading'}
+                          className="text-sm"
+                          shimmerColor="rgba(99,102,241,0.5)"
+                        >
+                          {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
+                        </ShimmerButton>
+                      </div>
+                    </div>
+
+                    {dirty && (
+                      <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+                          <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[11px] text-amber-400/90">Unsaved changes — deploy to update the live agent</span>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {dirty && (
-                  <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
-                      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="text-[11px] text-amber-400/90">Unsaved changes — deploy to update the live agent</span>
-                  </div>
+                    {saveUltravoxWarning && (
+                      <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0">
+                          <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
+                      </div>
+                    )}
+
+                    {saveError && (
+                      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                          <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        <span className="text-[11px] text-red-400/90">{saveError}</span>
+                      </div>
+                    )}
+
+                    <textarea
+                      value={currentPrompt}
+                      onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
+                      className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+                      spellCheck={false}
+                      placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-4 mb-3 px-3 py-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+                          <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[11px] font-semibold text-amber-400">Advanced — edit with caution</span>
+                      </div>
+                      <p className="text-[10px] text-amber-400/70 leading-relaxed">
+                        This is your agent&apos;s core script. The settings above (hours, identity, knowledge, quick inject) update it safely without touching this directly. Manual edits here can break your agent&apos;s behavior.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
+                        {charCount.toLocaleString()} chars
+                      </span>
+                      <button
+                        onClick={save}
+                        disabled={!dirty || saving}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                          saved
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : dirty
+                            ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                            : 'bg-hover t3 cursor-not-allowed border b-theme'
+                        }`}
+                      >
+                        {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+                      </button>
+                    </div>
+                    <textarea
+                      value={currentPrompt}
+                      onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
+                      className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+                      spellCheck={false}
+                      placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
+                    />
+                  </>
                 )}
-
-                {saveUltravoxWarning && (
-                  <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0">
-                      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="text-[11px] text-orange-400/90">{saveUltravoxWarning}</span>
-                  </div>
-                )}
-
-                {saveError && (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    <span className="text-[11px] text-red-400/90">{saveError}</span>
-                  </div>
-                )}
-
-                <textarea
-                  value={currentPrompt}
-                  onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
-                  className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
-                  spellCheck={false}
-                  placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
-                />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+      </motion.div>
+
+      {/* 5a — Test Call (moved here from bottom for edit-then-test flow) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.02 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Call</p>
+        <p className="text-[11px] t3 mb-4">
+          Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="tel"
+            value={testPhone}
+            onChange={e => setTestPhone(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && fireTestCall()}
+            placeholder="+14031234567"
+            disabled={testCallState === 'calling'}
+            className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+          />
+          <ShimmerButton
+            onClick={fireTestCall}
+            disabled={!testPhone.trim() || testCallState === 'calling'}
+            borderRadius="12px"
+            shimmerColor="rgba(99,102,241,0.5)"
+            background="rgba(59,130,246,1)"
+            className="px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 shrink-0"
+          >
+            {testCallState === 'calling' ? 'Dialing…' : 'Call Me'}
+          </ShimmerButton>
+        </div>
+
+        {testCallState === 'done' && testCallResult && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-[11px] text-green-400/90">
+              Call started — SID: <span className="font-mono">{testCallResult.twilio_sid?.slice(-8)}</span>
+            </span>
+            <button
+              onClick={() => setTestCallState('idle')}
+              className="ml-auto text-[10px] t3 hover:t2"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {testCallState === 'error' && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
+            <span className="text-[11px] text-red-400/90 flex-1">{testCallError}</span>
+            <button
+              onClick={() => setTestCallState('idle')}
+              className="text-[10px] t3 hover:t2"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
       </motion.div>
 
@@ -1737,8 +1820,8 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
-      {/* 6 — AI Improve Prompt (Beta) */}
-      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] p-5">
+      {/* 6 — AI Improve Prompt (Beta) — admin only */}
+      {isAdmin && (<div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] p-5">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-purple-400/80">AI Improve</p>
@@ -1817,7 +1900,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             </p>
           </div>
         )}
-      </div>
+      </div>)}
 
       {/* 7 — Prompt Version History */}
       <motion.div
@@ -1883,7 +1966,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                       >
                         View →
                       </button>
-                      {!v.is_active && (
+                      {!v.is_active && isAdmin && (
                         <button
                           onClick={() => restoreVersion(v.id)}
                           disabled={restoring === v.id}
@@ -2077,56 +2160,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       {/* ─── General Tab (continued) ──────────────────────────────── */}
       {activeTab === 'general' && (<>
 
-      {/* 8a — Right Now (injected_note) */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
-      >
-      <div className={`rounded-2xl border p-5 ${injectedNote[client.id] ? 'border-amber-500/40 bg-amber-500/[0.04]' : 'b-theme bg-surface'}`}>
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Right Now</p>
-              {injectedNote[client.id] && (
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">ACTIVE</span>
-              )}
-            </div>
-            <p className="text-[11px] t3 mt-0.5">Inject a time-sensitive note into your agent&apos;s active prompt — no redeploy needed</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {injectedNote[client.id] && (
-              <button
-                onClick={() => saveInjectedNote(true)}
-                disabled={injectedNoteSaving}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold t3 hover:text-red-400 border b-theme hover:border-red-500/30 transition-all disabled:opacity-40"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              onClick={() => saveInjectedNote(false)}
-              disabled={injectedNoteSaving}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                injectedNoteSaved
-                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20'
-              } disabled:opacity-40`}
-            >
-              {injectedNoteSaving ? 'Saving…' : injectedNoteSaved ? '✓ Live' : 'Push Live'}
-            </button>
-          </div>
-        </div>
-        <textarea
-          value={injectedNote[client.id] ?? ''}
-          onChange={e => setInjectedNote(prev => ({ ...prev, [client.id]: e.target.value }))}
-          rows={3}
-          className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-amber-500/40 transition-colors placeholder:t3"
-          placeholder="e.g. We're closed this Saturday. The owner is traveling and unavailable until Monday. All urgent requests go to Ryan at 306-555-0101."
-        />
-        <p className="text-[10px] t3 mt-1.5">This note is appended to your active prompt immediately. Clear it when it&apos;s no longer relevant.</p>
-      </div>
-      </motion.div>
+      {/* 8a — Right Now (injected_note) — REMOVED: duplicate of Quick Inject in AgentOverviewCard */}
 
       {/* 8a2 — Hours & After-Hours (A3) */}
       <motion.div
@@ -2380,28 +2414,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           </div>
         </div>
 
-        {/* Context Data */}
-        <div className="space-y-1.5 mt-5">
-          <label className="text-[11px] t3 block">Context data label</label>
-          <input
-            type="text"
-            value={contextDataLabel[client.id] ?? ''}
-            onChange={e => setContextDataLabel(prev => ({ ...prev, [client.id]: e.target.value }))}
-            placeholder="e.g. Menu, Price List, Service Catalog"
-            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/40 transition-colors"
-          />
-          <label className="text-[11px] t3 block mt-3">Context data</label>
-          <p className="text-[10px] t3">
-            Structured text your agent can reference during calls — service menus, price lists, inventory notes. Appended to every call automatically. Save and make a test call to verify.
-          </p>
-          <textarea
-            value={contextData[client.id] ?? ''}
-            onChange={e => setContextData(prev => ({ ...prev, [client.id]: e.target.value }))}
-            rows={5}
-            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
-            placeholder="e.g. Windshield replacement: $250-$400&#10;Chip repair: $60-$80&#10;ADAS calibration: $150"
-          />
-        </div>
+        {/* Context Data — REMOVED: duplicate of Context Data in AgentOverviewCard. State kept for saveAdvanced() compat. */}
 
         {/* Prompt Preview */}
         <div className="mt-5 pt-4 border-t b-theme">
@@ -2440,70 +2453,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             )}
           </AnimatePresence>
         </div>
-      </div>
-      </motion.div>
-
-      {/* 9 — Test Call */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Call</p>
-        <p className="text-[11px] t3 mb-4">
-          Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.
-        </p>
-        <div className="flex items-center gap-2">
-          <input
-            type="tel"
-            value={testPhone}
-            onChange={e => setTestPhone(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && fireTestCall()}
-            placeholder="+14031234567"
-            disabled={testCallState === 'calling'}
-            className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
-          />
-          <ShimmerButton
-            onClick={fireTestCall}
-            disabled={!testPhone.trim() || testCallState === 'calling'}
-            borderRadius="12px"
-            shimmerColor="rgba(99,102,241,0.5)"
-            background="rgba(59,130,246,1)"
-            className="px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 shrink-0"
-          >
-            {testCallState === 'calling' ? 'Dialing…' : 'Call Me'}
-          </ShimmerButton>
-        </div>
-
-        {testCallState === 'done' && testCallResult && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-[11px] text-green-400/90">
-              Call started — SID: <span className="font-mono">{testCallResult.twilio_sid?.slice(-8)}</span>
-            </span>
-            <button
-              onClick={() => setTestCallState('idle')}
-              className="ml-auto text-[10px] t3 hover:t2"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {testCallState === 'error' && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
-            <span className="text-[11px] text-red-400/90 flex-1">{testCallError}</span>
-            <button
-              onClick={() => setTestCallState('idle')}
-              className="text-[10px] t3 hover:t2"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
       </div>
       </motion.div>
 

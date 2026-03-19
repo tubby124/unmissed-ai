@@ -93,6 +93,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'This setup has already been activated' }, { status: 409 })
   }
 
+  // ── Phase 6: Release stale reservations before attempting new one ──────────
+  // Expired reservations (>30 min) are auto-reclaimed by the atomic OR clause below,
+  // but this explicit cleanup prevents inventory from looking full in the UI.
+  {
+    const staleExpiry = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    await svc
+      .from('number_inventory')
+      .update({ status: 'available', reserved_intake_id: null, reserved_at: null })
+      .eq('status', 'reserved')
+      .lt('reserved_at', staleExpiry)
+  }
+
   // ── Reserve inventory number if selected ───────────────────────────────────
   if (selectedNumber) {
     const expiryTime = new Date(Date.now() - 30 * 60 * 1000).toISOString()

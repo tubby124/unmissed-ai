@@ -55,7 +55,7 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'WARM', label: 'WARM' },
   { value: 'COLD', label: 'COLD' },
   { value: 'JUNK', label: 'JUNK' },
-  { value: 'UNKNOWN', label: 'UNKNOWN' },
+  { value: 'UNKNOWN', label: 'Unclassified' },
   { value: 'MISSED', label: 'MISSED' },
 ]
 

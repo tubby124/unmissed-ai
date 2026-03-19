@@ -97,12 +97,12 @@ export default async function CallsPage() {
   if (stuckIds.length > 0) {
     const svc = createServiceClient()
     await svc.from('call_logs')
-      .update({ call_status: 'UNKNOWN', ai_summary: 'Classification timed out — review manually.' })
+      .update({ call_status: 'UNKNOWN', ai_summary: 'Unclassified \u2014 the AI answered but couldn\'t categorize this call. Listen to the recording to review.' })
       .in('ultravox_call_id', stuckIds)
     for (const c of allCalls) {
       if (stuckIds.includes(c.ultravox_call_id)) {
         c.call_status = 'UNKNOWN'
-        c.ai_summary = 'Classification timed out — review manually.'
+        c.ai_summary = 'Unclassified \u2014 the AI answered but couldn\'t categorize this call. Listen to the recording to review.'
       }
     }
   }

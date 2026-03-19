@@ -13,6 +13,7 @@ const STATUS_CONFIG: Record<string, { className: string; label: string }> = {
   COLD:       { className: 'bg-blue-500 text-white',                                                                            label: 'COLD' },
   JUNK:       { className: 'bg-gray-100 text-gray-500 dark:bg-zinc-700 dark:text-zinc-300',                                    label: 'JUNK' },
   MISSED:     { className: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',                         label: 'MISSED' },
+  UNKNOWN:    { className: 'bg-gray-100 text-gray-500 dark:bg-zinc-700 dark:text-zinc-300',                                    label: 'Unclassified' },
   live:       { className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',                     label: 'LIVE' },
   processing: { className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',                             label: 'Processing' },
 }
