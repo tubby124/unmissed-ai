@@ -27,7 +27,7 @@ function StatusContent() {
   // Sanitize: if the stored URL has localhost (from a dev-environment test), fall back to /dashboard
   const trialSetupUrl = rawSetupUrl && !rawSetupUrl.includes("localhost") ? rawSetupUrl : "/dashboard";
   const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
-  const tierParam = searchParams.get("tier") ?? "starter";
+  // tier param deprecated — single plan now. Kept for backward compat with old URLs.
 
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -97,7 +97,7 @@ function StatusContent() {
       const res = await fetch("/api/stripe/create-public-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intakeId, selectedNumber: selectedNumber ?? undefined, tier: tierParam }),
+        body: JSON.stringify({ intakeId, selectedNumber: selectedNumber ?? undefined }),
       });
       const json = await res.json();
       if (res.status === 409 && json.error?.includes("Number just taken")) {

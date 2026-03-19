@@ -23,23 +23,14 @@ import { activateClient } from '@/lib/activate-client'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
-type BillingTier = 'starter' | 'growth' | 'pro'
-
-const TIER_MINUTE_LIMITS: Record<BillingTier, number> = {
-  starter: 100,
-  growth:  250,
-  pro:     500,
-}
-
-function getTierMinuteLimit(tier: string | undefined | null): number {
-  if (tier && tier in TIER_MINUTE_LIMITS) return TIER_MINUTE_LIMITS[tier as BillingTier]
-  return TIER_MINUTE_LIMITS.starter // default to starter
-}
+/** All plans include 100 min/mo. Future tiers (Growth/Pro) not yet purchasable. */
+const BASE_MINUTE_LIMIT = 100
 
 function getTierLabel(tier: string | undefined | null): string {
-  const labels: Record<BillingTier, string> = { starter: 'Starter ($49)', growth: 'Growth ($99)', pro: 'Pro ($199)' }
-  if (tier && tier in labels) return labels[tier as BillingTier]
-  return labels.starter
+  // Currently single plan — discount code controls price, not tier
+  if (tier === 'growth') return 'Growth ($75)'
+  if (tier === 'pro') return 'Pro ($140)'
+  return 'Starter ($30)'
 }
 
 const adminSupa = createClient(
@@ -79,7 +70,7 @@ export async function POST(req: NextRequest) {
       if (cl) {
         const sub = await stripe.subscriptions.retrieve(subId)
         const tier = sub.metadata?.tier ?? null
-        const minuteLimit = getTierMinuteLimit(tier)
+        const minuteLimit = BASE_MINUTE_LIMIT
         const tierLabel = getTierLabel(tier)
 
         await adminSupa.from('clients').update({
@@ -239,7 +230,7 @@ export async function POST(req: NextRequest) {
         void sendAlert(
           adminCl.telegram_bot_token as string,
           adminCl.telegram_chat_id as string,
-          `\u{1F4B0} <b>${currentClient?.business_name ?? reloadSlug}</b> reloaded ${reloadMinutes} min ($${reloadMinutes / 10} CAD)\nNew bonus total: ${currentBonus + reloadMinutes} min`
+          `\u{1F4B0} <b>${currentClient?.business_name ?? reloadSlug}</b> reloaded ${reloadMinutes} min ($${session.amount_total ? (session.amount_total / 100).toFixed(0) : '10'} CAD)\nNew bonus total: ${currentBonus + reloadMinutes} min`
         )
       }
     }
@@ -331,7 +322,7 @@ export async function POST(req: NextRequest) {
   // ── Set tier-based minute limit (overrides niche default from activateClient) ─
   const sessionTier = session.metadata?.tier ?? null
   if (sessionTier) {
-    const tierMinutes = getTierMinuteLimit(sessionTier)
+    const tierMinutes = BASE_MINUTE_LIMIT
     await adminSupa.from('clients').update({
       monthly_minute_limit: tierMinutes,
     }).eq('id', client_id)

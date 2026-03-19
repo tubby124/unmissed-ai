@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { OnboardingData, nicheLabels, Niche, defaultAgentNames } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
-
-type BillingTier = "starter" | "growth" | "pro";
+import { BETA_PROMO, BASE_PLAN, SETUP, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
 
 interface Props {
   data: OnboardingData;
   stepSequence: number[];
   onEdit: (step: number) => void;
-  onActivate: (mode: "trial" | "paid", tier?: BillingTier) => void;
+  onActivate: (mode: "trial" | "paid") => void;
   isSubmitting: boolean;
   error: string | null;
 }
@@ -341,14 +340,9 @@ function PromptPreview({ data }: { data: OnboardingData }) {
 
 // ── Main Step 6 — Review & Activate ──────────────────────────────────────────
 
-const TIERS: { id: BillingTier; name: string; price: number; minutes: number; popular?: boolean }[] = [
-  { id: "starter", name: "Starter", price: 49, minutes: 100 },
-  { id: "growth",  name: "Growth",  price: 99, minutes: 250, popular: true },
-  { id: "pro",     name: "Pro",     price: 199, minutes: 500 },
-];
+const effectivePrice = getEffectiveMonthly();
 
 export default function Step6Review({ data, stepSequence, onEdit, onActivate, isSubmitting, error }: Props) {
-  const [selectedTier, setSelectedTier] = useState<BillingTier>("starter");
 
   // ── Completeness score ──────────────────────────────────────────────────────
   const defaultAgentName = data.niche ? (defaultAgentNames[data.niche as Niche] ?? "") : "";
@@ -485,32 +479,23 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
       {/* Admin-only prompt preview */}
       <PromptPreview data={data} />
 
-      {/* Pricing tiers */}
-      <div>
-        <p className="text-sm font-semibold text-foreground mb-3">Choose your plan</p>
-        <div className="grid grid-cols-3 gap-2">
-          {TIERS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setSelectedTier(t.id)}
-              className={`relative rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
-                selectedTier === t.id
-                  ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"
-                  : "border-border hover:border-indigo-300 bg-card"
-              }`}
-            >
-              {t.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full whitespace-nowrap">
-                  Popular
-                </span>
-              )}
-              <p className="font-bold text-foreground text-sm">{t.name}</p>
-              <p className="text-indigo-600 dark:text-indigo-400 text-lg font-bold">${t.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
-              <p className="text-xs text-muted-foreground mt-1">{t.minutes} min/mo</p>
-            </button>
-          ))}
+      {/* Pricing */}
+      <div className="rounded-xl border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 p-4">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">${effectivePrice}</span>
+          <span className="text-sm text-muted-foreground">/mo</span>
+          {BETA_PROMO.enabled && (
+            <span className="ml-auto text-xs font-semibold bg-indigo-600 text-white px-2 py-0.5 rounded-full">
+              {BETA_PROMO.badge}
+            </span>
+          )}
         </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {BASE_PLAN.minutes} min/mo included{BETA_PROMO.enabled && ` · Regular $${BASE_PLAN.monthly}/mo after beta`}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          + ${SETUP.price} one-time setup ({SETUP.includes})
+        </p>
       </div>
 
       {/* What you're getting — preview before payment */}
@@ -574,9 +559,9 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
         >
           <div className="space-y-1">
             <p className="text-white font-bold text-base leading-tight">
-              {isSubmitting ? "Activating..." : "Start free trial"}
+              {isSubmitting ? "Activating..." : `Start ${TRIAL.days}-day free trial`}
             </p>
-            <p className="text-indigo-100 text-xs font-medium">7 days · No credit card</p>
+            <p className="text-indigo-100 text-xs font-medium">{TRIAL.days} days · No credit card</p>
             <p className="text-indigo-200 text-xs mt-2">Demo call included · Forwarding guide sent</p>
           </div>
         </button>
@@ -584,14 +569,14 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
         {/* Paid card */}
         <button
           type="button"
-          onClick={() => onActivate("paid", selectedTier)}
+          onClick={() => onActivate("paid")}
           disabled={isSubmitting}
           className="rounded-xl border-2 border-border hover:border-indigo-400 bg-card hover:bg-muted/30 p-4 text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="space-y-1">
             <p className="text-foreground font-bold text-base leading-tight">Activate now</p>
             <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
-              ${TIERS.find(t => t.id === selectedTier)?.price ?? 49} / month · {TIERS.find(t => t.id === selectedTier)?.minutes ?? 100} min
+              ${effectivePrice}/mo · {BASE_PLAN.minutes} min
             </p>
             <p className="text-muted-foreground text-xs mt-2">Real number · Full SMS · Live today</p>
           </div>

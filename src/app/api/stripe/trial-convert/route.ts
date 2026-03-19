@@ -1,9 +1,9 @@
 /**
- * GET /api/stripe/trial-convert?clientId=X&tier=starter|growth|pro
+ * GET /api/stripe/trial-convert?clientId=X
  *
  * Creates a Stripe Checkout session for trial-to-paid conversion.
  * Redirects the user to Stripe Checkout.
- * Supports 3 tiers: starter ($49/mo), growth ($99/mo), pro ($199/mo).
+ * Single plan: $30/mo CAD. Promo codes (BETA20) available at checkout.
  *
  * Public — linked from trial expiry emails. No auth required.
  * The clientId maps to a client with trial_expires_at set.
@@ -15,18 +15,9 @@ import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
-type BillingTier = 'starter' | 'growth' | 'pro'
-
-const TIER_PRICE_ENV: Record<BillingTier, string> = {
-  starter: 'STRIPE_STARTER_PRICE_ID',
-  growth:  'STRIPE_GROWTH_PRICE_ID',
-  pro:     'STRIPE_PRO_PRICE_ID',
-}
-
-function getTierPriceId(tier: BillingTier): string {
-  const envKey = TIER_PRICE_ENV[tier]
-  const priceId = process.env[envKey]
-  if (!priceId) throw new Error(`Missing env var ${envKey} for tier ${tier}`)
+function getSubscriptionPriceId(): string {
+  const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
+  if (!priceId) throw new Error('Missing env var STRIPE_SUBSCRIPTION_PRICE_ID')
   return priceId
 }
 
@@ -39,8 +30,6 @@ const adminSupa = createClient(
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const clientId = searchParams.get('clientId')
-  const tierParam = searchParams.get('tier') ?? 'starter'
-  const tier: BillingTier = (['starter', 'growth', 'pro'].includes(tierParam) ? tierParam : 'starter') as BillingTier
 
   if (!clientId) {
     return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
@@ -75,29 +64,28 @@ export async function GET(req: NextRequest) {
     const intakeId = intake?.id ?? null
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
-    let tierPriceId: string
+    let subscriptionPriceId: string
     try {
-      tierPriceId = getTierPriceId(tier)
+      subscriptionPriceId = getSubscriptionPriceId()
     } catch (err) {
-      console.error('[trial-convert] Tier price lookup failed:', err)
-      return NextResponse.json({ error: 'Billing tier not configured', detail: String(err) }, { status: 500 })
+      console.error('[trial-convert] Subscription price lookup failed:', err)
+      return NextResponse.json({ error: 'Subscription price not configured', detail: String(err) }, { status: 500 })
     }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: tierPriceId, quantity: 1 }],
+      allow_promotion_codes: true,
+      line_items: [{ price: subscriptionPriceId, quantity: 1 }],
       subscription_data: {
         metadata: {
           client_id: clientId,
           client_slug: client.slug as string,
-          tier,
         },
       },
       metadata: {
         client_id: clientId,
         client_slug: client.slug,
         is_trial_convert: 'true',
-        tier,
         ...(intakeId ? { intake_id: intakeId } : {}),
       },
       customer_email: (client.contact_email as string) ?? undefined,

@@ -153,6 +153,37 @@ export const NICHES = {
   comingSoon: ["HVAC", "Plumbing", "Roofing", "Dental", "Legal"],
 };
 
+// ─── Minute Reload Pack ─────────────────────────────────────────────
+export const MINUTE_RELOAD = {
+  price: 10,
+  minutes: 50,
+  label: "$10 for 50 extra minutes",
+  perMinuteRate: 0.20,
+};
+
+// ─── Stripe IDs (TEST MODE — update when switching to live) ─────────
+// Keep this section updated whenever you create/change Stripe objects.
+// Dashboard: https://dashboard.stripe.com/test/products
+export const STRIPE_IDS = {
+  // Products
+  monthlyPlanProduct: "prod_UAAUnCF7kFKAPX",   // "unmissed.ai Monthly Plan"
+  setupFeeProduct: "prod_UAAUY96hFYc1ZX",       // "Voice Agent Setup Fee"
+
+  // Prices
+  subscription30: "price_1TCqDg15xbnnajlTxcmoDfRB",  // $30/mo CAD recurring
+  setupFresh25: "price_1TBq9G15xbnnajlTSbay8T8f",    // $25 one-time (fresh number)
+  setupInventory20: "price_1TBq9H15xbnnajlTTELdagZi", // $20 one-time (inventory number)
+
+  // Coupons & Promo Codes
+  betaCoupon: "l5jvNI95",                        // $10 off/mo forever → $20/mo
+  betaPromoCode: "BETA20",                       // Customer-facing code
+
+  // Env var mapping (what Railway needs):
+  // STRIPE_SUBSCRIPTION_PRICE_ID = subscription30
+  // STRIPE_SETUP_PRICE_ID = setupFresh25
+  // STRIPE_SETUP_INVENTORY_PRICE_ID = setupInventory20
+};
+
 // ─── Helper: effective monthly price ────────────────────────────────
 export function getEffectiveMonthly(): number {
   return BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly;

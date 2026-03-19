@@ -2,11 +2,12 @@
  * POST /api/stripe/create-public-checkout
  *
  * Public (no auth required). Creates a Stripe Checkout session for the setup fee + subscription.
- * Supports 3 tiers: starter ($49/mo, 100 min), growth ($99/mo, 250 min), pro ($199/mo, 500 min).
+ * Single plan: $30/mo CAD (100 min). Discount code BETA20 = $20/mo.
  * Fresh number: $25 CAD setup. Inventory number: $20 CAD setup.
+ * 7-day free trial included.
  * Auto-provisions the clients row + Ultravox agent if not already done by admin.
  *
- * Body: { intakeId: string; selectedNumber?: string; tier?: 'starter' | 'growth' | 'pro' }
+ * Body: { intakeId: string; selectedNumber?: string }
  * Returns: { url: string }
  */
 
@@ -20,18 +21,10 @@ import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
-type BillingTier = 'starter' | 'growth' | 'pro'
-
-const TIER_PRICE_ENV: Record<BillingTier, string> = {
-  starter: 'STRIPE_STARTER_PRICE_ID',
-  growth:  'STRIPE_GROWTH_PRICE_ID',
-  pro:     'STRIPE_PRO_PRICE_ID',
-}
-
-function getTierPriceId(tier: BillingTier): string {
-  const envKey = TIER_PRICE_ENV[tier]
-  const priceId = process.env[envKey]
-  if (!priceId) throw new Error(`Missing env var ${envKey} for tier ${tier}`)
+/** Single subscription price — $30/mo CAD. Discount codes (BETA20) reduce this at checkout. */
+function getSubscriptionPriceId(): string {
+  const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
+  if (!priceId) throw new Error('Missing env var STRIPE_SUBSCRIPTION_PRICE_ID')
   return priceId
 }
 
@@ -70,9 +63,8 @@ export async function POST(req: NextRequest) {
   }
   recordUsage(ip)
 
-  const body = await req.json().catch(() => ({})) as { intakeId?: string; selectedNumber?: string; tier?: string }
+  const body = await req.json().catch(() => ({})) as { intakeId?: string; selectedNumber?: string }
   const { intakeId, selectedNumber } = body
-  const tier: BillingTier = (['starter', 'growth', 'pro'].includes(body.tier ?? '') ? body.tier : 'starter') as BillingTier
 
   if (!intakeId) {
     return NextResponse.json({ error: 'intakeId required' }, { status: 400 })
@@ -298,12 +290,12 @@ export async function POST(req: NextRequest) {
   // ── Create Stripe Checkout session ─────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
-  let tierPriceId: string
+  let subscriptionPriceId: string
   try {
-    tierPriceId = getTierPriceId(tier)
+    subscriptionPriceId = getSubscriptionPriceId()
   } catch (err) {
-    console.error('[create-public-checkout] Tier price lookup failed:', err)
-    return NextResponse.json({ error: 'Billing tier not configured', detail: String(err) }, { status: 500 })
+    console.error('[create-public-checkout] Subscription price lookup failed:', err)
+    return NextResponse.json({ error: 'Subscription price not configured', detail: String(err) }, { status: 500 })
   }
 
   let session: { url: string | null }
@@ -312,6 +304,7 @@ export async function POST(req: NextRequest) {
     session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: stripeCustomerId,
+      allow_promotion_codes: true,
       line_items: [
         {
           price: isInventory
@@ -320,17 +313,16 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
         {
-          price: tierPriceId,
+          price: subscriptionPriceId,
           quantity: 1,
         },
       ],
       subscription_data: {
-        trial_period_days: 30,
+        trial_period_days: 7,
         metadata: {
           client_id: clientId,
           client_slug: clientSlug,
           intake_id: intakeId,
-          tier,
         },
       },
       metadata: {
@@ -338,7 +330,6 @@ export async function POST(req: NextRequest) {
         client_id: clientId,
         client_slug: clientSlug,
         reserved_number: selectedNumber ?? '',
-        tier,
       },
       success_url: `${appUrl}/onboard/status?success=true&id=${intakeId}`,
       cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
