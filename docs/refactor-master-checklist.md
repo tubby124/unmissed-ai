@@ -154,6 +154,54 @@ windshield-hub and urban-vibe are LOCKED. After all 8 phases complete and hasan-
 
 ---
 
+## Frontend Refactor (L1 + F0–F4)
+
+_Runbook: `docs/unmissed-frontend-refactor-runbook.md`_
+_Audit: `audit/frontend-audit-2026-03-19.md`_
+_Baseline docs: `docs/frontend-refactor/baseline-component-audit.md` + `decomposition-targets.md`_
+
+### Phase Progress
+
+* [x] Phase F0 — Baseline audit (docs only) — 2026-03-18
+* [x] Phase L1 — Behavioral gating (7 changes) — 2026-03-18
+* [ ] Phase F1 — SettingsView decomposition — IN PROGRESS (AgentTab remaining)
+* [ ] Phase F2 — SetupView + onboard/status — deferred
+* [ ] Phase F3 — AgentOverviewCard + LabView — deferred
+* [ ] Phase F4 — Shared primitives + cleanup — deferred
+
+### L1 Changes (all done — committed in agent-app 5f0c70f)
+
+| # | Change | File(s) |
+|---|--------|---------|
+| L1.1 | System prompt: amber "Advanced — edit with caution" warning for non-admins | SettingsView.tsx |
+| L1.2 | Prompt History: Restore button hidden behind isAdmin | SettingsView.tsx |
+| L1.3 | AI Improve (Beta) hidden from non-admins | SettingsView.tsx |
+| L1.4 | Removed duplicate "Right Now" injected_note surface | SettingsView.tsx |
+| L1.5 | Removed duplicate Context Data UI from Advanced Context | SettingsView.tsx |
+| L1.6 | UNKNOWN → "Unclassified" in client-facing labels | StatusBadge, CallsList, calls/page |
+| L1.7 | Test Call moved after Agent Script (edit-then-test flow) | SettingsView.tsx |
+
+### F1 Decomposition (in progress)
+
+| File | Lines | Status |
+|------|-------|--------|
+| SettingsView.tsx (shell) | 393 | Done (was 2,993) |
+| constants.ts | 87 | Done |
+| shared.tsx | 54 | Done |
+| SmsTab.tsx | 201 | Done |
+| VoiceTab.tsx | 158 | Done |
+| AlertsTab.tsx | 240 | Done |
+| BillingTab.tsx | 182 | Done |
+| AgentTab.tsx | ~1,917 | In progress (parallel instance) |
+
+### Line Count
+
+| Before | After (so far) | Delta |
+|--------|----------------|-------|
+| SettingsView: 2,993 | Shell: 393 + 6 tabs: ~2,783 + constants: 87 + shared: 54 | ~+324 (extraction overhead, expected) |
+
+---
+
 ## Ship / No-Ship Gate (any phase)
 
 STOP and rollback if any of:
