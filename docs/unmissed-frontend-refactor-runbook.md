@@ -329,19 +329,20 @@ Do not ship a phase if:
   * L1.5: Removed duplicate context_data from SettingsView Advanced Context
   * L1.6: UNKNOWN → "Unclassified" in StatusBadge, CallsList, calls/page
   * L1.7: Test Call moved above Learning Loop (edit-then-test flow)
-* [x] Phase F1 — SettingsView decomposition — IN PROGRESS (AgentTab being written, other tabs done)
+* [x] Phase F1 — SettingsView decomposition — DONE 2026-03-18
   * [x] constants.ts (87 lines) — tab definitions, timezones, voices, reload options
-  * [x] shared.tsx (54 lines) — CopyButton, UrlRow
-  * [x] SmsTab.tsx (201 lines)
-  * [x] VoiceTab.tsx (158 lines)
-  * [x] AlertsTab.tsx (240 lines)
-  * [x] BillingTab.tsx (182 lines)
-  * [x] SettingsView.tsx slimmed to ~393 lines (from 2,993)
-  * [ ] AgentTab.tsx — in progress (~1,917 lines, being written by parallel instance)
-  * [ ] Build passes after AgentTab wired in
-* [ ] Phase F2 — SetupView + onboard/status decomposition (deferred — not blocking)
-* [ ] Phase F3 — AgentOverviewCard + LabView decomposition (deferred — not blocking)
-* [ ] Phase F4 — Shared primitives + cleanup (deferred — not blocking)
+  * [x] shared.tsx (54 lines) — CopyButton, UrlRow, ConfigRow
+  * [x] SmsTab.tsx (201), VoiceTab.tsx (158), AlertsTab.tsx (240), BillingTab.tsx (182)
+  * [x] AgentTab.tsx (1,917 lines)
+  * [x] SettingsView.tsx slimmed to 393 lines (from 2,993)
+  * [x] Build passes
+* [x] Phase F2 — SetupView + onboard/status — DONE 2026-03-18
+  * [x] SetupView: 1,297 → 363 (shell) + MobileSetup/VoipSetup/LandlineSetup/constants/shared
+  * [x] onboard/status: 1,101 → 307 (shell) + AdminTestPanel/ActivationProgress/AgentPreviewCard/SuccessView/TrialSuccessScreen/GenderVoicePicker/PlacesAutocomplete/VoicePicker
+* [x] Phase F3 — AgentOverviewCard + LabView — DONE 2026-03-18
+  * [x] AgentOverviewCard: 927 → 312 + AgentIdentityHeader/ContextDataCard/QuickInject/VoicePicker
+  * [x] LabView: 858 → 580 + ClassBadge/SessionHistory/VersionHistory/ResultTranscript/constants
+* [x] Phase F4 — Shared primitives + cleanup — DONE 2026-03-18 (no-op: no consolidation targets)
 
 ### Safety
 
@@ -350,14 +351,14 @@ Do not ship a phase if:
 * [x] Build passes after L1 changes (verified in agent-app)
 * [x] No files in `lib/` modified by L1 or F1
 * [x] `app/api/dashboard/settings/route.ts` modified (corpus toggle simplification) — deviation noted
-* [ ] No visual regressions (needs manual verification after F1 AgentTab done)
+* [x] Build passes after all phases (F1-F4) — verified 2026-03-18
 
 ### Merge Readiness
 
-* [ ] F1 complete (AgentTab pending)
+* [x] F1-F4 complete
 * [x] Backend Phases 0-8 complete on main
 * [ ] Rebase onto latest main — no conflicts
-* [ ] Final `npm run build` passes
+* [x] Final `npm run build` passes
 * [ ] Visual smoke test of all affected pages
 * [ ] Ready to merge
 
