@@ -59,6 +59,18 @@ export async function POST(
     try {
       const supabase = createServiceClient()
 
+      // Skip processing for transferred calls — transfer webhook already marked them.
+      // The real conversation data comes from the recovery call (if any), not this one.
+      const { data: existingRow } = await supabase
+        .from('call_logs')
+        .select('call_status')
+        .eq('ultravox_call_id', callId)
+        .single()
+      if (existingRow?.call_status === 'transferred') {
+        console.log(`[completed] Skipping transferred call callId=${callId} — no SMS/Telegram/classification needed`)
+        return
+      }
+
       // Atomic dedup: transition 'live' → 'processing'
       const { data: locked } = await supabase
         .from('call_logs')

@@ -78,6 +78,13 @@ export async function POST(
       clientNumber,
       actionUrl,
     })
+    // Mark original call as 'transferred' so completed webhook skips SMS/Telegram/classification
+    supabase.from('call_logs')
+      .update({ call_status: 'transferred', ai_summary: 'Call transferred to owner' })
+      .eq('ultravox_call_id', call_id)
+      .then(({ error }) => {
+        if (error) console.warn(`[transfer] Failed to mark call as transferred: ${error.message}`)
+      })
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     return NextResponse.json({ result: 'Transfer initiated' })
   } catch (err) {
