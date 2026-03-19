@@ -116,3 +116,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 20476 | **Hash:** 92a5b7835b8e967c
 **Supabase version_id:** 6dc6b244-828f-43b6-9f48-98f17daf6571
 **Ultravox revision:** 6bc1a02b-3b0e-4946-b61c-b6be826ad556
+
+## v33 — 2026-03-19 05:09 UTC
+**Change:** v32: voice style section restored — backchannels, fillers, casual speech patterns from old prompt merged into streamlined v31 architecture
+**Chars:** 8665 | **Hash:** 8f7c43be0acb8cfd
+**Supabase version_id:** 0b70e432-b296-47a6-97fb-6cd8b8d80545
+**Ultravox revision:** 89f137c4-ba69-4bad-9588-f0c3d4f77ab0
