@@ -61,8 +61,8 @@ export async function POST(
   try {
     const accessToken = await getAccessToken(client.google_refresh_token as string)
     const timezone = (client.timezone as string) || 'America/Chicago'
-    const durationMinutes = (client.booking_service_duration_minutes as number) || 60
-    const bufferMinutes = (client.booking_buffer_minutes as number) || 15
+    const durationMinutes = (client.booking_service_duration_minutes as number) || 30
+    const bufferMinutes = (client.booking_buffer_minutes as number) || 0
     const calendarId = (client.google_calendar_id as string) || 'primary'
 
     // G11: Re-verify the slot is still available before booking (race condition prevention)

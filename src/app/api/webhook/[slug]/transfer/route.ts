@@ -69,9 +69,14 @@ export async function POST(
         console.warn(`[transfer] SMS alert failed: ${err}`)
       )
     }
+    // Build action URL for transfer failure recovery — Twilio will POST here after dial ends
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+    const actionUrl = `${appUrl}/api/webhook/${slug}/transfer-status`
+
     await redirectCall(log.twilio_call_sid, client.forwarding_number, {
       callerPhone: callerPhone !== 'unknown' ? callerPhone : undefined,
       clientNumber,
+      actionUrl,
     })
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     return NextResponse.json({ result: 'Transfer initiated' })

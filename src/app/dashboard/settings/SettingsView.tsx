@@ -85,10 +85,10 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     Object.fromEntries(clients.map(c => [c.id, c.context_data_label ?? '']))
   )
   const [bookingDuration, setBookingDuration] = useState<Record<string, number>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.booking_service_duration_minutes ?? 60]))
+    Object.fromEntries(clients.map(c => [c.id, c.booking_service_duration_minutes ?? 30]))
   )
   const [bookingBuffer, setBookingBuffer] = useState<Record<string, number>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.booking_buffer_minutes ?? 15]))
+    Object.fromEntries(clients.map(c => [c.id, c.booking_buffer_minutes ?? 0]))
   )
   const [forwardingNumber, setForwardingNumber] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.forwarding_number ?? '']))
@@ -98,6 +98,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   )
   const [setupComplete, setSetupComplete] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.setup_complete ?? false]))
+  )
+  const [voiceStylePreset, setVoiceStylePreset] = useState<Record<string, string>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.voice_style_preset ?? 'casual_friendly']))
   )
   const [corpusEnabled, setCorpusEnabled] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.corpus_enabled ?? false]))
@@ -311,6 +314,8 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           setTransferConditions={setTransferConditions}
           setupComplete={setupComplete}
           setSetupComplete={setSetupComplete}
+          voiceStylePreset={voiceStylePreset}
+          setVoiceStylePreset={setVoiceStylePreset}
         />
       )}
 

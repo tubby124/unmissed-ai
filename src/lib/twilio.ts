@@ -3,14 +3,22 @@ import twilio from 'twilio'
 export async function redirectCall(
   callSid: string,
   toNumber: string,
-  opts?: { callerPhone?: string; clientNumber?: string }
+  opts?: { callerPhone?: string; clientNumber?: string; actionUrl?: string }
 ): Promise<void> {
   const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
   const announcement = '<Say voice="Polly.Amy">Please hold while I connect you to our team.</Say>'
-  const fallback = '<Say>Sorry, no one was available to take your call. Please try again later.</Say>'
-  const dialAttrs = opts?.clientNumber ? ` callerId="${opts.clientNumber}"` : ''
+  const dialAttrs = [
+    opts?.clientNumber ? ` callerId="${opts.clientNumber}"` : '',
+    opts?.actionUrl ? ` action="${opts.actionUrl}"` : '',
+    ' timeout="30"',
+  ].join('')
+  // When actionUrl is set, Twilio POSTs to it after dial ends (no inline fallback needed).
+  // Without actionUrl, fall through to an inline <Say> fallback (legacy behavior).
+  const fallback = opts?.actionUrl
+    ? ''
+    : '<Say>Sorry, no one was available to take your call. Please try again later.</Say>'
   await client.calls(callSid).update({
-    twiml: `<Response>${announcement}<Dial${dialAttrs} timeout="30"><Number>${toNumber}</Number></Dial>${fallback}</Response>`,
+    twiml: `<Response>${announcement}<Dial${dialAttrs}><Number>${toNumber}</Number></Dial>${fallback}</Response>`,
   })
 }
 

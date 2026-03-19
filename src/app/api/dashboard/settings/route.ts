@@ -90,6 +90,9 @@ export async function PATCH(req: NextRequest) {
       updates.calendar_beta_enabled = body.calendar_beta_enabled
     }
   }
+  if (typeof body.voice_style_preset === 'string' && body.voice_style_preset) {
+    updates.voice_style_preset = body.voice_style_preset
+  }
   if (typeof body.forwarding_number === 'string') {
     updates.forwarding_number = body.forwarding_number || null
   }

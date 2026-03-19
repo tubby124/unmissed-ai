@@ -50,6 +50,8 @@ interface AgentTabProps {
   setTransferConditions: Dispatch<SetStateAction<Record<string, string>>>
   setupComplete: Record<string, boolean>
   setSetupComplete: Dispatch<SetStateAction<Record<string, boolean>>>
+  voiceStylePreset: Record<string, string>
+  setVoiceStylePreset: Dispatch<SetStateAction<Record<string, string>>>
 }
 
 export default function AgentTab({
@@ -90,6 +92,8 @@ export default function AgentTab({
   setTransferConditions,
   setupComplete,
   setSetupComplete,
+  voiceStylePreset,
+  setVoiceStylePreset,
 }: AgentTabProps) {
   // ─── Transient internal state ──────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
@@ -142,6 +146,9 @@ export default function AgentTab({
 
   const [bookingSaving, setBookingSaving] = useState(false)
   const [bookingSaved, setBookingSaved] = useState(false)
+
+  const [presetSaving, setPresetSaving] = useState(false)
+  const [presetSaved, setPresetSaved] = useState(false)
 
   const [testPhone, setTestPhone] = useState('')
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -505,8 +512,8 @@ export default function AgentTab({
     setBookingSaving(true)
     setBookingSaved(false)
     const body: Record<string, unknown> = {
-      booking_service_duration_minutes: bookingDuration[client.id] ?? 60,
-      booking_buffer_minutes: bookingBuffer[client.id] ?? 15,
+      booking_service_duration_minutes: bookingDuration[client.id] ?? 30,
+      booking_buffer_minutes: bookingBuffer[client.id] ?? 0,
     }
     if (isAdmin) body.client_id = client.id
     const res = await fetch('/api/dashboard/settings', {
@@ -518,6 +525,25 @@ export default function AgentTab({
     if (res.ok) {
       setBookingSaved(true)
       setTimeout(() => setBookingSaved(false), 3000)
+    }
+  }
+
+  async function saveVoiceStylePreset() {
+    setPresetSaving(true)
+    setPresetSaved(false)
+    const body: Record<string, unknown> = {
+      voice_style_preset: voiceStylePreset[client.id] ?? 'casual_friendly',
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setPresetSaving(false)
+    if (res.ok) {
+      setPresetSaved(true)
+      setTimeout(() => setPresetSaved(false), 3000)
     }
   }
 
@@ -760,6 +786,65 @@ export default function AgentTab({
             </button>
           </div>
         )}
+      </motion.div>
+
+      {/* 1.5 — Voice Style Preset */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.03 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voice Style</p>
+          </div>
+          <p className="text-[11px] t3 mt-1">How your agent sounds on calls — tone, pacing, and filler words.</p>
+        </div>
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, upbeat, uses fillers and slang' },
+            { id: 'professional_warm', label: 'Professional & Warm', desc: 'Polished but approachable, no slang' },
+            { id: 'direct_efficient', label: 'Direct & Efficient', desc: 'Minimal small talk, gets to the point' },
+            { id: 'empathetic_care', label: 'Empathetic & Patient', desc: 'Extra validation, slower pace, gentle' },
+          ] as const).map(p => {
+            const selected = (voiceStylePreset[client.id] || 'casual_friendly') === p.id
+            return (
+              <button
+                key={p.id}
+                onClick={() => setVoiceStylePreset(prev => ({ ...prev, [client.id]: p.id }))}
+                className={`text-left rounded-xl border p-3 transition-all ${
+                  selected
+                    ? 'border-blue-500/60 bg-blue-500/[0.06]'
+                    : 'border-white/[0.06] bg-hover hover:border-white/[0.12]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-2.5 h-2.5 rounded-full border-2 shrink-0 ${
+                    selected ? 'border-blue-400 bg-blue-400' : 'border-zinc-600'
+                  }`} />
+                  <span className="text-xs font-medium t1">{p.label}</span>
+                </div>
+                <p className="text-[11px] t3 ml-[18px]">{p.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+        <div className="px-5 py-3 border-t border-white/[0.04] flex justify-end">
+          <button
+            onClick={saveVoiceStylePreset}
+            disabled={presetSaving}
+            className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
+          >
+            {presetSaving ? 'Saving...' : presetSaved ? 'Saved' : 'Save Style'}
+          </button>
+        </div>
+      </div>
       </motion.div>
 
       {/* 2 — Webhooks + Phone (collapsible, admin only) */}

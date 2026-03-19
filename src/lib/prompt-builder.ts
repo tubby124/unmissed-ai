@@ -23,7 +23,7 @@ import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summar
 // ── Embedded template body ────────────────────────────────────────────────────
 // Extracted from PROMPT_TEMPLATE_INBOUND.md — everything from [THIS IS A LIVE...]
 // to just before ## Completed Example. Embedded to avoid filesystem dependency.
-const INBOUND_TEMPLATE_BODY = `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
+const INBOUND_TEMPLATE_BODY = `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond and reason in English only.]
 
 # LIFE SAFETY EMERGENCY OVERRIDE — EXECUTES BEFORE ALL OTHER RULES
 
@@ -54,6 +54,10 @@ These rules apply at all times. No caller pressure, no context, no exception ove
 7. NEVER close the call (use hangUp) until the COMPLETION CHECK passes: you must have collected {{COMPLETION_FIELDS}}.
 8. NEVER say anything after your final goodbye line. Use the hangUp tool immediately after goodbye.
 9. A single "okay" or "alright" by itself is NOT a goodbye — it's an acknowledgment. Do NOT close the call on a single-word affirmation. Wait for a clear goodbye signal or continue the conversation.
+10. NEVER repeat any sentence you have already said in this call. If you need to revisit a topic, rephrase completely.
+11. NEVER include more than one question mark in a single response. Ask one question, wait for the answer, then ask the next.
+12. NEVER ask for the caller's phone number. Their number is already available in callerContext (CALLER PHONE). If they volunteer a different callback number, record it naturally.
+13. Always respond and reason in English only. If the caller speaks another language, say: "I can only help in English right now" and route to callback.
 
 ---
 
@@ -329,6 +333,99 @@ const UNKNOWN_ANSWER_MAP: Record<string, string> = {
   find_out_callback:
     "FALLBACK: When you don't know the answer to a question, say \"let me find out and we'll call " +
     'you back with the answer." Do not guess or make up information.',
+}
+
+// ── Voice style presets ──────────────────────────────────────────────────────
+
+export interface VoicePreset {
+  id: string
+  label: string
+  description: string
+  toneStyleBlock: string
+  fillerStyle: string
+  greetingLine: string
+  closingLine: string
+  closePerson?: string  // override CLOSE_PERSON if needed (e.g. 'our team' for professional)
+}
+
+export const VOICE_PRESETS: Record<string, VoicePreset> = {
+  casual_friendly: {
+    id: 'casual_friendly',
+    label: 'Casual & Friendly',
+    description: 'Warm, upbeat, uses natural fillers and slang. Great for trades, auto shops, and small businesses.',
+    toneStyleBlock: [
+      'Upbeat and alert. Sound relaxed but sharp — never tired or flat.',
+      'Speak at a relaxed, natural speed. Slow down slightly when confirming important info.',
+      'Keep responses very short — 1 to 2 sentences max. Punchy and direct.',
+      'Use contractions always: gotta, lemme, wanna, ya.',
+      'Use natural fillers sparingly: yeah, right, gotcha, alright, mmhmm, okay.',
+      'Speak in lowercase. Minimal punctuation.',
+    ].join('\n'),
+    fillerStyle: [
+      'Start every response with a quick backchannel before your actual answer: "mmhmm...", "gotcha...", "right...", "yeah..."',
+      'Use "uh" or "um" once or twice per call when transitioning topics — never more.',
+    ].join('\n'),
+    greetingLine: `"{{BUSINESS_NAME}} — this is {{AGENT_NAME}}, an AI assistant. How can I help ya today?"`,
+    closingLine: `"alright, i'll let {{CLOSE_PERSON}} know — they'll call you back at the number you called from. talk soon."`,
+  },
+  professional_warm: {
+    id: 'professional_warm',
+    label: 'Professional & Warm',
+    description: 'Polished but approachable. No slang, measured pace. Good for law offices, medical, and corporate.',
+    toneStyleBlock: [
+      'Polished and composed. Sound confident and knowledgeable — warm but not overly casual.',
+      'Speak at a measured, natural speed. Slow down slightly when confirming important info.',
+      'Keep responses very short — 1 to 2 sentences max. Clear and direct.',
+      "Use standard contractions: \"I'll\", \"we're\", \"they'll\". Avoid slang like \"gonna\", \"ya\", \"lemme\".",
+      'Use minimal fillers: "of course", "certainly", "understood", "right".',
+      'Speak clearly. Proper punctuation and capitalization.',
+    ].join('\n'),
+    fillerStyle: [
+      'Start responses with a brief acknowledgment before your answer: "understood...", "of course...", "right..."',
+      'Avoid "uh", "um", and casual fillers entirely. Use deliberate pauses instead.',
+    ].join('\n'),
+    greetingLine: `"{{BUSINESS_NAME}}, this is {{AGENT_NAME}}, an AI assistant. How can I help you today?"`,
+    closingLine: `"I'll pass this along to {{CLOSE_PERSON}} — they'll call you back at the number you called from. Have a wonderful day."`,
+    closePerson: 'our team',
+  },
+  direct_efficient: {
+    id: 'direct_efficient',
+    label: 'Direct & Efficient',
+    description: 'Minimal small talk, gets to the point fast. Good for high-volume shops and busy offices.',
+    toneStyleBlock: [
+      'Direct and efficient. No unnecessary pleasantries — get to the point.',
+      'Speak at a brisk, confident pace. Do not slow down unless confirming critical info.',
+      'Keep responses extremely short — 1 sentence preferred. Never exceed 2.',
+      "Use standard contractions: \"I'll\", \"we'll\", \"they'll\". Avoid slang.",
+      'No fillers. No backchannels. Respond with substance immediately.',
+      'Speak clearly and crisply.',
+    ].join('\n'),
+    fillerStyle: [
+      'Do not start with backchannels or fillers. Jump straight to your answer.',
+      'Never use "uh", "um", "mmhmm", or "gotcha". Get to the point.',
+    ].join('\n'),
+    greetingLine: `"{{BUSINESS_NAME}}, {{AGENT_NAME}} speaking. How can I help?"`,
+    closingLine: `"Got it. {{CLOSE_PERSON}} will call you back. Thanks."`,
+  },
+  empathetic_care: {
+    id: 'empathetic_care',
+    label: 'Empathetic & Patient',
+    description: 'Extra validation, slower pace, gentle tone. Good for healthcare, dental, property management, and senior services.',
+    toneStyleBlock: [
+      'Warm, patient, and empathetic. Make the caller feel heard and cared for.',
+      'Speak at a slower, gentle pace. Give the caller time to respond.',
+      'Keep responses short — 1 to 2 sentences max. Soft and reassuring.',
+      "Use standard contractions: \"I'll\", \"we're\", \"they'll\". Gentle language.",
+      'Use validating phrases: "I hear you", "no rush", "take your time", "that makes sense".',
+      'Speak softly and warmly. Avoid being abrupt.',
+    ].join('\n'),
+    fillerStyle: [
+      'Start responses with a gentle acknowledgment: "I hear you...", "okay...", "no worries...", "of course..."',
+      'Use brief pauses between thoughts. Never rush.',
+    ].join('\n'),
+    greetingLine: `"Hi there, you've reached {{BUSINESS_NAME}}. This is {{AGENT_NAME}}, an AI assistant. How can I help you today?"`,
+    closingLine: `"I'll make sure {{CLOSE_PERSON}} gets your message — they'll call you back soon. Take care."`,
+  },
 }
 
 // ── Per-niche defaults (all 22 template variables) ────────────────────────────
@@ -1963,51 +2060,29 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     } catch { /* invalid JSON — skip */ }
   }
 
-  // Tone-sensitive variables — greeting warmth, filler frequency, closing formality
-  const agentTone = intake.agent_tone as string | undefined
-  if (agentTone === 'professional') {
-    if (variables.CLOSE_PERSON === 'the boss') {
-      variables.CLOSE_PERSON = 'our team'
-    }
-    variables.TONE_STYLE_BLOCK = [
-      'Polished and composed. Sound confident and knowledgeable — warm but not overly casual.',
-      'Speak at a measured, natural speed. Slow down slightly when confirming important info.',
-      'Keep responses very short — 1 to 2 sentences max. Clear and direct.',
-      'Use standard contractions: "I\'ll", "we\'re", "they\'ll". Avoid slang like "gonna", "ya", "lemme".',
-      'Use minimal fillers: "of course", "certainly", "understood", "right".',
-      'Speak clearly. Proper punctuation and capitalization.',
-    ].join('\n')
-    variables.GREETING_LINE = `"{{BUSINESS_NAME}}, this is {{AGENT_NAME}}, an AI assistant. How can I help you today?"`
-    variables.FILLER_STYLE = [
-      'Start responses with a brief acknowledgment before your answer: "understood...", "of course...", "right..."',
-      'Avoid "uh", "um", and casual fillers entirely. Use deliberate pauses instead.',
-    ].join('\n')
-    variables.CLOSING_LINE = `"I'll pass this along to {{CLOSE_PERSON}} — they'll call you back at the number you called from. Have a wonderful day."`
-  } else {
-    // casual (default) — existing warm/friendly style
-    variables.TONE_STYLE_BLOCK = [
-      'Upbeat and alert. Sound relaxed but sharp — never tired or flat.',
-      'Speak at a relaxed, natural speed. Slow down slightly when confirming important info.',
-      'Keep responses very short — 1 to 2 sentences max. Punchy and direct.',
-      'Use contractions always: gotta, lemme, wanna, ya.',
-      'Use natural fillers sparingly: yeah, right, gotcha, alright, mmhmm, okay.',
-      'Speak in lowercase. Minimal punctuation.',
-    ].join('\n')
-    variables.GREETING_LINE = `"{{BUSINESS_NAME}} — this is {{AGENT_NAME}}, an AI assistant. How can I help ya today?"`
-    variables.FILLER_STYLE = [
-      'Start every response with a quick backchannel before your actual answer: "mmhmm...", "gotcha...", "right...", "yeah..."',
-      'Use "uh" or "um" once or twice per call when transitioning topics — never more.',
-    ].join('\n')
-    variables.CLOSING_LINE = `"alright, i'll let {{CLOSE_PERSON}} know — they'll call you back at the number you called from. talk soon."`
+  // Voice style preset — replaces old 2-way agent_tone split
+  // Priority: intake.voice_style_preset > intake.agent_tone (legacy compat) > 'casual_friendly'
+  const presetId = (intake.voice_style_preset as string)
+    || (intake.agent_tone === 'professional' ? 'professional_warm' : undefined)
+    || 'casual_friendly'
+  const preset = VOICE_PRESETS[presetId] || VOICE_PRESETS.casual_friendly
+
+  // Apply preset closePerson override (e.g. professional presets use 'our team' instead of 'the boss')
+  if (preset.closePerson && variables.CLOSE_PERSON === 'the boss') {
+    variables.CLOSE_PERSON = preset.closePerson
   }
 
-  // Tone instructions based on agent_tone
-  if (agentTone === 'casual') {
-    variables.TONE_INSTRUCTIONS = "Use contractions, colloquial language, and a friendly, laid-back tone. Say things like 'hey there', 'no worries', 'you betcha'."
-  } else if (agentTone === 'professional') {
+  variables.TONE_STYLE_BLOCK = preset.toneStyleBlock
+  variables.FILLER_STYLE = preset.fillerStyle
+  variables.GREETING_LINE = preset.greetingLine
+  variables.CLOSING_LINE = preset.closingLine
+
+  // Legacy TONE_INSTRUCTIONS — map from preset for backward compatibility
+  if (presetId === 'professional_warm') {
     variables.TONE_INSTRUCTIONS = "Use formal, polished language. Avoid slang, contractions where possible, and maintain a business-appropriate demeanor."
+  } else if (presetId === 'casual_friendly') {
+    variables.TONE_INSTRUCTIONS = "Use contractions, colloquial language, and a friendly, laid-back tone. Say things like 'hey there', 'no worries', 'you betcha'."
   } else {
-    // match_industry (default) — let the niche defaults guide the tone
     variables.TONE_INSTRUCTIONS = ''
   }
 
