@@ -164,10 +164,10 @@ _Baseline docs: `docs/frontend-refactor/baseline-component-audit.md` + `decompos
 
 * [x] Phase F0 — Baseline audit (docs only) — 2026-03-18
 * [x] Phase L1 — Behavioral gating (7 changes) — 2026-03-18
-* [ ] Phase F1 — SettingsView decomposition — IN PROGRESS (AgentTab remaining)
-* [ ] Phase F2 — SetupView + onboard/status — deferred
-* [ ] Phase F3 — AgentOverviewCard + LabView — deferred
-* [ ] Phase F4 — Shared primitives + cleanup — deferred
+* [x] Phase F1 — SettingsView decomposition — DONE (2026-03-18)
+* [x] Phase F2 — SetupView + onboard/status — DONE (2026-03-18)
+* [x] Phase F3 — AgentOverviewCard + LabView — DONE (2026-03-18)
+* [x] Phase F4 — Shared primitives + cleanup — DONE (2026-03-18, no-op: CopyButton variants intentionally different, fmtDate formats differ, no circular deps)
 
 ### L1 Changes (all done — committed in agent-app 5f0c70f)
 
@@ -192,13 +192,20 @@ _Baseline docs: `docs/frontend-refactor/baseline-component-audit.md` + `decompos
 | VoiceTab.tsx | 158 | Done |
 | AlertsTab.tsx | 240 | Done |
 | BillingTab.tsx | 182 | Done |
-| AgentTab.tsx | ~1,917 | In progress (parallel instance) |
+| AgentTab.tsx | 1,917 | Done |
 
 ### Line Count
 
-| Before | After (so far) | Delta |
-|--------|----------------|-------|
-| SettingsView: 2,993 | Shell: 393 + 6 tabs: ~2,783 + constants: 87 + shared: 54 | ~+324 (extraction overhead, expected) |
+| Component | Before | After (shell) | Extracted files | Total after |
+|-----------|--------|---------------|-----------------|-------------|
+| SettingsView | 2,993 | 393 | 7 tabs + constants + shared = 3,222 | 3,615 |
+| SetupView | 1,297 | 363 | 5 files (Mobile/Voip/Landline + constants + shared) = 1,037 | 1,400 |
+| onboard/status | 1,101 | 307 | 7 files (AdminTestPanel, ActivationProgress, etc.) = 1,480 | 1,787 |
+| AgentOverviewCard | 927 | 312 | 4 sub-components = 695 | 1,007 |
+| LabView | 858 | 580 | 5 files (ClassBadge, SessionHistory, etc.) = 346 | 926 |
+| **Total** | **7,176** | **1,955** | **6,780** | **8,735** |
+
+Delta: +1,559 lines (22% overhead from prop interfaces, imports, explicit contracts — expected for decomposition).
 
 ---
 
