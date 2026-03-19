@@ -295,7 +295,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1">
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         {(() => {
           const filteredNav = NAV.filter(item => !item.adminOnly || isAdmin)
           return filteredNav.map((item, idx) => {
