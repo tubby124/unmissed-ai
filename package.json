@@ -16,7 +16,13 @@
     "test:knowledge-retrieval": "npx tsx --test src/lib/__tests__/knowledge-retrieval.test.ts",
     "test:niche-delta": "npx tsx --test src/lib/__tests__/niche-delta.test.ts",
     "test:provisioning-guards": "npx tsx --test src/lib/__tests__/provisioning-guards.test.ts",
-    "test:pm-ops": "npx tsx --test src/lib/__tests__/pm-ops.test.ts"
+    "test:pm-ops": "npx tsx --test src/lib/__tests__/pm-ops.test.ts",
+    "test:prompt-patcher": "npx tsx --test src/lib/__tests__/prompt-patcher.test.ts",
+    "test:prompt-snapshots": "npx tsx --test src/lib/__tests__/prompt-snapshots.test.ts",
+    "test:agent-context-hours": "npx tsx --test src/lib/__tests__/agent-context-hours.test.ts",
+    "test:settings-truth": "npx tsx --test src/lib/__tests__/settings-runtime-truth.test.ts",
+    "test:capability-truth": "npx tsx --test src/lib/__tests__/capability-truth.test.ts",
+    "test:all": "npx tsx --test src/lib/__tests__/*.test.ts"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",

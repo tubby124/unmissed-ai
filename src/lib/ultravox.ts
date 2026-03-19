@@ -186,7 +186,7 @@ interface UltravoxTool {
   parameterOverrides?: Record<string, unknown>
 }
 
-function buildCalendarTools(slug: string): UltravoxTool[] {
+export function buildCalendarTools(slug: string): UltravoxTool[] {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   return [
     {
