@@ -128,3 +128,15 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 9050 | **Hash:** a525ba0c3be5ddf8
 **Supabase version_id:** 09f84a55-7453-4c10-a57e-e2f711a2b1be
 **Ultravox revision:** 5433caee-e533-4ac3-934e-a0626ab5f297
+
+## v35 — 2026-03-19 11:08 UTC
+**Change:** v35: fix transfer auth — inject X-Transfer-Secret staticParameters
+**Chars:** 9050 | **Hash:** a525ba0c3be5ddf8
+**Supabase version_id:** 412632c9-5b37-4ac3-ac2c-6d90a2325b39
+**Ultravox revision:** c34ada84-f9e0-4b08-a71a-324727589ebc
+
+## v36 — 2026-03-19 11:58 UTC
+**Change:** S4: fix returning caller — add caller_name column, populate during classification, enhanced RETURNING CALLER prompt section
+**Chars:** 9041 | **Hash:** 8e2a84fe35b5e5c5
+**Supabase version_id:** f8e35c37-3dfa-4968-a541-093424e9d599
+**Ultravox revision:** ba844f0c-7eae-4494-8f91-69371c9a4b3e
