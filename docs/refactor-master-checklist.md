@@ -8,15 +8,15 @@ _Phase state tracker: `memory/refactor-phase-state.md`_
 ## Phase Progress
 
 * [x] Phase 0 Freeze — baseline docs created (2026-03-18)
-* [ ] Phase 1A Capability Flags — **NEXT**
-* [ ] Phase 1B AgentContext
-* [ ] Phase 2 Prompt Builder consumes AgentContext
-* [ ] Phase 3 KnowledgeSummary
-* [ ] Phase 4 Retrieval
-* [ ] Phase 5 Niche delta cleanup
-* [ ] Phase 6 Provisioning hardening
-* [ ] Phase 7 Property management structured ops
-* [ ] Phase 8 Live eval harness
+* [x] Phase 1A Capability Flags — DONE (2026-03-18)
+* [x] Phase 1B AgentContext — DONE (2026-03-18)
+* [x] Phase 2 Prompt Builder consumes AgentContext — DONE (2026-03-19)
+* [x] Phase 3 KnowledgeSummary — DONE (2026-03-18)
+* [x] Phase 4 Retrieval — DONE (2026-03-18)
+* [x] Phase 5 Niche delta cleanup — DONE (2026-03-18)
+* [x] Phase 6 Provisioning hardening — DONE (2026-03-18)
+* [x] Phase 7 Property management structured ops — DONE (2026-03-18)
+* [x] Phase 8 Live eval harness — DONE (2026-03-18)
 
 ---
 
@@ -31,8 +31,8 @@ git tag pre-agent-context-refactor
 git push origin freeze/current-working-state --tags
 ```
 
-* [ ] freeze branch created (`freeze/current-working-state`)
-* [ ] freeze tag created (`pre-agent-context-refactor`)
+* [x] freeze branch created (`freeze/current-working-state`) — commit ee90aa6
+* [x] freeze tag created (`pre-agent-context-refactor`) — on commit ee90aa6
 
 ---
 
@@ -50,8 +50,8 @@ WHERE status = 'active'
 ORDER BY slug;
 ```
 
-* [ ] local prompt files confirmed in repo (clients/*/SYSTEM_PROMPT.txt)
-* [ ] live Supabase prompts exported (optional)
+* [x] local prompt files confirmed in repo (clients/*/SYSTEM_PROMPT.txt)
+* [ ] live Supabase prompts exported (optional — do via SQL editor if needed)
 
 ---
 
@@ -76,16 +76,16 @@ curl -s -H "Authorization: Bearer $ULTRAVOX_API_KEY" \
   > docs/refactor-baseline/ultravox-agent-urban-vibe.json
 ```
 
-* [ ] Ultravox agent configs exported to `docs/refactor-baseline/`
+* [x] Ultravox agent configs exported to `docs/refactor-baseline/`
 
 ---
 
 ## Safety
 
-* [ ] freeze branch created
-* [ ] freeze tag created
-* [ ] prompt exports saved (local files confirmed)
-* [ ] Ultravox config export saved
+* [x] freeze branch created
+* [x] freeze tag created
+* [x] prompt exports saved (local files confirmed)
+* [x] Ultravox config export saved
 * [ ] Supabase snapshot optional (slugs + prompt lengths recorded above)
 * [ ] client/phone/agent mapping saved (`docs/refactor-baseline/baseline-client-agent-map.md`)
 
@@ -93,16 +93,18 @@ curl -s -H "Authorization: Bearer $ULTRAVOX_API_KEY" \
 
 ## Test Gates (per phase)
 
-* [ ] Phase 1A: capability unit tests pass
-* [ ] Phase 1B: AgentContext unit tests pass
-* [ ] Phase 2: snapshot tests pass (before + after diff empty or intentional)
-* [ ] Phase 2: promptfoo hasan-sharif-test.yaml — all 17 pass
-* [ ] Phase 3: prompt length controlled; knowledge tests pass
-* [ ] Phase 4: retrieval tests pass
-* [ ] Phase 5: niche delta map documented
-* [ ] Phase 6: provisioning idempotency tests pass
-* [ ] Phase 7: PM structured ops tests pass
-* [ ] Phase 8: live eval matrix filled (all scenarios pass)
+* [x] Phase 1A: capability unit tests pass (17/17)
+* [x] Phase 1B: AgentContext unit tests pass (51/51)
+* [x] Phase 2: snapshot tests pass (before + after diff empty or intentional)
+* [x] Phase 2: promptfoo hasan-sharif-test.yaml — all 17 pass
+* [x] Phase 3: prompt length controlled; knowledge tests pass (33/33)
+* [x] Phase 4: retrieval tests pass (43/43)
+* [x] Phase 5: niche delta tests pass (73/73); all 217 tests green
+* [x] Phase 6: provisioning idempotency tests pass (47/47)
+* [x] Phase 7: PM structured ops tests pass (56/56)
+* [x] Phase 8: live eval harness created (26 scenarios, 7 categories, helper script)
+* [ ] Phase 8 GATE: canary live eval — 6 core scenarios pass (M1, B1, AH1, U1, A1, A2)
+* [ ] Phase 8 GATE: full canary eval — all Category 1-6 scenarios pass for hasan-sharif
 
 ---
 
@@ -126,6 +128,32 @@ windshield-hub and urban-vibe are LOCKED. After all 8 phases complete and hasan-
 
 ---
 
+## Live Eval Harness (Phase 8)
+
+**Matrix:** `tests/live-eval/EVAL_MATRIX.md` — 26 scenarios across 7 categories
+**Helper:** `tests/live-eval/record-eval.sh` — records pass/fail to CSV
+**Results:** `tests/live-eval/results.csv` — append-only eval log
+
+### When to Run Live Eval
+
+| Trigger | Minimum Scenarios |
+|---------|-------------------|
+| Prompt text change | 6 core (M1, B1, AH1, U1, A1, A2) |
+| Prompt builder / AgentContext change | All Category 1-6 |
+| Tool registration change | B1-B4, E1-E3, A2 |
+| Knowledge / retrieval change | U1-U4, M1 |
+| Pre-release to locked clients | Full matrix per client |
+
+### Three Test Layers
+
+| Layer | Tool | Scope |
+|-------|------|-------|
+| Automated behavioral | `bash tests/promptfoo/run-all.sh` | Prompt text regression |
+| Unit tests | `npm test` in agent-app/ | Pure functions (320 tests) |
+| Live eval | Manual calls + `record-eval.sh` | End-to-end voice |
+
+---
+
 ## Ship / No-Ship Gate (any phase)
 
 STOP and rollback if any of:
@@ -135,3 +163,4 @@ STOP and rollback if any of:
 - Unsupported capability leaks into prompt
 - Promptfoo regression (hasan-sharif-test.yaml)
 - Naturalness drops badly in live calls
+- Live eval failure on any core scenario (M1, B1, AH1, U1, A1, A2)
