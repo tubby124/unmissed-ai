@@ -5,6 +5,7 @@ import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultr
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
 import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-formats'
+import { getSmsTemplate } from '@/lib/sms-templates'
 import twilio from 'twilio'
 
 export const maxDuration = 120
@@ -139,6 +140,7 @@ export async function POST(
           key_topics: classification.key_topics?.length ? classification.key_topics : null,
           next_steps: classification.next_steps || null,
           quality_score: classification.quality_score || null,
+          caller_name: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
         })
         .eq('ultravox_call_id', callId)
         .select('id')
@@ -251,27 +253,31 @@ export async function POST(
         console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
       }
 
-      // ── SMS post-call follow-up ────────────────────────────────────────────
-      if (client.sms_enabled && callerPhone !== 'unknown' && classification.status !== 'JUNK') {
-        try {
-          const accountSid = process.env.TWILIO_ACCOUNT_SID
-          const authToken = process.env.TWILIO_AUTH_TOKEN
-          const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
-          if (accountSid && authToken && fromNumber) {
-            const defaultSmsBody = client.niche === 'voicemail'
-              ? `Hi, this is ${client.business_name || 'us'}'s assistant. We got your message and will get back to you shortly. For faster service, you can also text us at this number.`
-              : `Thanks for calling ${client.business_name || 'us'}! We'll follow up with you shortly.`
-            const smsBody = client.sms_template
-              ? (client.sms_template as string)
-                  .replace('{{business}}', client.business_name || '')
-                  .replace('{{summary}}', (classification.summary || '').slice(0, 100))
-              : defaultSmsBody
-            const twilioClient = twilio(accountSid, authToken)
-            await twilioClient.messages.create({ body: smsBody, from: fromNumber, to: callerPhone })
-            console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone}`)
+      // ── SMS post-call follow-up (classification-aware) ─────────────────────
+      if (client.sms_enabled && callerPhone !== 'unknown') {
+        const smsBody = getSmsTemplate(classification.status, {
+          businessName: client.business_name || 'us',
+          callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
+          summary: classification.summary,
+          niche: client.niche as string | null,
+          smsTemplate: client.sms_template as string | null,
+          isTransferRecovery: metadata.transfer_recovery === 'true',
+        })
+        if (smsBody) {
+          try {
+            const accountSid = process.env.TWILIO_ACCOUNT_SID
+            const authToken = process.env.TWILIO_AUTH_TOKEN
+            const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
+            if (accountSid && authToken && fromNumber) {
+              const twilioClient = twilio(accountSid, authToken)
+              await twilioClient.messages.create({ body: smsBody, from: fromNumber, to: callerPhone })
+              console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
+            }
+          } catch (smsErr) {
+            console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
           }
-        } catch (smsErr) {
-          console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
+        } else {
+          console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
         }
       }
 
