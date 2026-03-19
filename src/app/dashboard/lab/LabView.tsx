@@ -1,152 +1,17 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import BrowserTestCall, { type TranscriptEntry } from "@/components/dashboard/BrowserTestCall"
 import ShimmerButton from "@/components/ui/shimmer-button"
 
-// ── Niche-specific scenario hints ─────────────────────────────────────────────
-
-const NICHE_HINTS: Record<string, string[]> = {
-  auto_glass: [
-    "Try: 'I have a crack on the driver's side windshield — can you come today?'",
-    "Try: 'My insurance is covering it, what info do you need?'",
-    "Try: 'Is mobile repair available? I'm at work.'",
-  ],
-  property_mgmt: [
-    "Try: 'My kitchen faucet has been leaking for two days.'",
-    "Try: 'I'm interested in the 2-bedroom unit I saw online.'",
-    "Try: 'My rent cheque is lost — how do I pay online?'",
-  ],
-  real_estate: [
-    "Try: 'I'm looking to sell my home — what's the process?'",
-    "Try: 'What are homes selling for in my area right now?'",
-    "Try: 'Can I book a showing this weekend?'",
-  ],
-  salon: [
-    "Try: 'I need a haircut and colour — how far out are you?'",
-    "Try: 'Do you have any cancellations today?'",
-    "Try: 'What's the price for a balayage?'",
-  ],
-  print_shop: [
-    "Try: 'I need 500 business cards by Friday — is that doable?'",
-    "Try: 'Can you print a 4x8 coroplast sign for my yard sale?'",
-    "Try: 'Do you do same-day banners?'",
-  ],
-  voicemail: [
-    "Try: 'Hi I'm calling about your services'",
-    "Try: 'What are your hours?'",
-    "Try: 'Can I leave a message?'",
-  ],
-}
-
-const DEFAULT_HINTS = [
-  "Try asking about availability",
-  "Try: 'What services do you offer?'",
-  "Try asking a follow-up question after the agent responds",
-]
-
-function getNicheHints(niche: string | null): string[] {
-  if (!niche) return DEFAULT_HINTS
-  return NICHE_HINTS[niche] ?? DEFAULT_HINTS
-}
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface PromptVersion {
-  id: string
-  version: number
-  content: string
-  change_description: string | null
-  created_at: string
-  is_active: boolean
-}
-
-interface CallResult {
-  transcripts: TranscriptEntry[]
-  classification: "HOT" | "WARM" | "COLD" | "JUNK" | null
-  classifying: boolean
-  durationSecs: number | null
-}
-
-interface LabViewProps {
-  isAdmin: boolean
-  clientId: string | null
-  livePrompt: string | null
-  agentName: string
-  niche: string | null
-  initialVersions: PromptVersion[]
-}
-
-// ── Char count helpers ────────────────────────────────────────────────────────
-
-const CHAR_WARN = 40000
-const CHAR_MAX = 50000
-
-function charCountColor(len: number): string {
-  if (len >= CHAR_MAX) return "#dc2626"
-  if (len >= CHAR_WARN) return "#d97706"
-  return "var(--color-text-3)"
-}
-
-// ── Classification badge ──────────────────────────────────────────────────────
-
-function ClassBadge({ label }: { label: string | null }) {
-  if (!label) return null
-
-  const config: Record<string, { bg: string; text: string; icon: string }> = {
-    HOT: {
-      bg: "#fef2f2",
-      text: "#b91c1c",
-      icon: "M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z",
-    },
-    WARM: {
-      bg: "#fffbeb",
-      text: "#92400e",
-      icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
-    },
-    COLD: {
-      bg: "#eff6ff",
-      text: "#1e40af",
-      icon: "M13 10V3L4 14h7v7l9-11h-7z",
-    },
-    JUNK: {
-      bg: "var(--color-bg)",
-      text: "var(--color-text-3)",
-      icon: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
-    },
-  }
-
-  const c = config[label] ?? config.JUNK
-  return (
-    <motion.span
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold"
-      style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.text}22` }}
-    >
-      <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={c.icon} />
-      </svg>
-      {label}
-    </motion.span>
-  )
-}
-
-// ── Spinner ───────────────────────────────────────────────────────────────────
-
-function Spinner({ size = 3 }: { size?: number }) {
-  return (
-    <svg
-      className={`animate-spin w-${size} h-${size} shrink-0`}
-      fill="none" viewBox="0 0 24 24" aria-hidden="true"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  )
-}
+import { getNicheHints, charCountColor, CHAR_MAX } from "@/components/dashboard/lab/constants"
+import type { LabViewProps, CallResult, PromptVersion } from "@/components/dashboard/lab/constants"
+import { ClassBadge, Spinner } from "@/components/dashboard/lab/ClassBadge"
+import { ResultTranscript } from "@/components/dashboard/lab/ResultTranscript"
+import { VersionHistory } from "@/components/dashboard/lab/VersionHistory"
+import { SessionHistory } from "@/components/dashboard/lab/SessionHistory"
+import type { SessionHistoryHandle } from "@/components/dashboard/lab/SessionHistory"
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -165,21 +30,19 @@ export default function LabView({
   const [resultB, setResultB] = useState<CallResult | null>(null)
 
   const [activeSlot, setActiveSlot] = useState<"A" | "B" | null>(null)
-  const [startingSlot, setStartingSlot] = useState<"A" | "B" | null>(null) // connecting in-progress
+  const [startingSlot, setStartingSlot] = useState<"A" | "B" | null>(null)
   const [joinUrl, setJoinUrl] = useState<string | null>(null)
   const [callStartTime, setCallStartTime] = useState<number | null>(null)
 
   const [versions, setVersions] = useState<PromptVersion[]>(initialVersions)
-  const [versionsOpen, setVersionsOpen] = useState(false)
   const [restoring, setRestoring] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [makingLive, setMakingLive] = useState(false)
   const [hintIdx, setHintIdx] = useState(0)
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [sessions, setSessions] = useState<{ id: string; created_at: string; transcript_json: unknown[]; prompt_snapshot: string | null }[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
+
+  const sessionHistoryRef = useRef<SessionHistoryHandle>(null)
 
   const hints = getNicheHints(niche)
   const STORAGE_KEY = clientId ? `lab-draft-${clientId}` : "lab-draft-anonymous"
@@ -211,27 +74,13 @@ export default function LabView({
     setTimeout(() => setToastMsg(null), 3500)
   }
 
-  const loadHistory = useCallback(async () => {
-    if (!clientId) return
-    setHistoryLoading(true)
-    try {
-      const res = await fetch(`/api/dashboard/lab-transcripts?clientId=${clientId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setSessions(data.sessions ?? [])
-      }
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [clientId])
-
   // Detect unsaved draft (differs from live)
   const hasUnsavedDraft = draftPrompt.trim() !== "" && draftPrompt !== livePrompt
 
   // ── Start a test call ────────────────────────────────────────────────────────
 
   const startTest = useCallback(async (slot: "A" | "B") => {
-    if (activeSlot || startingSlot) return // already in or starting a call
+    if (activeSlot || startingSlot) return
 
     const promptSlot = slot === "A" ? "live" : "draft"
     const promptContent = slot === "B" ? draftPrompt : undefined
@@ -283,7 +132,6 @@ export default function LabView({
     if (slot === "A") setResultA(result)
     else setResultB(result)
 
-    // Classify the transcript in the background
     const finalText = transcripts.filter(t => t.isFinal).map(t => `${t.speaker}: ${t.text}`).join("\n")
     if (finalText) {
       try {
@@ -301,7 +149,6 @@ export default function LabView({
         }
       } catch { /* fall through */ }
     }
-    // Fallback — no classification
     const noClass = { transcripts, classification: null, classifying: false, durationSecs: duration }
     if (slot === "A") setResultA(noClass)
     else setResultB(noClass)
@@ -371,12 +218,6 @@ export default function LabView({
     const m = Math.floor(s / 60)
     const sec = s % 60
     return `${m}m ${sec}s`
-  }
-
-  const fmtDate = (iso: string) => {
-    const d = new Date(iso)
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
-      " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
   }
 
   const busy = activeSlot !== null || startingSlot !== null
@@ -551,12 +392,12 @@ export default function LabView({
                       })
                       if (res.ok) {
                         const { id } = await res.json()
-                        setSessions(prev => [{
+                        sessionHistoryRef.current?.addSession({
                           id,
                           created_at: new Date().toISOString(),
                           transcript_json: resultA.transcripts as unknown[],
                           prompt_snapshot: draftPrompt || livePrompt || null,
-                        }, ...prev])
+                        })
                         setSaveState('saved')
                       } else {
                         setSaveState('error')
@@ -570,7 +411,7 @@ export default function LabView({
                   disabled={saveState === 'saving' || saveState === 'saved'}
                   className="text-sm"
                 >
-                  {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved!' : saveState === 'error' ? 'Error — try again' : 'Save session'}
+                  {saveState === 'saving' ? 'Saving\u2026' : saveState === 'saved' ? 'Saved!' : saveState === 'error' ? 'Error \u2014 try again' : 'Save session'}
                 </ShimmerButton>
               </div>
             </motion.div>
@@ -730,129 +571,10 @@ export default function LabView({
       )}
 
       {/* Revision history */}
-      {versions.length > 0 && (
-        <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-          <button
-            className="w-full flex items-center justify-between px-4 min-h-[44px] text-xs font-bold uppercase tracking-wider cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-            style={{ color: "var(--color-text-2)" }}
-            onClick={() => setVersionsOpen(v => !v)}
-            aria-expanded={versionsOpen}
-          >
-            Revision History ({versions.length})
-            <svg
-              className={`w-4 h-4 transition-transform ${versionsOpen ? "rotate-180" : ""}`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <AnimatePresence>
-            {versionsOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                style={{ overflow: "hidden" }}
-              >
-                <div className="border-t" style={{ borderColor: "var(--color-border)" }}>
-                  {versions.map(v => (
-                    <div
-                      key={v.id}
-                      className="flex items-start justify-between gap-3 px-4 py-3 text-xs border-b last:border-b-0"
-                      style={{ borderColor: "var(--color-border)" }}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold" style={{ color: "var(--color-text-1)" }}>v{v.version}</span>
-                          {v.is_active && (
-                            <span className="px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: "#d1fae5", color: "#065f46" }}>live</span>
-                          )}
-                          <span style={{ color: "var(--color-text-3)" }}>{fmtDate(v.created_at)}</span>
-                        </div>
-                        {v.change_description && (
-                          <p className="mt-0.5 truncate" style={{ color: "var(--color-text-3)" }}>{v.change_description}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => restoreVersion(v.id, v.content)}
-                        disabled={!!restoring || v.is_active}
-                        className="shrink-0 inline-flex items-center gap-1 text-xs font-medium min-h-[32px] px-2 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-75 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ color: "var(--color-accent)" }}
-                      >
-                        {restoring === v.id && <Spinner size={3} />}
-                        {restoring === v.id ? "Loading..." : "Load into Draft"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+      <VersionHistory versions={versions} restoring={restoring} onRestore={restoreVersion} />
 
       {/* Session History */}
-      <div className="mt-6 border-t border-slate-200 pt-4">
-        <button
-          onClick={() => {
-            const next = !historyOpen
-            setHistoryOpen(next)
-            if (next && sessions.length === 0) loadHistory()
-          }}
-          className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
-          <span>{historyOpen ? '▾' : '▸'}</span>
-          Session History
-          {historyLoading && <span className="text-xs text-slate-400 ml-1">Loading…</span>}
-        </button>
-
-        {historyOpen && (
-          <div className="mt-3 space-y-2">
-            {sessions.length === 0 && !historyLoading && (
-              <p className="text-sm text-slate-400">No saved sessions yet.</p>
-            )}
-            {sessions.map((s) => (
-              <div key={s.id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-slate-400">
-                    {new Date(s.created_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  {s.prompt_snapshot && (
-                    <span className="text-xs text-indigo-500">{s.prompt_snapshot.slice(0, 40)}…</span>
-                  )}
-                </div>
-                <p className="text-slate-600 text-xs">
-                  {Array.isArray(s.transcript_json) ? `${s.transcript_json.length} transcript entries` : 'Session data'}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Inline transcript viewer ───────────────────────────────────────────────────
-
-function ResultTranscript({ transcripts, agentName }: { transcripts: TranscriptEntry[], agentName: string }) {
-  const finals = transcripts.filter(t => t.isFinal)
-  if (finals.length === 0) return null
-  return (
-    <div
-      className="rounded-lg p-3 max-h-36 overflow-y-auto space-y-1 text-xs"
-      style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-    >
-      {finals.map((t, i) => (
-        <p key={i} style={{ color: t.speaker === "agent" ? "#6366f1" : "var(--color-text-2)" }}>
-          <span className="font-medium mr-1" style={{ color: "var(--color-text-3)" }}>
-            {t.speaker === "agent" ? agentName : "You:"}
-          </span>
-          {t.text}
-        </p>
-      ))}
+      <SessionHistory ref={sessionHistoryRef} clientId={clientId} />
     </div>
   )
 }
