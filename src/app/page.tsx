@@ -15,7 +15,7 @@ import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
-import { BETA_PROMO, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
+import { BETA_PROMO, TRIAL, BASE_PLAN, getEffectiveMonthly } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "unmissed.ai — AI Receptionist for Service Businesses",
@@ -148,10 +148,10 @@ export default async function HomePage() {
               className="inline-block px-10 py-4 rounded-xl text-white font-bold text-lg transition-colors"
               style={{ backgroundColor: "var(--color-cta)" }}
             >
-              Get My Agent Set Up →
+              Start {TRIAL.days}-Day Free Trial →
             </Link>
             <p className="text-xs mt-3" style={{ color: "rgba(255,255,255,0.35)" }}>
-              Agent live within 24 hours · No contracts · 30-day money-back guarantee
+              {TRIAL.label} · {BETA_PROMO.enabled ? `$${BETA_PROMO.monthly}/mo` : `$${BASE_PLAN.monthly}/mo`} · No contracts
             </p>
           </div>
         </section>

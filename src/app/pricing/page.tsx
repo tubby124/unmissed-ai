@@ -10,40 +10,29 @@ import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
+import {
+  BETA_PROMO,
+  BASE_PLAN,
+  TRIAL,
+  COMPETITORS,
+  FEATURE_COMPARISON,
+  POLICIES,
+  getEffectiveMonthly,
+} from "@/lib/pricing";
+
+const effectivePrice = getEffectiveMonthly();
 
 export const metadata: Metadata = {
   title: "Pricing — unmissed.ai AI Receptionist",
-  description:
-    "Simple monthly pricing, no contracts. AI receptionist plans starting at $147/mo. Cancel anytime.",
+  description: `Simple monthly pricing, no contracts. AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. Cancel anytime.`,
   alternates: {
     canonical: "https://unmissed.ai/pricing",
   },
   openGraph: {
     title: "Pricing — unmissed.ai",
-    description: "AI receptionist plans from $147/mo. No contracts, no per-minute charges.",
+    description: `AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. No contracts, no per-minute charges.`,
   },
 };
-
-const perMinuteTrapRows = [
-  { competitor: "Dialzara", plan: "$29/mo", minutes: "60 min", perMin: "$0.48/min", at100Calls: "$145+", at200Calls: "$290+", catch: "2 min/day limit" },
-  { competitor: "Rosie", plan: "$49/mo", minutes: "250 min", perMin: "$0.20/min", at100Calls: "$49", at200Calls: "$99+", catch: "Booking requires $149/mo" },
-  { competitor: "My AI Front Desk", plan: "$99/mo", minutes: "200 min", perMin: "$0.50/min", at100Calls: "$99", at200Calls: "$199+", catch: "Bilingual requires $149/mo" },
-  { competitor: "Goodcall", plan: "$59/mo", minutes: "100 callers", perMin: "$0.50/caller over", at100Calls: "$59", at200Calls: "$109+", catch: "Per unique caller, not minutes" },
-  { competitor: "Smith.ai", plan: "$95/mo", minutes: "50 calls", perMin: "$2.40/call over", at100Calls: "$215", at200Calls: "$455+", catch: "Human hybrid, very expensive" },
-];
-
-const comparisonRows = [
-  { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", unmissed: "Flat rate" },
-  { feature: "Starting price", myai: "$99/mo (200 min)", goodcall: "$59/mo (100 callers)", rosie: "$49/mo (250 min)", smithai: "$95/mo (50 calls)", unmissed: "$147/mo (unlimited)" },
-  { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", unmissed: "Done for you (24hr)" },
-  { feature: "All features included", myai: "No — tiered", goodcall: "No — tiered", rosie: "No — tiered", smithai: "No — tiered", unmissed: "Yes" },
-  { feature: "Booking on all plans", myai: "No ($149+)", goodcall: "No ($99+)", rosie: "No ($149+)", smithai: "No ($270+)", unmissed: "Add-on available" },
-  { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", unmissed: "Yes" },
-  { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", unmissed: "Yes (Learning Loop)" },
-  { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", unmissed: "Supabase (yours)" },
-  { feature: "Instant mobile alerts", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", unmissed: "Telegram + SMS" },
-  { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", unmissed: "None — cancel anytime" },
-];
 
 export default function PricingPage() {
   return (
@@ -103,7 +92,7 @@ export default function PricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {perMinuteTrapRows.map((row, i) => (
+                  {COMPETITORS.map((row, i) => (
                     <tr
                       key={i}
                       style={{
@@ -111,7 +100,7 @@ export default function PricingPage() {
                         borderBottom: "1px solid var(--color-border)",
                       }}
                     >
-                      <td className="p-4 font-medium" style={{ color: "var(--color-text-1)" }}>{row.competitor}</td>
+                      <td className="p-4 font-medium" style={{ color: "var(--color-text-1)" }}>{row.name}</td>
                       <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.plan}</td>
                       <td className="p-4 text-center" style={{ color: "var(--color-text-2)" }}>{row.minutes}</td>
                       <td className="p-4 text-center font-semibold text-red-500">{row.at200Calls}</td>
@@ -120,9 +109,9 @@ export default function PricingPage() {
                   ))}
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>unmissed.ai</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147/mo</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>All calls</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>$147</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}/mo</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>{BETA_PROMO.enabled ? BETA_PROMO.minutes : BASE_PLAN.minutes} min</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No catch</td>
                   </tr>
                 </tbody>
@@ -134,8 +123,8 @@ export default function PricingPage() {
               style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)" }}
             >
               <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
-                With unmissed.ai, you pay the same whether you get 10 calls or 1,000.
-                The more your phone rings, the more value you get — not the more you owe.
+                At ${effectivePrice}/mo, unmissed.ai costs less than every competitor — and includes every feature.
+                No per-minute overages. No tier restrictions.
               </p>
             </div>
           </div>
@@ -168,6 +157,7 @@ export default function PricingPage() {
                     <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Goodcall</th>
                     <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Rosie</th>
                     <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Smith.ai</th>
+                    <th className="text-center p-3 font-medium text-xs" style={{ color: "var(--color-text-2)" }}>Ask Benny</th>
                     <th
                       className="text-center p-3 font-semibold text-xs"
                       style={{ color: "var(--color-primary)", backgroundColor: "var(--color-accent,#EEF2FF)" }}
@@ -177,7 +167,7 @@ export default function PricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {comparisonRows.map((row, i) => (
+                  {FEATURE_COMPARISON.map((row, i) => (
                     <tr
                       key={i}
                       style={{
@@ -190,6 +180,7 @@ export default function PricingPage() {
                       <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.goodcall}</td>
                       <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.rosie}</td>
                       <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.smithai}</td>
+                      <td className="p-3 text-center text-xs" style={{ color: "var(--color-text-2)" }}>{row.askbenny}</td>
                       <td
                         className="p-3 text-center font-semibold text-xs"
                         style={{ color: "#22C55E", backgroundColor: "rgba(34,197,94,0.04)" }}
@@ -258,7 +249,7 @@ export default function PricingPage() {
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Get My Agent
+              Start {TRIAL.days}-Day Free Trial
             </Link>
           </div>
         </section>
@@ -274,10 +265,10 @@ export default function PricingPage() {
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Get My Agent Set Up →
+              Start Free Trial →
             </Link>
-            <p className="text-gray-600 text-xs mt-3">
-              Agent live within 24 hours · No contracts
+            <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
+              {POLICIES.setupTime} · {POLICIES.contracts}
             </p>
           </div>
         </section>
