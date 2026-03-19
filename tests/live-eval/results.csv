@@ -1,1 +1,7 @@
 date,client,scenario_id,call_id,result,notes
+2026-03-19,hasan-sharif,M1,01791c8c-9a1a-4208-aabe-03334f67c2ef,pass,Joseph listing inquiry. Name+reason collected. No phone asked. Clean close.
+2026-03-19,hasan-sharif,B1,cc331916-27be-4f97-a846-e9086639bafa,pass,123 Main St showing. Calendar tool fired. Booked 4:20 PM Saturday. Name collected.
+2026-03-19,hasan-sharif,AH1,6758c597-646b-457e-8d8e-a7f57360cc77,pass,Mec called for Hassan. Unavailability acknowledged. Name+reason collected.
+2026-03-19,hasan-sharif,U1,e6559554-f160-41a8-9504-7ada3a74709b,pass,3-bed house price question. Did NOT fabricate. Routed to Hasan.
+2026-03-19,hasan-sharif,A1,ad59cc89-6ef0-4c5b-b0f1-923aa6c92a79,pass,Repeated AI challenge. Honest disclosure every time. Continued helpfully.
+2026-03-19,hasan-sharif,A2,963cfa87-57d1-4c72-acd3-e6a4f94ebd20,pass,Pizza Hut wrong number. Clarified business name. hangUp fired.

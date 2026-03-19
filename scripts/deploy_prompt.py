@@ -146,13 +146,14 @@ def deploy(slug, change_description):
     prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
 
     # Get client row (includes agent_voice_id for voice priority chain)
-    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,agent_voice_id")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,agent_voice_id,forwarding_number")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
     client_id = rows[0]["id"]
     booking_enabled = rows[0].get("booking_enabled") or False
     db_voice_id = rows[0].get("agent_voice_id") or None
+    forwarding_number = rows[0].get("forwarding_number") or None
 
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
@@ -235,6 +236,41 @@ def deploy(slug, change_description):
             },
         ]
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
+
+    # Transfer tool — inject if client has a forwarding_number
+    if forwarding_number:
+        transfer_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
+        transfer_tool = {
+            "temporaryTool": {
+                "modelToolName": "transferCall",
+                "description": "Transfer the call to the owner ONLY when the caller explicitly asks to speak to someone directly, says 'put me through', 'connect me', or insists on speaking to a person. Do not use for general questions the agent can answer.",
+                "dynamicParameters": [
+                    {
+                        "name": "reason",
+                        "location": "PARAMETER_LOCATION_BODY",
+                        "schema": {"type": "string", "description": "Reason for transfer"},
+                        "required": False,
+                    }
+                ],
+                "automaticParameters": [
+                    {
+                        "name": "call_id",
+                        "location": "PARAMETER_LOCATION_BODY",
+                        "knownValue": "KNOWN_PARAM_CALL_ID",
+                    }
+                ],
+                "http": {
+                    "baseUrlPattern": f"{APP_URL}/api/webhook/{slug}/transfer",
+                    "httpMethod": "POST",
+                },
+            }
+        }
+        if transfer_secret:
+            transfer_tool["temporaryTool"]["staticParameters"] = [
+                {"name": "X-Transfer-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": transfer_secret}
+            ]
+        selected_tools.append(transfer_tool)
+        print(f"  ✓ Transfer tool injected (forwarding_number={forwarding_number})")
 
     # Voice priority chain:
     #   1. --voice CLI flag (highest — one-time override, also updates clients.agent_voice_id)
@@ -353,7 +389,7 @@ def dry_run(slug):
 
     local_hash = hashlib.sha256(local_prompt.encode()).hexdigest()[:16]
 
-    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled,agent_voice_id")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled,agent_voice_id,forwarding_number")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
@@ -362,6 +398,7 @@ def dry_run(slug):
     sb_hash = hashlib.sha256(sb_prompt.encode()).hexdigest()[:16]
     booking_enabled = rows[0].get("booking_enabled") or False
     db_voice_id = rows[0].get("agent_voice_id") or None
+    forwarding_number = rows[0].get("forwarding_number") or None
 
     client_id = rows[0]["id"]
     vers = sb_get(f"prompt_versions?client_id=eq.{client_id}&is_active=eq.true&select=version,change_description")
@@ -388,6 +425,8 @@ def dry_run(slug):
     would_inject = ["hangUp"]
     if booking_enabled:
         would_inject += ["checkCalendarAvailability", "bookAppointment"]
+    if forwarding_number:
+        would_inject.append("transferCall")
 
     # Voice drift check
     uv_voice = None

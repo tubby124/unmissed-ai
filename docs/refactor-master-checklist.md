@@ -103,7 +103,7 @@ curl -s -H "Authorization: Bearer $ULTRAVOX_API_KEY" \
 * [x] Phase 6: provisioning idempotency tests pass (47/47)
 * [x] Phase 7: PM structured ops tests pass (56/56)
 * [x] Phase 8: live eval harness created (26 scenarios, 7 categories, helper script)
-* [ ] Phase 8 GATE: canary live eval — 6 core scenarios pass (M1, B1, AH1, U1, A1, A2)
+* [x] Phase 8 GATE: canary live eval — 6 core scenarios pass (M1, B1, AH1, U1, A1, A2) — ALL PASS 2026-03-19
 * [ ] Phase 8 GATE: full canary eval — all Category 1-6 scenarios pass for hasan-sharif
 
 ---

@@ -53,3 +53,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 14093 | **Hash:** 743329e12cc486b1
 **Supabase version_id:** fa4b7867-5d30-4800-ae94-41ffc90fd67e
 **Ultravox revision:** a54a0523-5eed-4f8b-bb43-bb8d6ec59d02
+
+## v10 — 2026-03-18 08:05 UTC
+**Change:** Add GLM-4.6 anti-repetition CONVERSATION RULES block
+**Chars:** 14495 | **Hash:** 3b386f67349ea1d6
+**Supabase version_id:** ddacdb20-50c8-43eb-8ffb-4b6f06f1bc74
+**Ultravox revision:** 9a99b274-78f1-4dac-a613-cc8e381bd7a9

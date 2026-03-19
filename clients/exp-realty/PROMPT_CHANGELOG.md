@@ -15,3 +15,9 @@
 - Added single-word acknowledgment guard ("okay" alone is NOT goodbye)
 - Added NON-ENGLISH CALLER handling
 - Tightened spam handling (added "Google business profile" trigger)
+
+## v5 — 2026-03-18 08:06 UTC
+**Change:** Add GLM-4.6 anti-repetition CONVERSATION RULES block
+**Chars:** 13866 | **Hash:** 51fee88b84074c3c
+**Supabase version_id:** c2b96a08-2615-4962-9c64-d0b7c80198f7
+**Ultravox revision:** 68baa51a-e800-4aa2-8001-41afb6464e16

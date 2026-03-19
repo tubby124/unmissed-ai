@@ -122,3 +122,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 8665 | **Hash:** 8f7c43be0acb8cfd
 **Supabase version_id:** 0b70e432-b296-47a6-97fb-6cd8b8d80545
 **Ultravox revision:** 89f137c4-ba69-4bad-9588-f0c3d4f77ab0
+
+## v34 — 2026-03-19 11:03 UTC
+**Change:** v34: sync tools — restore hangUp + calendar tools alongside transferCall
+**Chars:** 9050 | **Hash:** a525ba0c3be5ddf8
+**Supabase version_id:** 09f84a55-7453-4c10-a57e-e2f711a2b1be
+**Ultravox revision:** 5433caee-e533-4ac3-934e-a0626ab5f297
