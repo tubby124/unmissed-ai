@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
-import { buildContextBlock } from '@/lib/context-data'
+import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 
 export const maxDuration = 15
 
@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -99,124 +99,84 @@ export async function POST(
       else if (data?.length) console.log(`[inbound] Cleaned ${data.length} stale live row(s) for client=${client.id}`)
     })
 
-  // ── Returning caller detection ─────────────────────────────────────────────
-  // Inject rich datetime context so agent can resolve "tomorrow", "next Tuesday", etc.
-  const clientTz = (client.timezone as string | null) || 'America/Regina'
+  // ── Per-call context assembly (Phase 2: replaces scattered inline assembly) ──────────────
   const now = new Date()
-  const todayIso  = now.toLocaleDateString('en-CA', { timeZone: clientTz })           // YYYY-MM-DD
-  const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: clientTz, weekday: 'long' })
-  const timeNow   = now.toLocaleTimeString('en-US', { timeZone: clientTz, hour: 'numeric', minute: '2-digit', hour12: true })
-  // Always inject CALLER PHONE — agent should never ask for it; we already have it from Twilio
-  let callerContext = `TODAY: ${todayIso} (${dayOfWeek})\nCURRENT TIME: ${timeNow} (${clientTz})`
-  if (callerPhone !== 'unknown') callerContext += `\nCALLER PHONE: ${callerPhone}`
-  let firstPriorCallId: string | undefined
+  let priorCallRows: PriorCall[] = []
   if (callerPhone !== 'unknown') {
-    const { data: priorCalls } = await supabase
+    const { data: priorData } = await supabase
       .from('call_logs')
       .select('started_at, call_status, ai_summary, caller_name, ultravox_call_id')
       .eq('caller_phone', callerPhone)
       .eq('client_id', client.id)
       .order('started_at', { ascending: false })
       .limit(5)
-
-    if (priorCalls?.length) {
-      const callCount = priorCalls.length
-      const lastCall = priorCalls[0]
-      const lastDate = new Date(lastCall.started_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
-      const lastSummary = lastCall.ai_summary
-        ? ` Last call: ${(lastCall.ai_summary as string).slice(0, 120)}`
-        : ''
-      // Inject caller name if any prior call recorded it
-      const knownName = priorCalls.find(c => c.caller_name)?.caller_name as string | undefined
-      if (knownName) callerContext += `\nCALLER NAME: ${knownName}`
-      callerContext += `\nRETURNING CALLER — ${callCount} prior call${callCount > 1 ? 's' : ''}. Most recent: ${lastDate}.${lastSummary}`
-      firstPriorCallId = (priorCalls[0].ultravox_call_id as string | null) ?? undefined
-      console.log(`[inbound] Returning caller: ${callerPhone} — ${callCount} prior calls${knownName ? `, name=${knownName}` : ''}, context injected`)
-    }
+    priorCallRows = (priorData ?? []) as PriorCall[]
   }
 
-  // ── After-hours injection ──────────────────────────────────────────────────
-  // Parse business_hours_weekday / business_hours_weekend to determine if this call
-  // is outside business hours. If so, append AFTER_HOURS context so the agent
-  // knows to apply the configured after-hours behavior without a prompt rebuild.
-  const weekdayHours = client.business_hours_weekday as string | null
-  const weekendHours = (client.business_hours_weekend as string | null) || null
-  const afterHoursBehavior = (client.after_hours_behavior as string | null) || 'take_message'
-  const afterHoursPhone = (client.after_hours_emergency_phone as string | null) || null
-
-  const isAfterHours = (() => {
-    try {
-      const localNow = new Date(now.toLocaleString('en-US', { timeZone: clientTz }))
-      const dow = localNow.getDay() // 0=Sun,1=Mon,...,6=Sat
-      const isWeekend = dow === 0 || dow === 6
-      const hoursStr = isWeekend ? weekendHours : weekdayHours
-      if (!hoursStr) return false
-      // Parse "9am to 5pm" / "9:00 to 17:00" / "closed" style strings
-      const lower = hoursStr.toLowerCase().trim()
-      if (lower === 'closed' || lower === 'n/a' || lower === '') return true
-      const hourMatch = lower.match(/(\d{1,2})(?::(\d{2}))?(?:\s*)(am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?(?:\s*)(am|pm)?/)
-      if (!hourMatch) return false
-      const toH12 = (h: number, min: number, meridian?: string): number => {
-        if (meridian === 'pm' && h < 12) return (h + 12) * 60 + min
-        if (meridian === 'am' && h === 12) return min
-        return h * 60 + min
-      }
-      const openMin  = toH12(parseInt(hourMatch[1]), parseInt(hourMatch[2] || '0'), hourMatch[3])
-      const closeMin = toH12(parseInt(hourMatch[4]), parseInt(hourMatch[5] || '0'), hourMatch[6])
-      const nowMin   = localNow.getHours() * 60 + localNow.getMinutes()
-      return nowMin < openMin || nowMin >= closeMin
-    } catch {
-      return false
-    }
-  })()
-
-  if (isAfterHours) {
-    const behaviorNote = afterHoursBehavior === 'route_emergency' && afterHoursPhone
-      ? `AFTER HOURS: This call is outside business hours. If this is an emergency, transfer to ${afterHoursPhone}. Otherwise take their details and let them know someone will follow up next business day.`
-      : afterHoursBehavior === 'take_message'
-        ? 'AFTER HOURS: This call is outside business hours. Still help the caller, take their details, and let them know someone will follow up next business day.'
-        : `AFTER HOURS: This call is outside business hours. ${afterHoursBehavior}`
-    callerContext += `\n${behaviorNote}`
-    console.log(`[inbound] After-hours detected for slug=${slug}, behavior=${afterHoursBehavior}`)
+  const clientRow: ClientRow = {
+    id: client.id,
+    slug,
+    niche: client.niche as string | null,
+    business_name: client.business_name as string | null,
+    timezone: client.timezone as string | null,
+    business_hours_weekday: client.business_hours_weekday as string | null,
+    business_hours_weekend: client.business_hours_weekend as string | null,
+    after_hours_behavior: client.after_hours_behavior as string | null,
+    after_hours_emergency_phone: client.after_hours_emergency_phone as string | null,
+    business_facts: client.business_facts as string | null,
+    extra_qa: client.extra_qa as { q: string; a: string }[] | null,
+    context_data: client.context_data as string | null,
+    context_data_label: client.context_data_label as string | null,
+    corpus_enabled: client.corpus_enabled as boolean | null,
   }
+
+  // Phase 4: corpus available when client opted in AND infrastructure exists (global or per-client)
+  const corpusAvailable = !!(client.corpus_enabled && (client.corpus_id || process.env.ULTRAVOX_CORPUS_ID))
+  const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
+
+  if (ctx.caller.isReturningCaller) {
+    console.log(
+      `[inbound] Returning caller: ${callerPhone} — ${ctx.caller.priorCallCount} prior call${ctx.caller.priorCallCount > 1 ? 's' : ''}` +
+      `${ctx.caller.returningCallerName ? `, name=${ctx.caller.returningCallerName}` : ''}, context injected`,
+    )
+  }
+  if (ctx.caller.isAfterHours) {
+    console.log(`[inbound] After-hours detected for slug=${slug}, behavior=${ctx.business.afterHoursBehavior}`)
+  }
+
+  // callerContextBlock = '[TODAY: ...\nCALLER PHONE: ...]'  — for createCall fallback (brackets included)
+  // callerContextRaw   = 'TODAY: ...\nCALLER PHONE: ...'   — for Agents API template substitution (no brackets)
+  const callerContextBlock = ctx.assembled.callerContextBlock
+  const callerContextRaw   = callerContextBlock.slice(1, -1)
+  const firstPriorCallId   = ctx.caller.firstPriorCallId ?? undefined
+  // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
+  // Phase 4: append retrieval instruction when enabled, guarded by prompt length hard max
+  let knowledgeBlockStr = ctx.knowledge.block
+  if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+    const combined = knowledgeBlockStr
+      ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+      : ctx.retrieval.promptInstruction
+    // Hard-max guard: only inject if it won't push the prompt over 8K
+    const estimatedTotal = (client.system_prompt?.length ?? 0) + combined.length + callerContextBlock.length + (ctx.assembled.contextDataBlock?.length ?? 0) + 10
+    if (estimatedTotal <= 8000) {
+      knowledgeBlockStr = combined
+    } else {
+      console.warn(`[inbound] Retrieval instruction skipped for slug=${slug} — would exceed 8K prompt limit (estimated ${estimatedTotal} chars)`)
+    }
+  }
+  const contextDataStr     = ctx.assembled.contextDataBlock
 
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed
   const rawCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
   const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
-  // ── Context data injection ────────────────────────────────────────────────
-  const contextDataStr = (client.context_data as string | null)
-    ? buildContextBlock(
-        (client.context_data_label as string | null) || 'Reference Data',
-        client.context_data as string
-      )
-    : ''
-
-  // ── Business facts + extra Q&A injection ─────────────────────────────────
-  const businessFactsStr = (client.business_facts as string | null)
-    ? buildContextBlock('Business Facts', client.business_facts as string)
-    : ''
-
-  const extraQaRaw = (client.extra_qa as { q: string; a: string }[] | null) ?? []
-  const extraQaFormatted = extraQaRaw
-    .filter(p => p.q?.trim() && p.a?.trim())
-    .map(p => `"${p.q}" → "${p.a}"`)
-    .join('\n')
-  const extraQaStr = extraQaFormatted
-    ? buildContextBlock('Q&A', extraQaFormatted)
-    : ''
-
-  // ── Per-client VAD tuning ─────────────────────────────────────────────────
   // ── Create Ultravox call ───────────────────────────────────────────────────
   const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }
-  const promptWithContext = callerContext
-    ? client.system_prompt + `\n\n[${callerContext}]`
-    : client.system_prompt
-  let promptFull = promptWithContext
-  if (businessFactsStr) promptFull += `\n\n${businessFactsStr}`
-  if (extraQaStr)       promptFull += `\n\n${extraQaStr}`
-  if (contextDataStr)   promptFull += `\n\n${contextDataStr}`
+  // createCall fallback: callerContextBlock already has [brackets], append directly
+  let promptFull = client.system_prompt + `\n\n${callerContextBlock}`
+  if (knowledgeBlockStr) promptFull += `\n\n${knowledgeBlockStr}`
+  if (contextDataStr)    promptFull += `\n\n${contextDataStr}`
 
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
@@ -227,10 +187,9 @@ export async function POST(
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
-          ...(callerContext    ? { callerContext }                    : {}),
-          ...(businessFactsStr ? { businessFacts: businessFactsStr } : {}),
-          ...(extraQaStr       ? { extraQa: extraQaStr }             : {}),
-          ...(contextDataStr   ? { contextData: contextDataStr }     : {}),
+          ...(callerContextRaw   ? { callerContext: callerContextRaw }          : {}),
+          ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr }         : {}),
+          ...(contextDataStr   ? { contextData: contextDataStr }              : {}),
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall

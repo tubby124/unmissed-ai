@@ -13,6 +13,7 @@ import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
+import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,14 +40,40 @@ export async function activateClient(params: {
 
   console.log(`${logPrefix} Starting activation for slug=${clientSlug} intake=${intakeId}`)
 
-  // ── Fetch client row for business_name + niche ─────────────────────────────
+  // ── Fetch client row for business_name + niche + guard fields ───────────────
   const { data: existingClient } = await adminSupa
     .from('clients')
-    .select('business_name, niche')
+    .select('business_name, niche, status, activation_log, stripe_subscription_id, trial_expires_at, trial_converted')
     .eq('id', clientId)
     .single()
 
-  const businessName = existingClient?.business_name ?? clientSlug
+  if (!existingClient) {
+    console.error(`${logPrefix} Client not found: id=${clientId}`)
+    return { success: false, error: `client not found: ${clientId}` }
+  }
+
+  const businessName = existingClient.business_name ?? clientSlug
+
+  // ── Phase 6: Pre-activation guards (idempotency + state transition) ────────
+  const guardRow: ClientRowForGuard = {
+    status: (existingClient.status as ClientRowForGuard['status']) ?? 'setup',
+    activation_log: existingClient.activation_log as Record<string, unknown> | null,
+    stripe_subscription_id: existingClient.stripe_subscription_id as string | null,
+    trial_expires_at: existingClient.trial_expires_at as string | null,
+    trial_converted: existingClient.trial_converted as boolean | null,
+  }
+  const guardResult = runActivationGuards(guardRow, mode)
+  if (!guardResult.allowed) {
+    if (guardResult.alreadyActivated) {
+      console.log(`${logPrefix} Idempotency guard: slug=${clientSlug} already activated — skipping`)
+      return { success: true, twilioNumber: undefined, telegramLink: undefined, setupUrl: undefined }
+    }
+    console.error(`${logPrefix} Guard blocked activation: ${guardResult.reason}`)
+    return { success: false, error: `guard blocked: ${guardResult.reason}` }
+  }
+
+  // ── Phase 6: Step result tracking ───────────────────────────────────────────
+  const steps: StepResult[] = []
 
   // ── Fetch admin Telegram config (fetched once, used for step-by-step alerts) ─
   const { data: adminClient } = await adminSupa
@@ -142,10 +169,12 @@ export async function activateClient(params: {
           .eq('phone_number', reservedNumber)
 
         twilioNumber = reservedNumber
+        steps.push({ step: 'twilio_assign', ok: true })
       } catch (err) {
         console.error(`${logPrefix} Inventory path threw for ${reservedNumber}: ${err}`)
         void notifyAdmin(adminBot, adminChat, `⚠️ Inventory path threw: ${String(err).slice(0, 100)}`)
         twilioNumber = reservedNumber // still assign — client paid
+        steps.push({ step: 'twilio_assign', ok: true }) // number assigned despite PATCH issue
       }
     } else {
       // ── Fresh path: search + buy a new Twilio number ──────────────────────────
@@ -214,20 +243,47 @@ export async function activateClient(params: {
             twilioNumber = buyData.phone_number
             console.log(`${logPrefix} Twilio number purchased: ${twilioNumber} for slug=${clientSlug}`)
             void notifyAdmin(adminBot, adminChat, `📞 Twilio number purchased: <b>${twilioNumber}</b> for ${businessName}`)
+            steps.push({ step: 'twilio_purchase', ok: true })
           } else {
             const errText = await buyRes.text()
             console.error(`${logPrefix} Twilio number purchase failed for slug=${clientSlug}: ${errText}`)
             void notifyAdmin(adminBot, adminChat, `⚠️ Twilio number purchase FAILED for ${businessName}`)
+            steps.push({ step: 'twilio_purchase', ok: false, error: `purchase failed: ${errText.slice(0, 200)}` })
           }
         } else {
           console.error(`${logPrefix} No available Twilio numbers found for slug=${clientSlug}`)
           void notifyAdmin(adminBot, adminChat, `⚠️ No Twilio numbers available for ${businessName}`)
+          steps.push({ step: 'twilio_purchase', ok: false, error: 'no numbers available' })
         }
       } catch (err) {
         console.error(`${logPrefix} Twilio step threw: ${err}`)
         void notifyAdmin(adminBot, adminChat, `⚠️ Twilio step threw: ${String(err).slice(0, 100)}`)
+        steps.push({ step: 'twilio_purchase', ok: false, error: String(err).slice(0, 200) })
       }
     }
+  } else {
+    steps.push({ step: 'twilio_purchase', ok: false, skipped: true, skipReason: 'trial mode' })
+  }
+
+  // ── Phase 6: Early exit on critical Twilio failure ─────────────────────────
+  if (hasCriticalFailure(steps, mode)) {
+    const stepSummary = summarizeSteps(steps)
+    console.error(`${logPrefix} Critical failure — Twilio step failed for slug=${clientSlug}`)
+    void notifyAdmin(adminBot, adminChat, `❌ Activation ABORTED for ${businessName} — Twilio failure. Manual recovery needed.`)
+    // Write partial activation_log so admin knows what happened
+    try {
+      await adminSupa.from('clients').update({
+        activation_log: {
+          activated_at: new Date().toISOString(),
+          mode,
+          aborted: true,
+          abort_reason: 'critical_twilio_failure',
+          steps: stepSummary,
+          intake_id: intakeId,
+        },
+      }).eq('id', clientId)
+    } catch { /* best effort */ }
+    return { success: false, error: 'critical failure: Twilio number not acquired' }
   }
 
   // ── Auth user creation + welcome email (skip for trial_convert — user exists) ─
@@ -368,17 +424,28 @@ export async function activateClient(params: {
 
         console.log(`${logPrefix} Auth user resolved and password email sent to ${contactEmail}`)
         void notifyAdmin(adminBot, adminChat, `👤 Auth account linked, welcome email sent to ${contactEmail}`)
+        steps.push({ step: 'auth_user', ok: true })
+        steps.push({ step: 'welcome_email', ok: emailActuallySent, error: emailActuallySent ? undefined : emailFailReason ?? 'unknown' })
       } else if (emailFailReason) {
         void notifyAdmin(adminBot, adminChat, `⚠️ Auth/email step: user not resolved for ${contactEmail}`)
+        steps.push({ step: 'auth_user', ok: false, error: emailFailReason })
+        steps.push({ step: 'welcome_email', ok: false, error: 'user not resolved' })
       }
     } catch (err) {
       emailFailReason = String(err)
       console.error(`${logPrefix} Auth user creation threw: ${err}`)
       void notifyAdmin(adminBot, adminChat, `❌ Auth/email step failed for ${businessName}: ${String(err).slice(0, 100)}`)
+      steps.push({ step: 'auth_user', ok: false, error: String(err).slice(0, 200) })
+      steps.push({ step: 'welcome_email', ok: false, error: 'auth step failed' })
     }
-  } else if (mode !== 'trial_convert' && !contactEmail) {
+  } else if (mode === 'trial_convert') {
+    steps.push({ step: 'auth_user', ok: false, skipped: true, skipReason: 'trial_convert — user exists' })
+    steps.push({ step: 'welcome_email', ok: false, skipped: true, skipReason: 'trial_convert' })
+  } else if (!contactEmail) {
     emailFailReason = 'no contact email on intake'
     console.warn(`${logPrefix} No contact_email on intake ${intakeId} — skipping auth user creation`)
+    steps.push({ step: 'auth_user', ok: false, skipped: true, skipReason: 'no contact email' })
+    steps.push({ step: 'welcome_email', ok: false, skipped: true, skipReason: 'no contact email' })
   }
 
   // ── Onboarding SMS from new number (skip for trial — no number to send from) ─
@@ -417,12 +484,19 @@ export async function activateClient(params: {
     } catch (err) {
       smsSkipReason = `threw: ${err}`
       console.error(`${logPrefix} SMS threw: ${err}`)
+      steps.push({ step: 'onboarding_sms', ok: false, error: String(err).slice(0, 200) })
+    }
+    if (smsSent) steps.push({ step: 'onboarding_sms', ok: true })
+    else if (!steps.find(s => s.step === 'onboarding_sms')) {
+      steps.push({ step: 'onboarding_sms', ok: false, error: smsSkipReason ?? 'unknown' })
     }
   } else if (mode === 'trial') {
     smsSkipReason = 'trial mode — no Twilio number'
+    steps.push({ step: 'onboarding_sms', ok: false, skipped: true, skipReason: smsSkipReason })
   } else {
     smsSkipReason = !twilioNumber ? 'no Twilio number purchased' : 'no callbackPhone in intake'
     console.warn(`${logPrefix} SMS skipped for slug=${clientSlug}: ${smsSkipReason}`)
+    steps.push({ step: 'onboarding_sms', ok: false, skipped: true, skipReason: smsSkipReason })
   }
 
   // ── Update clients row ─────────────────────────────────────────────────────
@@ -454,8 +528,10 @@ export async function activateClient(params: {
 
     await adminSupa.from('clients').update(updatePayload).eq('id', clientId)
     console.log(`${logPrefix} clients.status → active for slug=${clientSlug}`)
+    steps.push({ step: 'client_update', ok: true })
   } catch (err) {
     console.error(`${logPrefix} clients update threw: ${err}`)
+    steps.push({ step: 'client_update', ok: false, error: String(err).slice(0, 200) })
   }
 
   // ── Mark intake as activated ──────────────────────────────────────────────
@@ -464,8 +540,10 @@ export async function activateClient(params: {
       .from('intake_submissions')
       .update({ progress_status: 'activated' })
       .eq('id', intakeId)
+    steps.push({ step: 'intake_update', ok: true })
   } catch (err) {
     console.error(`${logPrefix} intake progress_status update threw: ${err}`)
+    steps.push({ step: 'intake_update', ok: false, error: String(err).slice(0, 200) })
   }
 
   // ── Link knowledge docs from intake to client ────────────────────────────────
@@ -476,8 +554,10 @@ export async function activateClient(params: {
       .eq('intake_id', intakeId)
       .is('client_id', null)
     console.log(`${logPrefix} Linked knowledge docs from intake=${intakeId} to client=${clientId}`)
+    steps.push({ step: 'knowledge_docs', ok: true })
   } catch (err) {
     console.error(`${logPrefix} knowledge doc linking threw: ${err}`)
+    steps.push({ step: 'knowledge_docs', ok: false, error: String(err).slice(0, 200) })
   }
 
   // ── Persist FAQ pairs to clients.extra_qa ────────────────────────────────────
@@ -488,10 +568,16 @@ export async function activateClient(params: {
       if (Array.isArray(faqPairs) && faqPairs.length > 0) {
         await adminSupa.from('clients').update({ extra_qa: faqPairs }).eq('id', clientId)
         console.log(`${logPrefix} Persisted ${faqPairs.length} FAQ pairs to clients.extra_qa`)
+        steps.push({ step: 'faq_persist', ok: true })
+      } else {
+        steps.push({ step: 'faq_persist', ok: false, skipped: true, skipReason: 'no FAQ pairs' })
       }
+    } else {
+      steps.push({ step: 'faq_persist', ok: false, skipped: true, skipReason: 'no FAQ data in intake' })
     }
   } catch (err) {
     console.error(`${logPrefix} FAQ pairs persistence threw: ${err}`)
+    steps.push({ step: 'faq_persist', ok: false, error: String(err).slice(0, 200) })
   }
 
   // ── Telegram alert to admin (with client registration link) ─────────────────
@@ -527,13 +613,18 @@ export async function activateClient(params: {
         adminCl.telegram_chat_id as string,
         msg
       )
+      steps.push({ step: 'telegram_alert', ok: true })
+    } else {
+      steps.push({ step: 'telegram_alert', ok: true, skipped: true, skipReason: 'no admin telegram config' })
     }
   } catch (err) {
     console.error(`${logPrefix} Telegram alert threw: ${err}`)
+    steps.push({ step: 'telegram_alert', ok: false, error: String(err).slice(0, 200) })
   }
 
-  // ── Write activation_log audit trail ───────────────────────────────────────
+  // ── Write activation_log audit trail (Phase 6: includes step summary) ─────
   try {
+    const stepSummary = summarizeSteps(steps)
     const activationLog = {
       activated_at: new Date().toISOString(),
       mode,
@@ -550,14 +641,24 @@ export async function activateClient(params: {
       email_skip_reason: emailActuallySent ? null : (emailFailReason ?? 'unknown'),
       intake_id: intakeId,
       trial_days: mode === 'trial' ? trialDays : null,
+      steps: stepSummary, // Phase 6: per-step audit trail
     }
     await adminSupa
       .from('clients')
       .update({ activation_log: activationLog })
       .eq('id', clientId)
+    steps.push({ step: 'activation_log', ok: true })
     console.log(`${logPrefix} activation_log written for slug=${clientSlug}`)
   } catch (err) {
     console.error(`${logPrefix} activation_log write threw: ${err}`)
+    steps.push({ step: 'activation_log', ok: false, error: String(err).slice(0, 200) })
+  }
+
+  // ── Phase 6: Final critical failure check ──────────────────────────────────
+  const hadCriticalFailure = hasCriticalFailure(steps, mode)
+  if (hadCriticalFailure) {
+    console.error(`${logPrefix} Activation completed with critical failures for slug=${clientSlug}`)
+    return { success: false, error: 'activation completed with critical step failures', twilioNumber: twilioNumber ?? undefined, telegramLink, setupUrl }
   }
 
   console.log(`${logPrefix} Activation complete for slug=${clientSlug}`)

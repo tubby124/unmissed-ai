@@ -1,4 +1,6 @@
 import { wrapSection } from '@/lib/prompt-sections'
+import { getCapabilities } from '@/lib/niche-capabilities'
+import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summary'
 
 /**
  * prompt-builder.ts — TypeScript port of PROVISIONING/app/prompt_builder.py
@@ -1923,9 +1925,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     }
   }
 
-  // Transfer — if owner_phone provided, enable transfer
+  // Transfer — if owner_phone provided AND niche supports live transfers
   const ownerPhone = intake.owner_phone as string | undefined
-  if (ownerPhone?.trim()) {
+  const caps = getCapabilities(niche)
+  if (ownerPhone?.trim() && caps.transferCalls) {
     variables.OWNER_PHONE = ownerPhone
     variables.TRANSFER_ENABLED = 'true'
   }
@@ -2248,8 +2251,8 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     prompt += variables._KNOWLEDGE_DOCS
   }
 
-  // Append calendar booking block if booking_enabled
-  if (intake.booking_enabled === true) {
+  // Append calendar booking block if booking_enabled AND niche supports appointments
+  if (intake.booking_enabled === true && caps.bookAppointments) {
     const serviceType = variables.SERVICE_APPOINTMENT_TYPE || 'appointment'
     const closePerson = variables.CLOSE_PERSON || 'the team'
     prompt += '\n\n' + buildCalendarBlock(serviceType, closePerson)
@@ -2325,9 +2328,11 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings.push('PRODUCT KNOWLEDGE BASE placeholder was not replaced with client-specific content')
   }
 
-  // Warn if unusually long
-  if (prompt.length > 18000) {
-    warnings.push(`Prompt is very long: ${prompt.length} chars — may exceed Ultravox limits`)
+  // Phase 3: GLM-4.6 prompt length enforcement
+  if (prompt.length > PROMPT_CHAR_HARD_MAX) {
+    errors.push(`Prompt exceeds hard max: ${prompt.length} chars (limit ${PROMPT_CHAR_HARD_MAX}) — will degrade GLM-4.6 performance`)
+  } else if (prompt.length > PROMPT_CHAR_TARGET) {
+    warnings.push(`Prompt exceeds target: ${prompt.length} chars (target ${PROMPT_CHAR_TARGET}, hard max ${PROMPT_CHAR_HARD_MAX})`)
   }
 
   // Required sections — only check what the inbound template actually contains.
