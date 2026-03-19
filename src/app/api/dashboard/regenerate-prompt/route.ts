@@ -120,10 +120,12 @@ export async function POST(req: NextRequest) {
               knownValue: 'KNOWN_PARAM_CALL_ID',
             },
           ],
+          staticParameters: [
+            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          ],
           http: {
             baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
             httpMethod: 'POST',
-            staticHeaders: { 'X-Transfer-Secret': process.env.WEBHOOK_SIGNING_SECRET ?? '' },
           },
         },
       }
