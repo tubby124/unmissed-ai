@@ -66,7 +66,8 @@ export async function POST(
     const calendarId = (client.google_calendar_id as string) || 'primary'
 
     // G11: Re-verify the slot is still available before booking (race condition prevention)
-    const freshSlots = await listSlots(accessToken, calendarId, date, timezone, durationMinutes, bufferMinutes)
+    // maxSlots=50 so we scan the full day — default of 3 would miss any slot offered beyond position 3
+    const freshSlots = await listSlots(accessToken, calendarId, date, timezone, durationMinutes, bufferMinutes, '09:00', '18:00', 50)
     // Normalize input time to "H:MM AM/PM" before matching displayTime
     const normalizedTime = normalizeTime(time)
     const matchedSlot = freshSlots.find(s =>
