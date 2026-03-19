@@ -168,6 +168,16 @@ export default function AgentTab({
   const [setupSaved, setSetupSaved] = useState(false)
   const [setupEditing, setSetupEditing] = useState(false)
 
+  // ─── Website Knowledge state (admin only) ────────────────────────────────
+  const [scrapeLoading, setScrapeLoading] = useState(false)
+  const [approveLoading, setApproveLoading] = useState(false)
+  const [scrapeError, setScrapeError] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState(client.website_url || '')
+  const [scrapePreview, setScrapePreview] = useState(client.website_knowledge_preview)
+  const [scrapeStatus, setScrapeStatus] = useState(client.website_scrape_status || 'idle')
+  const [corpusStatus, setCorpusStatus] = useState(client.ultravox_corpus_status || 'idle')
+  const [websiteKnowledgeCollapsed, setWebsiteKnowledgeCollapsed] = useState(true)
+
   // ─── Derived values ────────────────────────────────────────────────────────
   const niche = client.niche ?? ''
   const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 't2', border: 'border-zinc-500/30' }
@@ -1434,6 +1444,242 @@ export default function AgentTab({
           transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.01 }}
         >
           <CapabilitiesCard client={client} />
+        </motion.div>
+      )}
+
+      {/* 5b — Website Knowledge (admin only) */}
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.015 }}
+        >
+          <div className="rounded-2xl border b-theme bg-surface p-5">
+            {/* Collapsible header */}
+            <button
+              onClick={() => setWebsiteKnowledgeCollapsed(v => !v)}
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Website Knowledge</p>
+                {/* Status badge */}
+                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                  scrapeStatus === 'approved' || scrapeStatus === 'ready'
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : scrapeStatus === 'scraping' || scrapeStatus === 'syncing'
+                    ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                    : scrapeStatus === 'failed'
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    : scrapeStatus === 'extracted'
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    : 'bg-zinc-500/10 t3 border border-zinc-500/20'
+                }`}>
+                  {scrapeStatus}
+                </span>
+                {corpusStatus && corpusStatus !== 'idle' && (
+                  <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                    corpusStatus === 'ready'
+                      ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                      : corpusStatus === 'syncing'
+                      ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                      : corpusStatus === 'failed'
+                      ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      : 'bg-zinc-500/10 t3 border border-zinc-500/20'
+                  }`}>
+                    corpus: {corpusStatus}
+                  </span>
+                )}
+              </div>
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                className={`t3 transition-transform ${websiteKnowledgeCollapsed ? '' : 'rotate-180'}`}
+              >
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <AnimatePresence>
+              {!websiteKnowledgeCollapsed && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 space-y-4">
+                    {/* URL input + scrape button */}
+                    <div>
+                      <label className="text-[10px] t3 mb-1 block">Website URL</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={websiteUrl}
+                          onChange={e => setWebsiteUrl(e.target.value)}
+                          placeholder="https://example.com"
+                          className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors"
+                        />
+                        <button
+                          onClick={async () => {
+                            setScrapeLoading(true)
+                            setScrapeError('')
+                            try {
+                              const res = await fetch('/api/dashboard/scrape-website', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: client.id, url: websiteUrl }),
+                              })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data.error || 'Scrape failed')
+                              setScrapePreview(data.preview)
+                              setScrapeStatus(data.status)
+                            } catch (err) {
+                              setScrapeError(err instanceof Error ? err.message : 'Scrape failed')
+                              setScrapeStatus('failed')
+                            } finally {
+                              setScrapeLoading(false)
+                            }
+                          }}
+                          disabled={scrapeLoading || !websiteUrl.trim()}
+                          className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-40 shrink-0"
+                        >
+                          {scrapeLoading ? 'Scraping...' : 'Scrape'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Last scraped time */}
+                    {client.website_last_scraped_at && (
+                      <p className="text-[10px] t3">
+                        Last scraped: {fmtDate(client.website_last_scraped_at)}
+                      </p>
+                    )}
+
+                    {/* Error display */}
+                    {(scrapeError || client.website_scrape_error) && (
+                      <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0 mt-0.5">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span className="text-[11px] text-red-400/90">{scrapeError || client.website_scrape_error}</span>
+                      </div>
+                    )}
+
+                    {/* Preview section — shown when extracted */}
+                    {scrapeStatus === 'extracted' && scrapePreview && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Extracted Knowledge Preview</p>
+
+                        {/* Business facts */}
+                        {scrapePreview.businessFacts && scrapePreview.businessFacts.length > 0 && (
+                          <div>
+                            <p className="text-[10px] t3 mb-1 font-medium">Business Facts</p>
+                            <ul className="space-y-1">
+                              {scrapePreview.businessFacts.map((fact: string, i: number) => (
+                                <li key={i} className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                                  <span className="text-blue-400 mt-0.5 shrink-0">&#8226;</span>
+                                  {fact}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Extra Q&A pairs */}
+                        {scrapePreview.extraQa && scrapePreview.extraQa.length > 0 && (
+                          <div>
+                            <p className="text-[10px] t3 mb-1 font-medium">Q&A Pairs</p>
+                            <div className="space-y-2">
+                              {scrapePreview.extraQa.map((qa: { q: string; a: string }, i: number) => (
+                                <div key={i} className="rounded-xl bg-black/10 border b-theme p-3">
+                                  <p className="text-[11px] t1 font-medium">Q: {qa.q}</p>
+                                  <p className="text-[11px] t2 mt-1">A: {qa.a}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Service tags */}
+                        {scrapePreview.serviceTags && scrapePreview.serviceTags.length > 0 && (
+                          <div>
+                            <p className="text-[10px] t3 mb-1 font-medium">Service Tags</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {scrapePreview.serviceTags.map((tag: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Warnings */}
+                        {scrapePreview.warnings && scrapePreview.warnings.length > 0 && (
+                          <div>
+                            <p className="text-[10px] t3 mb-1 font-medium">Warnings</p>
+                            <div className="space-y-1">
+                              {scrapePreview.warnings.map((w: string, i: number) => (
+                                <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0 mt-0.5">
+                                    <path d="M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 003.42 21h17.16a2 2 0 001.73-2.98l-8.6-14.86a2 2 0 00-3.46 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  <span className="text-[11px] text-orange-400/90">{w}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Approve button */}
+                        <button
+                          onClick={async () => {
+                            setApproveLoading(true)
+                            setScrapeError('')
+                            try {
+                              const res = await fetch('/api/dashboard/approve-website-knowledge', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId: client.id }),
+                              })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data.error || 'Approval failed')
+                              setScrapeStatus('approved')
+                              setCorpusStatus(data.corpusStatus)
+                            } catch (err) {
+                              setScrapeError(err instanceof Error ? err.message : 'Approval failed')
+                            } finally {
+                              setApproveLoading(false)
+                            }
+                          }}
+                          disabled={approveLoading}
+                          className="w-full px-4 py-2.5 text-xs font-semibold rounded-xl bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-40"
+                        >
+                          {approveLoading ? 'Approving...' : 'Approve & Sync to Corpus'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Approved confirmation */}
+                    {scrapeStatus === 'approved' && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[11px] text-green-400/90">
+                          Knowledge approved and {corpusStatus === 'ready' ? 'synced to corpus' : corpusStatus === 'syncing' ? 'syncing to corpus...' : 'queued for corpus sync'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       )}
 

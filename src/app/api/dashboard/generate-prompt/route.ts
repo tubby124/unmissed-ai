@@ -17,7 +17,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
-import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
+import { scrapeWebsite } from '@/lib/website-scraper'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -97,11 +97,30 @@ export async function POST(req: NextRequest) {
   let websiteContent = ''
   const websiteUrl = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
   if (websiteUrl) {
-    const rawMarkdown = await scrapeAndExtract(websiteUrl)
-    if (rawMarkdown) {
-      websiteContent = await extractBusinessContent(rawMarkdown)
+    const niche = intake.niche || 'other'
+    const scrapeResult = await scrapeWebsite(websiteUrl, niche)
+    if (scrapeResult.rawContent) {
+      // Combine structured facts into a text block for prompt injection
+      const factLines = scrapeResult.businessFacts.map(f => `- ${f}`).join('\n')
+      const qaLines = scrapeResult.extraQa.map(qa => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
+      websiteContent = [factLines, qaLines].filter(Boolean).join('\n\n')
       if (websiteContent) {
         console.log(`[generate-prompt] Website scraping: ${websiteContent.length} chars extracted from ${websiteUrl}`)
+      }
+
+      // Persist extracted knowledge to clients row for future use
+      if (intake.client_slug) {
+        await svc
+          .from('clients')
+          .update({
+            website_url: websiteUrl,
+            website_knowledge_preview: scrapeResult,
+            website_scrape_status: 'extracted',
+            website_last_scraped_at: new Date().toISOString(),
+            website_scrape_pages: [websiteUrl],
+          })
+          .eq('slug', intake.client_slug)
+        console.log(`[generate-prompt] Persisted website knowledge for ${intake.client_slug}`)
       }
     }
   }

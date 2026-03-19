@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent } from '@/lib/ultravox'
 import { getNicheVoice } from '@/lib/niche-config'
-import { scrapeAndExtract, extractBusinessContent } from '@/lib/firecrawl'
+import { scrapeWebsite } from '@/lib/website-scraper'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -188,9 +188,12 @@ export async function POST(req: NextRequest) {
     let websiteContent = ''
     const websiteUrlForScrape = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
     if (websiteUrlForScrape) {
-      const rawMarkdown = await scrapeAndExtract(websiteUrlForScrape)
-      if (rawMarkdown) {
-        websiteContent = await extractBusinessContent(rawMarkdown)
+      const niche = intake.niche || 'other'
+      const scrapeResult = await scrapeWebsite(websiteUrlForScrape, niche)
+      if (scrapeResult.rawContent) {
+        const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join('\n')
+        const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
+        websiteContent = [factLines, qaLines].filter(Boolean).join('\n\n')
         if (websiteContent) {
           console.log(`[create-public-checkout] Website scraping: ${websiteContent.length} chars for slug=${clientSlug}`)
         }

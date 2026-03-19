@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id, ultravox_corpus_status')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -130,8 +130,8 @@ export async function POST(
     corpus_enabled: client.corpus_enabled as boolean | null,
   }
 
-  // Phase 4: corpus available when client opted in AND infrastructure exists (global or per-client)
-  const corpusAvailable = !!(client.corpus_enabled && (client.corpus_id || process.env.ULTRAVOX_CORPUS_ID))
+  // Phase 4: corpus available when client opted in AND either their corpus is ready or global corpus exists
+  const corpusAvailable = !!(client.corpus_enabled && (client.ultravox_corpus_status === 'ready' || !!process.env.ULTRAVOX_CORPUS_ID))
   const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
 
   if (ctx.caller.isReturningCaller) {
