@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   if (clientId) {
     const { data: client } = await supabase
       .from('clients')
-      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, transfer_enabled, system_prompt')
+      .select('business_name, niche, slug, agent_name, services_offered, hours, business_facts, status, twilio_number, booking_enabled, forwarding_number, system_prompt')
       .eq('id', clientId)
       .single()
 
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
         twilioNumber: client.twilio_number,
         niche: client.niche,
         bookingEnabled: client.booking_enabled ?? false,
-        transferEnabled: client.transfer_enabled ?? false,
+        transferEnabled: !!client.forwarding_number,
         forwardingNumber: client.forwarding_number,
         agentName: client.agent_name,
         userName: user.user_metadata?.full_name || user.email?.split('@')[0] || null,

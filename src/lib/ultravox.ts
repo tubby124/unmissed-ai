@@ -156,6 +156,16 @@ interface UltravoxToolDefinition {
     schema: { type: string; description?: string }
     required: boolean
   }>
+  automaticParameters?: Array<{
+    name: string
+    location: string
+    knownValue: string
+  }>
+  staticParameters?: Array<{
+    name: string
+    location: string
+    value: string
+  }>
   http?: {
     baseUrlPattern: string
     httpMethod: string
@@ -228,21 +238,52 @@ interface AgentConfig {
   slug?: string
   /** When true, inject Google Calendar availability + booking tools into selectedTools. */
   booking_enabled?: boolean
-  /** E.164 number for live call transfer (e.g. '+13065551234'). */
+  /** E.164 number for live call transfer (e.g. '+13065551234'). When set, injects transferCall HTTP tool. */
   forwarding_number?: string
-  /** When true AND forwarding_number is set, inject coldTransfer tool into selectedTools. */
-  transfer_enabled?: boolean
   /** Per-client Ultravox corpus ID. When set (and corpus_enabled), injects queryCorpus tool. */
   corpus_id?: string | null
 }
 
-/** Build coldTransfer tool entries for native SIP transfer via Ultravox. */
-export function buildTransferTools(forwardingNumber: string): UltravoxTool[] {
+/**
+ * Build transferCall HTTP tool for live call transfer via our webhook.
+ * Flow: Ultravox → POST /api/webhook/{slug}/transfer → Twilio redirectCall → <Dial> with recovery.
+ * NOT using Ultravox built-in coldTransfer — SIP INVITE doesn't work over Twilio's WebSocket Stream.
+ */
+export function buildTransferTools(slug: string, transferConditions?: string | null): UltravoxTool[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  const description = transferConditions
+    ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
+    : 'Transfer the call to the owner ONLY when the caller explicitly asks to speak to someone directly, says "put me through", "connect me", or insists on speaking to a person. Do not use for general questions the agent can answer.'
+
   return [{
-    toolName: 'coldTransfer',
-    parameterOverrides: {
-      target: forwardingNumber,
-      sipVerb: 'INVITE',  // safer for Twilio — REFER may not work
+    temporaryTool: {
+      modelToolName: 'transferCall',
+      description,
+      dynamicParameters: [
+        {
+          name: 'reason',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: 'Reason for transfer' },
+          required: false,
+        },
+      ],
+      automaticParameters: [
+        {
+          name: 'call_id',
+          location: 'PARAMETER_LOCATION_BODY',
+          knownValue: 'KNOWN_PARAM_CALL_ID',
+        },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/webhook/${slug}/transfer`,
+        httpMethod: 'POST',
+      },
     },
   }]
 }
@@ -266,7 +307,7 @@ export function buildCorpusTools(corpusId?: string | null): UltravoxTool[] {
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, transfer_enabled, corpus_id }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -293,7 +334,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
   const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
-  const transferTools: object[] = (transfer_enabled && forwarding_number) ? buildTransferTools(forwarding_number) : []
+  const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug) : []
   const corpusTools: object[] = buildCorpusTools(corpus_id)
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
@@ -359,7 +400,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
   const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
-  const transferTools: object[] = (updates.transfer_enabled && updates.forwarding_number) ? buildTransferTools(updates.forwarding_number) : []
+  const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug) : []
   const corpusTools: object[] = buildCorpusTools(updates.corpus_id)
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
