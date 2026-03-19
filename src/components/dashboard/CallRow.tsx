@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import StatusBadge from './StatusBadge'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
+import LiveDuration from './LiveDuration'
 
 interface TranscriptMsg { role: string; text: string }
 
@@ -24,6 +25,17 @@ interface CallLog {
   key_topics?: string[] | null
   next_steps?: string | null
   quality_score?: number | null
+  transfer_status?: string | null
+}
+
+const TRANSFER_BADGE: Record<string, { label: string; color: string; pulse?: boolean }> = {
+  transferring: { label: 'Transferring...', color: 'blue', pulse: true },
+  completed:    { label: 'Transferred',     color: 'green' },
+  recovered:    { label: 'Recovered by AI', color: 'green' },
+  no_answer:    { label: 'No Answer',       color: 'amber' },
+  busy:         { label: 'Busy',            color: 'amber' },
+  failed:       { label: 'Transfer Failed', color: 'red' },
+  canceled:     { label: 'Canceled',        color: 'amber' },
 }
 
 const STATUS_STRIPE: Record<string, string> = {
@@ -142,6 +154,22 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
           </span>
           <StatusBadge status={call.call_status} showDot={false} />
 
+          {/* Transfer status badge */}
+          {call.transfer_status && TRANSFER_BADGE[call.transfer_status] && (() => {
+            const b = TRANSFER_BADGE[call.transfer_status!]
+            const colorMap: Record<string, string> = {
+              blue: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+              green: 'bg-green-500/15 text-green-400 border-green-500/30',
+              amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+              red: 'bg-red-500/15 text-red-400 border-red-500/30',
+            }
+            return (
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colorMap[b.color] ?? ''} ${b.pulse ? 'animate-pulse' : ''}`}>
+                {b.label}
+              </span>
+            )
+          })()}
+
           {/* HOT lead call-back button */}
           {call.call_status === 'HOT' && call.caller_phone && onCallBack && (
             <button
@@ -163,9 +191,11 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             </span>
           )}
           <div className="ml-auto flex items-center gap-2 shrink-0">
-            {dur && (
+            {call.call_status === 'live' ? (
+              <LiveDuration startedAt={call.started_at} className="text-[11px] font-mono text-green-400" />
+            ) : dur ? (
               <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{dur}</span>
-            )}
+            ) : null}
             <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{timeAgo(call.started_at)}</span>
             {!isProcessingOrLive && (
               <motion.svg

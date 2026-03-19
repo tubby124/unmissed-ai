@@ -35,6 +35,27 @@ export async function POST(
 
   console.log(`[transfer-status] slug=${slug} dialStatus=${dialStatus} callSid=${callSid} caller=${callerPhone}`)
 
+  // Map Twilio dialStatus to our normalized enum
+  const STATUS_MAP: Record<string, string> = {
+    'completed': 'completed',
+    'no-answer': 'no_answer',
+    'busy': 'busy',
+    'failed': 'failed',
+    'canceled': 'canceled',
+  }
+
+  const supabase = createServiceClient()
+
+  // Update transfer_status on the original call log
+  const normalizedStatus = STATUS_MAP[dialStatus] ?? 'failed'
+  supabase.from('call_logs')
+    .update({ transfer_status: normalizedStatus, transfer_updated_at: new Date().toISOString() })
+    .eq('twilio_call_sid', callSid)
+    .eq('transfer_status', 'transferring')
+    .then(({ error }) => {
+      if (error) console.warn(`[transfer-status] Failed to update transfer_status: ${error.message}`)
+    })
+
   // If the transfer succeeded, nothing to do — Twilio already connected the call
   if (dialStatus === 'completed') {
     console.log(`[transfer-status] Transfer succeeded for slug=${slug}, returning empty response`)
@@ -46,8 +67,6 @@ export async function POST(
 
   // Transfer failed (no-answer, busy, failed, canceled) — reconnect to AI agent
   console.log(`[transfer-status] Transfer failed (${dialStatus}) for slug=${slug}, reconnecting to AI agent`)
-
-  const supabase = createServiceClient()
 
   // Guard: max 1 reconnect per Twilio CallSid — prevent infinite loop
   const { count: recoveryCount } = await supabase
@@ -162,6 +181,15 @@ export async function POST(
     }
 
     console.log(`[transfer-status] Reconnecting to Ultravox: callId=${ultravoxCall.callId} for slug=${slug}`)
+
+    // Mark the original call as 'recovered' — AI resumed the conversation
+    supabase.from('call_logs')
+      .update({ transfer_status: 'recovered', transfer_updated_at: new Date().toISOString() })
+      .eq('twilio_call_sid', callSid)
+      .in('transfer_status', ['no_answer', 'busy', 'failed', 'canceled'])
+      .then(({ error }) => {
+        if (error) console.warn(`[transfer-status] Failed to set recovered status: ${error.message}`)
+      })
 
     // Insert a new call_log row for the resumed conversation
     supabase.from('call_logs').insert({

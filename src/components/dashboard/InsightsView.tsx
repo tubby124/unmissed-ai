@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
   AreaChart, Area,
 } from 'recharts'
+import ScopedClientLabel from './ScopedClientLabel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -545,7 +546,10 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-1)' }}>Insights</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-1)' }}>Insights</h1>
+            <ScopedClientLabel />
+          </div>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>
             {isAdmin && !selectedClientId ? 'All clients' : 'Your call analytics'}
           </p>

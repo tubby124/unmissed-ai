@@ -70,7 +70,7 @@ export default async function CallsPage() {
 
   let q = supabase
     .from('call_logs')
-    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, confidence, sentiment, key_topics, next_steps, quality_score, clients(business_name, slug)')
+    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, confidence, sentiment, key_topics, next_steps, quality_score, transfer_status, clients(business_name, slug)')
     .gte('started_at', monthStart)
     .order('started_at', { ascending: false })
     .limit(500)

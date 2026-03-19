@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import CallRow from '@/components/dashboard/CallRow'
+import ScopedClientLabel from '@/components/dashboard/ScopedClientLabel'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,7 @@ export default async function LivePage() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
           </span>
           <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-1)' }}>Live Calls</h1>
+          <ScopedClientLabel />
           {liveCalls.length > 0 && (
             <span className="text-[11px] font-mono bg-green-500/15 text-green-400 border border-green-500/25 rounded-full px-2 py-0.5">
               {liveCalls.length} active

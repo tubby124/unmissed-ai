@@ -16,10 +16,32 @@ function formatPhone(raw: string): string {
 }
 
 export default function AdminCommandStrip() {
-  const { selectedClient, isAdmin } = useAdminClient()
+  const { selectedClient, isAdmin, previewMode, exitPreview } = useAdminClient()
   const [copied, setCopied] = useState(false)
 
   if (!isAdmin || !selectedClient) return null
+
+  // Preview mode: full-width amber banner replaces normal strip
+  if (previewMode) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-amber-500/10 border-amber-500/30">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+        <span className="text-xs font-semibold text-amber-400">
+          Viewing as {selectedClient.business_name} — Read Only
+        </span>
+        <div className="flex-1" />
+        <button
+          onClick={exitPreview}
+          className="text-[11px] font-semibold px-3 py-1 rounded-md border border-amber-500/40 text-amber-300 hover:bg-amber-500/20 transition-colors"
+        >
+          Exit Preview
+        </button>
+      </div>
+    )
+  }
 
   const nicheConfig = selectedClient.niche ? NICHE_CONFIG[selectedClient.niche] : null
   const statusColor = selectedClient.status === 'active'

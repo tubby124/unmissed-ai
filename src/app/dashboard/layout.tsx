@@ -81,24 +81,24 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <ForwardingBanner twilioNumber={twilioNumber} />
       )}
 
-      <div className="flex flex-1 relative overflow-hidden">
-        {/* Desktop sidebar */}
-        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} />
+      <Suspense>
+        <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
+          <div className="flex flex-1 relative overflow-hidden">
+            {/* Desktop sidebar */}
+            <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} />
 
-        {/* Main content */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          <Suspense>
-            <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
+            {/* Main content */}
+            <main className="flex-1 min-w-0 overflow-y-auto">
               <AdminCommandStrip />
               {children}
-            </AdminClientProvider>
-          </Suspense>
-          <FloatingAdvisorBubble isAdmin={isAdmin} />
-        </main>
+              <FloatingAdvisorBubble isAdmin={isAdmin} />
+            </main>
 
-        {/* Activity feed — XL+ right panel */}
-        <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
-      </div>
+            {/* Activity feed — XL+ right panel */}
+            <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
+          </div>
+        </AdminClientProvider>
+      </Suspense>
     </div>
   )
 }

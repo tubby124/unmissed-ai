@@ -244,6 +244,8 @@ interface AgentConfig {
   forwarding_number?: string
   /** Per-client Ultravox corpus ID. When set (and corpus_enabled), injects queryCorpus tool. */
   corpus_id?: string | null
+  /** When true, inject sendTextMessage HTTP tool so the agent can SMS the caller mid-call. */
+  sms_enabled?: boolean
 }
 
 /**
@@ -279,11 +281,56 @@ export function buildTransferTools(slug: string, transferConditions?: string | n
       ],
       ...(secret ? {
         staticParameters: [
-          { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
         ],
       } : {}),
       http: {
         baseUrlPattern: `${appUrl}/api/webhook/${slug}/transfer`,
+        httpMethod: 'POST',
+      },
+    },
+  }]
+}
+
+/**
+ * Build sendTextMessage HTTP tool for in-call SMS via our webhook.
+ * Flow: Ultravox → POST /api/webhook/{slug}/sms → Twilio sendSms → caller receives text.
+ */
+export function buildSmsTools(slug: string): UltravoxTool[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return [{
+    temporaryTool: {
+      modelToolName: 'sendTextMessage',
+      description: "Send an SMS text message to the caller during the call. Use this to send signup links, booking confirmations, or follow-up info. The caller's phone number is available from callerContext as CALLER PHONE.",
+      dynamicParameters: [
+        {
+          name: 'to',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Caller's phone number in E.164 format from CALLER PHONE in callerContext" },
+          required: true,
+        },
+        {
+          name: 'message',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: 'SMS message body to send' },
+          required: true,
+        },
+      ],
+      automaticParameters: [
+        {
+          name: 'call_id',
+          location: 'PARAMETER_LOCATION_BODY',
+          knownValue: 'KNOWN_PARAM_CALL_ID',
+        },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/webhook/${slug}/sms`,
         httpMethod: 'POST',
       },
     },
@@ -309,7 +356,7 @@ export function buildCorpusTools(corpusId?: string | null): UltravoxTool[] {
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -337,9 +384,10 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug) : []
+  const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
   const corpusTools: object[] = buildCorpusTools(corpus_id)
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...corpusTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -403,9 +451,10 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug) : []
+  const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
   const corpusTools: object[] = buildCorpusTools(updates.corpus_id)
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...corpusTools, ...coachingTools]
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...corpusTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',

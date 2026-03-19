@@ -24,7 +24,7 @@ export interface DemoAgent {
 const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark (windshield-hub prod voice)
 const VOICE_NICOLE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'   // Jacqueline (urban-vibe prod voice)
 const VOICE_AISHA = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'   // Ria (Ultravox native — hasan-sharif prod voice)
-const VOICE_ARIA = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'    // Jacqueline — confident, sharp (unmissed-demo prod voice)
+const VOICE_ZARA = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'    // Jacqueline — confident, sharp (unmissed-demo prod voice)
 
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
   unmissed_demo: {
@@ -32,8 +32,8 @@ export const DEMO_AGENTS: Record<string, DemoAgent> = {
     companyName: 'unmissed.ai',
     niche: 'unmissed_demo',
     nicheLabel: 'AI Receptionist Demo',
-    agentName: 'Aria',
-    voiceId: VOICE_ARIA,
+    agentName: 'Zara',
+    voiceId: VOICE_ZARA,
     voiceGender: 'female',
     description: 'AI receptionist demo agent for unmissed.ai — qualifies prospects and books demo calls',
     useLivePrompt: true,

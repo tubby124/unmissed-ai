@@ -254,7 +254,13 @@ export async function POST(
       }
 
       // ── SMS post-call follow-up (classification-aware) ─────────────────────
-      if (client.sms_enabled && callerPhone !== 'unknown') {
+      // Skip if in-call SMS was already sent (dedupe — agent used sendTextMessage tool)
+      const { data: callRow } = await supabase
+        .from('call_logs')
+        .select('in_call_sms_sent')
+        .eq('ultravox_call_id', callId)
+        .single()
+      if (client.sms_enabled && callerPhone !== 'unknown' && !callRow?.in_call_sms_sent) {
         const smsBody = getSmsTemplate(classification.status, {
           businessName: client.business_name || 'us',
           callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,

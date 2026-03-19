@@ -22,6 +22,10 @@ interface AdminClientContextValue {
   /** Updates URL ?client_id= param (no-op for non-admin) */
   setSelectedClientId: (id: string) => void
   isAdmin: boolean
+  /** True when admin is viewing dashboard as a specific client (read-only) */
+  previewMode: boolean
+  /** Exits preview mode — removes preview param, keeps client_id */
+  exitPreview: () => void
 }
 
 const AdminClientContext = createContext<AdminClientContextValue>({
@@ -30,6 +34,8 @@ const AdminClientContext = createContext<AdminClientContextValue>({
   clients: [],
   setSelectedClientId: () => {},
   isAdmin: false,
+  previewMode: false,
+  exitPreview: () => {},
 })
 
 export function useAdminClient() {
@@ -50,6 +56,7 @@ export function AdminClientProvider({
   const pathname = usePathname()
 
   const selectedClientId = (isAdmin ? searchParams.get('client_id') : null) ?? 'all'
+  const previewMode = isAdmin && searchParams.get('preview') === 'true' && selectedClientId !== 'all'
   const selectedClient = useMemo(
     () => clients.find(c => c.id === selectedClientId) ?? null,
     [clients, selectedClientId]
@@ -60,6 +67,7 @@ export function AdminClientProvider({
     const params = new URLSearchParams(searchParams.toString())
     if (id === 'all') {
       params.delete('client_id')
+      params.delete('preview')
     } else {
       params.set('client_id', id)
     }
@@ -67,8 +75,15 @@ export function AdminClientProvider({
     router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
   }, [searchParams, router, pathname, isAdmin])
 
+  const exitPreview = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('preview')
+    const qs = params.toString()
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
+  }, [searchParams, router, pathname])
+
   return (
-    <AdminClientContext.Provider value={{ selectedClientId, selectedClient, clients, setSelectedClientId, isAdmin }}>
+    <AdminClientContext.Provider value={{ selectedClientId, selectedClient, clients, setSelectedClientId, isAdmin, previewMode, exitPreview }}>
       {children}
     </AdminClientContext.Provider>
   )

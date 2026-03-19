@@ -17,6 +17,7 @@ import DialModal from './DialModal'
 import ClientSelector from './ClientSelector'
 import RevenueAtRisk from './RevenueAtRisk'
 import ClientHealthBar from './ClientHealthBar'
+import ScopedClientLabel from './ScopedClientLabel'
 
 interface CallLog {
   id: string
@@ -34,6 +35,7 @@ interface CallLog {
   key_topics?: string[] | null
   next_steps?: string | null
   quality_score?: number | null
+  transfer_status?: string | null
 }
 
 interface ClientInfo {
@@ -185,7 +187,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
     const poll = async () => {
       let q = supabase
         .from('call_logs')
-        .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, clients(business_name)')
+        .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, transfer_status, clients(business_name)')
         .in('call_status', ['live', 'processing'])
         .order('started_at', { ascending: false })
       if (!isAdmin && clientId) q = q.eq('client_id', clientId)
@@ -331,6 +333,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           caller_phone: c.caller_phone,
           started_at: c.started_at,
           business_name: c.business_name,
+          transfer_status: c.transfer_status,
         }))}
       />
 
@@ -437,6 +440,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
                 Call Log
               </p>
+              <ScopedClientLabel />
               <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-3)' }}>{filtered.length}</span>
 
               {/* Date filter chip */}

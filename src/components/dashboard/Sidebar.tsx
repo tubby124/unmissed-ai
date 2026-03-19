@@ -7,11 +7,26 @@ import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import ThemeToggle from '../ThemeToggle'
 import { hasCapability } from '@/lib/niche-capabilities'
+import { useAdminClient } from '@/contexts/AdminClientContext'
 
 const GROUP_LABELS: Record<number, string | null> = { 1: 'OPS', 2: 'CLIENTS', 3: 'TOOLS', 4: null }
 
-const NAV = [
+const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolean; group: number; icon: React.ReactNode }[] = [
   // ── Group 1 ──────────────────────────────────────────────────────────────
+  {
+    href: '/dashboard',
+    label: 'Command Center',
+    adminOnly: true,
+    group: 1,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="14" y="3" width="7" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="14" y="11" width="7" height="10" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
   {
     href: '/dashboard/calls',
     label: 'Overview',
@@ -235,6 +250,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
+  const { previewMode, selectedClient: previewClient } = useAdminClient()
 
   useEffect(() => {
     async function loadCounts() {
@@ -311,8 +327,11 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     )}
                   </span>
                 )}
-                {isAdmin && (
+                {isAdmin && !previewMode && (
                   <span className="text-xs block" style={{ color: "var(--color-text-3)" }}>All clients</span>
+                )}
+                {isAdmin && previewMode && previewClient && (
+                  <span className="text-xs block text-amber-400 truncate">{previewClient.business_name}</span>
                 )}
               </motion.div>
             )}
@@ -324,7 +343,8 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         {(() => {
           const filteredNav = NAV.filter(item => {
-            if (item.adminOnly && !isAdmin) return false
+            // In preview mode, hide admin-only items (show what client sees)
+            if (item.adminOnly && (!isAdmin || previewMode)) return false
             // Hide Calendar nav for niches that don't support booking
             if (item.href === '/dashboard/calendar' && !isAdmin && niche && !hasCapability(niche, 'bookAppointments')) return false
             return true
@@ -332,7 +352,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           return filteredNav.map((item, idx) => {
           const prevGroup = idx > 0 ? filteredNav[idx - 1].group : null
           const groupChanged = prevGroup !== null && item.group !== prevGroup
-          const active = item.href !== '/' && pathname.startsWith(item.href)
+          const active = item.href !== '/' && (item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href))
           const isCalls = item.href === '/dashboard/calls'
           const isLive = item.href === '/dashboard/live'
           const isSetup = item.href === '/dashboard/setup'

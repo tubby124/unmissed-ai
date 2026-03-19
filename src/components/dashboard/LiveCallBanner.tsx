@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
+import LiveDuration from './LiveDuration'
 
 interface LiveCall {
   id: string
@@ -10,36 +10,10 @@ interface LiveCall {
   caller_phone: string | null
   started_at: string
   business_name?: string | null
+  transfer_status?: string | null
 }
 
 const BARS = [0.35, 0.8, 0.55, 1, 0.65, 0.9, 0.4, 0.75, 0.5, 0.85, 0.45, 0.7]
-
-// Max call duration is 600s (10min) + 1min buffer = 660s
-const STALE_THRESHOLD_SECS = 660
-
-function LiveDuration({ startedAt }: { startedAt: string }) {
-  const [secs, setSecs] = useState(() =>
-    Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
-  )
-
-  useEffect(() => {
-    const id = setInterval(() => setSecs(s => s + 1), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  const isStale = secs > STALE_THRESHOLD_SECS
-
-  if (isStale) {
-    return (
-      <span className="tabular-nums text-yellow-400/80 text-sm">
-        {m}:{String(s).padStart(2, '0')} — stale?
-      </span>
-    )
-  }
-  return <span className="tabular-nums">{m}:{String(s).padStart(2, '0')}</span>
-}
 
 export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
   return (
@@ -134,6 +108,17 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
                     </p>
                   </div>
                 </div>
+
+                {/* Transfer overlay */}
+                {call.transfer_status === 'transferring' && (
+                  <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <span className="relative flex w-2 h-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
+                    </span>
+                    <span className="text-xs font-medium text-blue-300">Transferring to owner...</span>
+                  </div>
+                )}
 
                 {/* Bottom row: waveform + monitor button */}
                 <div className="flex items-center justify-between gap-3">

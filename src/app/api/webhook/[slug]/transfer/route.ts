@@ -11,7 +11,7 @@ export async function POST(
   const { slug } = await params
 
   // Verify shared secret — Ultravox sends this as a static header
-  const secret = req.headers.get('x-transfer-secret')
+  const secret = req.headers.get('x-tool-secret') || req.headers.get('x-transfer-secret')
   const expected = process.env.WEBHOOK_SIGNING_SECRET
   if (!expected || secret !== expected) {
     return new NextResponse('Unauthorized', { status: 401 })
@@ -78,9 +78,14 @@ export async function POST(
       clientNumber,
       actionUrl,
     })
-    // Mark original call as 'transferred' so completed webhook skips SMS/Telegram/classification
+    // Mark original call as 'transferred' + set transfer_status lifecycle
     supabase.from('call_logs')
-      .update({ call_status: 'transferred', ai_summary: 'Call transferred to owner' })
+      .update({
+        call_status: 'transferred',
+        ai_summary: 'Call transferred to owner',
+        transfer_status: 'transferring',
+        transfer_started_at: new Date().toISOString(),
+      })
       .eq('ultravox_call_id', call_id)
       .then(({ error }) => {
         if (error) console.warn(`[transfer] Failed to mark call as transferred: ${error.message}`)
