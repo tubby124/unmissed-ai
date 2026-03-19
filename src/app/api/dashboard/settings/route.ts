@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { updateAgent, createCorpus } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
+import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 
 // ── Prompt validation ──────────────────────────────────────────────────────────
 interface PromptWarning { field: string; message: string }
@@ -96,11 +97,12 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.booking_buffer_minutes === 'number' && body.booking_buffer_minutes >= 0) {
     updates.booking_buffer_minutes = body.booking_buffer_minutes
   }
-  // Admin only: toggle booking_enabled and calendar_beta_enabled
+  // Owner or admin can toggle booking_enabled
+  if (typeof body.booking_enabled === 'boolean') {
+    updates.booking_enabled = body.booking_enabled
+  }
+  // Admin only: toggle calendar_beta_enabled
   if (cu.role === 'admin') {
-    if (typeof body.booking_enabled === 'boolean') {
-      updates.booking_enabled = body.booking_enabled
-    }
     if (typeof body.calendar_beta_enabled === 'boolean') {
       updates.calendar_beta_enabled = body.calendar_beta_enabled
     }
@@ -208,6 +210,53 @@ export async function PATCH(req: NextRequest) {
       updates.updated_at = new Date().toISOString()
     }
 
+  }
+
+  // ── Auto-patch prompt when booking_enabled changes ──────────────────────────
+  // When booking is toggled ON/OFF, append/remove the CALENDAR BOOKING FLOW
+  // instruction block from the stored system_prompt. Tools are handled by
+  // updateAgent() — this ensures the prompt instructions match.
+  if (typeof body.booking_enabled === 'boolean') {
+    // Use the prompt being saved in this request, or fetch the current one
+    let promptToPatch: string | null = typeof updates.system_prompt === 'string'
+      ? updates.system_prompt as string
+      : null
+    let clientNiche: string | null = null
+    let clientAgentName: string | null = null
+
+    if (!promptToPatch) {
+      const { data: row } = await supabase
+        .from('clients')
+        .select('system_prompt, niche, agent_name')
+        .eq('id', targetClientId)
+        .single()
+      promptToPatch = (row?.system_prompt as string) ?? null
+      clientNiche = (row?.niche as string) ?? null
+      clientAgentName = (row?.agent_name as string) ?? null
+    } else {
+      // Prompt is in updates — still need niche/agent_name for the block
+      const { data: row } = await supabase
+        .from('clients')
+        .select('niche, agent_name')
+        .eq('id', targetClientId)
+        .single()
+      clientNiche = (row?.niche as string) ?? null
+      clientAgentName = (row?.agent_name as string) ?? null
+    }
+
+    if (promptToPatch) {
+      const patched = patchCalendarBlock(
+        promptToPatch,
+        body.booking_enabled,
+        getServiceType(clientNiche),
+        getClosePerson(promptToPatch, clientAgentName),
+      )
+      if (patched !== promptToPatch) {
+        updates.system_prompt = patched
+        updates.updated_at = new Date().toISOString()
+        console.log(`[settings] Calendar block ${body.booking_enabled ? 'added to' : 'removed from'} prompt for client=${targetClientId}`)
+      }
+    }
   }
 
   if (!Object.keys(updates).length) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { updateAgent } from '@/lib/ultravox'
+import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
     // Fall back to 'primary'
   }
 
-  // Store in Supabase
+  // Store in Supabase — auto-enable booking when calendar connects
   const supabase = createServiceClient()
   const { error: dbError } = await supabase
     .from('clients')
@@ -80,6 +82,7 @@ export async function GET(req: NextRequest) {
       google_refresh_token: refreshToken,
       google_calendar_id: calendarId,
       calendar_auth_status: 'connected',
+      booking_enabled: true,
     })
     .eq('id', clientId)
 
@@ -88,7 +91,76 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=db_failed`)
   }
 
-  console.log(`[google-callback] Calendar connected for slug=${slug} calendarId=${calendarId}`)
+  console.log(`[google-callback] Calendar connected for slug=${slug} calendarId=${calendarId} booking_enabled=true`)
+
+  // Patch prompt + sync Ultravox agent so calendar tools AND instructions are live immediately
+  try {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('ultravox_agent_id, system_prompt, agent_voice_id, forwarding_number, transfer_conditions, corpus_id, corpus_enabled, sms_enabled, niche, agent_name')
+      .eq('id', clientId)
+      .single()
+
+    if (client?.ultravox_agent_id && client.system_prompt) {
+      // Patch the stored prompt to include CALENDAR BOOKING FLOW instructions
+      const promptStr = client.system_prompt as string
+      const patched = patchCalendarBlock(
+        promptStr,
+        true,
+        getServiceType(client.niche as string | null),
+        getClosePerson(promptStr, client.agent_name as string | null),
+      )
+      if (patched !== promptStr) {
+        await supabase
+          .from('clients')
+          .update({ system_prompt: patched, updated_at: new Date().toISOString() })
+          .eq('id', clientId)
+        console.log(`[google-callback] Calendar booking block added to prompt for slug=${slug}`)
+      }
+
+      const transferConditions = client.transfer_conditions as string | null
+      const transferDescription = transferConditions
+        ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
+        : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
+      const transferTool = client.forwarding_number ? {
+        temporaryTool: {
+          modelToolName: 'transferCall',
+          description: transferDescription,
+          dynamicParameters: [
+            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
+          ],
+          automaticParameters: [
+            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+          ],
+          staticParameters: [
+            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
+          ],
+          http: {
+            baseUrlPattern: `${appUrl}/api/webhook/${slug}/transfer`,
+            httpMethod: 'POST',
+          },
+        },
+      } : null
+      const tools = [
+        { toolName: 'hangUp' as const },
+        ...(transferTool ? [transferTool] : []),
+      ]
+      await updateAgent(client.ultravox_agent_id, {
+        systemPrompt: patched,
+        ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+        tools,
+        booking_enabled: true,
+        slug,
+        forwarding_number: client.forwarding_number ?? undefined,
+        corpus_id: client.corpus_enabled ? (client.corpus_id ?? undefined) : undefined,
+        sms_enabled: client.sms_enabled ?? false,
+      })
+      console.log(`[google-callback] Ultravox agent synced with calendar tools for slug=${slug}`)
+    }
+  } catch (syncErr) {
+    // Non-fatal — calendar is connected, tools will sync on next settings save
+    console.warn(`[google-callback] Ultravox sync failed for slug=${slug}: ${syncErr}`)
+  }
 
   const successUrl = isAdmin
     ? `${appUrl}/admin/clients?calendar_connected=1`

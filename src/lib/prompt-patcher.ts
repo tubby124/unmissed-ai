@@ -1,0 +1,121 @@
+/**
+ * prompt-patcher.ts — Post-generation prompt patching for feature toggles.
+ *
+ * When a client enables a feature (calendar, transfer, SMS) AFTER their prompt
+ * was initially generated, the tools get injected via updateAgent() but the
+ * system_prompt text lacks the corresponding instructions. This module patches
+ * the stored system_prompt to add/remove instruction blocks.
+ *
+ * Used by: settings PATCH handler, Google OAuth callback.
+ */
+
+// ── Calendar booking block ──────────────────────────────────────────────────
+
+const CALENDAR_HEADING = '# CALENDAR BOOKING FLOW'
+
+/**
+ * Build the standalone calendar booking flow block.
+ * Matches the output of buildCalendarBlock() in prompt-builder.ts.
+ */
+function calendarBlock(serviceType: string, closePerson: string): string {
+  return `# CALENDAR BOOKING FLOW
+
+Use this when a caller wants to book a ${serviceType} directly on the call.
+
+Step 1 — Ask what day works: "what day were you thinking?"
+Step 2 — Check slots: say "one sec, let me pull that up..." in that SAME turn, then call checkCalendarAvailability with date in YYYY-MM-DD format. Use TODAY from callerContext to resolve "tomorrow", "next Monday", etc.
+Step 3 — Read back up to 3 slots: "I've got [time], [time], and [time] — any of those work?"
+Step 4 — If name not yet collected: "and your name?"
+Step 5 — Book it: say "perfect, booking that now..." in the SAME turn as calling bookAppointment with:
+  - date: YYYY-MM-DD
+  - time: EXACTLY the displayTime from checkCalendarAvailability (do not reformat)
+  - service: "${serviceType}"
+  - callerName: caller's name
+  - callerPhone: the CALLER PHONE from callerContext — always include this
+Step 6 — Confirm and close: "you're booked — [day] at [time]. ${closePerson} will reach out before then!" → hangUp
+
+SLOT TAKEN (booked=false, nextAvailable present): "that one just got taken — the next opening I've got is [nextAvailable]. does that work?"
+DAY FULL (available=false or no slots): say "looks like we're full that day — let me check the next one..." then call checkCalendarAvailability for the following day. If also full, fall back to message mode.
+TOOL ERROR (fallback=true or no response): fall back to message mode — collect preferred day/time and close as normal.`
+}
+
+/**
+ * Patch a system prompt to add or remove the CALENDAR BOOKING FLOW block.
+ * Returns the patched prompt, or the original if no change needed.
+ */
+export function patchCalendarBlock(
+  prompt: string,
+  enabled: boolean,
+  serviceType = 'appointment',
+  closePerson = 'the team',
+): string {
+  const hasBlock = prompt.includes(CALENDAR_HEADING)
+
+  if (enabled && !hasBlock) {
+    // Append calendar block at the end (before any trailing whitespace)
+    return prompt.trimEnd() + '\n\n' + calendarBlock(serviceType, closePerson)
+  }
+
+  if (!enabled && hasBlock) {
+    // Remove the calendar block: from "# CALENDAR BOOKING FLOW" to the next top-level heading or end
+    const startIdx = prompt.indexOf(CALENDAR_HEADING)
+    const afterStart = prompt.indexOf('\n#', startIdx + CALENDAR_HEADING.length)
+    if (afterStart === -1) {
+      // Calendar block is the last section
+      return prompt.substring(0, startIdx).trimEnd()
+    }
+    return (prompt.substring(0, startIdx) + prompt.substring(afterStart))
+      .replace(/\n{3,}/g, '\n\n')
+      .trimEnd()
+  }
+
+  return prompt
+}
+
+// ── Service type lookup ─────────────────────────────────────────────────────
+
+const NICHE_SERVICE_TYPES: Record<string, string> = {
+  auto_glass: 'service appointment',
+  'auto-glass': 'service appointment',
+  plumbing: 'service call',
+  hvac: 'service call',
+  electrical: 'service call',
+  dental: 'appointment',
+  real_estate: 'consultation',
+  property_mgmt: 'appointment',
+  'property-management': 'appointment',
+  salon: 'appointment',
+  restaurant: 'reservation',
+  other: 'appointment',
+}
+
+/**
+ * Get the service appointment type for a niche.
+ */
+export function getServiceType(niche: string | null | undefined): string {
+  if (!niche) return 'appointment'
+  return NICHE_SERVICE_TYPES[niche] || 'appointment'
+}
+
+/**
+ * Extract closePerson from a prompt by looking for common patterns.
+ * Falls back to the provided agent_name or "the team".
+ */
+export function getClosePerson(
+  prompt: string,
+  agentName?: string | null,
+): string {
+  // Try to find CLOSE_PERSON in the prompt text (e.g. "i'll get Mark to call ya back")
+  const closeMatch = prompt.match(/i['']ll get (\w+) to call/i)
+  if (closeMatch?.[1]) return closeMatch[1]
+
+  // Try to find owner name from real_estate template (e.g. "You are Fatema, Omar's assistant")
+  const reMatch = prompt.match(/You are \w+, (\w+)(?:'s|'s) assistant/i)
+  if (reMatch?.[1]) return reMatch[1]
+
+  // Try CLOSE_PERSON from template (e.g. "{{CLOSE_PERSON}}" already replaced)
+  const identityMatch = prompt.match(/assistant at .+?\. You work/)
+  if (identityMatch && agentName) return agentName
+
+  return agentName || 'the team'
+}
