@@ -18,6 +18,7 @@ interface ClientRow {
   bonus_minutes: number | null
   booking_enabled?: boolean | null
   forwarding_number?: string | null
+  google_calendar_id?: string | null
 }
 
 export default function ActionItems() {
@@ -26,6 +27,8 @@ export default function ActionItems() {
   const supabase = createBrowserClient()
 
   useEffect(() => {
+    let mounted = true
+
     async function load() {
       const actions: ActionItem[] = []
 
@@ -63,7 +66,7 @@ export default function ActionItems() {
       // 3. Clients at >90% minute usage
       const { data: clients } = await supabase
         .from('clients')
-        .select('id, business_name, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, forwarding_number')
+        .select('id, business_name, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, forwarding_number, google_calendar_id')
         .eq('status', 'active')
 
       if (clients) {
@@ -76,6 +79,33 @@ export default function ActionItems() {
               label: `${c.business_name}: ${used}/${limit} min used (${Math.round(used / limit * 100)}%)`,
               href: `/dashboard/settings?client_id=${c.id}`,
             })
+          }
+
+          // Calendar enabled but no calendar connected
+          if (c.booking_enabled && !c.google_calendar_id) {
+            actions.push({
+              severity: 'amber',
+              label: `${c.business_name}: booking enabled but no calendar connected`,
+              href: `/dashboard/settings?client_id=${c.id}`,
+            })
+          }
+
+          // Forwarding number set — check for successful transfers in last 7 days
+          if (c.forwarding_number) {
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+            const { count: successfulTransfers } = await supabase
+              .from('call_logs')
+              .select('id', { count: 'exact', head: true })
+              .eq('client_id', c.id)
+              .eq('transfer_status', 'completed')
+              .gte('transfer_updated_at', weekAgo)
+            if ((successfulTransfers ?? 0) === 0) {
+              actions.push({
+                severity: 'amber',
+                label: `${c.business_name}: transfer configured but no successful transfers in 7 days`,
+                href: `/dashboard/settings?client_id=${c.id}`,
+              })
+            }
           }
         }
       }
@@ -93,11 +123,15 @@ export default function ActionItems() {
         })
       }
 
-      setItems(actions)
-      setLoading(false)
+      if (mounted) {
+        setItems(actions)
+        setLoading(false)
+      }
     }
 
     load()
+    const id = setInterval(load, 60_000)
+    return () => { mounted = false; clearInterval(id) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

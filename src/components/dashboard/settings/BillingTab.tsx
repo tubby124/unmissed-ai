@@ -10,6 +10,7 @@ import UsageSummary from '@/components/dashboard/UsageSummary'
 interface BillingTabProps {
   client: ClientConfig
   isAdmin: boolean
+  previewMode?: boolean
   minutesUsed: number
   minuteLimit: number
   totalAvailable: number
@@ -19,6 +20,7 @@ interface BillingTabProps {
 export default function BillingTab({
   client,
   isAdmin,
+  previewMode,
   minutesUsed,
   minuteLimit,
   totalAvailable,
@@ -124,7 +126,7 @@ export default function BillingTab({
           ))}
         </div>
         <button
-          disabled={reloadLoading}
+          disabled={reloadLoading || previewMode}
           onClick={async () => {
             setReloadLoading(true)
             try {

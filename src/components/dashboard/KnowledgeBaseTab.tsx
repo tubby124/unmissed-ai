@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 interface KnowledgeBaseTabProps {
   clientId: string
   isAdmin: boolean
+  previewMode?: boolean
   corpusEnabled?: boolean
   corpusId?: string | null
   onToggleEnabled?: (enabled: boolean) => Promise<void>
@@ -67,7 +68,7 @@ function StatusBadge({ status }: { status: CorpusDoc['status'] }) {
   )
 }
 
-export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = true, corpusId, onToggleEnabled }: KnowledgeBaseTabProps) {
+export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpusEnabled = true, corpusId, onToggleEnabled }: KnowledgeBaseTabProps) {
   const [docs, setDocs] = useState<CorpusDoc[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -243,7 +244,7 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = tr
         {onToggleEnabled && (
           <button
             onClick={handleToggleEnabled}
-            disabled={togglingEnabled}
+            disabled={togglingEnabled || previewMode}
             className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               corpusEnabled
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
@@ -271,7 +272,7 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = tr
           {onToggleEnabled && (
             <button
               onClick={handleToggleEnabled}
-              disabled={togglingEnabled}
+              disabled={togglingEnabled || previewMode}
               className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40"
             >
               {togglingEnabled ? 'Enabling…' : 'Enable Knowledge Base'}
@@ -288,12 +289,12 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = tr
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onClick={() => !uploading && fileInputRef.current?.click()}
+        onClick={() => !uploading && !previewMode && fileInputRef.current?.click()}
         className={`relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
           dragOver
             ? 'border-blue-400 bg-blue-500/5'
             : 'border-zinc-700 hover:border-zinc-500 bg-transparent'
-        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+        } ${uploading || previewMode ? 'opacity-50 pointer-events-none' : ''}`}
       >
         <input
           ref={fileInputRef}
@@ -445,7 +446,7 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, corpusEnabled = tr
               />
               <button
                 onClick={handleTestQuery}
-                disabled={testLoading || !testQuery.trim()}
+                disabled={testLoading || !testQuery.trim() || previewMode}
                 className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
               >
                 {testLoading ? (

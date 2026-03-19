@@ -7,6 +7,7 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 interface SmsTabProps {
   client: ClientConfig
   isAdmin: boolean
+  previewMode?: boolean
   smsEnabled: boolean
   setSmsEnabled: (val: boolean) => void
   smsTemplate: string
@@ -16,6 +17,7 @@ interface SmsTabProps {
 export default function SmsTab({
   client,
   isAdmin,
+  previewMode,
   smsEnabled,
   setSmsEnabled,
   smsTemplate,
@@ -90,7 +92,7 @@ export default function SmsTab({
         </div>
         <button
           onClick={saveSms}
-          disabled={smsSaving || !client.twilio_number}
+          disabled={smsSaving || !client.twilio_number || previewMode}
           className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
             smsSaved
               ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -115,7 +117,7 @@ export default function SmsTab({
       <div className="flex items-center gap-3 py-3 border-b b-theme">
         <button
           onClick={() => setSmsEnabled(!smsEnabled)}
-          disabled={!client.twilio_number}
+          disabled={!client.twilio_number || previewMode}
           className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled ? 'bg-blue-500' : 'bg-zinc-700'} disabled:opacity-40 disabled:cursor-not-allowed`}
         >
           <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${smsEnabled ? 'left-4' : 'left-0.5'}`} />
@@ -170,7 +172,7 @@ export default function SmsTab({
           />
           <button
             onClick={fireTestSms}
-            disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate || !client.twilio_number}
+            disabled={!testSmsPhone.trim() || testSmsState === 'sending' || !smsTemplate || !client.twilio_number || previewMode}
             className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 t1 transition-all disabled:opacity-40 shrink-0"
           >
             {testSmsState === 'sending' ? 'Sending…' : 'Send Test'}

@@ -54,6 +54,7 @@ interface AgentTabProps {
   setSetupComplete: Dispatch<SetStateAction<Record<string, boolean>>>
   voiceStylePreset: Record<string, string>
   setVoiceStylePreset: Dispatch<SetStateAction<Record<string, string>>>
+  previewMode?: boolean
 }
 
 export default function AgentTab({
@@ -96,6 +97,7 @@ export default function AgentTab({
   setSetupComplete,
   voiceStylePreset,
   setVoiceStylePreset,
+  previewMode,
 }: AgentTabProps) {
   // ─── Transient internal state ──────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
@@ -697,7 +699,7 @@ export default function AgentTab({
                     setSetupComplete(prev => ({ ...prev, [client.id]: true }))
                     setTimeout(() => saveSetup(), 0)
                   }}
-                  disabled={setupSaving}
+                  disabled={setupSaving || previewMode}
                   className="w-full mt-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-green-500 hover:bg-green-400 text-black transition-colors disabled:opacity-50"
                 >
                   {setupSaving ? 'Activating…' : 'Activate Agent'}
@@ -709,7 +711,7 @@ export default function AgentTab({
                     setSetupComplete(prev => ({ ...prev, [client.id]: false }))
                     setTimeout(() => saveSetup(), 0)
                   }}
-                  disabled={setupSaving}
+                  disabled={setupSaving || previewMode}
                   className="text-[11px] t3 hover:t2 transition-colors"
                 >
                   Reset setup status
@@ -718,7 +720,7 @@ export default function AgentTab({
               {!client.twilio_number && (
                 <button
                   onClick={saveSetup}
-                  disabled={setupSaving}
+                  disabled={setupSaving || previewMode}
                   className="px-4 py-1.5 text-xs font-medium rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 disabled:opacity-50 transition-colors"
                 >
                   {setupSaving ? 'Saving…' : 'Save setup'}
@@ -771,6 +773,7 @@ export default function AgentTab({
           isAdmin={isAdmin}
           isActive={isActive}
           onToggleStatus={toggleStatus}
+          previewMode={previewMode}
         />
         {isAdmin && !setupComplete[client.id] && (
           <div className="mt-3 flex justify-end">
@@ -835,7 +838,7 @@ export default function AgentTab({
         <div className="px-5 py-3 border-t border-white/[0.04] flex justify-end">
           <button
             onClick={saveVoiceStylePreset}
-            disabled={presetSaving}
+            disabled={presetSaving || previewMode}
             className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
           >
             {presetSaving ? 'Saving...' : presetSaved ? 'Saved' : 'Save Style'}
@@ -965,7 +968,7 @@ export default function AgentTab({
             </div>
             <button
               onClick={saveGodConfig}
-              disabled={godSaving}
+              disabled={godSaving || previewMode}
               className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 godSaved
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -1126,7 +1129,7 @@ export default function AgentTab({
               </div>
               <button
                 onClick={saveBookingConfig}
-                disabled={bookingSaving}
+                disabled={bookingSaving || previewMode}
                 className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   bookingSaved
                     ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -1211,7 +1214,7 @@ export default function AgentTab({
                         )}
                         <button
                           onClick={save}
-                          disabled={!dirty || saving || charCount > 8000}
+                          disabled={!dirty || saving || charCount > 8000 || previewMode}
                           title={charCount > 8000 ? 'Prompt exceeds 8,000 character limit' : undefined}
                           className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                             charCount > 8000
@@ -1454,12 +1457,12 @@ export default function AgentTab({
             onChange={e => setTestPhone(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fireTestCall()}
             placeholder="+14031234567"
-            disabled={testCallState === 'calling'}
+            disabled={testCallState === 'calling' || previewMode}
             className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
           />
           <ShimmerButton
             onClick={fireTestCall}
-            disabled={!testPhone.trim() || testCallState === 'calling'}
+            disabled={!testPhone.trim() || testCallState === 'calling' || previewMode}
             borderRadius="12px"
             shimmerColor="rgba(99,102,241,0.5)"
             background="rgba(59,130,246,1)"
@@ -1792,7 +1795,7 @@ export default function AgentTab({
           </div>
           <button
             onClick={saveHoursConfig}
-            disabled={hoursSaving}
+            disabled={hoursSaving || previewMode}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               hoursSaved
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'
@@ -1910,7 +1913,7 @@ export default function AgentTab({
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => saveSection(sectionId, value)}
-                      disabled={saving}
+                      disabled={saving || previewMode}
                       className="px-4 py-1.5 rounded-xl text-[11px] font-semibold bg-accent text-white disabled:opacity-50"
                     >
                       {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
@@ -1938,7 +1941,7 @@ export default function AgentTab({
           </div>
           <button
             onClick={saveAdvanced}
-            disabled={advancedSaving}
+            disabled={advancedSaving || previewMode}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
               advancedSaved
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'

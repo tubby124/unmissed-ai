@@ -11,9 +11,10 @@ import {
 interface ContextDataCardProps {
   client: ClientConfig
   isAdmin: boolean
+  previewMode?: boolean
 }
 
-export default function ContextDataCard({ client, isAdmin }: ContextDataCardProps) {
+export default function ContextDataCard({ client, isAdmin, previewMode }: ContextDataCardProps) {
   const [contextData, setContextData] = useState(client.context_data ?? '')
   const [contextDataLabel, setContextDataLabel] = useState(client.context_data_label ?? '')
   const [contextDataSaving, setContextDataSaving] = useState(false)
@@ -96,7 +97,7 @@ export default function ContextDataCard({ client, isAdmin }: ContextDataCardProp
           </button>
           <button
             onClick={saveContextData}
-            disabled={contextDataSaving}
+            disabled={contextDataSaving || previewMode}
             className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               contextDataSaved
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30'

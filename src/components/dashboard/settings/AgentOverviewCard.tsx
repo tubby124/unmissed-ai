@@ -15,9 +15,10 @@ interface AgentOverviewCardProps {
   isAdmin: boolean
   isActive: boolean
   onToggleStatus: () => void
+  previewMode?: boolean
 }
 
-export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus }: AgentOverviewCardProps) {
+export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus, previewMode }: AgentOverviewCardProps) {
   // Editable identity fields
   const [agentName, setAgentName] = useState(client.agent_name ?? '')
   const [savedName, setSavedName] = useState(client.agent_name ?? '')
@@ -245,7 +246,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
         <QuickInject client={client} isAdmin={isAdmin} />
 
         {/* ── Row 6: Context data (CSV) ─────────────────────────────────────────── */}
-        <ContextDataCard client={client} isAdmin={isAdmin} />
+        <ContextDataCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
 
         {/* ── Footer: Save name ──────────────────────────────────────────────────── */}
         {footerDirty && (
@@ -253,7 +254,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
             <p className="text-[11px] t3">Unsaved changes to agent identity</p>
             <button
               onClick={saveFooter}
-              disabled={footerSaving}
+              disabled={footerSaving || previewMode}
               className={`text-xs px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-40 ${
                 footerSaved
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'

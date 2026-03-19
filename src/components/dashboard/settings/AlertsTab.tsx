@@ -6,11 +6,12 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 
 interface AlertsTabProps {
   client: ClientConfig
+  previewMode?: boolean
   tgStyle: string
   setTgStyle: (style: string) => void
 }
 
-export default function AlertsTab({ client, tgStyle, setTgStyle }: AlertsTabProps) {
+export default function AlertsTab({ client, previewMode, tgStyle, setTgStyle }: AlertsTabProps) {
   const [tgStyleSaving, setTgStyleSaving] = useState(false)
 
   async function saveTelegramStyle(style: string) {
@@ -114,7 +115,8 @@ export default function AlertsTab({ client, tgStyle, setTgStyle }: AlertsTabProp
           ] as const).map(opt => (
             <button
               key={opt.id}
-              onClick={() => saveTelegramStyle(opt.id)}
+              onClick={() => !previewMode && saveTelegramStyle(opt.id)}
+              disabled={previewMode}
               className={`text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer group ${
                 tgStyle === opt.id
                   ? 'border-blue-500/40 bg-blue-500/[0.08] shadow-[0_0_12px_rgba(59,130,246,0.06)]'

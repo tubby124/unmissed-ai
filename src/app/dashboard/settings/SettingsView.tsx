@@ -14,6 +14,7 @@ import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
 import BillingTab from '@/components/dashboard/settings/BillingTab'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
+import { useAdminClient } from '@/contexts/AdminClientContext'
 
 interface SettingsViewProps {
   clients: ClientConfig[]
@@ -23,6 +24,8 @@ interface SettingsViewProps {
 }
 
 export default function SettingsView({ clients, isAdmin, appUrl, initialClientId }: SettingsViewProps) {
+  const { previewMode } = useAdminClient()
+
   const [selectedId, setSelectedId] = useState(
     (initialClientId && clients.find(c => c.id === initialClientId))
       ? initialClientId
@@ -258,6 +261,17 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </nav>
       </div>
 
+      {/* Preview mode banner */}
+      {previewMode && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/25 px-4 py-2 text-xs text-amber-400 flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          Preview mode — all changes are disabled
+        </div>
+      )}
+
       {/* Reload success banner */}
       {reloadSuccess && (
         <div className="rounded-lg bg-green-500/10 border border-green-500/25 px-4 py-2 text-xs text-green-400">
@@ -280,6 +294,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           client={client}
           isAdmin={isAdmin}
           appUrl={appUrl}
+          previewMode={previewMode}
           prompt={prompt}
           setPrompt={setPrompt}
           status={status}
@@ -324,6 +339,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         <SmsTab
           client={client}
           isAdmin={isAdmin}
+          previewMode={previewMode}
           smsEnabled={smsEnabled[client.id] ?? false}
           setSmsEnabled={(val) => setSmsEnabled(prev => ({ ...prev, [client.id]: val }))}
           smsTemplate={smsTemplate[client.id] ?? ''}
@@ -345,6 +361,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       {activeTab === 'notifications' && (
         <AlertsTab
           client={client}
+          previewMode={previewMode}
           tgStyle={tgStyle[client.id] ?? 'standard'}
           setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
         />
@@ -355,6 +372,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         <BillingTab
           client={client}
           isAdmin={isAdmin}
+          previewMode={previewMode}
           minutesUsed={minutesUsed}
           minuteLimit={minuteLimit}
           totalAvailable={totalAvailable}
@@ -374,9 +392,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           <KnowledgeBaseTab
             clientId={client.id}
             isAdmin={isAdmin}
+            previewMode={previewMode}
             corpusEnabled={corpusEnabled[client.id] ?? false}
             corpusId={client.corpus_id}
             onToggleEnabled={async (enabled) => {
+              if (previewMode) return
               const body: Record<string, unknown> = { corpus_enabled: enabled }
               if (isAdmin) body.client_id = client.id
               const res = await fetch('/api/dashboard/settings', {
