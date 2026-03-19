@@ -3,6 +3,16 @@
  * Each demo is modeled after a real production client with fake company details.
  */
 
+/** Tool capabilities available for this demo agent. Drives which tools get injected per entry path. */
+export interface DemoCapabilities {
+  /** Calendar booking endpoints exist for this slug. */
+  calendarEnabled?: boolean
+  /** A forwarding number exists for live transfer. */
+  transferEnabled?: boolean
+  /** SMS sending is configured for this slug. */
+  smsEnabled?: boolean
+}
+
 export interface DemoAgent {
   id: string
   companyName: string
@@ -17,6 +27,8 @@ export interface DemoAgent {
   useLivePrompt?: boolean
   /** Client slug to fetch live prompt from (required when useLivePrompt is true). */
   clientSlug?: string
+  /** Tool capabilities — determines which tools get injected per entry path (browser vs call-me). */
+  capabilities?: DemoCapabilities
 }
 
 // Voice IDs from Ultravox — if changing a production voice, update here too.
@@ -38,6 +50,7 @@ export const DEMO_AGENTS: Record<string, DemoAgent> = {
     description: 'AI receptionist demo agent for unmissed.ai — qualifies prospects and books demo calls',
     useLivePrompt: true,
     clientSlug: 'unmissed-demo',
+    capabilities: { calendarEnabled: true, transferEnabled: true, smsEnabled: true },
     systemPrompt: `[Fallback — live prompt should load from Supabase slug=unmissed-demo]`,
   },
 

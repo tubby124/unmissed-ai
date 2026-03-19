@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createDemoCall } from '@/lib/ultravox'
+import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { OnboardingData } from '@/types/onboarding'
@@ -159,13 +159,28 @@ HANG-UP RULES (mandatory — follow exactly):
   const FALLBACK_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'  // Jacqueline voice
   const fallbackVoice = demo.voiceGender === 'male' ? FALLBACK_MALE : FALLBACK_FEMALE
 
+  // Build tools from demo capabilities config (browser = WebRTC: no phone medium, no caller phone)
+  let demoTools: object[] = []
+  let demoCallbackUrl: string | undefined
+  if (demo.capabilities && demo.clientSlug) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+    demoTools = buildDemoTools(demo.clientSlug, {
+      hasPhoneMedium: false,    // WebRTC — no Twilio SID
+      hasCallerPhone: false,    // Browser visitor — no phone number
+      calendarEnabled: !!demo.capabilities.calendarEnabled,
+      transferEnabled: false,   // Transfer requires Twilio SID — always false for browser
+    })
+    demoCallbackUrl = signCallbackUrl(`${appUrl}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
+    console.log(`[demo] ${demo.clientSlug} browser: injecting ${demoTools.length} tools + callbackUrl`)
+  }
+
   try {
     let call: { joinUrl: string; callId: string }
     try {
-      call = await createDemoCall({ systemPrompt: promptWithContext, voice: voiceId })
+      call = await createDemoCall({ systemPrompt: promptWithContext, voice: voiceId, tools: demoTools, callbackUrl: demoCallbackUrl })
     } catch (firstErr) {
       console.warn(`[demo] Voice ${voiceId} rejected, retrying with ${demo.voiceGender} fallback: ${firstErr}`)
-      call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice })
+      call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice, tools: demoTools, callbackUrl: demoCallbackUrl })
     }
 
     recordUsage(ip)
@@ -182,7 +197,7 @@ HANG-UP RULES (mandatory — follow exactly):
       if (error) console.error(`[demo] Failed to log demo call: ${error.message}`)
     })
 
-    console.log(`[demo] Browser demo started: demoId=${demoId} callerName=${callerName} callId=${call.callId} ip=${ip}`)
+    console.log(`[demo] Browser demo started: demoId=${demoId} callerName=${callerName} callId=${call.callId} ip=${ip} tools=${demoTools.length}`)
 
     return NextResponse.json({
       joinUrl: call.joinUrl,

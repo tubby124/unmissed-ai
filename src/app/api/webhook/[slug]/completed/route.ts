@@ -260,7 +260,24 @@ export async function POST(
         .select('in_call_sms_sent')
         .eq('ultravox_call_id', callId)
         .single()
-      if (client.sms_enabled && callerPhone !== 'unknown' && !callRow?.in_call_sms_sent) {
+
+      // Cross-check demo_calls table for in-call SMS flag (call-me widget demos write here)
+      let demoSmsSent = false
+      if (!callRow?.in_call_sms_sent) {
+        const { data: demoRow, error: demoCheckError } = await supabase
+          .from('demo_calls')
+          .select('in_call_sms_sent')
+          .eq('ultravox_call_id', callId)
+          .single()
+
+        if (demoCheckError && demoCheckError.code !== 'PGRST116') {
+          // PGRST116 = no rows — expected for non-demo calls. Other errors are real.
+          console.error(`[completed] DEDUPE READ FAILED demo_calls: slug=${slug} callId=${callId} error=${demoCheckError.message}`)
+        }
+        demoSmsSent = !!demoRow?.in_call_sms_sent
+      }
+
+      if (client.sms_enabled && callerPhone !== 'unknown' && !callRow?.in_call_sms_sent && !demoSmsSent) {
         const smsBody = getSmsTemplate(classification.status, {
           businessName: client.business_name || 'us',
           callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,

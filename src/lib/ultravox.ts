@@ -111,9 +111,13 @@ interface CreateDemoCallOptions {
   maxDuration?: string
   /** Override the message spoken when time runs out */
   timeExceededMessage?: string
+  /** Additional tools beyond hangUp (e.g. calendar, SMS, transfer for Zara demos) */
+  tools?: object[]
+  /** Completed webhook URL — enables post-call processing for demo calls */
+  callbackUrl?: string
 }
 
-export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDuration, timeExceededMessage }: CreateDemoCallOptions) {
+export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDuration, timeExceededMessage, tools, callbackUrl }: CreateDemoCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -124,11 +128,12 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     timeExceededMessage: timeExceededMessage || "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
-    selectedTools: [{ toolName: 'hangUp' }],
+    selectedTools: [{ toolName: 'hangUp' }, ...(tools || [])],
   }
 
   // Only add Twilio medium for phone IVR demos; omit for browser WebRTC
   if (useTwilio) body.medium = { twilio: {} }
+  if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
 
   const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
     method: 'POST',
@@ -353,6 +358,31 @@ export function buildCorpusTools(corpusId?: string | null): UltravoxTool[] {
       minimum_score: 0.85,
     },
   }]
+}
+
+// ── Demo tool builder (capability-driven) ────────────────────────────────────
+
+interface DemoToolCapabilities {
+  /** Call medium supports phone-based actions (SMS, transfer). True for Twilio, false for WebRTC. */
+  hasPhoneMedium: boolean
+  /** Caller's phone number is known. Required for SMS to work. */
+  hasCallerPhone: boolean
+  /** Calendar booking endpoints are available for this slug. */
+  calendarEnabled: boolean
+  /** A forwarding number exists for live transfer. */
+  transferEnabled: boolean
+}
+
+/**
+ * Build tools for demo calls based on runtime capabilities — NOT slug assumptions.
+ * Callers pass capability flags from their actual runtime state (medium, phone presence, etc.).
+ */
+export function buildDemoTools(slug: string, caps: DemoToolCapabilities): UltravoxTool[] {
+  const tools: UltravoxTool[] = []
+  if (caps.calendarEnabled) tools.push(...buildCalendarTools(slug))
+  if (caps.hasPhoneMedium && caps.hasCallerPhone) tools.push(...buildSmsTools(slug))
+  if (caps.hasPhoneMedium && caps.transferEnabled) tools.push(...buildTransferTools(slug))
+  return tools
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */

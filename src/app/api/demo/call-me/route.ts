@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import twilio from 'twilio'
-import { createDemoCall } from '@/lib/ultravox'
+import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
 import { buildStreamTwiml } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
@@ -86,12 +86,29 @@ export async function POST(req: NextRequest) {
 
   const promptWithContext = basePrompt + `\n\n[DEMO MODE — This is a 2-minute outbound demo call. The visitor requested a callback from the unmissed.ai website. Be concise and showcase the agent's capabilities. CALLER PHONE: ${phone}]`
 
+  // Build tools from demo capabilities config (call-me = Twilio medium + known phone)
+  let demoTools: object[] = []
+  let demoCallbackUrl: string | undefined
+  if (demo.capabilities && demo.clientSlug) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+    demoTools = buildDemoTools(demo.clientSlug, {
+      hasPhoneMedium: true,     // Twilio outbound call
+      hasCallerPhone: true,     // Phone number validated above
+      calendarEnabled: !!demo.capabilities.calendarEnabled,
+      transferEnabled: !!demo.capabilities.transferEnabled,
+    })
+    demoCallbackUrl = signCallbackUrl(`${appUrl}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
+    console.log(`[call-me] ${demo.clientSlug}: injecting ${demoTools.length} tools + callbackUrl`)
+  }
+
   try {
     // 1. Create Ultravox call with Twilio medium
     const uvCall = await createDemoCall({
       systemPrompt: promptWithContext,
       voice: voiceId,
       useTwilio: true,
+      tools: demoTools,
+      callbackUrl: demoCallbackUrl,
     })
 
     console.log(`[call-me] Ultravox call created: callId=${uvCall.callId}`)

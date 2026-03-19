@@ -51,10 +51,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     // Mark that in-call SMS was sent (for post-call dedupe)
     if (call_id) {
-      const { error: markError } = await supabase.from('call_logs')
+      // Try call_logs first (production calls)
+      const { data: logRow, error: logError } = await supabase.from('call_logs')
         .update({ in_call_sms_sent: true })
         .eq('ultravox_call_id', call_id)
-      if (markError) console.warn(`[sms-tool] Failed to mark in_call_sms_sent: ${markError.message}`)
+        .select('id')
+
+      if (logError) {
+        console.error(`[sms-tool] DEDUPE WRITE FAILED call_logs: slug=${slug} call_id=${call_id} error=${logError.message}`)
+      }
+
+      // If not in call_logs, try demo_calls (call-me widget demos)
+      if (!logRow?.length) {
+        const { error: demoError } = await supabase.from('demo_calls')
+          .update({ in_call_sms_sent: true })
+          .eq('ultravox_call_id', call_id)
+
+        if (demoError) {
+          console.error(`[sms-tool] DEDUPE WRITE FAILED demo_calls: slug=${slug} call_id=${call_id} error=${demoError.message}`)
+        } else {
+          console.log(`[sms-tool] Marked demo_calls.in_call_sms_sent: slug=${slug} call_id=${call_id}`)
+        }
+      }
     }
 
     return NextResponse.json({ result: 'SMS sent' })
