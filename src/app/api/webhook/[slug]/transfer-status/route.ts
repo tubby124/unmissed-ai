@@ -130,6 +130,7 @@ export async function POST(
       transfer_recovery: 'true',
     }
 
+    const recoveryGreeting = "Hey, looks like they're tied up right now. Would you like to leave a message and I'll make sure they get it?"
     let ultravoxCall: { joinUrl: string; callId: string }
 
     try {
@@ -137,6 +138,7 @@ export async function POST(
         callbackUrl: signedCallbackUrl,
         metadata: callMeta,
         callerContext: callerContextWithFailure,
+        firstSpeakerText: recoveryGreeting,
         ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr } : {}),
         ...(contextDataStr ? { contextData: contextDataStr } : {}),
       })
@@ -155,6 +157,7 @@ export async function POST(
         callbackUrl: signedCallbackUrl,
         metadata: callMeta,
         languageHint: 'en',
+        firstSpeakerText: recoveryGreeting,
       })
     }
 
