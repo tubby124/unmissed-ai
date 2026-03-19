@@ -15,6 +15,7 @@ import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
+import { BETA_PROMO, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "unmissed.ai — AI Receptionist for Service Businesses",

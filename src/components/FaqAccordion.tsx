@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { SETUP, TRIAL, BASE_PLAN, BETA_PROMO, POLICIES, getEffectiveMonthly } from "@/lib/pricing";
+
+const price = getEffectiveMonthly();
 
 const faqs = [
   {
@@ -10,19 +13,19 @@ const faqs = [
       "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (required by law and good practice), but most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
   },
   {
-    question: "Why don't you charge per minute like other AI receptionists?",
+    question: `Why is unmissed.ai only $${price}/mo when others charge $49–$99?`,
     answer:
-      "Because per-minute billing punishes success. Dialzara's $29/mo plan gives you 60 minutes — that's about 2 minutes per day. My AI Front Desk caps you at 200 minutes for $99/mo. Smith.ai charges $2.40 per call after 50 calls. The busier your business gets, the more you pay. We think that's backwards. With unmissed.ai, you pay one flat rate whether you get 10 calls or 500. Your success should make you money, not cost you more.",
+      `We're in beta and want early adopters to lock in our best rate. The regular price will be $${BASE_PLAN.monthly}/mo — still cheaper than every competitor once you factor in their per-minute overages. At $${price}/mo you get every feature included: Telegram alerts, SMS follow-up, calendar booking, live transfer, and the Learning Loop. No tiers, no paywalls.`,
   },
   {
-    question: "Why is unmissed.ai more expensive than $29/mo competitors?",
+    question: "How are you different from Dialzara, Rosie, or My AI Front Desk?",
     answer:
-      "It's not — once you do the math. Those $29-49/mo plans include 60-250 minutes. A busy service business handles 100-300+ calls per month. At 200 calls, Dialzara costs $290+, Rosie costs $99+, and Smith.ai costs $455+. We're $147 flat — no matter how many calls you get. Plus, we set up your entire agent for you. With competitors, you're configuring it yourself. Our price includes the service, not just the software.",
+      `Three ways. First, pricing: they all charge per minute or per caller. We charge a flat $${price}/mo. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, features: they gate booking, live transfer, and SMS behind higher tiers. We include everything on every plan.`,
   },
   {
-    question: "How are you different from Goodcall, My AI Front Desk, or Rosie?",
+    question: "What does the $25 setup fee cover?",
     answer:
-      "Three ways. First, pricing: they all charge per minute or per caller. We charge flat. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, features: they gate booking, bilingual support, and integrations behind higher tiers. We include everything on every plan.",
+      `The ${SETUP.label} covers building your custom AI agent — we tune it to your specific business, niche, hours, and services. It includes ${SETUP.includes}. You don't configure anything yourself — we handle it all and have your agent live within 48 hours.`,
   },
   {
     question: "What if the agent says something wrong?",
@@ -42,7 +45,7 @@ const faqs = [
   {
     question: "What if I want to cancel?",
     answer:
-      "No contracts, no cancellation fees. Cancel anytime with 30 days notice — just message us. Your call logs stay in your own Google Sheet, so you keep your data either way. We're confident you won't want to cancel once you see the leads you were missing.",
+      `${POLICIES.cancellation} No contracts, no cancellation fees. Your call logs stay in your dashboard, so you keep your data either way. We're confident you won't want to cancel once you see the leads you were missing.`,
   },
 ];
 

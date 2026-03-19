@@ -1,4 +1,8 @@
+import { BETA_PROMO, BASE_PLAN, FUTURE_TIERS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://unmissed.ai";
+
+const effectivePrice = BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly;
 
 export const faqSchema = {
   "@context": "https://schema.org",
@@ -33,7 +37,7 @@ export const faqSchema = {
       name: "How do I update what the agent knows?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Your agent's knowledge lives in a Google Sheet we set up for you. You or we can update it anytime in minutes — no coding required. Plus, with our Learning Loop, your agent automatically improves every week based on real call transcripts.",
+        text: "We handle updates for you. Just message us what changed and we'll update your agent's knowledge base within 24 hours. No dashboard to log into, no prompts to write. Plus, with our Learning Loop, your agent automatically improves every week based on real call transcripts.",
       },
     },
     {
@@ -41,7 +45,7 @@ export const faqSchema = {
       name: "What if I want to cancel?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Month-to-month, no contracts. Cancel anytime. Your call logs stay in your own Google Sheet — we don't hold your data hostage.",
+        text: `${POLICIES.cancellation} Your call logs stay in your dashboard — we don't hold your data hostage.`,
       },
     },
   ],
@@ -60,10 +64,10 @@ export const pricingSchema = {
   },
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: "147",
-    highPrice: "397",
-    priceCurrency: "USD",
-    offerCount: 3,
+    lowPrice: String(effectivePrice),
+    highPrice: String(FUTURE_TIERS.length > 0 ? FUTURE_TIERS[FUTURE_TIERS.length - 1].price : effectivePrice),
+    priceCurrency: CURRENCY === "CAD" ? "CAD" : "USD",
+    offerCount: 1 + FUTURE_TIERS.length,
   },
 };
 

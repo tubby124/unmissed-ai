@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
+import { BETA_PROMO, TRIAL, POLICIES } from '@/lib/pricing'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
@@ -14,10 +15,10 @@ export function GuaranteeBar() {
       viewport={{ once: true }}
     >
       <p className="text-green-400 font-semibold text-sm">
-        30-day money-back guarantee · No contracts · Cancel anytime with 30 days notice
+        {TRIAL.label} · {POLICIES.contracts} · {POLICIES.cancellation}
       </p>
       <p className="text-gray-500 text-xs mt-1">
-        Your call log data lives in your dashboard — you own it and keep it if you ever leave.
+        {POLICIES.dataOwnership}
       </p>
     </motion.div>
   )
@@ -42,7 +43,7 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
         >
-          One flat rate. Every call answered.
+          Less than a dollar a day.
         </motion.h1>
         <motion.p
           className="text-gray-400 text-xl leading-relaxed mb-2"
@@ -50,8 +51,8 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          Other AI receptionists charge you per minute — the more your phone
-          rings, the more you pay. That punishes success.
+          Other AI receptionists charge per minute — the more your phone
+          rings, the more you pay. We include every feature on every plan.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"
@@ -59,17 +60,19 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          We charge one flat monthly rate. No per-minute fees. No overage surprises. Ever.
+          {TRIAL.label}. All features included. Cancel anytime.
         </motion.p>
-        <motion.div
-          className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
-          style={{ backgroundColor: "#0d0d0d", color: "#60A5FA", border: "1px solid #1f1f1f" }}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.05 }}
-        >
-          Founding Member Pricing — locked for life for the first 50 clients
-        </motion.div>
+        {BETA_PROMO.enabled && (
+          <motion.div
+            className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
+            style={{ backgroundColor: "#0d0d0d", color: "#60A5FA", border: "1px solid #1f1f1f" }}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.05 }}
+          >
+            {BETA_PROMO.badge} — ${BETA_PROMO.monthly}/mo while spots last
+          </motion.div>
+        )}
       </div>
     </section>
   )
