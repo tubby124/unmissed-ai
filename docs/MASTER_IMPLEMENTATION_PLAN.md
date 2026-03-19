@@ -252,7 +252,7 @@ Add a RETURNING CALLER HANDLING section to the shared prompt template in prompt-
 
 ---
 
-### Phase S5 — Dashboard Call Insights
+### Phase S5 — Dashboard Call Insights ✅ DONE (2026-03-19)
 
 **Objective:** Add an aggregated insights view so clients can see call volume, classification breakdown, and trends.
 
