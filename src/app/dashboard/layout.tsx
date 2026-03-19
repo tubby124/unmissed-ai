@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
@@ -7,6 +7,8 @@ import MobileNav from '@/components/dashboard/MobileNav'
 import ActivityFeed from '@/components/dashboard/ActivityFeed'
 import ForwardingBanner from '@/components/dashboard/ForwardingBanner'
 import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
+import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
+import { AdminClientProvider } from '@/contexts/AdminClientContext'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -21,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let setupComplete = true
   let twilioNumber: string | null = null
   let clientNiche: string | null = null
+  let adminClients: { id: string; slug: string; business_name: string; niche: string | null; status: string | null; twilio_number: string | null }[] = []
 
   if (user) {
     const { data: cu } = await supabase
@@ -37,6 +40,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     setupComplete = isAdmin ? true : (clientData?.setup_complete ?? true)
     twilioNumber = isAdmin ? null : (clientData?.twilio_number ?? null)
     clientNiche = isAdmin ? null : (clientData?.niche ?? null)
+
+    if (isAdmin) {
+      const { data: allClients } = await supabase
+        .from('clients')
+        .select('id, slug, business_name, niche, status, twilio_number')
+        .order('business_name')
+      adminClients = (allClients ?? []).map(c => ({
+        id: c.id,
+        slug: c.slug,
+        business_name: c.business_name,
+        niche: (c as Record<string, unknown>).niche as string | null ?? null,
+        status: (c as Record<string, unknown>).status as string | null ?? null,
+        twilio_number: (c as Record<string, unknown>).twilio_number as string | null ?? null,
+      }))
+    }
   }
 
   // Auto-redirect setup-status clients to /dashboard/setup unless they're already there
@@ -69,7 +87,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto">
-          {children}
+          <Suspense>
+            <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
+              <AdminCommandStrip />
+              {children}
+            </AdminClientProvider>
+          </Suspense>
           <FloatingAdvisorBubble isAdmin={isAdmin} />
         </main>
 

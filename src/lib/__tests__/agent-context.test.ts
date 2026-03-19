@@ -272,7 +272,7 @@ describe('buildAgentContext() — after-hours fields', () => {
     )
     assert.equal(ctx.caller.isAfterHours, true)
     assert.ok(typeof ctx.caller.afterHoursBehaviorNote === 'string')
-    assert.ok((ctx.caller.afterHoursBehaviorNote as string).startsWith('AFTER HOURS:'))
+    assert.ok((ctx.caller.afterHoursBehaviorNote as string).startsWith('OFFICE STATUS:'))
   })
 
   test('after-hours note includes emergency phone when behavior=route_emergency', () => {
@@ -285,14 +285,14 @@ describe('buildAgentContext() — after-hours fields', () => {
     // Without a phone, falls through to custom-behavior case — returns behavior string verbatim.
     // This matches inbound/route.ts behavior faithfully (no take_message fallback in that branch).
     const note = buildAfterHoursBehaviorNote('route_emergency', null)
-    assert.ok(note.startsWith('AFTER HOURS:'))
+    assert.ok(note.startsWith('OFFICE STATUS:'))
     assert.ok(!note.includes('transfer to'), 'should not include a phone transfer line without a phone')
   })
 
   test('after-hours note for take_message behavior', () => {
     const note = buildAfterHoursBehaviorNote('take_message', null)
-    assert.ok(note.includes('Still help the caller'))
-    assert.ok(note.includes('next business day'))
+    assert.ok(note.includes('Continue helping the caller normally'))
+    assert.ok(note.includes('someone will follow up'))
   })
 })
 
@@ -371,40 +371,40 @@ describe('buildAgentContext() — assembled blocks', () => {
     assert.ok(ctx2.assembled.callerContextBlock.includes('Ahmed Khan'))
   })
 
-  test('callerContextBlock includes AFTER HOURS note when after hours', () => {
+  test('callerContextBlock includes OFFICE STATUS note when after hours', () => {
     const ctx3 = buildAgentContext(
       { ...BASE_CLIENT, business_hours_weekday: '9am to 5pm' },
       '+13068507687',
       [],
       FIXED_AFTER_HOURS,
     )
-    assert.ok(ctx3.assembled.callerContextBlock.includes('AFTER HOURS'))
+    assert.ok(ctx3.assembled.callerContextBlock.includes('OFFICE STATUS:'))
   })
 
-  test('callerContextBlock includes CURRENT BUSINESS HOURS block when weekday hours are set', () => {
+  test('callerContextBlock includes OFFICE HOURS block when weekday hours are set', () => {
     const ctx2 = buildAgentContext(
       { ...BASE_CLIENT, business_hours_weekday: '9am to 5pm' },
       '+13068507687', [], FIXED_WEEKDAY,
     )
-    assert.ok(ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS:'))
+    assert.ok(ctx2.assembled.callerContextBlock.includes('OFFICE HOURS (for caller inquiries):'))
     assert.ok(ctx2.assembled.callerContextBlock.includes('- Weekdays: 9am to 5pm'))
   })
 
-  test('callerContextBlock includes weekend hours in dedicated block when set', () => {
+  test('callerContextBlock includes weekend hours in OFFICE HOURS block when set', () => {
     const ctx2 = buildAgentContext(
       { ...BASE_CLIENT, business_hours_weekend: 'Saturday 10am to 2pm' },
       '+13068507687', [], FIXED_WEEKDAY,
     )
-    assert.ok(ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS:'))
+    assert.ok(ctx2.assembled.callerContextBlock.includes('OFFICE HOURS (for caller inquiries):'))
     assert.ok(ctx2.assembled.callerContextBlock.includes('- Weekends: Saturday 10am to 2pm'))
   })
 
-  test('callerContextBlock does NOT include CURRENT BUSINESS HOURS when hours are null', () => {
+  test('callerContextBlock does NOT include OFFICE HOURS when hours are null', () => {
     const ctx2 = buildAgentContext(
       { ...BASE_CLIENT, business_hours_weekday: null, business_hours_weekend: null },
       '+13068507687', [], FIXED_WEEKDAY,
     )
-    assert.ok(!ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS'))
+    assert.ok(!ctx2.assembled.callerContextBlock.includes('OFFICE HOURS'))
   })
 
   test('contextDataBlock uses custom label when context_data_label is set', () => {

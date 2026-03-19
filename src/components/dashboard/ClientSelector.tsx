@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { getNicheConfig } from '@/lib/niche-config'
 
@@ -31,6 +32,9 @@ function formatPhone(raw: string) {
 }
 
 export default function ClientSelector({ clients, value, onChange }: ClientSelectorProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const urlParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -87,6 +91,15 @@ export default function ClientSelector({ clients, value, onChange }: ClientSelec
 
   function select(id: string) {
     onChange(id)
+    // Persist selection in URL for cross-page navigation
+    const params = new URLSearchParams(urlParams.toString())
+    if (id === 'all') {
+      params.delete('client_id')
+    } else {
+      params.set('client_id', id)
+    }
+    const qs = params.toString()
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
     setOpen(false)
     setSearch('')
   }

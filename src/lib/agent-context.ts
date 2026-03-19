@@ -182,25 +182,26 @@ export function detectAfterHours(
 }
 
 // ── buildAfterHoursBehaviorNote() ─────────────────────────────────────────────
-// Extracted faithfully from api/webhook/[slug]/inbound/route.ts (no behavior change).
+// Provides soft contextual awareness that the office is closed for visits.
+// The agent ALWAYS takes calls 24/7 — this note never implies the call shouldn't happen.
 export function buildAfterHoursBehaviorNote(
   afterHoursBehavior: string,
   afterHoursPhone: string | null,
 ): string {
   if (afterHoursBehavior === 'route_emergency' && afterHoursPhone) {
     return (
-      `AFTER HOURS: This call is outside business hours. ` +
+      `OFFICE STATUS: The office is currently closed for in-person visits. ` +
       `If this is an emergency, transfer to ${afterHoursPhone}. ` +
-      `Otherwise take their details and let them know someone will follow up next business day.`
+      `Otherwise continue helping the caller normally — collect their info and let them know someone will follow up.`
     )
   }
   if (afterHoursBehavior === 'take_message') {
     return (
-      `AFTER HOURS: This call is outside business hours. ` +
-      `Still help the caller, take their details, and let them know someone will follow up next business day.`
+      `OFFICE STATUS: The office is currently closed for in-person visits. ` +
+      `Continue helping the caller normally — collect their info and let them know someone will follow up.`
     )
   }
-  return `AFTER HOURS: This call is outside business hours. ${afterHoursBehavior}`
+  return `OFFICE STATUS: The office is currently closed for in-person visits. ${afterHoursBehavior}`
 }
 
 // ── buildAgentContext() ───────────────────────────────────────────────────────
@@ -320,12 +321,12 @@ export function buildAgentContext(
       `\nRETURNING CALLER — ${priorCallCount} prior call${priorCallCount > 1 ? 's' : ''}. ` +
       `Most recent: ${lastCallDate}.${summaryStr}`
   }
-  // Business hours block — structured, not loose lines
+  // Office/visit hours — informational only. Agent always answers calls 24/7.
   const hoursLines: string[] = []
   if (business.hoursWeekday) hoursLines.push(`- Weekdays: ${business.hoursWeekday}`)
   if (business.hoursWeekend) hoursLines.push(`- Weekends: ${business.hoursWeekend}`)
   if (hoursLines.length > 0) {
-    callerContextStr += `\nCURRENT BUSINESS HOURS:\n${hoursLines.join('\n')}`
+    callerContextStr += `\nOFFICE HOURS (for caller inquiries):\n${hoursLines.join('\n')}`
   }
   if (afterHoursBehaviorNote) callerContextStr += `\n${afterHoursBehaviorNote}`
 

@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useAdminClient } from '@/contexts/AdminClientContext'
 import { motion } from 'motion/react'
 import { animate } from 'motion'
 import {
@@ -508,8 +510,14 @@ function Card({ title, delay, children, className = '' }: { title: string; delay
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function InsightsView({ clientId, isAdmin, adminClients }: InsightsViewProps) {
+  const { selectedClientId: contextClientId, setSelectedClientId: setContextClient } = useAdminClient()
+  const router = useRouter()
+  const pathname = usePathname()
+  const urlParams = useSearchParams()
   const [range, setRange] = useState<Range>('30d')
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(
+    () => contextClientId === 'all' ? null : contextClientId
+  )
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -548,7 +556,11 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
           {isAdmin && adminClients.length > 0 && (
             <select
               value={selectedClientId ?? ''}
-              onChange={e => setSelectedClientId(e.target.value || null)}
+              onChange={e => {
+                const id = e.target.value || null
+                setSelectedClientId(id)
+                setContextClient(id ?? 'all')
+              }}
               className="text-[12px] rounded-lg px-3 py-2 border appearance-none cursor-pointer"
               style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-1)' }}
             >

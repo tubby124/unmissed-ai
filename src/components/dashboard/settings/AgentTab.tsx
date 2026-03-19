@@ -1848,7 +1848,7 @@ export default function AgentTab({
               />
             </div>
           )}
-          <p className="text-xs text-muted-foreground mt-1">These hours are used during calls and after-hours handling.</p>
+          <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
         </div>
       </div>
       </motion.div>

@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/client'
 import ThemeToggle from '../ThemeToggle'
 import { hasCapability } from '@/lib/niche-capabilities'
 
-const GROUP_LABELS: Record<number, string | null> = { 1: null, 2: 'MANAGE', 3: 'TOOLS', 4: null }
+const GROUP_LABELS: Record<number, string | null> = { 1: 'OPS', 2: 'CLIENTS', 3: 'TOOLS', 4: null }
 
 const NAV = [
   // ── Group 1 ──────────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ const NAV = [
     href: '/dashboard/campaigns',
     label: 'Performance',
     adminOnly: true,
-    group: 2,
+    group: 1,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -99,11 +99,24 @@ const NAV = [
   {
     href: '/dashboard/leads',
     label: 'Leads',
+    adminLabel: 'Outbound Queue',
     adminOnly: false,
     group: 2,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/intake',
+    label: 'Intake',
+    adminOnly: true,
+    group: 2,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M22 12h-6l-2 3h-4l-2-3H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
@@ -122,6 +135,17 @@ const NAV = [
     ),
   },
   // ── Group 3 — TOOLS (admin) ───────────────────────────────────────────────
+  {
+    href: '/dashboard/demos',
+    label: 'Demos',
+    adminOnly: true,
+    group: 3,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M12 20V10M18 20V4M6 20v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
   {
     href: '/dashboard/lab',
     label: 'Lab',
@@ -368,7 +392,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     transition={{ duration: 0.1 }}
                     className="whitespace-nowrap overflow-hidden flex-1 flex items-center gap-2"
                   >
-                    {item.label}
+                    {item.adminLabel && isAdmin ? item.adminLabel : item.label}
                     {/* Amber processing count pill */}
                     {isCalls && processingCount > 0 && (
                       <span className="ml-auto text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">

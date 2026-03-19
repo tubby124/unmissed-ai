@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useAdminClient } from '@/contexts/AdminClientContext'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'motion/react'
 import { createSoundCues } from '@/components/DemoCallVisuals'
@@ -142,7 +143,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
   const [loading, setLoading] = useState(initialCalls.length === 0)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const [clientFilter, setClientFilter] = useState<string>(() => searchParams.get('client') ?? 'all')
+  const { selectedClientId: contextClientId, setSelectedClientId: setContextClient } = useAdminClient()
+  const [clientFilter, setClientFilter] = useState<string>(() => contextClientId)
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [showDial, setShowDial] = useState(false)
@@ -424,7 +426,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               <ClientSelector
                 clients={adminClients}
                 value={clientFilter}
-                onChange={setClientFilter}
+                onChange={(id) => { setClientFilter(id); setContextClient(id) }}
               />
             </div>
           )}

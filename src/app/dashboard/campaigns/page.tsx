@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
-import CampaignCard from '@/components/dashboard/CampaignCard'
+import CampaignGrid from '@/components/dashboard/CampaignGrid'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +21,7 @@ export default async function CampaignsPage() {
   // Fetch all clients
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, slug, business_name')
+    .select('id, slug, business_name, niche, status, twilio_number')
     .order('business_name')
 
   // Fetch all non-live call_logs for aggregation
@@ -54,7 +54,7 @@ export default async function CampaignsPage() {
       }).length
     })
 
-    return { id: client.id, business_name: client.business_name, slug: client.slug, total_calls, hot_leads, last_call_at, daily_counts }
+    return { id: client.id, business_name: client.business_name, slug: client.slug, niche: (client as Record<string, unknown>).niche as string | null ?? null, status: (client as Record<string, unknown>).status as string | null ?? null, twilio_number: (client as Record<string, unknown>).twilio_number as string | null ?? null, total_calls, hot_leads, last_call_at, daily_counts }
   }).sort((a, b) => {
     if (!a.last_call_at && !b.last_call_at) return 0
     if (!a.last_call_at) return 1
@@ -66,29 +66,13 @@ export default async function CampaignsPage() {
     <div className="p-6 space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-lg font-semibold t1">Campaigns</h1>
+        <h1 className="text-lg font-semibold t1">Performance</h1>
         <p className="text-xs t3 mt-0.5">
-          Per-client call performance — {campaigns.length} active agent{campaigns.length !== 1 ? 's' : ''}
+          Per-client call performance — {campaigns.length} agent{campaigns.length !== 1 ? 's' : ''}
         </p>
       </div>
 
-      {/* Campaign grid */}
-      {campaigns.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-24 t3">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="opacity-25">
-            <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-            <rect x="10" y="8" width="4" height="13" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-            <rect x="2" y="13" width="4" height="8" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          <p className="text-sm">No clients provisioned yet</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {campaigns.map(campaign => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
-          ))}
-        </div>
-      )}
+      <CampaignGrid campaigns={campaigns} />
     </div>
   )
 }
