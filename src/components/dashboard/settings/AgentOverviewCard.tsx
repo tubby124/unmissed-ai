@@ -207,16 +207,41 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               )
             })()}
 
-            {/* Call forwarding — coming soon */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border b-theme text-[11px] font-medium t3 opacity-50 cursor-not-allowed">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-              Call forwarding
-              <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-zinc-700 text-zinc-400 ml-0.5">soon</span>
+            {/* Call forwarding / transfer */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium ${
+              client.forwarding_number
+                ? 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+                : 'b-theme t3'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${client.forwarding_number ? 'bg-purple-400' : 'bg-zinc-600'}`} />
+              Transfer {client.forwarding_number ? fmtPhone(client.forwarding_number) : 'off'}
             </div>
           </div>
         </div>
 
-        {/* ── Row 5: Quick inject ────────────────────────────────────────────────── */}
+        {/* ── Row 5: Capability summary ────────────────────────────────────────── */}
+        <div className="mb-5 pt-4 border-t b-theme">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Agent capabilities</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[
+              { label: 'Transfer', on: !!client.forwarding_number },
+              { label: 'Calendar', on: client.calendar_auth_status === 'connected' && !!client.booking_enabled },
+              { label: 'SMS follow-up', on: localSmsEnabled },
+              { label: 'Knowledge base', on: !!client.corpus_enabled },
+              { label: 'Prompt', detail: `${((client.system_prompt ?? '').length).toLocaleString()} / 8,000` },
+            ].map(cap => (
+              <div key={cap.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border b-theme">
+                {'on' in cap ? (
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${cap.on ? 'bg-green-400' : 'bg-zinc-600'}`} />
+                ) : null}
+                <span className="text-[11px] t2">{cap.label}</span>
+                {cap.detail && <span className="text-[10px] font-mono t3 ml-auto">{cap.detail}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Row 6: Quick inject ────────────────────────────────────────────────── */}
         <QuickInject client={client} isAdmin={isAdmin} />
 
         {/* ── Row 6: Context data (CSV) ─────────────────────────────────────────── */}

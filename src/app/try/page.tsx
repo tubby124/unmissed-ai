@@ -238,9 +238,7 @@ export default function TryPage() {
                 <Phone size={16} />
                 {demoNumber}
               </a>
-            ) : (
-              <p className="text-sm" style={{ color: "var(--color-text-3)" }}>Phone demo coming soon</p>
-            )}
+            ) : null}
           </div>
         </section>
 

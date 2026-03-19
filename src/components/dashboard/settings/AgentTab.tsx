@@ -100,6 +100,7 @@ export default function AgentTab({
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveUltravoxWarning, setSaveUltravoxWarning] = useState<string | null>(null)
+  const [savePromptWarnings, setSavePromptWarnings] = useState<{ field: string; message: string }[]>([])
   const [changeDesc, setChangeDesc] = useState('')
 
   const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error'>('idle')
@@ -193,6 +194,7 @@ export default function AgentTab({
     setSaved(false)
     setSaveError('')
     setSaveUltravoxWarning(null)
+    setSavePromptWarnings([])
     const desc = changeDesc.trim() || 'Edited via dashboard'
     const body: Record<string, unknown> = { system_prompt: currentPrompt, change_description: desc }
     if (isAdmin) body.client_id = client.id
@@ -209,6 +211,9 @@ export default function AgentTab({
       setTimeout(() => setSaved(false), 3000)
       if (!data.ultravox_synced && data.ultravox_error) {
         setSaveUltravoxWarning(`Ultravox sync failed: ${data.ultravox_error}. Use "Re-sync Agent" to retry.`)
+      }
+      if (data.warnings?.length) {
+        setSavePromptWarnings(data.warnings)
       }
     } else {
       const d = await res.json().catch(() => ({}))
@@ -1198,8 +1203,8 @@ export default function AgentTab({
                         Edit your agent&apos;s script below. Changes go live as soon as you save.
                       </p>
                       <div className="flex items-center gap-3 shrink-0 ml-3">
-                        <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
-                          {charCount.toLocaleString()} chars
+                        <span className={`text-xs tabular-nums font-mono ${charCount > 8000 ? 'text-red-400' : charCount > 7000 ? 'text-amber-400' : 't3'}`}>
+                          {charCount.toLocaleString()} / 8,000 chars (~{Math.ceil(charCount / 4).toLocaleString()} tokens)
                         </span>
                         {dirty && (
                           <input
@@ -1212,16 +1217,19 @@ export default function AgentTab({
                         )}
                         <button
                           onClick={save}
-                          disabled={!dirty || saving}
+                          disabled={!dirty || saving || charCount > 8000}
+                          title={charCount > 8000 ? 'Prompt exceeds 8,000 character limit' : undefined}
                           className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                            saved
+                            charCount > 8000
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
+                              : saved
                               ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                               : dirty
                               ? 'bg-blue-500 hover:bg-blue-400 text-white'
                               : 'bg-hover t3 cursor-not-allowed border b-theme'
                           }`}
                         >
-                          {saving ? 'Saving…' : (
+                          {charCount > 8000 ? 'Over limit' : saving ? 'Saving…' : (
                             <AnimatePresence mode="wait">
                               {saved ? (
                                 <motion.span
@@ -1298,6 +1306,39 @@ export default function AgentTab({
                       </div>
                     )}
 
+                    {/* Prompt char progress bar */}
+                    <div className="mb-3">
+                      <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            charCount > 8000 ? 'bg-red-500' : charCount > 7000 ? 'bg-amber-500' : 'bg-blue-500/60'
+                          }`}
+                          style={{ width: `${Math.min((charCount / 8000) * 100, 100)}%` }}
+                        />
+                      </div>
+                      {charCount > 8000 && (
+                        <p className="text-[10px] text-red-400 mt-1">
+                          Over limit by {(charCount - 8000).toLocaleString()} chars. Remove content before saving.
+                        </p>
+                      )}
+                    </div>
+
+                    {savePromptWarnings.length > 0 && (
+                      <div className="mb-3 px-3 py-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] font-semibold text-amber-400">Prompt warnings</span>
+                          <button onClick={() => setSavePromptWarnings([])} className="text-[10px] text-amber-400/60 hover:text-amber-400">
+                            Dismiss
+                          </button>
+                        </div>
+                        <ul className="space-y-0.5">
+                          {savePromptWarnings.map((w, i) => (
+                            <li key={i} className="text-[10px] text-amber-400/80 leading-relaxed">• {w.message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {saveError && (
                       <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0">
@@ -1330,23 +1371,59 @@ export default function AgentTab({
                       </p>
                     </div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className={`text-xs tabular-nums font-mono ${charCount > 48000 ? 'text-red-400' : charCount > 40000 ? 'text-amber-400' : 't3'}`}>
-                        {charCount.toLocaleString()} chars
+                      <span className={`text-xs tabular-nums font-mono ${charCount > 8000 ? 'text-red-400' : charCount > 7000 ? 'text-amber-400' : 't3'}`}>
+                        {charCount.toLocaleString()} / 8,000 chars (~{Math.ceil(charCount / 4).toLocaleString()} tokens)
                       </span>
                       <button
                         onClick={save}
-                        disabled={!dirty || saving}
+                        disabled={!dirty || saving || charCount > 8000}
+                        title={charCount > 8000 ? 'Prompt exceeds 8,000 character limit' : undefined}
                         className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                          saved
+                          charCount > 8000
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
+                            : saved
                             ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                             : dirty
                             ? 'bg-blue-500 hover:bg-blue-400 text-white'
                             : 'bg-hover t3 cursor-not-allowed border b-theme'
                         }`}
                       >
-                        {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+                        {charCount > 8000 ? 'Over limit' : saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
                       </button>
                     </div>
+                    {/* Prompt char progress bar (client view) */}
+                    <div className="mb-3">
+                      <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            charCount > 8000 ? 'bg-red-500' : charCount > 7000 ? 'bg-amber-500' : 'bg-blue-500/60'
+                          }`}
+                          style={{ width: `${Math.min((charCount / 8000) * 100, 100)}%` }}
+                        />
+                      </div>
+                      {charCount > 8000 && (
+                        <p className="text-[10px] text-red-400 mt-1">
+                          Over limit by {(charCount - 8000).toLocaleString()} chars. Remove content before saving.
+                        </p>
+                      )}
+                    </div>
+
+                    {savePromptWarnings.length > 0 && (
+                      <div className="mb-3 px-3 py-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] font-semibold text-amber-400">Prompt warnings</span>
+                          <button onClick={() => setSavePromptWarnings([])} className="text-[10px] text-amber-400/60 hover:text-amber-400">
+                            Dismiss
+                          </button>
+                        </div>
+                        <ul className="space-y-0.5">
+                          {savePromptWarnings.map((w, i) => (
+                            <li key={i} className="text-[10px] text-amber-400/80 leading-relaxed">• {w.message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     <textarea
                       value={currentPrompt}
                       onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}

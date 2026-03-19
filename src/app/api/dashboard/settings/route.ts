@@ -2,6 +2,38 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { updateAgent, createCorpus } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
+import { sendAlert } from '@/lib/telegram'
+
+// ── Prompt validation ──────────────────────────────────────────────────────────
+interface PromptWarning { field: string; message: string }
+interface PromptValidation { valid: boolean; error?: string; warnings: PromptWarning[] }
+
+const PROMPT_MAX_CHARS = 8000
+
+function validatePrompt(prompt: string): PromptValidation {
+  const warnings: PromptWarning[] = []
+
+  if (prompt.length > PROMPT_MAX_CHARS) {
+    return {
+      valid: false,
+      error: `Prompt is ${prompt.length.toLocaleString()} characters — maximum is ${PROMPT_MAX_CHARS.toLocaleString()}. Remove content before saving.`,
+      warnings,
+    }
+  }
+
+  // Soft warnings — returned but not blocked
+  if (/(?<!\d)\d{10,}(?!\d)/g.test(prompt)) {
+    warnings.push({ field: 'phone_number', message: 'Phone numbers in prompts cause hallucination. Use the forwarding number field instead.' })
+  }
+  if (/https?:\/\/[^\s)]+/gi.test(prompt)) {
+    warnings.push({ field: 'url', message: "URLs aren't spoken correctly by voice agents. Use the knowledge base to store web content." })
+  }
+  if (/(?:we charge|our price is|costs? )\$[\d,.]+/gi.test(prompt)) {
+    warnings.push({ field: 'price', message: 'Hardcoded prices can bind your business. Consider using the knowledge base for pricing info.' })
+  }
+
+  return { valid: true, warnings }
+}
 
 /**
  * Parse free-form hours section content into structured weekday/weekend strings.
@@ -50,7 +82,13 @@ export async function PATCH(req: NextRequest) {
 
   const updates: Record<string, unknown> = {}
 
+  // Track warnings from prompt validation (returned in response)
+  let promptWarnings: PromptWarning[] = []
+
   if (typeof body.system_prompt === 'string') {
+    const v = validatePrompt(body.system_prompt)
+    if (!v.valid) return NextResponse.json({ error: v.error }, { status: 400 })
+    promptWarnings = v.warnings
     updates.system_prompt = body.system_prompt
     updates.updated_at = new Date().toISOString()
   }
@@ -154,11 +192,15 @@ export async function PATCH(req: NextRequest) {
         : null
       const hoursText = [weekday, weekend].filter(Boolean).join('\n')
       if (hoursText) {
-        updates.system_prompt = replacePromptSection(
+        const merged = replacePromptSection(
           promptRow.system_prompt as string,
           'hours',
           hoursText
         )
+        const v = validatePrompt(merged)
+        if (!v.valid) return NextResponse.json({ error: v.error }, { status: 400 })
+        if (v.warnings.length) promptWarnings = [...promptWarnings, ...v.warnings]
+        updates.system_prompt = merged
         updates.updated_at = new Date().toISOString()
       }
     }
@@ -209,11 +251,15 @@ export async function PATCH(req: NextRequest) {
       .eq('id', targetClientId)
       .single()
     if (promptRow?.system_prompt) {
-      updates.system_prompt = replacePromptSection(
+      const merged = replacePromptSection(
         promptRow.system_prompt as string,
         body.section_id as string,
         body.section_content as string
       )
+      const v = validatePrompt(merged)
+      if (!v.valid) return NextResponse.json({ error: v.error }, { status: 400 })
+      if (v.warnings.length) promptWarnings = [...promptWarnings, ...v.warnings]
+      updates.system_prompt = merged
       updates.updated_at = new Date().toISOString()
     }
 
@@ -418,7 +464,36 @@ export async function PATCH(req: NextRequest) {
         .update({ active_prompt_version_id: newVersion.id })
         .eq('id', targetClientId)
     }
+
+    // Notify operator when a non-admin client edits their prompt
+    if (cu.role !== 'admin') {
+      try {
+        const { data: adminCl } = await supabase
+          .from('clients')
+          .select('telegram_bot_token, telegram_chat_id, business_name')
+          .eq('slug', 'hasan-sharif')
+          .single()
+        const { data: editedCl } = await supabase
+          .from('clients')
+          .select('business_name')
+          .eq('id', targetClientId)
+          .single()
+        if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+          const name = editedCl?.business_name || 'Unknown client'
+          const charLen = (updates.system_prompt as string).length
+          const msg = `✏️ <b>${name}</b> edited their prompt (v${nextVersion}, ${charLen.toLocaleString()} chars).\nReview: /dashboard/settings`
+          await sendAlert(adminCl.telegram_bot_token as string, adminCl.telegram_chat_id as string, msg)
+        }
+      } catch (err) {
+        console.error(`[settings] Telegram prompt-change notification failed: ${err}`)
+      }
+    }
   }
 
-  return NextResponse.json({ ok: true, ultravox_synced, ...(ultravox_error ? { ultravox_error } : {}) })
+  return NextResponse.json({
+    ok: true,
+    ultravox_synced,
+    ...(ultravox_error ? { ultravox_error } : {}),
+    ...(promptWarnings.length ? { warnings: promptWarnings } : {}),
+  })
 }

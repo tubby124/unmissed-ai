@@ -82,37 +82,9 @@ export default function AlertsTab({ client, tgStyle, setTgStyle }: AlertsTabProp
             <p className="text-[10px] t3 leading-relaxed">Instant call summaries with lead classification and next steps.</p>
           </div>
 
-          {/* SMS — coming soon */}
-          <div className="p-4 rounded-xl border b-theme bg-white/[0.01] opacity-60">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-semibold t1">SMS Alerts</p>
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.06] t3">Coming soon</span>
-              </div>
-            </div>
-            <p className="text-[10px] t3 leading-relaxed">Receive text alerts for hot leads and missed calls.</p>
-          </div>
-
-          {/* Email — coming soon */}
-          <div className="p-4 rounded-xl border b-theme bg-white/[0.01] opacity-60">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
-                  <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-semibold t1">Email</p>
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.06] t3">Coming soon</span>
-              </div>
-            </div>
-            <p className="text-[10px] t3 leading-relaxed">Daily digest and critical alerts delivered to your inbox.</p>
+          {/* Additional channels */}
+          <div className="p-4 rounded-xl border b-theme bg-white/[0.01] col-span-full">
+            <p className="text-[11px] t3">More alert channels (SMS, email) are in development.</p>
           </div>
         </div>
       </div>

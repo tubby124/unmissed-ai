@@ -118,15 +118,6 @@ export default function MobileSetup({
 
       {carrier && carrierNotes.length > 0 && <InlineNotes notes={carrierNotes} />}
 
-      {/* Video walkthrough placeholder */}
-      {carrier && (
-        <div className="rounded-xl border border-dashed b-theme bg-hover flex flex-col items-center justify-center gap-2 py-8 cursor-default">
-          <svg className="t3" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-          </svg>
-          <p className="text-[11px] t3">Video walkthrough — coming soon</p>
-        </div>
-      )}
 
       <AnimatePresence mode="wait">
         {showMobileCodes && (

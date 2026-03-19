@@ -32,6 +32,7 @@ interface InsightsData {
   topCallers: Array<{ phone: string; name: string | null; count: number; lastStatus: string }>
   topTopics: Array<{ topic: string; count: number }>
   sentiment: Record<string, number>
+  qualityTrend?: Array<{ date: string; avg: number }>
   range: Range
   totalDays: number
 }
@@ -257,6 +258,65 @@ function VolumeChart({ dailyVolume, range }: { dailyVolume: Array<{ date: string
             stroke="#6366f1"
             strokeWidth={2}
             fill="url(#volumeGrad)"
+            animationDuration={800}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ─── Quality Trend Chart ─────────────────────────────────────────────────────
+
+function QualityTrendChart({ qualityTrend, range }: { qualityTrend: Array<{ date: string; avg: number }>; range: Range }) {
+  if (!qualityTrend || qualityTrend.length < 2) {
+    return <p className="text-[11px] t3 text-center py-8">Not enough data for quality trend</p>
+  }
+
+  const data = qualityTrend.map(d => {
+    const dt = new Date(d.date + 'T12:00:00')
+    const label = range === '7d'
+      ? dt.toLocaleDateString('en', { weekday: 'short' })
+      : dt.toLocaleDateString('en', { month: 'short', day: 'numeric' })
+    return { label, avg: d.avg, date: d.date }
+  })
+
+  const skipInterval = range === '90d' ? 7 : range === '30d' ? 3 : 1
+
+  return (
+    <div style={{ height: 200 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="qualityGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 9, fill: '#71717a', fontFamily: 'monospace' }}
+            axisLine={false}
+            tickLine={false}
+            interval={skipInterval - 1}
+          />
+          <YAxis
+            domain={[0, 10]}
+            tick={{ fontSize: 9, fill: '#52525b', fontFamily: 'monospace' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            content={<DarkTooltip />}
+            cursor={{ stroke: 'rgba(34, 197, 94, 0.2)', strokeDasharray: '4 4' }}
+          />
+          <Area
+            type="monotone"
+            dataKey="avg"
+            name="Quality"
+            stroke="#22c55e"
+            strokeWidth={2}
+            fill="url(#qualityGrad)"
             animationDuration={800}
           />
         </AreaChart>
@@ -569,6 +629,13 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
               <SentimentBar sentiment={data.sentiment} />
             </Card>
           </div>
+
+          {/* Quality Trend */}
+          {data.qualityTrend && data.qualityTrend.length >= 2 && (
+            <Card title="Quality Over Time" delay={0.47}>
+              <QualityTrendChart qualityTrend={data.qualityTrend} range={data.range as Range} />
+            </Card>
+          )}
 
           {/* Top Callers + Topics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

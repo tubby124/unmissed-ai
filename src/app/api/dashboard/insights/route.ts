@@ -181,6 +181,21 @@ export async function GET(req: NextRequest) {
 
   const hotLeads = classification.HOT ?? 0
 
+  // Quality trend — daily average quality_score
+  const qualityByDay = new Map<string, { sum: number; count: number }>()
+  for (const c of calls) {
+    if (c.quality_score && c.quality_score > 0) {
+      const day = c.started_at.slice(0, 10)
+      const entry = qualityByDay.get(day) ?? { sum: 0, count: 0 }
+      entry.sum += c.quality_score
+      entry.count++
+      qualityByDay.set(day, entry)
+    }
+  }
+  const qualityTrend = Array.from(qualityByDay.entries())
+    .map(([date, { sum, count }]) => ({ date, avg: Math.round((sum / count) * 10) / 10 }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
   return NextResponse.json({
     summary: {
       totalCalls: calls.length,
@@ -200,6 +215,7 @@ export async function GET(req: NextRequest) {
     topCallers,
     topTopics,
     sentiment: sentimentMap,
+    qualityTrend,
     range,
     totalDays: days,
   })
