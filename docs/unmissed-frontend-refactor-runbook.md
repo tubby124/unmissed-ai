@@ -320,25 +320,42 @@ Do not ship a phase if:
 
 ### Phase Progress
 
-* [ ] Phase F0 — Baseline audit (docs only)
-* [ ] Phase F1 — SettingsView decomposition
-* [ ] Phase F2 — SetupView + onboard/status decomposition
-* [ ] Phase F3 — AgentOverviewCard + LabView decomposition
-* [ ] Phase F4 — Shared primitives + cleanup
+* [x] Phase F0 — Baseline audit (docs only) — DONE 2026-03-18 (commit 527ea6d on refactor/frontend)
+* [x] Phase L1 — Behavioral gating (pre-F1) — DONE 2026-03-18 (committed in 5f0c70f on agent-app main)
+  * L1.1: System prompt amber warning for non-admins (editable but discouraged)
+  * L1.2: Prompt History — hide Restore button for non-admins
+  * L1.3: AI Improve section hidden from non-admins
+  * L1.4: Removed duplicate injected_note ("Right Now") from SettingsView
+  * L1.5: Removed duplicate context_data from SettingsView Advanced Context
+  * L1.6: UNKNOWN → "Unclassified" in StatusBadge, CallsList, calls/page
+  * L1.7: Test Call moved above Learning Loop (edit-then-test flow)
+* [x] Phase F1 — SettingsView decomposition — IN PROGRESS (AgentTab being written, other tabs done)
+  * [x] constants.ts (87 lines) — tab definitions, timezones, voices, reload options
+  * [x] shared.tsx (54 lines) — CopyButton, UrlRow
+  * [x] SmsTab.tsx (201 lines)
+  * [x] VoiceTab.tsx (158 lines)
+  * [x] AlertsTab.tsx (240 lines)
+  * [x] BillingTab.tsx (182 lines)
+  * [x] SettingsView.tsx slimmed to ~393 lines (from 2,993)
+  * [ ] AgentTab.tsx — in progress (~1,917 lines, being written by parallel instance)
+  * [ ] Build passes after AgentTab wired in
+* [ ] Phase F2 — SetupView + onboard/status decomposition (deferred — not blocking)
+* [ ] Phase F3 — AgentOverviewCard + LabView decomposition (deferred — not blocking)
+* [ ] Phase F4 — Shared primitives + cleanup (deferred — not blocking)
 
 ### Safety
 
-* [ ] `refactor/frontend` branch created from main
-* [ ] Build passes on branch before any changes
-* [ ] Build passes after every phase
-* [ ] No files in `lib/` modified (except settings-utils.ts if needed)
-* [ ] No files in `app/api/` modified
-* [ ] No visual regressions
+* [x] `refactor/frontend` branch created from main (commit 527ea6d — F0 docs)
+* [x] Build passes on branch before any changes
+* [x] Build passes after L1 changes (verified in agent-app)
+* [x] No files in `lib/` modified by L1 or F1
+* [x] `app/api/dashboard/settings/route.ts` modified (corpus toggle simplification) — deviation noted
+* [ ] No visual regressions (needs manual verification after F1 AgentTab done)
 
 ### Merge Readiness
 
-* [ ] All 5 phases complete
-* [ ] Backend Phases 5-8 complete on main
+* [ ] F1 complete (AgentTab pending)
+* [x] Backend Phases 0-8 complete on main
 * [ ] Rebase onto latest main — no conflicts
 * [ ] Final `npm run build` passes
 * [ ] Visual smoke test of all affected pages
