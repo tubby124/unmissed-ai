@@ -1782,7 +1782,7 @@ export default function AgentTab({
       {([
         { id: 'identity', label: 'Agent Identity', desc: 'Agent name, greeting, and personality', rows: 6 },
         { id: 'hours', label: 'Business Hours', desc: 'Hours your agent mentions to callers', rows: 3 },
-        { id: 'knowledge', label: 'Knowledge Base', desc: 'Services, pricing, and FAQs your agent knows', rows: 10 },
+        { id: 'knowledge', label: 'Knowledge Base', desc: 'Upload documents for your agent to search through — policies, procedures, or detailed guides.', rows: 10 },
       ] as const).map(({ id: sectionId, label, desc, rows }) => {
         const parsed = sectionContent[client.id] ?? {}
         const hasMarker = sectionId in parsed
@@ -1878,8 +1878,8 @@ export default function AgentTab({
         {/* Business Facts */}
         <div className="space-y-1.5 mb-5">
           <label className="text-[11px] t3 block">Business facts</label>
-          <p className="text-[10px] t3">
-            Anything your agent should always know — hours exceptions, parking, nearby landmarks, key staff names
+          <p className="text-[11px] t3">
+            Core business info your agent always knows — hours, location, team members, services.
           </p>
           <textarea
             value={businessFacts[client.id] ?? ''}
@@ -1895,7 +1895,7 @@ export default function AgentTab({
           <div className="flex items-center justify-between">
             <div>
               <label className="text-[11px] t3 block">Extra Q&amp;A pairs</label>
-              <p className="text-[10px] t3">Common caller questions not covered in the wizard</p>
+              <p className="text-[11px] t3">Common questions and answers. Your agent uses these to answer caller questions directly.</p>
             </div>
             {(extraQA[client.id]?.length ?? 0) < 10 && (
               <button

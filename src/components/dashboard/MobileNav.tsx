@@ -18,6 +18,16 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/insights',
+    label: 'Insights',
+    adminOnly: false,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/live',
     label: 'Live',
     adminOnly: false,
