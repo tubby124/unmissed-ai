@@ -10,7 +10,7 @@ export async function redirectCall(
   const dialAttrs = [
     opts?.clientNumber ? ` callerId="${opts.clientNumber}"` : '',
     opts?.actionUrl ? ` action="${opts.actionUrl}"` : '',
-    ' timeout="30"',
+    ' timeout="20"',
   ].join('')
   // When actionUrl is set, Twilio POSTs to it after dial ends (no inline fallback needed).
   // Without actionUrl, fall through to an inline <Say> fallback (legacy behavior).
