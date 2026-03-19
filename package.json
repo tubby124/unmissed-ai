@@ -9,7 +9,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:capabilities": "npx tsx --test src/lib/__tests__/capabilities.test.ts",
+    "test:agent-context": "npx tsx --test src/lib/__tests__/agent-context.test.ts",
+    "test:knowledge-summary": "npx tsx --test src/lib/__tests__/knowledge-summary.test.ts",
+    "test:knowledge-retrieval": "npx tsx --test src/lib/__tests__/knowledge-retrieval.test.ts",
+    "test:niche-delta": "npx tsx --test src/lib/__tests__/niche-delta.test.ts",
+    "test:provisioning-guards": "npx tsx --test src/lib/__tests__/provisioning-guards.test.ts",
+    "test:pm-ops": "npx tsx --test src/lib/__tests__/pm-ops.test.ts"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",
