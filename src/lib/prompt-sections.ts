@@ -63,7 +63,7 @@ export function stripPromptMarkers(prompt: string): string {
 }
 
 /** Section IDs that clients are allowed to edit via the settings UI. */
-export const CLIENT_EDITABLE_SECTIONS = ['identity', 'hours', 'knowledge', 'after_hours'] as const
+export const CLIENT_EDITABLE_SECTIONS = ['identity', 'knowledge', 'after_hours'] as const
 
 /** Section IDs that are locked to admin-only editing. */
 export const ADMIN_ONLY_SECTIONS = ['tone', 'flow', 'technical'] as const

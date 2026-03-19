@@ -320,6 +320,13 @@ export function buildAgentContext(
       `\nRETURNING CALLER — ${priorCallCount} prior call${priorCallCount > 1 ? 's' : ''}. ` +
       `Most recent: ${lastCallDate}.${summaryStr}`
   }
+  // Business hours block — structured, not loose lines
+  const hoursLines: string[] = []
+  if (business.hoursWeekday) hoursLines.push(`- Weekdays: ${business.hoursWeekday}`)
+  if (business.hoursWeekend) hoursLines.push(`- Weekends: ${business.hoursWeekend}`)
+  if (hoursLines.length > 0) {
+    callerContextStr += `\nCURRENT BUSINESS HOURS:\n${hoursLines.join('\n')}`
+  }
   if (afterHoursBehaviorNote) callerContextStr += `\n${afterHoursBehaviorNote}`
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')

@@ -381,6 +381,32 @@ describe('buildAgentContext() — assembled blocks', () => {
     assert.ok(ctx3.assembled.callerContextBlock.includes('AFTER HOURS'))
   })
 
+  test('callerContextBlock includes CURRENT BUSINESS HOURS block when weekday hours are set', () => {
+    const ctx2 = buildAgentContext(
+      { ...BASE_CLIENT, business_hours_weekday: '9am to 5pm' },
+      '+13068507687', [], FIXED_WEEKDAY,
+    )
+    assert.ok(ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS:'))
+    assert.ok(ctx2.assembled.callerContextBlock.includes('- Weekdays: 9am to 5pm'))
+  })
+
+  test('callerContextBlock includes weekend hours in dedicated block when set', () => {
+    const ctx2 = buildAgentContext(
+      { ...BASE_CLIENT, business_hours_weekend: 'Saturday 10am to 2pm' },
+      '+13068507687', [], FIXED_WEEKDAY,
+    )
+    assert.ok(ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS:'))
+    assert.ok(ctx2.assembled.callerContextBlock.includes('- Weekends: Saturday 10am to 2pm'))
+  })
+
+  test('callerContextBlock does NOT include CURRENT BUSINESS HOURS when hours are null', () => {
+    const ctx2 = buildAgentContext(
+      { ...BASE_CLIENT, business_hours_weekday: null, business_hours_weekend: null },
+      '+13068507687', [], FIXED_WEEKDAY,
+    )
+    assert.ok(!ctx2.assembled.callerContextBlock.includes('CURRENT BUSINESS HOURS'))
+  })
+
   test('contextDataBlock uses custom label when context_data_label is set', () => {
     const ctx4 = buildAgentContext({
       id: 'x', slug: 'x',

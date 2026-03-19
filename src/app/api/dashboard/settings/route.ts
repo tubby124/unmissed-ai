@@ -35,29 +35,6 @@ function validatePrompt(prompt: string): PromptValidation {
   return { valid: true, warnings }
 }
 
-/**
- * Parse free-form hours section content into structured weekday/weekend strings.
- * Looks for lines that clearly indicate weekday vs weekend patterns.
- * Returns null for a field if it can't be determined (caller should leave DB field as-is).
- */
-function parseHoursSection(content: string): { weekday: string | null; weekend: string | null } {
-  const WEEKDAY_RE = /\b(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri|weekday|weekdays|daily|monday.{0,10}friday|mon.{0,5}fri)\b/i
-  const WEEKEND_RE = /\b(saturday|sunday|weekend|sat|sun|saturday.{0,10}sunday|sat.{0,5}sun)\b/i
-
-  let weekday: string | null = null
-  let weekend: string | null = null
-
-  for (const raw of content.split('\n')) {
-    const line = raw.trim()
-    if (!line) continue
-    const hasWeekday = WEEKDAY_RE.test(line)
-    const hasWeekend = WEEKEND_RE.test(line)
-    if (hasWeekday && !hasWeekend && !weekday) weekday = line
-    else if (hasWeekend && !hasWeekday && !weekend) weekend = line
-  }
-
-  return { weekday, weekend }
-}
 
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
@@ -161,7 +138,6 @@ export async function PATCH(req: NextRequest) {
   }
 
   // A3 — After-hours config (stored on clients table, injected into callerContext at call time)
-  const a3HoursChanged = typeof body.business_hours_weekday === 'string' || typeof body.business_hours_weekend === 'string'
   if (typeof body.business_hours_weekday === 'string') {
     updates.business_hours_weekday = body.business_hours_weekday.trim() || null
   }
@@ -173,37 +149,6 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.after_hours_emergency_phone === 'string') {
     updates.after_hours_emergency_phone = body.after_hours_emergency_phone.trim() || null
-  }
-
-  // A3a — When hours change, also update the `hours` section in the stored system_prompt so the
-  // agent says the correct hours to callers. This syncs A3 → B1 (reverse of B1a which syncs B1 → A3).
-  if (a3HoursChanged) {
-    const { data: promptRow } = await supabase
-      .from('clients')
-      .select('system_prompt')
-      .eq('id', targetClientId)
-      .single()
-    if (promptRow?.system_prompt) {
-      const weekday = typeof body.business_hours_weekday === 'string'
-        ? (body.business_hours_weekday.trim() || null)
-        : null
-      const weekend = typeof body.business_hours_weekend === 'string'
-        ? (body.business_hours_weekend.trim() || null)
-        : null
-      const hoursText = [weekday, weekend].filter(Boolean).join('\n')
-      if (hoursText) {
-        const merged = replacePromptSection(
-          promptRow.system_prompt as string,
-          'hours',
-          hoursText
-        )
-        const v = validatePrompt(merged)
-        if (!v.valid) return NextResponse.json({ error: v.error }, { status: 400 })
-        if (v.warnings.length) promptWarnings = [...promptWarnings, ...v.warnings]
-        updates.system_prompt = merged
-        updates.updated_at = new Date().toISOString()
-      }
-    }
   }
 
   // B2 — Live transfer conditions: text describing when the agent should use transferCall
@@ -263,19 +208,6 @@ export async function PATCH(req: NextRequest) {
       updates.updated_at = new Date().toISOString()
     }
 
-    // B1a — Hours section DB sync: when the hours section is saved, also write structured
-    // business_hours_weekday / business_hours_weekend so the inbound route's after-hours
-    // detection stays in sync with what the agent actually says about its hours.
-    if (body.section_id === 'hours') {
-      const { weekday, weekend } = parseHoursSection(body.section_content as string)
-      if (weekday !== null) updates.business_hours_weekday = weekday
-      if (weekend !== null) updates.business_hours_weekend = weekend
-      // Blank section = clear both fields (agent has no hours configured)
-      if (!(body.section_content as string).trim()) {
-        updates.business_hours_weekday = null
-        updates.business_hours_weekend = null
-      }
-    }
   }
 
   if (!Object.keys(updates).length) {

@@ -244,19 +244,6 @@ export default function AgentTab({
         ...prev,
         [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: content },
       }))
-      // Bug 6: sync A3 form state when hours section saved via section editor
-      if (sectionId === 'hours') {
-        const WEEKDAY_RE = /\b(monday|tuesday|wednesday|thursday|friday|mon|tue|wed|thu|fri|weekday|weekdays|daily|monday.{0,10}friday|mon.{0,5}fri)\b/i
-        const WEEKEND_RE = /\b(saturday|sunday|weekend|sat|sun|saturday.{0,10}sunday|sat.{0,5}sun)\b/i
-        for (const raw of content.split('\n')) {
-          const line = raw.trim()
-          if (!line) continue
-          if (WEEKDAY_RE.test(line) && !WEEKEND_RE.test(line))
-            setHoursWeekday(prev => ({ ...prev, [client.id]: line }))
-          else if (WEEKEND_RE.test(line) && !WEEKDAY_RE.test(line))
-            setHoursWeekend(prev => ({ ...prev, [client.id]: line }))
-        }
-      }
       setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
       setTimeout(() => setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } })), 2500)
     } catch (err) {
@@ -1861,6 +1848,7 @@ export default function AgentTab({
               />
             </div>
           )}
+          <p className="text-xs text-muted-foreground mt-1">These hours are used during calls and after-hours handling.</p>
         </div>
       </div>
       </motion.div>
@@ -1868,7 +1856,6 @@ export default function AgentTab({
       {/* 8c — Section Editors (admin-only — marker parsing) */}
       {isAdmin && ([
         { id: 'identity', label: 'Agent Identity', desc: 'Agent name, greeting, and personality', rows: 6 },
-        { id: 'hours', label: 'Business Hours', desc: 'Hours your agent mentions to callers', rows: 3 },
         { id: 'knowledge', label: 'Knowledge Base', desc: 'Upload documents for your agent to search through — policies, procedures, or detailed guides.', rows: 10 },
       ] as const).map(({ id: sectionId, label, desc, rows }) => {
         const parsed = sectionContent[client.id] ?? {}
