@@ -173,6 +173,8 @@ export const STRIPE_IDS = {
   subscription30: "price_1TCqDg15xbnnajlTxcmoDfRB",  // $30/mo CAD recurring
   setupFresh25: "price_1TBq9G15xbnnajlTSbay8T8f",    // $25 one-time (fresh number)
   setupInventory20: "price_1TBq9H15xbnnajlTTELdagZi", // $20 one-time (inventory number)
+  minuteReload10: "price_1TCqS415xbnnajlTAmq9sLty",   // $10 one-time (50 min reload)
+  minuteReloadProduct: "prod_UBCrCg0vDDJ7Tw",          // "Minute Reload Pack"
 
   // Coupons & Promo Codes
   betaCoupon: "l5jvNI95",                        // $10 off/mo forever → $20/mo
