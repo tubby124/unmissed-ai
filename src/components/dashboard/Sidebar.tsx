@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import ThemeToggle from '../ThemeToggle'
+import { hasCapability } from '@/lib/niche-capabilities'
 
 const GROUP_LABELS: Record<number, string | null> = { 1: null, 2: 'MANAGE', 3: 'TOOLS', 4: null }
 
@@ -200,9 +201,10 @@ interface SidebarProps {
   clientId?: string | null
   setupIncomplete?: boolean
   telegramConnected?: boolean
+  niche?: string | null
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -297,7 +299,12 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         {(() => {
-          const filteredNav = NAV.filter(item => !item.adminOnly || isAdmin)
+          const filteredNav = NAV.filter(item => {
+            if (item.adminOnly && !isAdmin) return false
+            // Hide Calendar nav for niches that don't support booking
+            if (item.href === '/dashboard/calendar' && !isAdmin && niche && !hasCapability(niche, 'bookAppointments')) return false
+            return true
+          })
           return filteredNav.map((item, idx) => {
           const prevGroup = idx > 0 ? filteredNav[idx - 1].group : null
           const groupChanged = prevGroup !== null && item.group !== prevGroup

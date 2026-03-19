@@ -9,9 +9,10 @@ interface VoiceTabProps {
   client: ClientConfig
   voices: VoiceTabVoice[]
   voicesLoading: boolean
+  isAdmin: boolean
 }
 
-export default function VoiceTab({ client, voices, voicesLoading }: VoiceTabProps) {
+export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: VoiceTabProps) {
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -41,6 +42,10 @@ export default function VoiceTab({ client, voices, voicesLoading }: VoiceTabProp
       transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
       className="space-y-4"
     >
+      {!isAdmin && (
+        <p className="text-[11px] t3 -mb-1">Choose how your callers hear your agent.</p>
+      )}
+
       {/* Current voice card */}
       <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
         <div className="p-5 border-b b-theme">
@@ -88,13 +93,15 @@ export default function VoiceTab({ client, voices, voicesLoading }: VoiceTabProp
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 mb-1">
                   <p className="text-sm font-semibold t1 truncate">{currentVoice.name}</p>
-                  <span className={`inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                    currentVoice.provider === 'Cartesia' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
-                    : currentVoice.provider === 'Eleven Labs' ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
-                    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                  }`}>
-                    {currentVoice.provider}
-                  </span>
+                  {isAdmin && (
+                    <span className={`inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                      currentVoice.provider === 'Cartesia' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                      : currentVoice.provider === 'Eleven Labs' ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
+                      : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    }`}>
+                      {currentVoice.provider}
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] t3 leading-relaxed line-clamp-2">{currentVoice.description || 'No description available'}</p>
               </div>

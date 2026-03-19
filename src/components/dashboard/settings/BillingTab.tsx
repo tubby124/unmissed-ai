@@ -32,7 +32,10 @@ export default function BillingTab({
   const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const planName = getPlanName(client.monthly_minute_limit)
 
-  return (
+  return (<>
+    {!isAdmin && (
+      <p className="text-[11px] t3 mb-3">Track minutes and manage plan usage.</p>
+    )}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
       {/* Past-due warning banner */}
       {client.subscription_status === 'past_due' && (
@@ -178,5 +181,5 @@ export default function BillingTab({
       {/* Admin: Ultravox account-level usage */}
       {isAdmin && <UsageSummary isAdmin={isAdmin} />}
     </div>
-  )
+  </>)
 }

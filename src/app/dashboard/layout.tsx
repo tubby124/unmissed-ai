@@ -20,21 +20,23 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let telegramConnected = false
   let setupComplete = true
   let twilioNumber: string | null = null
+  let clientNiche: string | null = null
 
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number)')
+      .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche)')
       .eq('user_id', user.id)
       .single()
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
-    const clientData = cu?.clients as { business_name?: string; status?: string; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null } | null
+    const clientData = cu?.clients as { business_name?: string; status?: string; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null } | null
     businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
     clientStatus = isAdmin ? null : clientData?.status ?? null
     telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
     setupComplete = isAdmin ? true : (clientData?.setup_complete ?? true)
     twilioNumber = isAdmin ? null : (clientData?.twilio_number ?? null)
+    clientNiche = isAdmin ? null : (clientData?.niche ?? null)
   }
 
   // Auto-redirect setup-status clients to /dashboard/setup unless they're already there
@@ -63,7 +65,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <div className="flex flex-1 relative overflow-hidden">
         {/* Desktop sidebar */}
-        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} />
+        <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} />
 
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto">

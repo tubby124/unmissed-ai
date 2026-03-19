@@ -337,6 +337,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           client={client}
           voices={voices}
           voicesLoading={voicesLoading}
+          isAdmin={isAdmin}
         />
       )}
 

@@ -44,8 +44,11 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
     <div className="mb-5 pt-4 border-t b-theme">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Quick inject</p>
-          <p className="text-[11px] t3 mt-0.5">Temporarily override agent behaviour — away message, holiday hours, promotions.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Today&apos;s Update</p>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/70 border border-amber-500/15">Temporary</span>
+          </div>
+          <p className="text-[11px] t3 mt-0.5">Temporary override — away message, holiday hours, or promotions. Stays until you clear it.</p>
         </div>
         {injectedNote && (
           <button
@@ -89,7 +92,7 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
       <div className="flex items-center justify-between mt-2">
         <p className="text-[10px] t3">
           {injectedNote && !injectSaved
-            ? 'Unsaved — click Inject to push live'
+            ? 'Unsaved — click Save to push live'
             : injectSaved
             ? ''
             : 'Empty = no override active'}
@@ -103,7 +106,7 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
               : 'bg-blue-500 hover:bg-blue-400 text-white'
           }`}
         >
-          {injectLoading ? 'Pushing...' : injectSaved ? '✓ Injected' : 'Inject'}
+          {injectLoading ? 'Saving...' : injectSaved ? '✓ Saved' : 'Save'}
         </button>
       </div>
     </div>

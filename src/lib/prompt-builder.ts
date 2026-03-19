@@ -373,22 +373,22 @@ export const VOICE_PRESETS: Record<string, VoicePreset> = {
   professional_warm: {
     id: 'professional_warm',
     label: 'Professional & Warm',
-    description: 'Polished but approachable. No slang, measured pace. Good for law offices, medical, and corporate.',
+    description: 'Polished but approachable. No slang, measured pace. Good for real estate, law offices, medical, and corporate.',
     toneStyleBlock: [
-      'Polished and composed. Sound confident and knowledgeable — warm but not overly casual.',
+      'Warm and professional. Sound confident and knowledgeable — friendly but polished.',
       'Speak at a measured, natural speed. Slow down slightly when confirming important info.',
       'Keep responses very short — 1 to 2 sentences max. Clear and direct.',
-      "Use standard contractions: \"I'll\", \"we're\", \"they'll\". Avoid slang like \"gonna\", \"ya\", \"lemme\".",
-      'Use minimal fillers: "of course", "certainly", "understood", "right".',
+      "Use standard contractions: \"I'll\", \"he'll\", \"that's\", \"we're\". Avoid slang like \"gonna\", \"kinda\", \"wanna\", \"ya\", \"lemme\".",
+      'Use clean professional phrases: "sure thing", "no problem", "of course", "got it", "right".',
+      'No filler words like "like", "uh", or "um". Keep sentences clean and direct.',
       'Speak clearly. Proper punctuation and capitalization.',
     ].join('\n'),
     fillerStyle: [
-      'Start responses with a brief acknowledgment before your answer: "understood...", "of course...", "right..."',
-      'Avoid "uh", "um", and casual fillers entirely. Use deliberate pauses instead.',
+      'Start responses with a brief acknowledgment before your answer: "sure...", "got it...", "right..."',
+      'Avoid "uh", "um", "mmhmm", and casual fillers entirely. Use deliberate pauses instead.',
     ].join('\n'),
-    greetingLine: `"{{BUSINESS_NAME}}, this is {{AGENT_NAME}}, an AI assistant. How can I help you today?"`,
-    closingLine: `"I'll pass this along to {{CLOSE_PERSON}} — they'll call you back at the number you called from. Have a wonderful day."`,
-    closePerson: 'our team',
+    greetingLine: `"Hi there, this is {{AGENT_NAME}}, {{CLOSE_PERSON}}'s assistant. How can I help you?"`,
+    closingLine: `"I'll pass this along to {{CLOSE_PERSON}} — they'll call you back at the number you called from. Have a great day."`,
   },
   direct_efficient: {
     id: 'direct_efficient',
@@ -2081,7 +2081,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   // Legacy TONE_INSTRUCTIONS — map from preset for backward compatibility
   if (presetId === 'professional_warm') {
-    variables.TONE_INSTRUCTIONS = "Use formal, polished language. Avoid slang, contractions where possible, and maintain a business-appropriate demeanor."
+    variables.TONE_INSTRUCTIONS = "Use polished, warm language. Use contractions naturally but avoid slang. Keep sentences clean and direct. Sound confident and approachable."
   } else if (presetId === 'casual_friendly') {
     variables.TONE_INSTRUCTIONS = "Use contractions, colloquial language, and a friendly, laid-back tone. Say things like 'hey there', 'no worries', 'you betcha'."
   } else {

@@ -31,6 +31,7 @@ export default function AlertsTab({ client, tgStyle, setTgStyle }: AlertsTabProp
       transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
       className="space-y-4"
     >
+    <p className="text-[11px] t3 -mb-1">Choose where alerts go and how they look.</p>
 
     {/* Telegram connection status card */}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">

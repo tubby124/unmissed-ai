@@ -74,6 +74,9 @@ export default function SmsTab({
   }
 
   return (<>
+    {!isAdmin && (
+      <p className="text-[11px] t3 mb-3">Send a follow-up text after calls.</p>
+    )}
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}

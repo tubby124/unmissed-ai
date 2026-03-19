@@ -6,6 +6,8 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
 import { NICHE_CONFIG } from '@/lib/niche-config'
+import { hasCapability } from '@/lib/niche-capabilities'
+import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
 import { fmtPhone } from '@/lib/settings-utils'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import type { PromptVersion, ImproveResult, LearningStatus, GodConfigEntry } from './constants'
@@ -604,6 +606,9 @@ export default function AgentTab({
   // ─── JSX ───────────────────────────────────────────────────────────────────
 
   return (<>
+      {!isAdmin && (
+        <p className="text-[11px] t3 -mb-1">Configure what your agent knows and how it handles calls.</p>
+      )}
 
       {/* 0 — Setup */}
       {!isAdmin && ((!setupComplete[client.id] || setupEditing) ? (
@@ -813,10 +818,10 @@ export default function AgentTab({
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {([
-            { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, upbeat, uses fillers and slang' },
-            { id: 'professional_warm', label: 'Professional & Warm', desc: 'Polished but approachable, no slang' },
-            { id: 'direct_efficient', label: 'Direct & Efficient', desc: 'Minimal small talk, gets to the point' },
-            { id: 'empathetic_care', label: 'Empathetic & Patient', desc: 'Extra validation, slower pace, gentle' },
+            { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, upbeat, natural fillers and slang — great for trades and small shops' },
+            { id: 'professional_warm', label: 'Professional & Warm', desc: 'Polished but friendly, clean sentences, no slang — real estate, law, medical' },
+            { id: 'direct_efficient', label: 'Direct & Efficient', desc: 'Minimal small talk, straight to the point — high-volume and busy offices' },
+            { id: 'empathetic_care', label: 'Empathetic & Patient', desc: 'Extra validation, slower pace, gentle tone — healthcare and senior services' },
           ] as const).map(p => {
             const selected = (voiceStylePreset[client.id] || 'casual_friendly') === p.id
             return (
@@ -1069,7 +1074,8 @@ export default function AgentTab({
         </div>
       )}
 
-      {/* 4c — Booking (visible to all clients — booking_enabled still admin-gated at API layer) */}
+      {/* 4c — Booking (gated by niche capability) */}
+      {hasCapability(niche, 'bookAppointments') && (
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -1145,6 +1151,7 @@ export default function AgentTab({
             </div>
           )}
         </div>
+      )}
 
       {/* 5 — System Prompt (collapsible) */}
       <motion.div
@@ -1165,11 +1172,11 @@ export default function AgentTab({
               </svg>
             </div>
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Agent Script</p>
+              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">{isAdmin ? 'Agent Script' : 'Agent Behavior'}</p>
               <p className="text-[11px] t3 mt-0.5">
                 {promptCollapsed
-                  ? (isAdmin ? 'Tap to view and edit what your AI agent says on calls' : 'Tap to view your agent\'s script')
-                  : `${nicheConfig.label} agent instructions`}
+                  ? (isAdmin ? 'Tap to view and edit what your AI agent says on calls' : 'See what your agent does on calls')
+                  : (isAdmin ? `${nicheConfig.label} agent instructions` : 'What your agent does on every call')}
               </p>
             </div>
           </div>
@@ -1358,80 +1365,69 @@ export default function AgentTab({
                     />
                   </>
                 ) : (
-                  <>
-                    <div className="mt-4 mb-3 px-3 py-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
-                      <div className="flex items-center gap-2 mb-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
-                          <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span className="text-[11px] font-semibold text-amber-400">Advanced — edit with caution</span>
-                      </div>
-                      <p className="text-[10px] text-amber-400/70 leading-relaxed">
-                        This is your agent&apos;s core script. The settings above (hours, identity, knowledge, quick inject) update it safely without touching this directly. Manual edits here can break your agent&apos;s behavior.
-                      </p>
+                  /* ── Client behavior summary (replaces raw prompt editor) ── */
+                  <div className="mt-4 space-y-3">
+                    <div className="px-4 py-3 rounded-xl bg-blue-500/[0.04] border border-blue-500/15">
+                      <p className="text-xs font-semibold t1 mb-2.5">How your agent behaves</p>
+                      <ul className="space-y-1.5">
+                        {client.agent_name && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Greets callers as {client.agent_name}
+                          </li>
+                        )}
+                        <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                          <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                          Collects callback details and takes messages
+                        </li>
+                        {(client.business_facts || (client.extra_qa && client.extra_qa.length > 0)) && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Answers common business questions
+                          </li>
+                        )}
+                        {client.sms_enabled && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Sends a follow-up text after calls
+                          </li>
+                        )}
+                        {client.business_hours_weekday && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Uses your business hours and after-hours rules
+                          </li>
+                        )}
+                        {client.forwarding_number && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Transfers urgent calls to {fmtPhone(client.forwarding_number)}
+                          </li>
+                        )}
+                        {client.booking_enabled && client.calendar_auth_status === 'connected' && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Books appointments on your Google Calendar
+                          </li>
+                        )}
+                        {client.corpus_enabled && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            Looks up answers from your uploaded documents
+                          </li>
+                        )}
+                        {client.context_data && (
+                          <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
+                            <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
+                            References your {client.context_data_label || 'reference data'} for lookups
+                          </li>
+                        )}
+                      </ul>
                     </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`text-xs tabular-nums font-mono ${charCount > 8000 ? 'text-red-400' : charCount > 7000 ? 'text-amber-400' : 't3'}`}>
-                        {charCount.toLocaleString()} / 8,000 chars (~{Math.ceil(charCount / 4).toLocaleString()} tokens)
-                      </span>
-                      <button
-                        onClick={save}
-                        disabled={!dirty || saving || charCount > 8000}
-                        title={charCount > 8000 ? 'Prompt exceeds 8,000 character limit' : undefined}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                          charCount > 8000
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
-                            : saved
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : dirty
-                            ? 'bg-blue-500 hover:bg-blue-400 text-white'
-                            : 'bg-hover t3 cursor-not-allowed border b-theme'
-                        }`}
-                      >
-                        {charCount > 8000 ? 'Over limit' : saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
-                      </button>
-                    </div>
-                    {/* Prompt char progress bar (client view) */}
-                    <div className="mb-3">
-                      <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            charCount > 8000 ? 'bg-red-500' : charCount > 7000 ? 'bg-amber-500' : 'bg-blue-500/60'
-                          }`}
-                          style={{ width: `${Math.min((charCount / 8000) * 100, 100)}%` }}
-                        />
-                      </div>
-                      {charCount > 8000 && (
-                        <p className="text-[10px] text-red-400 mt-1">
-                          Over limit by {(charCount - 8000).toLocaleString()} chars. Remove content before saving.
-                        </p>
-                      )}
-                    </div>
-
-                    {savePromptWarnings.length > 0 && (
-                      <div className="mb-3 px-3 py-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-semibold text-amber-400">Prompt warnings</span>
-                          <button onClick={() => setSavePromptWarnings([])} className="text-[10px] text-amber-400/60 hover:text-amber-400">
-                            Dismiss
-                          </button>
-                        </div>
-                        <ul className="space-y-0.5">
-                          {savePromptWarnings.map((w, i) => (
-                            <li key={i} className="text-[10px] text-amber-400/80 leading-relaxed">• {w.message}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <textarea
-                      value={currentPrompt}
-                      onChange={e => setPrompt(prev => ({ ...prev, [client.id]: e.target.value }))}
-                      className="w-full h-[480px] bg-black/20 border b-theme rounded-xl p-4 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
-                      spellCheck={false}
-                      placeholder={`Enter your ${nicheConfig.label} agent's system prompt…`}
-                    />
-                  </>
+                    <p className="text-[10px] t3 leading-relaxed px-1">
+                      Need behavior changes? Update your business details above, or contact support for advanced customization.
+                    </p>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -1440,6 +1436,17 @@ export default function AgentTab({
       </div>
       </motion.div>
 
+      {/* 5x — Capabilities card (client view only) */}
+      {!isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.01 }}
+        >
+          <CapabilitiesCard client={client} />
+        </motion.div>
+      )}
+
       {/* 5a — Test Call (moved here from bottom for edit-then-test flow) */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -1447,9 +1454,11 @@ export default function AgentTab({
         transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.02 }}
       >
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Call</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Your Agent</p>
         <p className="text-[11px] t3 mb-4">
-          Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.
+          {isAdmin
+            ? 'Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.'
+            : 'Hear your agent in action — enter your phone number and your agent will call you.'}
         </p>
         <div className="flex items-center gap-2">
           <input
@@ -1656,8 +1665,8 @@ export default function AgentTab({
         )}
       </div>)}
 
-      {/* 7 — Prompt Version History */}
-      <motion.div
+      {/* 7 — Prompt Version History (admin only) */}
+      {isAdmin && <><motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
@@ -1778,6 +1787,7 @@ export default function AgentTab({
           </div>
         </div>
       )}
+      </>}
 
       {/* 8a — Right Now (injected_note) — REMOVED: duplicate of Quick Inject in AgentOverviewCard */}
 
@@ -1828,7 +1838,7 @@ export default function AgentTab({
             />
           </div>
           <div>
-            <p className="text-[11px] font-medium t2 mb-1.5">After-hours behaviour</p>
+            <p className="text-[11px] font-medium t2 mb-1.5">When you&apos;re closed, your agent should&hellip;</p>
             <select
               value={afterHoursBehavior[client.id] ?? 'take_message'}
               onChange={e => setAfterHoursBehavior(prev => ({ ...prev, [client.id]: e.target.value }))}
@@ -1855,8 +1865,8 @@ export default function AgentTab({
       </div>
       </motion.div>
 
-      {/* 8c — Section Editors */}
-      {([
+      {/* 8c — Section Editors (admin-only — marker parsing) */}
+      {isAdmin && ([
         { id: 'identity', label: 'Agent Identity', desc: 'Agent name, greeting, and personality', rows: 6 },
         { id: 'hours', label: 'Business Hours', desc: 'Hours your agent mentions to callers', rows: 3 },
         { id: 'knowledge', label: 'Knowledge Base', desc: 'Upload documents for your agent to search through — policies, procedures, or detailed guides.', rows: 10 },
@@ -1936,8 +1946,8 @@ export default function AgentTab({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Advanced Context</p>
-            <p className="text-[11px] t3 mt-0.5">Extra knowledge injected at call time — not stored in the prompt</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
+            <p className="text-[11px] t3 mt-0.5">{isAdmin ? 'Extra knowledge injected at call time — not stored in the prompt' : 'Information your agent uses to help callers'}</p>
           </div>
           <button
             onClick={saveAdvanced}
@@ -1954,9 +1964,12 @@ export default function AgentTab({
 
         {/* Business Facts */}
         <div className="space-y-1.5 mb-5">
-          <label className="text-[11px] t3 block">Business facts</label>
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] t3 block">What your agent knows</label>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
+          </div>
           <p className="text-[11px] t3">
-            Core business info your agent always knows — hours, location, team members, services.
+            Core business info — hours, location, team members, services. Your agent uses this to answer caller questions.
           </p>
           <textarea
             value={businessFacts[client.id] ?? ''}
@@ -1971,8 +1984,11 @@ export default function AgentTab({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-[11px] t3 block">Extra Q&amp;A pairs</label>
-              <p className="text-[11px] t3">Common questions and answers. Your agent uses these to answer caller questions directly.</p>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] t3 block">Common questions callers ask</label>
+                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
+              </div>
+              <p className="text-[11px] t3">Add questions and answers. Your agent uses these to respond to callers directly.</p>
             </div>
             {(extraQA[client.id]?.length ?? 0) < 10 && (
               <button
