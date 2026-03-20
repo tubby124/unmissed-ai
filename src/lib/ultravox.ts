@@ -589,16 +589,15 @@ interface CallViaAgentOptions {
   firstSpeakerText?: string
   /** Hidden context messages injected before the call starts. Used for returning caller context. */
   initialMessages?: Array<{ role: string; text: string; medium: string }>
-  /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
-  initialState?: Record<string, unknown>
-  /** Override agent's stored tools — needed to inject X-Tool-Secret at call time. */
+  /** Override agent's stored tools — needed to inject X-Tool-Secret at call time.
+   *  NOTE: Agents API uses `toolOverrides`, NOT `selectedTools`. */
   overrideTools?: object[]
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, initialState, overrideTools }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -617,9 +616,8 @@ export async function callViaAgent(
   if (maxDuration) body.maxDuration = maxDuration
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   if (initialMessages?.length) body.initialMessages = initialMessages
-  if (initialState) body.initialState = initialState
-  if (overrideTools?.length) body.selectedTools = overrideTools
-  // languageHint is NOT supported in StartAgentCallRequest — agents API rejects it with 400
+  if (overrideTools?.length) body.toolOverrides = overrideTools
+  // NOT supported in StartAgentCallRequest (400 error): initialState, selectedTools, languageHint
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',

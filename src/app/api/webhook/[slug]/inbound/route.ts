@@ -187,17 +187,16 @@ export async function POST(
     medium: 'MESSAGE_MEDIUM_TEXT',
   }] : undefined
 
+  const callState = defaultCallState(client.niche as string | null)
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     if (client.ultravox_agent_id) {
       // Agents API — one persistent profile per client, lightweight per-call payload
       console.log(`[inbound] Agents API: agentId=${client.ultravox_agent_id}`)
-      const callState = defaultCallState(client.niche as string | null)
       try {
         ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
-          initialState: callState as unknown as Record<string, unknown>,
           overrideTools: tools,
           ...(callerContextRaw   ? { callerContext: callerContextRaw }          : {}),
           ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr }         : {}),
@@ -222,7 +221,6 @@ export async function POST(
     } else {
       // Per-call creation — no Agents API profile set up yet
       console.log(`[inbound] Per-call creation (no agentId for slug=${slug})`)
-      const callState = defaultCallState(client.niche as string | null)
       ultravoxCall = await createCall({
         systemPrompt: promptFull,
         voice: client.agent_voice_id,
