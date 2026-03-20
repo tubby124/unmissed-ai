@@ -327,29 +327,70 @@ export async function POST(
       console.log(`[completed] SMS dedupe: in_call=${!!callRow?.in_call_sms_sent} demo=${demoSmsSent} → skip=${shouldSkipSms} callId=${callId}`)
 
       if (client.sms_enabled && callerPhone !== 'unknown' && !shouldSkipSms) {
-        const smsBody = getSmsTemplate(classification.status, {
-          businessName: client.business_name || 'us',
-          callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
-          summary: classification.summary,
-          niche: client.niche as string | null,
-          smsTemplate: client.sms_template as string | null,
-          isTransferRecovery: metadata.transfer_recovery === 'true',
-        })
-        if (smsBody) {
-          try {
-            const accountSid = process.env.TWILIO_ACCOUNT_SID
-            const authToken = process.env.TWILIO_AUTH_TOKEN
-            const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
-            if (accountSid && authToken && fromNumber) {
-              const twilioClient = twilio(accountSid, authToken)
-              await twilioClient.messages.create({ body: smsBody, from: fromNumber, to: callerPhone })
-              console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
+        // Check opt-out list before sending (TCPA/CRTC compliance)
+        const { data: optOut } = await supabase
+          .from('sms_opt_outs')
+          .select('id, opted_back_in_at')
+          .eq('phone_number', callerPhone)
+          .eq('client_id', client.id)
+          .single()
+
+        const isOptedOut = optOut && !optOut.opted_back_in_at
+        if (isOptedOut) {
+          console.log(`[completed] SMS BLOCKED — recipient opted out: callId=${callId} to=${callerPhone}`)
+        }
+
+        if (!isOptedOut) {
+          const smsBody = getSmsTemplate(classification.status, {
+            businessName: client.business_name || 'us',
+            callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
+            summary: classification.summary,
+            niche: client.niche as string | null,
+            smsTemplate: client.sms_template as string | null,
+            isTransferRecovery: metadata.transfer_recovery === 'true',
+          })
+          if (smsBody) {
+            try {
+              const accountSid = process.env.TWILIO_ACCOUNT_SID
+              const authToken = process.env.TWILIO_AUTH_TOKEN
+              const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
+              if (accountSid && authToken && fromNumber) {
+                const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-status`
+                const twilioClient = twilio(accountSid, authToken)
+                const twilioMsg = await twilioClient.messages.create({
+                  body: smsBody,
+                  from: fromNumber,
+                  to: callerPhone,
+                  statusCallback: statusCallbackUrl,
+                })
+                console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} sid=${twilioMsg.sid} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
+
+                // Log outbound SMS
+                const { data: callLogRow } = await supabase
+                  .from('call_logs')
+                  .select('id')
+                  .eq('ultravox_call_id', callId)
+                  .single()
+
+                await supabase.from('sms_logs').insert({
+                  client_id: client.id,
+                  message_sid: twilioMsg.sid,
+                  direction: 'outbound',
+                  from_number: fromNumber,
+                  to_number: callerPhone,
+                  body: smsBody,
+                  status: 'sent',
+                  related_call_id: callLogRow?.id ?? null,
+                }).then(({ error: smsLogErr }) => {
+                  if (smsLogErr) console.error(`[completed] sms_logs insert failed: ${smsLogErr.message}`)
+                })
+              }
+            } catch (smsErr) {
+              console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
             }
-          } catch (smsErr) {
-            console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
+          } else {
+            console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
           }
-        } else {
-          console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
         }
       }
 

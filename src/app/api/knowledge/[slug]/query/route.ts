@@ -67,9 +67,6 @@ export async function POST(
   })
 
   const latency = Date.now() - start
-  // NOTE: hybrid_match_knowledge() RPC may not return status/trust_tier columns yet.
-  // If it doesn't, we post-filter via a separate query. TODO: add status + trust_tier
-  // to the RPC RETURN TABLE so we can filter in SQL instead of post-filtering.
   const rawMatches = (results ?? []) as Array<{
     id: string
     content: string
@@ -81,8 +78,8 @@ export async function POST(
     keyword_rank: number | null
     semantic_rank: number | null
     rrf_score: number
-    status?: string
-    trust_tier?: string
+    status: string
+    trust_tier: string
   }>
 
   if (rpcErr) {
@@ -100,19 +97,14 @@ export async function POST(
   })
 
   // ── Governance: only return approved chunks ──────────────────────────────
-  // If RPC returns status, filter out non-approved. If status is absent (RPC
-  // doesn't return it yet), treat as legacy approved.
-  const approvedMatches = relevantMatches.filter(m => {
-    const status = m.status
-    return !status || status === 'approved'
-  })
+  const approvedMatches = relevantMatches.filter(m => m.status === 'approved')
 
   // ── Sort by RRF score (primary) then trust tier (secondary tiebreaker) ───
   const sorted = approvedMatches.sort((a, b) => {
     const scoreDiff = b.rrf_score - a.rrf_score
     if (Math.abs(scoreDiff) > 0.01) return scoreDiff
-    const tierA = TRUST_ORDER[a.trust_tier ?? 'medium'] ?? 1
-    const tierB = TRUST_ORDER[b.trust_tier ?? 'medium'] ?? 1
+    const tierA = TRUST_ORDER[a.trust_tier] ?? 1
+    const tierB = TRUST_ORDER[b.trust_tier] ?? 1
     return tierA - tierB
   })
 
@@ -128,14 +120,14 @@ export async function POST(
     console.log(`[knowledge-query] slug=${slug} EMPTY_RESULT query="${queryText.slice(0, 80)}" rrf_min=${RRF_MIN_SCORE} latency=${latency}ms`)
   } else {
     for (const m of sorted) {
-      console.log(`[knowledge-query] slug=${slug} "${m.content.slice(0, 50)}" rrf=${m.rrf_score.toFixed(4)} kw=${m.keyword_rank ?? '-'} sem=${m.semantic_rank ?? '-'} sim=${m.similarity.toFixed(3)} tier=${m.trust_tier ?? 'medium'}`)
+      console.log(`[knowledge-query] slug=${slug} "${m.content.slice(0, 50)}" rrf=${m.rrf_score.toFixed(4)} kw=${m.keyword_rank ?? '-'} sem=${m.semantic_rank ?? '-'} sim=${m.similarity.toFixed(3)} tier=${m.trust_tier}`)
     }
-    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${sorted.length} top_rrf=${sorted[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} top_tier=${sorted[0].trust_tier ?? 'medium'} latency=${latency}ms`)
+    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${sorted.length} top_rrf=${sorted[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} top_tier=${sorted[0].trust_tier} latency=${latency}ms`)
   }
 
   // ── Build response with trust-aware _instruction ─────────────────────────
   const topContent = sorted[0]?.content?.slice(0, 200) || ''
-  const topTrust = sorted[0]?.trust_tier ?? 'medium'
+  const topTrust = sorted[0]?.trust_tier || 'medium'
   const trustQualifier = topTrust === 'high' ? '' : topTrust === 'low' ? ' This information has not been fully verified — be cautious.' : ''
 
   return NextResponse.json({
@@ -146,7 +138,7 @@ export async function POST(
       similarity: m.similarity,
       source_run_id: m.source_run_id,
       rrf_score: m.rrf_score,
-      trust_tier: m.trust_tier ?? 'medium',
+      trust_tier: m.trust_tier,
     })),
     count: sorted.length,
     query_id: queryLogId,

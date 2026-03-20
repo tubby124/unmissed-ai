@@ -5,6 +5,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
+  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
+  const providedSecret = req.headers.get('X-Tool-Secret')
+  if (toolSecret && providedSecret !== toolSecret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { slug } = await params
 
   const body = await req.json().catch(() => ({}))

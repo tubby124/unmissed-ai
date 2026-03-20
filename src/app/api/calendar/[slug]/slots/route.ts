@@ -6,6 +6,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
+  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
+  const providedSecret = req.headers.get('X-Tool-Secret')
+  if (toolSecret && providedSecret !== toolSecret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD
   const time = req.nextUrl.searchParams.get('time')  // HH:MM (24h) — optional preferred time

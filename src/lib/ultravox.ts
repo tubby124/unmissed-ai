@@ -189,6 +189,7 @@ interface UltravoxTool {
 
 export function buildCalendarTools(slug: string): UltravoxTool[] {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [
     {
       temporaryTool: {
@@ -210,6 +211,11 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
             required: false,
           },
         ],
+        ...(secret ? {
+          staticParameters: [
+            { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+          ],
+        } : {}),
         http: {
           baseUrlPattern: `${appUrl}/api/calendar/${slug}/slots`,
           httpMethod: 'GET',
@@ -228,6 +234,11 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
           { name: 'service',     location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Type of appointment or service' }, required: false },
           { name: 'callerPhone', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: "Caller's phone number from CALLER PHONE in callerContext" }, required: true },
         ],
+        ...(secret ? {
+          staticParameters: [
+            { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+          ],
+        } : {}),
         http: {
           baseUrlPattern: `${appUrl}/api/calendar/${slug}/book`,
           httpMethod: 'POST',
@@ -860,6 +871,7 @@ export async function listDurableTools() {
 /** Build the checkForCoaching temporaryTool for live coaching during calls. */
 export function buildCoachingTool(slug: string): object {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
   return {
     temporaryTool: {
       modelToolName: 'checkForCoaching',
@@ -874,6 +886,11 @@ export function buildCoachingTool(slug: string): object {
           required: true,
         },
       ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
       http: {
         baseUrlPattern: `${appUrl}/api/coaching/${slug}/check`,
         httpMethod: 'POST',

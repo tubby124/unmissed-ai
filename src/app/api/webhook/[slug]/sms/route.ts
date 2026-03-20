@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendSms } from '@/lib/twilio'
+import { sendSmsTracked } from '@/lib/twilio'
 
 export const maxDuration = 10
 
@@ -45,20 +45,60 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: 'Client or Twilio number not found' }, { status: 404 })
   }
 
+  // Check opt-out list before sending (TCPA/CRTC compliance)
+  const { data: optOut } = await supabase
+    .from('sms_opt_outs')
+    .select('id, opted_back_in_at')
+    .eq('phone_number', to)
+    .eq('client_id', client.id)
+    .single()
+
+  if (optOut && !optOut.opted_back_in_at) {
+    console.log(`[sms-tool] BLOCKED — recipient opted out: slug=${slug} to=${to}`)
+    return NextResponse.json({ result: 'SMS blocked — recipient opted out' })
+  }
+
+  // Find related call_log id for linking
+  let relatedCallId: string | null = null
+  if (call_id) {
+    const { data: callRow } = await supabase
+      .from('call_logs')
+      .select('id')
+      .eq('ultravox_call_id', call_id)
+      .single()
+    relatedCallId = callRow?.id ?? null
+  }
+
   try {
-    await sendSms(to, client.twilio_number, message)
-    console.log(`[sms-tool] Sent in-call SMS: slug=${slug} to=${to} call_id=${call_id}`)
+    const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-status`
+    const twilioMessage = await sendSmsTracked(to, client.twilio_number, message, statusCallbackUrl)
+    console.log(`[sms-tool] Sent in-call SMS: slug=${slug} to=${to} call_id=${call_id} sid=${twilioMessage.sid}`)
+
+    // Log outbound SMS
+    const { error: logError } = await supabase.from('sms_logs').insert({
+      client_id: client.id,
+      message_sid: twilioMessage.sid,
+      direction: 'outbound',
+      from_number: client.twilio_number,
+      to_number: to,
+      body: message,
+      status: 'sent',
+      related_call_id: relatedCallId,
+    })
+    if (logError) {
+      console.error(`[sms-tool] sms_logs insert failed: ${logError.message}`)
+    }
 
     // Mark that in-call SMS was sent (for post-call dedupe)
     if (call_id) {
       // Try call_logs first (production calls)
-      const { data: logRow, error: logError } = await supabase.from('call_logs')
+      const { data: logRow, error: logUpdateError } = await supabase.from('call_logs')
         .update({ in_call_sms_sent: true })
         .eq('ultravox_call_id', call_id)
         .select('id')
 
-      if (logError) {
-        console.error(`[sms-tool] DEDUPE WRITE FAILED call_logs: slug=${slug} call_id=${call_id} error=${logError.message}`)
+      if (logUpdateError) {
+        console.error(`[sms-tool] DEDUPE WRITE FAILED call_logs: slug=${slug} call_id=${call_id} error=${logUpdateError.message}`)
       }
 
       // If not in call_logs, try demo_calls (call-me widget demos)

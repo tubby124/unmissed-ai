@@ -27,6 +27,22 @@ export async function sendSms(to: string, from: string, body: string): Promise<v
   await twilioClient.messages.create({ to, from, body })
 }
 
+export async function sendSmsTracked(
+  to: string,
+  from: string,
+  body: string,
+  statusCallback?: string
+): Promise<{ sid: string }> {
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+  const msg = await twilioClient.messages.create({
+    to,
+    from,
+    body,
+    ...(statusCallback ? { statusCallback } : {}),
+  })
+  return { sid: msg.sid }
+}
+
 export function validateSignature(
   signature: string,
   url: string,
