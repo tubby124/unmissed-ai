@@ -19,7 +19,7 @@
 import { buildContextBlock } from '@/lib/context-data'
 import { getCapabilities, type AgentCapabilities } from '@/lib/niche-capabilities'
 import { buildKnowledgeSummary, type KnowledgeSummary } from '@/lib/knowledge-summary'
-import { buildRetrievalConfig, type RetrievalConfig } from '@/lib/knowledge-retrieval'
+import { buildRetrievalConfig, type RetrievalConfig, type RetrievalBackend } from '@/lib/knowledge-retrieval'
 
 // ── Input type: subset of Supabase clients row ────────────────────────────────
 // All fields except id/slug are optional — avoids breaking callers that SELECT fewer columns.
@@ -38,6 +38,7 @@ export type ClientRow = {
   context_data?: string | null
   context_data_label?: string | null
   corpus_enabled?: boolean | null
+  knowledge_backend?: string | null
 }
 
 // ── Input type: one prior call row from call_logs ─────────────────────────────
@@ -347,7 +348,8 @@ export function buildAgentContext(
   const knowledge = buildKnowledgeSummary(business)
 
   // ── Retrieval config (Phase 4) ────────────────────────────────────────────
-  const retrieval = buildRetrievalConfig(capabilities, knowledge, corpusAvailable)
+  const knowledgeBackend = (client.knowledge_backend as RetrievalBackend) ?? null
+  const retrieval = buildRetrievalConfig(capabilities, knowledge, corpusAvailable, knowledgeBackend)
 
   return { business, caller, capabilities, assembled, knowledge, retrieval }
 }

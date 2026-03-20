@@ -122,10 +122,10 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     model: 'ultravox-v0.7',
     systemPrompt,
     voice: voice || DEFAULT_VOICE,
-    maxDuration: maxDuration || '120s',
+    maxDuration: maxDuration || '600s',
     recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
-    timeExceededMessage: timeExceededMessage || "that's the end of this demo — head to unmissed dot ai to get your own agent set up. bye!",
+    timeExceededMessage: timeExceededMessage || "hey I wanna respect your time — check out unmissed dot ai whenever you're ready. take care!",
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
     selectedTools: [{ toolName: 'hangUp' }, ...(tools || [])],
@@ -251,6 +251,8 @@ interface AgentConfig {
   corpus_id?: string | null
   /** When true, inject sendTextMessage HTTP tool so the agent can SMS the caller mid-call. */
   sms_enabled?: boolean
+  /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, 'ultravox' = queryCorpus, null = none. */
+  knowledge_backend?: string | null
 }
 
 /**
@@ -343,6 +345,39 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
 }
 
 /**
+ * Build queryKnowledge HTTP tool for pgvector RAG retrieval.
+ * Points to our Railway endpoint /api/knowledge/{slug}/query.
+ * Only injected when knowledge_backend='pgvector' on the client.
+ */
+export function buildKnowledgeTools(slug: string): UltravoxTool[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return [{
+    temporaryTool: {
+      modelToolName: 'queryKnowledge',
+      description: 'Search the business knowledge base for detailed information. Use this when a caller asks a specific question NOT already answered by the Key Business Facts in your context. Returns relevant text passages. If results are empty, tell the caller you will have someone follow up with that information — NEVER guess.',
+      dynamicParameters: [
+        {
+          name: 'query',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: 'The search query — rephrase the caller\'s question as a short factual query' },
+          required: true,
+        },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/knowledge/${slug}/query`,
+        httpMethod: 'POST',
+      },
+    },
+  }]
+}
+
+/**
  * Build queryCorpus tool entry for a client.
  * Prefers the per-client corpusId arg, falls back to ULTRAVOX_CORPUS_ID env var.
  * Returns empty array if neither is set.
@@ -386,7 +421,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled, knowledge_backend }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -415,9 +450,13 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug) : []
   const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
-  const corpusTools: object[] = buildCorpusTools(corpus_id)
+  // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
+  const knowledgeTools: object[] =
+    knowledge_backend === 'pgvector' && slug
+      ? buildKnowledgeTools(slug)
+      : buildCorpusTools(corpus_id)
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...corpusTools, ...coachingTools]
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -482,9 +521,13 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug) : []
   const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
-  const corpusTools: object[] = buildCorpusTools(updates.corpus_id)
+  // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
+  const knowledgeTools: object[] =
+    updates.knowledge_backend === 'pgvector' && updates.slug
+      ? buildKnowledgeTools(updates.slug)
+      : buildCorpusTools(updates.corpus_id)
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...corpusTools, ...coachingTools]
+  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',

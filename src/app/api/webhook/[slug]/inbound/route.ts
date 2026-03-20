@@ -34,7 +34,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id, ultravox_corpus_status')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id, ultravox_corpus_status, knowledge_backend')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -128,6 +128,7 @@ export async function POST(
     context_data: client.context_data as string | null,
     context_data_label: client.context_data_label as string | null,
     corpus_enabled: client.corpus_enabled as boolean | null,
+    knowledge_backend: client.knowledge_backend as string | null,
   }
 
   // Phase 4: corpus available when client opted in AND either their corpus is ready or global corpus exists

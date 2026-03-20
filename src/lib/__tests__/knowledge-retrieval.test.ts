@@ -141,9 +141,9 @@ describe('buildRetrievalInstruction — content', () => {
     assert.ok(!instruction.includes('more detail'))
   })
 
-  test('instruction is concise (under 500 chars)', () => {
+  test('instruction is concise (under 700 chars)', () => {
     const instruction = buildRetrievalInstruction(true)
-    assert.ok(instruction.length < 500, `Instruction too long: ${instruction.length} chars`)
+    assert.ok(instruction.length < 700, `Instruction too long: ${instruction.length} chars`)
   })
 })
 
@@ -424,9 +424,10 @@ describe('AgentContext — retrieval field', () => {
 // ── Instruction does not duplicate KnowledgeSummary content ──────────────────
 
 describe('retrieval instruction independence', () => {
-  test('instruction does not contain Key Business Facts header', () => {
+  test('instruction references Key Business Facts as authoritative (not duplicating them)', () => {
     const instruction = buildRetrievalInstruction(false)
-    assert.ok(!instruction.includes('Key Business Facts'))
+    // Instruction may reference "Key Business Facts" to direct the agent, but should not contain actual fact lines
+    assert.ok(!instruction.includes('- '), 'Should not contain bullet-point fact lines')
   })
 
   test('instruction does not contain fact lines', () => {

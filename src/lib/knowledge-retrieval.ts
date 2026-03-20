@@ -37,9 +37,13 @@ import { extractFactsFromText, extractFactsFromQa } from '@/lib/knowledge-summar
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+export type RetrievalBackend = 'ultravox' | 'pgvector' | null
+
 export type RetrievalConfig = {
-  /** Whether retrieval is fully enabled for this call (capability + corpus) */
+  /** Whether retrieval is fully enabled for this call (capability + backend available) */
   enabled: boolean
+  /** Which retrieval backend is active */
+  backend: RetrievalBackend
   /** Whether the niche supports useKnowledgeLookup */
   nicheSupportsLookup: boolean
   /** Whether corpus infrastructure is available */
@@ -59,21 +63,31 @@ export type RetrievalConfig = {
  * @param capabilities  - Niche capability flags (Phase 1A)
  * @param knowledge     - KnowledgeSummary built in Phase 3
  * @param corpusAvailable - True when corpus_enabled=true AND corpus infrastructure exists
+ * @param knowledgeBackend - 'pgvector' | 'ultravox' | null from clients.knowledge_backend
  */
 export function buildRetrievalConfig(
   capabilities: AgentCapabilities,
   knowledge: KnowledgeSummary,
   corpusAvailable: boolean,
+  knowledgeBackend: RetrievalBackend = null,
 ): RetrievalConfig {
   const nicheSupportsLookup = capabilities.useKnowledgeLookup
-  const enabled = nicheSupportsLookup && corpusAvailable
+
+  // Determine effective backend and enabled state
+  const backend: RetrievalBackend = knowledgeBackend
+  const enabled = nicheSupportsLookup && (
+    backend === 'pgvector' ||
+    (backend === 'ultravox' && corpusAvailable) ||
+    (!backend && corpusAvailable) // legacy: no backend set but corpus available
+  )
 
   const knowledgeTruncated = countFullFacts(knowledge) > knowledge.facts.length
 
-  const promptInstruction = enabled ? buildRetrievalInstruction(knowledgeTruncated) : ''
+  const promptInstruction = enabled ? buildRetrievalInstruction(knowledgeTruncated, backend) : ''
 
   return {
     enabled,
+    backend,
     nicheSupportsLookup,
     corpusAvailable,
     knowledgeTruncated,
@@ -97,16 +111,19 @@ export function countFullFacts(knowledge: KnowledgeSummary): number {
  * Builds the retrieval instruction for injection into the prompt.
  * Scoped strictly to business knowledge — NEVER includes emergency/booking/after-hours/tone rules.
  */
-export function buildRetrievalInstruction(knowledgeTruncated: boolean): string {
+export function buildRetrievalInstruction(knowledgeTruncated: boolean, backend?: RetrievalBackend): string {
   const truncationNote = knowledgeTruncated
     ? ' The facts above are a summary — more detail is available through search.'
     : ''
 
+  const toolName = backend === 'pgvector' ? 'queryKnowledge' : 'queryCorpus'
+
   return [
     '## KNOWLEDGE LOOKUP',
     `You have access to a knowledge base with detailed business information.${truncationNote}`,
-    'When a caller asks a specific question NOT answered by the facts above, use the queryCorpus tool to search.',
-    'If the search returns a relevant result, answer naturally. If not, say you will have someone follow up with details.',
-    'Do NOT use queryCorpus for greetings, emergencies, booking, or information already in the facts above.',
+    `The Key Business Facts above are authoritative. Use ${toolName} only for details not already covered.`,
+    `When a caller asks a specific question NOT answered by the facts above, use the ${toolName} tool to search.`,
+    `If the search returns a relevant result, answer naturally. If ${toolName} returns no results, tell the caller you will have someone follow up with that information — never guess.`,
+    `Do NOT use ${toolName} for greetings, emergencies, booking, or information already in the facts above.`,
   ].join('\n')
 }
