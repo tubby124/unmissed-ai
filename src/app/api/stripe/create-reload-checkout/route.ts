@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase/server'
+import { MINUTE_RELOAD } from '@/lib/pricing'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
-const PRICE_PER_100_MIN = 1000 // $10 CAD in cents
+const CENTS_PER_MINUTE = MINUTE_RELOAD.perMinuteRate * 100 // 20 cents per minute
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -25,8 +26,10 @@ export async function POST(req: NextRequest) {
   // Admin can reload for any client
   const clientId = (cu.role === 'admin' && body.client_id) ? body.client_id : cu.client_id
 
-  if (!minutes || minutes < 100 || minutes > 500 || minutes % 100 !== 0) {
-    return NextResponse.json({ error: 'minutes must be 100, 200, 300, 400, or 500' }, { status: 400 })
+  const minMinutes = MINUTE_RELOAD.minutes       // 50
+  const maxMinutes = MINUTE_RELOAD.minutes * 5   // 250
+  if (!minutes || minutes < minMinutes || minutes > maxMinutes || minutes % MINUTE_RELOAD.minutes !== 0) {
+    return NextResponse.json({ error: `minutes must be a multiple of ${MINUTE_RELOAD.minutes} between ${minMinutes} and ${maxMinutes}` }, { status: 400 })
   }
 
   const { data: client } = await supabase
@@ -38,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
-  const amount = (minutes / 100) * PRICE_PER_100_MIN
+  const amount = minutes * CENTS_PER_MINUTE
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

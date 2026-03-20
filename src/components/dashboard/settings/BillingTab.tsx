@@ -5,7 +5,9 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { fmtDate } from './shared'
 import { RELOAD_OPTIONS } from './constants'
 import { getPlanName } from '@/lib/settings-utils'
+import { BASE_PLAN, SETUP, MINUTE_RELOAD, getEffectiveMonthly } from '@/lib/pricing'
 import UsageSummary from '@/components/dashboard/UsageSummary'
+import AdminPromoPanel from './AdminPromoPanel'
 
 interface BillingTabProps {
   client: ClientConfig
@@ -17,6 +19,38 @@ interface BillingTabProps {
   usagePct: number
 }
 
+function ManageSubscriptionButton({ isAdmin, clientId, previewMode }: { isAdmin: boolean; clientId: string; previewMode?: boolean }) {
+  const [loading, setLoading] = useState(false)
+
+  async function openPortal() {
+    setLoading(true)
+    try {
+      const body: Record<string, unknown> = {}
+      if (isAdmin) body.client_id = clientId
+      const res = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else setLoading(false)
+    } catch {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      disabled={loading || previewMode}
+      onClick={openPortal}
+      className="mt-4 text-[11px] font-semibold px-3 py-1.5 rounded-lg b-theme hover:bg-hover t2 disabled:opacity-50 transition-colors cursor-pointer"
+    >
+      {loading ? 'Redirecting...' : 'Manage Subscription'}
+    </button>
+  )
+}
+
 export default function BillingTab({
   client,
   isAdmin,
@@ -26,13 +60,15 @@ export default function BillingTab({
   totalAvailable,
   usagePct,
 }: BillingTabProps) {
-  const [reloadMinutes, setReloadMinutes] = useState(100)
+  const [reloadMinutes, setReloadMinutes] = useState(RELOAD_OPTIONS[0].minutes)
   const [reloadLoading, setReloadLoading] = useState(false)
 
   const now = new Date()
   const cycleStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const planName = getPlanName(client.monthly_minute_limit)
+  const effectiveRate = client.effective_monthly_rate ?? getEffectiveMonthly()
+  const hasDiscount = !!client.stripe_discount_name
 
   return (<>
     {!isAdmin && (
@@ -57,6 +93,11 @@ export default function BillingTab({
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
             {minuteLimit} min/mo
           </span>
+          {hasDiscount && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-green-400 border-green-500/30 bg-green-500/10">
+              {client.stripe_discount_name}
+            </span>
+          )}
           {(client.bonus_minutes ?? 0) > 0 && (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
               + {client.bonus_minutes} bonus
@@ -65,9 +106,9 @@ export default function BillingTab({
         </div>
         <p className="text-[11px] t3 mt-2">
           {client.subscription_status === 'trialing'
-            ? `Free trial — $10/mo starts on ${fmtDate(client.subscription_current_period_end)}`
+            ? `Free trial — $${effectiveRate}/mo starts on ${fmtDate(client.subscription_current_period_end)}`
             : client.subscription_status === 'active'
-              ? `Active — $10/mo. Renews ${fmtDate(client.subscription_current_period_end)}`
+              ? `Active — $${effectiveRate}/mo${hasDiscount ? ` (${client.stripe_discount_name})` : ''}. Renews ${fmtDate(client.subscription_current_period_end)}`
               : client.subscription_status === 'past_due'
                 ? `Payment failed — update your payment method or your agent will pause on ${fmtDate(client.grace_period_end)}`
                 : client.subscription_status === 'canceled'
@@ -149,12 +190,12 @@ export default function BillingTab({
           }}
           className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
         >
-          {reloadLoading ? 'Redirecting...' : `Reload ${reloadMinutes} min — $${reloadMinutes / 10}`}
+          {reloadLoading ? 'Redirecting...' : `Reload ${reloadMinutes} min — $${RELOAD_OPTIONS.find(o => o.minutes === reloadMinutes)?.price ?? reloadMinutes * MINUTE_RELOAD.perMinuteRate}`}
         </button>
       </div>
 
       {/* Section D: Account */}
-      <div className="p-5">
+      <div className="p-5 border-b b-theme">
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Account</p>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -171,14 +212,16 @@ export default function BillingTab({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs t3">Setup fee</span>
-            <span className="text-xs t2 font-mono">$25 (paid)</span>
+            <span className="text-xs t2 font-mono">${SETUP.price} (paid)</span>
           </div>
         </div>
-        <p className="text-[11px] t3 mt-4">
-          To manage your subscription, email{' '}
-          <span className="font-mono t2">support@unmissed.ai</span>
-        </p>
+        <ManageSubscriptionButton isAdmin={isAdmin} clientId={client.id} previewMode={previewMode} />
       </div>
+
+      {/* Admin: Promo Management */}
+      {isAdmin && client.stripe_subscription_id && (
+        <AdminPromoPanel clientId={client.id} client={client} />
+      )}
 
       {/* Admin: Ultravox account-level usage */}
       {isAdmin && <UsageSummary isAdmin={isAdmin} />}

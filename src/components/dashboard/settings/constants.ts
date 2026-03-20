@@ -71,10 +71,12 @@ export const KNOWN_VOICES: Record<string, string> = {
   'b9de4a89-7971-4ac8-aeea-d86fd8543a1a': 'Emily',
 }
 
+import { MINUTE_RELOAD } from '@/lib/pricing'
+
 export const RELOAD_OPTIONS = [
-  { minutes: 100, price: 10 },
-  { minutes: 200, price: 20 },
-  { minutes: 300, price: 30 },
+  { minutes: MINUTE_RELOAD.minutes,     price: MINUTE_RELOAD.price },      // 50 min, $10
+  { minutes: MINUTE_RELOAD.minutes * 2, price: MINUTE_RELOAD.price * 2 },  // 100 min, $20
+  { minutes: MINUTE_RELOAD.minutes * 3, price: MINUTE_RELOAD.price * 3 },  // 150 min, $30
 ] as const
 
 export const TAB_DEFINITIONS: { id: SettingsTab; label: string; adminOnly: boolean; icon: string }[] = [

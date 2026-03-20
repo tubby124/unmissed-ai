@@ -26,11 +26,31 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02
 /** All plans include 100 min/mo. Future tiers (Growth/Pro) not yet purchasable. */
 const BASE_MINUTE_LIMIT = 100
 
-function getTierLabel(tier: string | undefined | null): string {
-  // Currently single plan — discount code controls price, not tier
-  if (tier === 'growth') return 'Growth ($75)'
-  if (tier === 'pro') return 'Pro ($140)'
+function getTierLabel(): string {
   return 'Starter ($30)'
+}
+
+/** Extract discount/coupon info from a Stripe subscription for Supabase sync. */
+function extractDiscountInfo(sub: Stripe.Subscription): {
+  discountName: string | null
+  effectiveRate: number | null
+} {
+  const firstDiscount = sub.discounts?.[0]
+  if (!firstDiscount || typeof firstDiscount === 'string') return { discountName: null, effectiveRate: null }
+  const coupon = typeof firstDiscount.source?.coupon === 'object' ? firstDiscount.source.coupon : null
+  if (!coupon) return { discountName: null, effectiveRate: null }
+
+  const name = coupon.name ?? coupon.id
+
+  const baseAmount = sub.items.data[0]?.price?.unit_amount ?? 3000
+  let effectiveAmount = baseAmount
+  if (coupon.amount_off) effectiveAmount = baseAmount - coupon.amount_off
+  else if (coupon.percent_off) effectiveAmount = Math.round(baseAmount * (1 - coupon.percent_off / 100))
+
+  return {
+    discountName: name,
+    effectiveRate: Math.round(effectiveAmount / 100),
+  }
 }
 
 const adminSupa = createClient(
@@ -71,7 +91,8 @@ export async function POST(req: NextRequest) {
         const sub = await stripe.subscriptions.retrieve(subId)
         const tier = sub.metadata?.tier ?? null
         const minuteLimit = BASE_MINUTE_LIMIT
-        const tierLabel = getTierLabel(tier)
+        const tierLabel = getTierLabel()
+        const { discountName, effectiveRate } = extractDiscountInfo(sub)
 
         await adminSupa.from('clients').update({
           subscription_status: 'active',
@@ -80,6 +101,8 @@ export async function POST(req: NextRequest) {
           seconds_used_this_month: 0,
           grace_period_end: null,
           subscription_current_period_end: new Date(sub.items.data[0]?.current_period_end * 1000).toISOString(),
+          stripe_discount_name: discountName,
+          effective_monthly_rate: effectiveRate,
         }).eq('id', cl.id)
 
         console.log(`[stripe-webhook] Subscription renewed for ${cl.slug} — ${tierLabel} ${minuteLimit} min/mo, reset usage`)
@@ -189,6 +212,28 @@ export async function POST(req: NextRequest) {
       } catch (tgErr) {
         console.error('[stripe-webhook] Telegram alert failed:', tgErr)
       }
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
+  // ── customer.subscription.updated (discount changes, plan changes) ─────
+  if (event.type === 'customer.subscription.updated') {
+    const sub = event.data.object as Stripe.Subscription
+    const { data: cl } = await adminSupa
+      .from('clients')
+      .select('id, slug')
+      .eq('stripe_subscription_id', sub.id)
+      .single()
+
+    if (cl) {
+      const { discountName, effectiveRate } = extractDiscountInfo(sub)
+      await adminSupa.from('clients').update({
+        subscription_status: sub.status,
+        stripe_discount_name: discountName,
+        effective_monthly_rate: effectiveRate,
+      }).eq('id', cl.id)
+      console.log(`[stripe-webhook] Subscription updated: ${cl.slug} discount=${discountName} rate=$${effectiveRate}`)
     }
 
     return new NextResponse('OK', { status: 200 })
@@ -335,11 +380,14 @@ export async function POST(req: NextRequest) {
   if (subscriptionId) {
     try {
       const sub = await stripe.subscriptions.retrieve(subscriptionId)
+      const { discountName, effectiveRate } = extractDiscountInfo(sub)
       await adminSupa.from('clients').update({
         stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
         stripe_subscription_id: subscriptionId,
         subscription_status: sub.status,
         subscription_current_period_end: new Date((sub.items.data[0]?.current_period_end ?? sub.trial_end ?? 0) * 1000).toISOString(),
+        stripe_discount_name: discountName,
+        effective_monthly_rate: effectiveRate,
       }).eq('id', client_id)
       console.log(`[stripe-webhook] Stored subscription ${subscriptionId} status=${sub.status} for client=${client_id}`)
     } catch (subErr) {
