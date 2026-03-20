@@ -179,6 +179,13 @@ export async function POST(
   if (knowledgeBlockStr) promptFull += `\n\n${knowledgeBlockStr}`
   if (contextDataStr)    promptFull += `\n\n${contextDataStr}`
 
+  // Build initialMessages for returning callers (B2a — hidden context injection)
+  const initialMessages = ctx.caller.isReturningCaller ? [{
+    role: 'MESSAGE_ROLE_USER',
+    text: `[Context: Returning caller${ctx.caller.returningCallerName ? ` named ${ctx.caller.returningCallerName}` : ''}. ${ctx.caller.priorCallCount} prior call${ctx.caller.priorCallCount > 1 ? 's' : ''}${ctx.caller.lastCallSummary ? `. Last call: ${ctx.caller.lastCallSummary}` : ''}.]`,
+    medium: 'MESSAGE_MEDIUM_TEXT',
+  }] : undefined
+
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     if (client.ultravox_agent_id) {
@@ -191,6 +198,7 @@ export async function POST(
           ...(callerContextRaw   ? { callerContext: callerContextRaw }          : {}),
           ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr }         : {}),
           ...(contextDataStr   ? { contextData: contextDataStr }              : {}),
+          ...(initialMessages  ? { initialMessages }                          : {}),
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall

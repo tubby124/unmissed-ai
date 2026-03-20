@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import CallsList from '@/components/dashboard/CallsList'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
+import OperatorActivity from '@/components/dashboard/OperatorActivity'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,6 +119,7 @@ export default async function CallsPage() {
           twilioNumber={clientPhone}
         />
       )}
+      <OperatorActivity clientId={clientId} />
       <CallsList
         initialCalls={allCalls}
         phone={clientPhone}

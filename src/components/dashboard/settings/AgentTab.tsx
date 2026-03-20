@@ -8,6 +8,7 @@ import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard
 import { NICHE_CONFIG } from '@/lib/niche-config'
 import { hasCapability } from '@/lib/niche-capabilities'
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
+import RuntimeCard from '@/components/dashboard/settings/RuntimeCard'
 import { fmtPhone } from '@/lib/settings-utils'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import type { PromptVersion, ImproveResult, LearningStatus, GodConfigEntry } from './constants'
@@ -1455,6 +1456,15 @@ export default function AgentTab({
           <CapabilitiesCard client={client} />
         </motion.div>
       )}
+
+      {/* 5y — Runtime config card */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.012 }}
+      >
+        <RuntimeCard client={client} />
+      </motion.div>
 
       {/* 5b-pre — RAG Knowledge Toggle (admin only) */}
       {isAdmin && (

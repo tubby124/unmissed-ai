@@ -6,6 +6,9 @@ const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
 const SIMILARITY_FLOOR = 0.60 // Results without a keyword match must exceed this cosine similarity
 
+// Trust tier sort order — high-trust chunks surface first at equal RRF scores
+const TRUST_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
@@ -64,6 +67,9 @@ export async function POST(
   })
 
   const latency = Date.now() - start
+  // NOTE: hybrid_match_knowledge() RPC may not return status/trust_tier columns yet.
+  // If it doesn't, we post-filter via a separate query. TODO: add status + trust_tier
+  // to the RPC RETURN TABLE so we can filter in SQL instead of post-filtering.
   const rawMatches = (results ?? []) as Array<{
     id: string
     content: string
@@ -75,6 +81,8 @@ export async function POST(
     keyword_rank: number | null
     semantic_rank: number | null
     rrf_score: number
+    status?: string
+    trust_tier?: string
   }>
 
   if (rpcErr) {
@@ -85,39 +93,66 @@ export async function POST(
 
   // Filter: keep results that have a keyword match OR good cosine similarity
   // This ensures out-of-scope queries stay empty while keyword-matched relevant results get through
-  const matches = rawMatches.filter(m => {
+  const relevantMatches = rawMatches.filter(m => {
     const hasKeyword = m.keyword_rank !== null
     const hasGoodSimilarity = m.similarity >= SIMILARITY_FLOOR
     return (hasKeyword || hasGoodSimilarity) && m.rrf_score >= RRF_MIN_SCORE
   })
-  const topSimilarity = matches.length > 0 ? matches[0].similarity : null
+
+  // ── Governance: only return approved chunks ──────────────────────────────
+  // If RPC returns status, filter out non-approved. If status is absent (RPC
+  // doesn't return it yet), treat as legacy approved.
+  const approvedMatches = relevantMatches.filter(m => {
+    const status = m.status
+    return !status || status === 'approved'
+  })
+
+  // ── Sort by RRF score (primary) then trust tier (secondary tiebreaker) ───
+  const sorted = approvedMatches.sort((a, b) => {
+    const scoreDiff = b.rrf_score - a.rrf_score
+    if (Math.abs(scoreDiff) > 0.01) return scoreDiff
+    const tierA = TRUST_ORDER[a.trust_tier ?? 'medium'] ?? 1
+    const tierB = TRUST_ORDER[b.trust_tier ?? 'medium'] ?? 1
+    return tierA - tierB
+  })
+
+  const topSimilarity = sorted.length > 0 ? sorted[0].similarity : null
 
   // ── Log query for observability ────────────────────────────────────────────
   const queryLogId = await logQuery(
     supabase, client.id, slug, queryText,
-    matches.length, topSimilarity, RRF_MIN_SCORE, latency,
+    sorted.length, topSimilarity, RRF_MIN_SCORE, latency,
   )
 
-  if (matches.length === 0) {
+  if (sorted.length === 0) {
     console.log(`[knowledge-query] slug=${slug} EMPTY_RESULT query="${queryText.slice(0, 80)}" rrf_min=${RRF_MIN_SCORE} latency=${latency}ms`)
   } else {
-    for (const m of matches) {
-      console.log(`[knowledge-query] slug=${slug} "${m.content.slice(0, 50)}" rrf=${m.rrf_score.toFixed(4)} kw=${m.keyword_rank ?? '-'} sem=${m.semantic_rank ?? '-'} sim=${m.similarity.toFixed(3)}`)
+    for (const m of sorted) {
+      console.log(`[knowledge-query] slug=${slug} "${m.content.slice(0, 50)}" rrf=${m.rrf_score.toFixed(4)} kw=${m.keyword_rank ?? '-'} sem=${m.semantic_rank ?? '-'} sim=${m.similarity.toFixed(3)} tier=${m.trust_tier ?? 'medium'}`)
     }
-    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${matches.length} top_rrf=${matches[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} latency=${latency}ms`)
+    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${sorted.length} top_rrf=${sorted[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} top_tier=${sorted[0].trust_tier ?? 'medium'} latency=${latency}ms`)
   }
 
+  // ── Build response with trust-aware _instruction ─────────────────────────
+  const topContent = sorted[0]?.content?.slice(0, 200) || ''
+  const topTrust = sorted[0]?.trust_tier ?? 'medium'
+  const trustQualifier = topTrust === 'high' ? '' : topTrust === 'low' ? ' This information has not been fully verified — be cautious.' : ''
+
   return NextResponse.json({
-    results: matches.map(m => ({
+    results: sorted.map(m => ({
       content: m.content,
       chunk_type: m.chunk_type,
       source: m.source,
       similarity: m.similarity,
       source_run_id: m.source_run_id,
       rrf_score: m.rrf_score,
+      trust_tier: m.trust_tier ?? 'medium',
     })),
-    count: matches.length,
+    count: sorted.length,
     query_id: queryLogId,
+    _instruction: sorted.length > 0
+      ? `Found: ${topContent}. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.${trustQualifier}`
+      : `No information found. Say you're not sure about that specific question and offer to have someone follow up.`,
   })
 }
 

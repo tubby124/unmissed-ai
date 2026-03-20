@@ -118,10 +118,43 @@ export async function POST(
         console.error(`[completed] CRITICAL — CANARY TOKEN LEAKED — prompt contamination detected for slug=${slug} callId=${callId}`)
       }
 
-      // Classify with Claude Haiku via OpenRouter
-      const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
-      const classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined, (client.niche as string | null) || undefined)
-      console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
+      // ── endReason-based pre-classification (C1 safeguard) ──────────────────────
+      let skipClassification = false
+      let preClassifiedStatus: string | null = null
+
+      if (endReason === 'unjoined') {
+        preClassifiedStatus = 'MISSED'
+        skipClassification = true
+        console.log(`[completed] endReason=unjoined → auto-classify MISSED for callId=${callId}`)
+      } else if (endReason === 'timeout' && durationSeconds < 5) {
+        preClassifiedStatus = 'MISSED'
+        skipClassification = true
+        console.log(`[completed] endReason=timeout + ${durationSeconds}s < 5s → auto-classify MISSED for callId=${callId}`)
+      } else if (endReason === 'connection_error' || endReason === 'system_error') {
+        preClassifiedStatus = 'MISSED'
+        skipClassification = true
+        console.log(`[completed] endReason=${endReason} → auto-classify MISSED + ops alert for callId=${callId}`)
+      }
+
+      // Classify with Claude Haiku via OpenRouter (skip if pre-classified by endReason)
+      let classification
+      if (skipClassification && preClassifiedStatus) {
+        classification = {
+          status: preClassifiedStatus,
+          summary: `Call ended: ${endReason}${durationSeconds > 0 ? ` (${durationSeconds}s)` : ''}`,
+          serviceType: 'other' as const,
+          confidence: 100,
+          sentiment: 'neutral' as const,
+          key_topics: [] as string[],
+          next_steps: '',
+          quality_score: 0,
+        }
+        console.log(`[completed] Pre-classified: callId=${callId} status=${preClassifiedStatus} endReason=${endReason}`)
+      } else {
+        const businessContext = [client.business_name, client.niche].filter(Boolean).join(' — ')
+        classification = await classifyCall(transcript, businessContext || undefined, (client.classification_rules as string | null) || undefined, (client.niche as string | null) || undefined)
+        console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
+      }
 
       // Update call_log with full data
       const { data: updatedRows, error: updateError } = await supabase
@@ -147,6 +180,19 @@ export async function POST(
       if (updateError) console.error(`[completed] DB update FAILED for callId=${callId}: ${updateError.message} code=${updateError.code}`)
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
+
+      // ── Ops alert for system failures ─────────────────────────────────────────
+      if (endReason === 'connection_error' || endReason === 'system_error') {
+        if (client.telegram_bot_token && client.telegram_chat_id) {
+          await sendAlert(
+            client.telegram_bot_token,
+            client.telegram_chat_id,
+            `\u26a0\ufe0f <b>SYSTEM FAILURE</b> [${slug}]\nendReason: ${endReason}\nCaller: ${callerPhone}\nDuration: ${durationSeconds}s\nCall ID: ${callId}`,
+            client.telegram_chat_id_2 ?? undefined
+          ).catch(() => {})
+        }
+        console.error(`[completed] SYSTEM FAILURE ALERT: slug=${slug} endReason=${endReason} callId=${callId}`)
+      }
 
       // ── Telegram alert ───────────────────────────────────────────────────────
       if (client.telegram_bot_token && client.telegram_chat_id) {

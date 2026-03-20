@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import ChunkBrowser from './knowledge/ChunkBrowser'
+import PendingSuggestions from './knowledge/PendingSuggestions'
 
 interface KnowledgeBaseTabProps {
   clientId: string
@@ -489,6 +491,13 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpu
             )}
           </div>
         </div>
+      )}
+      {/* Knowledge Review — pgvector chunk browser + pending suggestions */}
+      {process.env.NEXT_PUBLIC_SHOW_KNOWLEDGE_REVIEW !== 'false' && (
+        <>
+          <PendingSuggestions clientId={clientId} />
+          <ChunkBrowser clientId={clientId} isAdmin={isAdmin} />
+        </>
       )}
       </>)}
     </div>

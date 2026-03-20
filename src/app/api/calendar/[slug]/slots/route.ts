@@ -48,10 +48,15 @@ export async function GET(
       return NextResponse.json({
         available: false,
         slots: [],
-        _instruction: `No slots are available on that day. Ask what other day works for them.`,
+        _instruction: `No available slots found. Apologize and offer to have someone call back with more options.`,
       })
     }
-    return NextResponse.json({ available: true, slots })
+    const slotList = slots.map(s => s.displayTime).join(', ')
+    return NextResponse.json({
+      available: true,
+      slots,
+      _instruction: `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`,
+    })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[calendar/slots] Failed for slug=${slug}: ${msg}`)

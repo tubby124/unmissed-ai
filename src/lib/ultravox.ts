@@ -41,6 +41,7 @@ const DEFAULT_VAD = {
   turnEndpointDelay: '0.64s',
   minimumTurnDuration: '0.1s',
   minimumInterruptionDuration: '0.2s',
+  frameActivationThreshold: 0.2,
 }
 
 const DEFAULT_INACTIVITY = [
@@ -444,7 +445,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
         contextData:    { type: 'string' },
       },
     },
-    firstSpeakerSettings: { agent: { uninterruptible: true } },
+    firstSpeakerSettings: { agent: { uninterruptible: true, delay: '1s' } },
   }
 
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
@@ -496,7 +497,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
         contextData:    { type: 'string' },
       },
     },
-    firstSpeakerSettings: { agent: { uninterruptible: true } },
+    firstSpeakerSettings: { agent: { uninterruptible: true, delay: '1s' } },
   }
 
   // Client-specific overrides
@@ -557,16 +558,19 @@ interface CallViaAgentOptions {
   contextData?: string
   /** Override the agent's default first speaker text (used for transfer recovery). */
   firstSpeakerText?: string
+  /** Hidden context messages injected before the call starts. Used for returning caller context. */
+  initialMessages?: Array<{ role: string; text: string; medium: string }>
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
     metadata: metadata || {},
+    joinTimeout: '15s',
     // Always inject all templateContext keys so placeholders resolve cleanly (empty string = no output)
     templateContext: {
       callerContext:  callerContext  || '',
@@ -579,6 +583,7 @@ export async function callViaAgent(
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  if (initialMessages?.length) body.initialMessages = initialMessages
   // languageHint is NOT supported in StartAgentCallRequest — agents API rejects it with 400
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {

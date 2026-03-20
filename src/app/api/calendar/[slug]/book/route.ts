@@ -117,12 +117,14 @@ export async function POST(
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       booked: true,
       confirmationTime: matchedSlot.displayTime,
       calendarUrl: event.htmlLink || null,
-      _instruction: `Appointment confirmed for ${date} at ${matchedSlot.displayTime}. Tell the caller that in one natural sentence, then ask if there's anything else, and if not, use hangUp.`,
+      _instruction: `Booked for ${date} at ${matchedSlot.displayTime}. Confirm the date and time back to the caller and ask if there's anything else.`,
     })
+    response.headers.set('X-Ultravox-Agent-Reaction', 'speaks-once')
+    return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[calendar/book] Failed for slug=${slug}: ${msg}`)
@@ -132,7 +134,7 @@ export async function POST(
     }
 
     return NextResponse.json({ booked: false, reason: 'calendar_error', fallback: true,
-      _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule a time, and use hangUp.`,
+      _instruction: `Booking failed — tell the caller you'll have someone follow up to confirm their appointment.`,
     })
   }
 }
