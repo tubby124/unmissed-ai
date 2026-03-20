@@ -54,6 +54,9 @@ export async function POST(
   const ultravoxSummary = (callData?.shortSummary as string | undefined) || null
   const endedAt = (callData?.ended as string | undefined) || new Date().toISOString()
 
+  // B3-F2: Extract final call state from Ultravox callback (null if not present)
+  const finalCallState = (callData?.state as Record<string, unknown> | undefined) ?? null
+
   // Return 200 immediately — Ultravox retries up to 10x with exponential backoff
   after(async () => {
     console.log(`[completed] Processing: callId=${callId} slug=${slug} duration=${durationSeconds}s callerPhone=${callerPhone}`)
@@ -174,12 +177,13 @@ export async function POST(
           next_steps: classification.next_steps || null,
           quality_score: classification.quality_score || null,
           caller_name: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
+          ...(finalCallState ? { call_state: finalCallState } : {}),
         })
         .eq('ultravox_call_id', callId)
         .select('id')
       if (updateError) console.error(`[completed] DB update FAILED for callId=${callId}: ${updateError.message} code=${updateError.code}`)
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
-      else console.log(`[completed] DB updated: callId=${callId} status=${classification.status}`)
+      else console.log(`[completed] DB updated: callId=${callId} status=${classification.status} callState=${finalCallState ? 'PRESENT' : 'NOT_IN_PAYLOAD'}`)
 
       // ── Ops alert for system failures ─────────────────────────────────────────
       if (endReason === 'connection_error' || endReason === 'system_error') {

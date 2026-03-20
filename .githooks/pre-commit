@@ -1,0 +1,15 @@
+#!/bin/sh
+# H2: Run unit tests before every commit.
+# Install: git config core.hooksPath .githooks
+# Tests run in ~2-3s — fast enough for pre-commit.
+
+echo "Running tests before commit..."
+npm run test:all 2>&1
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Tests failed — commit blocked. Fix and try again."
+  exit 1
+fi
+
+echo "✅ Tests passed."

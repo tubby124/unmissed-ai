@@ -150,3 +150,33 @@ describe('Prompt length safety', () => {
     )
   })
 })
+
+// ── H4: Prompt length regression test (all clients) ──────────────────────────
+
+describe('Prompt length guardrails (all clients)', () => {
+  const WARN_THRESHOLD = 8000
+  const FAIL_THRESHOLD = 12000
+  const slugs = ['hasan-sharif', 'exp-realty', 'windshield-hub', 'urban-vibe', 'manzil-isa']
+
+  for (const slug of slugs) {
+    test(`${slug} prompt under ${FAIL_THRESHOLD} char hard ceiling`, () => {
+      const prompt = readPrompt(slug)
+      if (!prompt) return // skip if file doesn't exist
+      assert.ok(
+        prompt.length < FAIL_THRESHOLD,
+        `${slug} prompt is ${prompt.length} chars — exceeds ${FAIL_THRESHOLD} hard ceiling. Compress or split.`,
+      )
+    })
+
+    test(`${slug} prompt length warning (over ${WARN_THRESHOLD} chars)`, () => {
+      const prompt = readPrompt(slug)
+      if (!prompt) return
+      if (prompt.length > WARN_THRESHOLD) {
+        console.warn(`⚠️  ${slug}: ${prompt.length} chars (over ${WARN_THRESHOLD} warn threshold)`)
+      }
+      // This test always passes — the warn is informational.
+      // The hard ceiling test above is what fails the build.
+      assert.ok(true)
+    })
+  }
+})

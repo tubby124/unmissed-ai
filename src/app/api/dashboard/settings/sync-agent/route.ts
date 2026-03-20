@@ -38,6 +38,18 @@ export async function POST(req: NextRequest) {
   if (!client.system_prompt) return NextResponse.json({ error: 'No system prompt to sync' }, { status: 422 })
 
   try {
+    // K15: check active chunk count for knowledge tool guard
+    const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+    let knowledgeChunkCount: number | undefined
+    if (knowledgeBackend === 'pgvector') {
+      const { count } = await svc
+        .from('knowledge_chunks')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .eq('status', 'approved')
+      knowledgeChunkCount = count ?? 0
+    }
+
     // Pass all flags to updateAgent() — it handles tool construction for calendar,
     // transfer, SMS, knowledge, coaching, and hangUp tools centrally.
     await updateAgent(client.ultravox_agent_id, {
@@ -49,7 +61,8 @@ export async function POST(req: NextRequest) {
       forwarding_number: (client.forwarding_number as string | null) || undefined,
       transfer_conditions: (client.transfer_conditions as string | null) || undefined,
       sms_enabled: client.sms_enabled ?? false,
-      knowledge_backend: (client.knowledge_backend as string | null) || undefined,
+      knowledge_backend: knowledgeBackend,
+      knowledge_chunk_count: knowledgeChunkCount,
     })
     console.log(`[sync-agent] Synced client=${targetClientId} agent=${client.ultravox_agent_id}`)
     return NextResponse.json({ ok: true, agent_id: client.ultravox_agent_id })

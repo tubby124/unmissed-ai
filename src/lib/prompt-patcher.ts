@@ -106,11 +106,11 @@ export function getClosePerson(
   agentName?: string | null,
 ): string {
   // Try to find CLOSE_PERSON in the prompt text (e.g. "i'll get Mark to call ya back")
-  const closeMatch = prompt.match(/i['']ll get (\w+) to call/i)
+  const closeMatch = prompt.match(/i['\u2018\u2019']ll get (\w+) to call/i)
   if (closeMatch?.[1]) return closeMatch[1]
 
   // Try to find owner name from real_estate template (e.g. "You are Fatema, Omar's assistant")
-  const reMatch = prompt.match(/You are \w+, (\w+)(?:'s|'s) assistant/i)
+  const reMatch = prompt.match(/You are \w+, (\w+)(?:'s|'s|\u2019s) assistant/i)
   if (reMatch?.[1]) return reMatch[1]
 
   // Try CLOSE_PERSON from template (e.g. "{{CLOSE_PERSON}}" already replaced)

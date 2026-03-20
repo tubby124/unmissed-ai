@@ -56,31 +56,23 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
     try {
-      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&limit=1`)
-      if (!res.ok) return
-      const data = await res.json()
-      // The chunks endpoint returns { chunks, total, ... } — total is the full count
-      // We need to fetch counts per status. Use separate calls or estimate from the response.
-      // For now, use total from the response and fetch status breakdown.
-      const totalCount = data.total ?? 0
+      // Two parallel fetches instead of 4 sequential ones (K17)
+      const [statsRes, gapsRes] = await Promise.all([
+        fetch(`/api/dashboard/knowledge/stats?client_id=${client.id}`),
+        fetch(`/api/dashboard/knowledge/gaps?client_id=${client.id}&days=30`),
+      ])
 
-      // Fetch approved count
-      const approvedRes = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&status=approved&limit=1`)
-      const approvedData = approvedRes.ok ? await approvedRes.json() : { total: 0 }
+      if (statsRes.ok) {
+        const data = await statsRes.json()
+        setStats({
+          total: data.total ?? 0,
+          approved: data.approved ?? 0,
+          pending: data.pending ?? 0,
+          rejected: data.rejected ?? 0,
+          byType: data.byType ?? {},
+        })
+      }
 
-      const pendingRes = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&status=pending&limit=1`)
-      const pendingData = pendingRes.ok ? await pendingRes.json() : { total: 0 }
-
-      setStats({
-        total: totalCount,
-        approved: approvedData.total ?? 0,
-        pending: pendingData.total ?? 0,
-        rejected: totalCount - (approvedData.total ?? 0) - (pendingData.total ?? 0),
-        byType: {},
-      })
-
-      // Fetch recent knowledge gaps (unanswered questions from calls)
-      const gapsRes = await fetch(`/api/dashboard/knowledge/gaps?client_id=${client.id}&days=30`)
       if (gapsRes.ok) {
         const gapsData = await gapsRes.json()
         setGaps((gapsData.gaps ?? []).slice(0, 3))

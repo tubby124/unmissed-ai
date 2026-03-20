@@ -273,8 +273,10 @@ interface AgentConfig {
   forwarding_number?: string
   /** When true, inject sendTextMessage HTTP tool so the agent can SMS the caller mid-call. */
   sms_enabled?: boolean
-  /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, 'ultravox' = queryCorpus, null = none. */
+  /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, null = none. */
   knowledge_backend?: string | null
+  /** Active chunk count — when 0, skip knowledge tool injection (K15). undefined = no guard. */
+  knowledge_chunk_count?: number
   /** Text describing when the agent should transfer (used in transferCall tool description). */
   transfer_conditions?: string | null
 }
@@ -430,7 +432,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, transfer_conditions }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, knowledge_chunk_count, transfer_conditions }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -459,7 +461,9 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug, transfer_conditions) : []
   const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
-  const knowledgeTools: object[] = (knowledge_backend === 'pgvector' && slug) ? buildKnowledgeTools(slug) : []
+  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
+  const hasKnowledge = knowledge_backend === 'pgvector' && slug && (knowledge_chunk_count === undefined || knowledge_chunk_count > 0)
+  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(slug) : []
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 
@@ -526,8 +530,10 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug, updates.transfer_conditions) : []
   const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
-  const knowledgeTools: object[] = (updates.knowledge_backend === 'pgvector' && updates.slug)
-    ? buildKnowledgeTools(updates.slug) : []
+  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
+  const hasKnowledge = updates.knowledge_backend === 'pgvector' && updates.slug
+    && (updates.knowledge_chunk_count === undefined || updates.knowledge_chunk_count > 0)
+  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(updates.slug!) : []
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 

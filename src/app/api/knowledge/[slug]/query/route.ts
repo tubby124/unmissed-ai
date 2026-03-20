@@ -26,6 +26,7 @@ export async function POST(
 
   // B3: Read call state from Ultravox header
   const callState = parseCallState(req)
+  console.log(`[knowledge] B3 call-state: ${callState ? JSON.stringify(callState) : 'NOT_PRESENT'}`)
 
   // ── Parse body ─────────────────────────────────────────────────────────────
   const body = await req.json().catch(() => ({})) as { query?: string }

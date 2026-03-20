@@ -16,6 +16,7 @@ export async function GET(
 
   // B3: Read call state from Ultravox header (null if not available)
   const callState = parseCallState(req)
+  console.log(`[slots] B3 call-state: ${callState ? JSON.stringify(callState) : 'NOT_PRESENT'}`)
 
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD

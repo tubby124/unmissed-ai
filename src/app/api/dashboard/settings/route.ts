@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildCalendarTools, buildTransferTools, buildSmsTools, buildKnowledgeTools, buildCoachingTool } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
@@ -339,6 +339,18 @@ export async function PATCH(req: NextRequest) {
           ? (updates.agent_voice_id as string)
           : clientRow.agent_voice_id
 
+        // K15: check active chunk count so updateAgent can skip empty knowledge tool
+        let knowledgeChunkCount: number | undefined
+        if (knowledgeBackend === 'pgvector') {
+          const svc = createServiceClient()
+          const { count } = await svc
+            .from('knowledge_chunks')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', targetClientId)
+            .eq('status', 'approved')
+          knowledgeChunkCount = count ?? 0
+        }
+
         // Let updateAgent() build the COMPLETE tool set from flags — never build tools manually here.
         // This ensures Settings saves produce the same tool set as deploy_prompt.py.
         await updateAgent(clientRow.ultravox_agent_id, {
@@ -349,6 +361,7 @@ export async function PATCH(req: NextRequest) {
           forwarding_number: fwdNumber || undefined,
           sms_enabled: smsEnabled,
           knowledge_backend: knowledgeBackend,
+          knowledge_chunk_count: knowledgeChunkCount,
           transfer_conditions: transferConditions,
         })
 
@@ -359,7 +372,7 @@ export async function PATCH(req: NextRequest) {
           ...(bookingEnabled && slug ? buildCalendarTools(slug) : []),
           ...(fwdNumber && slug ? buildTransferTools(slug, transferConditions) : []),
           ...(smsEnabled && slug ? buildSmsTools(slug) : []),
-          ...(knowledgeBackend === 'pgvector' && slug ? buildKnowledgeTools(slug) : []),
+          ...(knowledgeBackend === 'pgvector' && slug && (knowledgeChunkCount === undefined || knowledgeChunkCount > 0) ? buildKnowledgeTools(slug) : []),
           ...(slug ? [buildCoachingTool(slug)] : []),
         ]
         await supabase.from('clients').update({ tools: syncTools }).eq('id', targetClientId)
