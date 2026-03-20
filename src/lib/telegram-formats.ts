@@ -30,6 +30,7 @@ interface FormatInput {
     appointmentTime: string
     calendarUrl: string | null
   } | null
+  recordingUrl?: string | null
 }
 
 const STATUS_EMOJI: Record<string, string> = {
@@ -80,6 +81,10 @@ function formatCompact(input: FormatInput): string {
     lines.push(`↳ ${input.nextSteps}`)
   }
 
+  if (input.recordingUrl) {
+    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
+  }
+
   return lines.join('\n')
 }
 
@@ -115,6 +120,10 @@ function formatStandard(input: FormatInput): string {
     lines.push(`📋 ${input.nextSteps}`)
   }
 
+  if (input.recordingUrl) {
+    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
+  }
+
   return lines.join('\n')
 }
 
@@ -145,6 +154,10 @@ function formatActionCard(input: FormatInput): string {
     lines.push(`↳ Call${name ? ` ${name}` : ''} at ${phone} to confirm`)
   } else {
     lines.push(`↳ Call ${phone}`)
+  }
+
+  if (input.recordingUrl) {
+    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
   }
 
   return lines.join('\n')

@@ -25,6 +25,10 @@
     {
       "schedule": "0 7 * * *",
       "command": "curl -s -X POST http://localhost:3000/api/cron/trial-expiry -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
+    },
+    {
+      "schedule": "*/30 * * * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/follow-up-reminders -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
     }
   ]
 }

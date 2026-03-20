@@ -194,6 +194,30 @@ export async function POST(
         console.error(`[completed] SYSTEM FAILURE ALERT: slug=${slug} endReason=${endReason} callId=${callId}`)
       }
 
+      // ── Recording upload (before Telegram so we can include the link) ──────
+      let recordingUrl: string | null = null
+      try {
+        const recordingRes = await getRecordingStream(callId)
+        if (recordingRes.ok && recordingRes.body) {
+          const arrayBuffer = await recordingRes.arrayBuffer()
+          const { error: uploadError } = await supabase.storage
+            .from('recordings')
+            .upload(`${callId}.mp3`, arrayBuffer, { contentType: 'audio/mpeg', upsert: true })
+          if (uploadError) {
+            console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
+          } else {
+            const { data: urlData } = supabase.storage.from('recordings').getPublicUrl(`${callId}.mp3`)
+            recordingUrl = urlData.publicUrl
+            await supabase.from('call_logs').update({ recording_url: recordingUrl }).eq('ultravox_call_id', callId)
+            console.log(`[completed] Recording uploaded: callId=${callId} url=${recordingUrl}`)
+          }
+        } else {
+          console.warn(`[completed] Recording not available for callId=${callId} status=${recordingRes.status}`)
+        }
+      } catch (storageErr) {
+        console.error('[completed] Recording storage failed:', storageErr)
+      }
+
       // ── Telegram alert ───────────────────────────────────────────────────────
       if (client.telegram_bot_token && client.telegram_chat_id) {
         const fullSummary = classification.summary || ultravoxSummary || ''
@@ -249,6 +273,7 @@ export async function POST(
             `• Name: ${nameStr}`,
             `• Phone: ${fmtPhone(callerPhone)}`,
             `• Duration: ${dur}`,
+            ...(recordingUrl ? [``, `🎧 Recording: ${recordingUrl}`] : []),
           ].join('\n')
         } else {
           // Configurable format — uses client.telegram_style (compact / standard / action_card)
@@ -290,6 +315,7 @@ export async function POST(
             timezone: clientTz,
             callerData: cd ? { callerName: cd.caller_name, serviceRequested: cd.service_requested } : null,
             booking,
+            recordingUrl,
           })
         }
 
@@ -445,28 +471,6 @@ export async function POST(
         })
         if (rpcError) console.error('[completed] Seconds increment failed:', rpcError.message)
         else console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
-      }
-
-      // ── Recording upload ───────────────────────────────────────────────────
-      try {
-        const recordingRes = await getRecordingStream(callId)
-        if (recordingRes.ok && recordingRes.body) {
-          const arrayBuffer = await recordingRes.arrayBuffer()
-          const { error: uploadError } = await supabase.storage
-            .from('recordings')
-            .upload(`${callId}.mp3`, arrayBuffer, { contentType: 'audio/mpeg', upsert: true })
-          if (uploadError) {
-            console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
-          } else {
-            const { data: urlData } = supabase.storage.from('recordings').getPublicUrl(`${callId}.mp3`)
-            await supabase.from('call_logs').update({ recording_url: urlData.publicUrl }).eq('ultravox_call_id', callId)
-            console.log(`[completed] Recording uploaded: callId=${callId} url=${urlData.publicUrl}`)
-          }
-        } else {
-          console.warn(`[completed] Recording not available for callId=${callId} status=${recordingRes.status}`)
-        }
-      } catch (storageErr) {
-        console.error('[completed] Recording storage failed:', storageErr)
       }
 
       console.log(`[completed] Done: callId=${callId} slug=${slug}`)
