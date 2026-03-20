@@ -14,12 +14,14 @@ export const MAX_EXTRA_QA = 8
 export const MIN_EXTRA_QA = 6
 export const MAX_FACT_LENGTH = 150
 
-/** Claims containing these terms are filtered out unless clearly safe */
+/** Claims containing these terms are filtered out unless clearly safe.
+ *  Dollar amounts ($\d+) intentionally NOT filtered — they are factual business knowledge.
+ *  Warranty/warranties intentionally NOT filtered — factual product info clients want agents to know.
+ *  Only the legal verb form "we warrant" is filtered (risky legal language). */
 const UNSAFE_CLAIM_PATTERNS: RegExp[] = [
   /\bguarantee[sd]?\b/i,
   /\bpromise[sd]?\b/i,
-  /\bwarrant(?:y|ies|ed)\b/i,
-  /\$\d+/,  // specific dollar amounts
+  /\bwe\s+warrant\b/i,
 ]
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -29,6 +31,20 @@ export type NormalizedKnowledge = {
   extraQa: { q: string; a: string }[]
   serviceTags: string[]
   warnings: string[]
+}
+
+export type NormalizationStats = {
+  preFilterFacts: number
+  postFilterFacts: number
+  preFilterQa: number
+  postFilterQa: number
+  removedFacts: string[]
+  removedQa: { q: string; a: string }[]
+}
+
+export type NormalizationResult = {
+  result: NormalizedKnowledge
+  stats: NormalizationStats
 }
 
 // ── Safety Filtering ─────────────────────────────────────────────────────────
@@ -105,13 +121,14 @@ function deduplicateQa(qa: { q: string; a: string }[]): { q: string; a: string }
 /**
  * Normalize and cap scraped website data.
  * Pure function — no API calls, no side effects.
+ * Returns both the normalized result and extraction stats for UI/logging.
  */
 export function normalizeExtraction(
   rawFacts: string[],
   rawQa: { q: string; a: string }[],
   rawServiceTags: string[],
   rawWarnings: string[],
-): NormalizedKnowledge {
+): NormalizationResult {
   const warnings: string[] = [...rawWarnings]
 
   // 1. Trim all inputs
@@ -124,6 +141,9 @@ export function normalizeExtraction(
   const trimmedTags = rawServiceTags
     .map(t => t.trim().toLowerCase())
     .filter(t => t.length > 0)
+
+  const preFilterFacts = trimmedFacts.length
+  const preFilterQa = trimmedQa.length
 
   // 2. Safety filter — remove unsafe claims
   const { safe: safeFacts, removed: removedFacts } = filterUnsafeFacts(trimmedFacts)
@@ -157,10 +177,20 @@ export function normalizeExtraction(
   }
 
   return {
-    businessFacts: cappedFacts,
-    extraQa: cappedQa,
-    serviceTags: uniqueTags,
-    warnings,
+    result: {
+      businessFacts: cappedFacts,
+      extraQa: cappedQa,
+      serviceTags: uniqueTags,
+      warnings,
+    },
+    stats: {
+      preFilterFacts,
+      postFilterFacts: cappedFacts.length,
+      preFilterQa,
+      postFilterQa: cappedQa.length,
+      removedFacts,
+      removedQa,
+    },
   }
 }
 

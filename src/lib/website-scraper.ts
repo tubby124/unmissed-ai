@@ -9,10 +9,28 @@
  * Cost: ~$0.003 per scrape (perplexity/sonar-pro: $3/M in + $15/M out).
  * Cap: 4 pages max (homepage + 3 high-value pages).
  *
- * Fail-safe: never throws, returns EMPTY_RESULT on any error.
+ * Failure buckets (mutually exclusive):
+ *   missing_api_key       — OPENROUTER_API_KEY not set
+ *   invalid_url           — URL failed validation
+ *   timeout               — Promise.race hit the timeout
+ *   provider_http_error   — OpenRouter returned non-200
+ *   empty_content         — 200 OK but choices[0].message.content is empty/null
+ *   json_parse_error      — content exists but all JSON parse layers failed
+ *   shape_validation_error— JSON parsed but missing required fields
+ *   success               — facts extracted
  */
 
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY
+
+export type FailureBucket =
+  | 'missing_api_key'
+  | 'invalid_url'
+  | 'timeout'
+  | 'provider_http_error'
+  | 'empty_content'
+  | 'json_parse_error'
+  | 'shape_validation_error'
+  | 'success'
 
 export type WebsiteScrapeResult = {
   rawContent: string
@@ -20,14 +38,21 @@ export type WebsiteScrapeResult = {
   extraQa: { q: string; a: string }[]
   serviceTags: string[]
   warnings: string[]
+  failureBucket: FailureBucket
+  /** Whether Sonar cited the target URL (vs answering from search index) */
+  citedTargetUrl?: boolean
 }
 
-const EMPTY_RESULT: WebsiteScrapeResult = {
+const EMPTY_RESULT: Omit<WebsiteScrapeResult, 'failureBucket'> = {
   rawContent: '',
   businessFacts: [],
   extraQa: [],
   serviceTags: [],
   warnings: [],
+}
+
+function fail(bucket: FailureBucket): WebsiteScrapeResult {
+  return { ...EMPTY_RESULT, failureBucket: bucket }
 }
 
 function isValidHttpUrl(url: string): boolean {
@@ -38,6 +63,40 @@ function isValidHttpUrl(url: string): boolean {
     return false
   }
 }
+
+// ── Layered JSON parser ───────────────────────────────────────────────────────
+// Sonar sometimes wraps JSON in markdown fences or adds commentary.
+// Try increasingly aggressive extraction before giving up.
+
+function layeredJsonParse(raw: string): { parsed: unknown; layer: string } | null {
+  // Layer 1: direct parse
+  try {
+    return { parsed: JSON.parse(raw), layer: 'direct' }
+  } catch { /* continue */ }
+
+  // Layer 2: strip markdown fences
+  const stripped = raw
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim()
+  if (stripped !== raw) {
+    try {
+      return { parsed: JSON.parse(stripped), layer: 'stripped_fences' }
+    } catch { /* continue */ }
+  }
+
+  // Layer 3: extract first plausible JSON object block
+  const match = raw.match(/\{[\s\S]*\}/)
+  if (match) {
+    try {
+      return { parsed: JSON.parse(match[0]), layer: 'regex_extract' }
+    } catch { /* continue */ }
+  }
+
+  return null
+}
+
+// ── Prompts ───────────────────────────────────────────────────────────────────
 
 function buildAutoGlassPrompt(url: string): string {
   return `Visit this business website: ${url}
@@ -108,6 +167,8 @@ IMPORTANT SAFETY RULES:
 - Return valid JSON only — no markdown fences, no commentary outside the JSON object.`
 }
 
+// ── Validation ────────────────────────────────────────────────────────────────
+
 function validateShape(data: unknown): data is WebsiteScrapeResult {
   if (!data || typeof data !== 'object') return false
   const obj = data as Record<string, unknown>
@@ -124,18 +185,20 @@ function validateShape(data: unknown): data is WebsiteScrapeResult {
   return true
 }
 
+// ── Main scrape function ──────────────────────────────────────────────────────
+
 export async function scrapeWebsite(
   url: string,
   niche: string
 ): Promise<WebsiteScrapeResult> {
   if (!OPENROUTER_KEY) {
-    console.warn('[website-scraper] OPENROUTER_API_KEY not set — skipping')
-    return EMPTY_RESULT
+    console.warn('[website-scraper] OPENROUTER_API_KEY not set — skipping | bucket=missing_api_key')
+    return fail('missing_api_key')
   }
 
   if (!isValidHttpUrl(url)) {
-    console.warn(`[website-scraper] Invalid URL (must be http/https): ${url}`)
-    return EMPTY_RESULT
+    console.warn(`[website-scraper] Invalid URL: ${url} | bucket=invalid_url`)
+    return fail('invalid_url')
   }
 
   const prompt =
@@ -163,36 +226,64 @@ export async function scrapeWebsite(
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
       console.warn(
-        `[website-scraper] OpenRouter returned ${res.status} for ${url} — ${body.slice(0, 200)}`
+        `[website-scraper] OpenRouter returned ${res.status} for ${url} | bucket=provider_http_error | body=${body.slice(0, 500)}`
       )
-      return EMPTY_RESULT
+      return fail('provider_http_error')
     }
 
     const data = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>
+      citations?: string[]
+      search_results?: unknown[]
     }
+
+    // Log citation/search data — tells us if Sonar browsed the URL vs search index
+    const citations: string[] = data.citations ?? []
+    const hasSearchResults = Array.isArray(data.search_results) && data.search_results.length > 0
+    const targetDomain = new URL(url).hostname
+    const citedTargetUrl = citations.some(c => c.includes(targetDomain))
+
+    console.log(
+      `[website-scraper] Citations: ${citations.length} | citedTarget=${citedTargetUrl} | hasSearchResults=${hasSearchResults} | url=${url}`
+    )
+    if (citations.length > 0) {
+      console.log(`[website-scraper] Citation URLs: ${citations.slice(0, 5).join(', ')}`)
+    }
+
     const raw = data?.choices?.[0]?.message?.content?.trim() ?? ''
 
     if (!raw) {
-      console.warn(`[website-scraper] Empty response for ${url}`)
-      return EMPTY_RESULT
+      console.warn(`[website-scraper] Empty response for ${url} | bucket=empty_content`)
+      return fail('empty_content')
     }
 
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
+    // Layered JSON parsing
+    const parseResult = layeredJsonParse(raw)
+
+    if (!parseResult) {
       console.warn(
-        `[website-scraper] Failed to parse JSON from Sonar response for ${url} — first 200 chars: ${raw.slice(0, 200)}`
+        `[website-scraper] All JSON parse layers failed for ${url} | bucket=json_parse_error | first 500 chars: ${raw.slice(0, 500)}`
       )
-      return EMPTY_RESULT
+      return fail('json_parse_error')
     }
+
+    console.log(`[website-scraper] JSON parsed via layer: ${parseResult.layer}`)
+    const parsed = parseResult.parsed
 
     if (!validateShape(parsed)) {
+      const keys = parsed && typeof parsed === 'object' ? Object.keys(parsed as object) : []
       console.warn(
-        `[website-scraper] Response shape mismatch for ${url} — missing required fields`
+        `[website-scraper] Shape validation failed for ${url} | bucket=shape_validation_error | keys=[${keys.join(',')}]`
       )
-      return EMPTY_RESULT
+      return fail('shape_validation_error')
+    }
+
+    // Truthfulness check — did Sonar actually read this URL?
+    const resultWarnings = [...parsed.warnings]
+    if (!citedTargetUrl && citations.length > 0) {
+      resultWarnings.push(
+        'Model may not have read the target URL — results may be from search index. Verify facts before approving.'
+      )
     }
 
     const result: WebsiteScrapeResult = {
@@ -206,17 +297,19 @@ export async function scrapeWebsite(
       serviceTags: parsed.serviceTags.filter(
         (t): t is string => typeof t === 'string' && t.length > 0
       ),
-      warnings: parsed.warnings.filter(
+      warnings: resultWarnings.filter(
         (w): w is string => typeof w === 'string' && w.length > 0
       ),
+      failureBucket: 'success',
+      citedTargetUrl,
     }
 
     console.log(
-      `[website-scraper] ${result.businessFacts.length} facts, ${result.extraQa.length} QA pairs, ${result.serviceTags.length} tags from ${url}`
+      `[website-scraper] bucket=success | ${result.businessFacts.length} facts, ${result.extraQa.length} QA, ${result.serviceTags.length} tags | citedTarget=${citedTargetUrl} | url=${url}`
     )
     return result
   } catch (err) {
-    console.error('[website-scraper] Unexpected error:', err)
-    return EMPTY_RESULT
+    console.error('[website-scraper] Unexpected error | bucket=timeout_or_crash:', err)
+    return fail('timeout')
   }
 }
