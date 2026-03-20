@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { embedText } from '@/lib/embeddings'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Verify the chunk exists and belongs to a client this user can manage
   const { data: chunk } = await svc
     .from('knowledge_chunks')
-    .select('id, client_id')
+    .select('id, client_id, content')
     .eq('id', chunkId)
     .single()
 
@@ -59,8 +60,13 @@ export async function POST(req: NextRequest) {
     if (trustTier && ['high', 'medium', 'low'].includes(trustTier)) {
       updates.trust_tier = trustTier
     }
-    if (typeof editedContent === 'string' && editedContent.trim()) {
+    if (typeof editedContent === 'string' && editedContent.trim() && editedContent.trim() !== chunk.content) {
       updates.content = editedContent.trim()
+      // Re-embed when content changes — stale embeddings break search
+      const newEmbedding = await embedText(editedContent.trim())
+      if (newEmbedding) {
+        updates.embedding = JSON.stringify(newEmbedding)
+      }
     }
   } else {
     updates.status = 'rejected'
