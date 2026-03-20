@@ -178,6 +178,7 @@ If callerContext includes RETURNING CALLER or CALLER NAME:
 
 SPECIAL INSTRUCTION TAGS
 If conversation history includes an <instruction> tag, follow it as your next action naturally without announcing it.
+When a tool response includes an "_instruction" field, follow it as your next action for that turn only.
 
 Non-negotiable: always call hangUp in the same turn as your closing line. Never wait.
 

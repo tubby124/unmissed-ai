@@ -98,3 +98,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9194 | **Hash:** 390a4d958e5d191c
 **Supabase version_id:** dd0cbd4c-564a-4197-a273-22c1f31cacc5
 **Ultravox revision:** baa0aa3f-f529-446c-a978-5bc17e6ab471
+
+## v19 — 2026-03-20 07:25 UTC
+**Change:** Pattern A: _instruction tool response guidance line
+**Chars:** 9299 | **Hash:** d013a921dbb85ca4
+**Supabase version_id:** ad51a9af-086e-4c97-8a71-38be320cb025
+**Ultravox revision:** ce570800-d3ba-40a9-8845-73f14dfc53ca

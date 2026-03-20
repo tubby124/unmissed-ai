@@ -63,3 +63,9 @@
 **Chars:** 9501 | **Hash:** 63dc89c0b68786e6
 **Supabase version_id:** 94e7ac46-6726-4049-b29c-70c3105c338a
 **Ultravox revision:** 1aa76beb-84a7-4869-8f00-2b062da9b71a
+
+## v13 — 2026-03-20 07:23 UTC
+**Change:** Pattern A: _instruction tool response guidance line
+**Chars:** 9606 | **Hash:** 68be815bf1122975
+**Supabase version_id:** eddf9ee8-4526-486b-bf91-0f98201ee042
+**Ultravox revision:** f4c70588-a186-4054-a327-6824343330db

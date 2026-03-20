@@ -27,3 +27,9 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 7676 | **Hash:** cfd34b5470169d10
 **Supabase version_id:** 8905202a-a0f5-47d7-8f37-0f99f8ba405a
 **Ultravox revision:** 4a18e1ee-84cc-42d3-820a-e71866e955b6
+
+## v6 — 2026-03-20 07:23 UTC
+**Change:** Pattern A: _instruction tool response guidance line
+**Chars:** 7783 | **Hash:** 1822fa4578dd8b45
+**Supabase version_id:** adaba2a2-055d-42a4-9f20-7728bffe548c
+**Ultravox revision:** 24a1b61a-0e2c-4124-9dba-01a937042b4b

@@ -334,6 +334,34 @@ def deploy(slug, change_description):
         selected_tools.append(knowledge_tool)
         print(f"  ✓ Knowledge tool injected (knowledge_backend=pgvector)")
 
+    # Coaching tool — always inject for all agents (enables live coaching dashboard)
+    coaching_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
+    coaching_tool = {
+        "temporaryTool": {
+            "modelToolName": "checkForCoaching",
+            "description": "Check if the manager has sent coaching guidance. Call this every 30 seconds during a live call. If coaching is available, smoothly incorporate it.",
+            "timeout": "10s",
+            "dynamicParameters": [
+                {
+                    "name": "ultravox_call_id",
+                    "location": "PARAMETER_LOCATION_BODY",
+                    "schema": {"type": "string", "description": "The current Ultravox call ID"},
+                    "required": True,
+                }
+            ],
+            "http": {
+                "baseUrlPattern": f"{APP_URL}/api/coaching/{slug}/check",
+                "httpMethod": "POST",
+            },
+        }
+    }
+    if coaching_secret:
+        coaching_tool["temporaryTool"]["staticParameters"] = [
+            {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": coaching_secret}
+        ]
+    selected_tools.append(coaching_tool)
+    print(f"  ✓ Coaching tool injected")
+
     # Voice priority chain:
     #   1. --voice CLI flag (highest — one-time override, also updates clients.agent_voice_id)
     #   2. clients.agent_voice_id from Supabase (authoritative — set via dashboard Voice tab)
@@ -495,6 +523,7 @@ def dry_run(slug):
         would_inject.append("sendTextMessage")
     if knowledge_backend == "pgvector":
         would_inject.append("queryKnowledge")
+    would_inject.append("checkForCoaching")
 
     # Voice drift check
     uv_voice = None
