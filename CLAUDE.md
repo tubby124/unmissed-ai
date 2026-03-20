@@ -33,7 +33,7 @@ If ambiguous: ask one clarifying question. Never assume scope on client-affectin
 ### Advanced features status (check before starting any Ultravox work):
 | Pattern | Status | Next step |
 |---------|--------|-----------|
-| A — Tool Response Instructions | **NOT DONE** | Add `_instruction` to book/slots routes + 1 prompt line |
+| A — Tool Response Instructions | **DONE** (Mar 20) | `_instruction` in book/slots/knowledge routes + prompt line on all 5 clients |
 | B — Deferred Messages | **NOT DONE** | Add priming line to all prompts first, then whisper route |
 | C — Tool State | **NOT DONE** | Only if booking retry tracking becomes a production problem |
 | D — Call Stages | **NOT DONE** | Only if monoprompt fails for a complex client |
