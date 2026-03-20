@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots } from '@/lib/google-calendar'
 import { parseCallState, setStateUpdate, slotInstruction } from '@/lib/call-state'
+import { requestedTimeMatchesSlot } from '@/lib/calendar-time'
 
 export async function GET(
   req: NextRequest,
@@ -73,10 +74,7 @@ export async function GET(
     const newAttempts = (callState?.slotAttempts ?? 0) + 1
     const coaching = callState ? slotInstruction({ ...callState, slotAttempts: newAttempts }, true) : ''
     // If the caller requested a specific time and it's the first result, confirm it directly
-    const requestedTimeMatches = time && slots.length > 0 && (
-      slots[0].displayTime.toLowerCase().includes(time.toLowerCase()) ||
-      slots[0].start.includes(time)
-    )
+    const requestedTimeMatches = requestedTimeMatchesSlot(time, slots[0])
     const baseInstruction = requestedTimeMatches
       ? `The caller's requested time is available. Confirm it directly and proceed to booking — do not offer other options.`
       : `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`
