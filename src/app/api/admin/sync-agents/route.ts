@@ -33,15 +33,14 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const targetSlug: string | undefined = body.slug
+  const force: boolean = body.force === true
 
   const supabase = createServiceClient()
 
   // Fetch active clients that have an Ultravox agent
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-
   let query = supabase
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, booking_enabled, ultravox_agent_id')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, booking_enabled, ultravox_agent_id, transfer_conditions, sms_enabled, knowledge_backend, corpus_id, corpus_enabled')
     .eq('status', 'active')
     .not('ultravox_agent_id', 'is', null)
 
@@ -78,41 +77,24 @@ export async function POST(req: NextRequest) {
       // Normalize: strip the {{callerContext}} suffix for comparison against Supabase source
       const normalizedAgentPrompt = agentPrompt.replace(/\n\n\{\{callerContext\}\}$/, '')
 
-      if (normalizedAgentPrompt === client.system_prompt) {
+      if (!force && normalizedAgentPrompt === client.system_prompt) {
         skipped.push(`${client.slug} (in sync)`)
         return
       }
 
-      // Drift detected — patch agent with Supabase version (full payload to avoid wiping callTemplate)
+      // Drift detected — patch agent with Supabase version (all flags → updateAgent handles tool construction)
       console.log(`[sync-agents] Drift detected for ${client.slug} — patching agent ${client.ultravox_agent_id}`)
-      const transferTool = {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
-          dynamicParameters: [
-            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
-          ],
-          automaticParameters: [
-            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
-      }
-      const tools = client.forwarding_number
-        ? [{ toolName: 'hangUp' }, transferTool]
-        : [{ toolName: 'hangUp' }]
       await updateAgent(client.ultravox_agent_id, {
         systemPrompt: client.system_prompt,
         ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        tools,
+        tools: [{ toolName: 'hangUp' }],
         booking_enabled: client.booking_enabled ?? false,
         slug: client.slug,
+        forwarding_number: (client.forwarding_number as string | null) || undefined,
+        transfer_conditions: (client.transfer_conditions as string | null) || undefined,
+        sms_enabled: client.sms_enabled ?? false,
+        knowledge_backend: (client.knowledge_backend as string | null) || undefined,
+        corpus_id: (client.corpus_id as string | null) || undefined,
       })
       synced.push(client.slug)
 

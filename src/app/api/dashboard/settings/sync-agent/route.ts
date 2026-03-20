@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled, transfer_conditions')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend, corpus_id, corpus_enabled')
     .eq('id', targetClientId)
     .single()
 
@@ -38,39 +38,19 @@ export async function POST(req: NextRequest) {
   if (!client.system_prompt) return NextResponse.json({ error: 'No system prompt to sync' }, { status: 422 })
 
   try {
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-    const transferConditions = client.transfer_conditions as string | null
-    const transferDescription = transferConditions
-      ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
-      : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
-    const transferTool = {
-      temporaryTool: {
-        modelToolName: 'transferCall',
-        description: transferDescription,
-        dynamicParameters: [
-          { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
-        ],
-        automaticParameters: [
-          { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
-        ],
-        staticParameters: [
-          { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-        ],
-        http: {
-          baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
-          httpMethod: 'POST',
-        },
-      },
-    }
-    const tools = client.forwarding_number
-      ? [{ toolName: 'hangUp' }, transferTool]
-      : [{ toolName: 'hangUp' }]
+    // Pass all flags to updateAgent() — it handles tool construction for calendar,
+    // transfer, SMS, knowledge, coaching, and hangUp tools centrally.
     await updateAgent(client.ultravox_agent_id, {
       systemPrompt: client.system_prompt,
       ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-      tools,
+      tools: [{ toolName: 'hangUp' }],
       booking_enabled: client.booking_enabled ?? false,
       slug: client.slug,
+      forwarding_number: (client.forwarding_number as string | null) || undefined,
+      transfer_conditions: (client.transfer_conditions as string | null) || undefined,
+      sms_enabled: client.sms_enabled ?? false,
+      knowledge_backend: (client.knowledge_backend as string | null) || undefined,
+      corpus_id: (client.corpus_id as string | null) || undefined,
     })
     console.log(`[sync-agent] Synced client=${targetClientId} agent=${client.ultravox_agent_id}`)
     return NextResponse.json({ ok: true, agent_id: client.ultravox_agent_id })
