@@ -110,3 +110,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9183 | **Hash:** bac8562a03d0cf82
 **Supabase version_id:** 877dfe6c-4661-49ed-bf37-b623fa263196
 **Ultravox revision:** 766c897a-8834-441b-9f67-68e6254f2a2e
+
+## v21 — 2026-03-20 08:03 UTC
+**Change:** Enable pgvector queryKnowledge tool — 34 chunks seeded
+**Chars:** 9183 | **Hash:** bac8562a03d0cf82
+**Supabase version_id:** 20b351dc-4acf-4bce-b834-d9b0115b0423
+**Ultravox revision:** c0d51670-b3e0-403a-9d56-8d1d3044cc02

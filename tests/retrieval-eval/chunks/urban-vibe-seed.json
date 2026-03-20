@@ -1,0 +1,172 @@
+[
+  {
+    "content": "Urban Vibe Properties manages residential rental properties in Calgary, Alberta. Located in the Northwest Calgary area (Bowness/Silver Springs).",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Property manager is Ray Kassam. Contact: (403) 605-7142, urbanvibe.ca@gmail.com.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Urban Vibe Properties manages apartments, condos, and houses in Calgary.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Office hours are Monday to Friday, 9 AM to 5 PM Alberta time (Mountain Time). Weekends are for emergency calls only.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Services include tenant maintenance request intake, rental viewing inquiry routing, billing/payment question routing, emergency triage, and general message taking.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Urban Vibe Properties is residential only. They do not manage commercial properties.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Under Alberta's Residential Tenancies Act, landlords must give 24 hours written notice before entering a unit.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "In Alberta, damage deposits are capped at one month's rent under the Residential Tenancies Act.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Tenants in Alberta cannot withhold rent. If repairs are needed, tenants must apply to RTDRS (Residential Tenancy Dispute Resolution Service).",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Winter in Calgary (October through March) means no-heat calls are highest urgency due to temperatures reaching minus 30 degrees Celsius.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Spring in Calgary (April through May) brings increased risk of basement flooding and sewer backup.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Immediate emergencies requiring 911 first: gas leak or smell of gas, electrical fire or sparks, burst pipe or active flooding, carbon monoxide alarm, break-in in progress, structural collapse risk.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "High-urgency issues where Ray calls back ASAP: no heat (especially October through March), no hot water (extended), sewer backup or sewage in unit, active water leak damaging property, broken exterior door or window (security risk), elevator out of service, pest infestation (bedbugs or rodents).",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Routine maintenance handled next business day: appliance malfunction, minor plumbing like dripping faucet or slow drain, lockout, noise complaint, parking dispute, broken interior fixtures, general upkeep questions.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Are you a robot or an AI?\nA: Yeah, I'm an AI assistant for Urban Vibe Properties. I can take a message or log a maintenance request for you.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What properties do you manage?\nA: We manage residential rentals in Calgary. Ray can call you back with current availability.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How do I report an emergency?\nA: Tell me your name, unit, and what's happening. I'll flag it as urgent and Ray will call you right back. If it's a gas leak, fire, or safety emergency, call 911 first.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How do I pay rent?\nA: I'll take your name and number and have Ray call you back with payment details.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Is there a unit available?\nA: Let me grab your info and have Ray call you back with current availability.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I do a viewing?\nA: Absolutely. What's your name and number? Ray will arrange a time.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you manage commercial properties?\nA: We're residential only. I can pass your info along if you need a referral.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: My landlord entered without notice. Is that allowed?\nA: I'll pass that along to Ray. Under Alberta law, landlords need to give 24 hours written notice. What's your name and number?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How do I break my lease?\nA: Ray can walk you through your options. What's your name and callback number?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Are pets allowed?\nA: Ray can go over the pet policy with you. Let me grab your name and number.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Is parking included?\nA: Ray will fill you in on all the details when he calls. What's your name and best number?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What utilities are included?\nA: Ray can walk you through what's included. Let me grab your contact info.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: I want to speak to the owner or manager.\nA: Ray is our property manager. He's tied up right now. Let me get your name and number so he can call you back.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What should I do if I smell gas in my unit?\nA: Leave the unit immediately and call 911 first. Then call us back and I'll flag it as urgent so Ray can follow up.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: My heat isn't working and it's really cold. What do I do?\nA: I'll flag that as urgent right away. What's your name, unit address, and callback number? Ray will call you back as soon as possible.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: There's water leaking from the ceiling.\nA: I'll flag that as urgent. Is it a lot of water or a slow drip? Either way, give me your name, unit, and number and I'll get Ray on it right away.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I sublet my unit?\nA: That depends on your lease terms. Let me grab your info and have Ray call you to discuss.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Prospect signals that indicate a rental inquiry: 'I saw your listing', 'on Kijiji', 'on Marketplace', 'is it still available', 'how much is rent', 'can I see it'. Route all prospects to Ray callback.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "For rental prospects, collect: what type of unit they're looking for (1-bed, 2-bed etc), their name, and callback number. Never ask for a unit address because they don't have one yet.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Never discuss property management fees, rent amounts, availability of specific units, pet policies, parking details, or utility inclusions. All listing-specific questions route to Ray callback.",
+    "chunk_type": "fact",
+    "source": "manual"
+  }
+]
