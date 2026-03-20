@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { updateAgent, createCorpus } from '@/lib/ultravox'
+import { updateAgent, createCorpus, buildCalendarTools, buildTransferTools, buildSmsTools, buildKnowledgeTools, buildCorpusTools, buildCoachingTool } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
@@ -190,6 +190,15 @@ export async function PATCH(req: NextRequest) {
     updates.corpus_enabled = body.corpus_enabled
   }
 
+  // A6 — knowledge_backend toggle (admin only): 'pgvector' | null
+  // Controls whether queryKnowledge tool is registered on the Ultravox agent.
+  if (cu.role === 'admin' && 'knowledge_backend' in body) {
+    const kb = body.knowledge_backend
+    if (kb === 'pgvector' || kb === null) {
+      updates.knowledge_backend = kb
+    }
+  }
+
   // B1 — Section edit: apply section marker replacement to current system_prompt
   if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {
     const { data: promptRow } = await supabase
@@ -302,57 +311,40 @@ export async function PATCH(req: NextRequest) {
     'booking_enabled' in updates ||
     'agent_voice_id' in updates ||
     'corpus_enabled' in updates ||
-    'corpus_id' in updates
+    'corpus_id' in updates ||
+    'knowledge_backend' in updates ||
+    'sms_enabled' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled, transfer_conditions')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled, transfer_conditions, sms_enabled, knowledge_backend')
       .eq('id', targetClientId)
       .single()
 
     if (clientRow?.ultravox_agent_id) {
-      // Use just-saved forwarding_number if it changed, otherwise use current DB value
+      // Resolve all flags: use just-saved value if changed, otherwise current DB value
       const fwdNumber = 'forwarding_number' in updates
         ? (updates.forwarding_number as string | null)
         : clientRow.forwarding_number
-
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
       const transferConditions = 'transfer_conditions' in updates
         ? (updates.transfer_conditions as string | null)
         : (clientRow.transfer_conditions as string | null)
-      const transferDescription = transferConditions
-        ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
-        : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
-      const transferTool = {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: transferDescription,
-          dynamicParameters: [
-            {
-              name: 'reason',
-              location: 'PARAMETER_LOCATION_BODY',
-              schema: { type: 'string', description: 'Reason for transfer' },
-              required: false,
-            },
-          ],
-          automaticParameters: [
-            {
-              name: 'call_id',
-              location: 'PARAMETER_LOCATION_BODY',
-              knownValue: 'KNOWN_PARAM_CALL_ID',
-            },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${clientRow.slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
-      }
-      const tools = fwdNumber ? [{ toolName: 'hangUp' }, transferTool] : [{ toolName: 'hangUp' }]
+      const smsEnabled = 'sms_enabled' in updates
+        ? (updates.sms_enabled as boolean)
+        : (clientRow.sms_enabled ?? false)
+      const knowledgeBackend = 'knowledge_backend' in updates
+        ? (updates.knowledge_backend as string | null)
+        : (clientRow.knowledge_backend as string | null)
+      const bookingEnabled = 'booking_enabled' in updates
+        ? (updates.booking_enabled as boolean)
+        : (clientRow.booking_enabled ?? false)
+      const corpusIdToSync = 'corpus_id' in updates
+        ? (updates.corpus_id as string | null)
+        : (clientRow.corpus_id as string | null)
+      const corpusEnabledToSync = 'corpus_enabled' in updates
+        ? (updates.corpus_enabled as boolean)
+        : (clientRow.corpus_enabled ?? false)
 
       try {
         const promptToSync = typeof updates.system_prompt === 'string'
@@ -361,25 +353,33 @@ export async function PATCH(req: NextRequest) {
         const voiceToSync = 'agent_voice_id' in updates
           ? (updates.agent_voice_id as string)
           : clientRow.agent_voice_id
-        const corpusIdToSync = 'corpus_id' in updates
-          ? (updates.corpus_id as string | null)
-          : (clientRow.corpus_id as string | null)
-        const corpusEnabledToSync = 'corpus_enabled' in updates
-          ? (updates.corpus_enabled as boolean)
-          : (clientRow.corpus_enabled ?? false)
+
+        // Let updateAgent() build the COMPLETE tool set from flags — never build tools manually here.
+        // This ensures Settings saves produce the same tool set as deploy_prompt.py.
         await updateAgent(clientRow.ultravox_agent_id, {
           systemPrompt: promptToSync,
           ...(voiceToSync ? { voice: voiceToSync } : {}),
-          tools,
-          booking_enabled: 'booking_enabled' in updates
-            ? (updates.booking_enabled as boolean)
-            : (clientRow.booking_enabled ?? false),
+          booking_enabled: bookingEnabled,
           slug: clientRow.slug,
           corpus_id: corpusEnabledToSync ? corpusIdToSync : null,
+          forwarding_number: fwdNumber || undefined,
+          sms_enabled: smsEnabled,
+          knowledge_backend: knowledgeBackend,
+          transfer_conditions: transferConditions,
         })
+
         // Keep clients.tools in sync for the createCall fallback path in the inbound route
-        await supabase.from('clients').update({ tools }).eq('id', targetClientId)
-        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber})`)
+        const slug = clientRow.slug
+        const syncTools: object[] = [
+          { toolName: 'hangUp' },
+          ...(bookingEnabled && slug ? buildCalendarTools(slug) : []),
+          ...(fwdNumber && slug ? buildTransferTools(slug, transferConditions) : []),
+          ...(smsEnabled && slug ? buildSmsTools(slug) : []),
+          ...(knowledgeBackend === 'pgvector' && slug ? buildKnowledgeTools(slug) : buildCorpusTools(corpusEnabledToSync ? corpusIdToSync : null)),
+          ...(slug ? [buildCoachingTool(slug)] : []),
+        ]
+        await supabase.from('clients').update({ tools: syncTools }).eq('id', targetClientId)
+        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber} sms=${smsEnabled} knowledge=${knowledgeBackend} booking=${bookingEnabled})`)
         ultravox_synced = true
 
         // Post-enable verification: when booking_enabled is toggled ON, verify calendar tools are registered

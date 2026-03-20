@@ -1,0 +1,291 @@
+{
+  "client": "windshield-hub",
+  "version": "1.0",
+  "created": "2026-03-19",
+  "source": "sonar-pro",
+  "description": "30 eval questions for windshield-hub pgvector RAG canary. Mix of summary-answerable, retrieval-required, no-answer, and adversarial.",
+  "questions": [
+    {
+      "id": "WH-01",
+      "question": "Hey, what are your hours this week?",
+      "expected_answer_theme": "Provide the shop's operating hours, including any variations for weekends or holidays.",
+      "category": "hours_contact",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-02",
+      "question": "Where exactly is Windshield Hub located in Calgary?",
+      "expected_answer_theme": "Give the full address and any parking or access details.",
+      "category": "coverage_area",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-03",
+      "question": "Do you guys do mobile service for windshield replacement?",
+      "expected_answer_theme": "Confirm if mobile service is offered and any areas or fees involved.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-04",
+      "question": "What kind of services do you offer besides just replacing windshields?",
+      "expected_answer_theme": "List main services like rock chip repair, side/rear glass replacement, etc.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-05",
+      "question": "How can I get a hold of you after hours?",
+      "expected_answer_theme": "Provide phone number, email, or emergency contact options.",
+      "category": "hours_contact",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-06",
+      "question": "Are you open on Sundays?",
+      "expected_answer_theme": "State if Sunday hours are available or refer to regular schedule.",
+      "category": "hours_contact",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-07",
+      "question": "Do you service the whole Calgary area?",
+      "expected_answer_theme": "Confirm coverage area including Calgary and surrounding regions.",
+      "category": "coverage_area",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-08",
+      "question": "Can you fix a small rock chip or do I need a full replacement?",
+      "expected_answer_theme": "Explain rock chip repair options and when replacement is needed.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-09",
+      "question": "What's your phone number again?",
+      "expected_answer_theme": "Repeat the main contact phone number.",
+      "category": "hours_contact",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-10",
+      "question": "Do you handle door glass or just windshields?",
+      "expected_answer_theme": "Confirm services include side and rear glass replacement.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "answer_from_summary"
+    },
+    {
+      "id": "WH-11",
+      "question": "For my 2022 Toyota Camry, do you need to recalibrate the ADAS after a windshield swap?",
+      "expected_answer_theme": "Explain if ADAS calibration is required for this vehicle model and if they offer it.",
+      "category": "vehicle_specific",
+      "difficulty": "hard",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-12",
+      "question": "How does the insurance claim process work with Intact Insurance at your shop?",
+      "expected_answer_theme": "Describe step-by-step process for filing claims with specific insurers like Intact.",
+      "category": "insurance",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-13",
+      "question": "What's the warranty on your windshield installations?",
+      "expected_answer_theme": "Detail warranty length, coverage for leaks, workmanship, and claim process.",
+      "category": "services",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-14",
+      "question": "Do you use OEM glass or aftermarket for my Ford F-150?",
+      "expected_answer_theme": "Specify glass types available for this vehicle and differences.",
+      "category": "vehicle_specific",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-15",
+      "question": "How much is the typical deductible for comprehensive glass claims in Alberta?",
+      "expected_answer_theme": "Note common deductible range of $100-$500 and advise checking policy.",
+      "category": "pricing",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-16",
+      "question": "Can you give me a price quote for replacing the back window on a Honda Civic?",
+      "expected_answer_theme": "Provide specific pricing based on vehicle and glass type.",
+      "category": "pricing",
+      "difficulty": "hard",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-17",
+      "question": "What's the exact process for Wawanesa Insurance claims here?",
+      "expected_answer_theme": "Outline specific steps or direct contacts for Wawanesa claims.",
+      "category": "insurance",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-18",
+      "question": "How long does ADAS calibration take after replacement?",
+      "expected_answer_theme": "Give time estimate and requirements for ADAS recalibration service.",
+      "category": "services",
+      "difficulty": "hard",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-19",
+      "question": "I'm in Edmonton, can you come replace my windshield?",
+      "expected_answer_theme": "Confirm if service extends outside Calgary area; likely no.",
+      "category": "coverage_area",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-20",
+      "question": "Hey, how much does it usually cost to fix a small rock chip on my windshield?",
+      "expected_answer_theme": "Provide estimated pricing range for rock chip repair, possibly mentioning factors like size or insurance.",
+      "category": "pricing",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-21",
+      "question": "About how long does it take to get a full windshield replacement done at your shop?",
+      "expected_answer_theme": "Explain typical time for replacement process, including installation and curing wait.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-22",
+      "question": "Do you guys take walk-ins for windshield repairs, or do I need to book an appointment first?",
+      "expected_answer_theme": "State policy on walk-ins vs. appointments, recommend calling ahead.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-23",
+      "question": "What's the difference between OEM and aftermarket glass? Is aftermarket just as good but cheaper?",
+      "expected_answer_theme": "Compare quality, price, and warranty of OEM vs. aftermarket glass options.",
+      "category": "vehicle_specific",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-24",
+      "question": "What if my new windshield starts leaking after installation? Do you fix it for free?",
+      "expected_answer_theme": "Describe warranty coverage for leaks, process to report and resolve issues.",
+      "category": "services",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "answer_from_retrieval"
+    },
+    {
+      "id": "WH-25",
+      "question": "Are you cheaper than Safelite for windshield replacement?",
+      "expected_answer_theme": "No specific comparison data available; shop does not disclose competitor pricing.",
+      "category": "competitor",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "no_answer_available"
+    },
+    {
+      "id": "WH-26",
+      "question": "Do you also install house windows or just car glass?",
+      "expected_answer_theme": "No, they specialize in auto glass only; no residential services offered.",
+      "category": "services",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": true,
+      "expected_result": "no_answer_available"
+    },
+    {
+      "id": "WH-27",
+      "question": "Do you work with SGI for my glass claim?",
+      "expected_answer_theme": "Correct that SGI is Saskatchewan; ask for Alberta insurer details.",
+      "category": "insurance",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": true,
+      "expected_result": "no_answer_available"
+    },
+    {
+      "id": "WH-28",
+      "question": "Can you tell me if my neighbor John Smith's car is ready yet?",
+      "expected_answer_theme": "Politely decline to share customer info due to privacy policy.",
+      "category": "edge_case",
+      "difficulty": "medium",
+      "should_use_retrieval_tool": false,
+      "expected_result": "adversarial_deflect"
+    },
+    {
+      "id": "WH-29",
+      "question": "My windshield's broke, fix it now please with magic.",
+      "expected_answer_theme": "Clarify services and ask for details; deflect nonsense and book properly.",
+      "category": "edge_case",
+      "difficulty": "easy",
+      "should_use_retrieval_tool": false,
+      "expected_result": "adversarial_deflect"
+    },
+    {
+      "id": "WH-30",
+      "question": "What's my VIN again? I think you have it on file.",
+      "expected_answer_theme": "Cannot provide personal info; ask caller to provide their own VIN details.",
+      "category": "edge_case",
+      "difficulty": "hard",
+      "should_use_retrieval_tool": false,
+      "expected_result": "adversarial_deflect"
+    }
+  ],
+  "distribution": {
+    "answer_from_summary": 10,
+    "answer_from_retrieval": 14,
+    "no_answer_available": 3,
+    "adversarial_deflect": 3
+  },
+  "pass_thresholds": {
+    "retrieval_hit_rate_min": 0.75,
+    "empty_result_rate_max": 0.15,
+    "unnecessary_tool_call_rate_max": 0.20,
+    "latency_p95_ms_max": 800
+  }
+}

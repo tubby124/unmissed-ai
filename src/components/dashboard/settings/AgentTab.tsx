@@ -177,6 +177,11 @@ export default function AgentTab({
   const [scrapeStatus, setScrapeStatus] = useState(client.website_scrape_status || 'idle')
   const [corpusStatus, setCorpusStatus] = useState(client.ultravox_corpus_status || 'idle')
   const [websiteKnowledgeCollapsed, setWebsiteKnowledgeCollapsed] = useState(true)
+
+  // ─── RAG toggle state (admin only) ──────────────────────────────────────
+  const [ragEnabled, setRagEnabled] = useState(client.knowledge_backend === 'pgvector')
+  const [ragSaving, setRagSaving] = useState(false)
+  const [ragSaved, setRagSaved] = useState(false)
   const [scrapeFailureBucket, setScrapeFailureBucket] = useState<string | null>(null)
   const [scrapeStats, setScrapeStats] = useState<{ preFilterFacts: number; postFilterFacts: number; preFilterQa: number; postFilterQa: number; removedFacts: number; removedQa: number } | null>(null)
   const [scrapeCitedTarget, setScrapeCitedTarget] = useState<boolean | null>(null)
@@ -1414,10 +1419,10 @@ export default function AgentTab({
                             Books appointments on your Google Calendar
                           </li>
                         )}
-                        {client.corpus_enabled && (
+                        {(client.corpus_enabled || client.knowledge_backend === 'pgvector') && (
                           <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
                             <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
-                            Looks up answers from your uploaded documents
+                            {client.knowledge_backend === 'pgvector' ? 'Searches your knowledge base for detailed answers' : 'Looks up answers from your uploaded documents'}
                           </li>
                         )}
                         {client.context_data && (
@@ -1448,6 +1453,70 @@ export default function AgentTab({
           transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.01 }}
         >
           <CapabilitiesCard client={client} />
+        </motion.div>
+      )}
+
+      {/* 5b-pre — RAG Knowledge Toggle (admin only) */}
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.014 }}
+        >
+          <div className="rounded-2xl border b-theme bg-surface p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Knowledge Retrieval (RAG)</p>
+                <p className="text-[11px] t3 mt-0.5">
+                  {ragEnabled
+                    ? 'Agent searches pgvector knowledge base for detailed answers during calls'
+                    : 'Enable to let the agent search embedded knowledge chunks via pgvector'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {ragSaved && <span className="text-[10px] text-green-400">Synced</span>}
+                <button
+                  onClick={async () => {
+                    const newVal = !ragEnabled
+                    setRagSaving(true)
+                    setRagSaved(false)
+                    try {
+                      const res = await fetch('/api/dashboard/settings', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          client_id: client.id,
+                          knowledge_backend: newVal ? 'pgvector' : null,
+                        }),
+                      })
+                      if (!res.ok) throw new Error('Failed to save')
+                      setRagEnabled(newVal)
+                      setRagSaved(true)
+                      setTimeout(() => setRagSaved(false), 3000)
+                    } catch {
+                      // revert on failure
+                    } finally {
+                      setRagSaving(false)
+                    }
+                  }}
+                  disabled={ragSaving || previewMode}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    ragEnabled ? 'bg-blue-500' : 'bg-zinc-700'
+                  } ${ragSaving ? 'opacity-50' : ''}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                    ragEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+            </div>
+            {ragEnabled && (
+              <p className="text-[10px] t3 mt-2 px-1">
+                Backend: <span className="font-mono text-blue-400">pgvector</span> — queryKnowledge tool registered on Ultravox agent.
+                Chunks embedded in <span className="font-mono">knowledge_chunks</span> table.
+              </p>
+            )}
+          </div>
         </motion.div>
       )}
 

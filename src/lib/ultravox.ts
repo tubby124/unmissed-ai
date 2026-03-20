@@ -253,6 +253,8 @@ interface AgentConfig {
   sms_enabled?: boolean
   /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, 'ultravox' = queryCorpus, null = none. */
   knowledge_backend?: string | null
+  /** Text describing when the agent should transfer (used in transferCall tool description). */
+  transfer_conditions?: string | null
 }
 
 /**
@@ -421,7 +423,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled, knowledge_backend }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled, knowledge_backend, transfer_conditions }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -448,7 +450,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
   const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
-  const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug) : []
+  const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug, transfer_conditions) : []
   const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
   // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
   const knowledgeTools: object[] =
@@ -519,7 +521,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
   const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
-  const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug) : []
+  const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug, updates.transfer_conditions) : []
   const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
   // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
   const knowledgeTools: object[] =
