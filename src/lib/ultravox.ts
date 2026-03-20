@@ -567,12 +567,14 @@ interface CallViaAgentOptions {
   initialMessages?: Array<{ role: string; text: string; medium: string }>
   /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
   initialState?: Record<string, unknown>
+  /** Override agent's stored tools — needed to inject X-Tool-Secret at call time. */
+  overrideTools?: object[]
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, initialState }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, initialState, overrideTools }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -592,6 +594,7 @@ export async function callViaAgent(
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   if (initialMessages?.length) body.initialMessages = initialMessages
   if (initialState) body.initialState = initialState
+  if (overrideTools?.length) body.selectedTools = overrideTools
   // languageHint is NOT supported in StartAgentCallRequest — agents API rejects it with 400
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {

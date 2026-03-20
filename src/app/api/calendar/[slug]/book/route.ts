@@ -143,7 +143,8 @@ export async function POST(
       calendarUrl: event.htmlLink || null,
       _instruction: `Booked for ${date} at ${matchedSlot.displayTime}. Confirm the date and time back to the caller and ask if there's anything else.`,
     })
-    response.headers.set('X-Ultravox-Agent-Reaction', 'speaks-once')
+    // Force agent to speak immediately after booking — confirms back to caller
+    response.headers.set('X-Ultravox-Agent-Reaction', 'speaks')
     if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
     return response
   } catch (err) {

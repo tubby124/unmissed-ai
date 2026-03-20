@@ -198,6 +198,7 @@ export async function POST(
           callbackUrl: signedCallbackUrl,
           metadata: callMeta,
           initialState: callState as unknown as Record<string, unknown>,
+          overrideTools: tools,
           ...(callerContextRaw   ? { callerContext: callerContextRaw }          : {}),
           ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr }         : {}),
           ...(contextDataStr   ? { contextData: contextDataStr }              : {}),
