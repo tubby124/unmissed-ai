@@ -194,3 +194,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 6553 | **Hash:** fe8b9278a54f8d63
 **Supabase version_id:** 22a5933e-e649-4235-a477-100073065343
 **Ultravox revision:** a42faa5a-48a0-43e2-a937-7340318669c6
+
+## v47 — 2026-03-20 16:33 UTC
+**Change:** v46: strengthen queryKnowledge trigger + booking defaultReaction speaks + Manzil quick response
+**Chars:** 6860 | **Hash:** 4d56d9b03ae93d72
+**Supabase version_id:** 8e227deb-cadf-4469-8688-aab8c0ef21f7
+**Ultravox revision:** 67db114e-8a26-4a72-a77b-e38fcc8d1230
