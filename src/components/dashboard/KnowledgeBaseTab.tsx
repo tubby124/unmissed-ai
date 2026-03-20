@@ -1,205 +1,69 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import ChunkBrowser from './knowledge/ChunkBrowser'
 import PendingSuggestions from './knowledge/PendingSuggestions'
 
 interface KnowledgeBaseTabProps {
   clientId: string
+  clientSlug: string
   isAdmin: boolean
   previewMode?: boolean
-  corpusEnabled?: boolean
-  corpusId?: string | null
+  knowledgeEnabled: boolean
   onToggleEnabled?: (enabled: boolean) => Promise<void>
-}
-
-interface CorpusDoc {
-  docId: string
-  documentId: string
-  name: string
-  size: number
-  status: 'processing' | 'ready' | 'failed' | 'local_only'
-  createdAt: string
+  websiteUrl?: string
 }
 
 interface TestResult {
-  text: string
-  score: number
-  documentId: string
-  documentName?: string
+  content: string
+  chunk_type: string
+  source: string
+  similarity: number
+  rrf_score: number
+  trust_tier: string
 }
 
-const ACCEPTED_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'text/markdown',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/epub+zip',
-]
-
-const ACCEPTED_EXTENSIONS = '.pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.epub'
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function StatusBadge({ status }: { status: CorpusDoc['status'] }) {
-  const config = {
-    processing: { bg: 'bg-amber-500/15', text: 'text-amber-400', label: 'Processing' },
-    ready: { bg: 'bg-green-500/15', text: 'text-green-400', label: 'Ready' },
-    failed: { bg: 'bg-red-500/15', text: 'text-red-400', label: 'Failed' },
-    local_only: { bg: 'bg-zinc-500/15', text: 'text-zinc-400', label: 'Local Only' },
-  }
-  const c = config[status] ?? config.local_only
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${c.bg} ${c.text}`}>
-      {status === 'processing' && (
-        <svg className="animate-spin -ml-0.5 mr-1.5 h-3 w-3" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      )}
-      {c.label}
-    </span>
-  )
-}
-
-export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpusEnabled = true, corpusId, onToggleEnabled }: KnowledgeBaseTabProps) {
-  const [docs, setDocs] = useState<CorpusDoc[]>([])
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [dragOver, setDragOver] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Test query state (admin only)
+export default function KnowledgeBaseTab({
+  clientId,
+  clientSlug,
+  isAdmin,
+  previewMode,
+  knowledgeEnabled,
+  onToggleEnabled,
+  websiteUrl: initialWebsiteUrl,
+}: KnowledgeBaseTabProps) {
+  // Test query state
   const [testQuery, setTestQuery] = useState('')
   const [testLoading, setTestLoading] = useState(false)
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
   const [testError, setTestError] = useState('')
   const [togglingEnabled, setTogglingEnabled] = useState(false)
 
-  const fetchDocs = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/dashboard/corpus?clientId=${clientId}`)
-      if (!res.ok) throw new Error('Failed to load documents')
-      const data = await res.json()
-      setDocs(data.documents ?? [])
-    } catch {
-      setDocs([])
-    } finally {
-      setLoading(false)
-    }
-  }, [clientId])
+  // Add chunk state
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addContent, setAddContent] = useState('')
+  const [addType, setAddType] = useState<'fact' | 'qa' | 'manual'>('manual')
+  const [addTier, setAddTier] = useState<'high' | 'medium' | 'low'>('medium')
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState('')
+  const [addSuccess, setAddSuccess] = useState('')
 
-  useEffect(() => {
-    fetchDocs()
-  }, [fetchDocs])
+  // Website scrape state
+  const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl || '')
+  const [scrapeLoading, setScrapeLoading] = useState(false)
+  const [scrapeError, setScrapeError] = useState('')
+  const [scrapePreview, setScrapePreview] = useState<{
+    businessFacts?: string[]
+    extraQa?: { q: string; a: string }[]
+    serviceTags?: string[]
+    warnings?: string[]
+  } | null>(null)
+  const [scrapeStatus, setScrapeStatus] = useState<string>('idle')
+  const [approveLoading, setApproveLoading] = useState(false)
 
-  // Poll for processing docs
-  useEffect(() => {
-    const hasProcessing = docs.some(d => d.status === 'processing')
-    if (!hasProcessing) return
-    const interval = setInterval(fetchDocs, 5000)
-    return () => clearInterval(interval)
-  }, [docs, fetchDocs])
-
-  async function handleUpload(file: File) {
-    setUploadError('')
-
-    if (file.size > MAX_FILE_SIZE) {
-      setUploadError(`File too large. Maximum size is 10MB (got ${formatFileSize(file.size)}).`)
-      return
-    }
-
-    if (!ACCEPTED_TYPES.includes(file.type) && !ACCEPTED_EXTENSIONS.split(',').some(ext => file.name.toLowerCase().endsWith(ext))) {
-      setUploadError('Unsupported file type. Accepted: PDF, DOC, DOCX, TXT, MD, PPT, PPTX, EPUB.')
-      return
-    }
-
-    setUploading(true)
-    try {
-      // Step 1: Get presigned upload URL
-      const initRes = await fetch('/api/dashboard/corpus/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          filename: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          fileSize: file.size,
-        }),
-      })
-      if (!initRes.ok) {
-        const err = await initRes.json().catch(() => ({ error: 'Upload failed' }))
-        throw new Error(err.error ?? 'Failed to initiate upload')
-      }
-      const { uploadUrl, documentId, docId } = await initRes.json()
-
-      // Step 2: PUT file to presigned URL
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      })
-      if (!putRes.ok) throw new Error('Failed to upload file to storage')
-
-      // Step 3: Confirm upload
-      const confirmRes = await fetch('/api/dashboard/corpus/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, docId, documentId }),
-      })
-      if (!confirmRes.ok) {
-        const err = await confirmRes.json().catch(() => ({ error: 'Confirmation failed' }))
-        throw new Error(err.error ?? 'Failed to confirm upload')
-      }
-
-      // Step 4: Refresh list
-      await fetchDocs()
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleUpload(file)
-  }
-
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) handleUpload(file)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  async function handleDelete(docId: string) {
-    setDeleting(docId)
-    try {
-      const res = await fetch(`/api/dashboard/corpus/${docId}?clientId=${clientId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) throw new Error('Delete failed')
-      setDocs(prev => prev.filter(d => d.docId !== docId))
-      setDeleteConfirm(null)
-    } catch {
-      setUploadError('Failed to delete document')
-    } finally {
-      setDeleting(null)
-    }
-  }
+  // Refresh trigger for child components
+  const [refreshKey, setRefreshKey] = useState(0)
+  const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
   async function handleTestQuery() {
     if (!testQuery.trim()) return
@@ -207,10 +71,10 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpu
     setTestError('')
     setTestResults(null)
     try {
-      const res = await fetch('/api/dashboard/corpus/test', {
+      const res = await fetch('/api/dashboard/knowledge/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, query: testQuery.trim() }),
+        body: JSON.stringify({ client_id: clientId, query: testQuery.trim() }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Test query failed' }))
@@ -228,9 +92,86 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpu
   async function handleToggleEnabled() {
     if (!onToggleEnabled) return
     setTogglingEnabled(true)
-    await onToggleEnabled(!corpusEnabled)
+    await onToggleEnabled(!knowledgeEnabled)
     setTogglingEnabled(false)
-    if (!corpusEnabled) fetchDocs()
+  }
+
+  async function handleAddChunk() {
+    if (!addContent.trim()) return
+    setAddLoading(true)
+    setAddError('')
+    setAddSuccess('')
+    try {
+      const res = await fetch('/api/dashboard/knowledge/chunks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          content: addContent.trim(),
+          chunk_type: addType,
+          trust_tier: addTier,
+          auto_approve: isAdmin,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Failed to add' }))
+        throw new Error(err.error ?? 'Failed to add chunk')
+      }
+      const data = await res.json()
+      setAddContent('')
+      setAddSuccess(data.chunk?.status === 'approved' ? 'Added and approved' : 'Added as pending — needs approval')
+      setTimeout(() => setAddSuccess(''), 4000)
+      setShowAddForm(false)
+      triggerRefresh()
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add chunk')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  async function handleScrape() {
+    if (!websiteUrl.trim()) return
+    setScrapeLoading(true)
+    setScrapeError('')
+    setScrapePreview(null)
+    setScrapeStatus('scraping')
+    try {
+      const res = await fetch('/api/dashboard/scrape-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, url: websiteUrl.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Scrape failed')
+      setScrapePreview(data.preview)
+      setScrapeStatus(data.status)
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : 'Scrape failed')
+      setScrapeStatus('failed')
+    } finally {
+      setScrapeLoading(false)
+    }
+  }
+
+  async function handleApproveWebsiteKnowledge() {
+    setApproveLoading(true)
+    setScrapeError('')
+    try {
+      const res = await fetch('/api/dashboard/approve-website-knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, auto_approve: isAdmin }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Approval failed')
+      setScrapeStatus('approved')
+      triggerRefresh()
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : 'Approval failed')
+    } finally {
+      setApproveLoading(false)
+    }
   }
 
   return (
@@ -240,266 +181,314 @@ export default function KnowledgeBaseTab({ clientId, isAdmin, previewMode, corpu
         <div>
           <h3 className="text-sm font-semibold t1">Knowledge Base</h3>
           <p className="text-xs t3 mt-1">
-            Upload business documents so your agent can answer detailed questions during calls
+            Your agent searches this knowledge base to answer detailed questions during calls.
           </p>
         </div>
-        {onToggleEnabled && (
+        {isAdmin && onToggleEnabled && (
           <button
             onClick={handleToggleEnabled}
             disabled={togglingEnabled || previewMode}
             className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              corpusEnabled
+              knowledgeEnabled
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
                 : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20'
             } disabled:opacity-40`}
           >
-            {togglingEnabled ? '…' : corpusEnabled ? '✓ Enabled' : 'Enable'}
+            {togglingEnabled ? '...' : knowledgeEnabled ? 'Enabled' : 'Enable'}
           </button>
         )}
       </div>
 
       {/* Disabled state */}
-      {!corpusEnabled && (
+      {!knowledgeEnabled && (
         <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-6 text-center space-y-3">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto text-zinc-600">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <div>
             <p className="text-sm font-medium t2">Knowledge base not enabled</p>
-            <p className="text-xs t3 mt-1">Enable the knowledge base to upload documents your agent can reference during calls</p>
+            <p className="text-xs t3 mt-1">Enable the knowledge base to let your agent answer detailed questions from embedded knowledge chunks.</p>
           </div>
-          {onToggleEnabled && (
+          {isAdmin && onToggleEnabled && (
             <button
               onClick={handleToggleEnabled}
               disabled={togglingEnabled || previewMode}
               className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40"
             >
-              {togglingEnabled ? 'Enabling…' : 'Enable Knowledge Base'}
+              {togglingEnabled ? 'Enabling...' : 'Enable Knowledge Base'}
             </button>
           )}
         </div>
       )}
 
-      {/* Only show the rest when enabled */}
-      {corpusEnabled && (<>
-
-      {/* Upload Area */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => !uploading && !previewMode && fileInputRef.current?.click()}
-        className={`relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
-          dragOver
-            ? 'border-blue-400 bg-blue-500/5'
-            : 'border-zinc-700 hover:border-zinc-500 bg-transparent'
-        } ${uploading || previewMode ? 'opacity-50 pointer-events-none' : ''}`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_EXTENSIONS}
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        <div className="flex flex-col items-center gap-3">
-          {uploading ? (
-            <svg className="animate-spin h-8 w-8 text-blue-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="t3">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
-          <div>
-            <p className="text-sm t2 font-medium">
-              {uploading ? 'Uploading...' : 'Drop a file here or click to browse'}
-            </p>
-            <p className="text-xs t3 mt-1">
-              PDF, DOC, DOCX, TXT, MD, PPT, PPTX, EPUB &mdash; max 10MB
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {uploadError && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/25 px-4 py-2 text-xs text-red-400 flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          {uploadError}
-          <button onClick={() => setUploadError('')} className="ml-auto text-red-400 hover:text-red-300">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-      )}
-
-      {/* File List */}
-      <div className="rounded-xl border b-theme overflow-hidden">
-        <div className="px-4 py-3 border-b b-theme">
-          <p className="text-xs font-semibold t2">
-            Documents {!loading && `(${docs.length})`}
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="p-8 text-center">
-            <svg className="animate-spin h-5 w-5 mx-auto text-zinc-500" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <p className="text-xs t3 mt-2">Loading documents...</p>
-          </div>
-        ) : docs.length === 0 ? (
-          <div className="p-8 text-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2 text-zinc-600">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-xs t3">
-              No documents uploaded yet. Upload your menu, price list, FAQ sheet, or policies.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-zinc-800">
-            {/* Table header */}
-            <div className="grid grid-cols-[1fr_80px_100px_60px] gap-3 px-4 py-2 text-[10px] font-semibold tracking-[0.15em] uppercase t3">
-              <span>Name</span>
-              <span>Size</span>
-              <span>Status</span>
-              <span></span>
+      {/* Only show when enabled */}
+      {knowledgeEnabled && (
+        <>
+          {/* Add Knowledge + Website Scrape section */}
+          <div className="rounded-xl border b-theme overflow-hidden">
+            <div className="px-4 py-3 border-b b-theme flex items-center justify-between">
+              <p className="text-xs font-semibold t2">Add Knowledge</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setShowAddForm(v => !v); setScrapeStatus('idle'); setScrapePreview(null) }}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                    showAddForm
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                  }`}
+                >
+                  Manual Entry
+                </button>
+              </div>
             </div>
-            {docs.map(doc => (
-              <div key={doc.docId} className="grid grid-cols-[1fr_80px_100px_60px] gap-3 px-4 py-3 items-center hover:bg-zinc-800/30 transition-colors">
-                <div className="flex items-center gap-2 min-w-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 t3">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span className="text-xs t1 truncate">{doc.name}</span>
-                </div>
-                <span className="text-xs t3 font-mono">{formatFileSize(doc.size)}</span>
-                <StatusBadge status={doc.status} />
-                <div className="flex justify-end">
-                  {deleteConfirm === doc.docId ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleDelete(doc.docId)}
-                        disabled={deleting === doc.docId}
-                        className="text-[10px] font-medium text-red-400 hover:text-red-300 disabled:opacity-50"
+
+            <div className="p-4 space-y-4">
+              {/* Manual entry form */}
+              {showAddForm && (
+                <div className="space-y-3">
+                  <textarea
+                    value={addContent}
+                    onChange={e => setAddContent(e.target.value)}
+                    rows={3}
+                    placeholder="Type a fact, Q&A pair, or any knowledge your agent should know..."
+                    className="w-full bg-transparent border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/50 resize-y"
+                    maxLength={5000}
+                  />
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[10px] t3 font-medium">Type:</label>
+                      <select
+                        value={addType}
+                        onChange={e => setAddType(e.target.value as 'fact' | 'qa' | 'manual')}
+                        className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
                       >
-                        {deleting === doc.docId ? '...' : 'Yes'}
-                      </button>
-                      <span className="text-zinc-600">/</span>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="text-[10px] font-medium t3 hover:t1"
+                        <option value="manual">General</option>
+                        <option value="fact">Fact</option>
+                        <option value="qa">Q&A</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[10px] t3 font-medium">Trust:</label>
+                      <select
+                        value={addTier}
+                        onChange={e => setAddTier(e.target.value as 'high' | 'medium' | 'low')}
+                        className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
                       >
-                        No
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-[10px] t3">{addContent.length}/5000</span>
+                      <button
+                        onClick={handleAddChunk}
+                        disabled={addLoading || !addContent.trim() || previewMode}
+                        className="px-4 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
+                      >
+                        {addLoading ? 'Adding...' : 'Add'}
                       </button>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(doc.docId)}
-                      className="p-1 rounded hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors"
-                      title="Delete document"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                  </div>
+                  {addError && (
+                    <p className="text-[11px] text-red-400">{addError}</p>
+                  )}
+                  {addSuccess && (
+                    <p className="text-[11px] text-green-400">{addSuccess}</p>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
 
-      {/* Test Query (admin only) */}
-      {isAdmin && (
-        <div className="rounded-xl border b-theme overflow-hidden">
-          <div className="px-4 py-3 border-b b-theme flex items-center gap-2">
-            <p className="text-xs font-semibold t2">Test Query</p>
-            <span className="text-[9px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Admin</span>
-          </div>
-          <div className="p-4 space-y-3">
-            <p className="text-xs t3">
-              Test how the knowledge base responds to a question. Results show matched content with relevance scores.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={testQuery}
-                onChange={e => setTestQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleTestQuery()}
-                placeholder="Ask a question about uploaded documents..."
-                className="flex-1 bg-transparent border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/50"
-              />
-              <button
-                onClick={handleTestQuery}
-                disabled={testLoading || !testQuery.trim() || previewMode}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-              >
-                {testLoading ? (
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : 'Test Query'}
-              </button>
-            </div>
+              {/* Website scrape section */}
+              {!showAddForm && (
+                <div className="space-y-3">
+                  <p className="text-xs t3">
+                    Scrape a website to extract business facts and Q&A. Extracted content goes to pending review before your agent can use it.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={websiteUrl}
+                      onChange={e => setWebsiteUrl(e.target.value)}
+                      placeholder="https://yourbusiness.com"
+                      className="flex-1 bg-transparent border b-theme rounded-lg px-3 py-2 text-sm t1 font-mono placeholder:t3 focus:outline-none focus:border-blue-500/50"
+                    />
+                    <button
+                      onClick={handleScrape}
+                      disabled={scrapeLoading || !websiteUrl.trim() || previewMode}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition-colors shrink-0"
+                    >
+                      {scrapeLoading ? (
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : 'Scrape Website'}
+                    </button>
+                  </div>
 
-            {testError && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-xs text-red-400">
-                {testError}
-              </div>
-            )}
-
-            {testResults !== null && (
-              <div className="space-y-2">
-                {testResults.length === 0 ? (
-                  <p className="text-xs t3 py-2">No matching results found.</p>
-                ) : (
-                  testResults.map((result, i) => (
-                    <div key={i} className="rounded-lg border b-theme p-3 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-medium t3 truncate">
-                          {result.documentName ?? result.documentId}
-                        </span>
-                        <span className={`text-[10px] font-mono shrink-0 ${
-                          result.score >= 0.7 ? 'text-green-400' : result.score >= 0.4 ? 'text-amber-400' : 'text-zinc-500'
-                        }`}>
-                          {(result.score * 100).toFixed(0)}% match
-                        </span>
-                      </div>
-                      <p className="text-xs t2 leading-relaxed whitespace-pre-wrap">{result.text}</p>
+                  {scrapeError && (
+                    <div className="rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-xs text-red-400">
+                      {scrapeError}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
+                  )}
+
+                  {/* Scrape preview */}
+                  {scrapeStatus === 'extracted' && scrapePreview && (
+                    <div className="space-y-3 rounded-lg border b-theme p-3">
+                      <p className="text-[10px] font-semibold t3 uppercase tracking-wider">Extracted Preview</p>
+
+                      {scrapePreview.businessFacts && scrapePreview.businessFacts.length > 0 && (
+                        <div>
+                          <p className="text-[10px] t3 mb-1 font-medium">{scrapePreview.businessFacts.length} Facts</p>
+                          <ul className="space-y-0.5">
+                            {scrapePreview.businessFacts.slice(0, 8).map((fact, i) => (
+                              <li key={i} className="text-[11px] t2 leading-relaxed flex items-start gap-1.5">
+                                <span className="text-blue-400 mt-0.5 shrink-0">&#8226;</span>
+                                {fact}
+                              </li>
+                            ))}
+                            {scrapePreview.businessFacts.length > 8 && (
+                              <li className="text-[10px] t3">+{scrapePreview.businessFacts.length - 8} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      {scrapePreview.extraQa && scrapePreview.extraQa.length > 0 && (
+                        <div>
+                          <p className="text-[10px] t3 mb-1 font-medium">{scrapePreview.extraQa.length} Q&A Pairs</p>
+                          <div className="space-y-1.5">
+                            {scrapePreview.extraQa.slice(0, 5).map((qa, i) => (
+                              <div key={i} className="rounded-lg bg-black/10 border b-theme p-2">
+                                <p className="text-[11px] t1 font-medium">Q: {qa.q}</p>
+                                <p className="text-[11px] t2 mt-0.5">A: {qa.a}</p>
+                              </div>
+                            ))}
+                            {scrapePreview.extraQa.length > 5 && (
+                              <p className="text-[10px] t3">+{scrapePreview.extraQa.length - 5} more</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {scrapePreview.warnings && scrapePreview.warnings.length > 0 && (
+                        <div className="space-y-1">
+                          {scrapePreview.warnings.map((w, i) => (
+                            <p key={i} className="text-[10px] text-amber-400/80">{w}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleApproveWebsiteKnowledge}
+                        disabled={approveLoading || previewMode}
+                        className="w-full px-4 py-2.5 text-xs font-semibold rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-40"
+                      >
+                        {approveLoading ? 'Processing...' : isAdmin ? 'Approve & Add to Knowledge Base' : 'Submit for Review'}
+                      </button>
+                    </div>
+                  )}
+
+                  {scrapeStatus === 'approved' && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/[0.07] border border-green-500/20">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-[11px] text-green-400/90">
+                        Website knowledge added to the knowledge base. {isAdmin ? 'Chunks auto-approved.' : 'Chunks pending review.'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      {/* Knowledge Review — pgvector chunk browser + pending suggestions */}
-      {process.env.NEXT_PUBLIC_SHOW_KNOWLEDGE_REVIEW !== 'false' && (
-        <>
-          <PendingSuggestions clientId={clientId} />
-          <ChunkBrowser clientId={clientId} isAdmin={isAdmin} />
+
+          {/* Test Query */}
+          <div className="rounded-xl border b-theme overflow-hidden">
+            <div className="px-4 py-3 border-b b-theme flex items-center gap-2">
+              <p className="text-xs font-semibold t2">Test Query</p>
+              <span className="text-[9px] font-bold tracking-wider uppercase bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">pgvector</span>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-xs t3">
+                Ask a question to see what your agent would find in the knowledge base. Only approved chunks are searched.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={testQuery}
+                  onChange={e => setTestQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleTestQuery()}
+                  placeholder="e.g. What areas do you cover?"
+                  className="flex-1 bg-transparent border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/50"
+                />
+                <button
+                  onClick={handleTestQuery}
+                  disabled={testLoading || !testQuery.trim() || previewMode}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  {testLoading ? (
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : 'Search'}
+                </button>
+              </div>
+
+              {testError && (
+                <div className="rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-xs text-red-400">
+                  {testError}
+                </div>
+              )}
+
+              {testResults !== null && (
+                <div className="space-y-2">
+                  {testResults.length === 0 ? (
+                    <p className="text-xs t3 py-2">No matching chunks found. The agent would say it's not sure and offer to follow up.</p>
+                  ) : (
+                    <>
+                      <p className="text-[10px] t3">{testResults.length} chunk{testResults.length !== 1 ? 's' : ''} matched</p>
+                      {testResults.map((result, i) => (
+                        <div key={i} className="rounded-lg border b-theme p-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                result.trust_tier === 'high' ? 'bg-green-400/10 text-green-400'
+                                  : result.trust_tier === 'low' ? 'bg-red-400/10 text-red-400'
+                                  : 'bg-amber-400/10 text-amber-400'
+                              }`}>
+                                {result.trust_tier}
+                              </span>
+                              <span className="text-[10px] font-medium t3 truncate">{result.source}</span>
+                            </div>
+                            <span className={`text-[10px] font-mono shrink-0 ${
+                              result.similarity >= 0.7 ? 'text-green-400' : result.similarity >= 0.4 ? 'text-amber-400' : 'text-zinc-500'
+                            }`}>
+                              {(result.similarity * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <p className="text-xs t2 leading-relaxed whitespace-pre-wrap">{result.content}</p>
+                          <div className="flex items-center gap-3 text-[10px] t3">
+                            <span>type: {result.chunk_type}</span>
+                            <span>rrf: {result.rrf_score.toFixed(4)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pending suggestions + Chunk browser */}
+          <PendingSuggestions clientId={clientId} key={`pending-${refreshKey}`} />
+          <ChunkBrowser clientId={clientId} isAdmin={isAdmin} key={`browser-${refreshKey}`} />
         </>
       )}
-      </>)}
     </div>
   )
 }

@@ -108,8 +108,8 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const [voiceStylePreset, setVoiceStylePreset] = useState<Record<string, string>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.voice_style_preset ?? 'casual_friendly']))
   )
-  const [corpusEnabled, setCorpusEnabled] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.corpus_enabled ?? false]))
+  const [knowledgeEnabled, setKnowledgeEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(clients.map(c => [c.id, c.knowledge_backend === 'pgvector']))
   )
 
   // ─── Tab & UI state ──────────────────────────────────────────────────────────
@@ -384,13 +384,16 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         >
           <KnowledgeBaseTab
             clientId={client.id}
+            clientSlug={client.slug}
             isAdmin={isAdmin}
             previewMode={previewMode}
-            corpusEnabled={corpusEnabled[client.id] ?? false}
-            corpusId={client.corpus_id}
+            knowledgeEnabled={knowledgeEnabled[client.id] ?? false}
+            websiteUrl={client.website_url ?? ''}
             onToggleEnabled={async (enabled) => {
               if (previewMode) return
-              const body: Record<string, unknown> = { corpus_enabled: enabled }
+              const body: Record<string, unknown> = {
+                knowledge_backend: enabled ? 'pgvector' : null,
+              }
               if (isAdmin) body.client_id = client.id
               const res = await fetch('/api/dashboard/settings', {
                 method: 'PATCH',
@@ -398,7 +401,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 body: JSON.stringify(body),
               })
               if (res.ok) {
-                setCorpusEnabled(prev => ({ ...prev, [client.id]: enabled }))
+                setKnowledgeEnabled(prev => ({ ...prev, [client.id]: enabled }))
               }
             }}
           />

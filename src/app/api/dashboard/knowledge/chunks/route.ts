@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { embedText } from '@/lib/embeddings'
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerClient()
@@ -105,4 +106,82 @@ export async function GET(req: NextRequest) {
     limit,
     offset,
   })
+}
+
+/**
+ * POST — Add a manual knowledge chunk.
+ * Embeds the content and stores it in knowledge_chunks with status=pending.
+ */
+export async function POST(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
+
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!cu) return new NextResponse('No client found', { status: 404 })
+
+  const body = await req.json().catch(() => ({})) as {
+    client_id?: string
+    content?: string
+    chunk_type?: string
+    trust_tier?: string
+    source?: string
+    auto_approve?: boolean
+  }
+
+  const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
+  const content = body.content?.trim()
+
+  if (!content) {
+    return NextResponse.json({ error: 'content is required' }, { status: 400 })
+  }
+  if (content.length > 5000) {
+    return NextResponse.json({ error: 'content exceeds 5000 character limit' }, { status: 400 })
+  }
+
+  // Permission check — non-admin can only add to their own client
+  if (cu.role !== 'admin' && clientId !== cu.client_id) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  const chunkType = body.chunk_type ?? 'manual'
+  const trustTier = body.trust_tier ?? 'medium'
+  const source = body.source ?? 'dashboard_manual'
+  // Admins can auto-approve; owners add as pending
+  const status = body.auto_approve && cu.role === 'admin' ? 'approved' : 'pending'
+
+  // Generate embedding
+  const embedding = await embedText(content)
+  if (!embedding) {
+    return NextResponse.json({ error: 'Failed to generate embedding — try again' }, { status: 502 })
+  }
+
+  const svc = createServiceClient()
+  const { data: chunk, error } = await svc
+    .from('knowledge_chunks')
+    .insert({
+      client_id: clientId,
+      content,
+      chunk_type: chunkType,
+      trust_tier: trustTier,
+      source,
+      status,
+      embedding: JSON.stringify(embedding),
+      metadata: { added_by: user.id },
+      source_run_id: `manual-${Date.now()}`,
+    })
+    .select('id, content, status, trust_tier, source, chunk_type, created_at')
+    .single()
+
+  if (error) {
+    console.error('[knowledge/chunks POST]', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, chunk })
 }

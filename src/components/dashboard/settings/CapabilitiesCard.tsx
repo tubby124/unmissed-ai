@@ -26,7 +26,7 @@ export default function CapabilitiesCard({ client }: CapabilitiesCardProps) {
     {
       label: 'Answer business questions',
       available: hasCapability(niche, 'useKnowledgeLookup'),
-      active: !!(client.business_facts || (client.extra_qa && client.extra_qa.length > 0) || client.corpus_enabled),
+      active: !!(client.business_facts || (client.extra_qa && client.extra_qa.length > 0) || client.knowledge_backend === 'pgvector'),
       actionHint: 'Add business facts or Q&A above to enable',
     },
     {
@@ -56,7 +56,7 @@ export default function CapabilitiesCard({ client }: CapabilitiesCardProps) {
     {
       label: 'Search knowledge base',
       available: true,
-      active: !!(client.corpus_enabled || client.knowledge_backend === 'pgvector'),
+      active: client.knowledge_backend === 'pgvector',
       actionHint: 'Enable Knowledge Base to use',
     },
   ]
