@@ -94,6 +94,7 @@ New doc created/updated. If this is important system knowledge:
 | Client | Slug | Status |
 |--------|------|--------|
 | Hasan Sharif (Aisha) | `hasan-sharif` | Railway native |
+| Omar Sharif (Fatema) | `exp-realty` | Railway native |
 | Windshield Hub (Mark) | `windshield-hub` | Railway native |
 | Urban Vibe (Alisha) | `urban-vibe` | Railway native |
 | Manzil ISA (Fatima) | `manzil-isa` | TEST MODE (n8n legacy — only remaining n8n client) |

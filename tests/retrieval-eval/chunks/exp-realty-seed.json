@@ -1,0 +1,92 @@
+[
+  {
+    "content": "Omar Sharif is a realtor with the Manzil Realty Group at eXp Realty. His son Hasan also works with him.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Omar serves Saskatoon, Saskatchewan and Edmonton, Alberta, and surrounding areas.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Omar can refer clients to Manzil for halal financing options. He does not provide mortgage services himself. Manzil offers Shariah-compliant, no-interest halal financing.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Omar's AI assistant is Fatema. Fatema takes messages, answers basic availability and service-area questions, and handles showing inquiries.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Callers can text the same number and Omar will see the message.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Omar does not give property prices, valuations, commission details, legal advice, or financial advice over the phone.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "To book a showing with Omar, callers need to provide the property address and their preferred day and time.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Omar offers calendar booking for consultations. Available slots can be checked and booked directly on the call.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What areas does Omar cover?\nA: Omar covers Saskatoon in Saskatchewan and Edmonton in Alberta, and surrounding areas.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Is Omar available right now?\nA: He's not available right now. I can take a message or you can text this same number.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I book a showing?\nA: Sure thing — what property are you looking at?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Are you an AI?\nA: Yes, I'm Fatema — Omar's AI assistant. I take messages and he calls people back.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I get Omar's direct number?\nA: I can't share his number, but I'll make sure he calls you back. Can I get your name?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you offer halal financing or Islamic mortgage options?\nA: Omar works with Manzil for halal financing referrals. It's Shariah-compliant, no interest. He can connect you with the right people and walk you through the options. Want me to take your info so he can call you back?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What is Manzil Realty Group?\nA: Manzil Realty Group is the team Omar is on at eXp Realty. They specialize in helping home buyers with halal financing options. Omar can connect you with them.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I get a property valuation or market price?\nA: That's an Omar question — he'll have the numbers. Can I get your name?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can I book a consultation with Omar?\nA: Absolutely. What day were you thinking?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "If a caller identifies themselves by relationship — his son, his wife, his brother, his mom, Hasan, or similar — treat that as both name and reason and close the call immediately.",
+    "chunk_type": "fact",
+    "source": "manual"
+  }
+]

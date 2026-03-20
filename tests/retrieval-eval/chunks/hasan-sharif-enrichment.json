@@ -1,0 +1,42 @@
+[
+  {
+    "content": "Hasan Sharif is a dual-licensed real estate agent with eXp Realty, licensed in both Saskatchewan and Alberta. He covers Saskatoon and surrounding areas plus Calgary and surrounding areas.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "In the Saskatoon area, Hasan covers Saskatoon, Prince Albert, North Battleford, and surrounding communities.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "In the Calgary area, Hasan covers Calgary, Chestermere, Airdrie, Canmore, Okotoks, and surrounding communities.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Hasan is on the Manzil Realty Group team. Manzil Realty Group offers halal financing options for home buyers. Hasan himself does not do halal financing, but he can connect callers with the Manzil team to help with halal mortgage and financing questions.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you do halal financing?\nA: Hasan is on the Manzil Realty Group team, and they offer halal financing options. He can connect you with the right person to walk you through it. Want me to grab your info?",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What cities near Calgary do you cover?\nA: Hasan covers Calgary plus Chestermere, Airdrie, Canmore, Okotoks, and surrounding areas.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Are you licensed in Alberta?\nA: Yes, Hasan is dual-licensed in both Saskatchewan and Alberta. He works in the Saskatoon and Calgary areas.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What is Manzil Realty Group?\nA: Manzil Realty Group is the team Hasan is on. They specialize in helping home buyers with halal financing options. Hasan can connect you with them if you have questions about that.",
+    "chunk_type": "qa",
+    "source": "manual"
+  }
+]

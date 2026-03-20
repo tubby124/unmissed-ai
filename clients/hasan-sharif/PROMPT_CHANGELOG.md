@@ -164,3 +164,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 10660 | **Hash:** cf08a0faad2f3638
 **Supabase version_id:** 586dd59e-cd0a-4048-9bfb-3cf80a78416a
 **Ultravox revision:** b5776b73-472a-462d-a9dc-be023cf5b9fc
+
+## v41 — 2026-03-20 13:14 UTC
+**Change:** Enable pgvector queryKnowledge tool — 20 chunks seeded from domain-knowledge
+**Chars:** 10660 | **Hash:** cf08a0faad2f3638
+**Supabase version_id:** 739bfd05-30fe-4e9a-8b5e-93ae34a8f72d
+**Ultravox revision:** 446db4df-4c44-4bf2-986c-a8f2a61316b8

@@ -69,3 +69,9 @@
 **Chars:** 9606 | **Hash:** 68be815bf1122975
 **Supabase version_id:** eddf9ee8-4526-486b-bf91-0f98201ee042
 **Ultravox revision:** f4c70588-a186-4054-a327-6824343330db
+
+## v14 — 2026-03-20 13:58 UTC
+**Change:** pgvector queryKnowledge tool injection — 18 knowledge chunks seeded
+**Chars:** 9606 | **Hash:** 68be815bf1122975
+**Supabase version_id:** 9f098488-5d28-432c-90ac-336e92a51cfb
+**Ultravox revision:** 21dac5bb-dac3-409b-93d3-659d20997fd9
