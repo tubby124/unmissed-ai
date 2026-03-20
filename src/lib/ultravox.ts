@@ -236,6 +236,7 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
     {
       temporaryTool: {
         modelToolName: 'bookAppointment',
+        defaultReaction: 'AGENT_REACTION_SPEAKS',
         timeout: '10s',
         description: 'Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. "9:00 AM", "2:30 PM") — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.',
         dynamicParameters: [
