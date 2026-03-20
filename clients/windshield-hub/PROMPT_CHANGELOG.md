@@ -107,3 +107,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 8296 | **Hash:** 31d0066a8d08a5fd
 **Supabase version_id:** 5955724d-7381-41a3-a8fc-6e7c20823548
 **Ultravox revision:** 8be851e4-02d3-4fdf-a899-5b6b58851ae7
+
+## v19 — 2026-03-20 07:53 UTC
+**Change:** Move RETURNING CALLER into OPENING section — fix greeting bypass for returning callers
+**Chars:** 7873 | **Hash:** fd5064892166ac9c
+**Supabase version_id:** 9e498fef-0ca2-4dee-a753-b03d2c486cfe
+**Ultravox revision:** ff4d3cf2-b0fb-4f74-81e7-d8ed673140d9

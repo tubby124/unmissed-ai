@@ -158,3 +158,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 10865 | **Hash:** d80e5154c693eaec
 **Supabase version_id:** d818108c-c749-4f78-bd23-fc15f8c78fdb
 **Ultravox revision:** 949410b1-57a9-442a-a3bd-718fc754ebbd
+
+## v40 — 2026-03-20 07:53 UTC
+**Change:** Move RETURNING CALLER into OPENING section — fix greeting bypass for returning callers
+**Chars:** 10660 | **Hash:** cf08a0faad2f3638
+**Supabase version_id:** 586dd59e-cd0a-4048-9bfb-3cf80a78416a
+**Ultravox revision:** b5776b73-472a-462d-a9dc-be023cf5b9fc

@@ -104,3 +104,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9299 | **Hash:** d013a921dbb85ca4
 **Supabase version_id:** ad51a9af-086e-4c97-8a71-38be320cb025
 **Ultravox revision:** ce570800-d3ba-40a9-8845-73f14dfc53ca
+
+## v20 — 2026-03-20 07:53 UTC
+**Change:** Move RETURNING CALLER into OPENING section — fix greeting bypass for returning callers
+**Chars:** 9183 | **Hash:** bac8562a03d0cf82
+**Supabase version_id:** 877dfe6c-4661-49ed-bf37-b623fa263196
+**Ultravox revision:** 766c897a-8834-441b-9f67-68e6254f2a2e
