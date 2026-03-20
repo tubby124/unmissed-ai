@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 
-const MATCH_THRESHOLD = 0.72
+const MATCH_THRESHOLD = 0.70
 const MATCH_COUNT = 5
 
 export async function POST(
