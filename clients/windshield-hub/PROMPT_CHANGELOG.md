@@ -95,3 +95,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 7911 | **Hash:** 5536ef8bf7d2f5cd
 **Supabase version_id:** 2f746074-b2e1-41cb-819a-7268d59d628c
 **Ultravox revision:** 1c8125d8-4f22-409b-91d9-6ec9f26985ad
+
+## v17 — 2026-03-20 06:37 UTC
+**Change:** Wave 1: TOOL FAILURES section
+**Chars:** 8191 | **Hash:** 28bb6e80a2cc957f
+**Supabase version_id:** c03e2793-90ea-428a-b12d-dbc45795c8ef
+**Ultravox revision:** b1f57df2-1c36-4eb3-9c0c-91c1afb04719

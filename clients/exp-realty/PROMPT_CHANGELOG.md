@@ -57,3 +57,9 @@
 **Chars:** 9221 | **Hash:** e040c7a93304cbad
 **Supabase version_id:** 713f131c-4764-4a2f-a7f7-02065ceaca46
 **Ultravox revision:** f0804a7d-e9a9-46a3-8b67-134418d4bbcb
+
+## v12 — 2026-03-20 06:37 UTC
+**Change:** Wave 1: TOOL FAILURES section
+**Chars:** 9501 | **Hash:** 63dc89c0b68786e6
+**Supabase version_id:** 94e7ac46-6726-4049-b29c-70c3105c338a
+**Ultravox revision:** 1aa76beb-84a7-4869-8f00-2b062da9b71a

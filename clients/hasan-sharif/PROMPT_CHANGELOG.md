@@ -146,3 +146,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 10480 | **Hash:** 06ba53e7692729d8
 **Supabase version_id:** edc7911b-2d54-4417-a5a3-aa465cf80c0e
 **Ultravox revision:** 4f2a8598-3a02-45c7-990b-b4c76b00c657
+
+## v38 — 2026-03-20 06:37 UTC
+**Change:** Wave 1: TOOL FAILURES section + calendar booking flow instructions
+**Chars:** 10760 | **Hash:** 0192c5160bfd6212
+**Supabase version_id:** d5550226-500a-43b2-9269-1a7b5e074af8
+**Ultravox revision:** 2519e2ec-031e-44ca-9af1-11467db51147
