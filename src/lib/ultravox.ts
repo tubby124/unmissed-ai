@@ -56,25 +56,11 @@ const DEFAULT_INACTIVITY = [
   { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!", endBehavior: 'END_BEHAVIOR_HANG_UP_SOFT' },
 ]
 
-// hangUp as temporaryTool with AGENT_REACTION_LISTENS — prevents the agent from speaking
-// after hangUp returns "OK", which causes a greeting loop before call termination propagates.
-// Uses the same Ultravox-hosted endpoint as the built-in hangUp tool.
+// Built-in hangUp tool — strict: true ends call regardless of user speech (no greeting loop).
 const HANGUP_TOOL = {
-  temporaryTool: {
-    modelToolName: 'hangUp',
-    description: 'End the current call. Call this when the conversation is complete.',
-    defaultReaction: 'AGENT_REACTION_LISTENS',
-    precomputable: true,
-    http: {
-      baseUrlPattern: 'https://api.ultravox.ai/api/tool_impl/hang_up',
-      httpMethod: 'GET',
-    },
-    dynamicParameters: [
-      { name: 'reason', location: 'PARAMETER_LOCATION_QUERY', schema: { type: 'string', description: 'Brief reason for hanging up' } },
-    ],
-    staticParameters: [
-      { name: 'strict', location: 'PARAMETER_LOCATION_QUERY', value: 'true' },
-    ],
+  toolName: 'hangUp',
+  parameterOverrides: {
+    strict: true,
   },
 }
 
