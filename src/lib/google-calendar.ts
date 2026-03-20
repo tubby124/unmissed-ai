@@ -1,8 +1,20 @@
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3'
 
-/** Exchange refresh_token for a short-lived access_token */
+// Module-level token cache — avoids a fresh OAuth exchange on every calendar tool call.
+// Key = last 16 chars of refresh token (never stores the full token in memory).
+const tokenCache = new Map<string, { token: string; expiresAt: number }>()
+
+/** Exchange refresh_token for a short-lived access_token (cached for 55 min) */
 export async function getAccessToken(refreshToken: string): Promise<string> {
+  const cacheKey = refreshToken.slice(-16)
+  const cached = tokenCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log('[gCal/token] cache_hit')
+    return cached.token
+  }
+
+  console.log('[gCal/token] refresh')
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -18,6 +30,7 @@ export async function getAccessToken(refreshToken: string): Promise<string> {
     throw new Error(`Google token refresh failed: ${res.status} ${err}`)
   }
   const data = await res.json()
+  tokenCache.set(cacheKey, { token: data.access_token, expiresAt: Date.now() + 55 * 60 * 1000 })
   return data.access_token as string
 }
 

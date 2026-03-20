@@ -27,6 +27,27 @@ function normalizeTime(input: string): string {
   return s // passthrough — match attempt will fail gracefully
 }
 
+/** Convert a time string to "HH:MM" 24-hour format for listSlots preferredTime.
+ *  Handles "H:MM AM/PM", "HH:MM", and full displayTime strings like "Friday March 20 at 2:00 PM".
+ *  Returns undefined if parsing fails — listSlots skips sorting gracefully. */
+function toPreferredTime(input: string): string | undefined {
+  // Try normalizeTime first (handles compact/short/military formats)
+  const normalized = normalizeTime(input)
+  // If normalizeTime returned a passthrough, extract just the time portion
+  const timeStr = /^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(normalized)
+    ? normalized
+    : (input.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i)?.[1]?.trim() ?? undefined)
+  if (!timeStr) return undefined
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (!match) return undefined
+  let h = parseInt(match[1])
+  const m = match[2]
+  const ampm = match[3].toUpperCase()
+  if (ampm === 'AM' && h === 12) h = 0
+  if (ampm === 'PM' && h !== 12) h += 12
+  return `${h.toString().padStart(2, '0')}:${m}`
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -80,8 +101,8 @@ export async function POST(
     const calendarId = (client.google_calendar_id as string) || 'primary'
 
     // G11: Re-verify the slot is still available before booking (race condition prevention)
-    // maxSlots=50 so we scan the full day — default of 3 would miss any slot offered beyond position 3
-    const freshSlots = await listSlots(accessToken, calendarId, date, timezone, durationMinutes, bufferMinutes, '09:00', '18:00', 50)
+    // maxSlots=1 + preferredTime sorts all slots by proximity to requested time — returns the closest match only
+    const freshSlots = await listSlots(accessToken, calendarId, date, timezone, durationMinutes, bufferMinutes, '09:00', '18:00', 1, toPreferredTime(time))
     // Normalize input time to "H:MM AM/PM" before matching displayTime
     const normalizedTime = normalizeTime(time)
     const matchedSlot = freshSlots.find(s =>
@@ -121,8 +142,9 @@ export async function POST(
     })
 
     // Store booking record so completed webhook can include calendar URL in Telegram
+    // Fire-and-forget — don't block the booking confirmation on the DB write
     if (client.id) {
-      await supabase.from('bookings').insert({
+      supabase.from('bookings').insert({
         client_id: client.id,
         slug,
         caller_phone: callerPhone || null,
@@ -131,7 +153,7 @@ export async function POST(
         appointment_date: date,
         service: service || null,
         calendar_url: event.htmlLink || null,
-      })
+      }).then(({ error }) => { if (error) console.error('[calendar/book] booking record failed:', error.message) })
     }
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
