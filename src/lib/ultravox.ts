@@ -56,6 +56,28 @@ const DEFAULT_INACTIVITY = [
   { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!", endBehavior: 'END_BEHAVIOR_HANG_UP_SOFT' },
 ]
 
+// hangUp as temporaryTool with AGENT_REACTION_LISTENS — prevents the agent from speaking
+// after hangUp returns "OK", which causes a greeting loop before call termination propagates.
+// Uses the same Ultravox-hosted endpoint as the built-in hangUp tool.
+const HANGUP_TOOL = {
+  temporaryTool: {
+    modelToolName: 'hangUp',
+    description: 'End the current call. Call this when the conversation is complete.',
+    defaultReaction: 'AGENT_REACTION_LISTENS',
+    precomputable: true,
+    http: {
+      baseUrlPattern: 'https://api.ultravox.ai/api/tool_impl/hang_up',
+      httpMethod: 'GET',
+    },
+    dynamicParameters: [
+      { name: 'reason', location: 'PARAMETER_LOCATION_QUERY', schema: { type: 'string', description: 'Brief reason for hanging up' } },
+    ],
+    staticParameters: [
+      { name: 'strict', location: 'PARAMETER_LOCATION_QUERY', value: 'true' },
+    ],
+  },
+}
+
 // ── Per-call creation (fallback when no agentId) ─────────────────────────────
 
 interface CreateCallOptions {
@@ -139,7 +161,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     timeExceededMessage: timeExceededMessage || "hey I wanna respect your time — check out unmissed dot ai whenever you're ready. take care!",
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
-    selectedTools: [{ toolName: 'hangUp' }, ...(tools || [])],
+    selectedTools: [HANGUP_TOOL, ...(tools || [])],
   }
 
   // Only add Twilio medium for phone IVR demos; omit for browser WebRTC
@@ -166,6 +188,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
 interface UltravoxToolDefinition {
   modelToolName?: string
   description?: string
+  defaultReaction?: string
   precomputable?: boolean
   timeout?: string
   dynamicParameters?: Array<{
@@ -458,7 +481,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   }
 
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
-  const baseTools: object[] = tools?.length ? tools : [{ toolName: 'hangUp' }]
+  const baseTools: object[] = tools?.length ? tools : [HANGUP_TOOL]
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug, transfer_conditions) : []
   const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
@@ -527,7 +550,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   }
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
   // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
-  const baseTools: object[] = updates.tools !== undefined ? updates.tools : [{ toolName: 'hangUp' }]
+  const baseTools: object[] = updates.tools !== undefined ? updates.tools : [HANGUP_TOOL]
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug, updates.transfer_conditions) : []
   const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
