@@ -116,6 +116,15 @@ export async function POST(
     sorted.length, topSimilarity, RRF_MIN_SCORE, latency,
   )
 
+  // K8: Increment hit_count for matched chunks (fire-and-forget)
+  if (sorted.length > 0) {
+    const matchedIds = sorted.map(m => m.id)
+    supabase.rpc('increment_chunk_hits', { chunk_ids: matchedIds })
+      .then(({ error: hitErr }) => {
+        if (hitErr) console.error(`[knowledge-query] hit tracking failed: ${hitErr.message}`)
+      })
+  }
+
   if (sorted.length === 0) {
     console.log(`[knowledge-query] slug=${slug} EMPTY_RESULT query="${queryText.slice(0, 80)}" rrf_min=${RRF_MIN_SCORE} latency=${latency}ms`)
   } else {

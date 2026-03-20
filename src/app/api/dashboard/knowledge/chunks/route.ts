@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   const svc = createServiceClient()
   let query = svc
     .from('knowledge_chunks')
-    .select('id, client_id, content, source, chunk_type, status, trust_tier, metadata, created_at, updated_at')
+    .select('id, client_id, content, source, chunk_type, status, trust_tier, metadata, created_at, updated_at, hit_count, last_hit_at')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)

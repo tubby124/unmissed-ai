@@ -13,6 +13,8 @@ interface KnowledgeChunk {
   metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
+  hit_count: number
+  last_hit_at: string | null
 }
 
 interface ChunkBrowserProps {
@@ -247,6 +249,11 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
                       <span className="text-[10px] text-zinc-600">
                         {new Date(chunk.created_at).toLocaleDateString()}
                       </span>
+                      {chunk.hit_count > 0 && (
+                        <span className="text-[10px] font-mono text-blue-400/70" title={chunk.last_hit_at ? `Last hit: ${new Date(chunk.last_hit_at).toLocaleDateString()}` : undefined}>
+                          {chunk.hit_count} hit{chunk.hit_count !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">

@@ -131,8 +131,10 @@ export async function POST(
     knowledge_backend: client.knowledge_backend as string | null,
   }
 
-  // Phase 4: corpus available when client opted in AND either their corpus is ready or global corpus exists
-  const corpusAvailable = !!(client.corpus_enabled && (client.ultravox_corpus_status === 'ready' || !!process.env.ULTRAVOX_CORPUS_ID))
+  // Phase 4: retrieval available — pgvector is self-sufficient; ultravox needs corpus infrastructure
+  const knowledgeBackend = (client.knowledge_backend as string | null)
+  const corpusAvailable = knowledgeBackend === 'pgvector'
+    || !!(client.corpus_enabled && (client.ultravox_corpus_status === 'ready' || !!process.env.ULTRAVOX_CORPUS_ID))
   const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
 
   if (ctx.caller.isReturningCaller) {
