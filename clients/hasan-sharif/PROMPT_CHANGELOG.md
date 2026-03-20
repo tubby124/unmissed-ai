@@ -170,3 +170,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 10660 | **Hash:** cf08a0faad2f3638
 **Supabase version_id:** 739bfd05-30fe-4e9a-8b5e-93ae34a8f72d
 **Ultravox revision:** 446db4df-4c44-4bf2-986c-a8f2a61316b8
+
+## v42 — 2026-03-20 14:19 UTC
+**Change:** commercial/land/leasing services + area correction (Saskatoon + Calgary + surrounding)
+**Chars:** 11100 | **Hash:** 05c8e8fc7249d4d4
+**Supabase version_id:** adf08788-c82e-401b-8019-10715786ebff
+**Ultravox revision:** 110fe630-8ee2-4868-a3b0-f04094d2f50f
