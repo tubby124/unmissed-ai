@@ -161,29 +161,36 @@ export const MINUTE_RELOAD = {
   perMinuteRate: 0.20,
 };
 
-// ─── Stripe IDs (TEST MODE — update when switching to live) ─────────
+// ─── Stripe IDs (LIVE MODE) ──────────────────────────────────────────
 // Keep this section updated whenever you create/change Stripe objects.
-// Dashboard: https://dashboard.stripe.com/test/products
+// Dashboard: https://dashboard.stripe.com/products
 export const STRIPE_IDS = {
-  // Products
-  monthlyPlanProduct: "prod_UAAUnCF7kFKAPX",   // "unmissed.ai Monthly Plan"
-  setupFeeProduct: "prod_UAAUY96hFYc1ZX",       // "Voice Agent Setup Fee"
+  // Products (LIVE)
+  monthlyPlanProduct: "prod_UAAaWOiJh2h9lQ",   // "unmissed.ai Monthly Plan"
+  setupFeeProduct: "prod_UAAaWQ57Tje9ui",       // "Voice Agent Setup Fee"
+  minuteReloadProduct: "prod_UBCwssI4xxHSkH",   // "Minute Reload Pack"
 
-  // Prices
-  subscription30: "price_1TCqDg15xbnnajlTxcmoDfRB",  // $30/mo CAD recurring
-  setupFresh25: "price_1TBq9G15xbnnajlTSbay8T8f",    // $25 one-time (fresh number)
-  setupInventory20: "price_1TBq9H15xbnnajlTTELdagZi", // $20 one-time (inventory number)
-  minuteReload10: "price_1TCqS415xbnnajlTAmq9sLty",   // $10 one-time (50 min reload)
-  minuteReloadProduct: "prod_UBCrCg0vDDJ7Tw",          // "Minute Reload Pack"
+  // Prices (LIVE)
+  subscription30: "price_1TCqWD0tFbm4ZBYUCY6ZPT8B",  // $30/mo CAD recurring
+  setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
+  setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)
+  minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
 
-  // Coupons & Promo Codes
-  betaCoupon: "l5jvNI95",                        // $10 off/mo forever → $20/mo
+  // Coupons & Promo Codes (LIVE)
+  betaCoupon: "WFO1Xm9V",                        // $10 off/mo forever → $20/mo
   betaPromoCode: "BETA20",                       // Customer-facing code
 
   // Env var mapping (what Railway needs):
   // STRIPE_SUBSCRIPTION_PRICE_ID = subscription30
   // STRIPE_SETUP_PRICE_ID = setupFresh25
   // STRIPE_SETUP_INVENTORY_PRICE_ID = setupInventory20
+
+  // TEST MODE IDs (for local dev with sk_test_ key):
+  // subscription30_test: "price_1TCqDg15xbnnajlTxcmoDfRB"
+  // setupFresh25_test: "price_1TBq9G15xbnnajlTSbay8T8f"
+  // setupInventory20_test: "price_1TBq9H15xbnnajlTTELdagZi"
+  // minuteReload10_test: "price_1TCqS415xbnnajlTAmq9sLty"
+  // betaCoupon_test: "l5jvNI95"
 };
 
 // ─── Helper: effective monthly price ────────────────────────────────
