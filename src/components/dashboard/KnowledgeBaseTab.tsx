@@ -61,6 +61,10 @@ export default function KnowledgeBaseTab({
   const [scrapeStatus, setScrapeStatus] = useState<string>('idle')
   const [approveLoading, setApproveLoading] = useState(false)
 
+  // Selection state for scrape preview items
+  const [selectedFacts, setSelectedFacts] = useState<Set<number>>(new Set())
+  const [selectedQa, setSelectedQa] = useState<Set<number>>(new Set())
+
   // Refresh trigger for child components
   const [refreshKey, setRefreshKey] = useState(0)
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
@@ -146,6 +150,11 @@ export default function KnowledgeBaseTab({
       if (!res.ok) throw new Error(data.error || 'Scrape failed')
       setScrapePreview(data.preview)
       setScrapeStatus(data.status)
+      // Select all items by default
+      const facts = data.preview?.businessFacts ?? []
+      const qa = data.preview?.extraQa ?? []
+      setSelectedFacts(new Set(facts.map((_: string, i: number) => i)))
+      setSelectedQa(new Set(qa.map((_: { q: string; a: string }, i: number) => i)))
     } catch (err) {
       setScrapeError(err instanceof Error ? err.message : 'Scrape failed')
       setScrapeStatus('failed')
@@ -154,14 +163,39 @@ export default function KnowledgeBaseTab({
     }
   }
 
+  function toggleFact(idx: number) {
+    setSelectedFacts(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx); else next.add(idx)
+      return next
+    })
+  }
+
+  function toggleQa(idx: number) {
+    setSelectedQa(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx); else next.add(idx)
+      return next
+    })
+  }
+
+  const selectedCount = selectedFacts.size + selectedQa.size
+
   async function handleApproveWebsiteKnowledge() {
+    if (selectedCount === 0) return
     setApproveLoading(true)
     setScrapeError('')
     try {
+      // Build approved package with only the selected items
+      const approvedPackage = {
+        businessFacts: (scrapePreview?.businessFacts ?? []).filter((_, i) => selectedFacts.has(i)),
+        extraQa: (scrapePreview?.extraQa ?? []).filter((_, i) => selectedQa.has(i)),
+        serviceTags: scrapePreview?.serviceTags ?? [],
+      }
       const res = await fetch('/api/dashboard/approve-website-knowledge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, auto_approve: isAdmin }),
+        body: JSON.stringify({ clientId, approved: approvedPackage, auto_approve: isAdmin }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Approval failed')
@@ -340,34 +374,87 @@ export default function KnowledgeBaseTab({
 
                       {scrapePreview.businessFacts && scrapePreview.businessFacts.length > 0 && (
                         <div>
-                          <p className="text-[10px] t3 mb-1 font-medium">{scrapePreview.businessFacts.length} Facts</p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-[10px] t3 font-medium">{selectedFacts.size}/{scrapePreview.businessFacts.length} Facts selected</p>
+                            <button
+                              onClick={() => {
+                                if (selectedFacts.size === scrapePreview.businessFacts!.length) {
+                                  setSelectedFacts(new Set())
+                                } else {
+                                  setSelectedFacts(new Set(scrapePreview.businessFacts!.map((_, i) => i)))
+                                }
+                              }}
+                              className="text-[10px] text-blue-400 hover:text-blue-300"
+                            >
+                              {selectedFacts.size === scrapePreview.businessFacts.length ? 'Deselect all' : 'Select all'}
+                            </button>
+                          </div>
                           <ul className="space-y-0.5">
-                            {scrapePreview.businessFacts.slice(0, 8).map((fact, i) => (
-                              <li key={i} className="text-[11px] t2 leading-relaxed flex items-start gap-1.5">
-                                <span className="text-blue-400 mt-0.5 shrink-0">&#8226;</span>
+                            {scrapePreview.businessFacts.map((fact, i) => (
+                              <li
+                                key={i}
+                                onClick={() => toggleFact(i)}
+                                className={`text-[11px] leading-relaxed flex items-start gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${
+                                  selectedFacts.has(i)
+                                    ? 't2 hover:bg-zinc-800/50'
+                                    : 'text-zinc-600 line-through hover:bg-zinc-800/30'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedFacts.has(i)}
+                                  onChange={() => toggleFact(i)}
+                                  className="mt-0.5 shrink-0 accent-blue-500"
+                                />
                                 {fact}
                               </li>
                             ))}
-                            {scrapePreview.businessFacts.length > 8 && (
-                              <li className="text-[10px] t3">+{scrapePreview.businessFacts.length - 8} more</li>
-                            )}
                           </ul>
                         </div>
                       )}
 
                       {scrapePreview.extraQa && scrapePreview.extraQa.length > 0 && (
                         <div>
-                          <p className="text-[10px] t3 mb-1 font-medium">{scrapePreview.extraQa.length} Q&A Pairs</p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-[10px] t3 font-medium">{selectedQa.size}/{scrapePreview.extraQa.length} Q&A Pairs selected</p>
+                            <button
+                              onClick={() => {
+                                if (selectedQa.size === scrapePreview.extraQa!.length) {
+                                  setSelectedQa(new Set())
+                                } else {
+                                  setSelectedQa(new Set(scrapePreview.extraQa!.map((_, i) => i)))
+                                }
+                              }}
+                              className="text-[10px] text-blue-400 hover:text-blue-300"
+                            >
+                              {selectedQa.size === scrapePreview.extraQa.length ? 'Deselect all' : 'Select all'}
+                            </button>
+                          </div>
                           <div className="space-y-1.5">
-                            {scrapePreview.extraQa.slice(0, 5).map((qa, i) => (
-                              <div key={i} className="rounded-lg bg-black/10 border b-theme p-2">
-                                <p className="text-[11px] t1 font-medium">Q: {qa.q}</p>
-                                <p className="text-[11px] t2 mt-0.5">A: {qa.a}</p>
+                            {scrapePreview.extraQa.map((qa, i) => (
+                              <div
+                                key={i}
+                                onClick={() => toggleQa(i)}
+                                className={`rounded-lg border p-2 cursor-pointer transition-colors ${
+                                  selectedQa.has(i)
+                                    ? 'bg-black/10 b-theme'
+                                    : 'bg-transparent border-zinc-800 opacity-40'
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedQa.has(i)}
+                                    onChange={() => toggleQa(i)}
+                                    className="mt-0.5 shrink-0 accent-blue-500"
+                                  />
+                                  <div>
+                                    <p className={`text-[11px] font-medium ${selectedQa.has(i) ? 't1' : 'text-zinc-600'}`}>Q: {qa.q}</p>
+                                    <p className={`text-[11px] mt-0.5 ${selectedQa.has(i) ? 't2' : 'text-zinc-600'}`}>A: {qa.a}</p>
+                                  </div>
+                                </div>
                               </div>
                             ))}
-                            {scrapePreview.extraQa.length > 5 && (
-                              <p className="text-[10px] t3">+{scrapePreview.extraQa.length - 5} more</p>
-                            )}
                           </div>
                         </div>
                       )}
@@ -382,10 +469,16 @@ export default function KnowledgeBaseTab({
 
                       <button
                         onClick={handleApproveWebsiteKnowledge}
-                        disabled={approveLoading || previewMode}
+                        disabled={approveLoading || previewMode || selectedCount === 0}
                         className="w-full px-4 py-2.5 text-xs font-semibold rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-40"
                       >
-                        {approveLoading ? 'Processing...' : isAdmin ? 'Approve & Add to Knowledge Base' : 'Submit for Review'}
+                        {approveLoading
+                          ? 'Processing...'
+                          : selectedCount === 0
+                            ? 'Select items to add'
+                            : isAdmin
+                              ? `Approve ${selectedCount} item${selectedCount !== 1 ? 's' : ''} to Knowledge Base`
+                              : `Submit ${selectedCount} item${selectedCount !== 1 ? 's' : ''} for Review`}
                       </button>
                     </div>
                   )}
