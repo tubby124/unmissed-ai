@@ -120,6 +120,7 @@ export async function activateClient(params: {
 
     const voiceUrl   = `${appUrl}/api/webhook/${clientSlug}/inbound`
     const fallbackUrl = `${appUrl}/api/webhook/${clientSlug}/fallback`
+    const smsUrl     = `${appUrl}/api/webhook/${clientSlug}/sms-inbound`
 
     if (reservedNumber) {
       // ── Inventory path: configure existing number's webhooks ─────────────────
@@ -140,6 +141,8 @@ export async function activateClient(params: {
             VoiceMethod:         'POST',
             VoiceFallbackUrl:    fallbackUrl,
             VoiceFallbackMethod: 'POST',
+            SmsUrl:              smsUrl,
+            SmsMethod:           'POST',
           })
           const patchRes = await fetch(patchUrl, {
             method:  'POST',
@@ -232,6 +235,8 @@ export async function activateClient(params: {
             VoiceMethod: 'POST',
             VoiceFallbackUrl: fallbackUrl,
             VoiceFallbackMethod: 'POST',
+            SmsUrl: smsUrl,
+            SmsMethod: 'POST',
           })
           const buyRes = await fetch(buyUrl, {
             method: 'POST',
