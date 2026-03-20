@@ -176,3 +176,21 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 11100 | **Hash:** 05c8e8fc7249d4d4
 **Supabase version_id:** adf08788-c82e-401b-8019-10715786ebff
 **Ultravox revision:** 110fe630-8ee2-4868-a3b0-f04094d2f50f
+
+## v43 — 2026-03-20 16:05 UTC
+**Change:** v43: knowledge search instructions + booking scope guard + self-description update
+**Chars:** 11849 | **Hash:** 1ab509e2b9114abf
+**Supabase version_id:** f199c85d-6b45-48b3-9eb1-b89277b02562
+**Ultravox revision:** 3303225d-c088-47ac-b0d5-8f694e80931b
+
+## v44 — 2026-03-20 16:10 UTC
+**Change:** v44: compress prompt 11.9K→6.6K — merge booking flows, trim quick responses + edge cases + voice style
+**Chars:** 6553 | **Hash:** fe8b9278a54f8d63
+**Supabase version_id:** a4f11f07-5a8e-435f-8505-94a55e51ad70
+**Ultravox revision:** c20483ec-e617-48e9-8b43-94e480a7eadb
+
+## v45 — 2026-03-20 16:12 UTC
+**Change:** v44b: add firstSpeaker greeting text — eliminates model generation lag on pickup
+**Chars:** 6553 | **Hash:** fe8b9278a54f8d63
+**Supabase version_id:** 22a5933e-e649-4235-a477-100073065343
+**Ultravox revision:** a42faa5a-48a0-43e2-a937-7340318669c6

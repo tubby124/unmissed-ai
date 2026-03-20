@@ -60,7 +60,7 @@ CLIENT_CONFIG = {
     },
     "hasan-sharif": {
         "ultravox_agent_id": "f19b4ad7-233e-4125-a547-94e007238cf8",
-        "greeting": None,
+        "greeting": "Hey! This is Aisha, Hasan's AI assistant... how can I help ya?",
         "vad_min_interruption": "0.400s",
     },
     "exp-realty": {
@@ -194,59 +194,70 @@ def deploy(slug, change_description):
 
     # Build selectedTools — always include hangUp; add calendar tools if booking_enabled
     APP_URL = "https://unmissed-ai-production.up.railway.app"
+    # B3: Automatic parameter that injects current call state into every tool request header
+    CALL_STATE_PARAM = {"name": "X-Call-State", "location": "PARAMETER_LOCATION_HEADER", "knownValue": "KNOWN_PARAM_CALL_STATE"}
+    tool_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
     selected_tools = [{"toolName": "hangUp"}]
     if booking_enabled:
-        selected_tools += [
-            {
-                "temporaryTool": {
-                    "modelToolName": "checkCalendarAvailability",
-                    "precomputable": True,
-                    "timeout": "10s",
-                    "description": "Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. '9:00 AM'). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day. When the caller asks for a specific time, pass it as the time parameter — the tool returns the 3 closest available slots to that time. If the exact time isn't available, say 'I don't have exactly [time] but I can do [closest slot] — does that work?' — NEVER say a time is 'booked' unless the tool explicitly says so.",
-                    "dynamicParameters": [
-                        {
-                            "name": "date",
-                            "location": "PARAMETER_LOCATION_QUERY",
-                            "schema": {"type": "string", "description": "Date in YYYY-MM-DD format. Use the TODAY value from callerContext to resolve relative dates like 'tomorrow' or 'next Monday'."},
-                            "required": True,
-                        },
-                        {
-                            "name": "time",
-                            "location": "PARAMETER_LOCATION_QUERY",
-                            "schema": {"type": "string", "description": "Preferred time in 24h HH:MM format (e.g. '16:00' for 4 PM). When provided, returns 3 slots closest to this time. Omit if caller has no preference."},
-                            "required": False,
-                        }
-                    ],
-                    "http": {
-                        "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/slots",
-                        "httpMethod": "GET",
+        cal_check = {
+            "temporaryTool": {
+                "modelToolName": "checkCalendarAvailability",
+                "precomputable": True,
+                "timeout": "10s",
+                "description": "Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. '9:00 AM'). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day. When the caller asks for a specific time, pass it as the time parameter — the tool returns the 3 closest available slots to that time. If the exact time isn't available, say 'I don't have exactly [time] but I can do [closest slot] — does that work?' — NEVER say a time is 'booked' unless the tool explicitly says so.",
+                "dynamicParameters": [
+                    {
+                        "name": "date",
+                        "location": "PARAMETER_LOCATION_QUERY",
+                        "schema": {"type": "string", "description": "Date in YYYY-MM-DD format. Use the TODAY value from callerContext to resolve relative dates like 'tomorrow' or 'next Monday'."},
+                        "required": True,
                     },
-                }
-            },
-            {
-                "temporaryTool": {
-                    "modelToolName": "bookAppointment",
-                    "timeout": "10s",
-                    "description": "Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. '9:00 AM', '2:30 PM') — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.",
-                    "dynamicParameters": [
-                        {"name": "date",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"}, "required": True},
-                        {"name": "time",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Exact displayTime from checkCalendarAvailability e.g. '9:00 AM'. Do not reformat."}, "required": True},
-                        {"name": "service",     "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
-                        {"name": "callerName",  "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
-                        {"name": "callerPhone", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Caller's phone number from CALLER PHONE in callerContext"}, "required": True},
-                    ],
-                    "http": {
-                        "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/book",
-                        "httpMethod": "POST",
-                    },
-                }
-            },
-        ]
+                    {
+                        "name": "time",
+                        "location": "PARAMETER_LOCATION_QUERY",
+                        "schema": {"type": "string", "description": "Preferred time in 24h HH:MM format (e.g. '16:00' for 4 PM). When provided, returns 3 slots closest to this time. Omit if caller has no preference."},
+                        "required": False,
+                    }
+                ],
+                "automaticParameters": [CALL_STATE_PARAM],
+                "http": {
+                    "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/slots",
+                    "httpMethod": "GET",
+                },
+            }
+        }
+        if tool_secret:
+            cal_check["temporaryTool"]["staticParameters"] = [
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
+            ]
+        cal_book = {
+            "temporaryTool": {
+                "modelToolName": "bookAppointment",
+                "timeout": "10s",
+                "description": "Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. '9:00 AM', '2:30 PM') — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.",
+                "dynamicParameters": [
+                    {"name": "date",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Date in YYYY-MM-DD format"}, "required": True},
+                    {"name": "time",        "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Exact displayTime from checkCalendarAvailability e.g. '9:00 AM'. Do not reformat."}, "required": True},
+                    {"name": "service",     "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": False},
+                    {"name": "callerName",  "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
+                    {"name": "callerPhone", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Caller's phone number from CALLER PHONE in callerContext"}, "required": True},
+                ],
+                "automaticParameters": [CALL_STATE_PARAM],
+                "http": {
+                    "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/book",
+                    "httpMethod": "POST",
+                },
+            }
+        }
+        if tool_secret:
+            cal_book["temporaryTool"]["staticParameters"] = [
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
+            ]
+        selected_tools += [cal_check, cal_book]
         print(f"  ✓ Calendar tools injected (booking_enabled=True, slug={slug})")
 
     # Transfer tool — inject if client has a forwarding_number
     if forwarding_number:
-        transfer_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
         transfer_tool = {
             "temporaryTool": {
                 "modelToolName": "transferCall",
@@ -264,7 +275,8 @@ def deploy(slug, change_description):
                         "name": "call_id",
                         "location": "PARAMETER_LOCATION_BODY",
                         "knownValue": "KNOWN_PARAM_CALL_ID",
-                    }
+                    },
+                    CALL_STATE_PARAM,
                 ],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/webhook/{slug}/transfer",
@@ -272,16 +284,15 @@ def deploy(slug, change_description):
                 },
             }
         }
-        if transfer_secret:
+        if tool_secret:
             transfer_tool["temporaryTool"]["staticParameters"] = [
-                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": transfer_secret}
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
             ]
         selected_tools.append(transfer_tool)
         print(f"  ✓ Transfer tool injected (forwarding_number={forwarding_number})")
 
     # SMS tool — inject if client has sms_enabled
     if sms_enabled:
-        sms_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
         sms_tool = {
             "temporaryTool": {
                 "modelToolName": "sendTextMessage",
@@ -291,7 +302,8 @@ def deploy(slug, change_description):
                     {"name": "message", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "SMS message body to send"}, "required": True},
                 ],
                 "automaticParameters": [
-                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"}
+                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"},
+                    CALL_STATE_PARAM,
                 ],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/webhook/{slug}/sms",
@@ -299,16 +311,15 @@ def deploy(slug, change_description):
                 },
             }
         }
-        if sms_secret:
+        if tool_secret:
             sms_tool["temporaryTool"]["staticParameters"] = [
-                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": sms_secret}
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
             ]
         selected_tools.append(sms_tool)
         print(f"  ✓ SMS tool injected (sms_enabled=True)")
 
     # Knowledge retrieval tool — pgvector backend
     if knowledge_backend == "pgvector":
-        knowledge_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
         knowledge_tool = {
             "temporaryTool": {
                 "modelToolName": "queryKnowledge",
@@ -321,21 +332,21 @@ def deploy(slug, change_description):
                         "required": True,
                     }
                 ],
+                "automaticParameters": [CALL_STATE_PARAM],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/knowledge/{slug}/query",
                     "httpMethod": "POST",
                 },
             }
         }
-        if knowledge_secret:
+        if tool_secret:
             knowledge_tool["temporaryTool"]["staticParameters"] = [
-                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": knowledge_secret}
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
             ]
         selected_tools.append(knowledge_tool)
         print(f"  ✓ Knowledge tool injected (knowledge_backend=pgvector)")
 
     # Coaching tool — always inject for all agents (enables live coaching dashboard)
-    coaching_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
     coaching_tool = {
         "temporaryTool": {
             "modelToolName": "checkForCoaching",
@@ -349,15 +360,16 @@ def deploy(slug, change_description):
                     "required": True,
                 }
             ],
+            "automaticParameters": [CALL_STATE_PARAM],
             "http": {
                 "baseUrlPattern": f"{APP_URL}/api/coaching/{slug}/check",
                 "httpMethod": "POST",
             },
         }
     }
-    if coaching_secret:
+    if tool_secret:
         coaching_tool["temporaryTool"]["staticParameters"] = [
-            {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": coaching_secret}
+            {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": tool_secret}
         ]
     selected_tools.append(coaching_tool)
     print(f"  ✓ Coaching tool injected")
