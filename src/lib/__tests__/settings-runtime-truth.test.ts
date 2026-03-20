@@ -20,7 +20,6 @@ import {
   buildCalendarTools,
   buildTransferTools,
   buildSmsTools,
-  buildCorpusTools,
 } from '../ultravox.js'
 
 const CALENDAR_HEADING = '# CALENDAR BOOKING FLOW'
@@ -132,25 +131,7 @@ describe('forwarding_number set → tools include transferCall', () => {
   })
 })
 
-// ── corpus_enabled=true + corpus_id → tools include queryCorpus ─────────────
-
-describe('corpus_enabled=true + corpus_id → queryCorpus tool', () => {
-  test('corpus tools built with given ID', () => {
-    const tools = buildCorpusTools('corpus-123-abc')
-    assert.equal(tools.length, 1)
-    const tool = tools[0] as Record<string, any>
-    assert.equal(tool.toolName, 'queryCorpus')
-    assert.equal(tool.parameterOverrides.corpus_id, 'corpus-123-abc')
-    assert.equal(tool.parameterOverrides.max_results, 5)
-  })
-
-  test('corpus tools empty when null ID and no env var', () => {
-    // In test env, ULTRAVOX_CORPUS_ID is not set
-    const tools = buildCorpusTools(null)
-    // May return empty or fall back to env var
-    assert.ok(Array.isArray(tools))
-  })
-})
+// Ultravox corpus tools removed — pgvector is the only knowledge backend
 
 // ── Full integration: settings object → assembled context ───────────────────
 

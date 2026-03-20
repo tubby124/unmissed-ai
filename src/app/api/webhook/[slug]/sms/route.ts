@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSmsTracked } from '@/lib/twilio'
+import { parseCallState, setStateUpdate } from '@/lib/call-state'
 
 export const maxDuration = 10
 
@@ -13,6 +14,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!expected || secret !== expected) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
+
+  // B3: Read call state from Ultravox header
+  const callState = parseCallState(req)
 
   let to: string, message: string, call_id: string
   try {
@@ -55,7 +59,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   if (optOut && !optOut.opted_back_in_at) {
     console.log(`[sms-tool] BLOCKED — recipient opted out: slug=${slug} to=${to}`)
-    return NextResponse.json({ result: 'SMS blocked — recipient opted out' })
+    const blockedResponse = NextResponse.json({ result: 'SMS blocked — recipient opted out' })
+    if (callState) setStateUpdate(blockedResponse, { lastToolOutcome: 'sms_blocked' })
+    return blockedResponse
   }
 
   // Find related call_log id for linking
@@ -115,10 +121,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       }
     }
 
-    return NextResponse.json({ result: 'SMS sent' })
+    const sentResponse = NextResponse.json({ result: 'SMS sent' })
+    if (callState) setStateUpdate(sentResponse, { lastToolOutcome: 'sms_sent' })
+    return sentResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[sms-tool] Send failed: ${msg}`)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const errResponse = NextResponse.json({ error: msg }, { status: 500 })
+    if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'sms_error' })
+    return errResponse
   }
 }

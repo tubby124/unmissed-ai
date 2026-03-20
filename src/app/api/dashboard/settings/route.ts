@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { updateAgent, createCorpus, buildCalendarTools, buildTransferTools, buildSmsTools, buildKnowledgeTools, buildCorpusTools, buildCoachingTool } from '@/lib/ultravox'
+import { updateAgent, buildCalendarTools, buildTransferTools, buildSmsTools, buildKnowledgeTools, buildCoachingTool } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
@@ -184,12 +184,6 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // A4 — corpus_enabled toggle. All clients share the global corpus (ULTRAVOX_CORPUS_ID env var).
-  // Documents are scoped per-client by source naming (client-{slug}-{filename}).
-  if (typeof body.corpus_enabled === 'boolean') {
-    updates.corpus_enabled = body.corpus_enabled
-  }
-
   // A6 — knowledge_backend toggle (admin only): 'pgvector' | null
   // Controls whether queryKnowledge tool is registered on the Ultravox agent.
   if (cu.role === 'admin' && 'knowledge_backend' in body) {
@@ -310,15 +304,13 @@ export async function PATCH(req: NextRequest) {
     'transfer_conditions' in updates ||
     'booking_enabled' in updates ||
     'agent_voice_id' in updates ||
-    'corpus_enabled' in updates ||
-    'corpus_id' in updates ||
     'knowledge_backend' in updates ||
     'sms_enabled' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, corpus_id, corpus_enabled, transfer_conditions, sms_enabled, knowledge_backend')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend')
       .eq('id', targetClientId)
       .single()
 
@@ -339,13 +331,6 @@ export async function PATCH(req: NextRequest) {
       const bookingEnabled = 'booking_enabled' in updates
         ? (updates.booking_enabled as boolean)
         : (clientRow.booking_enabled ?? false)
-      const corpusIdToSync = 'corpus_id' in updates
-        ? (updates.corpus_id as string | null)
-        : (clientRow.corpus_id as string | null)
-      const corpusEnabledToSync = 'corpus_enabled' in updates
-        ? (updates.corpus_enabled as boolean)
-        : (clientRow.corpus_enabled ?? false)
-
       try {
         const promptToSync = typeof updates.system_prompt === 'string'
           ? updates.system_prompt
@@ -361,7 +346,6 @@ export async function PATCH(req: NextRequest) {
           ...(voiceToSync ? { voice: voiceToSync } : {}),
           booking_enabled: bookingEnabled,
           slug: clientRow.slug,
-          corpus_id: corpusEnabledToSync ? corpusIdToSync : null,
           forwarding_number: fwdNumber || undefined,
           sms_enabled: smsEnabled,
           knowledge_backend: knowledgeBackend,
@@ -375,7 +359,7 @@ export async function PATCH(req: NextRequest) {
           ...(bookingEnabled && slug ? buildCalendarTools(slug) : []),
           ...(fwdNumber && slug ? buildTransferTools(slug, transferConditions) : []),
           ...(smsEnabled && slug ? buildSmsTools(slug) : []),
-          ...(knowledgeBackend === 'pgvector' && slug ? buildKnowledgeTools(slug) : buildCorpusTools(corpusEnabledToSync ? corpusIdToSync : null)),
+          ...(knowledgeBackend === 'pgvector' && slug ? buildKnowledgeTools(slug) : []),
           ...(slug ? [buildCoachingTool(slug)] : []),
         ]
         await supabase.from('clients').update({ tools: syncTools }).eq('id', targetClientId)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots, createEvent } from '@/lib/google-calendar'
+import { parseCallState, setStateUpdate, bookingInstruction } from '@/lib/call-state'
 
 /** Normalize time strings to "H:MM AM/PM" format to match displayTime from checkCalendarAvailability */
 function normalizeTime(input: string): string {
@@ -36,6 +37,9 @@ export async function POST(
   if (toolSecret && providedSecret !== toolSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  // B3: Read call state from Ultravox header
+  const callState = parseCallState(req)
 
   const { slug } = await params
   const body = await req.json().catch(() => ({}))
@@ -86,12 +90,17 @@ export async function POST(
     if (!matchedSlot) {
       // Slot was taken — return next available
       const nextAvailable = freshSlots[0]?.displayTime || null
-      return NextResponse.json({
+      const newAttempts = (callState?.bookingAttempts ?? 0) + 1
+      const coaching = callState ? bookingInstruction({ ...callState, bookingAttempts: newAttempts }, false, true) : ''
+      const baseSlotTaken = `That slot was just taken. ${nextAvailable ? `Offer ${nextAvailable} instead and ask if that works.` : 'Ask what other time works for them.'}`
+      const response = NextResponse.json({
         booked: false,
         reason: 'slot_taken',
         nextAvailable,
-        _instruction: `That slot was just taken. ${nextAvailable ? `Offer ${nextAvailable} instead and ask if that works.` : 'Ask what other time works for them.'}`,
+        _instruction: coaching ? `${baseSlotTaken} ${coaching}` : baseSlotTaken,
       })
+      if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
+      return response
     }
 
     const title = `${service || 'Appointment'} — ${resolvedCallerName}`
@@ -124,6 +133,7 @@ export async function POST(
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
 
+    const newAttempts = (callState?.bookingAttempts ?? 0) + 1
     const response = NextResponse.json({
       booked: true,
       confirmationTime: matchedSlot.displayTime,
@@ -131,6 +141,7 @@ export async function POST(
       _instruction: `Booked for ${date} at ${matchedSlot.displayTime}. Confirm the date and time back to the caller and ask if there's anything else.`,
     })
     response.headers.set('X-Ultravox-Agent-Reaction', 'speaks-once')
+    if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -140,8 +151,13 @@ export async function POST(
       await supabase.from('clients').update({ calendar_auth_status: 'expired' }).eq('slug', slug)
     }
 
-    return NextResponse.json({ booked: false, reason: 'calendar_error', fallback: true,
-      _instruction: `Booking failed — tell the caller you'll have someone follow up to confirm their appointment.`,
+    const errNewAttempts = (callState?.bookingAttempts ?? 0) + 1
+    const errCoaching = callState ? bookingInstruction({ ...callState, bookingAttempts: errNewAttempts }, false, false) : ''
+    const errBase = `Booking failed — tell the caller you'll have someone follow up to confirm their appointment.`
+    const errResponse = NextResponse.json({ booked: false, reason: 'calendar_error', fallback: true,
+      _instruction: errCoaching ? `${errBase} ${errCoaching}` : errBase,
     })
+    if (callState) setStateUpdate(errResponse, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
+    return errResponse
   }
 }

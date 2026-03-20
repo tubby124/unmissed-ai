@@ -14,7 +14,7 @@
  *     • tone / turn-taking rules (handled by VOICE NATURALNESS + GRAMMAR sections)
  * - Retrieval requires BOTH:
  *     1. useKnowledgeLookup=true (niche capability from Phase 1A)
- *     2. corpusAvailable=true (corpus_enabled + corpus infrastructure exists)
+ *     2. corpusAvailable=true (knowledge_backend='pgvector' on the client)
  * - KnowledgeSummary is always injected regardless of retrieval availability
  * - contextData (tenant tables, lookup data) is NOT retrieval — stays full, handled separately
  *
@@ -62,7 +62,7 @@ export type RetrievalConfig = {
  *
  * @param capabilities  - Niche capability flags (Phase 1A)
  * @param knowledge     - KnowledgeSummary built in Phase 3
- * @param corpusAvailable - True when corpus_enabled=true AND corpus infrastructure exists
+ * @param corpusAvailable - True when knowledge_backend='pgvector' on the client
  * @param knowledgeBackend - 'pgvector' | 'ultravox' | null from clients.knowledge_backend
  */
 export function buildRetrievalConfig(

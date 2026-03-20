@@ -103,8 +103,8 @@ describe('buildDemoTools — no phone medium, no calendar, no transfer', () => {
 })
 
 describe('buildDemoTools — corpus gate (dual-gated)', () => {
-  // buildDemoTools does NOT include corpus tools — those are added separately
-  // by the route handler based on dual-gated check (env var + client corpus_enabled).
+  // buildDemoTools does NOT include corpus/knowledge tools — those are added separately
+  // by the route handler based on knowledge_backend check.
   // This test verifies buildDemoTools never includes corpus tools regardless of caps.
   const tools = buildDemoTools('unmissed-demo', {
     hasPhoneMedium: true,

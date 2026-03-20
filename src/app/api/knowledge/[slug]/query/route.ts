@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
+import { parseCallState, setStateUpdate, knowledgeInstruction } from '@/lib/call-state'
 
 const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
@@ -22,6 +23,9 @@ export async function POST(
   if (toolSecret && providedSecret !== toolSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  // B3: Read call state from Ultravox header
+  const callState = parseCallState(req)
 
   // ── Parse body ─────────────────────────────────────────────────────────────
   const body = await req.json().catch(() => ({})) as { query?: string }
@@ -134,12 +138,19 @@ export async function POST(
     console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${sorted.length} top_rrf=${sorted[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} top_tier=${sorted[0].trust_tier} latency=${latency}ms`)
   }
 
-  // ── Build response with trust-aware _instruction ─────────────────────────
+  // ── Build response with trust-aware _instruction + B3 state coaching ──────
   const topContent = sorted[0]?.content?.slice(0, 200) || ''
   const topTrust = sorted[0]?.trust_tier || 'medium'
   const trustQualifier = topTrust === 'high' ? '' : topTrust === 'low' ? ' This information has not been fully verified — be cautious.' : ''
+  const found = sorted.length > 0
+  const newQueries = (callState?.knowledgeQueries ?? 0) + 1
+  const coaching = callState ? knowledgeInstruction({ ...callState, knowledgeQueries: newQueries }, found) : ''
 
-  return NextResponse.json({
+  const baseInstruction = found
+    ? `Found: ${topContent}. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.${trustQualifier}`
+    : `No information found. Say you're not sure about that specific question and offer to have someone follow up.`
+
+  const response = NextResponse.json({
     results: sorted.map(m => ({
       content: m.content,
       chunk_type: m.chunk_type,
@@ -151,10 +162,15 @@ export async function POST(
     })),
     count: sorted.length,
     query_id: queryLogId,
-    _instruction: sorted.length > 0
-      ? `Found: ${topContent}. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.${trustQualifier}`
-      : `No information found. Say you're not sure about that specific question and offer to have someone follow up.`,
+    _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
   })
+  if (callState) {
+    setStateUpdate(response, {
+      knowledgeQueries: newQueries,
+      lastToolOutcome: found ? 'knowledge_found' : 'knowledge_empty',
+    })
+  }
+  return response
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

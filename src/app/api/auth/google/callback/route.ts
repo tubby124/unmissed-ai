@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: client } = await supabase
       .from('clients')
-      .select('ultravox_agent_id, system_prompt, agent_voice_id, forwarding_number, transfer_conditions, corpus_id, corpus_enabled, sms_enabled, niche, agent_name')
+      .select('ultravox_agent_id, system_prompt, agent_voice_id, forwarding_number, transfer_conditions, sms_enabled, knowledge_backend, niche, agent_name')
       .eq('id', clientId)
       .single()
 
@@ -152,8 +152,8 @@ export async function GET(req: NextRequest) {
         booking_enabled: true,
         slug,
         forwarding_number: client.forwarding_number ?? undefined,
-        corpus_id: client.corpus_enabled ? (client.corpus_id ?? undefined) : undefined,
         sms_enabled: client.sms_enabled ?? false,
+        knowledge_backend: (client.knowledge_backend as string | null) || undefined,
       })
       console.log(`[google-callback] Ultravox agent synced with calendar tools for slug=${slug}`)
     }

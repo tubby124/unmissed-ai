@@ -26,6 +26,12 @@ interface TestResult {
   trust_tier: string
 }
 
+interface GapEntry {
+  query: string
+  count: number
+  last_seen: string
+}
+
 export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: KnowledgeEngineCardProps) {
   const enabled = client.knowledge_backend === 'pgvector'
   const [stats, setStats] = useState<ChunkStats | null>(null)
@@ -36,6 +42,10 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
   const [toggling, setToggling] = useState(false)
   const [localEnabled, setLocalEnabled] = useState(enabled)
   const [toggleSaved, setToggleSaved] = useState(false)
+
+  // Gaps preview state
+  const [gaps, setGaps] = useState<GapEntry[]>([])
+  const [gapsCount, setGapsCount] = useState(0)
 
   // Test query state
   const [testQuery, setTestQuery] = useState('')
@@ -68,6 +78,14 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
         rejected: totalCount - (approvedData.total ?? 0) - (pendingData.total ?? 0),
         byType: {},
       })
+
+      // Fetch recent knowledge gaps (unanswered questions from calls)
+      const gapsRes = await fetch(`/api/dashboard/knowledge/gaps?client_id=${client.id}&days=30`)
+      if (gapsRes.ok) {
+        const gapsData = await gapsRes.json()
+        setGaps((gapsData.gaps ?? []).slice(0, 3))
+        setGapsCount(gapsData.total_unanswered_queries ?? 0)
+      }
     } catch {
       // silent
     } finally {
@@ -159,6 +177,13 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
             </span>
           )}
 
+          {/* Gaps badge */}
+          {localEnabled && gapsCount > 0 && !statsLoading && (
+            <span className="text-[9px] font-mono text-amber-400/70">
+              {gapsCount} gap{gapsCount !== 1 ? 's' : ''}
+            </span>
+          )}
+
           {toggleSaved && <span className="text-[10px] text-green-400">Saved</span>}
         </div>
 
@@ -228,6 +253,29 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Loading stats...
+            </div>
+          )}
+
+          {/* Recent gaps — unanswered caller questions */}
+          {gaps.length > 0 && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold text-amber-400">Unanswered Questions</p>
+                {gapsCount > 0 && (
+                  <span className="text-[9px] font-mono text-amber-400/60">{gapsCount} total</span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {gaps.map((gap, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2">
+                    <p className="text-[11px] t2 leading-relaxed line-clamp-1 flex-1">&ldquo;{gap.query}&rdquo;</p>
+                    <span className={`text-[9px] font-mono shrink-0 ${gap.count >= 3 ? 'text-red-400' : gap.count >= 2 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                      {gap.count}x
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[9px] t3">Add answers in the Knowledge tab to improve agent accuracy.</p>
             </div>
           )}
 

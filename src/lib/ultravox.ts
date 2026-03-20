@@ -35,6 +35,13 @@ export function verifyCallbackSig(callId: string, sig: string): boolean {
 
 // ── Shared defaults ──────────────────────────────────────────────────────────
 
+/** B3: Automatic parameter that injects current call state into every tool request header. */
+const CALL_STATE_PARAM = {
+  name: 'X-Call-State',
+  location: 'PARAMETER_LOCATION_HEADER',
+  knownValue: 'KNOWN_PARAM_CALL_STATE',
+}
+
 const DEFAULT_VOICE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
 
 const DEFAULT_VAD = {
@@ -60,9 +67,11 @@ interface CreateCallOptions {
   priorCallId?: string
   languageHint?: string
   firstSpeakerText?: string
+  /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
+  initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId, languageHint, firstSpeakerText }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId, languageHint, firstSpeakerText, initialState }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -80,6 +89,7 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   if (tools?.length) body.selectedTools = tools
   if (languageHint) body.languageHint = languageHint
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  if (initialState) body.initialState = initialState
 
   // priorCallId reuses conversation history from a prior call — only works with POST /api/calls (not agent calls)
   const url = priorCallId
@@ -211,6 +221,7 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
             required: false,
           },
         ],
+        automaticParameters: [CALL_STATE_PARAM],
         ...(secret ? {
           staticParameters: [
             { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
@@ -234,6 +245,7 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
           { name: 'service',     location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Type of appointment or service' }, required: false },
           { name: 'callerPhone', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: "Caller's phone number from CALLER PHONE in callerContext" }, required: true },
         ],
+        automaticParameters: [CALL_STATE_PARAM],
         ...(secret ? {
           staticParameters: [
             { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
@@ -259,8 +271,6 @@ interface AgentConfig {
   booking_enabled?: boolean
   /** E.164 number for live call transfer (e.g. '+13065551234'). When set, injects transferCall HTTP tool. */
   forwarding_number?: string
-  /** Per-client Ultravox corpus ID. When set (and corpus_enabled), injects queryCorpus tool. */
-  corpus_id?: string | null
   /** When true, inject sendTextMessage HTTP tool so the agent can SMS the caller mid-call. */
   sms_enabled?: boolean
   /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, 'ultravox' = queryCorpus, null = none. */
@@ -299,6 +309,7 @@ export function buildTransferTools(slug: string, transferConditions?: string | n
           location: 'PARAMETER_LOCATION_BODY',
           knownValue: 'KNOWN_PARAM_CALL_ID',
         },
+        CALL_STATE_PARAM,
       ],
       ...(secret ? {
         staticParameters: [
@@ -344,6 +355,7 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
           location: 'PARAMETER_LOCATION_BODY',
           knownValue: 'KNOWN_PARAM_CALL_ID',
         },
+        CALL_STATE_PARAM,
       ],
       ...(secret ? {
         staticParameters: [
@@ -378,6 +390,7 @@ export function buildKnowledgeTools(slug: string): UltravoxTool[] {
           required: true,
         },
       ],
+      automaticParameters: [CALL_STATE_PARAM],
       ...(secret ? {
         staticParameters: [
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
@@ -387,24 +400,6 @@ export function buildKnowledgeTools(slug: string): UltravoxTool[] {
         baseUrlPattern: `${appUrl}/api/knowledge/${slug}/query`,
         httpMethod: 'POST',
       },
-    },
-  }]
-}
-
-/**
- * Build queryCorpus tool entry for a client.
- * Prefers the per-client corpusId arg, falls back to ULTRAVOX_CORPUS_ID env var.
- * Returns empty array if neither is set.
- */
-export function buildCorpusTools(corpusId?: string | null): UltravoxTool[] {
-  const id = corpusId ?? process.env.ULTRAVOX_CORPUS_ID
-  if (!id) return []
-  return [{
-    toolName: 'queryCorpus',
-    parameterOverrides: {
-      corpus_id: id,
-      max_results: 5,
-      minimum_score: 0.85,
     },
   }]
 }
@@ -435,7 +430,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, corpus_id, sms_enabled, knowledge_backend, transfer_conditions }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, transfer_conditions }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -464,11 +459,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
   const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug, transfer_conditions) : []
   const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
-  // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
-  const knowledgeTools: object[] =
-    knowledge_backend === 'pgvector' && slug
-      ? buildKnowledgeTools(slug)
-      : buildCorpusTools(corpus_id)
+  const knowledgeTools: object[] = (knowledge_backend === 'pgvector' && slug) ? buildKnowledgeTools(slug) : []
   const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 
@@ -535,11 +526,8 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
   const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
   const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug, updates.transfer_conditions) : []
   const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
-  // Choose retrieval backend: pgvector (our endpoint) vs ultravox (built-in queryCorpus) vs none
-  const knowledgeTools: object[] =
-    updates.knowledge_backend === 'pgvector' && updates.slug
-      ? buildKnowledgeTools(updates.slug)
-      : buildCorpusTools(updates.corpus_id)
+  const knowledgeTools: object[] = (updates.knowledge_backend === 'pgvector' && updates.slug)
+    ? buildKnowledgeTools(updates.slug) : []
   const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
   callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 
@@ -571,12 +559,14 @@ interface CallViaAgentOptions {
   firstSpeakerText?: string
   /** Hidden context messages injected before the call starts. Used for returning caller context. */
   initialMessages?: Array<{ role: string; text: string; medium: string }>
+  /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
+  initialState?: Record<string, unknown>
 }
 
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, initialState }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: { twilio: {} },
@@ -595,6 +585,7 @@ export async function callViaAgent(
   if (maxDuration) body.maxDuration = maxDuration
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   if (initialMessages?.length) body.initialMessages = initialMessages
+  if (initialState) body.initialState = initialState
   // languageHint is NOT supported in StartAgentCallRequest — agents API rejects it with 400
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
@@ -666,147 +657,6 @@ export async function getRecordingStream(callId: string) {
   })
   console.log(`[ultravox] getRecordingStream: callId=${callId} status=${res.status} ok=${res.ok}`)
   return res
-}
-
-// ── Corpora API (A1) ────────────────────────────────────────────────────────
-
-export async function createCorpus(name: string, description?: string): Promise<{ corpusId: string }> {
-  const body: Record<string, unknown> = { name }
-  if (description) body.description = description
-
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora`, {
-    method: 'POST',
-    headers: ultravoxHeaders(),
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox createCorpus failed: ${res.status} ${err}`)
-  }
-
-  const data = await res.json()
-  return { corpusId: data.corpusId as string }
-}
-
-export async function getCorpus(corpusId: string) {
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}`, {
-    headers: ultravoxHeaders(),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox getCorpus failed: ${res.status} ${err}`)
-  }
-
-  return await res.json()
-}
-
-export async function deleteCorpus(corpusId: string): Promise<void> {
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}`, {
-    method: 'DELETE',
-    headers: ultravoxHeaders(),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox deleteCorpus failed: ${res.status} ${err}`)
-  }
-}
-
-export async function getUploadUrl(corpusId: string, mimeType: string): Promise<{ uploadUrl: string; documentId: string }> {
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/uploads`, {
-    method: 'POST',
-    headers: ultravoxHeaders(),
-    body: JSON.stringify({ mimeType }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox getUploadUrl failed: ${res.status} ${err}`)
-  }
-
-  const data = await res.json()
-  return { uploadUrl: data.uploadUrl as string, documentId: data.documentId as string }
-}
-
-interface CreateSourceOptions {
-  documentIds?: string[]
-  name?: string
-  startUrls?: string[]
-  maxDepth?: number
-}
-
-export async function createSource(corpusId: string, opts: CreateSourceOptions): Promise<{ sourceId: string }> {
-  const body: Record<string, unknown> = {}
-  if (opts.documentIds) body.documentIds = opts.documentIds
-  if (opts.name) body.name = opts.name
-  if (opts.startUrls) body.startUrls = opts.startUrls
-  if (opts.maxDepth !== undefined) body.maxDepth = opts.maxDepth
-
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources`, {
-    method: 'POST',
-    headers: ultravoxHeaders(),
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox createSource failed: ${res.status} ${err}`)
-  }
-
-  const data = await res.json()
-  return { sourceId: data.sourceId as string }
-}
-
-export async function listSources(corpusId: string) {
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources`, {
-    headers: ultravoxHeaders(),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox listSources failed: ${res.status} ${err}`)
-  }
-
-  const data = await res.json()
-  return data.results || []
-}
-
-export async function deleteSource(corpusId: string, sourceId: string): Promise<void> {
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/sources/${sourceId}`, {
-    method: 'DELETE',
-    headers: ultravoxHeaders(),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox deleteSource failed: ${res.status} ${err}`)
-  }
-}
-
-export async function queryCorpus(
-  corpusId: string,
-  query: string,
-  maxResults?: number,
-  minimumScore?: number
-) {
-  const body: Record<string, unknown> = { query }
-  if (maxResults !== undefined) body.maxResults = maxResults
-  if (minimumScore !== undefined) body.minimumScore = minimumScore
-
-  const res = await fetch(`${ULTRAVOX_BASE}/corpora/${corpusId}/query`, {
-    method: 'POST',
-    headers: ultravoxHeaders(),
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Ultravox queryCorpus failed: ${res.status} ${err}`)
-  }
-
-  return await res.json()
 }
 
 // ── Durable Tools API (D1+D2) ───────────────────────────────────────────────
@@ -886,6 +736,7 @@ export function buildCoachingTool(slug: string): object {
           required: true,
         },
       ],
+      automaticParameters: [CALL_STATE_PARAM],
       ...(secret ? {
         staticParameters: [
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },

@@ -81,7 +81,7 @@ export async function POST(
   }
   const { data: client } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, corpus_enabled, corpus_id, knowledge_backend, telegram_bot_token, telegram_chat_id')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, telegram_bot_token, telegram_chat_id')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -121,14 +121,12 @@ export async function POST(
       extra_qa: client.extra_qa as { q: string; a: string }[] | null,
       context_data: client.context_data as string | null,
       context_data_label: client.context_data_label as string | null,
-      corpus_enabled: client.corpus_enabled as boolean | null,
       knowledge_backend: client.knowledge_backend as string | null,
     }
 
-    // pgvector is self-sufficient; ultravox needs corpus infrastructure
+    // pgvector is the only active backend
     const knowledgeBackend = (client.knowledge_backend as string | null)
     const corpusAvailable = knowledgeBackend === 'pgvector'
-      || !!(client.corpus_enabled && (client.corpus_id || process.env.ULTRAVOX_CORPUS_ID))
     const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
 
     const callerContextBlock = ctx.assembled.callerContextBlock

@@ -37,7 +37,6 @@ export type ClientRow = {
   extra_qa?: { q: string; a: string }[] | null
   context_data?: string | null
   context_data_label?: string | null
-  corpus_enabled?: boolean | null
   knowledge_backend?: string | null
 }
 

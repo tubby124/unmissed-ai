@@ -19,7 +19,6 @@ import {
   buildCalendarTools,
   buildTransferTools,
   buildSmsTools,
-  buildCorpusTools,
 } from '../ultravox.js'
 import { patchCalendarBlock } from '../prompt-patcher.js'
 
@@ -190,12 +189,4 @@ describe('Registry vs runtime consistency', () => {
     assert.ok(bookableNiches.includes('salon'))
   })
 
-  test('corpus tools require explicit corpus ID', () => {
-    const withId = buildCorpusTools('test-corpus-id')
-    assert.equal(withId.length, 1)
-    assert.equal(
-      (withId[0] as Record<string, any>).parameterOverrides.corpus_id,
-      'test-corpus-id',
-    )
-  })
 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirectCall, sendSms } from '@/lib/twilio'
+import { parseCallState, setStateUpdate } from '@/lib/call-state'
 
 export const maxDuration = 10
 
@@ -16,6 +17,9 @@ export async function POST(
   if (!expected || secret !== expected) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
+
+  // B3: Read call state from Ultravox header
+  const callState = parseCallState(req)
 
   let call_id: string | undefined
   try {
@@ -91,10 +95,14 @@ export async function POST(
         if (error) console.warn(`[transfer] Failed to mark call as transferred: ${error.message}`)
       })
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
-    return NextResponse.json({ result: 'Transfer initiated' })
+    const okResponse = NextResponse.json({ result: 'Transfer initiated' })
+    if (callState) setStateUpdate(okResponse, { escalationFlag: true, lastToolOutcome: 'transferred' })
+    return okResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[transfer] Twilio redirect failed: ${msg}`)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const errResponse = NextResponse.json({ error: msg }, { status: 500 })
+    if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'transfer_error' })
+    return errResponse
   }
 }

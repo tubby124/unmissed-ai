@@ -390,20 +390,20 @@ describe('AgentContext — retrieval field', () => {
   })
 
   test('retrieval enabled when corpusAvailable=true and niche supports lookup', () => {
-    const client = makeClientRow({ niche: 'auto_glass', corpus_enabled: true })
+    const client = makeClientRow({ niche: 'auto_glass' })
     const ctx = buildAgentContext(client, '+15551234567', [], new Date(), true)
     assert.equal(ctx.retrieval.enabled, true)
     assert.ok(ctx.retrieval.promptInstruction.includes('queryCorpus'))
   })
 
   test('retrieval disabled for voicemail even with corpusAvailable=true', () => {
-    const client = makeClientRow({ niche: 'voicemail', corpus_enabled: true })
+    const client = makeClientRow({ niche: 'voicemail' })
     const ctx = buildAgentContext(client, '+15551234567', [], new Date(), true)
     assert.equal(ctx.retrieval.enabled, false)
     assert.equal(ctx.retrieval.promptInstruction, '')
   })
 
-  test('retrieval disabled when corpus_enabled=false even with corpusAvailable=true', () => {
+  test('retrieval disabled when niche does not support lookup even with corpusAvailable=true', () => {
     // corpusAvailable is passed as true but the niche might not support it
     const client = makeClientRow({ niche: 'other' })
     const ctx = buildAgentContext(client, '+15551234567', [], new Date(), true)

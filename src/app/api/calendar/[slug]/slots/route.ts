@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots } from '@/lib/google-calendar'
+import { parseCallState, setStateUpdate, slotInstruction } from '@/lib/call-state'
 
 export async function GET(
   req: NextRequest,
@@ -12,6 +13,9 @@ export async function GET(
   if (toolSecret && providedSecret !== toolSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  // B3: Read call state from Ultravox header (null if not available)
+  const callState = parseCallState(req)
 
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD
@@ -52,18 +56,28 @@ export async function GET(
       time || undefined,
     )
     if (slots.length === 0) {
-      return NextResponse.json({
+      const newAttempts = (callState?.slotAttempts ?? 0) + 1
+      const coaching = callState ? slotInstruction({ ...callState, slotAttempts: newAttempts }, false) : ''
+      const baseInstruction = `No available slots found. Apologize and offer to have someone call back with more options.`
+      const response = NextResponse.json({
         available: false,
         slots: [],
-        _instruction: `No available slots found. Apologize and offer to have someone call back with more options.`,
+        _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
       })
+      if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
+      return response
     }
     const slotList = slots.map(s => s.displayTime).join(', ')
-    return NextResponse.json({
+    const newAttempts = (callState?.slotAttempts ?? 0) + 1
+    const coaching = callState ? slotInstruction({ ...callState, slotAttempts: newAttempts }, true) : ''
+    const baseInstruction = `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`
+    const response = NextResponse.json({
       available: true,
       slots,
-      _instruction: `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`,
+      _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
     })
+    if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
+    return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[calendar/slots] Failed for slug=${slug}: ${msg}`)
@@ -73,8 +87,10 @@ export async function GET(
       await supabase.from('clients').update({ calendar_auth_status: 'expired' }).eq('slug', slug)
     }
 
-    return NextResponse.json({ available: false, fallback: true, reason: 'calendar_auth_expired',
+    const response = NextResponse.json({ available: false, fallback: true, reason: 'calendar_auth_expired',
       _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule, and use hangUp.`,
     })
+    if (callState) setStateUpdate(response, { lastToolOutcome: 'calendar_unavailable' })
+    return response
   }
 }
