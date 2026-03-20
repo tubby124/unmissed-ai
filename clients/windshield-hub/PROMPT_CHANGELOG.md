@@ -59,3 +59,39 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 14495 | **Hash:** 3b386f67349ea1d6
 **Supabase version_id:** ddacdb20-50c8-43eb-8ffb-4b6f06f1bc74
 **Ultravox revision:** 9a99b274-78f1-4dac-a613-cc8e381bd7a9
+
+## v11 — 2026-03-19 18:25 UTC
+**Change:** Lean prompt rewrite (14.5K→7.9K chars) + Blake Cartesia male voice
+**Chars:** 7887 | **Hash:** ea46f4680892dd8d
+**Supabase version_id:** 9c09b820-59f8-4577-8556-b6d1c0ad82c2
+**Ultravox revision:** 6521da76-584d-4973-8df2-f6cadb219868
+
+## v12 — 2026-03-19 18:28 UTC
+**Change:** Job inquiry: take message instead of auto-rejecting
+**Chars:** 7991 | **Hash:** aed10e0008f7e113
+**Supabase version_id:** 40e61d72-367a-48a9-a91b-df324ae998ed
+**Ultravox revision:** 6455a8ac-0560-4f5b-a282-df8617d05f36
+
+## v13 — 2026-03-19 20:25 UTC
+**Change:** Fix hours to match Google Business Profile: Mon-Fri 8:30-5:30, weekends 10-5:30. Update callerContext docs for OFFICE HOURS/STATUS fields.
+**Chars:** 8045 | **Hash:** 2ffaebeab7f53dc8
+**Supabase version_id:** d6547c1a-a621-4eb7-84f8-0b3d9b2235e9
+**Ultravox revision:** ada06557-43bd-4fed-9b70-4b1cd5bdfb3d
+
+## v14 — 2026-03-20 02:26 UTC
+**Change:** Sync tools — inject queryKnowledge for pgvector RAG canary
+**Chars:** 8045 | **Hash:** 2ffaebeab7f53dc8
+**Supabase version_id:** db7e296b-f38b-411d-b192-8e00b0063a3e
+**Ultravox revision:** 85e210d1-31d4-40d3-95ee-b6e2cc485d31
+
+## v15 — 2026-03-20 03:27 UTC
+**Change:** v15: answer-first KB lookup — queryKnowledge MUST fire for factual Qs, max 2 vehicle asks, compound triage fix, deflection removal
+**Chars:** 7791 | **Hash:** 5ef329971620d680
+**Supabase version_id:** 1ac718a9-dd29-47c4-ba41-4bb588259861
+**Ultravox revision:** ae405eed-8965-46be-89e1-d5abc67a73d1
+
+## v16 — 2026-03-20 03:40 UTC
+**Change:** v16: tiered knowledge lookup — answer from context first, queryKnowledge only for detailed/missing info, reduces tool call latency
+**Chars:** 7911 | **Hash:** 5536ef8bf7d2f5cd
+**Supabase version_id:** 2f746074-b2e1-41cb-819a-7268d59d628c
+**Ultravox revision:** 1c8125d8-4f22-409b-91d9-6ec9f26985ad

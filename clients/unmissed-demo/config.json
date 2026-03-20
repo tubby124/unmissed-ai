@@ -1,7 +1,7 @@
 {
-  "_comment": "unmissed.ai Demo Agent (Aria) | Railway native | Webhook: /api/webhook/unmissed-demo/inbound | Twilio: +15878014602",
+  "_comment": "unmissed.ai Demo Agent (Zara) | Railway native | Webhook: /api/webhook/unmissed-demo/inbound | Twilio: +15878014602",
   "client_name":          "unmissed.ai Demo",
-  "agent_name":           "Aria",
+  "agent_name":           "Zara",
   "business_name":        "unmissed.ai",
   "host_name":            "Hasan",
   "host_phone_display":   "(306) 850-7687",

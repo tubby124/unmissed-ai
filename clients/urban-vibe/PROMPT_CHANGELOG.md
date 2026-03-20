@@ -80,3 +80,15 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 21151 | **Hash:** 698869c9277f745c
 **Supabase version_id:** 7acfb694-121b-47ba-a727-eb6881cc826a
 **Ultravox revision:** b15d24d6-5b4a-44fb-bb60-99db375c57b6
+
+## v16 — 2026-03-19 21:09 UTC
+**Change:** GLM-4.6 compressed prompt — 59% reduction (21K→8.6K chars), all 25 tests passing, preserves all Ray logic patterns
+**Chars:** 8619 | **Hash:** 35bb649c4cc967c1
+**Supabase version_id:** 5cf888ca-6490-461e-b56f-55b9a9821dd9
+**Ultravox revision:** daed9126-1475-49d3-a0d7-c55ad9c314c6
+
+## v17 — 2026-03-19 21:16 UTC
+**Change:** Fix name re-ask bug on rental prospects + handle 'when is Ray available' using office hours
+**Chars:** 8914 | **Hash:** aecb00d732be6137
+**Supabase version_id:** deaefb3c-1313-4b39-bf10-ddd42392667b
+**Ultravox revision:** 41dc46f8-fa20-450e-acbe-1e0e1ae9b8cd

@@ -1,0 +1,177 @@
+[
+  {
+    "content": "AGRA certified auto glass repair and replacement shop.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "BBB-certified business (Better Business Bureau).",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "SGI-Accredited repair shop with direct billing to SGI available.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Lifetime workmanship warranty on windshield replacement.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Uses OEM-grade laminated auto glass from factory suppliers including DuPont, Sika, Vanfax, and Equalizer.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Services most vehicle types: sedans, SUVs, crossovers, pickup trucks, semi trucks, Jeeps, vans, buses, RVs, coupes, and vintage vehicles.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Open Monday to Friday 8am to 5pm. Saturday and Sunday available by pre-booking only.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Mobile service covers Saskatoon and surrounding areas including Warman and Martensville.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Factory-grade ADAS calibration capability for vehicles with lane-assist cameras and collision sensors.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Certified, trained technicians described as masters in windshield repair and ADAS recalibration.",
+    "chunk_type": "fact",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Is your shop certified? Like AGRA or anything?\nA: Yeah, we're AGRA certified, SGI-accredited, and BBB-certified. We use OEM-standard materials from factory suppliers.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What are your hours? When are you guys open?\nA: Monday to Friday 8am to 5pm. Weekends are available by pre-booking only — so if you need a Saturday or Sunday appointment, just let us know and we'll set it up.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Are you open on weekends? Can I come in Saturday?\nA: Saturdays and Sundays are available by pre-booking. Just give us a call and we can set up a weekend appointment for you.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How long does a windshield replacement take?\nA: A full windshield replacement usually takes about an hour. You don't need to leave the vehicle overnight.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How long for a chip repair? Is it quick?\nA: Chip repair is usually about 30 minutes. Pretty quick — you can wait while we do it.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What info do you need from me to get a quote?\nA: I'll need your vehicle year, make, and model, plus which glass needs work — windshield, side window, or rear. Also helpful to know the damage type and whether you're going through insurance.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Does SGI cover windshield replacement? Can I go through insurance?\nA: Most insurers cover auto glass, including SGI. We're an SGI-accredited shop and can do direct billing, so we handle the claim paperwork for you.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: I've got ICBC coverage, can you do a direct bill?\nA: We assist with insurance claims from most major insurers. SGI direct billing is available. For other insurers like ICBC, we can help with the claim process — Sabbir can walk you through the details.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you accept all insurance companies or just SGI?\nA: We work with most major insurance companies. SGI direct billing is available, and we help with claims from other insurers too.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you guys come to me or do I have to bring my car in?\nA: We offer mobile service — our technician can come to your home or work in Saskatoon and surrounding areas. Or you can drop off at our shop on Dudley Street.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can your mobile tech come out to Warman or Martensville?\nA: Yeah, our mobile service covers Saskatoon and surrounding cities including Warman and Martensville.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can you replace a rear window or side window, not just windshields?\nA: Absolutely — we do windshield, side glass, rear glass, quarter glass, vent glass, sunroof and moonroof glass, and even custom glass and mirrors.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you do that camera calibration thing after replacing the windshield?\nA: Yeah, we do ADAS recalibration. If your vehicle has lane-assist cameras or collision sensors behind the windshield, they need to be recalibrated after replacement. We're SGI-approved for it.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Is there a warranty on the work?\nA: Yes, we offer a lifetime workmanship warranty on windshield replacement.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you use real OEM glass or aftermarket stuff?\nA: We use OEM-grade laminated auto glass from factory suppliers like DuPont, Sika, Vanfax, and Equalizer. Same quality as what the manufacturer puts in.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: My windshield has a rock chip and now there's a long crack spreading — can you fix that or does the whole thing need replacing?\nA: When a crack is spreading from a chip, it usually means a full replacement is needed. Small isolated chips can often be repaired, but once it starts spreading, replacement is the safer option. We can take a look and confirm.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: How do I know if my chip can be repaired or if I need a full replacement?\nA: Small chips — like a bullseye or star break smaller than a quarter — can usually be repaired. Longer cracks or chips in the driver's line of sight typically need full replacement. We can assess it when you bring it in or send a photo.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do I need to leave my car overnight for a windshield replacement?\nA: Nope, most jobs are done same-day. A full replacement takes about an hour, and chip repair is about 30 minutes.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What kinds of vehicles can you work on? Do you do trucks and SUVs?\nA: We service pretty much everything — sedans, SUVs, pickup trucks, semi trucks, Jeeps, vans, buses, RVs, coupes, even vintage vehicles.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can you do RVs or big vehicles like semis?\nA: Yes, we provide RV and heavy vehicle glass services.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you do window tinting?\nA: Tinting availability varies — that's something you'd want to check with the team directly. I can have someone call you back about it.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Do you do sunroof or moonroof glass?\nA: Yes, we do sunroof and moonroof glass replacement.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Can you replace a side mirror?\nA: Yes, we offer side mirror replacement as well.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: What's Aquapel? Do you offer that?\nA: Aquapel is a glass treatment that helps repel water and improve visibility in rain. Yeah, we offer it as an add-on service.",
+    "chunk_type": "qa",
+    "source": "manual"
+  },
+  {
+    "content": "Q: Where's your shop? What's the address?\nA: We're at 2435 Dudley Street, Saskatoon, SK S7M 3Z7. Or we can come to you with our mobile service.",
+    "chunk_type": "qa",
+    "source": "manual"
+  }
+]

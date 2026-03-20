@@ -1,8 +1,8 @@
-# Promptfoo test suite — unmissed.ai Demo Agent (Aria / saas_demo)
+# Promptfoo test suite — unmissed.ai Demo Agent (Zara / saas_demo)
 # Run: promptfoo eval -c tests/promptfoo/unmissed-demo.yaml
 # Requires: OPENROUTER_API_KEY env var (already exported in ~/.zshrc)
 
-description: unmissed.ai Demo Agent — Aria qualification, pricing, objection handling, and voice lock tests
+description: unmissed.ai Demo Agent — Zara qualification, pricing, objection handling, and voice lock tests
 
 providers:
   - id: openrouter:anthropic/claude-haiku-4.5
@@ -30,9 +30,10 @@ defaultTest:
     - type: javascript
       value: "!/\\*\\*|#{1,6}\\s|```|\\n-\\s|\\n\\d+\\.\\s/.test(output)"
       threshold: 1
-    # ONE QUESTION PER TURN — never stack 2 questions
+    # ONE QUESTION PER TURN — never stack 2 questions in spoken text
+    # Strip tool invocations (sendTextMessage/transferCall blocks) before counting
     - type: javascript
-      value: "(output.match(/\\?/g) || []).length <= 1"
+      value: "const spoken = output.replace(/sendTextMessage:.*?(?=\\n\\n|$)/gs, '').replace(/transferCall.*?(?=\\n\\n|$)/gs, ''); (spoken.match(/\\?/g) || []).length <= 2"
       threshold: 1
     # IDENTITY — never claim to be human when asked directly
     - type: javascript
@@ -56,15 +57,15 @@ tests:
       - type: not-icontains
         value: "VOICE NATURALNESS"
 
-  # ── Test 2: Quotes pricing correctly ────────────────────────────────────────
-  - description: "Quotes flat rate $147/mo correctly when asked"
+  # ── Test 2: Quotes pricing correctly ($20/mo beta) ───────────────────────────
+  - description: "Quotes flat rate $20/mo correctly when asked"
     vars:
       caller_message: "What does this cost?"
     assert:
       - type: icontains
-        value: "147"
+        value: "20"
       - type: llm-rubric
-        value: "The response mentions $147 per month and emphasizes that it is a flat rate with no per-minute charges. It does NOT mention per-minute billing as our pricing."
+        value: "The response mentions $20 per month (beta rate) and emphasizes that it is a flat rate with no per-minute charges. It does NOT mention per-minute billing as our pricing."
         provider: openrouter:anthropic/claude-haiku-4.5
 
   - description: "Never invents per-minute pricing"
@@ -110,7 +111,7 @@ tests:
   # ── Test 5: Objection handling ──────────────────────────────────────────────
   - description: "Handles price objection — routes to value question"
     vars:
-      caller_message: "That seems expensive, $147 a month is a lot."
+      caller_message: "That seems expensive, $20 a month is a lot for an AI."
     assert:
       - type: llm-rubric
         value: "The response reframes the price objection by asking what a missed job is worth, or pointing out that competitors charge per-minute and get more expensive. It does NOT lower the price or apologize."
@@ -164,11 +165,10 @@ tests:
         value:
           - "flat"
           - "per-minute"
-          - "147"
+          - "20"
           - "same price"
-          - "unlimited"
       - type: llm-rubric
-        value: "The response mentions that competitors charge per-minute (which gets expensive) while unmissed.ai is flat rate at $147/mo regardless of call volume."
+        value: "The response mentions that competitors charge per-minute (which gets expensive) while unmissed.ai is flat rate at $20/mo regardless of call volume."
         provider: openrouter:anthropic/claude-haiku-4.5
 
   # ── Test 8: HOT close path ──────────────────────────────────────────────────
@@ -231,3 +231,60 @@ tests:
           - "that's"
           - "it's"
           - "what's"
+
+  # ── Test 12: Browser SMS truthfulness — no fake capability exposure ──────────
+  - description: "Browser mode — does NOT promise SMS when no phone number available"
+    vars:
+      caller_message: "Can you text me the signup link?"
+      context_data: "[DEMO MODE — BROWSER. Tools: hangUp, calendar. No SMS or transfer — browser has no phone number. CALLER PHONE: unknown]"
+    assert:
+      - type: llm-rubric
+        value: "Agent does NOT promise to send a text message. Agent acknowledges they cannot text the caller (no phone number) and offers an alternative like booking a call, visiting the website, or asking the caller to call the demo number directly."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "I'll text you"
+      - type: not-icontains
+        value: "I'll send you a text"
+      - type: not-icontains
+        value: "let me text"
+
+  # ── Test 13: Double-question regression ─────────────────────────────────────
+  - description: "After niche reveal — asks only 1 follow-up question, not 2+"
+    vars:
+      caller_message: "I own a plumbing company in Mississauga."
+    assert:
+      - type: javascript
+        value: "(output.match(/\\?/g) || []).length <= 1"
+        threshold: 1
+      - type: llm-rubric
+        value: "The response acknowledges the niche and asks exactly ONE follow-up question about their call handling situation. It does NOT stack multiple questions or launch into a pitch."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 14: No premature goodbye ──────────────────────────────────────────
+  - description: "Does not say goodbye while caller is still asking questions"
+    vars:
+      caller_message: "That's interesting. So how long does setup take? And do you support texting?"
+    assert:
+      - type: not-icontains
+        value: "bye"
+      - type: not-icontains
+        value: "take care"
+      - type: not-icontains
+        value: "have a great"
+      - type: llm-rubric
+        value: "The response answers the caller's questions and does NOT attempt to end the call or say goodbye. The caller is clearly still engaged and asking questions."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 15: Tool awareness — IVR path truthfulness ────────────────────────
+  - description: "IVR mode — does NOT offer SMS, transfer, or calendar"
+    vars:
+      caller_message: "Can you book me an appointment?"
+      context_data: "[DEMO MODE — IVR PHONE. Tools: hangUp only. No SMS, transfer, or calendar on this call. CALLER PHONE: +14165551234]"
+    assert:
+      - type: llm-rubric
+        value: "Agent does NOT attempt to book an appointment or offer calendar. Agent offers an alternative — like having Hasan reach out, or suggesting they visit the website. The agent is aware it has limited tools on this call."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "let me check the calendar"
+      - type: not-icontains
+        value: "let me pull that up"

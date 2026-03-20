@@ -1,0 +1,270 @@
+[
+  {
+    "id": "WH-001",
+    "question": "Do you guys do chip repairs?",
+    "expected_answer_theme": "Yes, chip repair is offered as a service",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "services",
+    "expected_chunk_substring": "chip",
+    "notes": "KB has chip repair QA — tool should find it even though prompt summary also covers this"
+  },
+  {
+    "id": "WH-002",
+    "question": "Can you replace a rear window on a 2019 Hyundai Tucson?",
+    "expected_answer_theme": "Yes, side and rear window replacement is offered",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "services",
+    "expected_chunk_substring": "rear window",
+    "notes": "KB has rear/side window QA pair"
+  },
+  {
+    "id": "WH-003",
+    "question": "Do you do ADAS calibration after windshield replacement?",
+    "expected_answer_theme": "Calibration is available for vehicles with lane assist cameras",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "services",
+    "expected_chunk_substring": "calibrat",
+    "notes": "ADAS is industry jargon — tests whether embedding handles abbreviation"
+  },
+  {
+    "id": "WH-004",
+    "question": "Is your shop certified? Like AGRA or anything?",
+    "expected_answer_theme": "AGRA certified",
+    "expected_source_type": "fact",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "services",
+    "expected_chunk_substring": "AGRA",
+    "notes": "Certification detail likely not in top-15 summary"
+  },
+  {
+    "id": "WH-005",
+    "question": "Do you guys come to me or do I gotta bring it to the shop?",
+    "expected_answer_theme": "Mobile service is available — technician comes to you",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "services",
+    "expected_chunk_substring": "mobile",
+    "notes": "KB has mobile service QA pair"
+  },
+  {
+    "id": "WH-006",
+    "question": "What time do you close today?",
+    "expected_answer_theme": "Hours: Monday to Friday 8:30-5:30, weekends 10-5:30",
+    "expected_source_type": "fact",
+    "should_use_tool": false,
+    "difficulty": "easy",
+    "category": "hours",
+    "notes": "Hours are in prompt callerContext and summary — no tool needed"
+  },
+  {
+    "id": "WH-007",
+    "question": "Are you open on Sundays?",
+    "expected_answer_theme": "Weekends available by pre-booking only",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "hours",
+    "expected_chunk_substring": "Sunday",
+    "notes": "KB has weekend hours QA — agent can supplement prompt hours with KB detail"
+  },
+  {
+    "id": "WH-008",
+    "question": "Can I drop off my truck at 7 AM before you guys open?",
+    "expected_answer_theme": "Not a standard option, would need to check with Sabbir",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "hours",
+    "notes": "No knowledge about early drop-off — should return empty and route to callback"
+  },
+  {
+    "id": "WH-009",
+    "question": "Does SGI cover windshield replacement?",
+    "expected_answer_theme": "Insurance claims assistance offered, route to Sabbir for details",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "insurance",
+    "expected_chunk_substring": "insur",
+    "notes": "SGI is Saskatchewan's public auto insurer — tests domain knowledge retrieval"
+  },
+  {
+    "id": "WH-010",
+    "question": "I've got ICBC coverage, can you do a direct bill?",
+    "expected_answer_theme": "Insurance handled, route to Sabbir for insurer-specific process",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "insurance",
+    "expected_chunk_substring": "insur",
+    "notes": "ICBC is BC's insurer — tests whether retrieval handles different insurer names"
+  },
+  {
+    "id": "WH-011",
+    "question": "My deductible is three hundred bucks, is it even worth claiming?",
+    "expected_answer_theme": "Cannot advise on claim financial decisions, route to Sabbir",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "hard",
+    "category": "insurance",
+    "notes": "Financial advice question — no answer in KB, should return empty"
+  },
+  {
+    "id": "WH-012",
+    "question": "Do you accept all insurance companies or just SGI?",
+    "expected_answer_theme": "Most major insurers accepted",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "insurance",
+    "expected_chunk_substring": "insur",
+    "notes": "KB has exact QA match for this question"
+  },
+  {
+    "id": "WH-013",
+    "question": "How much for a windshield on a 2020 F-150?",
+    "expected_answer_theme": "Never quote prices, route to Sabbir for exact quote",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "pricing",
+    "notes": "Pricing is NEVER in knowledge — prompt forbids quoting. Tool should return empty."
+  },
+  {
+    "id": "WH-014",
+    "question": "Is chip repair cheaper than full replacement?",
+    "expected_answer_theme": "Chip repair starts at $59, replacement from $199 — yes cheaper",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "pricing",
+    "expected_chunk_substring": "chip repair",
+    "notes": "KB has chip repair $59 and replacement $199 facts — retrieval can surface both"
+  },
+  {
+    "id": "WH-015",
+    "question": "Do you price match other shops?",
+    "expected_answer_theme": "Unknown policy, route to Sabbir",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "pricing",
+    "notes": "No price match policy in KB"
+  },
+  {
+    "id": "WH-016",
+    "question": "How long does a windshield replacement take?",
+    "expected_answer_theme": "About 1 hour for full replacement",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "process",
+    "expected_chunk_substring": "hour",
+    "notes": "Duration info in FAQ Q&A pairs"
+  },
+  {
+    "id": "WH-017",
+    "question": "How long for a chip repair?",
+    "expected_answer_theme": "About 30 minutes for chip repair",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "process",
+    "expected_chunk_substring": "30 minutes",
+    "notes": "Duration info in FAQ Q&A pairs"
+  },
+  {
+    "id": "WH-018",
+    "question": "Do I need to leave my car overnight?",
+    "expected_answer_theme": "Most jobs are done same-day, no overnight needed",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "process",
+    "expected_chunk_substring": "overnight",
+    "notes": "KB has QA: most jobs done same-day, no overnight needed"
+  },
+  {
+    "id": "WH-019",
+    "question": "What info do you need from me to get a quote?",
+    "expected_answer_theme": "Year, make, model, glass type, damage type",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "process",
+    "expected_chunk_substring": "year",
+    "notes": "Process question — info collection checklist is in domain knowledge"
+  },
+  {
+    "id": "WH-020",
+    "question": "Do you service the Saskatoon area?",
+    "expected_answer_theme": "Yes, Saskatoon and surrounding areas including Warman/Martensville",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "coverage",
+    "expected_chunk_substring": "Saskatoon",
+    "notes": "KB has service area QA with specific coverage zones"
+  },
+  {
+    "id": "WH-021",
+    "question": "Can your mobile tech come out to Warman?",
+    "expected_answer_theme": "Yes, mobile service covers Warman and Martensville",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "hard",
+    "category": "coverage",
+    "expected_chunk_substring": "Warman",
+    "notes": "KB confirms Warman/Martensville coverage in mobile service QA"
+  },
+  {
+    "id": "WH-022",
+    "question": "Can you do window tinting too?",
+    "expected_answer_theme": "Tinting is available — check with team for details",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "medium",
+    "category": "services",
+    "expected_chunk_substring": "tinting",
+    "notes": "KB has tinting QA (available, check with team for scheduling)"
+  },
+  {
+    "id": "WH-023",
+    "question": "Do you sell wiper blades?",
+    "expected_answer_theme": "Not a glass service, out of scope",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "out_of_scope",
+    "notes": "Clearly out of scope — should return empty"
+  },
+  {
+    "id": "WH-024",
+    "question": "My windshield has a rock chip and now there's a long crack spreading from it — can you fix that or does the whole thing need replacing?",
+    "expected_answer_theme": "Crack spreading from chip usually means full replacement needed",
+    "expected_source_type": "qa",
+    "should_use_tool": true,
+    "difficulty": "hard",
+    "category": "services",
+    "expected_chunk_substring": "crack",
+    "notes": "Complex multi-symptom question — tests semantic understanding of damage assessment"
+  },
+  {
+    "id": "WH-025",
+    "question": "I heard Speedy Glass does free chip repair, do you guys match that?",
+    "expected_answer_theme": "Cannot discuss competitor pricing, route to Sabbir",
+    "expected_source_type": "none",
+    "should_use_tool": true,
+    "difficulty": "hard",
+    "category": "out_of_scope",
+    "notes": "Competitor mention + pricing question — should return empty, agent routes to callback"
+  }
+]

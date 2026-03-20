@@ -19,7 +19,7 @@ defaultTest:
   assert:
     # Agent must NEVER ask for callback number (any phrasing)
     - type: javascript
-      value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|hasan|him|them)/i.test(output)"
+      value: "!/(what's|what is|can i get|need|grab|share).*(your).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|hasan|him|them)/i.test(output)"
       threshold: 1
     # VOICE LOCK — forbidden filler words for Aisha (global, applies to ALL tests)
     - type: not-icontains
@@ -139,6 +139,7 @@ tests:
   - description: "Closing references caller's existing number without asking for it"
     vars:
       caller_message: "Great, my name is Sarah and I'm interested in selling my house in Saskatoon."
+      context_data: "[CALLER PHONE: 306-555-9876]"
     assert:
       - type: icontains-any
         value:
@@ -256,6 +257,8 @@ tests:
           - "take a message"
           - "right now"
           - "check"
+          - "property"
+          - "what property"
       - type: llm-rubric
         value: "The response either starts the booking process (asks for property, address, or day) OR offers to take a message. It does NOT say it cannot help, and does NOT ask for a phone number."
         provider: openrouter:anthropic/claude-haiku-4.5

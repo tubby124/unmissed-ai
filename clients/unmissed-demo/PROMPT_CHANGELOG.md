@@ -9,3 +9,21 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 15334 | **Hash:** 83bb7198ca7fc031
 **Supabase version_id:** e1fa3cde-118f-414b-9d6f-ac31e9e32e00
 **Ultravox revision:** n/a (no Agents API agent — uses ephemeral calls)
+
+## v3 — 2026-03-19 21:47 UTC
+**Change:** v3: Aria→Zara rename, compressed 15334→8045 chars, GLM-4.6 rules, sendTextMessage tool, persistent agent, SMS dedupe
+**Chars:** 7923 | **Hash:** 1a6fa607d56c7be2
+**Supabase version_id:** ccf28b56-1a11-4470-9daa-35db96eddbae
+**Ultravox revision:** 13596cf0-20eb-4b2a-b577-a8ad2e0ef294
+
+## v4 — 2026-03-19 22:43 UTC
+**Change:** add CALENDAR BOOKING FLOW block (booking_enabled=true)
+**Chars:** 9364 | **Hash:** 6c877a9b773c68ce
+**Supabase version_id:** 3453f82c-700b-490a-8b4a-fdc3a5297088
+**Ultravox revision:** c4157208-d340-4fe4-9a25-c3ffb13803b5
+
+## v5 — 2026-03-19 23:34 UTC
+**Change:** pricing overhaul: $147 → $20/mo beta + $30 regular, $25 setup, 7-day trial, compressed to 7676 chars
+**Chars:** 7676 | **Hash:** cfd34b5470169d10
+**Supabase version_id:** 8905202a-a0f5-47d7-8f37-0f99f8ba405a
+**Ultravox revision:** 4a18e1ee-84cc-42d3-820a-e71866e955b6

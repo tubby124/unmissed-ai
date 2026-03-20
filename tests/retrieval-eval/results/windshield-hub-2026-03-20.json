@@ -1,0 +1,1145 @@
+{
+  "metadata": {
+    "slug": "windshield-hub",
+    "date": "2026-03-20",
+    "base_url": "https://unmissed-ai-production.up.railway.app",
+    "match_threshold": 0.7,
+    "eval_set_path": "/Users/owner/Downloads/CALLING AGENTs/tests/retrieval-eval/eval-sets/windshield-hub.json",
+    "duration_ms": 21832
+  },
+  "scorecard": {
+    "retrieval_hit_rate": 1,
+    "wrong_source_rate": 0,
+    "empty_result_rate": 0.05263157894736842,
+    "unnecessary_tool_rate": 0,
+    "correct_silence_rate": 0.8333333333333334,
+    "latency_p50": 814,
+    "latency_p95": 1449,
+    "latency_max": 1774,
+    "total_questions": 25,
+    "pass": true,
+    "threshold_failures": []
+  },
+  "results": [
+    {
+      "id": "WH-001",
+      "question": "Do you guys do chip repairs?",
+      "expected": {
+        "id": "WH-001",
+        "question": "Do you guys do chip repairs?",
+        "expected_answer_theme": "Yes, chip repair is offered as a service",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "services",
+        "expected_chunk_substring": "chip",
+        "notes": "KB has chip repair QA — tool should find it even though prompt summary also covers this"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you handle chip repairs as well?\nA: Yes, chip and crack repair services are offered starting from $59.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.75316867967939,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0196078431372549
+          },
+          {
+            "content": "Q: How long for a chip repair? Is it quick?\nA: Chip repair is usually about 30 minutes. Pretty quick — you can wait while we do it.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.626605093117051,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Chip and crack repair services start from $59.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.626224975996479,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0188679245283019
+          }
+        ],
+        "count": 3,
+        "query_id": "934dd801-9a14-47b4-a47c-e8c6cdcded85"
+      },
+      "latency_ms": 1110,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-002",
+      "question": "Can you replace a rear window on a 2019 Hyundai Tucson?",
+      "expected": {
+        "id": "WH-002",
+        "question": "Can you replace a rear window on a 2019 Hyundai Tucson?",
+        "expected_answer_theme": "Yes, side and rear window replacement is offered",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "services",
+        "expected_chunk_substring": "rear window",
+        "notes": "KB has rear/side window QA pair"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Can you replace a rear window or side window, not just windshields?\nA: Absolutely — we do windshield, side glass, rear glass, quarter glass, vent glass, sunroof and moonroof glass, and even custom glass and mirrors.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.601469691248759,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0196078431372549
+          }
+        ],
+        "count": 1,
+        "query_id": "4b57831c-31ad-47e4-a892-80eeaa48dc7b"
+      },
+      "latency_ms": 936,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-003",
+      "question": "Do you do ADAS calibration after windshield replacement?",
+      "expected": {
+        "id": "WH-003",
+        "question": "Do you do ADAS calibration after windshield replacement?",
+        "expected_answer_theme": "Calibration is available for vehicles with lane assist cameras",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "services",
+        "expected_chunk_substring": "calibrat",
+        "notes": "ADAS is industry jargon — tests whether embedding handles abbreviation"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you do that camera calibration thing after replacing the windshield?\nA: Yeah, we do ADAS recalibration. If your vehicle has lane-assist cameras or collision sensors behind the windshield, they need to be recalibrated after replacement. We're SGI-approved for it.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.828781168455148,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: Do you offer ADAS recalibration after replacement?\nA: Yes, they offer SGI-approved ADAS re-calibration services and are described as ADAS calibration masters.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.711754356413565,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Certified, trained technicians described as masters in windshield repair and ADAS recalibration.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.653862162273479,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0188679245283019
+          },
+          {
+            "content": "Offers ADAS re-calibration services using SGI-approved techniques.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.638781829025532,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0185185185185185
+          }
+        ],
+        "count": 4,
+        "query_id": "51a464f8-4ed1-47e7-8f30-7fbe050138c7"
+      },
+      "latency_ms": 814,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-004",
+      "question": "Is your shop certified? Like AGRA or anything?",
+      "expected": {
+        "id": "WH-004",
+        "question": "Is your shop certified? Like AGRA or anything?",
+        "expected_answer_theme": "AGRA certified",
+        "expected_source_type": "fact",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "services",
+        "expected_chunk_substring": "AGRA",
+        "notes": "Certification detail likely not in top-15 summary"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Is your shop certified? Like AGRA or anything?\nA: Yeah, we're AGRA certified, SGI-accredited, and BBB-certified. We use OEM-standard materials from factory suppliers.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.802126047468984,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          }
+        ],
+        "count": 1,
+        "query_id": "c690d493-e680-4128-bd91-1c044d47b8c9"
+      },
+      "latency_ms": 772,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-005",
+      "question": "Do you guys come to me or do I gotta bring it to the shop?",
+      "expected": {
+        "id": "WH-005",
+        "question": "Do you guys come to me or do I gotta bring it to the shop?",
+        "expected_answer_theme": "Mobile service is available — technician comes to you",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "services",
+        "expected_chunk_substring": "mobile",
+        "notes": "KB has mobile service QA pair"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you guys come to me or do I have to bring my car in?\nA: We offer mobile service — our technician can come to your home or work in Saskatoon and surrounding areas. Or you can drop off at our shop on Dudley Street.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.60471730039706,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          }
+        ],
+        "count": 1,
+        "query_id": "efc40f58-0413-4a7a-b4cf-8dcd55b01aea"
+      },
+      "latency_ms": 772,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-006",
+      "question": "What time do you close today?",
+      "expected": {
+        "id": "WH-006",
+        "question": "What time do you close today?",
+        "expected_answer_theme": "Hours: Monday to Friday 8:30-5:30, weekends 10-5:30",
+        "expected_source_type": "fact",
+        "should_use_tool": false,
+        "difficulty": "easy",
+        "category": "hours",
+        "notes": "Hours are in prompt callerContext and summary — no tool needed"
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "48dde7db-5069-487e-a925-78522b0a395f"
+      },
+      "latency_ms": 763,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": true,
+        "unnecessary_call": false,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-007",
+      "question": "Are you open on Sundays?",
+      "expected": {
+        "id": "WH-007",
+        "question": "Are you open on Sundays?",
+        "expected_answer_theme": "Weekends available by pre-booking only",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "hours",
+        "expected_chunk_substring": "Sunday",
+        "notes": "KB has weekend hours QA — agent can supplement prompt hours with KB detail"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Are you open on weekends? Can I come in Saturday?\nA: Saturdays and Sundays are available by pre-booking. Just give us a call and we can set up a weekend appointment for you.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.599012177297804,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0388386123680241
+          },
+          {
+            "content": "Open Monday to Friday 8am to 5pm. Saturday and Sunday available by pre-booking only.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.496167480945587,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0384757676655568
+          },
+          {
+            "content": "Q: What are your hours? When are you guys open?\nA: Monday to Friday 8am to 5pm. Weekends are available by pre-booking only — so if you need a Saturday or Sunday appointment, just let us know and we'll set it up.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.514742410476121,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0380986937590711
+          }
+        ],
+        "count": 3,
+        "query_id": "c08d93fe-801f-4d3a-b393-4a55d305fd70"
+      },
+      "latency_ms": 816,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-008",
+      "question": "Can I drop off my truck at 7 AM before you guys open?",
+      "expected": {
+        "id": "WH-008",
+        "question": "Can I drop off my truck at 7 AM before you guys open?",
+        "expected_answer_theme": "Not a standard option, would need to check with Sabbir",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "hours",
+        "notes": "No knowledge about early drop-off — should return empty and route to callback"
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "8cc780e5-84eb-4fd5-b036-28e99e533304"
+      },
+      "latency_ms": 716,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": true
+      }
+    },
+    {
+      "id": "WH-009",
+      "question": "Does SGI cover windshield replacement?",
+      "expected": {
+        "id": "WH-009",
+        "question": "Does SGI cover windshield replacement?",
+        "expected_answer_theme": "Insurance claims assistance offered, route to Sabbir for details",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "insurance",
+        "expected_chunk_substring": "insur",
+        "notes": "SGI is Saskatchewan's public auto insurer — tests domain knowledge retrieval"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Does SGI cover windshield replacement? Can I go through insurance?\nA: Most insurers cover auto glass, including SGI. We're an SGI-accredited shop and can do direct billing, so we handle the claim paperwork for you.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.846509976997089,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: Do you do direct insurance billing (SGI, ICBC)?\nA: They assist with auto glass insurance claims in Saskatchewan and are SGI-approved. Direct billing specifics are not mentioned on the website.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.637074906738845,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "SGI-Accredited repair shop with direct billing to SGI available.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.633998434722473,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0188679245283019
+          },
+          {
+            "content": "Q: Do you accept all insurance companies or just SGI?\nA: We work with most major insurance companies. SGI direct billing is available, and we help with claims from other insurers too.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.6210921987509,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0185185185185185
+          }
+        ],
+        "count": 4,
+        "query_id": "16cbe20b-8272-4824-b66e-d2dfdab033c1"
+      },
+      "latency_ms": 752,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-010",
+      "question": "I've got ICBC coverage, can you do a direct bill?",
+      "expected": {
+        "id": "WH-010",
+        "question": "I've got ICBC coverage, can you do a direct bill?",
+        "expected_answer_theme": "Insurance handled, route to Sabbir for insurer-specific process",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "insurance",
+        "expected_chunk_substring": "insur",
+        "notes": "ICBC is BC's insurer — tests whether retrieval handles different insurer names"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: I've got ICBC coverage, can you do a direct bill?\nA: We assist with insurance claims from most major insurers. SGI direct billing is available. For other insurers like ICBC, we can help with the claim process — Sabbir can walk you through the details.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.827887729954962,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: Do you do direct insurance billing (SGI, ICBC)?\nA: They assist with auto glass insurance claims in Saskatchewan and are SGI-approved. Direct billing specifics are not mentioned on the website.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.612219328780713,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          }
+        ],
+        "count": 2,
+        "query_id": "506fcbbc-fe02-446c-baf2-df77dec54ac1"
+      },
+      "latency_ms": 853,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-011",
+      "question": "My deductible is three hundred bucks, is it even worth claiming?",
+      "expected": {
+        "id": "WH-011",
+        "question": "My deductible is three hundred bucks, is it even worth claiming?",
+        "expected_answer_theme": "Cannot advise on claim financial decisions, route to Sabbir",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "hard",
+        "category": "insurance",
+        "notes": "Financial advice question — no answer in KB, should return empty"
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "11cff031-1620-4827-895a-a1cb45f02911"
+      },
+      "latency_ms": 838,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": true
+      }
+    },
+    {
+      "id": "WH-012",
+      "question": "Do you accept all insurance companies or just SGI?",
+      "expected": {
+        "id": "WH-012",
+        "question": "Do you accept all insurance companies or just SGI?",
+        "expected_answer_theme": "Most major insurers accepted",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "insurance",
+        "expected_chunk_substring": "insur",
+        "notes": "KB has exact QA match for this question"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you accept all insurance companies or just SGI?\nA: We work with most major insurance companies. SGI direct billing is available, and we help with claims from other insurers too.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.866554744059971,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0388386123680241
+          },
+          {
+            "content": "Q: Does SGI cover windshield replacement? Can I go through insurance?\nA: Most insurers cover auto glass, including SGI. We're an SGI-accredited shop and can do direct billing, so we handle the claim paperwork for you.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.683141686541838,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0388386123680241
+          },
+          {
+            "content": "Q: Do you do direct insurance billing (SGI, ICBC)?\nA: They assist with auto glass insurance claims in Saskatchewan and are SGI-approved. Direct billing specifics are not mentioned on the website.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.660658955574036,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0373864430468204
+          },
+          {
+            "content": "SGI-Accredited repair shop with direct billing to SGI available.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.609451019200623,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0370497427101201
+          },
+          {
+            "content": "Q: I've got ICBC coverage, can you do a direct bill?\nA: We assist with insurance claims from most major insurers. SGI direct billing is available. For other insurers like ICBC, we can help with the claim process — Sabbir can walk you through the details.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.645744082255336,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0357598978288633
+          }
+        ],
+        "count": 5,
+        "query_id": "128646f6-67c9-46ac-9d1d-79ec1ff5e393"
+      },
+      "latency_ms": 828,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-013",
+      "question": "How much for a windshield on a 2020 F-150?",
+      "expected": {
+        "id": "WH-013",
+        "question": "How much for a windshield on a 2020 F-150?",
+        "expected_answer_theme": "Never quote prices, route to Sabbir for exact quote",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "pricing",
+        "notes": "Pricing is NEVER in knowledge — prompt forbids quoting. Tool should return empty."
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "5ed0030b-3682-4286-8f7c-e642e2aeb9c3"
+      },
+      "latency_ms": 749,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": true
+      }
+    },
+    {
+      "id": "WH-014",
+      "question": "Is chip repair cheaper than full replacement?",
+      "expected": {
+        "id": "WH-014",
+        "question": "Is chip repair cheaper than full replacement?",
+        "expected_answer_theme": "Chip repair starts at $59, replacement from $199 — yes cheaper",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "pricing",
+        "expected_chunk_substring": "chip repair",
+        "notes": "KB has chip repair $59 and replacement $199 facts — retrieval can surface both"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you handle chip repairs as well?\nA: Yes, chip and crack repair services are offered starting from $59.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.674553493423671,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0196078431372549
+          },
+          {
+            "content": "Chip and crack repair services start from $59.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.673244456254126,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Q: How do I know if my chip can be repaired or if I need a full replacement?\nA: Small chips — like a bullseye or star break smaller than a quarter — can usually be repaired. Longer cracks or chips in the driver's line of sight typically need full replacement. We can assess it when you bring it in or send a photo.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.651442150728653,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0188679245283019
+          }
+        ],
+        "count": 3,
+        "query_id": "d417713b-4dbe-47b2-9002-886b5e2491c6"
+      },
+      "latency_ms": 818,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-015",
+      "question": "Do you price match other shops?",
+      "expected": {
+        "id": "WH-015",
+        "question": "Do you price match other shops?",
+        "expected_answer_theme": "Unknown policy, route to Sabbir",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "pricing",
+        "notes": "No price match policy in KB"
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "e8240d22-454a-4a14-bbb2-852a74a67684"
+      },
+      "latency_ms": 887,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": true
+      }
+    },
+    {
+      "id": "WH-016",
+      "question": "How long does a windshield replacement take?",
+      "expected": {
+        "id": "WH-016",
+        "question": "How long does a windshield replacement take?",
+        "expected_answer_theme": "About 1 hour for full replacement",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "process",
+        "expected_chunk_substring": "hour",
+        "notes": "Duration info in FAQ Q&A pairs"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: How long does a windshield replacement take?\nA: A full windshield replacement usually takes about an hour. You don't need to leave the vehicle overnight.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.79827977429153,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: My windshield has a rock chip and now there's a long crack spreading — can you fix that or does the whole thing need replacing?\nA: When a crack is spreading from a chip, it usually means a full replacement is needed. Small isolated chips can often be repaired, but once it starts spreading, replacement is the safer option. We can take a look and confirm.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.520197284642313,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0364721485411141
+          },
+          {
+            "content": "Q: Do I need to leave my car overnight for a windshield replacement?\nA: Nope, most jobs are done same-day. A full replacement takes about an hour, and chip repair is about 30 minutes.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.740247397182868,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Windshield replacement services start from $199.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.62069304647127,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0188679245283019
+          },
+          {
+            "content": "Lifetime workmanship warranty on windshield replacement.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.615939245708083,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0185185185185185
+          }
+        ],
+        "count": 5,
+        "query_id": "172a2f83-8637-4449-b4b3-33b4cb202ebc"
+      },
+      "latency_ms": 804,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-017",
+      "question": "How long for a chip repair?",
+      "expected": {
+        "id": "WH-017",
+        "question": "How long for a chip repair?",
+        "expected_answer_theme": "About 30 minutes for chip repair",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "process",
+        "expected_chunk_substring": "30 minutes",
+        "notes": "Duration info in FAQ Q&A pairs"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: How long for a chip repair? Is it quick?\nA: Chip repair is usually about 30 minutes. Pretty quick — you can wait while we do it.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.785787000330538,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: My windshield has a rock chip and now there's a long crack spreading — can you fix that or does the whole thing need replacing?\nA: When a crack is spreading from a chip, it usually means a full replacement is needed. Small isolated chips can often be repaired, but once it starts spreading, replacement is the safer option. We can take a look and confirm.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.51565509812804,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0370879120879121
+          },
+          {
+            "content": "Q: Do you handle chip repairs as well?\nA: Yes, chip and crack repair services are offered starting from $59.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.660430791223963,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Chip and crack repair services start from $59.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.652359252324376,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0188679245283019
+          },
+          {
+            "content": "Q: How do I know if my chip can be repaired or if I need a full replacement?\nA: Small chips — like a bullseye or star break smaller than a quarter — can usually be repaired. Longer cracks or chips in the driver's line of sight typically need full replacement. We can assess it when you bring it in or send a photo.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.637856136135057,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0185185185185185
+          }
+        ],
+        "count": 5,
+        "query_id": "b9ececf2-ecbf-4ebf-961a-85bd6bd8abfa"
+      },
+      "latency_ms": 1449,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-018",
+      "question": "Do I need to leave my car overnight?",
+      "expected": {
+        "id": "WH-018",
+        "question": "Do I need to leave my car overnight?",
+        "expected_answer_theme": "Most jobs are done same-day, no overnight needed",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "process",
+        "expected_chunk_substring": "overnight",
+        "notes": "KB has QA: most jobs done same-day, no overnight needed"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do I need to leave my car overnight for a windshield replacement?\nA: Nope, most jobs are done same-day. A full replacement takes about an hour, and chip repair is about 30 minutes.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.506375504840615,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          }
+        ],
+        "count": 1,
+        "query_id": "829a7f6a-7644-422c-a86e-4e537582123b"
+      },
+      "latency_ms": 701,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-019",
+      "question": "What info do you need from me to get a quote?",
+      "expected": {
+        "id": "WH-019",
+        "question": "What info do you need from me to get a quote?",
+        "expected_answer_theme": "Year, make, model, glass type, damage type",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "process",
+        "expected_chunk_substring": "year",
+        "notes": "Process question — info collection checklist is in domain knowledge"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: What info do you need from me to get a quote?\nA: I'll need your vehicle year, make, and model, plus which glass needs work — windshield, side window, or rear. Also helpful to know the damage type and whether you're going through insurance.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.671129411021701,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          }
+        ],
+        "count": 1,
+        "query_id": "a4799a5a-452e-443e-adac-856d1d2d1cf1"
+      },
+      "latency_ms": 727,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-020",
+      "question": "Do you service the Saskatoon area?",
+      "expected": {
+        "id": "WH-020",
+        "question": "Do you service the Saskatoon area?",
+        "expected_answer_theme": "Yes, Saskatoon and surrounding areas including Warman/Martensville",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "coverage",
+        "expected_chunk_substring": "Saskatoon",
+        "notes": "KB has service area QA with specific coverage zones"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: What areas do you serve?\nA: Saskatoon and surrounding areas. They provide mobile services in Saskatoon and nearby cities.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.771418360302649,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Mobile service covers Saskatoon and surrounding areas including Warman and Martensville.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.705190768702191,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0384615384615385
+          },
+          {
+            "content": "Q: Do you guys come to me or do I have to bring my car in?\nA: We offer mobile service — our technician can come to your home or work in Saskatoon and surrounding areas. Or you can drop off at our shop on Dudley Street.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.653712824148663,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0370497427101201
+          },
+          {
+            "content": "Q: Can your mobile tech come out to Warman or Martensville?\nA: Yeah, our mobile service covers Saskatoon and surrounding cities including Warman and Martensville.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.662268319907333,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0188679245283019
+          },
+          {
+            "content": "Operates mobile windshield repair and replacement services in Saskatoon and nearby cities.",
+            "chunk_type": "fact",
+            "source": "website_scrape",
+            "similarity": 0.657060366027316,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0185185185185185
+          }
+        ],
+        "count": 5,
+        "query_id": "adb51c13-ce3c-4eaf-90d2-56876f35b98c"
+      },
+      "latency_ms": 788,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-021",
+      "question": "Can your mobile tech come out to Warman?",
+      "expected": {
+        "id": "WH-021",
+        "question": "Can your mobile tech come out to Warman?",
+        "expected_answer_theme": "Yes, mobile service covers Warman and Martensville",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "hard",
+        "category": "coverage",
+        "expected_chunk_substring": "Warman",
+        "notes": "KB confirms Warman/Martensville coverage in mobile service QA"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Can your mobile tech come out to Warman or Martensville?\nA: Yeah, our mobile service covers Saskatoon and surrounding cities including Warman and Martensville.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.861111013763928,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: Do you guys come to me or do I have to bring my car in?\nA: We offer mobile service — our technician can come to your home or work in Saskatoon and surrounding areas. Or you can drop off at our shop on Dudley Street.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.670467813872499,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0192307692307692
+          },
+          {
+            "content": "Mobile service covers Saskatoon and surrounding areas including Warman and Martensville.",
+            "chunk_type": "fact",
+            "source": "manual",
+            "similarity": 0.638122657423814,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0188679245283019
+          }
+        ],
+        "count": 3,
+        "query_id": "dd84fca2-48f4-4075-94d3-6e5490039c4f"
+      },
+      "latency_ms": 1774,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-022",
+      "question": "Can you do window tinting too?",
+      "expected": {
+        "id": "WH-022",
+        "question": "Can you do window tinting too?",
+        "expected_answer_theme": "Tinting is available — check with team for details",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "medium",
+        "category": "services",
+        "expected_chunk_substring": "tinting",
+        "notes": "KB has tinting QA (available, check with team for scheduling)"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you do window tinting?\nA: Tinting availability varies — that's something you'd want to check with the team directly. I can have someone call you back about it.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.674760792715816,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          }
+        ],
+        "count": 1,
+        "query_id": "030e2012-3090-4073-8942-d77209e0e17d"
+      },
+      "latency_ms": 845,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-023",
+      "question": "Do you sell wiper blades?",
+      "expected": {
+        "id": "WH-023",
+        "question": "Do you sell wiper blades?",
+        "expected_answer_theme": "Not a glass service, out of scope",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "easy",
+        "category": "out_of_scope",
+        "notes": "Clearly out of scope — should return empty"
+      },
+      "response": {
+        "results": [],
+        "count": 0,
+        "query_id": "82cde06f-207d-4949-8a22-12e65829a890"
+      },
+      "latency_ms": 887,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": true
+      }
+    },
+    {
+      "id": "WH-024",
+      "question": "My windshield has a rock chip and now there's a long crack spreading from it — can you fix that or does the whole thing need replacing?",
+      "expected": {
+        "id": "WH-024",
+        "question": "My windshield has a rock chip and now there's a long crack spreading from it — can you fix that or does the whole thing need replacing?",
+        "expected_answer_theme": "Crack spreading from chip usually means full replacement needed",
+        "expected_source_type": "qa",
+        "should_use_tool": true,
+        "difficulty": "hard",
+        "category": "services",
+        "expected_chunk_substring": "crack",
+        "notes": "Complex multi-symptom question — tests semantic understanding of damage assessment"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: My windshield has a rock chip and now there's a long crack spreading — can you fix that or does the whole thing need replacing?\nA: When a crack is spreading from a chip, it usually means a full replacement is needed. Small isolated chips can often be repaired, but once it starts spreading, replacement is the safer option. We can take a look and confirm.",
+            "chunk_type": "qa",
+            "source": "manual",
+            "similarity": 0.917168050951854,
+            "source_run_id": "d1b6a0ef-f141-4bcd-bf19-a2211b656392",
+            "rrf_score": 0.0392156862745098
+          },
+          {
+            "content": "Q: What are your starting prices?\nA: Windshield replacement starts from $199. Chip and crack repair starts from $59.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.601443362408089,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0192307692307692
+          }
+        ],
+        "count": 2,
+        "query_id": "39a4856e-e6f8-4581-b3da-fa42a1205723"
+      },
+      "latency_ms": 720,
+      "verdicts": {
+        "retrieval_hit": true,
+        "wrong_source": false,
+        "empty_when_should_have": false,
+        "unnecessary_call": null,
+        "correct_silence": null
+      }
+    },
+    {
+      "id": "WH-025",
+      "question": "I heard Speedy Glass does free chip repair, do you guys match that?",
+      "expected": {
+        "id": "WH-025",
+        "question": "I heard Speedy Glass does free chip repair, do you guys match that?",
+        "expected_answer_theme": "Cannot discuss competitor pricing, route to Sabbir",
+        "expected_source_type": "none",
+        "should_use_tool": true,
+        "difficulty": "hard",
+        "category": "out_of_scope",
+        "notes": "Competitor mention + pricing question — should return empty, agent routes to callback"
+      },
+      "response": {
+        "results": [
+          {
+            "content": "Q: Do you handle chip repairs as well?\nA: Yes, chip and crack repair services are offered starting from $59.",
+            "chunk_type": "qa",
+            "source": "website_scrape",
+            "similarity": 0.633080824246313,
+            "source_run_id": "a911eb37-98a0-43d5-a325-831997df8ad4",
+            "rrf_score": 0.0196078431372549
+          }
+        ],
+        "count": 1,
+        "query_id": "50f289ee-0687-4466-bfd4-9e5f8c73c48c"
+      },
+      "latency_ms": 684,
+      "verdicts": {
+        "retrieval_hit": null,
+        "wrong_source": null,
+        "empty_when_should_have": null,
+        "unnecessary_call": null,
+        "correct_silence": false
+      }
+    }
+  ]
+}

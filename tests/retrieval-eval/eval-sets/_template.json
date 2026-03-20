@@ -1,0 +1,13 @@
+[
+  {
+    "id": "XX-001",
+    "question": "What a real caller would say",
+    "expected_answer_theme": "Semantic intent of the correct answer (1-2 sentences)",
+    "expected_source_type": "fact",
+    "should_use_tool": true,
+    "difficulty": "easy",
+    "category": "general",
+    "expected_chunk_substring": "optional substring in a relevant chunk",
+    "notes": "Why this question is interesting"
+  }
+]

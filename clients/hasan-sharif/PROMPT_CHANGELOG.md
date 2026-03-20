@@ -140,3 +140,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 9041 | **Hash:** 8e2a84fe35b5e5c5
 **Supabase version_id:** f8e35c37-3dfa-4968-a541-093424e9d599
 **Ultravox revision:** ba844f0c-7eae-4494-8f91-69371c9a4b3e
+
+## v37 — 2026-03-19 22:43 UTC
+**Change:** add CALENDAR BOOKING FLOW block (booking_enabled=true)
+**Chars:** 10480 | **Hash:** 06ba53e7692729d8
+**Supabase version_id:** edc7911b-2d54-4417-a5a3-aa465cf80c0e
+**Ultravox revision:** 4f2a8598-3a02-45c7-990b-b4c76b00c657

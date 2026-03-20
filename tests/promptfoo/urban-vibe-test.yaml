@@ -24,10 +24,10 @@ tenant_context: &tenant_context
     1. PARTIAL MATCH OK — "4705B NW" matches "4705B 81 St NW Calgary AB". Always try partial before giving up.
     2. NORMALIZE abbreviations — NW/SW/NE/SE, St/Street, Ave/Avenue, Blvd/Boulevard, Rd/Road, Dr/Drive
     3. UNIT NUMBER wins — if caller says "unit 4705B" or "the B unit", match on that field first
-    4. ONE MATCH → confirm back: "I have unit [Unit] under [Tenant Name] — is that right?"
+    4. ONE MATCH → you have the tenant on file. Confirm the unit: "got it, I've got unit [Unit] here — what's going on?" Do NOT say the tenant name out loud. Once matched, you already have their name — do NOT ask for it again.
     5. MULTIPLE MATCHES → ask one question: "Is that the 4705A or the 4705B unit?"
     6. NO MATCH → say "I don't see that in our system — can you give me the full unit number or street address?" NEVER guess or invent a record
-    7. NEVER ask for info the caller already gave you
+    7. NEVER ask for info the caller already gave you or that you already found in the lookup
 
     ## Tenant List
     | Unit | Address | Tenant Name | Phone | Status |
@@ -140,6 +140,9 @@ tests:
         value: "9-1-1"
       - type: not-icontains
         value: "911"
+      # Must NOT say tenant name out loud
+      - type: not-icontains
+        value: "Sarah Johansson"
 
   - description: "Water heater issue (no context) — URGENT but NOT 9-1-1"
     vars:

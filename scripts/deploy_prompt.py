@@ -74,6 +74,11 @@ CLIENT_CONFIG = {
         "vad_min_interruption": "0.400s",
         "local_dir": "true-color",
     },
+    "unmissed-demo": {
+        "ultravox_agent_id": "74ccdadb-cd75-4453-baa0-615cff30c63c",
+        "greeting": None,
+        "vad_min_interruption": "0.200s",
+    },
 }
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -146,7 +151,7 @@ def deploy(slug, change_description):
     prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
 
     # Get client row (includes agent_voice_id for voice priority chain)
-    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,agent_voice_id,forwarding_number")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=id,active_prompt_version_id,booking_enabled,agent_voice_id,forwarding_number,sms_enabled,knowledge_backend")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
@@ -154,6 +159,8 @@ def deploy(slug, change_description):
     booking_enabled = rows[0].get("booking_enabled") or False
     db_voice_id = rows[0].get("agent_voice_id") or None
     forwarding_number = rows[0].get("forwarding_number") or None
+    sms_enabled = rows[0].get("sms_enabled") or False
+    knowledge_backend = rows[0].get("knowledge_backend") or None
 
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
@@ -267,10 +274,65 @@ def deploy(slug, change_description):
         }
         if transfer_secret:
             transfer_tool["temporaryTool"]["staticParameters"] = [
-                {"name": "X-Transfer-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": transfer_secret}
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": transfer_secret}
             ]
         selected_tools.append(transfer_tool)
         print(f"  ✓ Transfer tool injected (forwarding_number={forwarding_number})")
+
+    # SMS tool — inject if client has sms_enabled
+    if sms_enabled:
+        sms_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
+        sms_tool = {
+            "temporaryTool": {
+                "modelToolName": "sendTextMessage",
+                "description": "Send an SMS text message to the caller during the call. Use this to send signup links, booking confirmations, or follow-up info. The caller's phone number is available from callerContext as CALLER PHONE.",
+                "dynamicParameters": [
+                    {"name": "to", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Caller's phone number in E.164 format from CALLER PHONE in callerContext"}, "required": True},
+                    {"name": "message", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "SMS message body to send"}, "required": True},
+                ],
+                "automaticParameters": [
+                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"}
+                ],
+                "http": {
+                    "baseUrlPattern": f"{APP_URL}/api/webhook/{slug}/sms",
+                    "httpMethod": "POST",
+                },
+            }
+        }
+        if sms_secret:
+            sms_tool["temporaryTool"]["staticParameters"] = [
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": sms_secret}
+            ]
+        selected_tools.append(sms_tool)
+        print(f"  ✓ SMS tool injected (sms_enabled=True)")
+
+    # Knowledge retrieval tool — pgvector backend
+    if knowledge_backend == "pgvector":
+        knowledge_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
+        knowledge_tool = {
+            "temporaryTool": {
+                "modelToolName": "queryKnowledge",
+                "description": "Search the business knowledge base for detailed information. Use this when a caller asks a specific question NOT already answered by the Key Business Facts in your context. Returns relevant text passages. If results are empty, tell the caller you will have someone follow up with that information — NEVER guess.",
+                "dynamicParameters": [
+                    {
+                        "name": "query",
+                        "location": "PARAMETER_LOCATION_BODY",
+                        "schema": {"type": "string", "description": "The search query — rephrase the caller's question as a short factual query"},
+                        "required": True,
+                    }
+                ],
+                "http": {
+                    "baseUrlPattern": f"{APP_URL}/api/knowledge/{slug}/query",
+                    "httpMethod": "POST",
+                },
+            }
+        }
+        if knowledge_secret:
+            knowledge_tool["temporaryTool"]["staticParameters"] = [
+                {"name": "X-Tool-Secret", "location": "PARAMETER_LOCATION_HEADER", "value": knowledge_secret}
+            ]
+        selected_tools.append(knowledge_tool)
+        print(f"  ✓ Knowledge tool injected (knowledge_backend=pgvector)")
 
     # Voice priority chain:
     #   1. --voice CLI flag (highest — one-time override, also updates clients.agent_voice_id)
@@ -389,7 +451,7 @@ def dry_run(slug):
 
     local_hash = hashlib.sha256(local_prompt.encode()).hexdigest()[:16]
 
-    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled,agent_voice_id,forwarding_number")
+    rows = sb_get(f"clients?slug=eq.{slug}&select=system_prompt,id,booking_enabled,agent_voice_id,forwarding_number,sms_enabled,knowledge_backend")
     if not rows:
         print(f"ERROR: Client '{slug}' not found in Supabase.")
         sys.exit(1)
@@ -399,6 +461,8 @@ def dry_run(slug):
     booking_enabled = rows[0].get("booking_enabled") or False
     db_voice_id = rows[0].get("agent_voice_id") or None
     forwarding_number = rows[0].get("forwarding_number") or None
+    sms_enabled = rows[0].get("sms_enabled") or False
+    knowledge_backend = rows[0].get("knowledge_backend") or None
 
     client_id = rows[0]["id"]
     vers = sb_get(f"prompt_versions?client_id=eq.{client_id}&is_active=eq.true&select=version,change_description")
@@ -427,6 +491,10 @@ def dry_run(slug):
         would_inject += ["checkCalendarAvailability", "bookAppointment"]
     if forwarding_number:
         would_inject.append("transferCall")
+    if sms_enabled:
+        would_inject.append("sendTextMessage")
+    if knowledge_backend == "pgvector":
+        would_inject.append("queryKnowledge")
 
     # Voice drift check
     uv_voice = None
