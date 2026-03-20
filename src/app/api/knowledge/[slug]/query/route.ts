@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 
-const MATCH_THRESHOLD = 0.70
 const MATCH_COUNT = 5
+const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
+const SIMILARITY_FLOOR = 0.60 // Results without a keyword match must exceed this cosine similarity
 
 export async function POST(
   req: NextRequest,
@@ -46,22 +47,24 @@ export async function POST(
   const embedding = await embedText(queryText)
   if (!embedding) {
     const latency = Date.now() - start
-    // Log failed query
-    await logQuery(supabase, client.id, slug, queryText, 0, null, MATCH_THRESHOLD, latency)
+    await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency)
     console.log(`[knowledge-query] slug=${slug} EMBEDDING_FAILED query="${queryText.slice(0, 80)}" latency=${latency}ms`)
     return NextResponse.json({ results: [], count: 0, error: 'embedding_failed' })
   }
 
-  // ── Similarity search via match_knowledge RPC ──────────────────────────────
-  const { data: results, error: rpcErr } = await supabase.rpc('match_knowledge', {
+  // ── Hybrid search via RRF (pgvector cosine + tsvector keyword) ─────────────
+  const { data: results, error: rpcErr } = await supabase.rpc('hybrid_match_knowledge', {
+    query_text: queryText,
     query_embedding: JSON.stringify(embedding),
     match_client_id: client.id,
-    match_threshold: MATCH_THRESHOLD,
     match_count: MATCH_COUNT,
+    full_text_weight: 1.0,
+    semantic_weight: 1.0,
+    rrf_k: 50,
   })
 
   const latency = Date.now() - start
-  const matches = (results ?? []) as Array<{
+  const rawMatches = (results ?? []) as Array<{
     id: string
     content: string
     chunk_type: string
@@ -69,26 +72,39 @@ export async function POST(
     source_run_id: string | null
     metadata: Record<string, unknown>
     similarity: number
+    keyword_rank: number | null
+    semantic_rank: number | null
+    rrf_score: number
   }>
 
   if (rpcErr) {
     console.error(`[knowledge-query] slug=${slug} RPC error: ${rpcErr.message}`)
-    await logQuery(supabase, client.id, slug, queryText, 0, null, MATCH_THRESHOLD, latency)
+    await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency)
     return NextResponse.json({ results: [], count: 0, error: 'search_failed' })
   }
 
+  // Filter: keep results that have a keyword match OR good cosine similarity
+  // This ensures out-of-scope queries stay empty while keyword-matched relevant results get through
+  const matches = rawMatches.filter(m => {
+    const hasKeyword = m.keyword_rank !== null
+    const hasGoodSimilarity = m.similarity >= SIMILARITY_FLOOR
+    return (hasKeyword || hasGoodSimilarity) && m.rrf_score >= RRF_MIN_SCORE
+  })
   const topSimilarity = matches.length > 0 ? matches[0].similarity : null
 
   // ── Log query for observability ────────────────────────────────────────────
   const queryLogId = await logQuery(
     supabase, client.id, slug, queryText,
-    matches.length, topSimilarity, MATCH_THRESHOLD, latency,
+    matches.length, topSimilarity, RRF_MIN_SCORE, latency,
   )
 
   if (matches.length === 0) {
-    console.log(`[knowledge-query] slug=${slug} EMPTY_RESULT query="${queryText.slice(0, 80)}" threshold=${MATCH_THRESHOLD} latency=${latency}ms`)
+    console.log(`[knowledge-query] slug=${slug} EMPTY_RESULT query="${queryText.slice(0, 80)}" rrf_min=${RRF_MIN_SCORE} latency=${latency}ms`)
   } else {
-    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 80)}" results=${matches.length} top=${topSimilarity?.toFixed(3)} latency=${latency}ms`)
+    for (const m of matches) {
+      console.log(`[knowledge-query] slug=${slug} "${m.content.slice(0, 50)}" rrf=${m.rrf_score.toFixed(4)} kw=${m.keyword_rank ?? '-'} sem=${m.semantic_rank ?? '-'} sim=${m.similarity.toFixed(3)}`)
+    }
+    console.log(`[knowledge-query] slug=${slug} query="${queryText.slice(0, 60)}" results=${matches.length} top_rrf=${matches[0].rrf_score.toFixed(4)} top_sim=${topSimilarity?.toFixed(3)} latency=${latency}ms`)
   }
 
   return NextResponse.json({
@@ -98,6 +114,7 @@ export async function POST(
       source: m.source,
       similarity: m.similarity,
       source_run_id: m.source_run_id,
+      rrf_score: m.rrf_score,
     })),
     count: matches.length,
     query_id: queryLogId,
