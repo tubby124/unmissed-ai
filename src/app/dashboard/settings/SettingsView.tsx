@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
-import { NICHE_CONFIG } from '@/lib/niche-config'
+import { NICHE_CONFIG, getNicheConfig } from '@/lib/niche-config'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import { fmtPhone, getPlanName } from '@/lib/settings-utils'
+import { getClientSetupState } from '@/lib/client-utils'
+import ClientSelector from '@/components/dashboard/ClientSelector'
+import type { ClientOption } from '@/components/dashboard/ClientSelector'
 import type { VoiceTabVoice, GodConfigEntry, SettingsTab } from '@/components/dashboard/settings/constants'
 import { fmtDate } from '@/components/dashboard/settings/shared'
 import AgentTab from '@/components/dashboard/settings/AgentTab'
@@ -148,79 +151,69 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
 
-      {/* Admin — client switcher */}
+      {/* Admin — client selector + info strip */}
       {isAdmin && clients.length > 1 && (
-        <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
-          <div className="px-5 py-3 border-b b-theme">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">
-              All Clients — {clients.length} agents
-            </p>
-          </div>
-          <div className="py-1">
-            {(() => {
-              const activeClients = clients.filter(c => c.twilio_number)
-              const unassignedClients = clients.filter(c => !c.twilio_number)
+        <>
+          <ClientSelector
+            clients={clients.map((c): ClientOption => ({
+              id: c.id,
+              slug: c.slug,
+              business_name: c.business_name,
+              niche: c.niche,
+              status: c.status,
+              twilio_number: c.twilio_number,
+            }))}
+            value={selectedId}
+            onChange={(id) => {
+              setSelectedId(id)
+              const c = clients.find(cl => cl.id === id)
+              if (c && !prompt[id]) setPrompt(prev => ({ ...prev, [id]: c.system_prompt ?? '' }))
+            }}
+            hideAllOption
+          />
 
-              function renderRow(c: ClientConfig) {
-                const n = c.niche ?? ''
-                const nc = NICHE_CONFIG[n] ?? { label: n || 'General', color: 'text-zinc-400', border: 'border-zinc-500/30', bg: 'bg-zinc-500/10' }
-                const isSelected = c.id === selectedId
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setSelectedId(c.id)
-                      if (!prompt[c.id]) setPrompt(prev => ({ ...prev, [c.id]: c.system_prompt ?? '' }))
-                    }}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
-                      isSelected ? 'bg-blue-500/10' : 'hover:bg-hover'
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${c.twilio_number ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
-                    <span className={`text-xs font-medium truncate flex-1 min-w-0 ${isSelected ? 'text-blue-400' : 't1'}`}>
-                      {c.business_name}
-                    </span>
-                    {n && (
-                      <span className={`text-[9px] font-medium ${nc.color} ${nc.bg} ${nc.border} border rounded-full px-1.5 py-0.5 leading-none shrink-0`}>
-                        {nc.label}
-                      </span>
-                    )}
-                    {c.twilio_number && (
-                      <span className="text-[10px] font-mono shrink-0 t3">
-                        {fmtPhone(c.twilio_number)}
-                      </span>
-                    )}
-                  </button>
-                )
-              }
+          {/* Selected client info strip */}
+          {(() => {
+            const setupState = getClientSetupState(client)
+            const nc = getNicheConfig(client.niche)
+            const statusLabel =
+              setupState === 'active' ? 'Active' :
+              setupState === 'setup_incomplete' ? 'Setup' :
+              setupState === 'unassigned_number' ? 'No number' :
+              'Test'
+            const statusColor =
+              setupState === 'active' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+              setupState === 'setup_incomplete' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+              'text-zinc-400 bg-zinc-500/10 border-zinc-500/20'
 
-              return (
-                <>
-                  {activeClients.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1.5">
-                        <span className="text-[9px] font-semibold tracking-[0.18em] uppercase t3">
-                          Active ({activeClients.length})
-                        </span>
-                      </div>
-                      {activeClients.map(renderRow)}
-                    </>
-                  )}
-                  {unassignedClients.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1.5">
-                        <span className="text-[9px] font-semibold tracking-[0.18em] uppercase t3">
-                          Unassigned ({unassignedClients.length})
-                        </span>
-                      </div>
-                      {unassignedClients.map(renderRow)}
-                    </>
-                  )}
-                </>
-              )
-            })()}
-          </div>
-        </div>
+            return (
+              <div
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl border text-xs"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+              >
+                <span className="font-semibold truncate" style={{ color: 'var(--color-text-1)' }}>
+                  {client.business_name}
+                </span>
+                <span className={`shrink-0 text-[9px] font-medium border rounded-full px-1.5 py-0.5 leading-none ${statusColor}`}>
+                  {statusLabel}
+                </span>
+                {nc && (
+                  <span className={`shrink-0 text-[9px] font-medium ${nc.color} ${nc.bg} ${nc.border} border rounded-full px-1.5 py-0.5 leading-none`}>
+                    {nc.label}
+                  </span>
+                )}
+                {client.twilio_number && (
+                  <span className="font-mono shrink-0" style={{ color: 'var(--color-text-3)' }}>
+                    {fmtPhone(client.twilio_number)}
+                  </span>
+                )}
+                <span className="font-mono shrink-0" style={{ color: 'var(--color-text-3)' }}>
+                  {client.slug}
+                </span>
+              </div>
+            )
+          })()}
+        </>
       )}
 
       {/* ─── Tab bar ─────────────────────────────────────────────────── */}

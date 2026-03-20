@@ -177,6 +177,10 @@ export default function AgentTab({
   const [scrapeStatus, setScrapeStatus] = useState(client.website_scrape_status || 'idle')
   const [corpusStatus, setCorpusStatus] = useState(client.ultravox_corpus_status || 'idle')
   const [websiteKnowledgeCollapsed, setWebsiteKnowledgeCollapsed] = useState(true)
+  const [scrapeFailureBucket, setScrapeFailureBucket] = useState<string | null>(null)
+  const [scrapeStats, setScrapeStats] = useState<{ preFilterFacts: number; postFilterFacts: number; preFilterQa: number; postFilterQa: number; removedFacts: number; removedQa: number } | null>(null)
+  const [scrapeCitedTarget, setScrapeCitedTarget] = useState<boolean | null>(null)
+  const [approvalResult, setApprovalResult] = useState<{ mergedFacts: number; mergedQa: number; promptSizeWarning?: string } | null>(null)
 
   // ─── Derived values ────────────────────────────────────────────────────────
   const niche = client.niche ?? ''
@@ -1523,6 +1527,10 @@ export default function AgentTab({
                           onClick={async () => {
                             setScrapeLoading(true)
                             setScrapeError('')
+                            setScrapeFailureBucket(null)
+                            setScrapeStats(null)
+                            setScrapeCitedTarget(null)
+                            setApprovalResult(null)
                             try {
                               const res = await fetch('/api/dashboard/scrape-website', {
                                 method: 'POST',
@@ -1533,6 +1541,9 @@ export default function AgentTab({
                               if (!res.ok) throw new Error(data.error || 'Scrape failed')
                               setScrapePreview(data.preview)
                               setScrapeStatus(data.status)
+                              setScrapeFailureBucket(data.failureBucket ?? null)
+                              setScrapeStats(data.stats ?? null)
+                              setScrapeCitedTarget(data.citedTargetUrl ?? null)
                             } catch (err) {
                               setScrapeError(err instanceof Error ? err.message : 'Scrape failed')
                               setScrapeStatus('failed')
@@ -1555,14 +1566,19 @@ export default function AgentTab({
                       </p>
                     )}
 
-                    {/* Error display */}
+                    {/* Error display with failure bucket */}
                     {(scrapeError || client.website_scrape_error) && (
                       <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-red-400 shrink-0 mt-0.5">
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                           <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                        <span className="text-[11px] text-red-400/90">{scrapeError || client.website_scrape_error}</span>
+                        <div>
+                          <span className="text-[11px] text-red-400/90">{scrapeError || client.website_scrape_error}</span>
+                          {scrapeFailureBucket && (
+                            <span className="text-[10px] text-red-400/60 ml-1">({scrapeFailureBucket})</span>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -1570,6 +1586,30 @@ export default function AgentTab({
                     {scrapeStatus === 'extracted' && scrapePreview && (
                       <div className="space-y-3">
                         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Extracted Knowledge Preview</p>
+
+                        {/* Extraction stats */}
+                        {scrapeStats && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.05] border border-blue-500/15">
+                            <span className="text-[11px] text-blue-400/90">
+                              {scrapeStats.postFilterFacts} facts + {scrapeStats.postFilterQa} Q&A extracted
+                              {(scrapeStats.removedFacts > 0 || scrapeStats.removedQa > 0) && (
+                                <span className="text-orange-400/80"> ({scrapeStats.removedFacts + scrapeStats.removedQa} filtered for safety)</span>
+                              )}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Citation warning — model may not have read the URL */}
+                        {scrapeCitedTarget === false && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0 mt-0.5">
+                              <path d="M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 003.42 21h17.16a2 2 0 001.73-2.98l-8.6-14.86a2 2 0 00-3.46 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="text-[11px] text-orange-400/90">
+                              Model may not have directly read the website — results could be from search index. Verify facts before approving.
+                            </span>
+                          </div>
+                        )}
 
                         {/* Business facts */}
                         {scrapePreview.businessFacts && scrapePreview.businessFacts.length > 0 && (
@@ -1650,6 +1690,11 @@ export default function AgentTab({
                               if (!res.ok) throw new Error(data.error || 'Approval failed')
                               setScrapeStatus('approved')
                               setCorpusStatus(data.corpusStatus)
+                              setApprovalResult({
+                                mergedFacts: data.mergedFacts,
+                                mergedQa: data.mergedQa,
+                                promptSizeWarning: data.promptSizeWarning,
+                              })
                             } catch (err) {
                               setScrapeError(err instanceof Error ? err.message : 'Approval failed')
                             } finally {
@@ -1666,13 +1711,27 @@ export default function AgentTab({
 
                     {/* Approved confirmation */}
                     {scrapeStatus === 'approved' && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
-                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span className="text-[11px] text-green-400/90">
-                          Knowledge approved and {corpusStatus === 'ready' ? 'synced to corpus' : corpusStatus === 'syncing' ? 'syncing to corpus...' : 'queued for corpus sync'}
-                        </span>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-[11px] text-green-400/90">
+                            {approvalResult
+                              ? `Merged: ${approvalResult.mergedFacts} facts, ${approvalResult.mergedQa} Q&A. `
+                              : 'Knowledge approved. '}
+                            {corpusStatus === 'ready' ? 'Corpus synced.' : corpusStatus === 'syncing' ? 'Corpus syncing...' : 'Queued for corpus sync.'}
+                            {' '}Next call will use this knowledge.
+                          </span>
+                        </div>
+                        {approvalResult?.promptSizeWarning && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-orange-500/[0.07] border border-orange-500/20">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-400 shrink-0 mt-0.5">
+                              <path d="M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 003.42 21h17.16a2 2 0 001.73-2.98l-8.6-14.86a2 2 0 00-3.46 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="text-[11px] text-orange-400/90">{approvalResult.promptSizeWarning}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

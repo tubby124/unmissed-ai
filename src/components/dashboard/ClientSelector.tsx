@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { getNicheConfig } from '@/lib/niche-config'
+import { getClientSetupState } from '@/lib/client-utils'
 
 export interface ClientOption {
   id: string
@@ -18,6 +19,7 @@ interface ClientSelectorProps {
   clients: ClientOption[]
   value: string // 'all' or client ID
   onChange: (id: string) => void
+  hideAllOption?: boolean
 }
 
 function formatPhone(raw: string) {
@@ -31,7 +33,7 @@ function formatPhone(raw: string) {
   return raw
 }
 
-export default function ClientSelector({ clients, value, onChange }: ClientSelectorProps) {
+export default function ClientSelector({ clients, value, onChange, hideAllOption = false }: ClientSelectorProps) {
   const router = useRouter()
   const pathname = usePathname()
   const urlParams = useSearchParams()
@@ -190,20 +192,22 @@ export default function ClientSelector({ clients, value, onChange }: ClientSelec
             {/* Options */}
             <div className="max-h-[320px] overflow-y-auto py-1">
               {/* All Clients option */}
-              <button
-                onClick={() => select('all')}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
-                  value === 'all' ? 'bg-blue-500/10' : 'hover:bg-[var(--color-hover)]'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                <span className={`text-xs font-medium ${value === 'all' ? 'text-blue-400' : ''}`} style={value === 'all' ? {} : { color: 'var(--color-text-1)' }}>
-                  All Clients
-                </span>
-                <span className="ml-auto text-[10px] font-mono" style={{ color: 'var(--color-text-3)' }}>
-                  {realClients.length}
-                </span>
-              </button>
+              {!hideAllOption && (
+                <button
+                  onClick={() => select('all')}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
+                    value === 'all' ? 'bg-blue-500/10' : 'hover:bg-[var(--color-hover)]'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span className={`text-xs font-medium ${value === 'all' ? 'text-blue-400' : ''}`} style={value === 'all' ? {} : { color: 'var(--color-text-1)' }}>
+                    All Clients
+                  </span>
+                  <span className="ml-auto text-[10px] font-mono" style={{ color: 'var(--color-text-3)' }}>
+                    {realClients.length}
+                  </span>
+                </button>
+              )}
 
               {/* Active section */}
               {active.length > 0 && (
@@ -249,24 +253,38 @@ export default function ClientSelector({ clients, value, onChange }: ClientSelec
 
 function ClientRow({ client, selected, onSelect }: { client: ClientOption; selected: boolean; onSelect: (id: string) => void }) {
   const nc = getNicheConfig(client.niche)
+  const setupState = getClientSetupState(client)
+  const isDimmed = setupState === 'setup_incomplete' || setupState === 'unassigned_number'
 
   return (
     <button
       onClick={() => onSelect(client.id)}
       className={`w-full flex items-center gap-2.5 px-4 py-2 text-left transition-colors ${
         selected ? 'bg-blue-500/10' : 'hover:bg-[var(--color-hover)]'
-      }`}
+      } ${isDimmed && !selected ? 'opacity-70' : ''}`}
     >
       {/* Status dot */}
-      <span className={`w-2 h-2 rounded-full shrink-0 ${client.twilio_number ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
+      <span className={`w-2 h-2 rounded-full shrink-0 ${
+        setupState === 'active' ? 'bg-emerald-500' :
+        setupState === 'setup_incomplete' ? 'bg-amber-500' :
+        'bg-zinc-500'
+      }`} />
 
-      {/* Name */}
-      <span
-        className={`text-xs font-medium truncate flex-1 min-w-0 ${selected ? 'text-blue-400' : ''}`}
-        style={selected ? {} : { color: 'var(--color-text-1)' }}
-      >
-        {client.business_name}
-      </span>
+      {/* Name + sublabel */}
+      <div className="flex-1 min-w-0">
+        <span
+          className={`text-xs font-medium truncate block ${selected ? 'text-blue-400' : ''}`}
+          style={selected ? {} : { color: 'var(--color-text-1)' }}
+        >
+          {client.business_name}
+        </span>
+        {setupState === 'setup_incomplete' && (
+          <span className="text-[9px] text-amber-400 block">Setup incomplete</span>
+        )}
+        {setupState === 'unassigned_number' && (
+          <span className="text-[9px] block" style={{ color: 'var(--color-text-3)' }}>No number</span>
+        )}
+      </div>
 
       {/* Niche badge */}
       {nc && (

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // ── Load client row ───────────────────────────────────────────────────────
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('business_facts, extra_qa, corpus_id, ultravox_corpus_source_id, website_url, website_scrape_pages, website_knowledge_preview, slug')
+    .select('business_facts, extra_qa, corpus_id, ultravox_corpus_source_id, website_url, website_scrape_pages, website_knowledge_preview, slug, system_prompt')
     .eq('id', clientId)
     .single()
 
@@ -111,10 +111,23 @@ export async function POST(req: NextRequest) {
 
   const factLines = mergedFacts.split('\n').filter((l: string) => l.trim().length > 0)
 
+  // ── Prompt size estimate ──────────────────────────────────────────────────
+  const systemPromptLen = typeof client.system_prompt === 'string' ? client.system_prompt.length : 0
+  const knowledgeBlockEstimate = mergedFacts.length + JSON.stringify(mergedQa).length + 200
+  const estimatedTotal = systemPromptLen + knowledgeBlockEstimate
+  const promptSizeWarning = estimatedTotal > 7500
+    ? `Prompt may exceed 8K limit after knowledge injection (estimated ${estimatedTotal} chars: ${systemPromptLen} prompt + ${knowledgeBlockEstimate} knowledge)`
+    : undefined
+
+  if (promptSizeWarning) {
+    console.warn(`[approve-website-knowledge] ${promptSizeWarning} | client=${client.slug}`)
+  }
+
   return NextResponse.json({
     success: true,
     mergedFacts: factLines.length,
     mergedQa: mergedQa.length,
     corpusStatus: corpusState.status,
+    promptSizeWarning,
   })
 }

@@ -219,7 +219,8 @@ export async function scrapeWebsite(
         model: 'perplexity/sonar-pro',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
-        response_format: { type: 'json_object' },
+        // NOTE: Sonar does NOT support response_format: json_object.
+        // We rely on the prompt instruction "Return valid JSON only" + layeredJsonParse().
       }),
     })
 
