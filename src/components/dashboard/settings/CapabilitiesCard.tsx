@@ -54,9 +54,9 @@ export default function CapabilitiesCard({ client }: CapabilitiesCardProps) {
       actionHint: 'Upload reference data above to enable',
     },
     {
-      label: 'Search uploaded documents',
+      label: 'Search knowledge base',
       available: true,
-      active: !!client.corpus_enabled,
+      active: !!(client.corpus_enabled || client.knowledge_backend === 'pgvector'),
       actionHint: 'Enable Knowledge Base to use',
     },
   ]

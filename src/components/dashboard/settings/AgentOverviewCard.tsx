@@ -228,7 +228,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               { label: 'Transfer', on: !!client.forwarding_number },
               { label: 'Calendar', on: client.calendar_auth_status === 'connected' && !!client.booking_enabled },
               { label: 'SMS follow-up', on: localSmsEnabled },
-              { label: 'Knowledge base', on: !!client.corpus_enabled },
+              { label: 'Knowledge base', on: !!(client.corpus_enabled || client.knowledge_backend === 'pgvector') },
               { label: 'Prompt', detail: `${((client.system_prompt ?? '').length).toLocaleString()} / 8,000` },
             ].map(cap => (
               <div key={cap.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border b-theme">

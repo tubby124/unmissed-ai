@@ -1,6 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
+export async function DELETE(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
+
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!cu) return new NextResponse('No client found', { status: 404 })
+
+  const chunkId = req.nextUrl.searchParams.get('id')
+  if (!chunkId) return NextResponse.json({ error: 'Missing chunk id' }, { status: 400 })
+
+  const svc = createServiceClient()
+
+  // Verify chunk exists and belongs to user's client
+  const { data: chunk } = await svc
+    .from('knowledge_chunks')
+    .select('id, client_id')
+    .eq('id', chunkId)
+    .single()
+
+  if (!chunk) return NextResponse.json({ error: 'Chunk not found' }, { status: 404 })
+
+  // Admin can delete any, owners can only delete their own client's chunks
+  if (cu.role !== 'admin' && chunk.client_id !== cu.client_id) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  const { error } = await svc
+    .from('knowledge_chunks')
+    .delete()
+    .eq('id', chunkId)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, deleted: chunkId })
+}
+
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

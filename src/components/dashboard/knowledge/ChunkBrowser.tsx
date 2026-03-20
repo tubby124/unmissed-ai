@@ -149,6 +149,24 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
     }
   }
 
+  async function handleDelete(chunkId: string) {
+    if (!confirm('Delete this knowledge chunk? This cannot be undone.')) return
+    setActionLoading(chunkId)
+    try {
+      const res = await fetch(`/api/dashboard/knowledge/chunks?id=${chunkId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      setChunks(prev => prev.filter(c => c.id !== chunkId))
+      setTotal(prev => prev - 1)
+      setExpandedId(null)
+    } catch {
+      // silent
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const hasMore = chunks.length < total
 
   return (
@@ -262,6 +280,13 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
                           </select>
                         </div>
                         <div className="flex items-center gap-2 ml-auto">
+                          <button
+                            onClick={() => handleDelete(chunk.id)}
+                            disabled={actionLoading === chunk.id}
+                            className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 disabled:opacity-50 transition-colors"
+                          >
+                            {actionLoading === chunk.id ? '...' : 'Delete'}
+                          </button>
                           <button
                             onClick={() => handleAction(chunk.id, 'reject')}
                             disabled={actionLoading === chunk.id}
