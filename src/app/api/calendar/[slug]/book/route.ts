@@ -40,6 +40,9 @@ export async function POST(
 
   // B3: Read call state from Ultravox header
   const callState = parseCallState(req)
+  console.log(`[calendar/book] B3 call-state header: ${callState ? JSON.stringify(callState) : 'NULL (header missing)'}`)
+  console.log(`[calendar/book] All headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`)
+
 
   const { slug } = await params
   const body = await req.json().catch(() => ({}))
