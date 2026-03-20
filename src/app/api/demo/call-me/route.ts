@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — This is a 2-minute outbound demo call. The visitor requested a callback from the unmissed.ai website. Be concise and showcase the agent's capabilities. CALLER PHONE: ${phone}]`
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE. Tools: hangUp, calendar, SMS, transfer. Outbound demo — visitor requested callback. CALLER PHONE: ${phone}]`
 
   // Build tools from demo capabilities config (call-me = Twilio medium + known phone)
   let demoTools: object[] = []
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       callbackUrl: demoCallbackUrl,
     })
 
-    console.log(`[call-me] Ultravox call created: callId=${uvCall.callId}`)
+    console.log(`[demo:call-me] callId=${uvCall.callId} tools=${demoTools.length} medium=twilio-outbound phone=${phone}`)
 
     // 2. Build TwiML that connects the phone call to the Ultravox stream
     const twiml = buildStreamTwiml(uvCall.joinUrl)

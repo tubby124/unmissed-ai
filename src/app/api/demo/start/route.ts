@@ -152,7 +152,7 @@ HANG-UP RULES (mandatory — follow exactly):
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — caller introduced themselves as "${callerName}". This is a 2-minute demo call. Be concise and showcase the agent's capabilities.]`
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — BROWSER. Tools: hangUp, calendar. No SMS or transfer — browser has no phone number. Caller introduced themselves as "${callerName}".]`
 
   const voiceId = liveVoiceId || demo.voiceId
   const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
@@ -197,7 +197,7 @@ HANG-UP RULES (mandatory — follow exactly):
       if (error) console.error(`[demo] Failed to log demo call: ${error.message}`)
     })
 
-    console.log(`[demo] Browser demo started: demoId=${demoId} callerName=${callerName} callId=${call.callId} ip=${ip} tools=${demoTools.length}`)
+    console.log(`[demo:browser] callId=${call.callId} tools=${demoTools.length} medium=webrtc demoId=${demoId} callerName=${callerName}`)
 
     return NextResponse.json({
       joinUrl: call.joinUrl,

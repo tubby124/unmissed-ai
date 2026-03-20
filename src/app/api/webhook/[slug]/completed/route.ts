@@ -277,7 +277,10 @@ export async function POST(
         demoSmsSent = !!demoRow?.in_call_sms_sent
       }
 
-      if (client.sms_enabled && callerPhone !== 'unknown' && !callRow?.in_call_sms_sent && !demoSmsSent) {
+      const shouldSkipSms = !!callRow?.in_call_sms_sent || demoSmsSent
+      console.log(`[completed] SMS dedupe: in_call=${!!callRow?.in_call_sms_sent} demo=${demoSmsSent} → skip=${shouldSkipSms} callId=${callId}`)
+
+      if (client.sms_enabled && callerPhone !== 'unknown' && !shouldSkipSms) {
         const smsBody = getSmsTemplate(classification.status, {
           businessName: client.business_name || 'us',
           callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,

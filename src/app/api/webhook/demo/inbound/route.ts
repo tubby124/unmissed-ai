@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   const demo = DEMO_AGENTS[demoId]
   console.log(`[demo-ivr] Digit ${digits} → ${demoId} (${demo.companyName}), caller=${callerPhone}`)
 
-  const promptWithContext = demo.systemPrompt + `\n\n[DEMO MODE — This is a 2-minute demo call via phone. Be concise and showcase the agent's capabilities. CALLER PHONE: ${callerPhone}]`
+  const promptWithContext = demo.systemPrompt + `\n\n[DEMO MODE — IVR PHONE. Tools: hangUp only. No SMS, transfer, or calendar on this call. CALLER PHONE: ${callerPhone}]`
 
   try {
     const call = await createDemoCall({
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       useTwilio: true,
     })
 
-    console.log(`[demo-ivr] Ultravox call created: callId=${call.callId}`)
+    console.log(`[demo:ivr] callId=${call.callId} tools=1 medium=twilio-inbound niche=${demoId} caller=${callerPhone}`)
 
     // Log phone demo call (fire-and-forget)
     const supabase = createServiceClient()
