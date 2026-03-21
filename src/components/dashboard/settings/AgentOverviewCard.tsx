@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import BorderBeam from '@/components/ui/border-beam'
 import { fmtPhone, timeAgo } from '@/lib/settings-utils'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import AgentIdentityHeader from './AgentIdentityHeader'
 import VoicePicker from './VoicePicker'
 import QuickInject from './QuickInject'
@@ -37,7 +38,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
 
   // Derived display values
   const minutesUsed = client.seconds_used_this_month != null ? Math.ceil(client.seconds_used_this_month / 60) : (client.minutes_used_this_month ?? 0)
-  const minuteLimit = client.monthly_minute_limit ?? 500
+  const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const totalAvailable = minuteLimit + (client.bonus_minutes ?? 0)
   const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0
 

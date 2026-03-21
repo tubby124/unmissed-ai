@@ -248,7 +248,10 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
             required: false,
           },
         ],
-        automaticParameters: [CALL_STATE_PARAM],
+        automaticParameters: [
+          CALL_STATE_PARAM,
+          { name: 'X-Call-Id', location: 'PARAMETER_LOCATION_HEADER', knownValue: 'KNOWN_PARAM_CALL_ID' },
+        ],
         ...(secret ? {
           staticParameters: [
             { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
@@ -273,7 +276,10 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
           { name: 'service',     location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Type of appointment or service' }, required: false },
           { name: 'callerPhone', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: "Caller's phone number from CALLER PHONE in callerContext" }, required: true },
         ],
-        automaticParameters: [CALL_STATE_PARAM],
+        automaticParameters: [
+          CALL_STATE_PARAM,
+          { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+        ],
         ...(secret ? {
           staticParameters: [
             { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
@@ -420,7 +426,10 @@ export function buildKnowledgeTools(slug: string): UltravoxTool[] {
           required: true,
         },
       ],
-      automaticParameters: [CALL_STATE_PARAM],
+      automaticParameters: [
+        CALL_STATE_PARAM,
+        { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+      ],
       ...(secret ? {
         staticParameters: [
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },

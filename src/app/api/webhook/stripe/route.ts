@@ -20,11 +20,12 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
 import { activateClient } from '@/lib/activate-client'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
-/** All plans include 100 min/mo. Future tiers (Growth/Pro) not yet purchasable. */
-const BASE_MINUTE_LIMIT = 100
+/** All plans include DEFAULT_MINUTE_LIMIT min/mo. Future tiers (Growth/Pro) not yet purchasable. */
+const BASE_MINUTE_LIMIT = DEFAULT_MINUTE_LIMIT
 
 function getTierLabel(): string {
   return 'Starter ($30)'

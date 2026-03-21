@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirectCall, sendSms } from '@/lib/twilio'
-import { parseCallState, setStateUpdate } from '@/lib/call-state'
+import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 
 export const maxDuration = 10
 
@@ -18,8 +18,8 @@ export async function POST(
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  // B3: Read call state from Ultravox header
-  const callState = parseCallState(req)
+  // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
+  let callState = parseCallState(req)
 
   let call_id: string | undefined
   try {
@@ -47,6 +47,9 @@ export async function POST(
     console.error(`[transfer] No forwarding_number for slug=${slug}`)
     return NextResponse.json({ error: 'No forwarding number configured' }, { status: 404 })
   }
+
+  // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
+  if (!callState && call_id) callState = await readCallStateFromDb(supabase, call_id)
 
   // Look up Twilio callSid from call_logs
   const { data: log } = await supabase
@@ -97,12 +100,14 @@ export async function POST(
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     const okResponse = NextResponse.json({ result: 'Transfer initiated' })
     if (callState) setStateUpdate(okResponse, { escalationFlag: true, lastToolOutcome: 'transferred' })
+    if (call_id) persistCallStateToDb(supabase, call_id, callState, { escalationFlag: true, lastToolOutcome: 'transferred' })
     return okResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[transfer] Twilio redirect failed: ${msg}`)
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'transfer_error' })
+    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'transfer_error' })
     return errResponse
   }
 }

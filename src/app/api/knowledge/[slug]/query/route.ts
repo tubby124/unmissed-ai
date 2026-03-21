@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
-import { parseCallState, setStateUpdate, knowledgeInstruction } from '@/lib/call-state'
+import { parseCallState, setStateUpdate, knowledgeInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 
 const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
@@ -24,12 +24,13 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // B3: Read call state from Ultravox header
-  const callState = parseCallState(req)
-  console.log(`[knowledge] B3 call-state: ${callState ? JSON.stringify(callState) : 'NOT_PRESENT'}`)
+  // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
+  let callState = parseCallState(req)
+  console.log(`[knowledge] B3 call-state header: ${callState ? 'PRESENT' : 'NULL'}`)
 
   // ── Parse body ─────────────────────────────────────────────────────────────
-  const body = await req.json().catch(() => ({})) as { query?: string }
+  const body = await req.json().catch(() => ({})) as { query?: string; call_id?: string }
+  const callId = body.call_id
   const queryText = body.query?.trim()
   if (!queryText) {
     return NextResponse.json({ error: 'query required' }, { status: 400 })
@@ -46,6 +47,9 @@ export async function POST(
   if (clientErr || !client) {
     return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   }
+
+  // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
+  if (!callState && callId) callState = await readCallStateFromDb(supabase, callId)
 
   if (client.knowledge_backend !== 'pgvector') {
     return NextResponse.json({ error: 'pgvector not enabled for this client' }, { status: 400 })
@@ -165,12 +169,9 @@ export async function POST(
     query_id: queryLogId,
     _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
   })
-  if (callState) {
-    setStateUpdate(response, {
-      knowledgeQueries: newQueries,
-      lastToolOutcome: found ? 'knowledge_found' : 'knowledge_empty',
-    })
-  }
+  const stateUpdates = { knowledgeQueries: newQueries, lastToolOutcome: found ? 'knowledge_found' as const : 'knowledge_empty' as const }
+  if (callState) setStateUpdate(response, stateUpdates)
+  if (callId) persistCallStateToDb(supabase, callId, callState, stateUpdates)
   return response
 }
 

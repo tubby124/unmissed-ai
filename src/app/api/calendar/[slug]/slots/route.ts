@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots } from '@/lib/google-calendar'
-import { parseCallState, setStateUpdate, slotInstruction } from '@/lib/call-state'
+import { parseCallState, setStateUpdate, slotInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { requestedTimeMatchesSlot } from '@/lib/calendar-time'
 
 export async function GET(
@@ -15,10 +15,10 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // B3: Read call state from Ultravox header (null if not available)
-  const callState = parseCallState(req)
-  console.log(`[slots] B3 call-state: ${callState ? JSON.stringify(callState) : 'NOT_PRESENT'}`)
-  console.log(`[slots] All headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`)
+  // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
+  let callState = parseCallState(req)
+  const callId = req.headers.get('x-call-id')
+  console.log(`[slots] B3 call-state header: ${callState ? 'PRESENT' : 'NULL'} callId: ${callId}`)
 
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD
@@ -39,6 +39,10 @@ export async function GET(
   if (!client || !client.booking_enabled) {
     return NextResponse.json({ available: false, reason: 'booking_not_enabled' }, { status: 404 })
   }
+
+  // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
+  if (!callState && callId) callState = await readCallStateFromDb(supabase, callId)
+  console.log(`[slots] resolved call-state: ${callState ? 'PRESENT' : 'NULL'}`)
 
   if (!client.google_refresh_token) {
     return NextResponse.json({ available: false, fallback: true, reason: 'calendar_auth_expired' })
@@ -68,6 +72,7 @@ export async function GET(
         _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
       })
       if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
+      if (callId) persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
       return response
     }
     const slotList = slots.map(s => s.displayTime).join(', ')
@@ -84,6 +89,7 @@ export async function GET(
       _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
     })
     if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
+    if (callId) persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -98,6 +104,7 @@ export async function GET(
       _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule, and use hangUp.`,
     })
     if (callState) setStateUpdate(response, { lastToolOutcome: 'calendar_unavailable' })
+    if (callId) persistCallStateToDb(supabase, callId, callState, { lastToolOutcome: 'calendar_unavailable' })
     return response
   }
 }

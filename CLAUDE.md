@@ -35,7 +35,7 @@ If ambiguous: ask one clarifying question. Never assume scope on client-affectin
 |---------|--------|-----------|
 | A — Tool Response Instructions | **DONE** (Mar 20) | `_instruction` in book/slots/knowledge routes + prompt line on all 5 clients |
 | B — Deferred Messages | **NOT DONE** | Add priming line to all prompts first, then whisper route |
-| C — Tool State | **NOT DONE** | Only if booking retry tracking becomes a production problem |
+| C — Tool State (B3 Call State) | **DONE** (Mar 20) | DB-backed via `call_logs.call_state` — `readCallStateFromDb` + `persistCallStateToDb` in all 5 tool routes (slots/book/knowledge/sms/transfer). `KNOWN_PARAM_CALL_ID` on all tools. Inbound webhook writes `defaultCallState(niche)` at call start. |
 | D — Call Stages | **NOT DONE** | Only if monoprompt fails for a complex client |
 
 Full plan: `memory/advanced-features-plan.md` | Full code: `BUILD_PACKAGES/INBOUND_VOICE_AGENT/ULTRAVOX_ADVANCED_PATTERNS.md`

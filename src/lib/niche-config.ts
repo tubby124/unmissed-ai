@@ -66,12 +66,15 @@ export function getNicheConfig(niche: string | null | undefined) {
   return NICHE_CONFIG[niche] ?? NICHE_CONFIG['other']
 }
 
+/** Canonical default minute limit for the base plan — single source of truth */
+export const DEFAULT_MINUTE_LIMIT = 100
+
 /** Monthly minute limits per niche — voicemail is lower tier */
 export const NICHE_MINUTE_LIMITS: Record<string, number> = {
   voicemail: 50,
 }
 
 export function getNicheMinuteLimit(niche: string | null | undefined): number {
-  if (!niche) return 100
-  return NICHE_MINUTE_LIMITS[niche] ?? 100
+  if (!niche) return DEFAULT_MINUTE_LIMIT
+  return NICHE_MINUTE_LIMITS[niche] ?? DEFAULT_MINUTE_LIMIT
 }

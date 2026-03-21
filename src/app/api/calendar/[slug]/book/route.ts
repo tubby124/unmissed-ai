@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots, createEvent } from '@/lib/google-calendar'
-import { parseCallState, setStateUpdate, bookingInstruction } from '@/lib/call-state'
+import { parseCallState, setStateUpdate, bookingInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { normalizeTime, toPreferredTime } from '@/lib/calendar-time'
 
 export async function POST(
@@ -15,21 +15,20 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // B3: Read call state from Ultravox header
-  const callState = parseCallState(req)
-  console.log(`[calendar/book] B3 call-state header: ${callState ? JSON.stringify(callState) : 'NULL (header missing)'}`)
-  console.log(`[calendar/book] All headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`)
-
+  // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
+  let callState = parseCallState(req)
+  console.log(`[calendar/book] B3 call-state header: ${callState ? 'PRESENT' : 'NULL'}`)
 
   const { slug } = await params
   const body = await req.json().catch(() => ({}))
 
-  const { date, time, service, callerName, callerPhone } = body as {
+  const { date, time, service, callerName, callerPhone, call_id: callId } = body as {
     date?: string
     time?: string
     service?: string
     callerName?: string
     callerPhone?: string
+    call_id?: string
   }
 
   if (!date || !time) {
@@ -48,6 +47,10 @@ export async function POST(
   if (!client || !client.booking_enabled || !client.google_refresh_token) {
     return NextResponse.json({ booked: false, reason: 'booking_not_available' }, { status: 404 })
   }
+
+  // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
+  if (!callState && callId) callState = await readCallStateFromDb(supabase, callId)
+  console.log(`[calendar/book] resolved call-state: ${callState ? 'PRESENT' : 'NULL'}`)
 
   try {
     const accessToken = await getAccessToken(client.google_refresh_token as string)
@@ -80,6 +83,7 @@ export async function POST(
         _instruction: coaching ? `${baseSlotTaken} ${coaching}` : baseSlotTaken,
       })
       if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
+      if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
       return response
     }
 
@@ -124,6 +128,7 @@ export async function POST(
     // Force agent to speak immediately after booking — confirms back to caller
     response.headers.set('X-Ultravox-Agent-Reaction', 'speaks')
     if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
+    if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -140,6 +145,7 @@ export async function POST(
       _instruction: errCoaching ? `${errBase} ${errCoaching}` : errBase,
     })
     if (callState) setStateUpdate(errResponse, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
+    if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
     return errResponse
   }
 }

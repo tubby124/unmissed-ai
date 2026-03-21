@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSmsTracked } from '@/lib/twilio'
-import { parseCallState, setStateUpdate } from '@/lib/call-state'
+import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 
 export const maxDuration = 10
 
@@ -15,8 +15,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  // B3: Read call state from Ultravox header
-  const callState = parseCallState(req)
+  // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
+  let callState = parseCallState(req)
 
   let to: string, message: string, call_id: string
   try {
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: 'Client or Twilio number not found' }, { status: 404 })
   }
 
+  // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
+  if (!callState && call_id) callState = await readCallStateFromDb(supabase, call_id)
+
   // Check opt-out list before sending (TCPA/CRTC compliance)
   const { data: optOut } = await supabase
     .from('sms_opt_outs')
@@ -61,6 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     console.log(`[sms-tool] BLOCKED — recipient opted out: slug=${slug} to=${to}`)
     const blockedResponse = NextResponse.json({ result: 'SMS blocked — recipient opted out' })
     if (callState) setStateUpdate(blockedResponse, { lastToolOutcome: 'sms_blocked' })
+    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_blocked' })
     return blockedResponse
   }
 
@@ -123,12 +127,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     const sentResponse = NextResponse.json({ result: 'SMS sent' })
     if (callState) setStateUpdate(sentResponse, { lastToolOutcome: 'sms_sent' })
+    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_sent' })
     return sentResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[sms-tool] Send failed: ${msg}`)
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'sms_error' })
+    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_error' })
     return errResponse
   }
 }

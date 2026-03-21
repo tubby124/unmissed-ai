@@ -1,5 +1,7 @@
 'use client'
 
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+
 interface ClientInfo {
   id: string
   slug: string
@@ -50,7 +52,7 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
       <div>
         {adminClients.map((client, i) => {
           const minutesUsed = Math.ceil((client.seconds_used_this_month ?? 0) / 60)
-          const minuteLimit = (client.monthly_minute_limit ?? 200) + (client.bonus_minutes ?? 0)
+          const minuteLimit = (client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT) + (client.bonus_minutes ?? 0)
           const usagePct = minuteLimit > 0 ? (minutesUsed / minuteLimit) * 100 : 0
           const barColor =
             usagePct > 95 ? 'bg-red-500' :

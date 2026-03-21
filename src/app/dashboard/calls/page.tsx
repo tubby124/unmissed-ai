@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import CallsList from '@/components/dashboard/CallsList'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import OperatorActivity from '@/components/dashboard/OperatorActivity'
@@ -30,7 +31,7 @@ export default async function CallsPage() {
   let isAdmin = false
   let adminClients: ClientInfo[] = []
   let minutesUsed = 0
-  let minuteLimit = 200
+  let minuteLimit = DEFAULT_MINUTE_LIMIT
   let bonusMinutes = 0
   let telegramConnected = false
 
@@ -56,7 +57,7 @@ export default async function CallsPage() {
       clientId = cu?.client_id ?? null
       clientStatus = clientData?.status ?? null
       minutesUsed = Math.ceil((clientData?.seconds_used_this_month ?? 0) / 60)
-      minuteLimit = clientData?.monthly_minute_limit ?? 200
+      minuteLimit = clientData?.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
       bonusMinutes = clientData?.bonus_minutes ?? 0
       telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
 

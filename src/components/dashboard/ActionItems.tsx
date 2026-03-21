@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 interface ActionItem {
   severity: 'red' | 'amber'
@@ -72,7 +73,7 @@ export default function ActionItems() {
       if (clients) {
         for (const c of clients as ClientRow[]) {
           const used = Math.ceil((c.seconds_used_this_month ?? 0) / 60)
-          const limit = (c.monthly_minute_limit ?? 200) + (c.bonus_minutes ?? 0)
+          const limit = (c.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT) + (c.bonus_minutes ?? 0)
           if (limit > 0 && used / limit > 0.9) {
             actions.push({
               severity: used >= limit ? 'red' : 'amber',

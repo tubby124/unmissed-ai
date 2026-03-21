@@ -17,10 +17,10 @@ import {
   buildSmsTemplate,
   NICHE_CLASSIFICATION_RULES,
 } from '@/lib/prompt-builder'
-import { createAgent } from '@/lib/ultravox'
+import { createAgent, updateAgent, resolveVoiceId } from '@/lib/ultravox'
 import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
-import { getNicheVoice, getNicheMinuteLimit } from '@/lib/niche-config'
+import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
@@ -97,24 +97,13 @@ export async function POST(req: NextRequest) {
   const smsTemplate = buildSmsTemplate(intakeData)
 
   // ── Resolve voice: direct voiceId from picker > gender fallback > niche default
-  const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
-  const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
-  const directVoiceId = (intakeData.niche_voiceId as string) || ''
-  const voiceGender = (intakeData.niche_voiceGender as string) || ''
-  const voiceId = directVoiceId
-    || (voiceGender === 'male' ? VOICE_MALE : voiceGender === 'female' ? VOICE_FEMALE : getNicheVoice(niche))
+  const voiceId = resolveVoiceId(
+    intakeData.niche_voiceId as string | null,
+    intakeData.niche_voiceGender as string | null,
+    niche,
+  )
 
-  // ── Create Ultravox agent ──────────────────────────────────────────────────
-  let agentId: string
-  try {
-    const agentName = clientSlug.slice(0, 64) || 'test-agent'
-    agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId })
-    console.log(`[test-activate] Ultravox agent created: ${agentId} for "${businessName}"`)
-  } catch (err) {
-    return NextResponse.json({ error: 'Ultravox agent creation failed', detail: String(err) }, { status: 502 })
-  }
-
-  // ── Upsert clients row ────────────────────────────────────────────────────
+  // ── Look up existing client (needed before agent create/update) ───────────
   const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other
   const timezone = (intakeData.timezone as string) || 'America/Chicago'
 
@@ -123,6 +112,24 @@ export async function POST(req: NextRequest) {
     .select('id, ultravox_agent_id, twilio_number')
     .eq('slug', clientSlug)
     .maybeSingle()
+
+  // ── Create or update Ultravox agent ───────────────────────────────────────
+  // Reuse the existing agent if the client already has one — avoids orphaning old agents.
+  let agentId: string
+  const existingAgentId = existingClient?.ultravox_agent_id as string | undefined
+  try {
+    const agentName = clientSlug.slice(0, 64) || 'test-agent'
+    if (existingAgentId) {
+      await updateAgent(existingAgentId, { systemPrompt: prompt, voice: voiceId })
+      agentId = existingAgentId
+      console.log(`[test-activate] Ultravox agent updated: ${agentId} for "${businessName}"`)
+    } else {
+      agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId })
+      console.log(`[test-activate] Ultravox agent created: ${agentId} for "${businessName}"`)
+    }
+  } catch (err) {
+    return NextResponse.json({ error: 'Ultravox agent creation/update failed', detail: String(err) }, { status: 502 })
+  }
 
   let clientId: string
 
@@ -133,6 +140,7 @@ export async function POST(req: NextRequest) {
       .update({
         system_prompt: prompt,
         ultravox_agent_id: agentId,
+        agent_voice_id: voiceId,
         classification_rules: classificationRules,
         sms_template: smsTemplate,
         status: 'active',
@@ -153,6 +161,7 @@ export async function POST(req: NextRequest) {
         status: 'active',
         system_prompt: prompt,
         ultravox_agent_id: agentId,
+        agent_voice_id: voiceId,
         classification_rules: classificationRules,
         sms_template: smsTemplate,
         timezone,

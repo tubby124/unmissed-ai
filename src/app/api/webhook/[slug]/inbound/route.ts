@@ -5,6 +5,7 @@ import { defaultCallState } from '@/lib/call-state'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 export const maxDuration = 15
 
@@ -55,7 +56,7 @@ export async function POST(
 
   // ── Overage detection (soft enforcement — seconds-based) ─────────────────────
   const secondsUsed = (client.seconds_used_this_month as number | null) ?? 0
-  const secondLimit = (((client.monthly_minute_limit as number | null) ?? 500) + ((client.bonus_minutes as number | null) ?? 0)) * 60
+  const secondLimit = (((client.monthly_minute_limit as number | null) ?? DEFAULT_MINUTE_LIMIT) + ((client.bonus_minutes as number | null) ?? 0)) * 60
   const isOverLimit = secondsUsed >= secondLimit
 
   if (isOverLimit) {

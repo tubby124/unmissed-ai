@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { AnimatePresence, motion } from 'motion/react'
 import { createSoundCues } from '@/components/DemoCallVisuals'
 import CallRow from './CallRow'
@@ -139,7 +140,7 @@ function CallsListSkeleton() {
   )
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = 200, bonusMinutes = 0 }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = DEFAULT_MINUTE_LIMIT, bonusMinutes = 0 }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [loading, setLoading] = useState(initialCalls.length === 0)
@@ -373,7 +374,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       {(() => {
         if (isAdmin && clientFilter !== 'all') {
           const sel = adminClients.find(c => c.id === clientFilter)
-          if (sel) return <MinuteUsage minutesUsed={Math.ceil((sel.seconds_used_this_month ?? 0) / 60)} minuteLimit={sel.monthly_minute_limit ?? 200} bonusMinutes={sel.bonus_minutes ?? 0} />
+          if (sel) return <MinuteUsage minutesUsed={Math.ceil((sel.seconds_used_this_month ?? 0) / 60)} minuteLimit={sel.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT} bonusMinutes={sel.bonus_minutes ?? 0} />
         }
         if (!isAdmin) return <MinuteUsage minutesUsed={minutesUsed} minuteLimit={minuteLimit} bonusMinutes={bonusMinutes} />
         return null

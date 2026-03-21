@@ -118,3 +118,36 @@ export function knowledgeInstruction(state: CallState, found: boolean): string {
   }
   return ''
 }
+
+// ── DB-backed call state (fallback for Agents API — initialState not supported) ──
+
+/**
+ * Read call state from call_logs.call_state (JSONB).
+ * Used when X-Call-State header is absent (Agents API doesn't support initialState).
+ * Accepts supabase client as param to avoid a server-only import at module level.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function readCallStateFromDb(supabase: any, callId: string): Promise<CallState | null> {
+  const { data } = await supabase
+    .from('call_logs')
+    .select('call_state')
+    .eq('ultravox_call_id', callId)
+    .single()
+  return (data?.call_state as CallState | null) ?? null
+}
+
+/**
+ * Shallow-merge updates into current call state and persist to call_logs. Fire-and-forget.
+ * Mirrors the X-Ultravox-Update-Call-State shallow-merge semantics.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function persistCallStateToDb(supabase: any, callId: string, base: CallState | null, updates: Partial<CallState>): void {
+  const merged = { ...(base ?? defaultCallState()), ...updates }
+  supabase
+    .from('call_logs')
+    .update({ call_state: merged })
+    .eq('ultravox_call_id', callId)
+    .then(({ error }: { error: { message: string } | null }) => {
+      if (error) console.error(`[call-state] persistCallStateToDb failed for ${callId}: ${error.message}`)
+    })
+}

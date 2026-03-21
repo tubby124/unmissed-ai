@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
-import { createAgent, resolveVoiceId } from '@/lib/ultravox'
+import { createAgent, updateAgent, resolveVoiceId } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
 
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── Create Ultravox agent ──────────────────────────────────────────────────
+  // ── Resolve slug, niche, voice ─────────────────────────────────────────────
   const businessName = (intakeData.business_name as string) || intake.business_name || 'unmissed-agent'
   const niche = intake.niche || 'other'
   const clientSlug = intake.client_slug || slugify(businessName)
@@ -163,31 +163,34 @@ export async function POST(req: NextRequest) {
     niche,
   )
 
-  let agentId: string
-  try {
-    // Use slug as agent name — already unique per client and matches Ultravox regex ^[a-zA-Z0-9_-]{1,64}$
-    const agentName = clientSlug.slice(0, 64) || 'unmissed-agent'
-    agentId = await createAgent({
-      systemPrompt: prompt,
-      name: agentName,
-      voice: voiceId,
-    })
-    console.log(`[generate-prompt] Ultravox agent created: ${agentId} for "${businessName}"`)
-  } catch (err) {
-    console.error('[generate-prompt] createAgent failed:', err)
-    return NextResponse.json({ error: 'Ultravox agent creation failed', detail: String(err) }, { status: 502 })
-  }
-
-  // ── Upsert clients row ─────────────────────────────────────────────────────
+  // ── Look up existing client (needed before agent create/update) ────────────
   const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other
   const timezone = (intakeData.timezone as string) || 'America/Chicago'
 
-  // Check for existing client by slug
   const { data: existingClient } = await svc
     .from('clients')
     .select('id, ultravox_agent_id')
     .eq('slug', clientSlug)
     .maybeSingle()
+
+  // ── Create or update Ultravox agent ───────────────────────────────────────
+  // Reuse the existing agent if the client already has one — avoids orphaning old agents.
+  let agentId: string
+  const existingAgentId = existingClient?.ultravox_agent_id as string | undefined
+  try {
+    const agentName = clientSlug.slice(0, 64) || 'unmissed-agent'
+    if (existingAgentId) {
+      await updateAgent(existingAgentId, { systemPrompt: prompt, voice: voiceId })
+      agentId = existingAgentId
+      console.log(`[generate-prompt] Ultravox agent updated: ${agentId} for "${businessName}"`)
+    } else {
+      agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId })
+      console.log(`[generate-prompt] Ultravox agent created: ${agentId} for "${businessName}"`)
+    }
+  } catch (err) {
+    console.error('[generate-prompt] agent create/update failed:', err)
+    return NextResponse.json({ error: 'Ultravox agent creation/update failed', detail: String(err) }, { status: 502 })
+  }
 
   let clientId: string
 

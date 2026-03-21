@@ -15,8 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
-import { createAgent } from '@/lib/ultravox'
-import { getNicheVoice } from '@/lib/niche-config'
+import { createAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -224,13 +223,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Voice ID: direct picker selection > gender fallback > niche default
-    const VOICE_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
-    const VOICE_MALE   = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
-    const directVoiceId = (intakeData.niche_voiceId as string) || ''
-    const voiceGender = (intakeData.niche_voiceGender as string) || ''
-    const nicheForVoice = intake.niche || 'other'
-    const voiceId = directVoiceId
-      || (voiceGender === 'male' ? VOICE_MALE : voiceGender === 'female' ? VOICE_FEMALE : getNicheVoice(nicheForVoice))
+    const voiceId = resolveVoiceId(
+      intakeData.niche_voiceId as string | null,
+      intakeData.niche_voiceGender as string | null,
+      intake.niche,
+    )
 
     let agentId: string
     try {

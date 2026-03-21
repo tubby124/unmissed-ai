@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from './page'
-import { NICHE_CONFIG, getNicheConfig } from '@/lib/niche-config'
+import { NICHE_CONFIG, getNicheConfig, DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import { fmtPhone, getPlanName } from '@/lib/settings-utils'
 import { getClientSetupState } from '@/lib/client-utils'
@@ -48,7 +48,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       telegram_chat_id: c.telegram_chat_id ?? '',
       timezone: c.timezone ?? 'America/Edmonton',
       twilio_number: c.twilio_number ?? '',
-      monthly_minute_limit: c.monthly_minute_limit ?? 500,
+      monthly_minute_limit: c.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT,
     }]))
   )
   const [telegramTest, setTelegramTest] = useState<Record<string, 'idle' | 'testing' | 'ok' | 'fail'>>(() =>
@@ -144,7 +144,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   if (!client) return null
 
   const minutesUsed = client.seconds_used_this_month != null ? Math.ceil(client.seconds_used_this_month / 60) : (client.minutes_used_this_month ?? 0)
-  const minuteLimit = client.monthly_minute_limit ?? 500
+  const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const totalAvailable = minuteLimit + (client.bonus_minutes ?? 0)
   const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0
 

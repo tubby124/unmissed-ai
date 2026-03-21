@@ -1,7 +1,7 @@
 'use client'
 
 import type { ClientConfig } from '@/app/dashboard/settings/page'
-import { NICHE_CONFIG } from '@/lib/niche-config'
+import { NICHE_CONFIG, DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { fmtPhone, getPlanName } from '@/lib/settings-utils'
 
 interface AgentIdentityHeaderProps {
@@ -13,7 +13,7 @@ interface AgentIdentityHeaderProps {
 export default function AgentIdentityHeader({ client, isActive, onToggleStatus }: AgentIdentityHeaderProps) {
   const niche = client.niche ?? ''
   const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 't2', border: 'border-zinc-500/30' }
-  const minuteLimit = client.monthly_minute_limit ?? 500
+  const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
 
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
