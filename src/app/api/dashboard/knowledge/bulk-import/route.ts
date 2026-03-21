@@ -119,10 +119,11 @@ export async function POST(req: NextRequest) {
   console.log(`[knowledge/bulk-import] clientId=${clientId} total=${chunks.length} succeeded=${succeeded} failed=${failed} runId=${runId}`)
 
   // S5: if any chunks were auto-approved, rebuild clients.tools
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
   if (status === 'approved' && succeeded > 0) {
-    syncClientTools(svc, clientId).catch(err =>
+    try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[knowledge/bulk-import] tools sync failed: ${err}`)
-    )
+    }
   }
 
   return NextResponse.json({

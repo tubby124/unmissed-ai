@@ -18,6 +18,7 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, updateAgent, buildAgentTools, resolveVoiceId } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -274,26 +275,19 @@ export async function POST(req: NextRequest) {
   // ── Create prompt_versions row with audit trail ────────────────────────────
   const { data: latestVersion } = await svc
     .from('prompt_versions')
-    .select('version, char_count')
+    .select('char_count')
     .eq('client_id', clientId)
     .order('version', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  const nextVersion = (latestVersion?.version ?? 0) + 1
-
-  await svc.from('prompt_versions').update({ is_active: false }).eq('client_id', clientId)
-
-  await svc.from('prompt_versions').insert({
-    client_id: clientId,
-    version: nextVersion,
+  await insertPromptVersion(svc, {
+    clientId,
     content: prompt,
-    change_description: `Auto-generated from intake (niche: ${niche}, ${validation.charCount} chars)`,
-    is_active: true,
-    triggered_by_user_id: user.id,
-    triggered_by_role: 'admin',
-    char_count: validation.charCount,
-    prev_char_count: latestVersion?.char_count ?? null,
+    changeDescription: `Auto-generated from intake (niche: ${niche}, ${validation.charCount} chars)`,
+    triggeredByUserId: user.id,
+    triggeredByRole: 'admin',
+    prevCharCount: latestVersion?.char_count ?? null,
   })
 
   // ── Mark intake as provisioned ─────────────────────────────────────────────

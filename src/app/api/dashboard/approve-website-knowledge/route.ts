@@ -191,10 +191,11 @@ export async function POST(req: NextRequest) {
   console.log(`[approve-website-knowledge] client=${client.slug} stored=${stored} failed=${failed} facts=${factLines.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
 
   // S5: if chunks were auto-approved, rebuild clients.tools
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
   if (chunkStatus === 'approved' && stored > 0) {
-    syncClientTools(svc, clientId).catch(err =>
+    try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[approve-website-knowledge] tools sync failed: ${err}`)
-    )
+    }
   }
 
   return NextResponse.json({

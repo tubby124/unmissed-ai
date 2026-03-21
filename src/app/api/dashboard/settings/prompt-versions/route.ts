@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
@@ -67,15 +68,33 @@ export async function POST(req: NextRequest) {
 
   if (!versionRow) return NextResponse.json({ error: 'Version not found' }, { status: 404 })
 
-  // Restore: update clients.system_prompt + active version pointer + set is_active
+  // S7b: Fetch current prompt for prev_char_count audit
+  const { data: currentClient } = await supabase
+    .from('clients')
+    .select('system_prompt')
+    .eq('id', client_id)
+    .single()
+  const prevCharCount = (currentClient?.system_prompt as string | null)?.length ?? 0
+
+  const restoredCharCount = versionRow.content?.length ?? 0
+  const delta = restoredCharCount - prevCharCount
+
+  // S7f: Insert new audited version via shared utility
+  const newVersionRow = await insertPromptVersion(supabase, {
+    clientId: client_id,
+    content: versionRow.content,
+    changeDescription: `Restored v${versionRow.version} (${restoredCharCount} chars, delta ${delta > 0 ? '+' : ''}${delta})`,
+    triggeredByUserId: user.id,
+    triggeredByRole: cu.role,
+    prevCharCount,
+  })
+
+  // Update clients.system_prompt + active version pointer
   await supabase.from('clients').update({
     system_prompt: versionRow.content,
-    active_prompt_version_id: version_id,
+    active_prompt_version_id: newVersionRow?.id ?? version_id,
     updated_at: new Date().toISOString(),
   }).eq('id', client_id)
-
-  await supabase.from('prompt_versions').update({ is_active: false }).eq('client_id', client_id)
-  await supabase.from('prompt_versions').update({ is_active: true }).eq('id', version_id)
 
   // Sync restored prompt to Ultravox agent (if one exists)
   const { data: clientRow } = await supabase

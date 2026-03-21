@@ -43,9 +43,10 @@ export async function DELETE(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // S5: rebuild clients.tools — deleting an approved chunk may remove queryKnowledge tool
-  syncClientTools(svc, chunk.client_id).catch(err =>
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
+  try { await syncClientTools(svc, chunk.client_id) } catch (err) {
     console.error(`[knowledge/chunks DELETE] tools sync failed: ${err}`)
-  )
+  }
 
   return NextResponse.json({ ok: true, deleted: chunkId })
 }
@@ -190,10 +191,11 @@ export async function POST(req: NextRequest) {
   }
 
   // S5: if auto-approved, rebuild clients.tools to include queryKnowledge
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
   if (status === 'approved') {
-    syncClientTools(svc, clientId).catch(err =>
+    try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[knowledge/chunks POST] tools sync failed: ${err}`)
-    )
+    }
   }
 
   return NextResponse.json({ ok: true, chunk })

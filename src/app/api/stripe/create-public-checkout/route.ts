@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -279,15 +280,14 @@ export async function POST(req: NextRequest) {
     clientId = newClient.id as string
 
     // Seed prompt_versions with audit trail
-    await svc.from('prompt_versions').insert({
-      client_id: clientId,
-      version: 1,
+    await insertPromptVersion(svc, {
+      clientId,
       content: prompt,
-      change_description: `Auto-generated at checkout (niche: ${niche}, ${validation.charCount} chars)`,
-      is_active: true,
-      triggered_by_role: 'system',
-      char_count: validation.charCount,
-      prev_char_count: null,
+      changeDescription: `Auto-generated at checkout (niche: ${niche}, ${validation.charCount} chars)`,
+      triggeredByUserId: null,
+      triggeredByRole: 'system',
+      prevCharCount: null,
+      version: 1,
     })
 
     // Mark intake as provisioned

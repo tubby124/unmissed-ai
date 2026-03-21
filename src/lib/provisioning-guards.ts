@@ -185,6 +185,7 @@ export type ActivationStepName =
   | 'knowledge_docs'
   | 'faq_persist'
   | 'telegram_alert'
+  | 'tools_sync'
   | 'activation_log'
 
 export interface StepResult {

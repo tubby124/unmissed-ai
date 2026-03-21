@@ -82,9 +82,10 @@ export async function POST(req: NextRequest) {
 
   // S5: rebuild clients.tools when approved chunk count may have changed
   // This ensures queryKnowledge tool is added/removed when crossing the 0-boundary
-  syncClientTools(svc, chunk.client_id).catch(err =>
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
+  try { await syncClientTools(svc, chunk.client_id) } catch (err) {
     console.error(`[knowledge/approve] tools sync failed: ${err}`)
-  )
+  }
 
   return NextResponse.json({ ok: true, action, chunkId })
 }

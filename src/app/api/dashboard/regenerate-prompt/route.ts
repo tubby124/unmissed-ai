@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -127,37 +128,20 @@ export async function POST(req: NextRequest) {
     regenSource = 'refresh'
   }
 
-  // ── Insert prompt_versions record with audit trail ─────────────────────────
-  const { data: latestVersion } = await svc
-    .from('prompt_versions')
-    .select('version')
-    .eq('client_id', clientId)
-    .order('version', { ascending: false })
-    .limit(1)
-    .single()
-  const nextVersion = (latestVersion?.version ?? 0) + 1
-
+  // ── S7f: Insert prompt_versions record via shared utility ───────────────────
+  const delta = newPrompt.length - prevCharCount
   const changeDesc = regenSource === 'intake'
-    ? `Re-generated from intake (${newPrompt.length} chars, delta ${newPrompt.length - prevCharCount > 0 ? '+' : ''}${newPrompt.length - prevCharCount})`
+    ? `Re-generated from intake (${newPrompt.length} chars, delta ${delta > 0 ? '+' : ''}${delta})`
     : `Refreshed agent (tools/voice re-sync, prompt unchanged, ${newPrompt.length} chars)`
 
-  await svc.from('prompt_versions').update({ is_active: false }).eq('client_id', clientId)
-  const { data: newVersion } = await svc
-    .from('prompt_versions')
-    .insert({
-      client_id: clientId,
-      version: nextVersion,
-      content: newPrompt,
-      change_description: changeDesc,
-      is_active: true,
-      // S6d: audit trail columns
-      triggered_by_user_id: user.id,
-      triggered_by_role: cu.role,
-      char_count: newPrompt.length,
-      prev_char_count: prevCharCount,
-    })
-    .select('id')
-    .single()
+  const newVersion = await insertPromptVersion(svc, {
+    clientId,
+    content: newPrompt,
+    changeDescription: changeDesc,
+    triggeredByUserId: user.id,
+    triggeredByRole: cu.role,
+    prevCharCount,
+  })
 
   // Save to clients table
   const dbUpdates: Record<string, unknown> = {
@@ -206,7 +190,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  console.log(`[regenerate-prompt] client=${client.slug} v${nextVersion} source=${regenSource} role=${cu.role} chars=${newPrompt.length} delta=${newPrompt.length - prevCharCount}`)
+  console.log(`[regenerate-prompt] client=${client.slug} v${newVersion?.version ?? '?'} source=${regenSource} role=${cu.role} chars=${newPrompt.length} delta=${delta}`)
 
   return NextResponse.json({ ok: true, saved: true, synced: true, source: regenSource })
 }

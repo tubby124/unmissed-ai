@@ -4,6 +4,7 @@ import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 // ── Prompt validation ──────────────────────────────────────────────────────────
 interface PromptWarning { field: string; message: string }
@@ -407,37 +408,24 @@ export async function PATCH(req: NextRequest) {
 
   // 3 — Record prompt version with audit trail (only when system_prompt changed)
   if (typeof updates.system_prompt === 'string') {
-    // S6d: Fetch previous version for audit trail (char count + version number)
+    // S6d: Fetch previous char count for audit trail
     const { data: latestVersion } = await supabase
       .from('prompt_versions')
-      .select('version, char_count')
+      .select('char_count')
       .eq('client_id', targetClientId)
       .order('version', { ascending: false })
       .limit(1)
       .single()
 
-    const nextVersion = (latestVersion?.version ?? 0) + 1
-    const newCharCount = (updates.system_prompt as string).length
-    // Use stored char_count if available (S6+), otherwise unknown (pre-S6 versions)
-    const prevCharCount = latestVersion?.char_count ?? null
-
-    await supabase
-      .from('prompt_versions')
-      .update({ is_active: false })
-      .eq('client_id', targetClientId)
-
-    const { data: newVersion } = await supabase.from('prompt_versions').insert({
-      client_id: targetClientId,
-      version: nextVersion,
+    // S7f: Use shared utility for version insert + audit trail
+    const newVersion = await insertPromptVersion(supabase, {
+      clientId: targetClientId,
       content: updates.system_prompt as string,
-      change_description: body.change_description || `Manual update v${nextVersion}`,
-      is_active: true,
-      // S6d: audit trail columns
-      triggered_by_user_id: user.id,
-      triggered_by_role: cu.role,
-      char_count: newCharCount,
-      prev_char_count: prevCharCount,
-    }).select('id').single()
+      changeDescription: body.change_description || 'Manual update',
+      triggeredByUserId: user.id,
+      triggeredByRole: cu.role,
+      prevCharCount: latestVersion?.char_count ?? null,
+    })
 
     if (newVersion) {
       await supabase.from('clients')
@@ -461,7 +449,7 @@ export async function PATCH(req: NextRequest) {
         if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
           const name = editedCl?.business_name || 'Unknown client'
           const charLen = (updates.system_prompt as string).length
-          const msg = `✏️ <b>${name}</b> edited their prompt (v${nextVersion}, ${charLen.toLocaleString()} chars).\nReview: /dashboard/settings`
+          const msg = `✏️ <b>${name}</b> edited their prompt (v${newVersion?.version ?? '?'}, ${charLen.toLocaleString()} chars).\nReview: /dashboard/settings`
           await sendAlert(adminCl.telegram_bot_token as string, adminCl.telegram_chat_id as string, msg)
         }
       } catch (err) {

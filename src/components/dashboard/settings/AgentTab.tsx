@@ -109,7 +109,22 @@ export default function AgentTab({
   const [savePromptWarnings, setSavePromptWarnings] = useState<{ field: string; message: string }[]>([])
   const [changeDesc, setChangeDesc] = useState('')
 
-  const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error'>('idle')
+  const [regenState, setRegenState] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error' | 'cooldown'>('idle')
+  const [regenCooldownEnd, setRegenCooldownEnd] = useState(0)
+  const [regenCooldownLeft, setRegenCooldownLeft] = useState(0)
+
+  // S7c: Countdown timer for rate-limit cooldown
+  useEffect(() => {
+    if (regenCooldownEnd <= Date.now()) { setRegenCooldownLeft(0); return }
+    const tick = () => {
+      const left = Math.ceil((regenCooldownEnd - Date.now()) / 1000)
+      if (left <= 0) { setRegenCooldownLeft(0); setRegenState('idle'); return }
+      setRegenCooldownLeft(left)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [regenCooldownEnd])
 
   const [improveState, setImproveState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [improveResult, setImproveResult] = useState<ImproveResult | null>(null)
@@ -123,6 +138,38 @@ export default function AgentTab({
   const dismissLearning = useCallback(() => {
     try { sessionStorage.setItem(`learning_dismissed_${client.id}`, '1') } catch { /* ignore */ }
     setLearningDismissed(true)
+  }, [client.id])
+
+  // S7c: Shared regen handler with 429 cooldown support
+  const handleRegen = useCallback(async () => {
+    setRegenState('loading')
+    try {
+      const res = await fetch('/api/dashboard/regenerate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      if (res.status === 429) {
+        const json = await res.json().catch(() => ({}))
+        const cooldown = json.cooldown_seconds ?? 300
+        setRegenCooldownEnd(Date.now() + cooldown * 1000)
+        setRegenState('cooldown')
+        return
+      }
+      if (!res.ok) throw new Error(await res.text())
+      const json = await res.json()
+      if (json.synced === false) {
+        setRegenState('partial')
+        setTimeout(() => setRegenState('idle'), 4000)
+      } else {
+        setRegenState('done')
+        setTimeout(() => setRegenState('idle'), 3000)
+      }
+    } catch (e) {
+      console.error('[regen]', e)
+      setRegenState('error')
+      setTimeout(() => setRegenState('idle'), 3000)
+    }
   }, [client.id])
 
   const [versionsOpen, setVersionsOpen] = useState(false)
@@ -1255,34 +1302,12 @@ export default function AgentTab({
                           )}
                         </button>
                         <ShimmerButton
-                          onClick={async () => {
-                            setRegenState('loading')
-                            try {
-                              const res = await fetch('/api/dashboard/regenerate-prompt', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ clientId: client.id }),
-                              })
-                              if (!res.ok) throw new Error(await res.text())
-                              const json = await res.json()
-                              if (json.synced === false) {
-                                setRegenState('partial')
-                                setTimeout(() => setRegenState('idle'), 4000)
-                              } else {
-                                setRegenState('done')
-                                setTimeout(() => setRegenState('idle'), 3000)
-                              }
-                            } catch (e) {
-                              console.error('[regen]', e)
-                              setRegenState('error')
-                              setTimeout(() => setRegenState('idle'), 3000)
-                            }
-                          }}
-                          disabled={regenState === 'loading'}
+                          onClick={handleRegen}
+                          disabled={regenState === 'loading' || regenCooldownLeft > 0}
                           className="text-sm"
                           shimmerColor="rgba(99,102,241,0.5)"
                         >
-                          {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : 'Re-generate from template'}
+                          {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : regenCooldownLeft > 0 ? `Wait ${Math.floor(regenCooldownLeft / 60)}:${String(regenCooldownLeft % 60).padStart(2, '0')}` : 'Re-generate from template'}
                         </ShimmerButton>
                       </div>
                     </div>
@@ -1421,34 +1446,12 @@ export default function AgentTab({
                         Need behavior changes? Update your business details above, or contact support for advanced customization.
                       </p>
                       <ShimmerButton
-                        onClick={async () => {
-                          setRegenState('loading')
-                          try {
-                            const res = await fetch('/api/dashboard/regenerate-prompt', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ clientId: client.id }),
-                            })
-                            if (!res.ok) throw new Error(await res.text())
-                            const json = await res.json()
-                            if (json.synced === false) {
-                              setRegenState('partial')
-                              setTimeout(() => setRegenState('idle'), 4000)
-                            } else {
-                              setRegenState('done')
-                              setTimeout(() => setRegenState('idle'), 3000)
-                            }
-                          } catch (e) {
-                            console.error('[regen]', e)
-                            setRegenState('error')
-                            setTimeout(() => setRegenState('idle'), 3000)
-                          }
-                        }}
-                        disabled={regenState === 'loading' || previewMode}
+                        onClick={handleRegen}
+                        disabled={regenState === 'loading' || previewMode || regenCooldownLeft > 0}
                         className="text-sm shrink-0 ml-3"
                         shimmerColor="rgba(99,102,241,0.5)"
                       >
-                        {regenState === 'loading' ? 'Refreshing…' : regenState === 'done' ? 'Updated!' : regenState === 'partial' ? 'Saved — syncing…' : regenState === 'error' ? 'Error — try again' : 'Refresh Agent'}
+                        {regenState === 'loading' ? 'Refreshing…' : regenState === 'done' ? 'Updated!' : regenState === 'partial' ? 'Saved — syncing…' : regenState === 'error' ? 'Error — try again' : regenCooldownLeft > 0 ? `Wait ${Math.floor(regenCooldownLeft / 60)}:${String(regenCooldownLeft % 60).padStart(2, '0')}` : 'Refresh Agent'}
                       </ShimmerButton>
                     </div>
                   </div>

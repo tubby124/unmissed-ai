@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -95,25 +96,19 @@ export async function POST(req: NextRequest) {
     if (client) {
       const { data: latestVersion } = await svc
         .from('prompt_versions')
-        .select('version, char_count')
+        .select('char_count')
         .eq('client_id', client.id)
         .order('version', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      const nextVersion = (latestVersion?.version ?? 0) + 1
-
-      await svc.from('prompt_versions').update({ is_active: false }).eq('client_id', client.id)
-      await svc.from('prompt_versions').insert({
-        client_id: client.id,
-        version: nextVersion,
+      await insertPromptVersion(svc, {
+        clientId: client.id,
         content: body.prompt,
-        change_description: `Admin live edit (${body.prompt.length} chars)`,
-        is_active: true,
-        triggered_by_user_id: user.id,
-        triggered_by_role: 'admin',
-        char_count: body.prompt.length,
-        prev_char_count: latestVersion?.char_count ?? null,
+        changeDescription: `Admin live edit (${body.prompt.length} chars)`,
+        triggeredByUserId: user.id,
+        triggeredByRole: 'admin',
+        prevCharCount: latestVersion?.char_count ?? null,
       })
     }
 

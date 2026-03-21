@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
+import { syncClientTools } from '@/lib/sync-client-tools'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -534,6 +535,15 @@ export async function activateClient(params: {
     await adminSupa.from('clients').update(updatePayload).eq('id', clientId)
     console.log(`${logPrefix} clients.status → active for slug=${clientSlug}`)
     steps.push({ step: 'client_update', ok: true })
+
+    // S7a: Rebuild clients.tools after capability flag changes (sms_enabled, booking, etc.)
+    try {
+      await syncClientTools(adminSupa, clientId)
+      steps.push({ step: 'tools_sync', ok: true })
+    } catch (err) {
+      console.error(`${logPrefix} syncClientTools failed: ${err}`)
+      steps.push({ step: 'tools_sync', ok: false, error: String(err).slice(0, 200) })
+    }
   } catch (err) {
     console.error(`${logPrefix} clients update threw: ${err}`)
     steps.push({ step: 'client_update', ok: false, error: String(err).slice(0, 200) })

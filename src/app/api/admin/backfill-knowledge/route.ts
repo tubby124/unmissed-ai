@@ -61,9 +61,10 @@ export async function POST(req: NextRequest) {
     .eq('id', clientId)
 
   // S6b: rebuild clients.tools so queryKnowledge is registered after backend toggle
-  syncClientTools(svc, clientId).catch(err =>
+  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
+  try { await syncClientTools(svc, clientId) } catch (err) {
     console.error(`[backfill-knowledge] tools sync failed: ${err}`)
-  )
+  }
 
   console.log(`[backfill-knowledge] slug=${client.slug} chunks=${allChunks.length} stored=${result.stored} failed=${result.failed} runId=${sourceRunId}`)
 
