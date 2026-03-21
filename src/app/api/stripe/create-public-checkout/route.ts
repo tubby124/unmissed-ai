@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
-import { createAgent, resolveVoiceId } from '@/lib/ultravox'
+import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -263,7 +263,15 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertErr || !newClient) {
-      console.error('[create-public-checkout] clients insert failed:', insertErr)
+      // Compensating rollback — delete the Ultravox agent so it doesn't become an orphan.
+      // Future: store agentId in intake_submissions before insert so retries can reuse it
+      // instead of creating a new agent (fully idempotent agent creation).
+      console.error('[create-public-checkout] clients insert failed, rolling back agent:', insertErr)
+      try {
+        await deleteAgent(agentId)
+      } catch (delErr) {
+        console.error(`[create-public-checkout] Orphaned agent ${agentId} — manual cleanup needed:`, delErr)
+      }
       return NextResponse.json({ error: 'Failed to create client', detail: insertErr?.message }, { status: 500 })
     }
 

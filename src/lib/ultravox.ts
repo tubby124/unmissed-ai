@@ -734,6 +734,19 @@ export async function getDurableTool(toolId: string) {
   return await res.json()
 }
 
+/** Delete an Ultravox agent. Call as a compensating transaction if post-agent work fails. */
+export async function deleteAgent(agentId: string): Promise<void> {
+  const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
+    method: 'DELETE',
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox deleteAgent failed: ${res.status} ${err}`)
+  }
+}
+
 export async function deleteDurableTool(toolId: string): Promise<void> {
   const res = await fetch(`${ULTRAVOX_BASE}/tools/${toolId}`, {
     method: 'DELETE',

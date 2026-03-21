@@ -20,12 +20,9 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
 import { activateClient } from '@/lib/activate-client'
-import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { getNicheMinuteLimit } from '@/lib/niche-config'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
-
-/** All plans include DEFAULT_MINUTE_LIMIT min/mo. Future tiers (Growth/Pro) not yet purchasable. */
-const BASE_MINUTE_LIMIT = DEFAULT_MINUTE_LIMIT
 
 function getTierLabel(): string {
   return 'Starter ($30)'
@@ -91,7 +88,7 @@ export async function POST(req: NextRequest) {
       if (cl) {
         const sub = await stripe.subscriptions.retrieve(subId)
         const tier = sub.metadata?.tier ?? null
-        const minuteLimit = BASE_MINUTE_LIMIT
+        const minuteLimit = getNicheMinuteLimit(cl.niche)
         const tierLabel = getTierLabel()
         const { discountName, effectiveRate } = extractDiscountInfo(sub)
 
@@ -365,10 +362,12 @@ export async function POST(req: NextRequest) {
     console.error(`[stripe-webhook] activateClient failed for slug=${client_slug}: ${result.error}`)
   }
 
-  // ── Set tier-based minute limit (overrides niche default from activateClient) ─
+  // ── Set tier-based minute limit ───────────────────────────────────────────────
+  // Uses niche-aware limit so voicemail (50 min) and other niche tiers are respected.
+  // Future: replace with getTierMinuteLimit(sessionTier, niche) when Growth/Pro tiers launch.
   const sessionTier = session.metadata?.tier ?? null
   if (sessionTier) {
-    const tierMinutes = BASE_MINUTE_LIMIT
+    const tierMinutes = getNicheMinuteLimit(existingClient?.niche ?? null)
     await adminSupa.from('clients').update({
       monthly_minute_limit: tierMinutes,
     }).eq('id', client_id)
