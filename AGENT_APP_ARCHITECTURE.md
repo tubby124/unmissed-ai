@@ -138,7 +138,7 @@ POST /api/agents/{id}/calls
 
 // Update agent (when prompt changes)
 PATCH /api/agents/{id}
-{ callTemplate: { systemPrompt, voice } }   // partial update, only changed fields
+{ callTemplate: { systemPrompt, voice, ... } }   // FULL callTemplate required — PATCH replaces entire callTemplate atomically (Mar 15 incident)
 ```
 
 **createCall (fallback):** Full config per call.
