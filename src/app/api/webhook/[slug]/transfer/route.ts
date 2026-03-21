@@ -72,9 +72,11 @@ export async function POST(
       const smsBody = callerPhone !== 'unknown'
         ? `Incoming transfer to you. Caller: ${callerPhone}. Your agent is connecting them now.`
         : `Incoming transfer. Your agent is connecting a caller to you now.`
-      sendSms(client.forwarding_number, clientNumber, smsBody).catch(err =>
+      try {
+        await sendSms(client.forwarding_number, clientNumber, smsBody)
+      } catch (err) {
         console.warn(`[transfer] SMS alert failed: ${err}`)
-      )
+      }
     }
     // Build action URL for transfer failure recovery — Twilio will POST here after dial ends
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
@@ -86,17 +88,19 @@ export async function POST(
       actionUrl,
     })
     // Mark original call as 'transferred' + set transfer_status lifecycle
-    supabase.from('call_logs')
-      .update({
-        call_status: 'transferred',
-        ai_summary: 'Call transferred to owner',
-        transfer_status: 'transferring',
-        transfer_started_at: new Date().toISOString(),
-      })
-      .eq('ultravox_call_id', call_id)
-      .then(({ error }) => {
-        if (error) console.warn(`[transfer] Failed to mark call as transferred: ${error.message}`)
-      })
+    try {
+      const { error: markErr } = await supabase.from('call_logs')
+        .update({
+          call_status: 'transferred',
+          ai_summary: 'Call transferred to owner',
+          transfer_status: 'transferring',
+          transfer_started_at: new Date().toISOString(),
+        })
+        .eq('ultravox_call_id', call_id)
+      if (markErr) console.warn(`[transfer] Failed to mark call as transferred: ${markErr.message}`)
+    } catch (markCatchErr) {
+      console.warn(`[transfer] Failed to mark call as transferred: ${markCatchErr}`)
+    }
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     const okResponse = NextResponse.json({ result: 'Transfer initiated' })
     if (callState) setStateUpdate(okResponse, { escalationFlag: true, lastToolOutcome: 'transferred' })

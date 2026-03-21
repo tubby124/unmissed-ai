@@ -68,7 +68,7 @@ export async function POST(
     if (operatorToken && operatorChat) {
       sendAlert(operatorToken, operatorChat,
         `⚠️ <b>OVERAGE CALL</b> [${slug}]\nUsed: ${minsUsed}/${minsLimit} min\nCaller: ${callerPhone}\nCall proceeding (soft enforcement)`
-      ).catch(() => {})
+      ).catch((e) => console.error(`[inbound] Overage alert failed for slug=${slug}:`, e))
     }
   }
 
@@ -240,12 +240,16 @@ export async function POST(
     // Alert operator via Telegram — missed call is revenue lost
     if (client.telegram_bot_token && client.telegram_chat_id) {
       const via = client.ultravox_agent_id ? 'Agents API' : 'createCall'
-      sendAlert(
-        client.telegram_bot_token,
-        client.telegram_chat_id,
-        `🚨 <b>CALL CREATION FAILED</b> [${slug}]\nCaller: ${callerPhone}\nMethod: ${via}\nError: ${errMsg.slice(0, 300)}`,
-        client.telegram_chat_id_2 ?? undefined
-      ).catch(() => {}) // fire-and-forget, already logged inside sendAlert
+      try {
+        await sendAlert(
+          client.telegram_bot_token,
+          client.telegram_chat_id,
+          `🚨 <b>CALL CREATION FAILED</b> [${slug}]\nCaller: ${callerPhone}\nMethod: ${via}\nError: ${errMsg.slice(0, 300)}`,
+          client.telegram_chat_id_2 ?? undefined
+        )
+      } catch (alertErr) {
+        console.error(`[inbound] Call-creation-failure alert failed for slug=${slug}:`, alertErr)
+      }
     }
 
     const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>

@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
+import { notifySystemFailure } from '@/lib/admin-alerts'
 import {
   sendTelegramNotification,
   sendSmsFollowUp,
@@ -63,6 +64,8 @@ export async function POST(
 
   // Return 200 immediately — Ultravox retries up to 10x with exponential backoff
   after(async () => {
+    const afterStartMs = Date.now()
+    console.log(`[completed:after:start] callId=${callId} slug=${slug}`)
     console.log(`[completed] Processing: callId=${callId} slug=${slug} duration=${durationSeconds}s callerPhone=${callerPhone}`)
     try {
       const supabase = createServiceClient()
@@ -88,16 +91,33 @@ export async function POST(
         .select('id')
 
       if (!locked?.length) {
-        console.warn(`[completed] No live row for callId=${callId} — attempting fresh insert`)
-        const { error: insertError } = await supabase.from('call_logs').insert({
-          ultravox_call_id: callId,
-          caller_phone: callerPhone,
-          call_status: 'processing',
-          started_at: new Date().toISOString(),
-        })
-        if (insertError) {
-          console.error(`[completed] Insert fallback failed for callId=${callId}: ${insertError.message} — likely duplicate, bailing`)
-          return
+        // S9g: Check for stale processing row (crash recovery)
+        // If a previous webhook attempt crashed after live→processing but before completing,
+        // the row is stuck. Re-acquire if updated_at is >60s stale.
+        const staleThreshold = new Date(Date.now() - 60_000).toISOString()
+        const { data: recovered } = await supabase
+          .from('call_logs')
+          .update({ call_status: 'processing' })
+          .eq('ultravox_call_id', callId)
+          .eq('call_status', 'processing')
+          .lt('updated_at', staleThreshold)
+          .select('id')
+
+        if (recovered?.length) {
+          console.warn(`[completed] RECOVERY: re-acquired stale processing lock for callId=${callId} rowId=${recovered[0].id}`)
+        } else {
+          // No stale row — try fresh insert (first-time completion without inbound row)
+          console.warn(`[completed] No live/stale row for callId=${callId} — attempting fresh insert`)
+          const { error: insertError } = await supabase.from('call_logs').insert({
+            ultravox_call_id: callId,
+            caller_phone: callerPhone,
+            call_status: 'processing',
+            started_at: new Date().toISOString(),
+          })
+          if (insertError) {
+            console.error(`[completed] Insert fallback failed for callId=${callId}: ${insertError.message} — likely duplicate or active processing, bailing`)
+            return
+          }
         }
       } else {
         console.log(`[completed] Lock acquired: callId=${callId} rowId=${locked[0].id}`)
@@ -106,7 +126,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled')
         .eq('slug', slug)
         .single()
 
@@ -200,7 +220,7 @@ export async function POST(
             client.telegram_chat_id,
             `\u26a0\ufe0f <b>SYSTEM FAILURE</b> [${slug}]\nendReason: ${endReason}\nCaller: ${callerPhone}\nDuration: ${durationSeconds}s\nCall ID: ${callId}`,
             client.telegram_chat_id_2 ?? undefined
-          ).catch(() => {})
+          ).catch((e) => console.error(`[completed] Ops alert send failed:`, e))
         }
         console.error(`[completed] SYSTEM FAILURE ALERT: slug=${slug} endReason=${endReason} callId=${callId}`)
       }
@@ -250,26 +270,40 @@ export async function POST(
         await sendEmailNotification(notifCtx)
       }
 
-      // ── Increment seconds used (accurate — rounded to minutes at display time) ──
+      // ── Increment seconds used (S9h: idempotent — skip if already counted) ──
       if (durationSeconds > 0) {
-        const { error: rpcError } = await supabase.rpc('increment_seconds_used', {
-          p_client_id: client.id,
-          p_seconds: durationSeconds,
-        })
-        if (rpcError) console.error('[completed] Seconds increment failed:', rpcError.message)
-        else console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
+        const { data: secCheck } = await supabase
+          .from('call_logs')
+          .select('seconds_counted')
+          .eq('ultravox_call_id', callId)
+          .single()
+
+        if (secCheck?.seconds_counted) {
+          console.log(`[completed] Seconds already counted for callId=${callId} — skipping increment`)
+        } else {
+          const { error: rpcError } = await supabase.rpc('increment_seconds_used', {
+            p_client_id: client.id,
+            p_seconds: durationSeconds,
+          })
+          if (rpcError) {
+            console.error('[completed] Seconds increment failed:', rpcError.message)
+          } else {
+            await supabase.from('call_logs').update({ seconds_counted: true }).eq('ultravox_call_id', callId)
+            console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
+          }
+        }
       }
 
-      console.log(`[completed] Done: callId=${callId} slug=${slug}`)
+      console.log(`[completed:after:end] callId=${callId} slug=${slug} elapsed=${Date.now() - afterStartMs}ms`)
     } catch (err) {
-      console.error('[completed] Processing error:', err)
+      console.error(`[completed:after:error] callId=${callId} slug=${slug} elapsed=${Date.now() - afterStartMs}ms`, err)
       try {
-        const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
-        const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
-        if (operatorToken && operatorChat) {
-          await sendAlert(operatorToken, operatorChat,
-            `⚠️ <b>Webhook crash</b>\ncallId: ${callId}\nslug: ${slug}\n${String(err).slice(0, 300)}`)
-        }
+        const crashSupa = createServiceClient()
+        await notifySystemFailure(
+          `Webhook crash: callId=${callId} slug=${slug}`,
+          err,
+          crashSupa,
+        )
       } catch { /* never let alerting break */ }
     }
   })

@@ -657,6 +657,7 @@ export async function getTranscript(callId: string) {
   console.log(`[ultravox] getTranscript: fetching callId=${callId}`)
   const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}/messages?pageSize=200`, {
     headers: ultravoxHeaders(),
+    signal: AbortSignal.timeout(15_000),
   })
 
   if (!res.ok) {
@@ -702,6 +703,7 @@ export async function getRecordingStream(callId: string) {
   const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}/recording`, {
     headers: ultravoxHeaders(),
     redirect: 'follow',
+    signal: AbortSignal.timeout(30_000),
   })
   console.log(`[ultravox] getRecordingStream: callId=${callId} status=${res.status} ok=${res.ok}`)
   return res

@@ -28,6 +28,8 @@ export interface CompletedClient {
   classification_rules: string | null
   timezone: string | null
   contact_email: string | null
+  telegram_notifications_enabled: boolean | null
+  email_notifications_enabled: boolean | null
 }
 
 /** Classification result from OpenRouter or pre-classification. */
@@ -103,6 +105,12 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
     return
   }
 
+  // S9b: Respect client notification preferences
+  if (client.telegram_notifications_enabled === false) {
+    console.log(`[completed] Telegram SKIPPED for slug=${slug}: notifications disabled by client preference`)
+    return
+  }
+
   const fullSummary = classification.summary || ultravoxSummary || ''
   const clientTz = client.timezone || 'America/Regina'
 
@@ -160,7 +168,7 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
   if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
 
   // Log to notification_logs
-  supabase.from('notification_logs').insert({
+  const { error: nlErr } = await supabase.from('notification_logs').insert({
     call_id: callLogId,
     client_id: client.id,
     channel: 'telegram',
@@ -168,9 +176,8 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
     content: message.slice(0, 10000),
     status: sent ? 'sent' : 'failed',
     error: sent ? null : 'sendAlert returned false',
-  }).then(({ error: nlErr }) => {
-    if (nlErr) console.error(`[completed] notification_logs insert failed (telegram): ${nlErr.message}`)
   })
+  if (nlErr) console.error(`[completed] notification_logs insert failed (telegram): ${nlErr.message}`)
 }
 
 // ── Auto-glass Telegram format (Windshield Hub) ──────────────────────────────
@@ -314,7 +321,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} sid=${twilioMsg.sid} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
 
     // Log to notification_logs
-    supabase.from('notification_logs').insert({
+    const { error: nlErr } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
       channel: 'sms_followup',
@@ -322,12 +329,11 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
       content: smsBody.slice(0, 10000),
       status: 'sent',
       external_id: twilioMsg.sid,
-    }).then(({ error: nlErr }) => {
-      if (nlErr) console.error(`[completed] notification_logs insert failed (sms): ${nlErr.message}`)
     })
+    if (nlErr) console.error(`[completed] notification_logs insert failed (sms): ${nlErr.message}`)
 
     // Log to sms_logs
-    await supabase.from('sms_logs').insert({
+    const { error: smsLogErr } = await supabase.from('sms_logs').insert({
       client_id: client.id,
       message_sid: twilioMsg.sid,
       direction: 'outbound',
@@ -336,12 +342,11 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
       body: smsBody,
       status: 'sent',
       related_call_id: callLogId,
-    }).then(({ error: smsLogErr }) => {
-      if (smsLogErr) console.error(`[completed] sms_logs insert failed: ${smsLogErr.message}`)
     })
+    if (smsLogErr) console.error(`[completed] sms_logs insert failed: ${smsLogErr.message}`)
   } catch (smsErr) {
     console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
-    supabase.from('notification_logs').insert({
+    const { error: nlErr2 } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
       channel: 'sms_followup',
@@ -349,9 +354,8 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
       content: smsBody.slice(0, 10000),
       status: 'failed',
       error: String(smsErr).slice(0, 1000),
-    }).then(({ error: nlErr }) => {
-      if (nlErr) console.error(`[completed] notification_logs insert failed (sms-fail): ${nlErr.message}`)
     })
+    if (nlErr2) console.error(`[completed] notification_logs insert failed (sms-fail): ${nlErr2.message}`)
   }
 }
 
@@ -362,6 +366,12 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     durationSeconds, transcript } = ctx
 
   if (client.niche !== 'voicemail' || !client.contact_email || classification.status === 'JUNK') return
+
+  // S9b: Respect client notification preferences
+  if (client.email_notifications_enabled === false) {
+    console.log(`[completed] Email SKIPPED for slug=${slug}: notifications disabled by client preference`)
+    return
+  }
 
   try {
     const resendKey = process.env.RESEND_API_KEY
@@ -403,7 +413,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId}`)
 
     // Log to notification_logs
-    supabase.from('notification_logs').insert({
+    const { error: nlErr } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
       channel: 'email',
@@ -411,12 +421,11 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
       content: `Subject: ${emailSubject}\n\n${transcriptText.slice(0, 9000)}`,
       status: 'sent',
       external_id: emailResult?.data?.id || null,
-    }).then(({ error: nlErr }) => {
-      if (nlErr) console.error(`[completed] notification_logs insert failed (email): ${nlErr.message}`)
     })
+    if (nlErr) console.error(`[completed] notification_logs insert failed (email): ${nlErr.message}`)
   } catch (emailErr) {
     console.error(`[completed] Voicemail email failed for callId=${callId}:`, emailErr)
-    supabase.from('notification_logs').insert({
+    const { error: nlErr2 } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
       channel: 'email',
@@ -424,8 +433,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
       content: 'voicemail email (failed before send)',
       status: 'failed',
       error: String(emailErr).slice(0, 1000),
-    }).then(({ error: nlErr }) => {
-      if (nlErr) console.error(`[completed] notification_logs insert failed (email-fail): ${nlErr.message}`)
     })
+    if (nlErr2) console.error(`[completed] notification_logs insert failed (email-fail): ${nlErr2.message}`)
   }
 }

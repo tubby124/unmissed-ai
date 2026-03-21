@@ -120,9 +120,26 @@ export async function POST(req: NextRequest) {
               `Plan: ${tierLabel} — ${minuteLimit} min\n` +
               `Next renewal: ${new Date((sub.items.data[0]?.current_period_end ?? 0) * 1000).toLocaleDateString()}`
             )
+            await adminSupa.from('notification_logs').insert({
+              client_id: cl.id,
+              channel: 'telegram',
+              recipient: adminCl.telegram_chat_id,
+              content: `Subscription renewed: ${cl.business_name} (${cl.slug})`,
+              status: 'sent',
+            })
           }
         } catch (tgErr) {
-          console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+          console.error('[stripe-webhook] Subscription renewed Telegram alert failed:', tgErr)
+          try {
+            await adminSupa.from('notification_logs').insert({
+              client_id: cl.id,
+              channel: 'telegram',
+              recipient: 'admin',
+              content: `Subscription renewed: ${cl.business_name} (${cl.slug})`,
+              status: 'failed',
+              error: String(tgErr).slice(0, 1000),
+            })
+          } catch { /* never let logging break the webhook */ }
         }
       }
     }
@@ -166,9 +183,26 @@ export async function POST(req: NextRequest) {
               `Grace period: 7 days (until ${new Date(graceEnd).toLocaleDateString()})\n` +
               `Agent will pause if not resolved.`
             )
+            await adminSupa.from('notification_logs').insert({
+              client_id: cl.id,
+              channel: 'telegram',
+              recipient: adminCl.telegram_chat_id,
+              content: `Payment failed: ${cl.business_name} (${cl.slug})`,
+              status: 'sent',
+            })
           }
         } catch (tgErr) {
-          console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+          console.error('[stripe-webhook] Payment failed Telegram alert failed:', tgErr)
+          try {
+            await adminSupa.from('notification_logs').insert({
+              client_id: cl.id,
+              channel: 'telegram',
+              recipient: 'admin',
+              content: `Payment failed: ${cl.business_name} (${cl.slug})`,
+              status: 'failed',
+              error: String(tgErr).slice(0, 1000),
+            })
+          } catch { /* never let logging break the webhook */ }
         }
       }
     }
@@ -206,9 +240,26 @@ export async function POST(req: NextRequest) {
             `🚫 Subscription canceled: ${cl.business_name} (${cl.slug})\n` +
             `Agent has been paused.`
           )
+          await adminSupa.from('notification_logs').insert({
+            client_id: cl.id,
+            channel: 'telegram',
+            recipient: adminCl.telegram_chat_id,
+            content: `Subscription canceled: ${cl.business_name} (${cl.slug})`,
+            status: 'sent',
+          })
         }
       } catch (tgErr) {
-        console.error('[stripe-webhook] Telegram alert failed:', tgErr)
+        console.error('[stripe-webhook] Subscription canceled Telegram alert failed:', tgErr)
+        try {
+          await adminSupa.from('notification_logs').insert({
+            client_id: cl.id,
+            channel: 'telegram',
+            recipient: 'admin',
+            content: `Subscription canceled: ${cl.business_name} (${cl.slug})`,
+            status: 'failed',
+            error: String(tgErr).slice(0, 1000),
+          })
+        } catch { /* never let logging break the webhook */ }
       }
     }
 
@@ -270,11 +321,32 @@ export async function POST(req: NextRequest) {
         .eq('slug', 'hasan-sharif')
         .single()
       if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
-        void sendAlert(
-          adminCl.telegram_bot_token as string,
-          adminCl.telegram_chat_id as string,
-          `\u{1F4B0} <b>${currentClient?.business_name ?? reloadSlug}</b> reloaded ${reloadMinutes} min ($${session.amount_total ? (session.amount_total / 100).toFixed(0) : '10'} CAD)\nNew bonus total: ${currentBonus + reloadMinutes} min`
-        )
+        try {
+          await sendAlert(
+            adminCl.telegram_bot_token as string,
+            adminCl.telegram_chat_id as string,
+            `\u{1F4B0} <b>${currentClient?.business_name ?? reloadSlug}</b> reloaded ${reloadMinutes} min ($${session.amount_total ? (session.amount_total / 100).toFixed(0) : '10'} CAD)\nNew bonus total: ${currentBonus + reloadMinutes} min`
+          )
+          await adminSupa.from('notification_logs').insert({
+            client_id: reloadClientId,
+            channel: 'telegram',
+            recipient: adminCl.telegram_chat_id,
+            content: `Minute reload: ${currentClient?.business_name ?? reloadSlug} +${reloadMinutes} min`,
+            status: 'sent',
+          })
+        } catch (tgErr) {
+          console.error('[stripe-webhook] Minute reload Telegram alert failed:', tgErr)
+          try {
+            await adminSupa.from('notification_logs').insert({
+              client_id: reloadClientId,
+              channel: 'telegram',
+              recipient: 'admin',
+              content: `Minute reload: ${currentClient?.business_name ?? reloadSlug} +${reloadMinutes} min`,
+              status: 'failed',
+              error: String(tgErr).slice(0, 1000),
+            })
+          } catch { /* never let logging break the webhook */ }
+        }
       }
     }
 

@@ -23,7 +23,11 @@
     "test:agent-context-hours": "npx tsx --test src/lib/__tests__/agent-context-hours.test.ts",
     "test:settings-truth": "npx tsx --test src/lib/__tests__/settings-runtime-truth.test.ts",
     "test:capability-truth": "npx tsx --test src/lib/__tests__/capability-truth.test.ts",
-    "test:all": "npx tsx --test src/lib/__tests__/*.test.ts"
+    "test:tool-registration": "npx tsx --test src/lib/__tests__/tool-registration-truth.test.ts",
+    "test:prompt-version-audit": "npx tsx --test src/lib/__tests__/prompt-version-audit.test.ts",
+    "test:notification-guards": "npx tsx --test src/lib/__tests__/notification-guards.test.ts",
+    "test:all": "npx tsx --test src/lib/__tests__/*.test.ts",
+    "test:canary": "npx tsx ../tests/canary/eval-harness.ts"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",

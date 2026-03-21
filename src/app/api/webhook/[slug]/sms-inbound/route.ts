@@ -113,12 +113,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     // Notify client via Telegram
     if (client.telegram_bot_token && client.telegram_chat_id) {
-      sendAlert(
-        client.telegram_bot_token,
-        client.telegram_chat_id,
-        `<b>SMS OPT-OUT</b>\nPhone: ${from}\nKeyword: ${normalizedBody}\nThis number will no longer receive SMS.`,
-        client.telegram_chat_id_2 ?? undefined
-      ).catch(() => {})
+      try {
+        await sendAlert(
+          client.telegram_bot_token,
+          client.telegram_chat_id,
+          `<b>SMS OPT-OUT</b>\nPhone: ${from}\nKeyword: ${normalizedBody}\nThis number will no longer receive SMS.`,
+          client.telegram_chat_id_2 ?? undefined
+        )
+      } catch (alertErr) {
+        console.error(`[sms-inbound] Opt-out alert failed for slug=${slug}:`, alertErr)
+      }
     }
 
     return twimlResponse(`You have been unsubscribed from ${client.business_name || 'our'} messages. Text START to re-subscribe.`)
@@ -162,12 +166,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       `Message: ${messageBody.slice(0, 500)}`,
     ].join('\n')
 
-    sendAlert(
-      client.telegram_bot_token,
-      client.telegram_chat_id,
-      alert,
-      client.telegram_chat_id_2 ?? undefined
-    ).catch(() => {})
+    try {
+      await sendAlert(
+        client.telegram_bot_token,
+        client.telegram_chat_id,
+        alert,
+        client.telegram_chat_id_2 ?? undefined
+      )
+    } catch (alertErr) {
+      console.error(`[sms-inbound] Inbound SMS alert failed for slug=${slug}:`, alertErr)
+    }
   }
 
   // Return empty TwiML (no auto-reply for regular messages)
