@@ -4,9 +4,13 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
-import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-formats'
-import { getSmsTemplate } from '@/lib/sms-templates'
-import twilio from 'twilio'
+import {
+  sendTelegramNotification,
+  sendSmsFollowUp,
+  sendEmailNotification,
+  notificationsAlreadySent,
+  type CompletedClient,
+} from '@/lib/completed-notifications'
 
 export const maxDuration = 120
 
@@ -225,306 +229,25 @@ export async function POST(
         console.error('[completed] Recording storage failed:', storageErr)
       }
 
-      // ── Telegram alert ───────────────────────────────────────────────────────
-      if (client.telegram_bot_token && client.telegram_chat_id) {
-        const fullSummary = classification.summary || ultravoxSummary || ''
-        const clientTz = (client.timezone as string | null) || 'America/Regina'
-
-        let message: string
-
-        if (client.niche === 'auto_glass') {
-          // Rich auto-glass format — preferred by Windshield Hub (Sabbir)
-          const mins = Math.floor(durationSeconds / 60)
-          const secs = durationSeconds % 60
-          const callEnd = new Date(endedAt)
-          const dateStr = callEnd.toLocaleDateString('en-US', { timeZone: clientTz, month: 'short', day: 'numeric', year: 'numeric' })
-          const timeStr = callEnd.toLocaleTimeString('en-US', { timeZone: clientTz, hour: 'numeric', minute: '2-digit', hour12: true })
-          const dur = durationSeconds > 0 ? `${mins}m ${secs}s` : 'n/a'
-
-          const nd = classification.niche_data
-          const vehicleParts = [nd?.vehicle_year, nd?.vehicle_make, nd?.vehicle_model].filter(Boolean)
-          const vehicleStr = vehicleParts.length > 0 ? vehicleParts.join(' ') : 'Unknown'
-          const adasStr = nd?.adas === true ? 'YES' : nd?.adas === false ? 'NO' : 'Unknown'
-          const vinStr = nd?.vin || 'Not Provided'
-          const nameStr = nd?.caller_name || 'Unknown'
-          const urgencyFallback: Record<string, string> = { HOT: 'HIGH', WARM: 'MEDIUM', COLD: 'LOW', JUNK: 'LOW', UNKNOWN: 'LOW' }
-          const urgencyStr = nd?.urgency || urgencyFallback[classification.status] || 'MEDIUM'
-          const requestedStr = nd?.requested_service || 'None'
-
-          const fmtPhone = (p: string) => {
-            const d = p.replace(/\D/g, '')
-            if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`
-            if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`
-            return p
-          }
-
-          message = [
-            `🌡️ WINDSHIELD HUB LEAD: ${classification.status}`,
-            ``,
-            `📅 Date: ${dateStr}`,
-            `🕐 Time: ${timeStr}`,
-            ``,
-            `📝 SUMMARY:`,
-            fullSummary || 'No summary available.',
-            ``,
-            `🚗 VEHICLE DETAILS:`,
-            `• Car: ${vehicleStr}`,
-            `• ADAS: ${adasStr}`,
-            `• VIN: ${vinStr}`,
-            ``,
-            `🔥 LEAD INFO:`,
-            `• Urgency: ${urgencyStr}`,
-            `• Requested: ${requestedStr}`,
-            ``,
-            `👤 CONTACT:`,
-            `• Name: ${nameStr}`,
-            `• Phone: ${fmtPhone(callerPhone)}`,
-            `• Duration: ${dur}`,
-            ...(recordingUrl ? [``, `🎧 Recording: ${recordingUrl}`] : []),
-          ].join('\n')
-        } else {
-          // Configurable format — uses client.telegram_style (compact / standard / action_card)
-          const style = ((client.telegram_style as string | null) || 'standard') as TelegramStyle
-
-          // Check for a recent booking (made within this call window — last 2 hours)
-          let booking: { callerName: string | null; appointmentTime: string; calendarUrl: string | null } | null = null
-          if (callerPhone !== 'unknown') {
-            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-            const { data: bk } = await supabase
-              .from('bookings')
-              .select('caller_name, appointment_time, appointment_date, calendar_url')
-              .eq('slug', slug)
-              .eq('caller_phone', callerPhone)
-              .gte('booked_at', twoHoursAgo)
-              .order('booked_at', { ascending: false })
-              .limit(1)
-              .single()
-
-            if (bk) {
-              booking = {
-                callerName: bk.caller_name,
-                appointmentTime: bk.appointment_time,
-                calendarUrl: bk.calendar_url,
-              }
-            }
-          }
-
-          const cd = classification.caller_data
-          message = formatTelegramMessage(style, {
-            status: classification.status,
-            businessName: client.business_name || slug,
-            callerPhone,
-            durationSeconds,
-            summary: fullSummary,
-            nextSteps: classification.next_steps || '',
-            serviceType: classification.serviceType || 'other',
-            endedAt,
-            timezone: clientTz,
-            callerData: cd ? { callerName: cd.caller_name, serviceRequested: cd.service_requested } : null,
-            booking,
-            recordingUrl,
-          })
-        }
-
-        const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
-        if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
-
-        // S2b: Log Telegram notification
-        supabase.from('notification_logs').insert({
-          call_id: callLogId,
-          client_id: client.id,
-          channel: 'telegram',
-          recipient: client.telegram_chat_id,
-          content: message.slice(0, 10000),
-          status: sent ? 'sent' : 'failed',
-          error: sent ? null : 'sendAlert returned false',
-        }).then(({ error: nlErr }) => {
-          if (nlErr) console.error(`[completed] notification_logs insert failed (telegram): ${nlErr.message}`)
-        })
+      // ── S3 idempotency guard: skip notifications if already sent for this call ──
+      if (await notificationsAlreadySent(supabase, callLogId)) {
+        console.warn(`[completed] IDEMPOTENCY — notifications already sent for callId=${callId} callLogId=${callLogId} — skipping Telegram/SMS/email`)
       } else {
-        console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
-      }
-
-      // ── SMS post-call follow-up (classification-aware) ─────────────────────
-      // Skip if in-call SMS was already sent (dedupe — agent used sendTextMessage tool)
-      const { data: callRow } = await supabase
-        .from('call_logs')
-        .select('in_call_sms_sent')
-        .eq('ultravox_call_id', callId)
-        .single()
-
-      // Cross-check demo_calls table for in-call SMS flag (call-me widget demos write here)
-      let demoSmsSent = false
-      if (!callRow?.in_call_sms_sent) {
-        const { data: demoRow, error: demoCheckError } = await supabase
-          .from('demo_calls')
-          .select('in_call_sms_sent')
-          .eq('ultravox_call_id', callId)
-          .single()
-
-        if (demoCheckError && demoCheckError.code !== 'PGRST116') {
-          // PGRST116 = no rows — expected for non-demo calls. Other errors are real.
-          console.error(`[completed] DEDUPE READ FAILED demo_calls: slug=${slug} callId=${callId} error=${demoCheckError.message}`)
-        }
-        demoSmsSent = !!demoRow?.in_call_sms_sent
-      }
-
-      const shouldSkipSms = !!callRow?.in_call_sms_sent || demoSmsSent
-      console.log(`[completed] SMS dedupe: in_call=${!!callRow?.in_call_sms_sent} demo=${demoSmsSent} → skip=${shouldSkipSms} callId=${callId}`)
-
-      if (client.sms_enabled && callerPhone !== 'unknown' && !shouldSkipSms) {
-        // Check opt-out list before sending (TCPA/CRTC compliance)
-        const { data: optOut } = await supabase
-          .from('sms_opt_outs')
-          .select('id, opted_back_in_at')
-          .eq('phone_number', callerPhone)
-          .eq('client_id', client.id)
-          .single()
-
-        const isOptedOut = optOut && !optOut.opted_back_in_at
-        if (isOptedOut) {
-          console.log(`[completed] SMS BLOCKED — recipient opted out: callId=${callId} to=${callerPhone}`)
+        // Build shared notification context
+        const notifCtx = {
+          supabase, client: client as CompletedClient, callId, callLogId, slug,
+          callerPhone, classification, durationSeconds, endedAt,
+          ultravoxSummary, recordingUrl, metadata, transcript,
         }
 
-        if (!isOptedOut) {
-          const smsBody = getSmsTemplate(classification.status, {
-            businessName: client.business_name || 'us',
-            callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
-            summary: classification.summary,
-            niche: client.niche as string | null,
-            smsTemplate: client.sms_template as string | null,
-            isTransferRecovery: metadata.transfer_recovery === 'true',
-          })
-          if (smsBody) {
-            try {
-              const accountSid = process.env.TWILIO_ACCOUNT_SID
-              const authToken = process.env.TWILIO_AUTH_TOKEN
-              const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
-              if (accountSid && authToken && fromNumber) {
-                const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-status`
-                const twilioClient = twilio(accountSid, authToken)
-                const twilioMsg = await twilioClient.messages.create({
-                  body: smsBody,
-                  from: fromNumber,
-                  to: callerPhone,
-                  statusCallback: statusCallbackUrl,
-                })
-                console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} sid=${twilioMsg.sid} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
+        // ── Telegram alert ─────────────────────────────────────────────────────
+        await sendTelegramNotification(notifCtx)
 
-                // S2d: Log SMS follow-up to notification_logs (unified view)
-                supabase.from('notification_logs').insert({
-                  call_id: callLogId,
-                  client_id: client.id,
-                  channel: 'sms_followup',
-                  recipient: callerPhone,
-                  content: smsBody.slice(0, 10000),
-                  status: 'sent',
-                  external_id: twilioMsg.sid,
-                }).then(({ error: nlErr }) => {
-                  if (nlErr) console.error(`[completed] notification_logs insert failed (sms): ${nlErr.message}`)
-                })
+        // ── SMS post-call follow-up ────────────────────────────────────────────
+        await sendSmsFollowUp(notifCtx)
 
-                // Log outbound SMS (callLogId already resolved from call_logs UPDATE above)
-                await supabase.from('sms_logs').insert({
-                  client_id: client.id,
-                  message_sid: twilioMsg.sid,
-                  direction: 'outbound',
-                  from_number: fromNumber,
-                  to_number: callerPhone,
-                  body: smsBody,
-                  status: 'sent',
-                  related_call_id: callLogId,
-                }).then(({ error: smsLogErr }) => {
-                  if (smsLogErr) console.error(`[completed] sms_logs insert failed: ${smsLogErr.message}`)
-                })
-              }
-            } catch (smsErr) {
-              console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
-              supabase.from('notification_logs').insert({
-                call_id: callLogId,
-                client_id: client.id,
-                channel: 'sms_followup',
-                recipient: callerPhone,
-                content: smsBody?.slice(0, 10000) || 'unknown',
-                status: 'failed',
-                error: String(smsErr).slice(0, 1000),
-              }).then(({ error: nlErr }) => {
-                if (nlErr) console.error(`[completed] notification_logs insert failed (sms-fail): ${nlErr.message}`)
-              })
-            }
-          } else {
-            console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
-          }
-        }
-      }
-
-      // ── Voicemail-to-email transcription ─────────────────────────────────────
-      if (client.niche === 'voicemail' && client.contact_email && classification.status !== 'JUNK') {
-        try {
-          const resendKey = process.env.RESEND_API_KEY
-          if (resendKey) {
-            const { Resend } = await import('resend')
-            const resend = new Resend(resendKey)
-            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
-
-            const transcriptText = transcript
-              .map((m: { role: string; text: string }) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
-              .join('\n')
-
-            const callerName = classification.caller_data?.caller_name || 'Unknown caller'
-            const fmtPhone = callerPhone !== 'unknown' ? callerPhone : 'Unknown'
-            const mins = Math.floor(durationSeconds / 60)
-            const secs = durationSeconds % 60
-
-            const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-            const emailSubject = `Voicemail from ${callerName} — ${client.business_name || slug}`
-            const emailHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-                <h2 style="margin:0 0 16px">New voicemail message</h2>
-                <p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
-                <p><strong>Duration:</strong> ${mins}m ${secs}s</p>
-                <p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
-                <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-                <h3 style="margin:0 0 8px">Transcript</h3>
-                <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>
-                <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-                <p style="font-size:12px;color:#888">unmissed.ai — AI voicemail for your business</p>
-              </div>`
-            const emailResult = await resend.emails.send({
-              from: fromAddress,
-              to: client.contact_email as string,
-              subject: emailSubject,
-              html: emailHtml,
-            })
-            console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId}`)
-
-            // S2c: Log email notification
-            supabase.from('notification_logs').insert({
-              call_id: callLogId,
-              client_id: client.id,
-              channel: 'email',
-              recipient: client.contact_email as string,
-              content: `Subject: ${emailSubject}\n\n${transcriptText.slice(0, 9000)}`,
-              status: 'sent',
-              external_id: emailResult?.data?.id || null,
-            }).then(({ error: nlErr }) => {
-              if (nlErr) console.error(`[completed] notification_logs insert failed (email): ${nlErr.message}`)
-            })
-          }
-        } catch (emailErr) {
-          console.error(`[completed] Voicemail email failed for callId=${callId}:`, emailErr)
-          supabase.from('notification_logs').insert({
-            call_id: callLogId,
-            client_id: client.id,
-            channel: 'email',
-            recipient: (client.contact_email as string) || 'unknown',
-            content: 'voicemail email (failed before send)',
-            status: 'failed',
-            error: String(emailErr).slice(0, 1000),
-          }).then(({ error: nlErr }) => {
-            if (nlErr) console.error(`[completed] notification_logs insert failed (email-fail): ${nlErr.message}`)
-          })
-        }
+        // ── Voicemail-to-email ─────────────────────────────────────────────────
+        await sendEmailNotification(notifCtx)
       }
 
       // ── Increment seconds used (accurate — rounded to minutes at display time) ──
