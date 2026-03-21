@@ -21,7 +21,7 @@ export function timeAgo(iso: string | null): string {
 }
 
 export function getPlanName(limit: number | null): string {
-  if (!limit || limit <= 50) return 'Trial'
+  if (!limit) return 'Trial'
   return 'Starter'
 }
 
