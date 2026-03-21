@@ -65,7 +65,7 @@ export function resolveVoiceId(
 const DEFAULT_VAD = {
   turnEndpointDelay: '0.64s',
   minimumTurnDuration: '0.1s',
-  minimumInterruptionDuration: '0.2s',
+  minimumInterruptionDuration: '0.3s',
   frameActivationThreshold: 0.2,
 }
 
