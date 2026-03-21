@@ -6,7 +6,7 @@ Paste this into a new Claude Code chat. It will spawn parallel agents to audit e
 
 ## Instructions for the Executing Chat
 
-This audit has **4 independent tracks** that should run as **parallel agents** (use Agent tool with run_in_background where possible). After all 4 complete, synthesize findings into a single report.
+This audit has **6 independent tracks** that should run as **parallel agents** (use Agent tool with run_in_background where possible). After all 6 complete, synthesize findings into a single report.
 
 **Production URL:** https://unmissed-ai-production.up.railway.app
 **Codebase:** `/Users/owner/Downloads/CALLING AGENTs/agent-app`
@@ -42,9 +42,10 @@ Login as a client owner (ask me for credentials for `fix@windshieldhub.ca`):
 
 For each settings tab, also capture:
 - Click "Set up Telegram" — does it guide you or just show a form?
-- Toggle SMS on — what happens?
-- Click "Connect Calendar" — what happens?
+- Toggle SMS on — what happens? Toast/confirmation?
+- Click "Connect Calendar" — what happens? Does it redirect to Google OAuth? What does the consent screen say?
 - Knowledge section empty vs with data
+- Save any setting — is there visual feedback (toast, success banner, spinner)?
 
 ### A3 — Admin Dashboard
 Login as `admin@unmissed.ai` (ask me for credentials):
@@ -53,15 +54,29 @@ Login as `admin@unmissed.ai` (ask me for credentials):
 3. Admin-only controls (sync agents, command strip)
 4. Switch between clients — does the UI update correctly?
 
-### A4 — Onboarding Flow (end-to-end)
+### A4 — Onboarding Flow (end-to-end, BOTH paths)
 While logged in as admin:
+
+**Path 1: Trial flow**
 1. Navigate to `/onboard`
 2. Screenshot EVERY step of the intake form (step 1 through step 6)
-3. On `/onboard/status` — screenshot the AdminTestPanel
-4. Click "Test Activate — Skip Payment" (do NOT check "buy number" — use test data)
-5. Screenshot every activation progress step
-6. After activation: navigate to the new test client's dashboard
-7. Screenshot the initial empty state — this is the customer's first impression
+3. On step 6 review screen: note what options are shown (trial vs paid)
+4. Click "Start 7-day free trial"
+5. Screenshot the TrialSuccessScreen — what does it tell the user to do next?
+6. Click "Open your Dashboard" — does it actually log you in?
+7. Navigate the trial client's dashboard:
+   - Is there an Ultravox agent? (check if `/dashboard/settings` Agent tab has content)
+   - Can you make a demo call? (check if WebRTC demo works)
+   - Are settings populated or completely blank?
+   - Is there a system prompt? Or is it null/empty?
+8. **CRITICAL CHECK:** Does the trial create an Ultravox agent + system prompt? Or just a bare DB row?
+
+**Path 2: AdminTestPanel bypass**
+1. On `/onboard/status?id=INTAKE_ID` — screenshot the AdminTestPanel
+2. Click "Test Activate — Skip Payment" (do NOT check "buy number" — use test data)
+3. Screenshot every activation progress step
+4. After activation: navigate to the new test client's dashboard
+5. Screenshot the initial empty state — this is the customer's first impression
 
 ### A5 — Empty States & Edge Cases
 1. Empty dashboard — zero calls, zero leads. Helpful or blank?
@@ -155,6 +170,15 @@ For each toggle on the test client:
 1. Toggle ON → save → verify DB field updated → verify tool appears in `clients.tools` → verify Ultravox agent has the tool
 2. Toggle OFF → save → verify DB cleared → verify tool removed from `clients.tools` → verify Ultravox agent no longer has tool
 
+### B5 — Calendar Connect → System Prompt Update
+1. Connect Google Calendar for a test client
+2. After OAuth callback completes:
+   - Does `booking_enabled` get set to `true` in DB?
+   - Does the booking tool appear in `clients.tools`?
+   - Does the Ultravox agent now have the `bookAppointment` tool?
+   - Does the system prompt now include booking instructions?
+3. Disconnect calendar → verify the reverse (tool removed, prompt updated)
+
 ---
 
 ## TRACK C: Integration Health Checks
@@ -194,6 +218,12 @@ SELECT slug, google_refresh_token IS NOT NULL as has_token,
 FROM clients WHERE google_refresh_token IS NOT NULL;
 ```
 Test token validity — attempt a calendar list API call with each refresh token.
+
+**Also verify the Google OAuth consent screen:**
+1. Navigate to the Calendar connect flow in the dashboard
+2. Screenshot the Google consent screen that appears
+3. Check: is the app name "unmissed.ai" or generic? Verified or unverified? Scopes requested?
+4. Does the redirect URI work correctly back to the dashboard?
 
 ### C4 — SMS Delivery Check
 ```sql
@@ -255,6 +285,28 @@ WHERE created_at > NOW() - INTERVAL '7 days'
 GROUP BY classification;
 ```
 
+### C8 — Resend Email Delivery Health
+Verify the email sending infrastructure:
+```sql
+-- Check Resend domain verification status
+-- (manual: go to Resend dashboard or use API)
+```
+1. Check Railway env vars: is `RESEND_API_KEY` set? Is `RESEND_FROM_EMAIL` set to a verified domain (not `onboarding@resend.dev`)?
+2. Test: trigger a password reset for a test email — does the email arrive?
+3. Check: what `from` address are welcome emails using? Is it on a verified domain?
+4. If emails aren't delivering: this blocks the ENTIRE onboarding flow (users can't set passwords or access dashboard)
+
+### C9 — Recording Storage Health
+```sql
+-- Check if recordings are accessible
+SELECT id, recording_url, created_at
+FROM call_logs
+WHERE recording_url IS NOT NULL
+ORDER BY created_at DESC
+LIMIT 5;
+```
+Attempt to access one recording URL — does it return audio or 404?
+
 ---
 
 ## TRACK D: Auth & Security Audit
@@ -265,11 +317,28 @@ Login as client owner (e.g., `fix@windshieldhub.ca`). Attempt to:
 2. Verify 403/404 — not 200 with someone else's data
 3. Try query params that might leak: `?client_id=`, direct UUIDs in URLs
 
-### D2 — Auth Flow
+### D2 — Auth Flow (ALL login methods)
+**Password-based login:**
 1. Login page → enter credentials → verify redirect to dashboard
 2. Logout → verify session cleared → verify dashboard redirect to login
 3. Try accessing `/dashboard` without auth → verify redirect to `/login`
 4. Try accessing `/api/dashboard/settings` without auth → verify 401
+
+**Google OAuth login:**
+1. Click "Sign in with Google" (if available on login page)
+2. Does the Google OAuth consent screen appear? Is it verified/unverified?
+3. After Google auth: does it redirect back to dashboard correctly?
+4. Is the user linked to the correct client via `client_users`?
+
+**Password recovery:**
+1. Click "Forgot password" → enter email → does the email arrive?
+2. Click the recovery link → does the password reset flow work?
+3. After reset: can you log in with the new password?
+
+**Trial user first login:**
+1. After trial activation: the `setupUrl` contains a recovery token
+2. Does clicking that URL actually set up the password and log them in?
+3. Or does it 404 / redirect to a broken page?
 
 ### D3 — Admin Scope Check
 Login as client owner. Verify you CANNOT:
@@ -291,9 +360,124 @@ Cross-reference with Stripe:
 
 ---
 
+## TRACK E: Trial & Onboarding E2E Verification
+
+This is the MOST CRITICAL track — it tests what a real customer would experience from first visit to working agent.
+
+### E1 — Trial Provisioning Gap Analysis
+Verify what the trial route (`/api/provision/trial`) actually creates:
+```sql
+-- Find a trial client (or the one we just created in Track A)
+SELECT id, slug, status, subscription_status, trial_expires_at,
+       ultravox_agent_id, system_prompt IS NOT NULL as has_prompt,
+       agent_voice_id, agent_name,
+       sms_enabled, booking_enabled, knowledge_backend,
+       jsonb_array_length(tools::jsonb) as tool_count
+FROM clients
+WHERE subscription_status = 'trialing'
+ORDER BY created_at DESC
+LIMIT 3;
+```
+
+**Expected finding (KNOWN BUG):** Trial clients have:
+- `ultravox_agent_id = NULL` — no agent created
+- `system_prompt = NULL` — no prompt generated
+- `agent_voice_id = NULL` — no voice selected
+- `tools = NULL` or empty — no tools configured
+
+**Compare to paid path:** The `create-public-checkout` route creates agent + prompt + voice + tools. The trial path (`provision/trial`) just creates a bare DB row.
+
+### E2 — Welcome Email Delivery
+1. Check Railway env: `RESEND_API_KEY` and `RESEND_FROM_EMAIL`
+2. If `RESEND_FROM_EMAIL` is `onboarding@resend.dev` → emails go to sandbox only, customers never receive them
+3. The welcome email contains: dashboard login link, Telegram setup link, phone number (for paid)
+4. If email doesn't deliver → customer has NO way to access dashboard (recovery link is in the email)
+
+### E3 — Post-Activation Dashboard Experience
+After either trial or paid activation, navigate to the new client's dashboard and verify:
+1. **Calls page:** Empty state — does it explain "no calls yet" or is it just blank?
+2. **Settings > Agent tab:** Is the system prompt shown? Can they edit it? Or is it blank?
+3. **Settings > Business Info:** Are the intake form answers pre-filled? Or empty?
+4. **Settings > Notifications:** Does it show Telegram setup instructions?
+5. **Settings > Calendar:** Does it show "Connect Calendar" with clear instructions?
+6. **Settings > Knowledge:** Does it show how to add knowledge? Or just blank?
+7. **Settings > Billing:** Does it show the subscription status correctly?
+8. **Voices page:** Is the current voice shown? Can they change it?
+9. **Leads page:** Empty state — helpful message?
+
+### E4 — Trial-to-Paid Conversion
+1. On the TrialSuccessScreen, click "Upgrade to get a phone number"
+2. Does it redirect to Stripe checkout correctly?
+3. After (simulated) payment, does `activateClient(mode: 'trial_convert')`:
+   - Purchase a Twilio number?
+   - Set `trial_converted = true`?
+   - Send onboarding SMS with Telegram link?
+4. What happens if the trial expires first? (`/api/cron/trial-expiry`):
+   - Client status → `paused`?
+   - Conversion email sent?
+   - Can they still convert after expiry?
+
+### E5 — Feature Toggle → System Prompt Propagation
+This is a critical chain: when a user toggles a feature in settings, the system prompt must update to tell the agent about the new capability.
+
+Test each toggle (on test client):
+1. **Calendar connected:** Does the prompt now mention booking?
+2. **SMS enabled:** Does the prompt now mention texting?
+3. **Knowledge added:** Does the prompt now mention it can answer from knowledge base?
+4. **Call forwarding set:** Does the prompt now mention it can transfer calls?
+
+For each, verify the chain: `DB field updated → clients.tools rebuilt → Ultravox agent updated → system prompt reflects capability`
+
+### E6 — Post-Signup Communication Chain
+Map every communication a new customer receives:
+
+| Step | Channel | Content | Working? |
+|------|---------|---------|----------|
+| Activation | Email (Resend) | Welcome + dashboard login link | ? |
+| Activation | SMS (Twilio) | "Your AI agent is live" + links | ? (trial: skipped) |
+| Activation | Telegram (admin) | Admin notification of new signup | ? |
+| Ongoing | Telegram (client) | Call summaries after each call | ? |
+| Ongoing | Email (Resend) | Voicemail transcripts | ? |
+| Trial expiry | Email (Resend) | "Your trial has ended — upgrade" | ? |
+
+For each channel: verify the message content, that links work, and that the "from" address/number is correct.
+
+---
+
+## TRACK F: End-to-End Call Flow Verification
+
+### F1 — WebRTC Demo Call (no Twilio needed)
+1. From a client dashboard, find the "Demo Call" or "Test Call" button
+2. Make a WebRTC call
+3. Does the agent answer with the correct greeting?
+4. Does it use the correct voice?
+5. Does the call show up in the calls list afterward?
+6. Is a notification sent (Telegram/email)?
+
+### F2 — Call Forwarding Setup Verification
+For each active client with a Twilio number:
+1. Does the dashboard show call forwarding instructions?
+2. Are the instructions correct for Canadian carriers (Bell, Rogers, Telus, SaskTel)?
+3. Is the forwarding number displayed correctly (the Twilio number)?
+
+### F3 — Inbound Call Webhook Chain
+```sql
+-- Recent calls — verify the full chain fired
+SELECT cl.id, cl.client_id, cl.call_status, cl.classification,
+       cl.ultravox_call_id, cl.recording_url,
+       (SELECT COUNT(*) FROM notification_logs nl WHERE nl.call_id = cl.id) as notification_count,
+       (SELECT COUNT(*) FROM sms_logs sl WHERE sl.related_call_id = cl.id) as sms_count
+FROM call_logs cl
+ORDER BY cl.created_at DESC
+LIMIT 10;
+```
+For each recent call: did the full chain complete (call → classification → notifications → SMS follow-up)?
+
+---
+
 ## SYNTHESIS: Final Report
 
-After all 4 tracks complete, create:
+After all 6 tracks complete, create:
 
 ```
 docs/s12-audit/AUDIT-REPORT.md
@@ -301,6 +485,8 @@ docs/s12-audit/screenshots/        (all Playwright screenshots)
 docs/s12-audit/sync-matrix.md      (Track B results)
 docs/s12-audit/integration-health.md (Track C results)
 docs/s12-audit/security-audit.md   (Track D results)
+docs/s12-audit/trial-onboarding.md (Track E results)
+docs/s12-audit/call-flow.md        (Track F results)
 ```
 
 ### Report Structure
@@ -314,8 +500,35 @@ docs/s12-audit/security-audit.md   (Track D results)
 ## CRITICAL Issues (fix before selling)
 [Anything that would cause a customer to see wrong data, lose functionality, or hit an error]
 
+## Trial Flow Assessment
+- Does trial create a working agent? [YES/NO — expected: NO, this is a known gap]
+- Can trial users access the dashboard? [YES/NO]
+- Can trial users make demo calls? [YES/NO]
+- Can trial users modify their agent? [YES/NO]
+- What's the trial-to-paid conversion UX?
+
+## Email & Communication
+- Resend domain status: [verified/sandbox/broken]
+- Welcome emails delivering? [YES/NO]
+- Recovery links working? [YES/NO]
+- Post-call notifications working? [YES/NO per channel]
+
+## Auth & Login
+- Password login: [working/broken]
+- Google OAuth login: [working/broken/not-implemented]
+- Password recovery: [working/broken — depends on email]
+- Trial user first login: [working/broken — depends on email]
+
 ## Settings Sync Mismatches
 [Full sync matrix table from Track B]
+
+## Feature Toggle → Agent Update Chain
+| Feature | DB Updated | tools Rebuilt | Ultravox Updated | Prompt Reflects |
+|---------|-----------|--------------|-----------------|-----------------|
+| Calendar | ? | ? | ? | ? |
+| SMS | ? | ? | ? | ? |
+| Knowledge | ? | ? | ? | ? |
+| Transfer | ? | ? | ? | ? |
 
 ## Integration Health
 | Integration | Status | Issues |
@@ -326,6 +539,8 @@ docs/s12-audit/security-audit.md   (Track D results)
 | SMS delivery | OK/BROKEN | [details] |
 | Knowledge/RAG | OK/BROKEN | [details] |
 | Notifications | OK/BROKEN | [details] |
+| Resend email | OK/BROKEN | [details] |
+| Recordings | OK/BROKEN | [details] |
 
 ## Security
 [RLS isolation results, auth flow results, admin scope results]
@@ -335,6 +550,9 @@ docs/s12-audit/security-audit.md   (Track D results)
 
 ## Onboarding Flow Map
 [Step-by-step with screenshots, noting confusion points]
+- Trial path: [step-by-step]
+- Paid path: [step-by-step]
+- What trial users see vs paid users see
 
 ## Setup Wizard Gaps
 [For each: Telegram, SMS, Calendar, Knowledge, Call Forwarding]
@@ -350,6 +568,12 @@ docs/s12-audit/security-audit.md   (Track D results)
 ## Console Errors
 [JS errors per page]
 
+## Google OAuth Consent Screen
+- App name shown: [?]
+- Verification status: [verified/unverified]
+- Scopes requested: [?]
+- User trust impression: [good/sketchy/blocking]
+
 ## Priority Fixes (ranked)
 1. [Highest impact fix]
 2. ...
@@ -362,4 +586,6 @@ docs/s12-audit/security-audit.md   (Track D results)
 - **Tracks A + B** can run in parallel (A uses Playwright, B uses Supabase + API queries)
 - **Track C** can run in parallel with A + B (pure API/DB queries)
 - **Track D** needs Playwright (shares browser with Track A — run sequentially after A, or use a second browser)
-- **Synthesis** runs after all 4 complete
+- **Track E** needs Playwright + DB queries — run after Track A completes (reuse browser session)
+- **Track F** can run in parallel with D + E (DB queries + optional WebRTC test)
+- **Synthesis** runs after all 6 complete

@@ -24,6 +24,11 @@ e2e-test-report.md
 # Playwright MCP cache
 .playwright-mcp/
 
+# Playwright test artifacts
+test-results/
+playwright-report/
+screens/
+
 # Media files
 *.m4a
 *.vtt
