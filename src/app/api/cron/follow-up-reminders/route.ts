@@ -5,7 +5,7 @@
  * without a follow-up reminder sent, and nudges the business owner
  * via Telegram.
  *
- * Auth: Bearer CRON_SECRET
+ * Auth: Bearer CRON_SECRET only (no ADMIN_PASSWORD fallback — S13a).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -30,8 +30,7 @@ function timeAgo(iso: string): string {
 export async function POST(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
   const cronSecret = process.env.CRON_SECRET
-  const adminPassword = process.env.ADMIN_PASSWORD
-  if ((!cronSecret || token !== cronSecret) && (!adminPassword || token !== adminPassword)) {
+  if (!cronSecret || token !== cronSecret) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 

@@ -394,9 +394,7 @@ export async function POST(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
   const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
 
-  // Also allow ADMIN_PASSWORD for manual dashboard trigger
-  const adminPassword = process.env.ADMIN_PASSWORD
-  if ((!cronSecret || token !== cronSecret) && (!adminPassword || token !== adminPassword)) {
+  if (!cronSecret || token !== cronSecret) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 

@@ -5,7 +5,7 @@
  * Resets minutes_used_this_month to 0 for all active clients.
  * Also clears expired bonus_minutes (reloads carry over — only setup bonus resets).
  *
- * Auth: Bearer CRON_SECRET
+ * Auth: Bearer CRON_SECRET only (no ADMIN_PASSWORD fallback — S13a).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -13,12 +13,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization') ?? ''
   const cronSecret = process.env.CRON_SECRET
-  const adminPassword = process.env.ADMIN_PASSWORD
+  const token = (req.headers.get('authorization') ?? '').replace('Bearer ', '')
 
-  const token = authHeader.replace('Bearer ', '')
-  if (!token || (token !== cronSecret && token !== adminPassword)) {
+  if (!cronSecret || token !== cronSecret) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 

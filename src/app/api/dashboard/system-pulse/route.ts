@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/dashboard/system-pulse
+ * Auth: Supabase session (S13g)
+ */
 
 interface PulseResult {
   ok: boolean
@@ -15,7 +20,13 @@ let cachedResult: PulseResult | null = null
 let cachedAt = 0
 const CACHE_TTL_MS = 60_000
 
-export async function GET() {
+export async function GET(_request: NextRequest) {
+  const supabaseAuth = await createServerClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const now = Date.now()
 
   // Return cached result if within TTL
