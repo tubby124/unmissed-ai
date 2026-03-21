@@ -685,6 +685,14 @@ S2g — dashboard notifications tab (stretch)
 - Add a "Notifications" view in the dashboard showing recent outbound notifications
 - Filter by channel, status, date range
 
+Pre-S2 fixes (do before starting S2):
+- Verify Railway build deployed (S1a TS + S1c VAD pushed Mar 21 ~16:30 UTC)
+- Investigate calendar 403 on hasan-sharif call 31a3e5c3 (first checkCalendarAvailability
+  returned 403, later attempts worked — possible OAuth token expiry or tool secret race)
+- Fix calendar slot re-listing: _instruction always says "read 2-3 options" even when
+  caller already specified exact time. Make conditional — if requested time is available,
+  return "that time works" instead of listing alternatives.
+
 Ship gates:
 - notification_logs written on every Telegram send (success or fail)
 - /review-call shows notification context alongside transcript
