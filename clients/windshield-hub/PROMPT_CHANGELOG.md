@@ -113,3 +113,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 7873 | **Hash:** fd5064892166ac9c
 **Supabase version_id:** 9e498fef-0ca2-4dee-a753-b03d2c486cfe
 **Ultravox revision:** ff4d3cf2-b0fb-4f74-81e7-d8ed673140d9
+
+## v20 — 2026-03-20 16:52 UTC
+**Change:** tool resync: hangUp as temporaryTool with AGENT_REACTION_LISTENS (fixes greeting loop)
+**Chars:** 7873 | **Hash:** fd5064892166ac9c
+**Supabase version_id:** 9a8db3e5-abe7-4cbe-b20f-c94748b0b962
+**Ultravox revision:** be6c59df-99eb-4063-83d4-8e50279a7dce

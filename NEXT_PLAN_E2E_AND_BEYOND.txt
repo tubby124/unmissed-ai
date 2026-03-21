@@ -1,0 +1,183 @@
+===============================================================================
+ NEXT PLAN — E2E Settings Tests + Test Infrastructure Hardening
+ Created: 2026-03-19
+===============================================================================
+
+STATUS: Wave 1a/1b/2/4 DONE (93 unit tests + live checker). Wave 3 below.
+
+───────────────────────────────────────────────────────────────────────────────
+WAVE 3 — Playwright E2E: Settings → Runtime Truth (UI layer)
+───────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Verify that toggling settings in the dashboard UI actually
+propagates to Supabase + Ultravox agent. Catches the full stack — not
+just pure functions, but the real PATCH/POST endpoints.
+
+PREREQUISITE: Playwright MCP is installed. No @playwright/test needed —
+use MCP tools directly (browser_navigate, browser_click, browser_snapshot).
+
+TARGET: Production Railway URL (read-only audit, no mutations)
+  OR local dev server (localhost:3000) for mutation tests.
+
+TESTS TO BUILD:
+
+  E2E-1: Booking Toggle
+    1. Navigate to /admin/settings (logged in as admin@unmissed.ai)
+    2. Select hasan-sharif client
+    3. Snapshot the Agent tab — verify booking toggle state
+    4. Toggle booking OFF
+    5. Wait for save confirmation
+    6. Query Supabase: SELECT booking_enabled FROM clients WHERE slug='hasan-sharif'
+    7. Query Ultravox: GET /api/agents/{agent_id} — verify no calendar tools
+    8. Toggle booking back ON
+    9. Verify calendar tools restored
+    PASS: DB flag + Ultravox tools match toggle state at every step
+
+  E2E-2: SMS Toggle
+    1. Navigate to SMS tab in settings
+    2. Toggle sms_enabled
+    3. Verify Supabase flag updated
+    4. Verify Ultravox agent tools include/exclude sendTextMessage
+    PASS: DB + tools in sync
+
+  E2E-3: Transfer / Forwarding Number
+    1. Set forwarding_number in Agent tab
+    2. Verify Ultravox agent gets transferCall tool
+    3. Clear forwarding_number
+    4. Verify transferCall tool removed
+    PASS: forwarding_number ↔ transferCall tool
+
+  E2E-4: Voice Change (non-destructive)
+    1. Navigate to Voice tab
+    2. Note current voice ID
+    3. Snapshot voice preview area
+    4. DO NOT change voice (read-only audit)
+    PASS: Voice tab renders, current voice matches Ultravox agent
+
+  E2E-5: Prompt Length Gate
+    1. Navigate to Agent tab
+    2. Read system_prompt length from Supabase
+    3. Verify < 12K chars (safety ceiling)
+    4. If > 8K, log WARNING (target is 8K)
+    PASS: Prompt under safety ceiling
+
+EXECUTION:
+  - Use Playwright MCP tools (no npm install needed)
+  - Can run against prod for read-only checks (E2E-4, E2E-5)
+  - Mutation tests (E2E-1,2,3) should use e2e-test-plumbing-co client
+  - Auth: navigate to /admin/login, enter admin@unmissed.ai credentials
+  - After mutations: always restore original state
+
+OUTPUT: Pass/fail report per test. Screenshots on failure.
+
+───────────────────────────────────────────────────────────────────────────────
+HARDENING — Things to do when revisiting test infrastructure
+───────────────────────────────────────────────────────────────────────────────
+
+H1. CI Integration
+    - Add `npm run test:all` to Railway build command or pre-deploy hook
+    - Build fails if any test fails → no broken settings reach prod
+
+H2. Pre-commit Hook
+    - Run test:all on `git commit` in agent-app/
+    - Fast enough (< 2s for 93 tests) to not slow commits
+
+H3. settings-sync-check.sh in CI
+    - Run after every deploy as a post-deploy smoke test
+    - Requires SUPABASE_SECRET_KEY + ULTRAVOX_API_KEY (already in Railway)
+    - Exit 1 = deploy rollback alert
+
+H4. Prompt Length Regression
+    - Currently hasan-sharif is 10,480 chars (over 8K target)
+    - Add a test that WARNS (not fails) when any client prompt > 8K
+    - Add a test that FAILS when any client prompt > 12K (hard ceiling)
+
+H5. Smart Quote Fix in getClosePerson
+    - Regex doesn't match U+2019 (right single quotation mark)
+    - Fix: add \u2019 to the regex alternation: (?:'s|'s|\u2019s)
+    - Low priority — falls back to agentName gracefully
+
+H6. New Test: Niche Registration Completeness
+    - Every niche in NICHE_CAPABILITIES should have a matching
+      getServiceType() entry
+    - Every bookable niche should produce 2 calendar tools
+    - Already partially covered in capability-truth.test.ts
+
+H7. Promptfoo Integration
+    - Run promptfoo safety tests alongside unit tests
+    - bash tests/promptfoo/run-all.sh after test:all
+    - Combined gate: unit tests + prompt safety = green before deploy
+
+───────────────────────────────────────────────────────────────────────────────
+STRIPE PRICING SYNC (separate concern — do after E2E)
+───────────────────────────────────────────────────────────────────────────────
+
+The pricing page now shows $25/mo. Stripe still has old prices.
+When ready:
+  1. Archive old Stripe prices (don't delete — existing subs reference them)
+  2. Create new Stripe price: $25/mo recurring
+  3. Create new Stripe price: $15/mo recurring (annual = $180/yr)
+  4. Update Stripe webhook to handle new price IDs
+  5. Test with e2etest@unmissed.ai (NOT admin@unmissed.ai)
+
+───────────────────────────────────────────────────────────────────────────────
+B3 CALL STATE — FUTURE SPRINT ITEMS (discovered during implementation 2026-03-20)
+───────────────────────────────────────────────────────────────────────────────
+
+STATUS: B3 core is CODE-COMPLETE. Build passes, 466 tests pass (21 new for
+call-state.ts). All 6 tool builders have CALL_STATE_PARAM. Slots, book, and
+knowledge routes read/write state + inject coaching. initialState set on call
+creation. HOWEVER — Ultravox KNOWN_PARAM_CALL_STATE is UNVERIFIED in prod.
+
+B3-F1. LIVE VERIFICATION OF KNOWN_PARAM_CALL_STATE (P0 — do first)
+    - Make a real test call that hits checkCalendarAvailability
+    - Log req.headers in slots/route.ts to confirm X-Call-State header arrives
+    - If header is missing: Ultravox doesn't support this param natively
+    - Fallback: inject state via query string or custom header from tool URL
+    - Without this verification, ALL B3 coaching is silently skipped (safe but useless)
+
+B3-F2. COMPLETED WEBHOOK — PERSIST FINAL CALL STATE
+    - Currently: completed webhook does NOT read final call_state
+    - Impact: we lose end-of-call counters (total slotAttempts, bookingAttempts, etc.)
+    - Fix: in completed webhook, read X-Call-State from Ultravox call metadata
+      (or from the last tool response headers) and write to call_logs.call_state
+    - Enables: per-call analytics ("this call tried 3 slots before booking")
+    - Effort: Low — add parseCallState() call + DB column already exists
+
+B3-F3. SMS + TRANSFER ROUTES — ADD STATE USAGE
+    - Headers flow through (CALL_STATE_PARAM is on both tool builders) but:
+      - /api/webhook/[slug]/transfer-status — no parseCallState() / setStateUpdate()
+      - SMS send route — no parseCallState() / setStateUpdate()
+    - What to add: read state, set lastToolOutcome ('transferred' / 'transfer_error'
+      / 'sms_sent' / 'sms_blocked' / 'sms_error'), write updated state back
+    - Low priority — these tools are single-fire (no retry coaching needed yet)
+
+B3-F4. fieldsCollected + escalationFlag — POPULATE FROM TOOLS
+    - Both fields exist in CallState but no tool writes to them
+    - fieldsCollected: should accumulate as intake tools gather name/phone/service
+    - escalationFlag: should be set when caller asks for manager or agent detects urgency
+    - Implementation: add to tool routes that collect fields (currently manual in prompt)
+    - Medium effort — requires defining which fields each niche tracks
+
+B3-F5. DASHBOARD VISIBILITY — CALL STATE DATA
+    - No UI shows call state data today
+    - Add to call detail view in admin dashboard:
+      - Final workflowType, step, slotAttempts, bookingAttempts, knowledgeQueries
+      - Timeline: "slot check #1 → no slots → slot check #2 → found → book → slot taken → book #2 → success"
+    - Depends on B3-F2 (persisting final state)
+    - Medium effort — new component + API endpoint
+
+B3-F6. STEP COUNTER — PER-WORKFLOW ADVANCEMENT
+    - step counter only increments on booking attempts today
+    - Need per-workflowType step definitions:
+      - intake: greeting → field collection → urgency check → handoff
+      - triage: greeting → need assessment → routing → transfer/message
+      - booking: greeting → slot search → selection → confirmation
+      - support: greeting → query → answer → follow-up
+    - Each tool call should advance step based on workflowType + action
+    - Medium-high effort — requires defining state machines per workflow
+
+RECOMMENDED ORDER: F1 → F2 → F3 → F5 → F4 → F6
+(Verify it works first, then persist data, then fill gaps, then visualize)
+
+===============================================================================

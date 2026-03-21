@@ -200,3 +200,39 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 6860 | **Hash:** 4d56d9b03ae93d72
 **Supabase version_id:** 8e227deb-cadf-4469-8688-aab8c0ef21f7
 **Ultravox revision:** 67db114e-8a26-4a72-a77b-e38fcc8d1230
+
+## v48 — 2026-03-20 16:52 UTC
+**Change:** v47 tool resync: hangUp as temporaryTool with AGENT_REACTION_LISTENS (fixes greeting loop)
+**Chars:** 6860 | **Hash:** 4d56d9b03ae93d72
+**Supabase version_id:** 0086feea-5dc9-4305-b5cf-e85383c1fa1b
+**Ultravox revision:** 4c9acd15-298c-4daf-8905-26a6674a3c49
+
+## v49 — 2026-03-20 16:55 UTC
+**Change:** v49: strengthen queryKnowledge routing — explicit filler phrase + EXCEPTION guard on prices line prevents GLM-4.6 from deferring Manzil/halal to Hasan without searching
+**Chars:** 7259 | **Hash:** fb255b91556a1040
+**Supabase version_id:** 499452c7-2cb8-45e4-9ac9-7d3a229f0c6c
+**Ultravox revision:** 1736a256-4822-4c18-9a9b-6e7779c29131
+
+## v50 — 2026-03-20 20:04 UTC
+**Change:** fix: switch hangUp to built-in toolName reference, remove precomputable (fixes greeting loop)
+**Chars:** 7259 | **Hash:** fb255b91556a1040
+**Supabase version_id:** f14ecb5d-5794-4ff2-bc8b-81147093e2c7
+**Ultravox revision:** b1bc66bc-0a35-4fdb-8ac4-382575536921
+
+## v51 — 2026-03-20 21:00 UTC
+**Change:** PR1 F1c: booking acknowledgment updated to 'give me just a sec while I lock that in'
+**Chars:** 7273 | **Hash:** 047a80ad4d9c587d
+**Supabase version_id:** 3bbc2834-27a4-496b-91c5-d860d6c576d3
+**Ultravox revision:** bb3654de-b6bd-415d-a675-ca69a193d57e
+
+## v52 — 2026-03-21 01:54 UTC
+**Change:** fix: remove returning-caller greeting branch — always use standard Aisha identity opener
+**Chars:** 7124 | **Hash:** ae3e1f712011f251
+**Supabase version_id:** 6e60dca1-e067-4a56-8bd7-5963ddbc7342
+**Ultravox revision:** 146c38bb-54fa-4edf-b19f-d7a849ecfeea
+
+## v53 — 2026-03-21 02:21 UTC
+**Change:** fix: B3 call state — add KNOWN_PARAM_CALL_ID to all tools + DB-backed state fallback (slots/book/knowledge/sms/transfer routes)
+**Chars:** 7124 | **Hash:** ae3e1f712011f251
+**Supabase version_id:** f12c436f-2b34-424d-a9eb-990bcc179a84
+**Ultravox revision:** 2d556829-d1a6-4b2a-a211-c6fa261742f0

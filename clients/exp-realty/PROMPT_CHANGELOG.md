@@ -75,3 +75,9 @@
 **Chars:** 9606 | **Hash:** 68be815bf1122975
 **Supabase version_id:** 9f098488-5d28-432c-90ac-336e92a51cfb
 **Ultravox revision:** 21dac5bb-dac3-409b-93d3-659d20997fd9
+
+## v15 — 2026-03-20 16:53 UTC
+**Change:** tool resync: hangUp as temporaryTool with AGENT_REACTION_LISTENS (fixes greeting loop)
+**Chars:** 9606 | **Hash:** 68be815bf1122975
+**Supabase version_id:** 0ab94116-2347-4979-9ef9-6b72c75413a1
+**Ultravox revision:** b0362211-fd8d-4849-ba04-3b87a77e54b4

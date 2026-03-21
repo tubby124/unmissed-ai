@@ -197,7 +197,13 @@ def deploy(slug, change_description):
     # B3: Automatic parameter that injects current call state into every tool request header
     CALL_STATE_PARAM = {"name": "X-Call-State", "location": "PARAMETER_LOCATION_HEADER", "knownValue": "KNOWN_PARAM_CALL_STATE"}
     tool_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")
-    selected_tools = [{"toolName": "hangUp"}]
+    # Built-in hangUp tool — strict: true ends call regardless of user speech (no greeting loop).
+    selected_tools = [{
+        "toolName": "hangUp",
+        "parameterOverrides": {
+            "strict": True
+        }
+    }]
     if booking_enabled:
         cal_check = {
             "temporaryTool": {
@@ -219,7 +225,10 @@ def deploy(slug, change_description):
                         "required": False,
                     }
                 ],
-                "automaticParameters": [CALL_STATE_PARAM],
+                "automaticParameters": [
+                    CALL_STATE_PARAM,
+                    {"name": "X-Call-Id", "location": "PARAMETER_LOCATION_HEADER", "knownValue": "KNOWN_PARAM_CALL_ID"},
+                ],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/slots",
                     "httpMethod": "GET",
@@ -243,7 +252,10 @@ def deploy(slug, change_description):
                     {"name": "callerName",  "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string"}, "required": True},
                     {"name": "callerPhone", "location": "PARAMETER_LOCATION_BODY", "schema": {"type": "string", "description": "Caller's phone number from CALLER PHONE in callerContext"}, "required": True},
                 ],
-                "automaticParameters": [CALL_STATE_PARAM],
+                "automaticParameters": [
+                    CALL_STATE_PARAM,
+                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"},
+                ],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/calendar/{slug}/book",
                     "httpMethod": "POST",
@@ -333,7 +345,10 @@ def deploy(slug, change_description):
                         "required": True,
                     }
                 ],
-                "automaticParameters": [CALL_STATE_PARAM],
+                "automaticParameters": [
+                    CALL_STATE_PARAM,
+                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"},
+                ],
                 "http": {
                     "baseUrlPattern": f"{APP_URL}/api/knowledge/{slug}/query",
                     "httpMethod": "POST",
@@ -428,7 +443,7 @@ def deploy(slug, change_description):
             {"duration": "30s", "message": "Hello? You still there?"},
             {"duration": "15s", "message": "I'll let you go \u2014 feel free to call back anytime. Bye!", "endBehavior": "END_BEHAVIOR_HANG_UP_SOFT"},
         ],
-        "firstSpeakerSettings": {"agent": {"uninterruptible": True}},
+        "firstSpeakerSettings": {"agent": {"uninterruptible": True, "delay": "1s"}},
     }
     if cfg.get("greeting"):
         call_template["firstSpeakerSettings"]["agent"]["text"] = cfg["greeting"]

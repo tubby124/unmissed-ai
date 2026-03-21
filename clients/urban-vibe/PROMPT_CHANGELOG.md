@@ -116,3 +116,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9183 | **Hash:** bac8562a03d0cf82
 **Supabase version_id:** 20b351dc-4acf-4bce-b834-d9b0115b0423
 **Ultravox revision:** c0d51670-b3e0-403a-9d56-8d1d3044cc02
+
+## v22 — 2026-03-20 16:52 UTC
+**Change:** tool resync: hangUp as temporaryTool with AGENT_REACTION_LISTENS (fixes greeting loop)
+**Chars:** 9183 | **Hash:** bac8562a03d0cf82
+**Supabase version_id:** 49c8dc46-61de-4a17-8d11-bfb4d70d78b4
+**Ultravox revision:** 5d7e4849-6653-4599-8d41-4a8765384303
