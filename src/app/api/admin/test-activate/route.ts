@@ -25,6 +25,7 @@ import { randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { APP_URL } from '@/lib/app-url'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -229,7 +230,6 @@ export async function POST(req: NextRequest) {
 
   // ── Optional: Buy Twilio number ────────────────────────────────────────────
   let twilioNumber: string | null = null
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
   if (!skipTwilio) {
     try {
@@ -272,9 +272,9 @@ export async function POST(req: NextRequest) {
       if (availableNumber) {
         const buyBody = new URLSearchParams({
           PhoneNumber: availableNumber,
-          VoiceUrl: `${appUrl}/api/webhook/${clientSlug}/inbound`,
+          VoiceUrl: `${APP_URL}/api/webhook/${clientSlug}/inbound`,
           VoiceMethod: 'POST',
-          VoiceFallbackUrl: `${appUrl}/api/webhook/${clientSlug}/fallback`,
+          VoiceFallbackUrl: `${APP_URL}/api/webhook/${clientSlug}/fallback`,
           VoiceFallbackMethod: 'POST',
         })
         const buyRes = await fetch(
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Generate setup URL from recovery link (before SMS) ──────────────────────
-  let setupUrl = `${appUrl}/login`
+  let setupUrl = `${APP_URL}/login`
   if (authUserId && contactEmail) {
     try {
       const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
       if (actionLink) {
         const parsed = new URL(actionLink)
         const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-        if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+        if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
       }
     } catch { /* use fallback login URL */ }
   }
@@ -410,13 +410,13 @@ export async function POST(req: NextRequest) {
       try {
         const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
         const actionLink = linkData?.properties?.action_link ?? ''
-        let setupUrl = `${appUrl}/dashboard`
+        let setupUrl = `${APP_URL}/dashboard`
         if (actionLink) {
           try {
             const parsed = new URL(actionLink)
             const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-            if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
-          } catch { setupUrl = `${appUrl}/login` }
+            if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+          } catch { setupUrl = `${APP_URL}/login` }
         }
         const resend = new Resend(resendKey)
         const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'

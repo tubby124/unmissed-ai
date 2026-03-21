@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { APP_URL } from '@/lib/app-url'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,18 +71,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate login link' }, { status: 500 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
-  let setupUrl = `${appUrl}/dashboard`
+  let setupUrl = `${APP_URL}/dashboard`
 
   try {
     const parsed = new URL(linkData.properties.action_link)
     const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
     if (tokenHash) {
-      setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+      setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
     }
   } catch {
     console.warn(`${TAG} Could not parse action_link — using fallback URL`)
-    setupUrl = `${appUrl}/login`
+    setupUrl = `${APP_URL}/login`
   }
 
   // ── Send via SMS if we have both numbers ─────────────────────────────────

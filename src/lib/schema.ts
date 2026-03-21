@@ -1,6 +1,8 @@
 import { BETA_PROMO, BASE_PLAN, FUTURE_TIERS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://unmissed.ai";
+import { SITE_URL } from "@/lib/app-url";
+
+const siteUrl = SITE_URL;
 
 const effectivePrice = BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly;
 

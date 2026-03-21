@@ -10,6 +10,7 @@ import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-format
 import { getSmsTemplate } from '@/lib/sms-templates'
 import twilio from 'twilio'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { APP_URL } from '@/lib/app-url'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -310,7 +311,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     const fromNumber = client.twilio_number || process.env.TWILIO_FROM_NUMBER
     if (!accountSid || !authToken || !fromNumber) return
 
-    const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-status`
+    const statusCallbackUrl = `${APP_URL}/api/webhook/${slug}/sms-status`
     const twilioClient = twilio(accountSid, authToken)
     const twilioMsg = await twilioClient.messages.create({
       body: smsBody,

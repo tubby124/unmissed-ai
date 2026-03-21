@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 interface EscalationBody {
   reason: string
@@ -29,7 +30,6 @@ ${base}`
 }
 
 export function buildEscalationTool(slug: string): object {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   return {
     temporaryTool: {
       modelToolName: 'escalateToManager',
@@ -57,7 +57,7 @@ export function buildEscalationTool(slug: string): object {
         },
       ],
       http: {
-        baseUrlPattern: `${appUrl}/api/stages/${slug}/escalate`,
+        baseUrlPattern: `${APP_URL}/api/stages/${slug}/escalate`,
         httpMethod: 'POST',
       },
     },

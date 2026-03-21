@@ -1,0 +1,14 @@
+#!/bin/sh
+# S12-OPS6: Run type check before every push.
+# Install: git config core.hooksPath .githooks
+
+echo "Running type check before push..."
+npx tsc --noEmit 2>&1
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Type check failed. Push aborted. Fix type errors and try again."
+  exit 1
+fi
+
+echo "Type check passed."

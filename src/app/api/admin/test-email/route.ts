@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -60,7 +61,6 @@ export async function POST(req: NextRequest) {
     const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
     const businessName = client.business_name || body.clientSlug
     const twilioNumber = client.twilio_number
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
     await resend.emails.send({
       from: fromAddress,
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : '<p><em>No Twilio number assigned (skipTwilio was on)</em></p>'}
   <p><strong>Set up your dashboard password</strong></p>
-  <p><a href="${appUrl}/login" style="display:inline-block;padding:10px 20px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a></p>
+  <p><a href="${APP_URL}/login" style="display:inline-block;padding:10px 20px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a></p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
   <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
 </div>`,

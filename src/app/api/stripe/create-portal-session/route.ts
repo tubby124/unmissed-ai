@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -41,12 +42,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No Stripe customer linked' }, { status: 404 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
-
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: client.stripe_customer_id as string,
-      return_url: `${appUrl}/dashboard/settings`,
+      return_url: `${APP_URL}/dashboard/settings`,
     })
     return NextResponse.json({ url: session.url })
   } catch (err) {

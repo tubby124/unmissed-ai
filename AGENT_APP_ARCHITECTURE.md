@@ -105,7 +105,7 @@ Ultravox → POST /api/webhook/[slug]/completed
   2. Build transcript from messages[]
   3. OpenRouter classify → call_status + ai_summary + key_topics + sentiment + next_steps + quality_score
   4. Supabase upsert call_logs (create or update by ultravox_call_id)
-  5. increment_minutes_used RPC
+  5. increment_seconds_used RPC (seconds + minutes_used_this_month)
   6. If sms_enabled → send post-call SMS via Twilio
   7. Telegram alert (tier: HOT→⚡ / WARM→🟡 / COLD→❄️ / JUNK→🗑️ / UNKNOWN→⚠️)
 ```

@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -62,7 +63,6 @@ export async function GET(req: NextRequest) {
       .single()
 
     const intakeId = intake?.id ?? null
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
     let subscriptionPriceId: string
     try {
@@ -90,9 +90,9 @@ export async function GET(req: NextRequest) {
       },
       customer_email: (client.contact_email as string) ?? undefined,
       success_url: intakeId
-        ? `${appUrl}/onboard/status?id=${intakeId}&trial_converted=true`
-        : `${appUrl}/dashboard?trial_converted=true`,
-      cancel_url: `${appUrl}/dashboard`,
+        ? `${APP_URL}/onboard/status?id=${intakeId}&trial_converted=true`
+        : `${APP_URL}/dashboard?trial_converted=true`,
+      cancel_url: `${APP_URL}/dashboard`,
     })
 
     if (!session.url) {

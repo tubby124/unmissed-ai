@@ -175,6 +175,17 @@ function LoginContent() {
                       </div>
                       <p className="text-zinc-300 text-sm font-medium">Reset link sent</p>
                       <p className="text-zinc-500 text-xs mt-1">Check your inbox at {email}</p>
+                      <p className="text-zinc-600 text-xs mt-3">
+                        Not seeing it? Check spam, or{' '}
+                        <button
+                          type="button"
+                          onClick={handleGoogleSignIn}
+                          className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                        >
+                          sign in with Google
+                        </button>{' '}
+                        instead.
+                      </p>
                       <button
                         onClick={() => { setForgotMode(false); setResetSent(false) }}
                         className="mt-4 text-xs text-blue-400 hover:text-blue-300 transition-colors"
@@ -371,6 +382,20 @@ function LoginContent() {
                 >
                   {magicLinkSent ? 'Link sent — check your inbox' : 'Email me a sign-in link'}
                 </motion.button>
+
+                <AnimatePresence>
+                  {magicLinkSent && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-zinc-500 text-xs text-center mt-2"
+                    >
+                      Check your inbox and spam folder. If it doesn&apos;t arrive, use <button type="button" onClick={handleGoogleSignIn} className="text-blue-400 hover:text-blue-300 underline underline-offset-2">Google sign-in</button> instead.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>

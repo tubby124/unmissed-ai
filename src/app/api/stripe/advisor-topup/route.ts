@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase/server'
 import { CREDIT_PACKS } from '@/lib/ai-models'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -22,8 +23,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid packId' }, { status: 400 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
-
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: [{
@@ -42,8 +41,8 @@ export async function POST(req: NextRequest) {
       credits_cents: String(pack.cents),
       pack_id: packId,
     },
-    success_url: `${appUrl}/dashboard/advisor?topup=success`,
-    cancel_url: `${appUrl}/dashboard/advisor?topup=cancelled`,
+    success_url: `${APP_URL}/dashboard/advisor?topup=success`,
+    cancel_url: `${APP_URL}/dashboard/advisor?topup=cancelled`,
   })
 
   return NextResponse.json({ url: session.url })

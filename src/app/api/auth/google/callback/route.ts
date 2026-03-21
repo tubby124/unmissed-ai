@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { APP_URL } from '@/lib/app-url'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
   const stateParam = req.nextUrl.searchParams.get('state')
   const error = req.nextUrl.searchParams.get('error')
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-
   if (error || !code || !stateParam) {
     console.error(`[google-callback] OAuth error: ${error || 'missing code/state'}`)
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=access_denied`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=access_denied`)
   }
 
   let slug: string, clientId: string, nonce: string, isAdmin: boolean
@@ -23,14 +22,14 @@ export async function GET(req: NextRequest) {
     nonce = parsed.nonce
     isAdmin = parsed.isAdmin === true
   } catch {
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=invalid_state`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=invalid_state`)
   }
 
   // Verify nonce
   const cookieNonce = req.cookies.get('google_oauth_nonce')?.value
   if (!cookieNonce || cookieNonce !== nonce) {
     console.error(`[google-callback] Nonce mismatch for slug=${slug}`)
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=invalid_state`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=invalid_state`)
   }
 
   // Exchange code for tokens
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: `${appUrl}/api/auth/google/callback`,
+      redirect_uri: `${APP_URL}/api/auth/google/callback`,
       grant_type: 'authorization_code',
     }),
   })
@@ -49,7 +48,7 @@ export async function GET(req: NextRequest) {
   if (!tokenRes.ok) {
     const err = await tokenRes.text()
     console.error(`[google-callback] Token exchange failed for slug=${slug}: ${err}`)
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=token_exchange_failed`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=token_exchange_failed`)
   }
 
   const tokens = await tokenRes.json()
@@ -57,7 +56,7 @@ export async function GET(req: NextRequest) {
 
   if (!refreshToken) {
     console.error(`[google-callback] No refresh_token for slug=${slug} — user may need to re-authorize`)
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=no_refresh_token`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=no_refresh_token`)
   }
 
   // Get the primary calendar ID
@@ -88,7 +87,7 @@ export async function GET(req: NextRequest) {
 
   if (dbError) {
     console.error(`[google-callback] DB update failed for clientId=${clientId}: ${dbError.message}`)
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?calendar_error=db_failed`)
+    return NextResponse.redirect(`${APP_URL}/dashboard/settings?calendar_error=db_failed`)
   }
 
   console.log(`[google-callback] Calendar connected for slug=${slug} calendarId=${calendarId} booking_enabled=true`)
@@ -156,8 +155,8 @@ export async function GET(req: NextRequest) {
   }
 
   const successUrl = isAdmin
-    ? `${appUrl}/admin/clients?calendar_connected=1`
-    : `${appUrl}/dashboard/settings?calendar_connected=1`
+    ? `${APP_URL}/admin/clients?calendar_connected=1`
+    : `${APP_URL}/dashboard/settings?calendar_connected=1`
 
   const response = NextResponse.redirect(successUrl)
   response.cookies.delete('google_oauth_nonce')

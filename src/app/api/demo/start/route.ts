@@ -6,6 +6,7 @@ import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { OnboardingData } from '@/types/onboarding'
 import { toIntakePayload } from '@/lib/intake-transform'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
+import { APP_URL } from '@/lib/app-url'
 
 // Simple in-memory rate limiter: 10 demos per IP per hour
 const rateLimitMap = new Map<string, number[]>()
@@ -163,14 +164,13 @@ HANG-UP RULES (mandatory — follow exactly):
   let demoTools: object[] = []
   let demoCallbackUrl: string | undefined
   if (demo.capabilities && demo.clientSlug) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
     demoTools = buildDemoTools(demo.clientSlug, {
       hasPhoneMedium: false,    // WebRTC — no Twilio SID
       hasCallerPhone: false,    // Browser visitor — no phone number
       calendarEnabled: !!demo.capabilities.calendarEnabled,
       transferEnabled: false,   // Transfer requires Twilio SID — always false for browser
     })
-    demoCallbackUrl = signCallbackUrl(`${appUrl}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
+    demoCallbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
     console.log(`[demo] ${demo.clientSlug} browser: injecting ${demoTools.length} tools + callbackUrl`)
   }
 

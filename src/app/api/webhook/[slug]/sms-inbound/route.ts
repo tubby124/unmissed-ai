@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
+import { APP_URL } from '@/lib/app-url'
 
 export const maxDuration = 10
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   // Validate Twilio signature
   const signature = req.headers.get('X-Twilio-Signature') || ''
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-inbound`
+  const url = `${APP_URL}/api/webhook/${slug}/sms-inbound`
   if (!validateSignature(signature, url, body)) {
     console.error(`[sms-inbound] Twilio signature FAILED for slug=${slug}`)
     return new NextResponse('Forbidden', { status: 403 })

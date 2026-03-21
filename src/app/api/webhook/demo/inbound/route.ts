@@ -4,6 +4,7 @@ import { createDemoCall } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
+import { APP_URL } from '@/lib/app-url'
 
 const IVR_MENU: Record<string, string> = {
   '1': 'auto_glass',
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   // Validate Twilio signature
   const signature = req.headers.get('X-Twilio-Signature') || ''
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/demo/inbound`
+  const url = `${APP_URL}/api/webhook/demo/inbound`
   if (!validateSignature(signature, url, body)) {
     console.error(`[demo-ivr] Twilio signature FAILED`)
     return new NextResponse('Forbidden', { status: 403 })
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     console.log(`[demo-ivr] New call from ${callerPhone} — playing IVR menu`)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" action="${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/demo/inbound" method="POST" timeout="8">
+  <Gather numDigits="1" action="${APP_URL}/api/webhook/demo/inbound" method="POST" timeout="8">
     <Say voice="Polly.Joanna">Welcome to unmissed dot A I. Press 1 to talk to an auto glass receptionist. Press 2 for a property management assistant. Press 3 for a real estate agent.</Say>
   </Gather>
   <Say voice="Polly.Joanna">We didn't get your selection. Goodbye.</Say>

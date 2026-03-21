@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 function checkAuth(req: NextRequest): boolean {
   const authHeader = req.headers.get('Authorization') || ''
@@ -31,7 +32,6 @@ export async function POST(req: NextRequest) {
   const targetSlug: string | undefined = body.slug
 
   const supabase = createServiceClient()
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
   const accountSid = process.env.TWILIO_ACCOUNT_SID!
   const authToken = process.env.TWILIO_AUTH_TOKEN!
   const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       return
     }
 
-    const smsUrl = `${appUrl}/api/webhook/${client.slug}/sms-inbound`
+    const smsUrl = `${APP_URL}/api/webhook/${client.slug}/sms-inbound`
 
     // Skip if already configured
     if (entry.sms_url === smsUrl) {

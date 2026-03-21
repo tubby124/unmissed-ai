@@ -6,8 +6,13 @@ import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { APP_URL } from '@/lib/app-url'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
 export const maxDuration = 15
+
+// S13e: 30 calls per slug per 60s — 10x observed peak, catches floods
+const callRateLimiter = new SlidingWindowRateLimiter(30, 60_000)
 
 export async function POST(
   req: NextRequest,
@@ -25,12 +30,21 @@ export async function POST(
 
   // Validate Twilio signature
   const signature = req.headers.get('X-Twilio-Signature') || ''
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/inbound`
+  const url = `${APP_URL}/api/webhook/${slug}/inbound`
   if (!validateSignature(signature, url, body)) {
     console.error(`[inbound] Twilio signature FAILED for slug=${slug} url=${url}`)
     return new NextResponse('Forbidden', { status: 403 })
   }
   console.log(`[inbound] Twilio signature OK for slug=${slug}`)
+
+  // S13e: Rate limit per slug — block floods before any DB/Ultravox work
+  const rl = callRateLimiter.check(slug)
+  if (!rl.allowed) {
+    console.warn(`[inbound] RATE LIMITED: slug=${slug} callerPhone=${callerPhone} retryAfter=${Math.ceil(rl.retryAfterMs / 1000)}s`)
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">We are experiencing unusually high call volume. Please try again in a few minutes.</Say></Response>`
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+  callRateLimiter.record(slug)
 
   // Fetch client — includes tools + ultravox_agent_id for Agents API
   const supabase = createServiceClient()
@@ -170,7 +184,7 @@ export async function POST(
   const contextDataStr     = ctx.assembled.contextDataBlock
 
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed
-  const rawCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
+  const rawCallbackUrl = `${APP_URL}/api/webhook/${slug}/completed`
   const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
   const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 

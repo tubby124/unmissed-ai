@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { APP_URL } from '@/lib/app-url'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   // Send password reset email so client can set their own password
   await adminSupa.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'}/auth/callback?next=/dashboard`,
+    redirectTo: `${APP_URL}/auth/callback?next=/dashboard`,
   })
 
   return NextResponse.json({ success: true, userId: newUserId })

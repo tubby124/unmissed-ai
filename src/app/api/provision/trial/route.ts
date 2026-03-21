@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
       niche: data.niche || "other",
       status: 'setup',
       contact_email: data.contactEmail || null,
+      agent_name: data.agentName || null,
     })
     .select("id")
     .single();
@@ -189,7 +190,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[provision/trial] createAgent failed:", err);
-    // Clean up the clients row since agent creation failed
+    // S12-CODE1: Clear intake FK before deleting client to avoid orphaned reference
+    await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
     await supa.from("clients").delete().eq("id", clientId);
     return NextResponse.json({ error: "Agent creation failed", detail: String(err) }, { status: 502 });
   }
@@ -213,6 +215,9 @@ export async function POST(req: NextRequest) {
   if (updateErr) {
     console.error("[provision/trial] clients update with agent data failed:", updateErr);
     try { await deleteAgent(agentId); } catch {}
+    // S12-CODE1: Clear intake FK before deleting client to avoid orphaned reference
+    await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
+    await supa.from("clients").delete().eq("id", clientId);
     return NextResponse.json({ error: "Failed to update client with agent data" }, { status: 500 });
   }
 
@@ -230,6 +235,9 @@ export async function POST(req: NextRequest) {
   console.log(`[provision/trial] Agent created: slug=${clientSlug} agentId=${agentId} voice=${voiceId} prompt=${validation.charCount} chars`);
 
   // Run activation chain in trial mode
+  // S12-CODE4: activateClient() sets sms_enabled + calls syncClientTools() which rebuilds
+  // clients.tools from DB flags. Runtime uses toolOverrides at call time, so stale Ultravox
+  // agent tools don't affect calls. No separate updateAgent() needed here.
   const result = await activateClient({
     mode: 'trial',
     intakeId,

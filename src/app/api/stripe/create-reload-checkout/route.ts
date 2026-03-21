@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase/server'
 import { MINUTE_RELOAD } from '@/lib/pricing'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -40,7 +41,6 @@ export async function POST(req: NextRequest) {
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
   const amount = minutes * CENTS_PER_MINUTE
 
   const session = await stripe.checkout.sessions.create({
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
       client_slug: client.slug,
       minutes: String(minutes),
     },
-    success_url: `${appUrl}/dashboard/settings?reloaded=${minutes}`,
-    cancel_url: `${appUrl}/dashboard/settings`,
+    success_url: `${APP_URL}/dashboard/settings?reloaded=${minutes}`,
+    cancel_url: `${APP_URL}/dashboard/settings`,
   })
 
   return NextResponse.json({ url: session.url })

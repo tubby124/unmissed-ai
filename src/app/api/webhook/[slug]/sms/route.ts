@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSmsTracked } from '@/lib/twilio'
 import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
+import { APP_URL } from '@/lib/app-url'
 
 export const maxDuration = 10
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   try {
-    const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/sms-status`
+    const statusCallbackUrl = `${APP_URL}/api/webhook/${slug}/sms-status`
     const twilioMessage = await sendSmsTracked(to, client.twilio_number, message, statusCallbackUrl)
     console.log(`[sms-tool] Sent in-call SMS: slug=${slug} to=${to} call_id=${call_id} sid=${twilioMessage.sid}`)
 

@@ -15,6 +15,7 @@ import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
+import { APP_URL } from '@/lib/app-url'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,7 +105,7 @@ export async function activateClient(params: {
   const intakeCity = (intakeJson.city as string | null) || null
   const intakeState = (intakeJson.state as string | null) || null
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
 
   // Generate Telegram registration token upfront (needed in SMS + Step 2)

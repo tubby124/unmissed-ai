@@ -454,7 +454,7 @@ OpenRouter (anthropic/claude-haiku-4.5):
   ↓
 Supabase upsert call_logs ON CONFLICT (ultravox_call_id)
   ↓
-increment_minutes_used RPC (client minute tracking)
+increment_seconds_used RPC (client second + minute tracking)
   ↓
 if sms_enabled → Twilio SMS to caller (CASL: implied consent via inbound call)
   ↓

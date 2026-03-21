@@ -15,6 +15,7 @@ export async function sendAlert(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: cid, text: message, parse_mode: 'HTML' }),
+          signal: AbortSignal.timeout(10_000),
         })
         if (res.ok) {
           console.log(`[telegram] Sent OK to chatId=${cid}${attempt > 0 ? ' (retry)' : ''}`)

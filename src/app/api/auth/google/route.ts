@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
+import { APP_URL } from '@/lib/app-url'
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
@@ -46,10 +47,9 @@ export async function GET(req: NextRequest) {
 }
 
 function buildOAuthUrl(state: string): string {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri: `${appUrl}/api/auth/google/callback`,
+    redirect_uri: `${APP_URL}/api/auth/google/callback`,
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/calendar',
     access_type: 'offline',

@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -27,13 +28,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET
 
   if (!botToken) return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not set' }, { status: 500 })
-  if (!appUrl) return NextResponse.json({ error: 'NEXT_PUBLIC_APP_URL not set' }, { status: 500 })
+  if (!APP_URL) return NextResponse.json({ error: 'NEXT_PUBLIC_APP_URL not set' }, { status: 500 })
 
-  const webhookUrl = `${appUrl}/api/webhook/telegram`
+  const webhookUrl = `${APP_URL}/api/webhook/telegram`
 
   const body: Record<string, unknown> = { url: webhookUrl }
   if (webhookSecret) body.secret_token = webhookSecret

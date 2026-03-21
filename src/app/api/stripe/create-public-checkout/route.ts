@@ -18,6 +18,7 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -224,9 +225,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Voice ID: direct picker selection > gender fallback > niche default
+    // S12-V12: intake_json stores voice as `voiceId` (from OnboardingData spread)
+    // and `voice_id` (from toIntakePayload). Previous code looked for `niche_voiceId`
+    // which never existed — voice selection from onboarding was silently lost.
     const voiceId = resolveVoiceId(
-      intakeData.niche_voiceId as string | null,
-      intakeData.niche_voiceGender as string | null,
+      (intakeData.voiceId as string) || (intakeData.voice_id as string) || null,
+      (intakeData.niche_voiceGender as string) || null,
       intake.niche,
     )
 
@@ -260,6 +264,7 @@ export async function POST(req: NextRequest) {
         classification_rules: classificationRules,
         timezone,
         stripe_customer_id: stripeCustomerId ?? null,
+        agent_name: (intakeData.agent_name as string) || (intakeData.agentName as string) || null,
       })
       .select('id')
       .single()
@@ -300,7 +305,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Create Stripe Checkout session ─────────────────────────────────────────
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
   let subscriptionPriceId: string
   try {
@@ -343,8 +347,8 @@ export async function POST(req: NextRequest) {
         client_slug: clientSlug,
         reserved_number: selectedNumber ?? '',
       },
-      success_url: `${appUrl}/onboard/status?success=true&id=${intakeId}`,
-      cancel_url: `${appUrl}/onboard/status?id=${intakeId}`,
+      success_url: `${APP_URL}/onboard/status?success=true&id=${intakeId}`,
+      cancel_url: `${APP_URL}/onboard/status?id=${intakeId}`,
     })
   } catch (err) {
     console.error('[create-public-checkout] Stripe session creation failed:', err)

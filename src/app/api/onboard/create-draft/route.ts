@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "intake_id is required" }, { status: 400 });
     }
 
+    // Validate UUID format to prevent malformed IDs hitting the DB
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(intake_id)) {
+      return NextResponse.json({ error: "intake_id must be a valid UUID" }, { status: 400 });
+    }
+
     const supa = createServiceClient();
 
     // Check if row already exists (idempotent)
@@ -34,7 +40,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Create draft row — minimal fields, just enough for FK validation
+    // Create draft row — minimal fields, just enough for FK validation.
+    // S12-V10: include all columns that may have NOT NULL constraints
+    // to prevent 500 errors from schema validation failures.
     const { error: insertErr } = await supa
       .from("intake_submissions")
       .insert({
@@ -43,6 +51,10 @@ export async function POST(req: NextRequest) {
         niche: niche || "other",
         status: "draft",
         progress_status: "draft",
+        contact_email: null,
+        owner_name: null,
+        client_slug: null,
+        intake_json: {},
       });
 
     if (insertErr) {
@@ -50,8 +62,11 @@ export async function POST(req: NextRequest) {
       if (insertErr.code === "23505") {
         return NextResponse.json({ ok: true });
       }
-      console.error("[create-draft] Insert failed:", insertErr);
-      return NextResponse.json({ error: "Failed to create draft" }, { status: 500 });
+      console.error("[create-draft] Insert failed:", insertErr.code, insertErr.message, insertErr.details);
+      return NextResponse.json(
+        { error: "Failed to create draft", code: insertErr.code, detail: insertErr.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ ok: true });

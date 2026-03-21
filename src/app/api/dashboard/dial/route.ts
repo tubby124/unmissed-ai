@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { createCall } from '@/lib/ultravox'
+import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildStreamTwiml } from '@/lib/twilio'
+import { APP_URL } from '@/lib/app-url'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 15
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
   if (!client.system_prompt) return NextResponse.json({ error: 'Client has no system prompt' }, { status: 400 })
   if (!client.twilio_number) return NextResponse.json({ error: 'Client has no Twilio number' }, { status: 400 })
 
-  const completedUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
+  // S13b-T1d: sign callback URL so completed route can reject forged webhooks
+  const completedUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 
   // Create Ultravox call
   let ultravoxCall: { joinUrl: string; callId: string }

@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, createCall, signCallbackUrl } from '@/lib/ultravox'
-import { buildStreamTwiml } from '@/lib/twilio'
+import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { defaultCallState } from '@/lib/call-state'
+import { sendAlert } from '@/lib/telegram'
+import { notifySystemFailure } from '@/lib/admin-alerts'
+import { APP_URL } from '@/lib/app-url'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 export const maxDuration = 15
 
 /**
  * POST /api/webhook/[slug]/transfer-status
+ *
+ * Auth: Twilio signature validation (S13m)
  *
  * Called by Twilio when a <Dial> in the transfer route completes.
  * Twilio sends standard form params including DialCallStatus.
@@ -29,6 +36,14 @@ export async function POST(
   const formData = await req.formData()
   const body = Object.fromEntries(formData.entries()) as Record<string, string>
 
+  // Validate Twilio signature (S13m — was completely unauthenticated before)
+  const signature = req.headers.get('X-Twilio-Signature') || ''
+  const url = `${APP_URL}/api/webhook/${slug}/transfer-status`
+  if (!validateSignature(signature, url, body)) {
+    console.error(`[transfer-status] Twilio signature FAILED for slug=${slug} url=${url}`)
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   const dialStatus = body.DialCallStatus || 'unknown'
   const callSid = body.CallSid || 'unknown'
   const callerPhone = body.From || 'unknown'
@@ -46,13 +61,15 @@ export async function POST(
 
   const supabase = createServiceClient()
 
-  // Update transfer_status on the original call log
+  // Update transfer_status on the original call log (return id for parent FK)
   const normalizedStatus = STATUS_MAP[dialStatus] ?? 'failed'
-  const { error: statusUpdateErr } = await supabase.from('call_logs')
+  const { data: updatedRows, error: statusUpdateErr } = await supabase.from('call_logs')
     .update({ transfer_status: normalizedStatus, transfer_updated_at: new Date().toISOString() })
     .eq('twilio_call_sid', callSid)
     .eq('transfer_status', 'transferring')
+    .select('id')
   if (statusUpdateErr) console.warn(`[transfer-status] Failed to update transfer_status: ${statusUpdateErr.message}`)
+  const parentCallLogId = updatedRows?.[0]?.id as string | undefined
 
   // If the transfer succeeded, nothing to do — Twilio already connected the call
   if (dialStatus === 'completed') {
@@ -67,11 +84,12 @@ export async function POST(
   console.log(`[transfer-status] Transfer failed (${dialStatus}) for slug=${slug}, reconnecting to AI agent`)
 
   // Guard: max 1 reconnect per Twilio CallSid — prevent infinite loop
+  // Uses parent_call_log_id FK (S10q) instead of fragile ai_summary string matching
   const { count: recoveryCount } = await supabase
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
     .eq('twilio_call_sid', callSid)
-    .ilike('ai_summary', 'Transfer recovery%')
+    .not('parent_call_log_id', 'is', null)
   if ((recoveryCount ?? 0) > 0) {
     console.warn(`[transfer-status] Already reconnected once for callSid=${callSid}, ending call`)
     const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Sorry, no one is available right now. We have your information and will call you back shortly.</Say></Response>'
@@ -79,7 +97,7 @@ export async function POST(
   }
   const { data: client } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, telegram_bot_token, telegram_chat_id')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, telegram_bot_token, telegram_chat_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, grace_period_end, trial_expires_at, trial_converted')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -88,6 +106,38 @@ export async function POST(
     console.error(`[transfer-status] Client not found or missing prompt/agentId for slug=${slug}`)
     const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Sorry, we could not reconnect you. Please call back.</Say></Response>'
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  // ── S13n: Billing guards — same 3 checks as inbound route ──────────────────
+  // Grace period enforcement (hard block)
+  const graceEnd = client.grace_period_end as string | null
+  if (graceEnd && new Date(graceEnd) < new Date()) {
+    console.warn(`[transfer-status] GRACE EXPIRED: slug=${slug}, grace_period_end=${graceEnd}`)
+    const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>This number is temporarily unavailable. Please try again later.</Say></Response>'
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  // Trial expiry guard (hard block)
+  if (client.trial_expires_at && !client.trial_converted && new Date() > new Date(client.trial_expires_at as string)) {
+    console.warn(`[transfer-status] TRIAL EXPIRED: slug=${slug}, trial_expires_at=${client.trial_expires_at}`)
+    const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>This trial has expired. Please upgrade your account to continue receiving calls.</Say></Response>'
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  // Overage detection (soft enforcement — log + alert, don't block)
+  const secondsUsed = (client.seconds_used_this_month as number | null) ?? 0
+  const secondLimit = (((client.monthly_minute_limit as number | null) ?? DEFAULT_MINUTE_LIMIT) + ((client.bonus_minutes as number | null) ?? 0)) * 60
+  if (secondsUsed >= secondLimit) {
+    const minsUsed = Math.ceil(secondsUsed / 60)
+    const minsLimit = Math.ceil(secondLimit / 60)
+    console.warn(`[transfer-status] OVERAGE RECOVERY: slug=${slug} used=${minsUsed} limit=${minsLimit} min — recovery call proceeding (soft enforcement)`)
+    const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
+    const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
+    if (operatorToken && operatorChat) {
+      sendAlert(operatorToken, operatorChat,
+        `OVERAGE RECOVERY [${slug}]\nUsed: ${minsUsed}/${minsLimit} min\nCaller: ${callerPhone}\nRecovery call proceeding (soft enforcement)`
+      ).catch((e) => console.error(`[transfer-status] Overage alert failed for slug=${slug}:`, e))
+    }
   }
 
   try {
@@ -145,7 +195,7 @@ export async function POST(
     const contextDataStr = ctx.assembled.contextDataBlock
 
     // Sign callback URL for the resumed Ultravox call
-    const rawCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/${slug}/completed`
+    const rawCallbackUrl = `${APP_URL}/api/webhook/${slug}/completed`
     const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
 
     // Include transfer failure context so the agent knows to offer "take a message"
@@ -201,7 +251,7 @@ export async function POST(
       .in('transfer_status', ['no_answer', 'busy', 'failed', 'canceled'])
     if (recoveredErr) console.warn(`[transfer-status] Failed to set recovered status: ${recoveredErr.message}`)
 
-    // Insert a new call_log row for the resumed conversation
+    // Insert a new call_log row for the resumed conversation (linked to parent)
     const { error: insertErr } = await supabase.from('call_logs').insert({
       ultravox_call_id: ultravoxCall.callId,
       client_id: client.id,
@@ -210,8 +260,31 @@ export async function POST(
       call_status: 'live',
       started_at: new Date().toISOString(),
       ai_summary: `Transfer recovery — owner did not answer (${dialStatus})`,
+      call_state: defaultCallState(client.niche as string | null),
+      ...(parentCallLogId ? { parent_call_log_id: parentCallLogId } : {}),
     })
     if (insertErr) console.error(`[transfer-status] Call log insert failed: ${insertErr.message}`)
+
+    // Alert client: transfer failed, AI recovered the call
+    if (client.telegram_bot_token && client.telegram_chat_id) {
+      const alertMsg = `Transfer failed (${dialStatus}) — AI agent resumed the call.\nCaller: ${callerPhone}\nBusiness: ${client.business_name || slug}`
+      let sent = false
+      try {
+        sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, alertMsg)
+      } catch (alertErr) {
+        console.error(`[transfer-status] Recovery alert failed for slug=${slug}:`, alertErr)
+      }
+      const { error: nlErr } = await supabase.from('notification_logs').insert({
+        call_id: parentCallLogId || null,
+        client_id: client.id,
+        channel: 'telegram',
+        recipient: client.telegram_chat_id,
+        content: alertMsg.slice(0, 10000),
+        status: sent ? 'sent' : 'failed',
+        error: sent ? null : 'transfer recovery alert failed',
+      })
+      if (nlErr) console.error(`[transfer-status] notification_logs insert failed:`, nlErr.message)
+    }
 
     // Return TwiML that reconnects the Twilio call to the new Ultravox session
     const twiml = buildStreamTwiml(ultravoxCall.joinUrl)
@@ -219,6 +292,33 @@ export async function POST(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[transfer-status] Failed to reconnect: ${msg}`)
+
+    // S10p: Alert admin + client that recovery failed — lost lead with zero visibility otherwise
+    try {
+      await notifySystemFailure(`transfer-status recovery failed for slug=${slug} caller=${callerPhone}`, err, supabase, client?.id)
+    } catch (sysErr) {
+      console.error(`[transfer-status] notifySystemFailure failed:`, sysErr)
+    }
+    if (client?.telegram_bot_token && client?.telegram_chat_id) {
+      const failMsg = `MISSED LEAD: Transfer + AI recovery both failed.\nCaller: ${callerPhone}\nPlease call them back ASAP.`
+      let failSent = false
+      try {
+        failSent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, failMsg)
+      } catch (clientAlertErr) {
+        console.error(`[transfer-status] Client failure alert failed:`, clientAlertErr)
+      }
+      const { error: nlErr2 } = await supabase.from('notification_logs').insert({
+        call_id: parentCallLogId || null,
+        client_id: client.id,
+        channel: 'telegram',
+        recipient: client.telegram_chat_id,
+        content: failMsg.slice(0, 10000),
+        status: failSent ? 'sent' : 'failed',
+        error: failSent ? null : 'transfer recovery failure alert failed',
+      })
+      if (nlErr2) console.error(`[transfer-status] notification_logs insert failed:`, nlErr2.message)
+    }
+
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say>Sorry, I was unable to reconnect you. Please call back and we will follow up.</Say></Response>`
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   }

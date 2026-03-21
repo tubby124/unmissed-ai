@@ -7,7 +7,7 @@
  *   npx tsx scripts/backfill-chunks.ts --slug windshield-hub --file chunks.json --dry-run
  *   npx tsx scripts/backfill-chunks.ts --slug windshield-hub --file chunks.json --replace-source manual
  *
- * Env vars (reads from agent-app/.env.local automatically):
+ * Env vars (reads from .env.local automatically):
  *   NEXT_PUBLIC_SUPABASE_URL    — Supabase URL
  *   SUPABASE_SERVICE_ROLE_KEY   — Supabase service role key
  *   OPENROUTER_API_KEY          — For embedding via OpenRouter (or OPENAI_API_KEY)
@@ -21,8 +21,8 @@ import * as path from 'path'
 import * as dotenv from 'dotenv'
 import crypto from 'crypto'
 
-// Load .env.local from agent-app
-const envPath = path.join(__dirname, '..', 'agent-app', '.env.local')
+// Load .env.local from project root
+const envPath = path.join(__dirname, '..', '.env.local')
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath })
 }

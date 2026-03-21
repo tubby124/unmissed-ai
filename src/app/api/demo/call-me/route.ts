@@ -5,6 +5,7 @@ import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
 import { buildStreamTwiml } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
+import { APP_URL } from '@/lib/app-url'
 
 // ── Rate limiter: 3 calls per IP per hour ───────────────────────────────────
 const rateLimitMap = new Map<string, number[]>()
@@ -90,14 +91,13 @@ export async function POST(req: NextRequest) {
   let demoTools: object[] = []
   let demoCallbackUrl: string | undefined
   if (demo.capabilities && demo.clientSlug) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
     demoTools = buildDemoTools(demo.clientSlug, {
       hasPhoneMedium: true,     // Twilio outbound call
       hasCallerPhone: true,     // Phone number validated above
       calendarEnabled: !!demo.capabilities.calendarEnabled,
       transferEnabled: !!demo.capabilities.transferEnabled,
     })
-    demoCallbackUrl = signCallbackUrl(`${appUrl}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
+    demoCallbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
     console.log(`[call-me] ${demo.clientSlug}: injecting ${demoTools.length} tools + callbackUrl`)
   }
 

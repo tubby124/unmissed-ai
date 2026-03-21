@@ -210,10 +210,12 @@ export default function BillingTab({
             <span className="text-xs t3">Next renewal</span>
             <span className="text-xs t2 font-mono">{fmtDate(client.subscription_current_period_end ?? cycleEnd.toISOString())}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs t3">Setup fee</span>
-            <span className="text-xs t2 font-mono">${SETUP.price} (paid)</span>
-          </div>
+          {client.stripe_customer_id && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs t3">Setup fee</span>
+              <span className="text-xs t2 font-mono">${SETUP.price} (paid)</span>
+            </div>
+          )}
         </div>
         <ManageSubscriptionButton isAdmin={isAdmin} clientId={client.id} previewMode={previewMode} />
       </div>

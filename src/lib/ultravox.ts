@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { stripPromptMarkers } from '@/lib/prompt-sections'
 import { getNicheVoice } from '@/lib/niche-config'
+import { APP_URL } from '@/lib/app-url'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -11,26 +12,67 @@ function ultravoxHeaders() {
   }
 }
 
-// ── HMAC webhook signing ─────────────────────────────────────────────────────
+// ── HMAC webhook signing (S13b — nonce + timestamp, replay-protected) ────────
 
-/** Sign a callbackUrl with HMAC-SHA256 so /completed can reject forged pings. */
-export function signCallbackUrl(baseUrl: string, callId: string): string {
+/**
+ * Max age (ms) for a signed callback URL before it's considered expired.
+ * Budget: 10 min max call + up to 20 min of Ultravox retry backoff if our route was briefly down.
+ * Nonce makes each sig unique, so the window is hygiene not security-critical.
+ */
+const CALLBACK_SIG_MAX_AGE_MS = 30 * 60 * 1000
+
+/**
+ * Sign a callbackUrl with HMAC-SHA256 including a per-call nonce and timestamp.
+ * Signature covers `slug:nonce:timestamp` — unique per call, replay-protected.
+ * S13b-T1a: replaces old slug-only HMAC.
+ */
+export function signCallbackUrl(baseUrl: string, slug: string): string {
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   if (!secret) return baseUrl // dev: no secret → no sig
-  const sig = crypto.createHmac('sha256', secret).update(callId).digest('hex')
+  const nonce = crypto.randomBytes(16).toString('hex')
+  const ts = Date.now().toString()
+  const sig = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
   const sep = baseUrl.includes('?') ? '&' : '?'
-  return `${baseUrl}${sep}sig=${sig}`
+  return `${baseUrl}${sep}sig=${sig}&nonce=${nonce}&ts=${ts}`
 }
 
-/** Verify HMAC sig on an inbound /completed request. */
-export function verifyCallbackSig(callId: string, sig: string): boolean {
+/**
+ * Verify HMAC sig on an inbound /completed request.
+ * Supports two formats:
+ *   - New (S13b): sig + nonce + ts → verifies `slug:nonce:ts`, checks 15-min replay window
+ *   - Legacy: sig only (no nonce/ts) → verifies `HMAC(secret, slug)` for in-flight calls during deploy
+ * Returns { valid, legacy } so callers can log the format used.
+ */
+export function verifyCallbackSig(
+  slug: string,
+  sig: string,
+  nonce?: string | null,
+  ts?: string | null,
+): { valid: boolean; legacy: boolean } {
   const secret = process.env.WEBHOOK_SIGNING_SECRET
-  if (!secret) return true // dev: no secret → skip
-  const expected = crypto.createHmac('sha256', secret).update(callId).digest('hex')
+  if (!secret) return { valid: true, legacy: false } // dev: no secret → skip
+
+  // New format: nonce + timestamp present
+  if (nonce && ts) {
+    // Replay window check
+    const tsNum = parseInt(ts, 10)
+    if (isNaN(tsNum) || Math.abs(Date.now() - tsNum) > CALLBACK_SIG_MAX_AGE_MS) {
+      return { valid: false, legacy: false }
+    }
+    const expected = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
+    try {
+      return { valid: crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)), legacy: false }
+    } catch {
+      return { valid: false, legacy: false }
+    }
+  }
+
+  // Legacy format: slug-only HMAC (in-flight calls signed before S13b deploy)
+  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex')
   try {
-    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
+    return { valid: crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)), legacy: true }
   } catch {
-    return false
+    return { valid: false, legacy: true }
   }
 }
 
@@ -227,7 +269,7 @@ interface UltravoxTool {
 }
 
 export function buildCalendarTools(slug: string): UltravoxTool[] {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [
     {
@@ -323,7 +365,7 @@ interface AgentConfig {
  * NOT using Ultravox built-in coldTransfer — SIP INVITE doesn't work over Twilio's WebSocket Stream.
  */
 export function buildTransferTools(slug: string, transferConditions?: string | null): UltravoxTool[] {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   const description = transferConditions
     ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
@@ -367,7 +409,7 @@ export function buildTransferTools(slug: string, transferConditions?: string | n
  * Flow: Ultravox → POST /api/webhook/{slug}/sms → Twilio sendSms → caller receives text.
  */
 export function buildSmsTools(slug: string): UltravoxTool[] {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [{
     temporaryTool: {
@@ -414,7 +456,7 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
  * Only injected when knowledge_backend='pgvector' on the client.
  */
 export function buildKnowledgeTools(slug: string): UltravoxTool[] {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [{
     temporaryTool: {
@@ -787,7 +829,7 @@ export async function listDurableTools() {
 
 /** Build the checkForCoaching temporaryTool for live coaching during calls. */
 export function buildCoachingTool(slug: string): object {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return {
     temporaryTool: {

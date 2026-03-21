@@ -36,14 +36,30 @@ export async function POST(
     return new NextResponse('Missing callId', { status: 400 })
   }
 
-  // ── HMAC signature verification ────────────────────────────────────────────
-  // sig is appended by inbound route after call creation. Absent on legacy calls — still accepted.
+  // ── HMAC signature verification (S13b: mandatory when secret configured) ──
   const sig = req.nextUrl.searchParams.get('sig')
-  if (sig && !verifyCallbackSig(slug, sig)) {
-    console.error(`[completed] HMAC sig FAILED for slug=${slug} callId=${callId} — forged webhook rejected`)
+  const nonce = req.nextUrl.searchParams.get('nonce')
+  const ts = req.nextUrl.searchParams.get('ts')
+  const hasSecret = !!process.env.WEBHOOK_SIGNING_SECRET
+
+  if (hasSecret && !sig) {
+    // S13b-T1b: reject unsigned webhooks when signing is enabled
+    console.error(`[completed] REJECTED — no sig param, WEBHOOK_SIGNING_SECRET is set. slug=${slug} callId=${callId}`)
     return new NextResponse('Forbidden', { status: 403 })
   }
-  if (sig) console.log(`[completed] HMAC sig verified for slug=${slug} callId=${callId}`)
+
+  if (sig) {
+    const result = verifyCallbackSig(slug, sig, nonce, ts)
+    if (!result.valid) {
+      console.error(`[completed] HMAC sig FAILED for slug=${slug} callId=${callId} format=${result.legacy ? 'legacy' : 'new'} — forged webhook rejected`)
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+    if (result.legacy) {
+      console.warn(`[completed] HMAC sig verified (LEGACY format — in-flight call) for slug=${slug} callId=${callId}`)
+    } else {
+      console.log(`[completed] HMAC sig verified for slug=${slug} callId=${callId}`)
+    }
+  }
 
   // Duration from Ultravox timestamps
   let durationSeconds = 0

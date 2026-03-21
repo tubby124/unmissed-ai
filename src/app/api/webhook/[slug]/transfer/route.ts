@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirectCall, sendSms } from '@/lib/twilio'
 import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
+import { APP_URL } from '@/lib/app-url'
 
 export const maxDuration = 10
 
@@ -79,8 +80,7 @@ export async function POST(
       }
     }
     // Build action URL for transfer failure recovery — Twilio will POST here after dial ends
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-    const actionUrl = `${appUrl}/api/webhook/${slug}/transfer-status`
+    const actionUrl = `${APP_URL}/api/webhook/${slug}/transfer-status`
 
     await redirectCall(log.twilio_call_sid, client.forwarding_number, {
       callerPhone: callerPhone !== 'unknown' ? callerPhone : undefined,

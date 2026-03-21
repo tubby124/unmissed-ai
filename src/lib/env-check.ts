@@ -22,6 +22,8 @@ const OPTIONAL_BUT_WARNED = [
   'RESEND_API_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
+  'WEBHOOK_SIGNING_SECRET',       // S13b: per-call callback HMAC — completed route rejects unsigned if set
+  'ULTRAVOX_WEBHOOK_SECRET',      // S13b: native Ultravox account-level webhook HMAC
 ] as const
 
 export function validateEnv() {

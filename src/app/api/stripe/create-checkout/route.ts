@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { APP_URL } from '@/lib/app-url'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
@@ -58,8 +59,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Client is already active' }, { status: 409 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
-
   // ── Create Stripe Checkout session ─────────────────────────────────────────
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -82,8 +81,8 @@ export async function POST(req: NextRequest) {
       client_slug: client.slug,
     },
     customer_email: intake.contact_email ?? undefined,
-    success_url: `${appUrl}/dashboard/clients?activated={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/dashboard/clients`,
+    success_url: `${APP_URL}/dashboard/clients?activated={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_URL}/dashboard/clients`,
   })
 
   return NextResponse.json({ url: session.url })

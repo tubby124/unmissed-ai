@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/app-url";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://unmissed.ai";
+const baseUrl = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

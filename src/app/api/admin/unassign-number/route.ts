@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { APP_URL } from '@/lib/app-url'
 
 const svc = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,13 +75,12 @@ export async function POST(req: NextRequest) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID!
     const authToken  = process.env.TWILIO_AUTH_TOKEN!
     const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-    const appUrl     = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 
     const patchUrl  = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/${invRow.twilio_sid}.json`
     const patchBody = new URLSearchParams({
-      VoiceUrl:            `${appUrl}/api/webhook/inventory-idle`,
+      VoiceUrl:            `${APP_URL}/api/webhook/inventory-idle`,
       VoiceMethod:         'POST',
-      VoiceFallbackUrl:    `${appUrl}/api/webhook/inventory-idle`,
+      VoiceFallbackUrl:    `${APP_URL}/api/webhook/inventory-idle`,
       VoiceFallbackMethod: 'POST',
     })
 

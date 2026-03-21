@@ -71,6 +71,23 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Invalid signature', { status: 400 })
   }
 
+  // S13f: Event-level idempotency — skip if already processed
+  const { data: inserted, error: idempErr } = await adminSupa
+    .from('stripe_events')
+    .upsert(
+      { event_id: event.id, event_type: event.type },
+      { onConflict: 'event_id', ignoreDuplicates: true }
+    )
+    .select('event_id')
+
+  if (idempErr) {
+    // Fail open: duplicate processing beats missing an activation
+    console.error(`[stripe-webhook] Idempotency check failed: ${idempErr.message} — proceeding anyway`)
+  } else if (!inserted || inserted.length === 0) {
+    console.log(`[stripe-webhook] Duplicate event skipped: ${event.id} (${event.type})`)
+    return new NextResponse('OK', { status: 200 })
+  }
+
   // ── invoice.payment_succeeded (subscription renewal) ──────────────────────
   if (event.type === 'invoice.payment_succeeded') {
     const invoice = event.data.object as Stripe.Invoice

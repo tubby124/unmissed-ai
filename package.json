@@ -30,7 +30,8 @@
     "test:canary": "npx tsx ../tests/canary/eval-harness.ts",
     "test:ui": "npx playwright test",
     "test:ui:headed": "npx playwright test --headed",
-    "test:ui:report": "npx playwright show-report"
+    "test:ui:report": "npx playwright show-report",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",
