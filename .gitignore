@@ -6,7 +6,7 @@ __pycache__/
 *.pyc
 *.pyo
 
-# agent-app has its own git repo
+# agent-app/ — inert directory (S12-OPS4: .git removed 2026-03-21, single repo now)
 agent-app/
 
 # Memory files contain API keys
