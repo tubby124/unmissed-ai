@@ -494,15 +494,11 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   }
 
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
-  const baseTools: object[] = tools?.length ? tools : [HANGUP_TOOL]
-  const calendarTools: object[] = (booking_enabled && slug) ? buildCalendarTools(slug) : []
-  const transferTools: object[] = (forwarding_number && slug) ? buildTransferTools(slug, transfer_conditions) : []
-  const smsTools: object[] = (sms_enabled && slug) ? buildSmsTools(slug) : []
-  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
-  const hasKnowledge = knowledge_backend === 'pgvector' && slug && (knowledge_chunk_count === undefined || knowledge_chunk_count > 0)
-  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(slug) : []
-  const coachingTools: object[] = slug ? [buildCoachingTool(slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
+  callTemplate.selectedTools = buildAgentTools({
+    tools: tools?.length ? tools : [HANGUP_TOOL],
+    booking_enabled, slug, forwarding_number, transfer_conditions,
+    sms_enabled, knowledge_backend, knowledge_chunk_count,
+  })
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
@@ -517,6 +513,24 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
 
   const data = await res.json()
   return data.agentId as string
+}
+
+/**
+ * Build the full selectedTools array from client flags.
+ * Single source of truth for tool assembly — used by updateAgent(), createAgent(),
+ * settings save, sync-agent, and any route that writes clients.tools.
+ */
+export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
+  const baseTools: object[] = opts.tools !== undefined ? opts.tools : [HANGUP_TOOL]
+  const calendarTools: object[] = (opts.booking_enabled && opts.slug) ? buildCalendarTools(opts.slug) : []
+  const transferTools: object[] = (opts.forwarding_number && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
+  const smsTools: object[] = (opts.sms_enabled && opts.slug) ? buildSmsTools(opts.slug) : []
+  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
+  const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug
+    && (opts.knowledge_chunk_count === undefined || opts.knowledge_chunk_count > 0)
+  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(opts.slug!) : []
+  const coachingTools: object[] = opts.slug ? [buildCoachingTool(opts.slug)] : []
+  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 }
 
 /** Update an existing agent's config (call after saving a new system prompt). */
@@ -562,17 +576,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     callTemplate.systemPrompt = sp
   }
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
-  // Always include at least hangUp — if tools not explicitly passed, default to hangUp only
-  const baseTools: object[] = updates.tools !== undefined ? updates.tools : [HANGUP_TOOL]
-  const calendarTools: object[] = (updates.booking_enabled && updates.slug) ? buildCalendarTools(updates.slug) : []
-  const transferTools: object[] = (updates.forwarding_number && updates.slug) ? buildTransferTools(updates.slug, updates.transfer_conditions) : []
-  const smsTools: object[] = (updates.sms_enabled && updates.slug) ? buildSmsTools(updates.slug) : []
-  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
-  const hasKnowledge = updates.knowledge_backend === 'pgvector' && updates.slug
-    && (updates.knowledge_chunk_count === undefined || updates.knowledge_chunk_count > 0)
-  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(updates.slug!) : []
-  const coachingTools: object[] = updates.slug ? [buildCoachingTool(updates.slug)] : []
-  callTemplate.selectedTools = [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
+  callTemplate.selectedTools = buildAgentTools(updates)
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
     method: 'PATCH',
@@ -793,7 +797,10 @@ export function buildCoachingTool(slug: string): object {
           required: true,
         },
       ],
-      automaticParameters: [CALL_STATE_PARAM],
+      automaticParameters: [
+        CALL_STATE_PARAM,
+        { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+      ],
       ...(secret ? {
         staticParameters: [
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },

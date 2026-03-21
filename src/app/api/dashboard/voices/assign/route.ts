@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   // Fetch full client row — need all fields to send complete updateAgent payload
   const { data: client } = await supabase
     .from('clients')
-    .select('ultravox_agent_id, system_prompt, forwarding_number, booking_enabled, slug')
+    .select('id, ultravox_agent_id, system_prompt, forwarding_number, booking_enabled, slug, sms_enabled, knowledge_backend, transfer_conditions')
     .eq('id', targetClientId)
     .single()
 
@@ -63,36 +63,36 @@ export async function POST(req: NextRequest) {
 
   if (client?.ultravox_agent_id) {
     try {
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-      const transferTool = {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
-          dynamicParameters: [
-            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
-          ],
-          automaticParameters: [
-            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
+      // Pass all flags — let updateAgent() build the complete tool set
+      const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector') {
+        const { count } = await supabase
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', client.id)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
       }
-      const tools = client.forwarding_number
-        ? [{ toolName: 'hangUp' }, transferTool]
-        : [{ toolName: 'hangUp' }]
-      await updateAgent(client.ultravox_agent_id, {
+
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
         voice: voiceId,
         ...(client.system_prompt ? { systemPrompt: client.system_prompt } : {}),
-        tools,
         booking_enabled: client.booking_enabled ?? false,
         slug: client.slug,
-      })
+        forwarding_number: (client.forwarding_number as string | null) || undefined,
+        transfer_conditions: (client.transfer_conditions as string | null) || undefined,
+        sms_enabled: client.sms_enabled ?? false,
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+
+      await updateAgent(client.ultravox_agent_id, agentFlags)
+
+      // Keep clients.tools in sync — runtime-authoritative for live calls
+      const syncTools = buildAgentTools(agentFlags)
+      await supabase.from('clients').update({ tools: syncTools }).eq('id', client.id)
+
       console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`)
       ultravox_synced = true
     } catch (err) {

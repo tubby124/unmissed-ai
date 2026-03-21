@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -39,10 +39,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Load full client row first — needed for Ultravox sync (partial PATCH wipes callTemplate)
+    // Load full client row — needed for Ultravox sync (partial PATCH wipes callTemplate)
     const { data: client } = await svc
       .from('clients')
-      .select('id, slug, agent_voice_id, forwarding_number, booking_enabled')
+      .select('id, slug, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions')
       .eq('slug', body.clientSlug)
       .single()
 
@@ -57,42 +57,38 @@ export async function POST(req: NextRequest) {
 
     if (dbErr) throw new Error(`DB update failed: ${dbErr.message}`)
 
-    // PATCH Ultravox agent with full payload
+    // PATCH Ultravox agent with full payload — pass all flags, let updateAgent() build tools
     if (client) {
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-      const transferTool = {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
-          dynamicParameters: [
-            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
-          ],
-          automaticParameters: [
-            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
+      const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector') {
+        const { count } = await svc
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', client.id)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
       }
-      const tools = client.forwarding_number
-        ? [{ toolName: 'hangUp' }, transferTool]
-        : [{ toolName: 'hangUp' }]
 
-      await updateAgent(body.agentId, {
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
         systemPrompt: body.prompt,
         ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        tools,
         booking_enabled: client.booking_enabled ?? false,
         slug: client.slug,
-      })
+        forwarding_number: (client.forwarding_number as string | null) || undefined,
+        transfer_conditions: (client.transfer_conditions as string | null) || undefined,
+        sms_enabled: client.sms_enabled ?? false,
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+
+      await updateAgent(body.agentId, agentFlags)
+
+      // Keep clients.tools in sync — runtime-authoritative for live calls (Finding 6)
+      const syncTools = buildAgentTools(agentFlags)
+      await svc.from('clients').update({ tools: syncTools }).eq('id', client.id)
     } else {
-      // Client row not found — send minimal payload (best effort)
-      await updateAgent(body.agentId, { systemPrompt: body.prompt })
+      return NextResponse.json({ error: `Client not found: ${body.clientSlug}` }, { status: 404 })
     }
 
     // Insert prompt version

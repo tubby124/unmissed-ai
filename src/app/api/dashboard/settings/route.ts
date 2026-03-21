@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { updateAgent, buildCalendarTools, buildTransferTools, buildSmsTools, buildKnowledgeTools, buildCoachingTool } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
@@ -351,9 +351,8 @@ export async function PATCH(req: NextRequest) {
           knowledgeChunkCount = count ?? 0
         }
 
-        // Let updateAgent() build the COMPLETE tool set from flags — never build tools manually here.
-        // This ensures Settings saves produce the same tool set as deploy_prompt.py.
-        await updateAgent(clientRow.ultravox_agent_id, {
+        // Single flags object used by both updateAgent() and buildAgentTools() — prevents drift
+        const agentFlags: Parameters<typeof updateAgent>[1] = {
           systemPrompt: promptToSync,
           ...(voiceToSync ? { voice: voiceToSync } : {}),
           booking_enabled: bookingEnabled,
@@ -363,18 +362,12 @@ export async function PATCH(req: NextRequest) {
           knowledge_backend: knowledgeBackend,
           knowledge_chunk_count: knowledgeChunkCount,
           transfer_conditions: transferConditions,
-        })
+        }
 
-        // Keep clients.tools in sync for the createCall fallback path in the inbound route
-        const slug = clientRow.slug
-        const syncTools: object[] = [
-          { toolName: 'hangUp' },
-          ...(bookingEnabled && slug ? buildCalendarTools(slug) : []),
-          ...(fwdNumber && slug ? buildTransferTools(slug, transferConditions) : []),
-          ...(smsEnabled && slug ? buildSmsTools(slug) : []),
-          ...(knowledgeBackend === 'pgvector' && slug && (knowledgeChunkCount === undefined || knowledgeChunkCount > 0) ? buildKnowledgeTools(slug) : []),
-          ...(slug ? [buildCoachingTool(slug)] : []),
-        ]
+        await updateAgent(clientRow.ultravox_agent_id, agentFlags)
+
+        // Keep clients.tools in sync — runtime-authoritative for live calls (Finding 6)
+        const syncTools = buildAgentTools(agentFlags)
         await supabase.from('clients').update({ tools: syncTools }).eq('id', targetClientId)
         console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber} sms=${smsEnabled} knowledge=${knowledgeBackend} booking=${bookingEnabled})`)
         ultravox_synced = true

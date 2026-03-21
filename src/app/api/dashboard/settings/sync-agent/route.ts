@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -52,10 +52,9 @@ export async function POST(req: NextRequest) {
 
     // Pass all flags to updateAgent() — it handles tool construction for calendar,
     // transfer, SMS, knowledge, coaching, and hangUp tools centrally.
-    await updateAgent(client.ultravox_agent_id, {
+    const agentFlags: Parameters<typeof updateAgent>[1] = {
       systemPrompt: client.system_prompt,
       ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-      tools: [{ toolName: 'hangUp' }],
       booking_enabled: client.booking_enabled ?? false,
       slug: client.slug,
       forwarding_number: (client.forwarding_number as string | null) || undefined,
@@ -63,7 +62,14 @@ export async function POST(req: NextRequest) {
       sms_enabled: client.sms_enabled ?? false,
       knowledge_backend: knowledgeBackend,
       knowledge_chunk_count: knowledgeChunkCount,
-    })
+    }
+
+    await updateAgent(client.ultravox_agent_id, agentFlags)
+
+    // Keep clients.tools in sync — runtime-authoritative for live calls (Finding 6)
+    const syncTools = buildAgentTools(agentFlags)
+    await svc.from('clients').update({ tools: syncTools }).eq('id', client.id)
+
     console.log(`[sync-agent] Synced client=${targetClientId} agent=${client.ultravox_agent_id}`)
     return NextResponse.json({ ok: true, agent_id: client.ultravox_agent_id })
   } catch (err) {
