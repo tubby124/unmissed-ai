@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 
+/**
+ * S13b-T2: Native Ultravox account-level webhook handler.
+ * Events: call.ended (orphan detection), call.billed (billing data).
+ * Auth: HMAC-SHA256 via X-Ultravox-Webhook-Signature + X-Ultravox-Webhook-Timestamp.
+ *
+ * Ultravox HMAC format (verified via docs.ultravox.ai/webhooks/securing-webhooks):
+ *   payload = raw_body + timestamp_iso8601  (body FIRST, then timestamp, NO separator)
+ *   signature = HMAC-SHA256(secret, payload).hexdigest()
+ *   timestamp = ISO 8601 string (NOT epoch seconds)
+ *   header may contain comma-separated sigs for key rotation
+ *   Python ref: hmac.new(SECRET.encode(), request.content + timestamp.encode(), "sha256").hexdigest()
+ */
+
+/** Max age for native webhook timestamp (60s per Ultravox docs). */
+const NATIVE_WEBHOOK_MAX_AGE_MS = 60_000
+
 export async function POST(req: NextRequest) {
   // ── Fail-closed: reject if webhook secret is not configured ──────────────
   const secret = process.env.ULTRAVOX_WEBHOOK_SECRET
@@ -14,31 +30,47 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text()
 
   // ── HMAC-SHA256 signature verification ───────────────────────────────────
-  const signature = req.headers.get('X-Ultravox-Webhook-Signature')
+  const signatureHeader = req.headers.get('X-Ultravox-Webhook-Signature')
   const timestamp = req.headers.get('X-Ultravox-Webhook-Timestamp')
 
-  if (!signature || !timestamp) {
+  if (!signatureHeader || !timestamp) {
     console.error('[ultravox-webhook] Missing signature or timestamp headers')
     return new NextResponse('Missing signature headers', { status: 401 })
   }
 
+  // S13b-T2b: Reject timestamps outside 60s replay window
+  // Ultravox sends ISO 8601 timestamps (e.g., "2026-03-21T18:30:00")
+  const tsDate = new Date(timestamp)
+  if (isNaN(tsDate.getTime()) || Math.abs(Date.now() - tsDate.getTime()) > NATIVE_WEBHOOK_MAX_AGE_MS) {
+    console.error(`[ultravox-webhook] Timestamp replay rejected: ts=${timestamp} age=${Math.abs(Date.now() - tsDate.getTime())}ms`)
+    return new NextResponse('Timestamp expired', { status: 401 })
+  }
+
+  // Ultravox HMAC: HMAC-SHA256(secret, rawBody + timestamp) — body FIRST, NO separator
+  // Source: docs.ultravox.ai/webhooks/securing-webhooks
+  // Python equiv: hmac.new(SECRET.encode(), request.content + request_timestamp.encode(), "sha256").hexdigest()
   const expected = crypto
     .createHmac('sha256', secret)
-    .update(`${timestamp}.${rawBody}`)
+    .update(rawBody + timestamp)
     .digest('hex')
 
+  // Header may contain comma-separated signatures (key rotation support)
+  const signatures = signatureHeader.split(',').map(s => s.trim())
   let signatureValid = false
-  try {
-    signatureValid = crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expected, 'hex')
-    )
-  } catch {
-    signatureValid = false
+  for (const sig of signatures) {
+    try {
+      if (crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
+        signatureValid = true
+        break
+      }
+    } catch {
+      // Length mismatch or invalid hex — try next sig
+      continue
+    }
   }
 
   if (!signatureValid) {
-    console.error('[ultravox-webhook] HMAC signature mismatch — rejecting')
+    console.error(`[ultravox-webhook] HMAC signature mismatch — rejecting. ts=${timestamp} bodyLen=${rawBody.length}`)
     return new NextResponse('Invalid signature', { status: 401 })
   }
 
@@ -60,8 +92,18 @@ export async function POST(req: NextRequest) {
   }
 
   const callId = call.callId as string | undefined
+  const metadata = (call.metadata || {}) as Record<string, string>
+
+  // S13b-T2e: Skip full processing for demo calls — just log
+  const clientSlug = metadata.client_slug || ''
+  if (clientSlug.startsWith('unmissed-demo') || clientSlug.startsWith('demo-')) {
+    console.log(`[ultravox-webhook] Demo call skipped: event=${event} callId=${callId} slug=${clientSlug}`)
+    return new NextResponse('OK', { status: 200 })
+  }
 
   // ── Event routing ────────────────────────────────────────────────────────
+  const supabase = createServiceClient()
+
   switch (event) {
     case 'call.ended': {
       const endReason = (call.endReason as string) || 'unknown'
@@ -76,6 +118,32 @@ export async function POST(req: NextRequest) {
       console.log(
         `[ultravox-webhook] call.ended: callId=${callId} endReason=${endReason} duration=${durationSeconds}s`
       )
+
+      // S13b-T2c: Orphan detection — if no call_logs row exists or still 'live' after 2 min,
+      // the per-call completed callback likely failed
+      if (callId) {
+        try {
+          const { data: row } = await supabase
+            .from('call_logs')
+            .select('id, call_status, started_at')
+            .eq('ultravox_call_id', callId)
+            .single()
+
+          if (!row) {
+            console.warn(`[ultravox-webhook] ORPHAN: no call_logs row for callId=${callId} — per-call callback may have failed`)
+          } else if (row.call_status === 'live') {
+            // Check if it's been >2 min since call started (callback should have fired by now)
+            const startedAt = row.started_at ? new Date(row.started_at).getTime() : 0
+            const ageMs = Date.now() - startedAt
+            if (ageMs > 2 * 60 * 1000) {
+              console.warn(`[ultravox-webhook] STALE LIVE: callId=${callId} still 'live' after ${Math.round(ageMs / 1000)}s — completed callback likely failed`)
+            }
+          }
+          // If call_status is 'processing' or terminal, per-call callback is handling/handled it — no action needed
+        } catch (err) {
+          console.error(`[ultravox-webhook] Orphan check failed for callId=${callId}:`, err)
+        }
+      }
       break
     }
 
@@ -101,7 +169,6 @@ export async function POST(req: NextRequest) {
       )
 
       try {
-        const supabase = createServiceClient()
         const { data: updatedRows, error } = await supabase
           .from('call_logs')
           .update({
