@@ -698,27 +698,61 @@ Ship gates:
 - /review-call shows notification context alongside transcript
 - No existing webhook behavior changed (logging is additive only)
 
-Phase S3 — client self-serve prompt regeneration (was S2)
+Phase S3 — completed webhook decomposition — COMPLETE (2026-03-21)
+Delivered: lib/completed-notifications.ts (sendTelegramNotification, sendSmsFollowUp, sendEmailNotification, notificationsAlreadySent).
+Route: 555 → 279 lines. Idempotency guard prevents duplicate notifications from Ultravox retries.
+Ship gates: all passed (behavior unchanged, build clean, helpers testable, duplicates prevented).
+
+Phase S4 — client self-serve prompt regeneration (was S3)
 Goal:
 Give client a visible regenerate prompt action wired to the existing endpoint.
 Ensure result reaches live runtime correctly.
 
-Phase S4 — knowledge tool registration truth
+Phase S5 — knowledge tool registration truth (was S4)
 Goal:
 Do not register queryKnowledge / equivalent if no usable knowledge exists.
 
-Phase S5 — settings/control-plane cleanup
+Phase S6 — settings/control-plane cleanup (was S5)
 Goal:
 Decompose giant settings surface(s), remove misleading controls, make live/pending/generated states visible.
 
-Phase S6 — onboarding/defaults truth audit
+Phase S7 — onboarding/defaults truth audit (was S6)
 Goal:
 Ensure onboarding creates a clean initial prompt/voice/tool/runtime state matching what settings later display.
 
-Phase S7 — path parity / eval harness
+Phase S8 — path parity / eval harness (was S7)
 Goal:
 Verify direct dial vs browser/demo vs onboarding-created path vs edited path.
 Add narrow regression matrix and canary call checklist.
+
+Phase S9 — notification reliability & client preferences (NEW — informed by S2+S3)
+Goal:
+Close remaining observability + reliability gaps surfaced during S2/S3 implementation.
+Likely targets:
+- Per-client notification channel preferences (telegram_enabled, email_enabled, sms_followup_enabled)
+- Notification failure alerting (admin Telegram alert on any failed notification_log)
+- Simple Telegram retry on failure (once, 5s delay)
+- Booking lifecycle sync (periodic Google Calendar check vs bookings table status)
+- Calendar OAuth proactive health check (daily token probe, flag expired before calls fail)
+- Stuck-processing recovery (S3 finding, CRITICAL): if crash between DB update and notifications, retry bails out → notifications lost. Fix: allow retry when call_status='processing' AND stale >60s.
+- Seconds double-count guard: ensure increment_seconds_used is idempotent if stuck-processing retry is enabled
+
+Phase S10 — dashboard observability (includes deferred S2g)
+Goal:
+Surface notification_logs + bookings data in the admin dashboard.
+Likely targets:
+- Notifications tab: recent outbound by channel/status/date
+- Bookings tab: bookings by client with calendar link + status
+- Call detail: inline notification + booking context
+- Failed notification badge in sidebar
+
+Phase S11 — data retention & cleanup (NEW — from S3 Sonar Pro)
+Goal:
+Prevent unbounded growth of notification_logs, sms_logs, call_logs, and Supabase storage (recordings).
+Likely targets:
+- Supabase cron to archive/purge notification_logs + sms_logs older than 90 days
+- Recording storage cleanup for calls older than 6 months
+- call_logs archival for calls older than 1 year
 
 Later track — property-management structured ops
 Goal:
@@ -833,7 +867,49 @@ Each note must include:
 - adopted / deferred / rejected
 
 ==================================================
-15. REQUIRED RESPONSE FORMAT EACH PHASE
+15. SONAR PRO FACT-CHECK GATE — MANDATORY ON ALL PHASES
+==================================================
+
+Every phase MUST include a web research verification step using Perplexity Sonar Pro
+(via OpenRouter) to fact-check assumptions before implementation and after completion.
+
+When to run Sonar Pro checks:
+- BEFORE implementation: verify API behavior, library usage, framework patterns
+- DURING implementation: if you hit unexpected behavior, confirm it's not a known issue
+- AFTER implementation: validate the approach matches current best practices
+
+What to fact-check per phase type:
+- Runtime/webhook changes (S3, S4): Ultravox callback semantics, Next.js after() behavior,
+  Twilio API changes, Resend API changes
+- DB/schema changes: Supabase RLS patterns, migration best practices
+- Tool/agent changes: Ultravox tool registration, KNOWN_PARAM behavior
+- Notification changes: Telegram Bot API limits, SMS compliance (CRTC/TCPA)
+- Frontend/dashboard: Next.js App Router patterns, React Server Components
+
+How to run:
+```bash
+curl -s https://openrouter.ai/api/v1/chat/completions \
+  -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"perplexity/sonar-pro","messages":[{"role":"user","content":"[SPECIFIC QUESTION]"}]}' \
+  | jq -r '.choices[0].message.content'
+```
+
+Rules:
+- Ask SPECIFIC implementation questions, not vague "how to" queries
+- Cross-reference findings against actual repo code — repo code is authoritative
+- If Sonar Pro contradicts repo evidence, flag the discrepancy, don't silently adopt
+- Save notable findings to docs/research-notes/ for future reference
+- Do not let research become procrastination — 2-3 targeted queries per phase max
+- If OpenRouter is unavailable, fall back to WebSearch or skip (note it was skipped)
+
+Phase output must include:
+- "Fact-check queries run" section listing what was verified
+- Any discrepancies found between assumptions and verified behavior
+- Whether findings changed the implementation approach
+
+==================================================
+16. REQUIRED RESPONSE FORMAT EACH PHASE
 ==================================================
 
 For each phase, output:
@@ -853,7 +929,7 @@ Stop after the current phase.
 Do not continue automatically.
 
 ==================================================
-16. BLUNT OPERATING DIRECTIVE
+17. BLUNT OPERATING DIRECTIVE
 ==================================================
 
 Do not escape into architecture essays.

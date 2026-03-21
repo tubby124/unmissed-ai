@@ -1,6 +1,3 @@
-@~/.claude/rules/unmissed-domain.md
-@.claude/rules/learning-loop.md
-
 # CALLING AGENTs — Project Instructions for Claude
 
 > Loaded at session start. These rules OVERRIDE default behavior. Follow exactly.
@@ -124,6 +121,9 @@ New doc created/updated. If this is important system knowledge:
 | Send client email | `/notify-client [slug] [template]` | "email client", "notify" |
 | Run prompt tests | `bash tests/promptfoo/run-all.sh` | "run tests", "safety check" |
 | Sync NLM files | `bash scripts/nlm-sync.sh` | "sync notebooklm", "update nlm", "nlm sync" |
+| Snapshot system state | `/baseline-freeze` | "baseline", "freeze", "snapshot everything" |
+| Detect config drift | `drift-detector` agent | "drift", "sync check", "compare DB vs live" |
+| Trace a setting's path | `truth-tracer` agent | "where does X go", "trace voice", "trace prompt" |
 
 ### Self-Healing Diagnostic Agents
 
@@ -134,6 +134,18 @@ New doc created/updated. If this is important system knowledge:
 | `twilio-manager` | Calls not arriving, webhook failures | Audits routing, statusCallback |
 
 Full parallel audit = `/system-audit` (spawns all three + synthesizes RCA).
+
+### Refactor Investigation Agents
+
+| Agent | When | What |
+|-------|------|------|
+| `drift-detector` | Sync issues, post-deploy verify | Compares DB vs Ultravox vs generated state, field-by-field |
+| `truth-tracer` | Discovery, "where does X go?" | Traces a concern from UI → DB → deploy → runtime |
+
+Baseline snapshot = `/baseline-freeze` (snapshots all state to `docs/refactor-baseline/snapshots/`).
+
+Current refactor phase: see `.claude/rules/refactor-phase-tracker.md`
+Master operator prompt: `docs/unmissed-master-operator-prompt.md`
 
 ---
 
