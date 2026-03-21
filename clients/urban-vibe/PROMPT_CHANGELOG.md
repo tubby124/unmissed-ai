@@ -122,3 +122,15 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9183 | **Hash:** bac8562a03d0cf82
 **Supabase version_id:** 49c8dc46-61de-4a17-8d11-bfb4d70d78b4
 **Ultravox revision:** 5d7e4849-6653-4599-8d41-4a8765384303
+
+## v23 — 2026-03-21 15:34 UTC
+**Change:** S1b: tool-builder unification + VAD 0.3s sync
+**Chars:** 9183 | **Hash:** bac8562a03d0cf82
+**Supabase version_id:** 84b0813d-d85e-43b2-87e8-4871da9ed176
+**Ultravox revision:** 444df196-a1b9-46a5-aa2d-05b187f52d15
+
+## v24 — 2026-03-21 15:41 UTC
+**Change:** S1b fix: coaching KNOWN_PARAM_CALL_ID + template placeholders
+**Chars:** 9549 | **Hash:** bac8562a03d0cf82
+**Supabase version_id:** 62b55342-0a14-4ef2-aac3-8296f9c959d0
+**Ultravox revision:** be370b08-fa3f-4b59-afba-a7ddbbfd6023

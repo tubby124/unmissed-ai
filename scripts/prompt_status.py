@@ -65,6 +65,28 @@ def _hash(s):
     return hashlib.sha256((s or "").encode()).hexdigest()[:16]
 
 
+def _with_placeholders(prompt):
+    """Append templateContext placeholders to match what deploy_prompt.py sends to Ultravox."""
+    INJECTED_DATA_BLOCK = (
+        "## INJECTED REFERENCE DATA\n"
+        "The following data is provided for this call. If it is non-empty, use it to look up "
+        "information about the caller (by name, unit number, phone, or other identifier). "
+        "Cross-reference naturally — if the caller mentions their name or unit, silently verify "
+        "against this data before responding.\n\n{{contextData}}"
+    )
+    p = prompt
+    if "{{callerContext}}" not in p:
+        p += f"\n\n{{{{callerContext}}}}\n\n{{{{businessFacts}}}}\n\n{{{{extraQa}}}}\n\n{INJECTED_DATA_BLOCK}"
+    else:
+        if "{{businessFacts}}" not in p:
+            p += "\n\n{{businessFacts}}"
+        if "{{extraQa}}" not in p:
+            p += "\n\n{{extraQa}}"
+        if "{{contextData}}" not in p:
+            p += f"\n\n{INJECTED_DATA_BLOCK}"
+    return p
+
+
 def _sb_get(path):
     url = f"{SUPABASE_URL}/rest/v1/{path}"
     req = urllib.request.Request(url, headers={
@@ -123,16 +145,16 @@ def check_client(slug, cfg):
         uv_hash = f"ERR:{str(e)[:12]}"
 
     # Sync determination
-    if sb_hash == uv_hash == local_hash:
+    # Ultravox stores prompt WITH appended placeholders, so compare against deployed hash
+    deployed_hash = _hash(_with_placeholders(sb_prompt)) if sb_prompt else sb_hash
+    if sb_hash == local_hash and deployed_hash == uv_hash:
         sync = "✅"
     elif not has_local:
         sync = "⚠ no-local"
-    elif sb_hash == uv_hash:
+    elif sb_hash != local_hash and deployed_hash == uv_hash:
         sync = "⚠ local-drift"     # local differs from Supabase/UV (uncommitted edit)
-    elif sb_hash == local_hash:
+    elif sb_hash == local_hash and deployed_hash != uv_hash:
         sync = "⚠ uv-drift"       # Supabase/local match but UV wasn't patched
-    elif uv_hash == local_hash:
-        sync = "⚠ sb-drift"       # UV/local match but Supabase wasn't updated
     else:
         sync = "❌ OUT-OF-SYNC"
 

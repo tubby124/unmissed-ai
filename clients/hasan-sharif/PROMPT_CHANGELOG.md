@@ -236,3 +236,15 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 7124 | **Hash:** ae3e1f712011f251
 **Supabase version_id:** f12c436f-2b34-424d-a9eb-990bcc179a84
 **Ultravox revision:** 2d556829-d1a6-4b2a-a211-c6fa261742f0
+
+## v54 — 2026-03-21 15:34 UTC
+**Change:** S1b: tool-builder unification + VAD 0.3s sync
+**Chars:** 7124 | **Hash:** ae3e1f712011f251
+**Supabase version_id:** 4c56be37-bdd2-4821-bbe9-8dad6fccd354
+**Ultravox revision:** 8d24aeee-af0e-4c0e-b01e-de8aa8c25fea
+
+## v55 — 2026-03-21 15:41 UTC
+**Change:** S1b fix: coaching KNOWN_PARAM_CALL_ID + template placeholders
+**Chars:** 7490 | **Hash:** ae3e1f712011f251
+**Supabase version_id:** 626e0004-963e-4b9a-9ba9-902078e313de
+**Ultravox revision:** 706191da-a59a-4c0b-95c9-616e013afab3

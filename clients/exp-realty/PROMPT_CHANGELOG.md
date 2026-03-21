@@ -81,3 +81,15 @@
 **Chars:** 9606 | **Hash:** 68be815bf1122975
 **Supabase version_id:** 0ab94116-2347-4979-9ef9-6b72c75413a1
 **Ultravox revision:** b0362211-fd8d-4849-ba04-3b87a77e54b4
+
+## v16 — 2026-03-21 15:34 UTC
+**Change:** S1b: tool-builder unification + VAD 0.3s sync
+**Chars:** 9606 | **Hash:** 68be815bf1122975
+**Supabase version_id:** 43cf1b67-c368-4f2c-9cbc-86859d476e5f
+**Ultravox revision:** 431dec64-0589-4e38-979d-906d283536fb
+
+## v17 — 2026-03-21 15:41 UTC
+**Change:** S1b fix: coaching KNOWN_PARAM_CALL_ID + template placeholders
+**Chars:** 9972 | **Hash:** 68be815bf1122975
+**Supabase version_id:** efdeb1df-5776-4038-93ca-f806dc63647e
+**Ultravox revision:** 910dbbc1-a694-4447-8de3-5660f8cb1dae

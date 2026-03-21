@@ -51,27 +51,27 @@ CLIENT_CONFIG = {
     "urban-vibe": {
         "ultravox_agent_id": "5f88f03b-5aaf-40fc-a608-2f7ed765d6a6",
         "greeting": "Thanks for calling Urban Vibe Properties — I'm Alisha, Ray's virtual assistant. How can I help?",
-        "vad_min_interruption": "0.400s",
+        "vad_min_interruption": "0.300s",
     },
     "windshield-hub": {
         "ultravox_agent_id": "00652ba8-5580-4632-97be-0fd2090bbb71",
         "greeting": None,
-        "vad_min_interruption": "0.400s",
+        "vad_min_interruption": "0.300s",
     },
     "hasan-sharif": {
         "ultravox_agent_id": "f19b4ad7-233e-4125-a547-94e007238cf8",
         "greeting": "Hey! This is Aisha, Hasan's AI assistant... how can I help ya?",
-        "vad_min_interruption": "0.400s",
+        "vad_min_interruption": "0.300s",
     },
     "exp-realty": {
         "ultravox_agent_id": "c9019927-49a7-4676-b97b-5c6395e58a37",
         "greeting": None,
-        "vad_min_interruption": "0.400s",
+        "vad_min_interruption": "0.300s",
     },
     "true-color-display-printing-ltd": {
         "ultravox_agent_id": "ce4bbe2b-6f7d-4f32-b3ce-e9b044aeef3e",
         "greeting": None,
-        "vad_min_interruption": "0.400s",
+        "vad_min_interruption": "0.300s",
         "local_dir": "true-color",
     },
     "unmissed-demo": {
@@ -82,6 +82,29 @@ CLIENT_CONFIG = {
 }
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+INJECTED_DATA_BLOCK = (
+    "## INJECTED REFERENCE DATA\n"
+    "The following data is provided for this call. If it is non-empty, use it to look up "
+    "information about the caller (by name, unit number, phone, or other identifier). "
+    "Cross-reference naturally — if the caller mentions their name or unit, silently verify "
+    "against this data before responding.\n\n{{contextData}}"
+)
+
+
+def _append_placeholders(prompt):
+    """Append templateContext placeholders to match what Ultravox expects at call time."""
+    p = prompt
+    if "{{callerContext}}" not in p:
+        p += f"\n\n{{{{callerContext}}}}\n\n{{{{businessFacts}}}}\n\n{{{{extraQa}}}}\n\n{INJECTED_DATA_BLOCK}"
+    else:
+        if "{{businessFacts}}" not in p:
+            p += "\n\n{{businessFacts}}"
+        if "{{extraQa}}" not in p:
+            p += "\n\n{{extraQa}}"
+        if "{{contextData}}" not in p:
+            p += f"\n\n{INJECTED_DATA_BLOCK}"
+    return p
 
 
 # ── HTTP helpers ─────────────────────────────────────────────────────────────
@@ -376,7 +399,10 @@ def deploy(slug, change_description):
                     "required": True,
                 }
             ],
-            "automaticParameters": [CALL_STATE_PARAM],
+            "automaticParameters": [
+                    {"name": "call_id", "location": "PARAMETER_LOCATION_BODY", "knownValue": "KNOWN_PARAM_CALL_ID"},
+                    CALL_STATE_PARAM,
+                ],
             "http": {
                 "baseUrlPattern": f"{APP_URL}/api/coaching/{slug}/check",
                 "httpMethod": "POST",
@@ -414,6 +440,9 @@ def deploy(slug, change_description):
             "  or pass --voice <uuid> to deploy with a specific voice."
         )
     print(f"  Voice: {deploy_voice} ({voice_source})")
+
+    # Append templateContext placeholders (must match ultravox.ts updateAgent logic)
+    prompt = _append_placeholders(prompt)
 
     # PATCH Ultravox — always send full callTemplate (partial PATCH wipes omitted fields)
     call_template = {
@@ -525,6 +554,9 @@ def dry_run(slug):
     sb_ver = f"v{vers[0]['version']}" if vers else "?"
     sb_desc = vers[0].get("change_description", "") if vers else ""
 
+    # Compute what the deployed prompt hash would be (with appended placeholders)
+    deployed_hash = hashlib.sha256(_append_placeholders(local_prompt).encode()).hexdigest()[:16]
+
     # Ultravox live state (hash + tool list)
     uv_hash = "ERROR"
     uv_tools = []
@@ -577,8 +609,8 @@ def dry_run(slug):
 
     if local_hash == sb_hash:
         print("\n  No content changes — local file matches Supabase.")
-        if sb_hash != uv_hash:
-            print(f"  ⚠ DRIFT: Supabase ({sb_hash}) ≠ Ultravox ({uv_hash}). Re-deploy to sync.")
+        if deployed_hash != uv_hash:
+            print(f"  ⚠ DRIFT: expected deployed ({deployed_hash}) ≠ Ultravox live ({uv_hash}). Re-deploy to sync.")
         else:
             print("  Supabase and Ultravox are in sync. Nothing to deploy.")
         return
