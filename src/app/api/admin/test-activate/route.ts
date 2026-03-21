@@ -17,7 +17,7 @@ import {
   buildSmsTemplate,
   NICHE_CLASSIFICATION_RULES,
 } from '@/lib/prompt-builder'
-import { createAgent, updateAgent, resolveVoiceId } from '@/lib/ultravox'
+import { createAgent, updateAgent, resolveVoiceId, buildAgentTools } from '@/lib/ultravox'
 import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existingClient } = await svc
     .from('clients')
-    .select('id, ultravox_agent_id, twilio_number')
+    .select('id, ultravox_agent_id, twilio_number, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions')
     .eq('slug', clientSlug)
     .maybeSingle()
 
@@ -120,11 +120,40 @@ export async function POST(req: NextRequest) {
   try {
     const agentName = clientSlug.slice(0, 64) || 'test-agent'
     if (existingAgentId) {
-      await updateAgent(existingAgentId, { systemPrompt: prompt, voice: voiceId })
+      // Existing client — pass all flags so updateAgent builds complete tool set
+      const knowledgeBackend = (existingClient?.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector' && existingClient) {
+        const { count } = await svc
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', existingClient.id)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
+      }
+
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
+        systemPrompt: prompt,
+        voice: voiceId,
+        booking_enabled: existingClient?.booking_enabled ?? false,
+        slug: clientSlug,
+        forwarding_number: (existingClient?.forwarding_number as string | null) || undefined,
+        transfer_conditions: (existingClient?.transfer_conditions as string | null) || undefined,
+        sms_enabled: existingClient?.sms_enabled ?? false,
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+      await updateAgent(existingAgentId, agentFlags)
       agentId = existingAgentId
+
+      // Keep clients.tools in sync
+      const syncTools = buildAgentTools(agentFlags)
+      await svc.from('clients').update({ tools: syncTools }).eq('id', existingClient!.id)
+
       console.log(`[test-activate] Ultravox agent updated: ${agentId} for "${businessName}"`)
     } else {
-      agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId })
+      // New client — minimal tools, slug for coaching
+      agentId = await createAgent({ systemPrompt: prompt, name: agentName, voice: voiceId, slug: clientSlug })
       console.log(`[test-activate] Ultravox agent created: ${agentId} for "${businessName}"`)
     }
   } catch (err) {

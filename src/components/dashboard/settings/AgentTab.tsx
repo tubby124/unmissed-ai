@@ -1416,9 +1416,41 @@ export default function AgentTab({
                         )}
                       </ul>
                     </div>
-                    <p className="text-[10px] t3 leading-relaxed px-1">
-                      Need behavior changes? Update your business details above, or contact support for advanced customization.
-                    </p>
+                    <div className="flex items-center justify-between px-1">
+                      <p className="text-[10px] t3 leading-relaxed">
+                        Need behavior changes? Update your business details above, or contact support for advanced customization.
+                      </p>
+                      <ShimmerButton
+                        onClick={async () => {
+                          setRegenState('loading')
+                          try {
+                            const res = await fetch('/api/dashboard/regenerate-prompt', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ clientId: client.id }),
+                            })
+                            if (!res.ok) throw new Error(await res.text())
+                            const json = await res.json()
+                            if (json.synced === false) {
+                              setRegenState('partial')
+                              setTimeout(() => setRegenState('idle'), 4000)
+                            } else {
+                              setRegenState('done')
+                              setTimeout(() => setRegenState('idle'), 3000)
+                            }
+                          } catch (e) {
+                            console.error('[regen]', e)
+                            setRegenState('error')
+                            setTimeout(() => setRegenState('idle'), 3000)
+                          }
+                        }}
+                        disabled={regenState === 'loading' || previewMode}
+                        className="text-sm shrink-0 ml-3"
+                        shimmerColor="rgba(99,102,241,0.5)"
+                      >
+                        {regenState === 'loading' ? 'Refreshing…' : regenState === 'done' ? 'Updated!' : regenState === 'partial' ? 'Saved — syncing…' : regenState === 'error' ? 'Error — try again' : 'Refresh Agent'}
+                      </ShimmerButton>
+                    </div>
                   </div>
                 )}
               </div>

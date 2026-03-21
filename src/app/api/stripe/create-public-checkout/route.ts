@@ -235,6 +235,7 @@ export async function POST(req: NextRequest) {
         systemPrompt: prompt,
         name: clientSlug.slice(0, 64),
         voice: voiceId,
+        slug: clientSlug,
       })
     } catch (err) {
       console.error('[create-public-checkout] createAgent failed:', err)

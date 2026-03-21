@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 
 export async function GET(req: NextRequest) {
@@ -118,43 +118,36 @@ export async function GET(req: NextRequest) {
         console.log(`[google-callback] Calendar booking block added to prompt for slug=${slug}`)
       }
 
-      const transferConditions = client.transfer_conditions as string | null
-      const transferDescription = transferConditions
-        ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
-        : 'Transfer the call to the owner ONLY when the caller explicitly says it is an emergency or urgently insists on speaking to a human directly. Do not use for general questions.'
-      const transferTool = client.forwarding_number ? {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: transferDescription,
-          dynamicParameters: [
-            { name: 'reason', location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Reason for transfer' }, required: false },
-          ],
-          automaticParameters: [
-            { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
-      } : null
-      const tools = [
-        { toolName: 'hangUp' as const },
-        ...(transferTool ? [transferTool] : []),
-      ]
-      await updateAgent(client.ultravox_agent_id, {
+      // Count knowledge chunks for K15 skip-if-empty check
+      const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector') {
+        const { count } = await supabase
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
+      }
+
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
         systemPrompt: patched,
         ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        tools,
         booking_enabled: true,
         slug,
-        forwarding_number: client.forwarding_number ?? undefined,
+        forwarding_number: (client.forwarding_number as string | null) ?? undefined,
+        transfer_conditions: (client.transfer_conditions as string | null) || undefined,
         sms_enabled: client.sms_enabled ?? false,
-        knowledge_backend: (client.knowledge_backend as string | null) || undefined,
-      })
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+
+      await updateAgent(client.ultravox_agent_id, agentFlags)
+
+      // Keep clients.tools in sync (S1a pattern)
+      const syncTools = buildAgentTools(agentFlags)
+      await supabase.from('clients').update({ tools: syncTools }).eq('id', clientId)
+
       console.log(`[google-callback] Ultravox agent synced with calendar tools for slug=${slug}`)
     }
   } catch (syncErr) {

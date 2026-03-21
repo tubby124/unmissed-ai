@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 function checkAuth(req: NextRequest): boolean {
   const authHeader = req.headers.get('Authorization') || ''
@@ -84,17 +84,35 @@ export async function POST(req: NextRequest) {
 
       // Drift detected — patch agent with Supabase version (all flags → updateAgent handles tool construction)
       console.log(`[sync-agents] Drift detected for ${client.slug} — patching agent ${client.ultravox_agent_id}`)
-      await updateAgent(client.ultravox_agent_id, {
+      const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector') {
+        const { count } = await supabase
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', client.id)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
+      }
+
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
         systemPrompt: client.system_prompt,
         ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        tools: [{ toolName: 'hangUp' }],
         booking_enabled: client.booking_enabled ?? false,
         slug: client.slug,
         forwarding_number: (client.forwarding_number as string | null) || undefined,
         transfer_conditions: (client.transfer_conditions as string | null) || undefined,
         sms_enabled: client.sms_enabled ?? false,
-        knowledge_backend: (client.knowledge_backend as string | null) || undefined,
-      })
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+
+      await updateAgent(client.ultravox_agent_id, agentFlags)
+
+      // Keep clients.tools in sync
+      const syncTools = buildAgentTools(agentFlags)
+      await supabase.from('clients').update({ tools: syncTools }).eq('id', client.id)
+
       synced.push(client.slug)
 
     } catch (err) {

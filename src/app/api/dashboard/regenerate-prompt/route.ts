@@ -1,6 +1,6 @@
 /**
  * POST /api/dashboard/regenerate-prompt
- * Admin only. Re-generates system_prompt from latest intake_submission,
+ * Admin or owner. Re-generates system_prompt from latest intake_submission,
  * inserts a prompt_versions record, and syncs the Ultravox agent.
  * Body: { clientId: string }
  * Returns: { ok, saved, synced, error? }
@@ -8,31 +8,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
-import { updateAgent } from '@/lib/ultravox'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 export async function POST(req: NextRequest) {
-  // Admin auth
   const supabase = await createServerClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
   if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: cu } = await supabase
     .from('client_users')
-    .select('role')
+    .select('role, client_id')
     .eq('user_id', user.id)
     .single()
-  if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!cu || !['admin', 'owner'].includes(cu.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = await req.json().catch(() => ({})) as { clientId?: string }
   const { clientId } = body
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
+  // Scope check: owners can only regenerate their own client
+  if (cu.role === 'owner' && cu.client_id !== clientId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const svc = createServiceClient()
 
-  // Get client — include fields needed for Ultravox sync
+  // Get client — include all fields needed for buildAgentTools
   const { data: client } = await svc
     .from('clients')
-    .select('slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -54,7 +60,7 @@ export async function POST(req: NextRequest) {
     intakeData.db_agent_name = client.agent_name
   }
 
-  // Fetch knowledge docs — try by client_id first, fallback to intake_id
+  // Fetch knowledge docs
   let knowledgeDocs = ''
   const { data: kDocs } = await svc
     .from('client_knowledge_docs')
@@ -90,56 +96,45 @@ export async function POST(req: NextRequest) {
     .single()
 
   // Save to clients table
-  const updates: Record<string, unknown> = {
+  const dbUpdates: Record<string, unknown> = {
     system_prompt: newPrompt,
     updated_at: new Date().toISOString(),
   }
-  if (newVersion) updates.active_prompt_version_id = newVersion.id
-  await svc.from('clients').update(updates).eq('id', clientId)
+  if (newVersion) dbUpdates.active_prompt_version_id = newVersion.id
+  await svc.from('clients').update(dbUpdates).eq('id', clientId)
 
   // Sync to Ultravox agent if one exists
   if (client.ultravox_agent_id) {
     try {
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
-      const transferTool = {
-        temporaryTool: {
-          modelToolName: 'transferCall',
-          description: 'Transfer the current call to a human agent when the caller requests it or in an emergency.',
-          dynamicParameters: [
-            {
-              name: 'reason',
-              location: 'PARAMETER_LOCATION_BODY',
-              schema: { type: 'string', description: 'Reason for transfer' },
-              required: false,
-            },
-          ],
-          automaticParameters: [
-            {
-              name: 'call_id',
-              location: 'PARAMETER_LOCATION_BODY',
-              knownValue: 'KNOWN_PARAM_CALL_ID',
-            },
-          ],
-          staticParameters: [
-            { name: 'X-Transfer-Secret', location: 'PARAMETER_LOCATION_HEADER', value: process.env.WEBHOOK_SIGNING_SECRET ?? '' },
-          ],
-          http: {
-            baseUrlPattern: `${appUrl}/api/webhook/${client.slug}/transfer`,
-            httpMethod: 'POST',
-          },
-        },
+      // Count knowledge chunks for K15 skip-if-empty check
+      const knowledgeBackend = (client.knowledge_backend as string | null) || undefined
+      let knowledgeChunkCount: number | undefined
+      if (knowledgeBackend === 'pgvector') {
+        const { count } = await svc
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId)
+          .eq('status', 'approved')
+        knowledgeChunkCount = count ?? 0
       }
-      const tools = client.forwarding_number
-        ? [{ toolName: 'hangUp' }, transferTool]
-        : [{ toolName: 'hangUp' }]
 
-      await updateAgent(client.ultravox_agent_id, {
+      const agentFlags: Parameters<typeof updateAgent>[1] = {
         systemPrompt: newPrompt,
         ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        tools,
         booking_enabled: client.booking_enabled ?? false,
         slug: client.slug,
-      })
+        forwarding_number: (client.forwarding_number as string | null) || undefined,
+        transfer_conditions: (client.transfer_conditions as string | null) || undefined,
+        sms_enabled: client.sms_enabled ?? false,
+        knowledge_backend: knowledgeBackend,
+        knowledge_chunk_count: knowledgeChunkCount,
+      }
+
+      await updateAgent(client.ultravox_agent_id, agentFlags)
+
+      // Keep clients.tools in sync (S1a pattern)
+      const syncTools = buildAgentTools(agentFlags)
+      await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[regenerate-prompt] Ultravox sync failed:', msg)
