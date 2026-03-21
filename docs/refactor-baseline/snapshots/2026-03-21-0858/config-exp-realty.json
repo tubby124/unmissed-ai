@@ -1,0 +1,19 @@
+{
+  "_comment": "Omar Sharif — eXp Realty / Manzil Realty Group | Railway native | real_estate niche",
+  "client_name":          "Omar Sharif",
+  "agent_name":           "Fatema",
+  "business_name":        "Omar Sharif",
+  "host_name":            "Omar",
+  "host_phone_display":   "(306) 716-3556",
+  "twilio_from":          "+16393850876",
+  "voice_number":         "+16393850876",
+  "niche":                "real_estate",
+  "voice_id":             "441ec053-5566-4d18-9752-452dd5120071",
+  "ultravox_agent_id":    "c9019927-49a7-4676-b97b-5c6395e58a37",
+  "telegram_chat_id":     "6879041049",
+  "timezone":             "America/Regina",
+  "timezone_display":     "Saskatchewan",
+  "greeting": "Hey! This is Fatema, Omar's AI assistant... how can I help ya?",
+  "vad_min_interruption": "0.400s",
+  "deployed_at":          "2026-03-13"
+}
