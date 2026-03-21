@@ -419,7 +419,7 @@ export async function POST(req: NextRequest) {
           } catch { setupUrl = `${appUrl}/login` }
         }
         const resend = new Resend(resendKey)
-        const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+        const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
         await resend.emails.send({
           from: fromAddress,
           to: contactEmail,

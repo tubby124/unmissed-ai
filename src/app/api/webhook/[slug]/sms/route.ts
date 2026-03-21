@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     console.log(`[sms-tool] BLOCKED — recipient opted out: slug=${slug} to=${to}`)
     const blockedResponse = NextResponse.json({ result: 'SMS blocked — recipient opted out' })
     if (callState) setStateUpdate(blockedResponse, { lastToolOutcome: 'sms_blocked' })
-    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_blocked' })
+    if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_blocked' })
     return blockedResponse
   }
 
@@ -127,14 +127,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
     const sentResponse = NextResponse.json({ result: 'SMS sent' })
     if (callState) setStateUpdate(sentResponse, { lastToolOutcome: 'sms_sent' })
-    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_sent' })
+    if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_sent' })
     return sentResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[sms-tool] Send failed: ${msg}`)
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'sms_error' })
-    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_error' })
+    if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_error' })
     return errResponse
   }
 }

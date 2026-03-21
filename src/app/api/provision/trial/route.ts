@@ -8,9 +8,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OnboardingData } from "@/types/onboarding";
 import { createClient } from "@supabase/supabase-js";
-import { sendAlert } from "@/lib/telegram";
 import { toIntakePayload, slugify } from "@/lib/intake-transform";
 import { activateClient } from "@/lib/activate-client";
+import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from "@/lib/prompt-builder";
+import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
+import { scrapeWebsite } from "@/lib/website-scraper";
+import { insertPromptVersion } from "@/lib/prompt-version-utils";
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 3
@@ -130,6 +133,102 @@ export async function POST(req: NextRequest) {
     .update({ client_id: clientId })
     .eq("id", intakeId);
 
+  // ── Generate prompt + create Ultravox agent (same as create-public-checkout) ──
+  const intakeData: Record<string, unknown> = { ...data, ...intakePayload };
+  if (!intakeData.niche && data.niche) intakeData.niche = data.niche;
+
+  // Website scraping enrichment
+  let websiteContent = "";
+  const websiteUrl = data.websiteUrl || "";
+  if (websiteUrl) {
+    const scrapeResult = await scrapeWebsite(websiteUrl, data.niche || "other");
+    if (scrapeResult.rawContent) {
+      const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join("\n");
+      const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join("\n\n");
+      websiteContent = [factLines, qaLines].filter(Boolean).join("\n\n");
+    }
+  }
+
+  // Fetch knowledge docs uploaded during onboarding
+  let knowledgeDocs = "";
+  const { data: kDocs } = await supa
+    .from("client_knowledge_docs")
+    .select("content_text")
+    .eq("intake_id", intakeId);
+  if (kDocs && kDocs.length > 0) {
+    knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join("\n\n---\n\n");
+  }
+
+  let prompt: string;
+  try {
+    prompt = buildPromptFromIntake(intakeData, websiteContent, knowledgeDocs);
+  } catch (err) {
+    console.error("[provision/trial] buildPromptFromIntake failed:", err);
+    return NextResponse.json({ error: "Prompt generation failed", detail: String(err) }, { status: 500 });
+  }
+
+  const validation = validatePrompt(prompt);
+  if (!validation.valid) {
+    return NextResponse.json({ error: "Prompt failed validation", errors: validation.errors }, { status: 422 });
+  }
+
+  // Voice ID: direct picker selection > gender fallback > niche default
+  const voiceId = resolveVoiceId(
+    data.voiceId ?? null,
+    null,
+    data.niche,
+  );
+
+  let agentId: string;
+  try {
+    agentId = await createAgent({
+      systemPrompt: prompt,
+      name: clientSlug.slice(0, 64),
+      voice: voiceId,
+      slug: clientSlug,
+    });
+  } catch (err) {
+    console.error("[provision/trial] createAgent failed:", err);
+    // Clean up the clients row since agent creation failed
+    await supa.from("clients").delete().eq("id", clientId);
+    return NextResponse.json({ error: "Agent creation failed", detail: String(err) }, { status: 502 });
+  }
+
+  // Update clients row with agent/prompt data
+  const niche = data.niche || "other";
+  const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other;
+  const timezone = data.timezone || "America/Edmonton";
+
+  const { error: updateErr } = await supa
+    .from("clients")
+    .update({
+      system_prompt: prompt,
+      ultravox_agent_id: agentId,
+      agent_voice_id: voiceId,
+      classification_rules: classificationRules,
+      timezone,
+    })
+    .eq("id", clientId);
+
+  if (updateErr) {
+    console.error("[provision/trial] clients update with agent data failed:", updateErr);
+    try { await deleteAgent(agentId); } catch {}
+    return NextResponse.json({ error: "Failed to update client with agent data" }, { status: 500 });
+  }
+
+  // Seed prompt_versions with audit trail
+  await insertPromptVersion(supa, {
+    clientId,
+    content: prompt,
+    changeDescription: `Auto-generated at trial signup (niche: ${niche}, ${validation.charCount} chars)`,
+    triggeredByUserId: null,
+    triggeredByRole: "system",
+    prevCharCount: null,
+    version: 1,
+  });
+
+  console.log(`[provision/trial] Agent created: slug=${clientSlug} agentId=${agentId} voice=${voiceId} prompt=${validation.charCount} chars`);
+
   // Run activation chain in trial mode
   const result = await activateClient({
     mode: 'trial',
@@ -144,23 +243,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Activation failed — please contact support" }, { status: 500 });
   }
 
-  // Fire-and-forget admin Telegram alert
-  ;(async () => {
-    try {
-      const { data: adminClient } = await supa
-        .from("clients")
-        .select("telegram_bot_token, telegram_chat_id")
-        .eq("slug", "hasan-sharif")
-        .single();
-
-      if (adminClient?.telegram_bot_token && adminClient?.telegram_chat_id) {
-        const msg = `🧪 <b>New Trial</b>\n\n<b>${displayName}</b> — ${(data.niche || "other").replace(/_/g, " ")}\n📧 ${data.contactEmail}\n📍 ${data.city || 'N/A'}, ${data.state || 'N/A'}\n\n7-day trial started. No Twilio number assigned.`;
-        await sendAlert(adminClient.telegram_bot_token, adminClient.telegram_chat_id, msg);
-      }
-    } catch (e) {
-      console.error("[provision/trial] Admin Telegram alert failed:", e);
-    }
-  })();
+  // Telegram alert handled by activateClient() — no duplicate needed
 
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 

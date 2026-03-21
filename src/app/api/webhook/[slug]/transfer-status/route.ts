@@ -48,13 +48,11 @@ export async function POST(
 
   // Update transfer_status on the original call log
   const normalizedStatus = STATUS_MAP[dialStatus] ?? 'failed'
-  supabase.from('call_logs')
+  const { error: statusUpdateErr } = await supabase.from('call_logs')
     .update({ transfer_status: normalizedStatus, transfer_updated_at: new Date().toISOString() })
     .eq('twilio_call_sid', callSid)
     .eq('transfer_status', 'transferring')
-    .then(({ error }) => {
-      if (error) console.warn(`[transfer-status] Failed to update transfer_status: ${error.message}`)
-    })
+  if (statusUpdateErr) console.warn(`[transfer-status] Failed to update transfer_status: ${statusUpdateErr.message}`)
 
   // If the transfer succeeded, nothing to do — Twilio already connected the call
   if (dialStatus === 'completed') {
@@ -197,16 +195,14 @@ export async function POST(
     console.log(`[transfer-status] Reconnecting to Ultravox: callId=${ultravoxCall.callId} for slug=${slug}`)
 
     // Mark the original call as 'recovered' — AI resumed the conversation
-    supabase.from('call_logs')
+    const { error: recoveredErr } = await supabase.from('call_logs')
       .update({ transfer_status: 'recovered', transfer_updated_at: new Date().toISOString() })
       .eq('twilio_call_sid', callSid)
       .in('transfer_status', ['no_answer', 'busy', 'failed', 'canceled'])
-      .then(({ error }) => {
-        if (error) console.warn(`[transfer-status] Failed to set recovered status: ${error.message}`)
-      })
+    if (recoveredErr) console.warn(`[transfer-status] Failed to set recovered status: ${recoveredErr.message}`)
 
     // Insert a new call_log row for the resumed conversation
-    supabase.from('call_logs').insert({
+    const { error: insertErr } = await supabase.from('call_logs').insert({
       ultravox_call_id: ultravoxCall.callId,
       client_id: client.id,
       caller_phone: callerPhone,
@@ -214,9 +210,8 @@ export async function POST(
       call_status: 'live',
       started_at: new Date().toISOString(),
       ai_summary: `Transfer recovery — owner did not answer (${dialStatus})`,
-    }).then(({ error }) => {
-      if (error) console.error(`[transfer-status] Call log insert failed: ${error.message}`)
     })
+    if (insertErr) console.error(`[transfer-status] Call log insert failed: ${insertErr.message}`)
 
     // Return TwiML that reconnects the Twilio call to the new Ultravox session
     const twiml = buildStreamTwiml(ultravoxCall.joinUrl)

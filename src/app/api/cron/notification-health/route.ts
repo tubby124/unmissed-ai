@@ -80,10 +80,18 @@ export async function GET(req: NextRequest) {
     console.error('[notification-health] Stuck processing query failed:', stuckErr.message)
   } else if (stuckRows?.length) {
     unhealthy = true
+    // S9.6d: Auto-remediate stuck processing rows → error
+    const stuckIds = stuckRows.map(r => r.id)
+    const { error: remediateErr } = await supabase
+      .from('call_logs')
+      .update({ call_status: 'error', ai_summary: 'Auto-remediated: stuck in processing >10 min' })
+      .in('id', stuckIds)
+    if (remediateErr) console.error('[notification-health] Stuck remediation failed:', remediateErr.message)
+    else console.log(`[notification-health] Remediated ${stuckIds.length} stuck processing row(s)`)
     alerts.push(
       ``,
-      `\u26a0\ufe0f <b>Stuck Processing (>10 min)</b>`,
-      `Count: ${stuckRows.length}`,
+      `\u26a0\ufe0f <b>Stuck Processing (>10 min) — REMEDIATED</b>`,
+      `Count: ${stuckRows.length} → set to error`,
       ...stuckRows.slice(0, 5).map(r =>
         `\u2022 callLog=${r.id} ultravox=${r.ultravox_call_id?.slice(0, 12)} updated=${r.updated_at}`
       ),
@@ -104,12 +112,20 @@ export async function GET(req: NextRequest) {
     console.error('[notification-health] Orphaned rows query failed:', orphanErr.message)
   } else if (orphanRows?.length) {
     unhealthy = true
+    // S9.6d: Auto-remediate orphaned rows → MISSED
+    const orphanIds = orphanRows.map(r => r.id)
+    const { error: orphanRemErr } = await supabase
+      .from('call_logs')
+      .update({ call_status: 'MISSED', ai_summary: 'Auto-remediated: orphaned row >30 min (webhook never fired)' })
+      .in('id', orphanIds)
+    if (orphanRemErr) console.error('[notification-health] Orphan remediation failed:', orphanRemErr.message)
+    else console.log(`[notification-health] Remediated ${orphanIds.length} orphaned row(s)`)
     const liveCount = orphanRows.filter(r => r.call_status === 'live').length
     const transferCount = orphanRows.filter(r => r.call_status === 'transferred').length
     alerts.push(
       ``,
-      `\u26a0\ufe0f <b>Orphaned Rows (>30 min)</b>`,
-      `Live: ${liveCount} | Transferred: ${transferCount}`,
+      `\u26a0\ufe0f <b>Orphaned Rows (>30 min) — REMEDIATED</b>`,
+      `Live: ${liveCount} | Transferred: ${transferCount} → set to MISSED`,
       ...orphanRows.slice(0, 5).map(r =>
         `\u2022 ${r.call_status} callLog=${r.id} ultravox=${r.ultravox_call_id?.slice(0, 12)} started=${r.started_at}`
       ),

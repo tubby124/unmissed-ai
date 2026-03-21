@@ -72,7 +72,7 @@ export async function GET(
         _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
       })
       if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
-      if (callId) persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
+      if (callId) await persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'no_slots' })
       return response
     }
     const slotList = slots.map(s => s.displayTime).join(', ')
@@ -89,7 +89,7 @@ export async function GET(
       _instruction: coaching ? `${baseInstruction} ${coaching}` : baseInstruction,
     })
     if (callState) setStateUpdate(response, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
-    if (callId) persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
+    if (callId) await persistCallStateToDb(supabase, callId, callState, { slotAttempts: newAttempts, lastToolOutcome: 'slots_found' })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -104,7 +104,7 @@ export async function GET(
       _instruction: `Calendar is unavailable right now. Let the caller know you'll have someone call them back to schedule, and use hangUp.`,
     })
     if (callState) setStateUpdate(response, { lastToolOutcome: 'calendar_unavailable' })
-    if (callId) persistCallStateToDb(supabase, callId, callState, { lastToolOutcome: 'calendar_unavailable' })
+    if (callId) await persistCallStateToDb(supabase, callId, callState, { lastToolOutcome: 'calendar_unavailable' })
     return response
   }
 }

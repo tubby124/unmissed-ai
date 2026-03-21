@@ -1,6 +1,6 @@
 /**
  * POST /api/cron/analyze-calls
- * Auth: Bearer CRON_SECRET
+ * Auth: Bearer CRON_SECRET only (no ADMIN_PASSWORD fallback — S13a).
  *
  * Fetches last 50 classified calls per client, sends to Claude Haiku via OpenRouter,
  * generates issues + recommendations, saves to call_analysis_reports, Telegrams admin.

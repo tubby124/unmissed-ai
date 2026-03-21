@@ -137,17 +137,16 @@ export async function readCallStateFromDb(supabase: any, callId: string): Promis
 }
 
 /**
- * Shallow-merge updates into current call state and persist to call_logs. Fire-and-forget.
+ * Shallow-merge updates into current call state and persist to call_logs.
+ * S9.6b: Converted from fire-and-forget to async — callers should await on critical paths.
  * Mirrors the X-Ultravox-Update-Call-State shallow-merge semantics.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function persistCallStateToDb(supabase: any, callId: string, base: CallState | null, updates: Partial<CallState>): void {
+export async function persistCallStateToDb(supabase: any, callId: string, base: CallState | null, updates: Partial<CallState>): Promise<void> {
   const merged = { ...(base ?? defaultCallState()), ...updates }
-  supabase
+  const { error } = await supabase
     .from('call_logs')
     .update({ call_state: merged })
     .eq('ultravox_call_id', callId)
-    .then(({ error }: { error: { message: string } | null }) => {
-      if (error) console.error(`[call-state] persistCallStateToDb failed for ${callId}: ${error.message}`)
-    })
+  if (error) console.error(`[call-state] persistCallStateToDb failed for ${callId}: ${error.message}`)
 }

@@ -288,7 +288,8 @@ export async function POST(
           if (rpcError) {
             console.error('[completed] Seconds increment failed:', rpcError.message)
           } else {
-            await supabase.from('call_logs').update({ seconds_counted: true }).eq('ultravox_call_id', callId)
+            const { error: flagError } = await supabase.from('call_logs').update({ seconds_counted: true }).eq('ultravox_call_id', callId)
+            if (flagError) console.error(`[completed] seconds_counted flag update FAILED for callId=${callId}: ${flagError.message}`)
             console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
           }
         }

@@ -171,7 +171,7 @@ export async function POST(
   })
   const stateUpdates = { knowledgeQueries: newQueries, lastToolOutcome: found ? 'knowledge_found' as const : 'knowledge_empty' as const }
   if (callState) setStateUpdate(response, stateUpdates)
-  if (callId) persistCallStateToDb(supabase, callId, callState, stateUpdates)
+  if (callId) await persistCallStateToDb(supabase, callId, callState, stateUpdates)
   return response
 }
 

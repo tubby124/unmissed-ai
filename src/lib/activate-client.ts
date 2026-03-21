@@ -378,7 +378,7 @@ export async function activateClient(params: {
             }
 
             const resend = new Resend(resendKey)
-            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
 
             const isTrial = mode === 'trial'
             const subjectLine = isTrial

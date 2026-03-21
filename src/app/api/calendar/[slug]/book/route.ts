@@ -83,7 +83,7 @@ export async function POST(
         _instruction: coaching ? `${baseSlotTaken} ${coaching}` : baseSlotTaken,
       })
       if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
-      if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
+      if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
       return response
     }
 
@@ -140,7 +140,7 @@ export async function POST(
     // Force agent to speak immediately after booking — confirms back to caller
     response.headers.set('X-Ultravox-Agent-Reaction', 'speaks')
     if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
-    if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
+    if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -157,7 +157,7 @@ export async function POST(
       _instruction: errCoaching ? `${errBase} ${errCoaching}` : errBase,
     })
     if (callState) setStateUpdate(errResponse, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
-    if (callId) persistCallStateToDb(supabase, callId, callState, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
+    if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
     return errResponse
   }
 }

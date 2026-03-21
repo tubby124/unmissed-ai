@@ -104,14 +104,14 @@ export async function POST(
     console.log(`[transfer] Redirected callSid=${log.twilio_call_sid} to ${client.forwarding_number} for slug=${slug}`)
     const okResponse = NextResponse.json({ result: 'Transfer initiated' })
     if (callState) setStateUpdate(okResponse, { escalationFlag: true, lastToolOutcome: 'transferred' })
-    if (call_id) persistCallStateToDb(supabase, call_id, callState, { escalationFlag: true, lastToolOutcome: 'transferred' })
+    if (call_id) await persistCallStateToDb(supabase, call_id, callState, { escalationFlag: true, lastToolOutcome: 'transferred' })
     return okResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[transfer] Twilio redirect failed: ${msg}`)
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'transfer_error' })
-    if (call_id) persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'transfer_error' })
+    if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'transfer_error' })
     return errResponse
   }
 }

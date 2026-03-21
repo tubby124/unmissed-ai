@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
         try {
           const { Resend } = await import('resend')
           const resend = new Resend(resendKey)
-          const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+          const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
           const convertUrl = `${appUrl}/api/stripe/trial-convert?clientId=${client.id}`
 
           await resend.emails.send({

@@ -122,10 +122,12 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
     ? `${ULTRAVOX_BASE}/calls?priorCallId=${priorCallId}`
     : `${ULTRAVOX_BASE}/calls`
 
+  // S9.6c: 10s timeout prevents caller hearing silence if Ultravox hangs
   const res = await fetch(url, {
     method: 'POST',
     headers: ultravoxHeaders(),
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!res.ok) {
@@ -636,10 +638,12 @@ export async function callViaAgent(
   if (overrideTools?.length) body.toolOverrides = overrideTools
   // NOT supported in StartAgentCallRequest (400 error): initialState, selectedTools, languageHint
 
+  // S9.6c: 10s timeout prevents caller hearing silence if Ultravox hangs
   const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
     method: 'POST',
     headers: ultravoxHeaders(),
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!res.ok) {
