@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { stripPromptMarkers } from '@/lib/prompt-sections'
+import { getNicheVoice } from '@/lib/niche-config'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -43,6 +44,23 @@ const CALL_STATE_PARAM = {
 }
 
 const DEFAULT_VOICE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'
+const VOICE_MALE    = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'
+
+/**
+ * Resolve the Ultravox voice ID from intake data fields.
+ * Priority: specific voiceId picker → gender fallback → niche default.
+ * Used in all agent creation paths (generate-prompt, create-public-checkout, test-activate).
+ */
+export function resolveVoiceId(
+  directVoiceId: string | null | undefined,
+  voiceGender: string | null | undefined,
+  niche: string | null | undefined,
+): string {
+  if (directVoiceId?.trim()) return directVoiceId.trim()
+  if (voiceGender === 'male') return VOICE_MALE
+  if (voiceGender === 'female') return DEFAULT_VOICE
+  return getNicheVoice(niche)
+}
 
 const DEFAULT_VAD = {
   turnEndpointDelay: '0.64s',

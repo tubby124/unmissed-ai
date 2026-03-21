@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
-import { createAgent } from '@/lib/ultravox'
+import { createAgent, resolveVoiceId } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
 
@@ -157,6 +157,12 @@ export async function POST(req: NextRequest) {
   const niche = intake.niche || 'other'
   const clientSlug = intake.client_slug || slugify(businessName)
 
+  const voiceId = resolveVoiceId(
+    intakeData.niche_voiceId as string | null,
+    intakeData.niche_voiceGender as string | null,
+    niche,
+  )
+
   let agentId: string
   try {
     // Use slug as agent name — already unique per client and matches Ultravox regex ^[a-zA-Z0-9_-]{1,64}$
@@ -164,6 +170,7 @@ export async function POST(req: NextRequest) {
     agentId = await createAgent({
       systemPrompt: prompt,
       name: agentName,
+      voice: voiceId,
     })
     console.log(`[generate-prompt] Ultravox agent created: ${agentId} for "${businessName}"`)
   } catch (err) {
@@ -193,6 +200,7 @@ export async function POST(req: NextRequest) {
       .update({
         system_prompt: prompt,
         ultravox_agent_id: agentId,
+        agent_voice_id: voiceId,
         classification_rules: classificationRules,
         updated_at: new Date().toISOString(),
       })
@@ -215,6 +223,7 @@ export async function POST(req: NextRequest) {
         status: 'setup',
         system_prompt: prompt,
         ultravox_agent_id: agentId,
+        agent_voice_id: voiceId,
         classification_rules: classificationRules,
         timezone,
       })
