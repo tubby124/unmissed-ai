@@ -208,10 +208,10 @@ export async function POST(req: NextRequest) {
     console.log(`[test-activate] Created new client ${clientSlug} (${clientId})`)
   }
 
-  // ── Prompt version ─────────────────────────────────────────────────────────
+  // ── Prompt version with audit trail ────────────────────────────────────────
   const { data: latestVersion } = await svc
     .from('prompt_versions')
-    .select('version')
+    .select('version, char_count')
     .eq('client_id', clientId)
     .order('version', { ascending: false })
     .limit(1)
@@ -226,6 +226,10 @@ export async function POST(req: NextRequest) {
     content: prompt,
     change_description: `Test-activate (niche: ${niche}, ${validation.charCount} chars)`,
     is_active: true,
+    triggered_by_user_id: user.id,
+    triggered_by_role: 'admin',
+    char_count: validation.charCount,
+    prev_char_count: latestVersion?.char_count ?? null,
   })
 
   // ── Optional: Buy Twilio number ────────────────────────────────────────────

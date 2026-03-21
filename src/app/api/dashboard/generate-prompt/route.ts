@@ -271,10 +271,10 @@ export async function POST(req: NextRequest) {
     console.log(`[generate-prompt] Created new client ${clientSlug} (${clientId})`)
   }
 
-  // ── Create prompt_versions row ─────────────────────────────────────────────
+  // ── Create prompt_versions row with audit trail ────────────────────────────
   const { data: latestVersion } = await svc
     .from('prompt_versions')
-    .select('version')
+    .select('version, char_count')
     .eq('client_id', clientId)
     .order('version', { ascending: false })
     .limit(1)
@@ -290,6 +290,10 @@ export async function POST(req: NextRequest) {
     content: prompt,
     change_description: `Auto-generated from intake (niche: ${niche}, ${validation.charCount} chars)`,
     is_active: true,
+    triggered_by_user_id: user.id,
+    triggered_by_role: 'admin',
+    char_count: validation.charCount,
+    prev_char_count: latestVersion?.char_count ?? null,
   })
 
   // ── Mark intake as provisioned ─────────────────────────────────────────────

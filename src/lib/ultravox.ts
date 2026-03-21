@@ -309,7 +309,7 @@ interface AgentConfig {
   sms_enabled?: boolean
   /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, null = none. */
   knowledge_backend?: string | null
-  /** Active chunk count — when 0, skip knowledge tool injection (K15). undefined = no guard. */
+  /** Approved chunk count — when 0 or undefined, skip knowledge tool injection (S5). */
   knowledge_chunk_count?: number
   /** Text describing when the agent should transfer (used in transferCall tool description). */
   transfer_conditions?: string | null
@@ -525,9 +525,9 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   const calendarTools: object[] = (opts.booking_enabled && opts.slug) ? buildCalendarTools(opts.slug) : []
   const transferTools: object[] = (opts.forwarding_number && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
   const smsTools: object[] = (opts.sms_enabled && opts.slug) ? buildSmsTools(opts.slug) : []
-  // K15: skip knowledge tool when client has 0 chunks (avoids empty-result latency)
+  // S5: only register knowledge tool when client has approved chunks (safe default = exclude)
   const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug
-    && (opts.knowledge_chunk_count === undefined || opts.knowledge_chunk_count > 0)
+    && (opts.knowledge_chunk_count !== undefined && opts.knowledge_chunk_count > 0)
   const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(opts.slug!) : []
   const coachingTools: object[] = opts.slug ? [buildCoachingTool(opts.slug)] : []
   return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]

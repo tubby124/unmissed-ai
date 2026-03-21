@@ -405,17 +405,21 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // 3 — Record prompt version (only when system_prompt changed)
+  // 3 — Record prompt version with audit trail (only when system_prompt changed)
   if (typeof updates.system_prompt === 'string') {
+    // S6d: Fetch previous version for audit trail (char count + version number)
     const { data: latestVersion } = await supabase
       .from('prompt_versions')
-      .select('version')
+      .select('version, char_count')
       .eq('client_id', targetClientId)
       .order('version', { ascending: false })
       .limit(1)
       .single()
 
     const nextVersion = (latestVersion?.version ?? 0) + 1
+    const newCharCount = (updates.system_prompt as string).length
+    // Use stored char_count if available (S6+), otherwise unknown (pre-S6 versions)
+    const prevCharCount = latestVersion?.char_count ?? null
 
     await supabase
       .from('prompt_versions')
@@ -428,6 +432,11 @@ export async function PATCH(req: NextRequest) {
       content: updates.system_prompt as string,
       change_description: body.change_description || `Manual update v${nextVersion}`,
       is_active: true,
+      // S6d: audit trail columns
+      triggered_by_user_id: user.id,
+      triggered_by_role: cu.role,
+      char_count: newCharCount,
+      prev_char_count: prevCharCount,
     }).select('id').single()
 
     if (newVersion) {

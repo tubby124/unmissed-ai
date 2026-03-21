@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedChunks, prepareFactChunks, prepareQaChunks, deleteClientChunks } from '@/lib/embeddings'
+import { syncClientTools } from '@/lib/sync-client-tools'
 import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest) {
     .from('clients')
     .update({ knowledge_backend: 'pgvector' })
     .eq('id', clientId)
+
+  // S6b: rebuild clients.tools so queryKnowledge is registered after backend toggle
+  syncClientTools(svc, clientId).catch(err =>
+    console.error(`[backfill-knowledge] tools sync failed: ${err}`)
+  )
 
   console.log(`[backfill-knowledge] slug=${client.slug} chunks=${allChunks.length} stored=${result.stored} failed=${result.failed} runId=${sourceRunId}`)
 

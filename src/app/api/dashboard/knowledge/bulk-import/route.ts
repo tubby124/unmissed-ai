@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
+import { syncClientTools } from '@/lib/sync-client-tools'
 
 const MAX_CHUNKS = 100
 const MAX_CONTENT_LENGTH = 5000
@@ -117,6 +118,13 @@ export async function POST(req: NextRequest) {
 
   console.log(`[knowledge/bulk-import] clientId=${clientId} total=${chunks.length} succeeded=${succeeded} failed=${failed} runId=${runId}`)
 
+  // S5: if any chunks were auto-approved, rebuild clients.tools
+  if (status === 'approved' && succeeded > 0) {
+    syncClientTools(svc, clientId).catch(err =>
+      console.error(`[knowledge/bulk-import] tools sync failed: ${err}`)
+    )
+  }
+
   return NextResponse.json({
     ok: failed === 0,
     total: chunks.length,
@@ -126,3 +134,4 @@ export async function POST(req: NextRequest) {
     errors: results.filter(r => !r.ok),
   })
 }
+

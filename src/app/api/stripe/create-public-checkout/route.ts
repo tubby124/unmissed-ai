@@ -278,13 +278,16 @@ export async function POST(req: NextRequest) {
 
     clientId = newClient.id as string
 
-    // Seed prompt_versions
+    // Seed prompt_versions with audit trail
     await svc.from('prompt_versions').insert({
       client_id: clientId,
       version: 1,
       content: prompt,
       change_description: `Auto-generated at checkout (niche: ${niche}, ${validation.charCount} chars)`,
       is_active: true,
+      triggered_by_role: 'system',
+      char_count: validation.charCount,
+      prev_char_count: null,
     })
 
     // Mark intake as provisioned

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
+import { syncClientTools } from '@/lib/sync-client-tools'
 
 type ApprovedPackage = {
   businessFacts: string[]
@@ -189,6 +190,13 @@ export async function POST(req: NextRequest) {
 
   console.log(`[approve-website-knowledge] client=${client.slug} stored=${stored} failed=${failed} facts=${factLines.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
 
+  // S5: if chunks were auto-approved, rebuild clients.tools
+  if (chunkStatus === 'approved' && stored > 0) {
+    syncClientTools(svc, clientId).catch(err =>
+      console.error(`[approve-website-knowledge] tools sync failed: ${err}`)
+    )
+  }
+
   return NextResponse.json({
     success: true,
     mergedFacts: factLines.length,
@@ -199,3 +207,4 @@ export async function POST(req: NextRequest) {
     errors: errors.length > 0 ? errors : undefined,
   })
 }
+

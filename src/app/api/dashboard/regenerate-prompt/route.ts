@@ -1,14 +1,22 @@
 /**
  * POST /api/dashboard/regenerate-prompt
+ *
  * Admin or owner. Re-generates system_prompt from latest intake_submission,
- * inserts a prompt_versions record, and syncs the Ultravox agent.
+ * inserts a prompt_versions record with audit trail, and syncs the Ultravox agent.
+ *
+ * S6d: Audit trail — logs triggered_by_user_id, triggered_by_role, char_count, prev_char_count
+ * S6e: Rate limiting — max 1 regeneration per 5 minutes per client (HTTP 429)
+ * S6f: Intake fallback — if no intake exists, refreshes tools/voice from current prompt + settings
+ *
  * Body: { clientId: string }
- * Returns: { ok, saved, synced, error? }
+ * Returns: { ok, saved, synced, source, error?, cooldown_seconds? }
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+
+const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -35,15 +43,46 @@ export async function POST(req: NextRequest) {
 
   const svc = createServiceClient()
 
-  // Get client — include all fields needed for buildAgentTools
+  // ── S6e: Rate limiting — check last regeneration timestamp ─────────────────
+  const { data: lastRegen } = await svc
+    .from('prompt_versions')
+    .select('created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (lastRegen?.created_at) {
+    const elapsed = Date.now() - new Date(lastRegen.created_at).getTime()
+    if (elapsed < REGEN_COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((REGEN_COOLDOWN_MS - elapsed) / 1000)
+      return NextResponse.json(
+        {
+          error: `Prompt was updated ${Math.floor(elapsed / 1000)}s ago. Please wait ${remainingSeconds}s before regenerating.`,
+          cooldown_seconds: remainingSeconds,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(remainingSeconds) },
+        },
+      )
+    }
+  }
+
+  // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, system_prompt')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
-  // Get latest intake submission
+  // ── S6d: Capture prev char count for audit trail ───────────────────────────
+  const prevCharCount = typeof client.system_prompt === 'string'
+    ? (client.system_prompt as string).length
+    : 0
+
+  // ── S6f: Get latest intake submission (with fallback) ──────────────────────
   const { data: intake } = await svc
     .from('intake_submissions')
     .select('intake_json')
@@ -51,28 +90,44 @@ export async function POST(req: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
-  if (!intake?.intake_json) return NextResponse.json({ error: 'No intake found for this client' }, { status: 404 })
 
-  const intakeData = { ...intake.intake_json } as Record<string, unknown>
+  let newPrompt: string
+  let regenSource: 'intake' | 'refresh'
 
-  // For active clients, preserve the current agent_name
-  if (client.agent_name && client.status === 'active') {
-    intakeData.db_agent_name = client.agent_name
+  if (intake?.intake_json) {
+    // Primary path: regenerate from intake data
+    const intakeData = { ...intake.intake_json } as Record<string, unknown>
+
+    // For active clients, preserve the current agent_name
+    if (client.agent_name && client.status === 'active') {
+      intakeData.db_agent_name = client.agent_name
+    }
+
+    // Fetch knowledge docs
+    let knowledgeDocs = ''
+    const { data: kDocs } = await svc
+      .from('client_knowledge_docs')
+      .select('content_text')
+      .eq('client_id', clientId)
+    if (kDocs && kDocs.length > 0) {
+      knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
+    }
+
+    newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
+    regenSource = 'intake'
+  } else {
+    // S6f fallback: no intake exists — refresh from current prompt + re-sync tools/voice
+    if (!client.system_prompt) {
+      return NextResponse.json(
+        { error: 'No intake submission and no existing prompt for this client. Complete the intake form first.' },
+        { status: 404 },
+      )
+    }
+    newPrompt = client.system_prompt as string
+    regenSource = 'refresh'
   }
 
-  // Fetch knowledge docs
-  let knowledgeDocs = ''
-  const { data: kDocs } = await svc
-    .from('client_knowledge_docs')
-    .select('content_text')
-    .eq('client_id', clientId)
-  if (kDocs && kDocs.length > 0) {
-    knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
-  }
-
-  const newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
-
-  // Insert prompt_versions record before overwriting system_prompt
+  // ── Insert prompt_versions record with audit trail ─────────────────────────
   const { data: latestVersion } = await svc
     .from('prompt_versions')
     .select('version')
@@ -82,6 +137,10 @@ export async function POST(req: NextRequest) {
     .single()
   const nextVersion = (latestVersion?.version ?? 0) + 1
 
+  const changeDesc = regenSource === 'intake'
+    ? `Re-generated from intake (${newPrompt.length} chars, delta ${newPrompt.length - prevCharCount > 0 ? '+' : ''}${newPrompt.length - prevCharCount})`
+    : `Refreshed agent (tools/voice re-sync, prompt unchanged, ${newPrompt.length} chars)`
+
   await svc.from('prompt_versions').update({ is_active: false }).eq('client_id', clientId)
   const { data: newVersion } = await svc
     .from('prompt_versions')
@@ -89,8 +148,13 @@ export async function POST(req: NextRequest) {
       client_id: clientId,
       version: nextVersion,
       content: newPrompt,
-      change_description: `Re-generated from intake (${newPrompt.length} chars)`,
+      change_description: changeDesc,
       is_active: true,
+      // S6d: audit trail columns
+      triggered_by_user_id: user.id,
+      triggered_by_role: cu.role,
+      char_count: newPrompt.length,
+      prev_char_count: prevCharCount,
     })
     .select('id')
     .single()
@@ -103,7 +167,7 @@ export async function POST(req: NextRequest) {
   if (newVersion) dbUpdates.active_prompt_version_id = newVersion.id
   await svc.from('clients').update(dbUpdates).eq('id', clientId)
 
-  // Sync to Ultravox agent if one exists
+  // ── Sync to Ultravox agent if one exists ───────────────────────────────────
   if (client.ultravox_agent_id) {
     try {
       // Count knowledge chunks for K15 skip-if-empty check
@@ -138,9 +202,11 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[regenerate-prompt] Ultravox sync failed:', msg)
-      return NextResponse.json({ ok: true, saved: true, synced: false, error: msg })
+      return NextResponse.json({ ok: true, saved: true, synced: false, source: regenSource, error: msg })
     }
   }
 
-  return NextResponse.json({ ok: true, saved: true, synced: true })
+  console.log(`[regenerate-prompt] client=${client.slug} v${nextVersion} source=${regenSource} role=${cu.role} chars=${newPrompt.length} delta=${newPrompt.length - prevCharCount}`)
+
+  return NextResponse.json({ ok: true, saved: true, synced: true, source: regenSource })
 }

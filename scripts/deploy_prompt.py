@@ -185,6 +185,12 @@ def deploy(slug, change_description):
     sms_enabled = rows[0].get("sms_enabled") or False
     knowledge_backend = rows[0].get("knowledge_backend") or None
 
+    # S5: count approved knowledge chunks — skip tool registration if zero
+    knowledge_chunk_count = 0
+    if knowledge_backend == "pgvector":
+        chunks = sb_get(f"knowledge_chunks?client_id=eq.{client_id}&status=eq.approved&select=id&limit=1")
+        knowledge_chunk_count = len(chunks)
+
     # Get current max version
     versions = sb_get(f"prompt_versions?client_id=eq.{client_id}&select=version&order=version.desc&limit=1")
     next_version = (versions[0]["version"] + 1) if versions else 1
@@ -354,8 +360,8 @@ def deploy(slug, change_description):
         selected_tools.append(sms_tool)
         print(f"  ✓ SMS tool injected (sms_enabled=True)")
 
-    # Knowledge retrieval tool — pgvector backend
-    if knowledge_backend == "pgvector":
+    # S5: Knowledge retrieval tool — only when pgvector enabled AND approved chunks exist
+    if knowledge_backend == "pgvector" and knowledge_chunk_count > 0:
         knowledge_tool = {
             "temporaryTool": {
                 "modelToolName": "queryKnowledge",
@@ -550,6 +556,13 @@ def dry_run(slug):
     knowledge_backend = rows[0].get("knowledge_backend") or None
 
     client_id = rows[0]["id"]
+
+    # S5: count approved knowledge chunks for dry-run tool preview
+    knowledge_chunk_count = 0
+    if knowledge_backend == "pgvector":
+        chunks = sb_get(f"knowledge_chunks?client_id=eq.{client_id}&status=eq.approved&select=id&limit=1")
+        knowledge_chunk_count = len(chunks)
+
     vers = sb_get(f"prompt_versions?client_id=eq.{client_id}&is_active=eq.true&select=version,change_description")
     sb_ver = f"v{vers[0]['version']}" if vers else "?"
     sb_desc = vers[0].get("change_description", "") if vers else ""
@@ -581,7 +594,7 @@ def dry_run(slug):
         would_inject.append("transferCall")
     if sms_enabled:
         would_inject.append("sendTextMessage")
-    if knowledge_backend == "pgvector":
+    if knowledge_backend == "pgvector" and knowledge_chunk_count > 0:
         would_inject.append("queryKnowledge")
     would_inject.append("checkForCoaching")
 

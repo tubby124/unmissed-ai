@@ -91,11 +91,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Client not found: ${body.clientSlug}` }, { status: 404 })
     }
 
-    // Insert prompt version
+    // Insert prompt version with audit trail
     if (client) {
       const { data: latestVersion } = await svc
         .from('prompt_versions')
-        .select('version')
+        .select('version, char_count')
         .eq('client_id', client.id)
         .order('version', { ascending: false })
         .limit(1)
@@ -110,6 +110,10 @@ export async function POST(req: NextRequest) {
         content: body.prompt,
         change_description: `Admin live edit (${body.prompt.length} chars)`,
         is_active: true,
+        triggered_by_user_id: user.id,
+        triggered_by_role: 'admin',
+        char_count: body.prompt.length,
+        prev_char_count: latestVersion?.char_count ?? null,
       })
     }
 

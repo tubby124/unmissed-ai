@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
+import { syncClientTools } from '@/lib/sync-client-tools'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -79,5 +80,12 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // S5: rebuild clients.tools when approved chunk count may have changed
+  // This ensures queryKnowledge tool is added/removed when crossing the 0-boundary
+  syncClientTools(svc, chunk.client_id).catch(err =>
+    console.error(`[knowledge/approve] tools sync failed: ${err}`)
+  )
+
   return NextResponse.json({ ok: true, action, chunkId })
 }
+
