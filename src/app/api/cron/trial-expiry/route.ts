@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
+import { APP_URL } from '@/lib/app-url'
 
 const adminSupa = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ interface ExpiredClient {
   contact_email: string | null
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   // ── Auth: same pattern as daily-digest ────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET
   const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
@@ -56,7 +57,6 @@ export async function GET(req: NextRequest) {
 
     console.log(`[trial-expiry] Found ${clients.length} expired trial(s)`)
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
     const resendKey = process.env.RESEND_API_KEY
     const details: { slug: string; paused: boolean; emailSent: boolean }[] = []
 
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
           const { Resend } = await import('resend')
           const resend = new Resend(resendKey)
           const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
-          const convertUrl = `${appUrl}/api/stripe/trial-convert?clientId=${client.id}`
+          const convertUrl = `${APP_URL}/api/stripe/trial-convert?clientId=${client.id}`
 
           await resend.emails.send({
             from: fromAddress,
