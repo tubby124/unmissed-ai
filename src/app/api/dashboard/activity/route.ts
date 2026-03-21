@@ -18,15 +18,35 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
+  // S13s-BUG1: Look up client_users to enforce ownership scoping
+  const svc = createServiceClient()
+  const { data: cu } = await svc
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!cu) {
+    // No client_users row = no access to any client data
+    return NextResponse.json({
+      summary: { total: 0, hot: 0, warm: 0, cold: 0, junk: 0, missed: 0, avgDuration: 0 },
+      missedCalls: [],
+      callbackQueue: [],
+    })
+  }
+
   const { searchParams } = new URL(req.url)
-  const clientId = searchParams.get('client_id')
+  const requestedClientId = searchParams.get('client_id')
   const period = searchParams.get('period') ?? '24h'
+
+  // Admin: honour client_id param or show all. Owner/viewer: force own client_id (prevent IDOR).
+  const effectiveClientId = cu.role === 'admin'
+    ? requestedClientId
+    : cu.client_id
 
   const periodHours: Record<string, number> = { '24h': 24, '7d': 168, '30d': 720 }
   const hours = periodHours[period] ?? 24
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
-
-  const svc = createServiceClient()
 
   try {
     let query = svc
@@ -36,8 +56,8 @@ export async function GET(req: NextRequest) {
       .order('started_at', { ascending: false })
       .limit(1000)
 
-    if (clientId) {
-      query = query.eq('client_id', clientId)
+    if (effectiveClientId) {
+      query = query.eq('client_id', effectiveClientId)
     }
 
     const { data, error } = await query
