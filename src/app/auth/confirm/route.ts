@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 // Handles recovery/magic-link tokens from Supabase emails.
 // Called from our own email links as:
@@ -12,30 +11,43 @@ export async function GET(request: NextRequest) {
   const type = (searchParams.get('type') ?? 'recovery') as 'recovery' | 'email' | 'invite'
   const next = searchParams.get('next') ?? '/dashboard'
 
-  if (token_hash) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
+  // On Railway, request.url has localhost as origin — use forwarded headers for the real public URL
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:8080'
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = `${proto}://${host}`
 
-    const { error } = await supabase.auth.verifyOtp({ token_hash, type })
-    if (!error) {
-      const destination = type === 'recovery' ? '/auth/set-password' : next
-      return NextResponse.redirect(new URL(destination, request.url))
-    }
-    console.error('[auth/confirm] verifyOtp failed:', error.message)
+  if (!token_hash) {
+    return NextResponse.redirect(new URL('/login?error=invalid_link', baseUrl))
   }
 
-  return NextResponse.redirect(new URL('/login?error=invalid_link', request.url))
+  // Collect cookies during verifyOtp so we can set them on the redirect response
+  const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) { pendingCookies.push(...cookiesToSet) },
+      },
+    }
+  )
+
+  const { error } = await supabase.auth.verifyOtp({ token_hash, type })
+
+  if (error) {
+    console.error('[auth/confirm] verifyOtp failed:', error.message)
+    return NextResponse.redirect(new URL('/login?error=invalid_link', baseUrl))
+  }
+
+  const destination = type === 'recovery' ? '/auth/set-password' : next
+  const response = NextResponse.redirect(new URL(destination, baseUrl))
+
+  // Set session cookies directly on the redirect response (same pattern as auth/callback)
+  for (const { name, value, options } of pendingCookies) {
+    response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
+  }
+
+  return response
 }
