@@ -17,7 +17,7 @@ import { buildAgentContext, type ClientRow } from '../agent-context.js'
 import { PROMPT_CHAR_HARD_MAX } from '../knowledge-summary.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const clientsDir = resolve(__dirname, '..', '..', '..', '..', 'clients')
+const clientsDir = resolve(__dirname, '..', '..', '..', 'clients')
 
 function readPrompt(slug: string): string {
   try {
