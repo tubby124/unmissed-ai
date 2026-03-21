@@ -185,6 +185,9 @@ export async function POST(
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status} callState=${finalCallState ? 'PRESENT' : 'NOT_IN_PAYLOAD'}`)
 
+      // Call log row ID for notification_logs FK
+      const callLogId = updatedRows?.[0]?.id ?? null
+
       // ── Ops alert for system failures ─────────────────────────────────────────
       if (endReason === 'connection_error' || endReason === 'system_error') {
         if (client.telegram_bot_token && client.telegram_chat_id) {
@@ -325,6 +328,19 @@ export async function POST(
 
         const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
         if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
+
+        // S2b: Log Telegram notification
+        supabase.from('notification_logs').insert({
+          call_id: callLogId,
+          client_id: client.id,
+          channel: 'telegram',
+          recipient: client.telegram_chat_id,
+          content: message.slice(0, 10000),
+          status: sent ? 'sent' : 'failed',
+          error: sent ? null : 'sendAlert returned false',
+        }).then(({ error: nlErr }) => {
+          if (nlErr) console.error(`[completed] notification_logs insert failed (telegram): ${nlErr.message}`)
+        })
       } else {
         console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
       }
@@ -395,13 +411,20 @@ export async function POST(
                 })
                 console.log(`[completed] SMS sent: callId=${callId} to=${callerPhone} sid=${twilioMsg.sid} status=${classification.status} recovery=${metadata.transfer_recovery || 'false'}`)
 
-                // Log outbound SMS
-                const { data: callLogRow } = await supabase
-                  .from('call_logs')
-                  .select('id')
-                  .eq('ultravox_call_id', callId)
-                  .single()
+                // S2d: Log SMS follow-up to notification_logs (unified view)
+                supabase.from('notification_logs').insert({
+                  call_id: callLogId,
+                  client_id: client.id,
+                  channel: 'sms_followup',
+                  recipient: callerPhone,
+                  content: smsBody.slice(0, 10000),
+                  status: 'sent',
+                  external_id: twilioMsg.sid,
+                }).then(({ error: nlErr }) => {
+                  if (nlErr) console.error(`[completed] notification_logs insert failed (sms): ${nlErr.message}`)
+                })
 
+                // Log outbound SMS (callLogId already resolved from call_logs UPDATE above)
                 await supabase.from('sms_logs').insert({
                   client_id: client.id,
                   message_sid: twilioMsg.sid,
@@ -410,13 +433,24 @@ export async function POST(
                   to_number: callerPhone,
                   body: smsBody,
                   status: 'sent',
-                  related_call_id: callLogRow?.id ?? null,
+                  related_call_id: callLogId,
                 }).then(({ error: smsLogErr }) => {
                   if (smsLogErr) console.error(`[completed] sms_logs insert failed: ${smsLogErr.message}`)
                 })
               }
             } catch (smsErr) {
               console.error(`[completed] SMS failed for callId=${callId}:`, smsErr)
+              supabase.from('notification_logs').insert({
+                call_id: callLogId,
+                client_id: client.id,
+                channel: 'sms_followup',
+                recipient: callerPhone,
+                content: smsBody?.slice(0, 10000) || 'unknown',
+                status: 'failed',
+                error: String(smsErr).slice(0, 1000),
+              }).then(({ error: nlErr }) => {
+                if (nlErr) console.error(`[completed] notification_logs insert failed (sms-fail): ${nlErr.message}`)
+              })
             }
           } else {
             console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
@@ -444,11 +478,8 @@ export async function POST(
 
             const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-            await resend.emails.send({
-              from: fromAddress,
-              to: client.contact_email as string,
-              subject: `Voicemail from ${callerName} — ${client.business_name || slug}`,
-              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
+            const emailSubject = `Voicemail from ${callerName} — ${client.business_name || slug}`
+            const emailHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
                 <h2 style="margin:0 0 16px">New voicemail message</h2>
                 <p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
                 <p><strong>Duration:</strong> ${mins}m ${secs}s</p>
@@ -458,12 +489,41 @@ export async function POST(
                 <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>
                 <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
                 <p style="font-size:12px;color:#888">unmissed.ai — AI voicemail for your business</p>
-              </div>`,
+              </div>`
+            const emailResult = await resend.emails.send({
+              from: fromAddress,
+              to: client.contact_email as string,
+              subject: emailSubject,
+              html: emailHtml,
             })
             console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId}`)
+
+            // S2c: Log email notification
+            supabase.from('notification_logs').insert({
+              call_id: callLogId,
+              client_id: client.id,
+              channel: 'email',
+              recipient: client.contact_email as string,
+              content: `Subject: ${emailSubject}\n\n${transcriptText.slice(0, 9000)}`,
+              status: 'sent',
+              external_id: emailResult?.data?.id || null,
+            }).then(({ error: nlErr }) => {
+              if (nlErr) console.error(`[completed] notification_logs insert failed (email): ${nlErr.message}`)
+            })
           }
         } catch (emailErr) {
           console.error(`[completed] Voicemail email failed for callId=${callId}:`, emailErr)
+          supabase.from('notification_logs').insert({
+            call_id: callLogId,
+            client_id: client.id,
+            channel: 'email',
+            recipient: (client.contact_email as string) || 'unknown',
+            content: 'voicemail email (failed before send)',
+            status: 'failed',
+            error: String(emailErr).slice(0, 1000),
+          }).then(({ error: nlErr }) => {
+            if (nlErr) console.error(`[completed] notification_logs insert failed (email-fail): ${nlErr.message}`)
+          })
         }
       }
 

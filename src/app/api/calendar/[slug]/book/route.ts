@@ -102,10 +102,21 @@ export async function POST(
     })
 
     // Store booking record so completed webhook can include calendar URL in Telegram
-    // Fire-and-forget — don't block the booking confirmation on the DB write
+    // Resolve call_logs row ID for FK (non-blocking lookup)
+    let bookingCallLogId: string | null = null
+    if (callId) {
+      const { data: clRow } = await supabase
+        .from('call_logs')
+        .select('id')
+        .eq('ultravox_call_id', callId)
+        .single()
+      bookingCallLogId = clRow?.id ?? null
+    }
+
     if (client.id) {
       supabase.from('bookings').insert({
         client_id: client.id,
+        call_id: bookingCallLogId,
         slug,
         caller_phone: callerPhone || null,
         caller_name: resolvedCallerName,
@@ -113,6 +124,7 @@ export async function POST(
         appointment_date: date,
         service: service || null,
         calendar_url: event.htmlLink || null,
+        google_event_id: event.id || null,
       }).then(({ error }) => { if (error) console.error('[calendar/book] booking record failed:', error.message) })
     }
 
