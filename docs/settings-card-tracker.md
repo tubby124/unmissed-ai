@@ -187,18 +187,173 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
+### SET-12: Concurrent prompt-patch race condition (HIGH)
+
+**Problem:** VoiceStyleCard, SectionEditorCard, agent_name patch, and booking toggle each independently SELECT the current `system_prompt`, patch it, and SAVE. If two fire within milliseconds (e.g., user saves voice style, then immediately saves a section edit), the second overwrites the first because it read a stale prompt from DB. No optimistic locking or version check in `settings/route.ts`.
+
+**Example:** Admin saves voice style (reads prompt v1, patches to v2, writes v2). Before that PATCH completes, admin saves a section edit (reads prompt v1 again, patches to v3, writes v3). Result: voice style change is lost.
+
+**Fix options:**
+- A) Add `prompt_version` column to clients table. Each prompt-modifying PATCH includes the expected version. If mismatch, return 409 Conflict and force a re-read.
+- B) Serialize prompt-modifying saves with a per-client mutex in the API route (simpler but adds latency).
+- C) Return the updated prompt in every PATCH response (see SET-13) so the client always has the latest — reduces the race window.
+
+**Files:** `src/app/api/dashboard/settings/route.ts`
+
+---
+
+### SET-13: API doesn't return updated prompt text (MEDIUM)
+
+**Problem:** The PATCH response is `{ ok, ultravox_synced, warnings }` but never returns the new `system_prompt`. This is the root cause of SET-3 (stale char count) and SET-7 (stale parent prompt). Every prompt-modifying save (voice style, section edit, agent name, booking toggle) changes the prompt server-side but the client never gets the result back.
+
+**Impact:** Fixing this at the API level fixes SET-3 and SET-7 in one shot. Cards that modify the prompt can call `onPromptChange(response.system_prompt)` to keep parent state in sync.
+
+**Fix:** When `updates.system_prompt` is set, include `system_prompt: updates.system_prompt` in the JSON response. Update `usePatchSettings` to return it. Add `onPromptChange` callback to VoiceStyleCard and SectionEditorCard.
+
+**Files:** `settings/route.ts`, `usePatchSettings.ts`, `VoiceStyleCard.tsx`, `SectionEditorCard.tsx`, `AgentTab.tsx`
+
+---
+
+### SET-14: No Ultravox sync retry after transient failure (MEDIUM)
+
+**Problem:** If `updateAgent()` fails (network error, Ultravox downtime), DB has the new data but Ultravox agent config is stale. No background retry, no admin alert (only `console.error`), no manual re-sync button. The only recovery is to save again. Drift accumulates silently.
+
+**Impact:** Agent keeps using old prompt/tools until someone notices and re-saves. For forwarding_number or booking_enabled changes, this means calls route incorrectly.
+
+**Fix options:**
+- A) Add a "Re-sync Agent" button visible when `ultravox_synced: false` in the response (admin-only or all users)
+- B) Record failed syncs in a queue table, retry via cron (heavier but automatic)
+- C) At minimum: send Telegram alert to operator when sync fails (currently only console.error)
+
+**Files:** `settings/route.ts`, `AgentTab.tsx` or `AgentConfigCard.tsx`
+
+---
+
+### SET-15: No unsaved changes warning (MEDIUM)
+
+**Problem:** No `beforeunload` handler anywhere in the settings page. If a user edits business facts, FAQs, transfer conditions, or any card field and then navigates away (clicks Calls, Calendar, or even switches settings tabs), their edits are silently lost. Only PromptEditorCard has a `dirty` tracking flag — and even that doesn't trigger a browser warning.
+
+**Impact:** Users lose work. Especially painful for AdvancedContextCard where they may have typed multiple FAQs.
+
+**Fix:** Add a shared `useDirtyGuard` hook. Cards set dirty=true on edit, dirty=false on save. Parent AgentTab aggregates dirty state and registers a `beforeunload` handler. Also warn on tab switch within settings.
+
+**Files:** New hook `useDirtyGuard.ts`, all cards that have editable fields, `AgentTab.tsx`
+
+---
+
+### SET-16: No loading state for settings page (LOW-MEDIUM)
+
+**Problem:** No `loading.tsx` or Suspense boundary for `/dashboard/settings`. The server component fetches all client data (including full prompts) before rendering. Users see a blank/white page during SSR until all data arrives.
+
+**Fix:** Add `src/app/dashboard/settings/loading.tsx` with a skeleton matching the settings layout (tab bar + 3-4 card skeletons).
+
+**Files:** Create `src/app/dashboard/settings/loading.tsx`
+
+---
+
+### SET-17: No ErrorBoundary on settings page (LOW-MEDIUM)
+
+**Problem:** `ErrorBoundary.tsx` exists in the codebase but isn't used in the dashboard settings layout. If any single card component throws a React error (bad data shape, null ref, missing prop), the entire settings page crashes to a white screen instead of gracefully degrading.
+
+**Fix:** Wrap each SettingsSection (or each card) in an ErrorBoundary that shows "This section encountered an error — try refreshing" instead of killing the whole page.
+
+**Files:** `AgentTab.tsx`, `src/components/ErrorBoundary.tsx`
+
+---
+
+### SET-18: Three raw fetch calls bypass usePatchSettings (LOW-MEDIUM)
+
+**Problem:** Three save operations use raw `fetch` instead of the `usePatchSettings` hook, missing error/warning/syncStatus handling:
+- `toggleStatus()` in AgentTab (line 193) — manual optimistic update, drops warnings/sync status
+- `handleMarkSetupComplete()` in AgentTab (line 207) — no response check at all, optimistic with no rollback on failure
+- Knowledge toggle in SettingsView (line 398) — raw fetch, ignores sync status/warnings entirely
+
+**Impact:** If any of these fail silently, user sees stale state. `handleMarkSetupComplete` is worst — it always sets `setup_complete: true` in UI even if the PATCH returns 500.
+
+**Fix:** Convert all three to use `usePatchSettings`, or at minimum add response checking + error display + rollback on failure.
+
+**Files:** `AgentTab.tsx`, `SettingsView.tsx`
+
+---
+
+### SET-19: syncStatus and warnings from hook unused by most cards (LOW)
+
+**Problem:** `usePatchSettings` returns `syncStatus` and `warnings` but only VoiceStyleCard displays them. The other 6 cards using the hook (HoursCard, VoicemailGreetingCard, AdvancedContextCard, BookingCard, GodModeCard, SetupCard) destructure only `saving, saved, error, patch` and ignore sync/warning state. If Ultravox sync fails on a forwarding number change, user just sees "Saved".
+
+**Fix:** Add a shared `<SaveFeedback syncStatus={syncStatus} warnings={warnings} />` component. Include in all cards that trigger Ultravox sync (forwarding_number, booking_enabled, sms_enabled, knowledge_backend changes).
+
+**Files:** All 7 cards using `usePatchSettings`, new shared component
+
+---
+
+### SET-20: Admin page loads all client prompts into browser (LOW)
+
+**Problem:** `page.tsx` SELECTs `system_prompt` for every client in one query. With 10 clients at 10K chars each, that's 100K+ of prompt text in the SSR payload. Only the selected client's prompt is used — the rest sits in React state doing nothing.
+
+**Fix options:**
+- A) Exclude `system_prompt` from the initial SELECT for admin. Lazy-load it when a client is selected (add a separate fetch on client switch).
+- B) Accept the current approach for <10 clients and revisit at scale.
+
+**Files:** `page.tsx`, `SettingsView.tsx`
+
+---
+
+### SET-21: useState bloat in SettingsView (LOW)
+
+**Problem:** SettingsView has 25+ `useState<Record<string, T>>` hooks, each initialized by iterating all clients. After SET-8 cleanup (removing dead setters from AgentTabProps), ~11 of these Records serve only as `initialX` prop sources — they could be derived directly from the `clients` array via `useMemo` instead of duplicated into state. Extends SET-8.
+
+**Fix:** After SET-8 removes unused setter props, replace the corresponding `useState` calls with `useMemo` derived values. Only keep `useState` for fields that are genuinely written to from child components (prompt, status, setupComplete).
+
+**Files:** `SettingsView.tsx`
+
+---
+
+### SET-22: No deep linking to settings sections (LOW)
+
+**Problem:** `handleScrollTo` works within the page but there's no URL hash support. Users can't bookmark or share links like `/dashboard/settings#voice-style` or `/dashboard/settings?section=hours`. Post-call hint chips could link directly with hash anchors but currently require the page to be already loaded.
+
+**Fix:** Read `window.location.hash` on mount. Map hash to section ID via `SCROLL_TO_SECTION`. Auto-expand parent section and scroll. Update hash on section toggle.
+
+**Files:** `AgentTab.tsx`
+
+---
+
+### SET-23: No confirmation on destructive setting changes (LOW)
+
+**Problem:** Toggling `booking_enabled` off removes the CALENDAR BOOKING FLOW block from the prompt immediately. No "Are you sure?" dialog. Same for `knowledge_backend` toggle (removes knowledge tool from agent). Only `toggleStatus` (pause agent) has a `confirm()` dialog.
+
+**Impact:** Accidental toggle-off removes prompt content that can't be recovered without prompt version restore.
+
+**Fix:** Add `confirm()` dialogs for booking_enabled=false and knowledge_backend=null toggles. Include description of what will change.
+
+**Files:** `BookingCard.tsx`, `SettingsView.tsx` (knowledge toggle)
+
+---
+
 ## Priority Order
 
 ```
-SET-1 (filler contradiction)   -- MEDIUM-HIGH, affects call quality on preset switch
-SET-7 (stale parent prompt)    -- MEDIUM, admin prompt overwrite risk after section edit
-SET-2 (preset not shown)       -- LOW-MEDIUM, UX confusion
-SET-4 (duplicate sections)     -- LOW-MEDIUM, data integrity
-SET-3 (stale char count)       -- LOW, cosmetic (fixed by SET-7)
-SET-10 (double accordion)      -- LOW, admin UX friction (may be intentional)
-SET-8 (dead props)             -- LOW, code cleanliness
-SET-9 (section state resets)   -- LOW, admin convenience
-SET-11 (duplicate admin btn)   -- LOW, code duplication
-SET-5 (runtime 404)            -- LOW, missing feature
-SET-6 (hydration error)        -- LOW, cosmetic
+SET-12 (prompt race condition)     -- HIGH, data corruption on concurrent saves
+SET-1  (filler contradiction)      -- MEDIUM-HIGH, affects call quality on preset switch
+SET-13 (API no prompt return)      -- MEDIUM, root cause of SET-3 + SET-7
+SET-14 (no sync retry)             -- MEDIUM, silent Ultravox drift after failure
+SET-15 (no unsaved warning)        -- MEDIUM, data loss on navigation
+SET-7  (stale parent prompt)       -- MEDIUM, admin prompt overwrite (fixed by SET-13)
+SET-2  (preset not shown)          -- LOW-MEDIUM, UX confusion
+SET-4  (duplicate sections)        -- LOW-MEDIUM, data integrity
+SET-16 (no loading state)          -- LOW-MEDIUM, blank page during load
+SET-17 (no ErrorBoundary)          -- LOW-MEDIUM, one card crash kills page
+SET-18 (raw fetch bypasses hook)   -- LOW-MEDIUM, inconsistent error handling
+SET-3  (stale char count)          -- LOW, cosmetic (fixed by SET-13)
+SET-19 (syncStatus unused)         -- LOW, partial implementation
+SET-10 (double accordion)          -- LOW, admin UX (may be intentional)
+SET-8  (dead props)                -- LOW, code cleanliness
+SET-21 (useState bloat)            -- LOW, extends SET-8
+SET-9  (section state resets)      -- LOW, admin convenience
+SET-11 (duplicate admin btn)       -- LOW, code duplication
+SET-20 (admin loads all prompts)   -- LOW, future scale concern
+SET-22 (no deep linking)           -- LOW, UX convenience
+SET-23 (no destructive confirm)    -- LOW, UX safety
+SET-5  (runtime 404)               -- LOW, missing feature
+SET-6  (hydration error)           -- LOW, cosmetic
 ```
