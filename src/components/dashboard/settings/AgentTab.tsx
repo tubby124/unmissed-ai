@@ -24,6 +24,8 @@ import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard'
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
+import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import { useDirtyGuardEffect } from './useDirtyGuard'
@@ -279,6 +281,11 @@ export default function AgentTab({
       </div>
     )}
 
+    {/* ── Setup Progress Ring (non-admin only) ─────────────────────── */}
+    {!isAdmin && (
+      <SetupProgressRing client={client} isAdmin={isAdmin} />
+    )}
+
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
     <SettingsSection
       id="talk"
@@ -306,6 +313,7 @@ export default function AgentTab({
         }}
         onScrollTo={handleScrollTo}
       />
+      <AgentKnowledgeCard client={client} isAdmin={isAdmin} />
       <LearningLoopCard
         clientId={client.id}
         isAdmin={isAdmin}

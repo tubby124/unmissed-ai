@@ -169,7 +169,7 @@ export default function ClientHome() {
   return (
     <div className="p-3 sm:p-6 space-y-5">
       {/* Hero card */}
-      <div className="rounded-2xl border bg-surface p-5 sm:p-6" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+      <div data-tour="agent-hero" className="rounded-2xl border bg-surface p-5 sm:p-6" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
           <h1 className="text-lg font-semibold t1">{agent.name}</h1>

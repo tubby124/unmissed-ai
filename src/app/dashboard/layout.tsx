@@ -10,6 +10,7 @@ import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
+import GuidedTour from '@/components/dashboard/GuidedTour'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -107,6 +108,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </AdminClientProvider>
       </Suspense>
       <DashboardToaster />
+      {!isAdmin && <GuidedTour />}
     </div>
   )
 }

@@ -421,6 +421,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
             <Link
               href={item.href}
               title={collapsed ? item.label : undefined}
+              {...(item.href === '/dashboard/calls' ? { 'data-tour': 'nav-calls' } : {})}
+              {...(item.href === '/dashboard/setup' ? { 'data-tour': 'nav-agent' } : {})}
+              {...(item.href === '/dashboard/settings' ? { 'data-tour': 'nav-settings' } : {})}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 active
                   ? 'bg-indigo-50 border-l-[3px] border-indigo-500 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-400 dark:text-indigo-400'

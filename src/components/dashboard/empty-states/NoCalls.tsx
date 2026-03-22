@@ -1,32 +1,32 @@
 "use client"
 
-import { Phone } from "lucide-react"
 import EmptyStateBase from "./EmptyStateBase"
 
+const PhoneIcon = (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+    <path
+      d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 016.18 12.8a19.79 19.79 0 01-3.07-8.63A2 2 0 015.09 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 interface NoCallsProps {
-  isTrial: boolean
+  isTrial?: boolean
   onTestAgent?: () => void
 }
 
 export default function NoCalls({ isTrial, onTestAgent }: NoCallsProps) {
-  if (isTrial) {
-    return (
-      <EmptyStateBase
-        icon={<Phone className="w-5 h-5" style={{ color: "#818cf8" }} />}
-        title="No calls yet"
-        description="Test your agent from your browser to hear how it handles calls with your business info. No phone needed."
-        accentColor="rgba(99,102,241,0.15)"
-        cta={onTestAgent ? { label: "Test Your Agent", onClick: onTestAgent } : undefined}
-      />
-    )
-  }
-
   return (
     <EmptyStateBase
-      icon={<Phone className="w-5 h-5" style={{ color: "#3b82f6" }} />}
-      title="No calls this month"
-      description="Your agent is live and ready. Calls will appear here as they come in."
-      accentColor="rgba(59,130,246,0.15)"
+      icon={PhoneIcon}
+      title="No calls yet"
+      description="When your agent handles calls, they'll appear here with transcripts and AI analysis."
+      accentColor="rgba(59,130,246,0.12)"
+      cta={{ label: "Test your agent", href: "/dashboard/settings" }}
     />
   )
 }

@@ -11,6 +11,7 @@ import {
   AreaChart, Area,
 } from 'recharts'
 import ScopedClientLabel from './ScopedClientLabel'
+import NoInsights from './empty-states/NoInsights'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -598,6 +599,8 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
         <div className="flex items-center justify-center py-20">
           <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>Failed to load insights</p>
         </div>
+      ) : data.summary.totalCalls === 0 ? (
+        <NoInsights />
       ) : (
         <>
           {/* KPI Cards */}

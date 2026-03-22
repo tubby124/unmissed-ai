@@ -11,6 +11,7 @@ import CallEventsPanel from './CallEventsPanel'
 import LiveCoachingPanel from './LiveCoachingPanel'
 import NumberTicker from '@/components/ui/number-ticker'
 import { VoiceOrb, WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
+import QuickAddFaq from './QuickAddFaq'
 
 interface TranscriptMessage {
   role: 'agent' | 'user'
@@ -22,6 +23,7 @@ interface TranscriptMessage {
 interface CallLog {
   id: string
   ultravox_call_id: string
+  client_id?: string | null
   caller_phone: string | null
   call_status: string | null
   ai_summary: string | null
@@ -590,6 +592,15 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Quick-Add FAQ from call topics */}
+            {displayCall.client_id && displayCall.key_topics && displayCall.key_topics.length > 0 && displayCall.transcript && (
+              <QuickAddFaq
+                clientId={displayCall.client_id}
+                topics={displayCall.key_topics}
+                transcript={displayCall.transcript}
+              />
             )}
 
             {/* Next steps */}

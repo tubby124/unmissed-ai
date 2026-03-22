@@ -271,20 +271,9 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
             <p className="text-xs t3 text-center">
               Tap to start a conversation
             </p>
-            {/* Pre-call: what to try */}
+            {/* Pre-call: what to try (Slice 2d — max 4 chips, dynamic based on config) */}
             {knowledge && (
-              <div className="w-full space-y-1 mt-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wider t3 text-center">Try asking</p>
-                <div className="flex flex-wrap justify-center gap-1.5">
-                  {knowledge.hasHours && <TryChip text="What are your hours?" />}
-                  {knowledge.hasBooking && <TryChip text="Can I book an appointment?" />}
-                  {(knowledge.hasFacts || knowledge.hasFaqs) && <TryChip text="Tell me about your business" />}
-                  {knowledge.hasKnowledge && <TryChip text="Ask a detailed question" />}
-                  {!knowledge.hasHours && !knowledge.hasBooking && !knowledge.hasFacts && !knowledge.hasFaqs && (
-                    <TryChip text="Hi, how can you help me?" />
-                  )}
-                </div>
-              </div>
+              <TryAskingChips knowledge={knowledge} />
             )}
           </motion.div>
         )}
@@ -470,6 +459,33 @@ function TryChip({ text }: { text: string }) {
     <span className="inline-block px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] t3">
       &ldquo;{text}&rdquo;
     </span>
+  )
+}
+
+/** Slice 2d: Dynamic pre-call suggestion chips — max 4, based on enabled capabilities */
+function TryAskingChips({ knowledge }: { knowledge: AgentKnowledge }) {
+  const chips: string[] = []
+
+  if (knowledge.hasHours) chips.push('What are your hours?')
+  if (knowledge.hasBooking) chips.push('Can I book an appointment?')
+  if (knowledge.hasTransfer) chips.push('Can I speak to someone?')
+  if (knowledge.hasFaqs) chips.push('Tell me about your services')
+  else if (knowledge.hasFacts) chips.push('Tell me about your business')
+  if (knowledge.hasKnowledge) chips.push('Ask a detailed question')
+  if (knowledge.hasSms) chips.push('Can you text me the details?')
+
+  // Fallback when nothing is configured
+  if (chips.length === 0) chips.push('Hi, how can you help me?')
+
+  const displayed = chips.slice(0, 4)
+
+  return (
+    <div className="w-full space-y-1 mt-1">
+      <p className="text-[10px] font-semibold uppercase tracking-wider t3 text-center">Try asking</p>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {displayed.map(text => <TryChip key={text} text={text} />)}
+      </div>
+    </div>
   )
 }
 
