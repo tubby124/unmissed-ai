@@ -1709,7 +1709,18 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
   const callbackPhone = ((intake.callback_phone         as string) || '').trim()
   const callerFaq     = ((intake.caller_faq             as string) || '').trim()
 
-  const serviceAreasStr = serviceAreas.length > 0 ? serviceAreas.join(', ') : 'the local area'
+  // Expand province abbreviations so the AI says "Calgary, Alberta" not "Calgary, AB"
+  const expandedAreas = serviceAreas.map(area => {
+    const parts = area.split(',')
+    if (parts.length >= 2) {
+      const code = parts[parts.length - 1].trim().toUpperCase()
+      if (RE_PROVINCE_NAMES[code]) {
+        return [...parts.slice(0, -1), ` ${RE_PROVINCE_NAMES[code]}`].join(',')
+      }
+    }
+    return area
+  })
+  const serviceAreasStr = expandedAreas.length > 0 ? expandedAreas.join(', ') : 'the local area'
   const specialtiesStr  = specialties.length  > 0 ? specialties.join(', ').toLowerCase() : ''
 
   const provinceSet = new Set<string>()
