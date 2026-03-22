@@ -155,8 +155,7 @@ export async function deleteClientChunks(clientId: string, source?: string): Pro
 
   const { data, error } = await query.select('id')
   if (error) {
-    console.error(`[embeddings] deleteClientChunks failed: ${error.message}`)
-    return 0
+    throw new Error(`deleteClientChunks failed for client=${clientId} source=${source ?? 'all'}: ${error.message}`)
   }
   const count = data?.length ?? 0
   console.log(`[embeddings] deleteClientChunks: clientId=${clientId} source=${source ?? 'all'} deleted=${count}`)

@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
 
   // ── Clear old website_scrape chunks and embed new ones ─────────────────────
   const sourceRunId = crypto.randomUUID()
-  await deleteClientChunks(clientId, 'website_scrape')
+  try {
+    await deleteClientChunks(clientId, 'website_scrape')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: `Failed to clear old chunks: ${msg}` }, { status: 500 })
+  }
   const result = await embedChunks(clientId, allChunks, sourceRunId)
 
   // ── Set knowledge_backend = pgvector ───────────────────────────────────────

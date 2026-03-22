@@ -115,9 +115,17 @@ export async function seedKnowledgeFromScrape(
 
   // SCRAPE7: Remove stale website-derived chunks before reseeding.
   // Only deletes source='website_scrape' — manual, bulk_import, gap_resolution chunks are preserved.
-  const deleted = await deleteClientChunks(clientId, 'website_scrape')
-  if (deleted > 0) {
-    console.log(`[${routeLabel}] SCRAPE7: Cleared ${deleted} stale website_scrape chunks for ${clientSlug}`)
+  // SCRAPE9: deleteClientChunks now throws on DB error — abort reseed if cleanup fails
+  // to prevent stale+new chunk accumulation (upsert only dedupes by content_hash).
+  try {
+    const deleted = await deleteClientChunks(clientId, 'website_scrape')
+    if (deleted > 0) {
+      console.log(`[${routeLabel}] SCRAPE7: Cleared ${deleted} stale website_scrape chunks for ${clientSlug}`)
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`[${routeLabel}] SCRAPE7: Stale chunk cleanup failed for ${clientSlug} — aborting reseed: ${msg}`)
+    return { seeded: false, chunkCount: 0, stored: 0, failed: 0, errors: [`Stale chunk cleanup failed: ${msg}`] }
   }
 
   const embedResult = await embedChunks(clientId, chunks, runId)

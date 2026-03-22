@@ -49,7 +49,7 @@
 |-------|------|--------|
 | 1 | Prompt Variable Injection (PROMPT-TEST1+2) | NOT STARTED |
 | 2 | Talk to Your Agent (2a-2b DONE, 2c-2f below) | IN PROGRESS |
-| 3 | Scrape Verify + Harden (SCRAPE6/7/8/10) | NOT STARTED |
+| 3 | Scrape Verify + Harden (SCRAPE6/7/8/10) | SCRAPE6/7/8 DONE, SCRAPE10 NOT STARTED |
 | 4 | Empty States (TOUR3) | **DONE** 2026-03-22 |
 | 5 | Guided Tour (TOUR2, driver.js) | **DONE** 2026-03-22 |
 | 6 | Advanced Trial Extras | DEFERRED |

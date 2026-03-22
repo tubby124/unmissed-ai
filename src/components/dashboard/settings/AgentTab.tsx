@@ -25,6 +25,7 @@ import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
@@ -410,6 +411,11 @@ export default function AgentTab({
           previewMode={previewMode}
         />
       </div>
+      <WebsiteKnowledgeCard
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+        />
       <div id="section-knowledge">
         <KnowledgeEngineCard
           client={client}

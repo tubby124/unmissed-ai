@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
+import { validateApprovedPackage } from '@/lib/scrape-validation'
 
 type ApprovedPackage = {
   businessFacts: string[]
@@ -62,9 +63,18 @@ export async function POST(req: NextRequest) {
   const approved: ApprovedPackage | null =
     body.approved ?? (client.website_knowledge_preview as ApprovedPackage | null)
 
-  if (!approved || !approved.businessFacts || !approved.extraQa) {
+  if (!approved) {
     return NextResponse.json(
       { error: 'No approved data provided and no website_knowledge_preview stored' },
+      { status: 400 },
+    )
+  }
+
+  // SCRAPE8: Validate approved package shape + content before seeding
+  const validation = validateApprovedPackage(approved)
+  if (!validation.valid) {
+    return NextResponse.json(
+      { error: 'Invalid approved data', details: validation.errors },
       { status: 400 },
     )
   }

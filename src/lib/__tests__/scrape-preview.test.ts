@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { WebsiteScrapeResult } from '@/types/onboarding'
-import { validateScrapeResult } from '@/lib/scrape-validation'
+import { validateScrapeResult, validateApprovedPackage } from '@/lib/scrape-validation'
 import { prepareServiceTagChunks } from '@/lib/embeddings'
 
 // ---------------------------------------------------------------------------
@@ -342,5 +342,241 @@ describe('Phase J: prepareServiceTagChunks', () => {
     const chunks = prepareServiceTagChunks(['plumbing'])
     assert.equal(chunks.length, 1)
     assert.equal(chunks[0].content, 'Services offered: plumbing')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SCRAPE8 — Approval parity validation
+// ---------------------------------------------------------------------------
+
+describe('SCRAPE8: validateScrapeResult parity checks', () => {
+  it('approvedFacts shorter than businessFacts fails', () => {
+    const data = makeScrapeResult({
+      businessFacts: ['A', 'B', 'C'],
+      approvedFacts: [true, false], // only 2, should be 3
+    })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('approvedFacts longer than businessFacts fails', () => {
+    const data = makeScrapeResult({
+      businessFacts: ['A'],
+      approvedFacts: [true, false, true],
+    })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('approvedQa shorter than extraQa fails', () => {
+    const data = makeScrapeResult({
+      extraQa: [
+        { q: 'Q1', a: 'A1' },
+        { q: 'Q2', a: 'A2' },
+      ],
+      approvedQa: [true], // only 1, should be 2
+    })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('approvedQa longer than extraQa fails', () => {
+    const data = makeScrapeResult({
+      extraQa: [{ q: 'Q1', a: 'A1' }],
+      approvedQa: [true, false],
+    })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('matching lengths pass', () => {
+    const data = makeScrapeResult({
+      businessFacts: ['A', 'B'],
+      approvedFacts: [true, false],
+      extraQa: [{ q: 'Q1', a: 'A1' }],
+      approvedQa: [true],
+    })
+    assert.equal(validateScrapeResult(data), true)
+  })
+
+  it('both empty (0 === 0) passes', () => {
+    const data = makeScrapeResult({
+      businessFacts: [],
+      approvedFacts: [],
+      extraQa: [],
+      approvedQa: [],
+    })
+    assert.equal(validateScrapeResult(data), true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SCRAPE8 — validateApprovedPackage
+// ---------------------------------------------------------------------------
+
+describe('SCRAPE8: validateApprovedPackage', () => {
+  it('valid package passes', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['Licensed and insured'],
+      extraQa: [{ q: 'Do you serve Saskatoon?', a: 'Yes' }],
+      serviceTags: ['windshield'],
+    })
+    assert.equal(result.valid, true)
+    assert.equal(result.errors.length, 0)
+  })
+
+  it('null input fails', () => {
+    const result = validateApprovedPackage(null)
+    assert.equal(result.valid, false)
+    assert.ok(result.errors[0].includes('must be an object'))
+  })
+
+  it('missing businessFacts fails', () => {
+    const result = validateApprovedPackage({
+      extraQa: [{ q: 'Q', a: 'A' }],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('businessFacts')))
+  })
+
+  it('non-string businessFact fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: [42],
+      extraQa: [],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('businessFacts[0] must be a string')))
+  })
+
+  it('empty-string businessFact fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['valid', '  '],
+      extraQa: [],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('businessFacts[1] is empty')))
+  })
+
+  it('missing extraQa fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('extraQa')))
+  })
+
+  it('extraQa item without q string fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      extraQa: [{ q: 123, a: 'yes' }],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('extraQa[0]')))
+  })
+
+  it('extraQa with empty q fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      extraQa: [{ q: '', a: 'yes' }],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('extraQa[0].q is empty')))
+  })
+
+  it('extraQa with empty a fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      extraQa: [{ q: 'What?', a: '   ' }],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('extraQa[0].a is empty')))
+  })
+
+  it('non-string serviceTag fails', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      extraQa: [],
+      serviceTags: [42],
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.some(e => e.includes('serviceTags[0]')))
+  })
+
+  it('serviceTags omitted is valid (optional)', () => {
+    const result = validateApprovedPackage({
+      businessFacts: ['A'],
+      extraQa: [],
+    })
+    assert.equal(result.valid, true)
+  })
+
+  it('empty arrays are valid (explicit empty approval)', () => {
+    const result = validateApprovedPackage({
+      businessFacts: [],
+      extraQa: [],
+      serviceTags: [],
+    })
+    assert.equal(result.valid, true)
+  })
+
+  it('multiple errors are collected', () => {
+    const result = validateApprovedPackage({
+      businessFacts: 'not-an-array',
+      extraQa: 'also-not',
+      serviceTags: 42,
+    })
+    assert.equal(result.valid, false)
+    assert.ok(result.errors.length >= 3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SCRAPE9 — Fallback path: website_knowledge_preview shape compatibility
+// The approve route falls back to client.website_knowledge_preview when no
+// body.approved is sent. That column stores NormalizedKnowledge (from
+// scrape-website) or raw scrape result (from generate-prompt) — neither is
+// an ApprovedPackage. Validate both shapes pass validateApprovedPackage so
+// the fallback path doesn't 400 on valid stored data.
+// ---------------------------------------------------------------------------
+
+describe('SCRAPE9: website_knowledge_preview fallback shape compatibility', () => {
+  it('NormalizedKnowledge shape (from scrape-website) passes validateApprovedPackage', () => {
+    // scrape-website/route.ts stores normalizeExtraction() output
+    const normalizedKnowledge = {
+      businessFacts: ['Open 7 days a week', 'Licensed and insured'],
+      extraQa: [{ q: 'Do you do mobile service?', a: 'Yes' }],
+      serviceTags: ['windshield', 'rock chip'],
+      warnings: ['Removed claim: "We guarantee lowest prices"'],
+    }
+    const result = validateApprovedPackage(normalizedKnowledge)
+    assert.equal(result.valid, true, 'NormalizedKnowledge must pass — extra fields (warnings) are tolerated')
+  })
+
+  it('raw scrape result shape (from generate-prompt) passes validateApprovedPackage', () => {
+    // generate-prompt/route.ts stores the raw scrapeWebsite() result
+    const rawScrapeResult = {
+      businessFacts: ['Family owned since 2005'],
+      extraQa: [{ q: 'What areas do you serve?', a: 'All of Saskatoon' }],
+      serviceTags: ['plumbing', 'drain cleaning'],
+      warnings: [],
+      failureBucket: 'success',
+      citedTargetUrl: 'https://example.com',
+    }
+    const result = validateApprovedPackage(rawScrapeResult)
+    assert.equal(result.valid, true, 'Raw scrape result must pass — extra fields are tolerated')
+  })
+
+  it('NormalizedKnowledge with empty arrays passes', () => {
+    const emptyNormalized = {
+      businessFacts: [],
+      extraQa: [],
+      serviceTags: [],
+      warnings: [],
+    }
+    const result = validateApprovedPackage(emptyNormalized)
+    assert.equal(result.valid, true)
   })
 })
