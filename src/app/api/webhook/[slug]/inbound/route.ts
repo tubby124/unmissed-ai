@@ -219,7 +219,8 @@ export async function POST(
         })
       } catch (agentErr) {
         // Safety net: Agents API failed — use Supabase prompt directly via createCall
-        console.error(`[inbound] Agents API failed (${agentErr}), falling back to createCall with Supabase prompt`)
+        const agentErrMsg = agentErr instanceof Error ? agentErr.message : String(agentErr)
+        console.error(`[inbound] Agents API FAILED for slug=${slug} agentId=${client.ultravox_agent_id} toolCount=${tools?.length ?? 0} — falling back to createCall. Error: ${agentErrMsg.slice(0, 500)}`)
         ultravoxCall = await createCall({
           systemPrompt: promptFull,
           voice: client.agent_voice_id,

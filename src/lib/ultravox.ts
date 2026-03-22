@@ -677,7 +677,8 @@ export async function callViaAgent(
   if (maxDuration) body.maxDuration = maxDuration
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   if (initialMessages?.length) body.initialMessages = initialMessages
-  if (overrideTools?.length) body.toolOverrides = overrideTools
+  // toolOverrides is { removeAll, remove, add } — NOT a raw array (causes 400 "unhashable type: dict")
+  if (overrideTools?.length) body.toolOverrides = { removeAll: true, add: overrideTools }
   // NOT supported in StartAgentCallRequest (400 error): initialState, selectedTools, languageHint
 
   // S9.6c: 10s timeout prevents caller hearing silence if Ultravox hangs
@@ -690,6 +691,7 @@ export async function callViaAgent(
 
   if (!res.ok) {
     const err = await res.text()
+    console.error(`[callViaAgent] FAILED: agentId=${agentId} status=${res.status} toolCount=${overrideTools?.length ?? 0} err=${err.slice(0, 500)}`)
     throw new Error(`Ultravox callViaAgent failed: ${res.status} ${err}`)
   }
 
