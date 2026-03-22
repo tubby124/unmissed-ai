@@ -11,23 +11,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 10
-const RATE_WINDOW_MS = 60 * 1000 // 1 minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, timestamps)
-  return timestamps.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+// 10 lookups per IP per minute (S13x: shared limiter replaces inline Map)
+const perIpLimiter = new SlidingWindowRateLimiter(10, 60 * 1000)
 
 interface PlaceResult {
   name: string
@@ -47,8 +34,12 @@ export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
 
-  if (isRateLimited(ip)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  const ipCheck = perIpLimiter.check(ip)
+  if (!ipCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(ipCheck.retryAfterMs / 1000)) } }
+    )
   }
 
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
@@ -77,7 +68,7 @@ export async function GET(req: NextRequest) {
     const searchData = await searchRes.json() as { results: PlaceResult[]; status: string }
 
     if (!searchData.results || searchData.results.length === 0) {
-      recordUsage(ip)
+      perIpLimiter.record(ip)
       return NextResponse.json({ available: true, results: [] })
     }
 
@@ -97,7 +88,7 @@ export async function GET(req: NextRequest) {
       console.error('[places-lookup] Details fetch failed:', err)
     }
 
-    recordUsage(ip)
+    perIpLimiter.record(ip)
     console.log(`[places-lookup] Found: ${firstResult.name} for query="${query}"`)
 
     return NextResponse.json({

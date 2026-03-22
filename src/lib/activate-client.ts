@@ -81,7 +81,7 @@ export async function activateClient(params: {
   const adminBot = adminClient?.telegram_bot_token as string | null
   const adminChat = adminClient?.telegram_chat_id as string | null
 
-  void notifyAdmin(adminBot, adminChat, `${mode === 'trial' ? '🧪' : '💳'} ${mode === 'trial' ? 'Trial started' : 'Payment received'} — activating <b>${businessName}</b>…`)
+  await notifyAdmin(adminBot, adminChat, `${mode === 'trial' ? '🧪' : '💳'} ${mode === 'trial' ? 'Trial started' : 'Payment received'} — activating <b>${businessName}</b>…`)
 
   // ── Load intake for contact_email, area_code, callbackPhone ───────────────
   const { data: intake } = await adminSupa
@@ -130,7 +130,7 @@ export async function activateClient(params: {
 
         if (!invRow) {
           console.error(`${logPrefix} Inventory number ${reservedNumber} not found in DB for slug=${clientSlug}`)
-          void notifyAdmin(adminBot, adminChat, `⚠️ Inventory number ${reservedNumber} missing from DB — manual fix needed`)
+          await notifyAdmin(adminBot, adminChat, `⚠️ Inventory number ${reservedNumber} missing from DB — manual fix needed`)
         } else {
           const patchUrl  = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/${invRow.twilio_sid}.json`
           const patchBody = new URLSearchParams({
@@ -148,11 +148,11 @@ export async function activateClient(params: {
           })
           if (patchRes.ok) {
             console.log(`${logPrefix} Inventory number ${reservedNumber} reconfigured for slug=${clientSlug}`)
-            void notifyAdmin(adminBot, adminChat, `📞 Inventory number configured: <b>${reservedNumber}</b> for ${businessName}`)
+            await notifyAdmin(adminBot, adminChat, `📞 Inventory number configured: <b>${reservedNumber}</b> for ${businessName}`)
           } else {
             const errText = await patchRes.text()
             console.error(`${logPrefix} Twilio PATCH failed for ${reservedNumber}: ${errText}`)
-            void notifyAdmin(adminBot, adminChat, `⚠️ Twilio PATCH failed for ${reservedNumber} — fix VoiceUrl manually`)
+            await notifyAdmin(adminBot, adminChat, `⚠️ Twilio PATCH failed for ${reservedNumber} — fix VoiceUrl manually`)
           }
         }
 
@@ -172,7 +172,7 @@ export async function activateClient(params: {
         steps.push({ step: 'twilio_assign', ok: true })
       } catch (err) {
         console.error(`${logPrefix} Inventory path threw for ${reservedNumber}: ${err}`)
-        void notifyAdmin(adminBot, adminChat, `⚠️ Inventory path threw: ${String(err).slice(0, 100)}`)
+        await notifyAdmin(adminBot, adminChat, `⚠️ Inventory path threw: ${String(err).slice(0, 100)}`)
         twilioNumber = reservedNumber // still assign — client paid
         steps.push({ step: 'twilio_assign', ok: true }) // number assigned despite PATCH issue
       }
@@ -244,22 +244,22 @@ export async function activateClient(params: {
             const buyData = await buyRes.json() as { phone_number: string }
             twilioNumber = buyData.phone_number
             console.log(`${logPrefix} Twilio number purchased: ${twilioNumber} for slug=${clientSlug}`)
-            void notifyAdmin(adminBot, adminChat, `📞 Twilio number purchased: <b>${twilioNumber}</b> for ${businessName}`)
+            await notifyAdmin(adminBot, adminChat, `📞 Twilio number purchased: <b>${twilioNumber}</b> for ${businessName}`)
             steps.push({ step: 'twilio_purchase', ok: true })
           } else {
             const errText = await buyRes.text()
             console.error(`${logPrefix} Twilio number purchase failed for slug=${clientSlug}: ${errText}`)
-            void notifyAdmin(adminBot, adminChat, `⚠️ Twilio number purchase FAILED for ${businessName}`)
+            await notifyAdmin(adminBot, adminChat, `⚠️ Twilio number purchase FAILED for ${businessName}`)
             steps.push({ step: 'twilio_purchase', ok: false, error: `purchase failed: ${errText.slice(0, 200)}` })
           }
         } else {
           console.error(`${logPrefix} No available Twilio numbers found for slug=${clientSlug}`)
-          void notifyAdmin(adminBot, adminChat, `⚠️ No Twilio numbers available for ${businessName}`)
+          await notifyAdmin(adminBot, adminChat, `⚠️ No Twilio numbers available for ${businessName}`)
           steps.push({ step: 'twilio_purchase', ok: false, error: 'no numbers available' })
         }
       } catch (err) {
         console.error(`${logPrefix} Twilio step threw: ${err}`)
-        void notifyAdmin(adminBot, adminChat, `⚠️ Twilio step threw: ${String(err).slice(0, 100)}`)
+        await notifyAdmin(adminBot, adminChat, `⚠️ Twilio step threw: ${String(err).slice(0, 100)}`)
         steps.push({ step: 'twilio_purchase', ok: false, error: String(err).slice(0, 200) })
       }
     }
@@ -271,7 +271,7 @@ export async function activateClient(params: {
   if (hasCriticalFailure(steps, mode)) {
     const stepSummary = summarizeSteps(steps)
     console.error(`${logPrefix} Critical failure — Twilio step failed for slug=${clientSlug}`)
-    void notifyAdmin(adminBot, adminChat, `❌ Activation ABORTED for ${businessName} — Twilio failure. Manual recovery needed.`)
+    await notifyAdmin(adminBot, adminChat, `❌ Activation ABORTED for ${businessName} — Twilio failure. Manual recovery needed.`)
     // Write partial activation_log so admin knows what happened
     try {
       await adminSupa.from('clients').update({
@@ -425,18 +425,18 @@ export async function activateClient(params: {
         }
 
         console.log(`${logPrefix} Auth user resolved and password email sent to ${contactEmail}`)
-        void notifyAdmin(adminBot, adminChat, `👤 Auth account linked, welcome email sent to ${contactEmail}`)
+        await notifyAdmin(adminBot, adminChat, `👤 Auth account linked, welcome email sent to ${contactEmail}`)
         steps.push({ step: 'auth_user', ok: true })
         steps.push({ step: 'welcome_email', ok: emailActuallySent, error: emailActuallySent ? undefined : emailFailReason ?? 'unknown' })
       } else if (emailFailReason) {
-        void notifyAdmin(adminBot, adminChat, `⚠️ Auth/email step: user not resolved for ${contactEmail}`)
+        await notifyAdmin(adminBot, adminChat, `⚠️ Auth/email step: user not resolved for ${contactEmail}`)
         steps.push({ step: 'auth_user', ok: false, error: emailFailReason })
         steps.push({ step: 'welcome_email', ok: false, error: 'user not resolved' })
       }
     } catch (err) {
       emailFailReason = String(err)
       console.error(`${logPrefix} Auth user creation threw: ${err}`)
-      void notifyAdmin(adminBot, adminChat, `❌ Auth/email step failed for ${businessName}: ${String(err).slice(0, 100)}`)
+      await notifyAdmin(adminBot, adminChat, `❌ Auth/email step failed for ${businessName}: ${String(err).slice(0, 100)}`)
       steps.push({ step: 'auth_user', ok: false, error: String(err).slice(0, 200) })
       steps.push({ step: 'welcome_email', ok: false, error: 'auth step failed' })
     }
@@ -476,12 +476,12 @@ export async function activateClient(params: {
       if (smsRes.ok) {
         smsSent = true
         console.log(`${logPrefix} Onboarding SMS sent to ${callbackPhone} from ${twilioNumber}`)
-        void notifyAdmin(adminBot, adminChat, `📤 Onboarding SMS sent to ${callbackPhone}`)
+        await notifyAdmin(adminBot, adminChat, `📤 Onboarding SMS sent to ${callbackPhone}`)
       } else {
         const errText = await smsRes.text()
         smsSkipReason = `Twilio error: ${errText.slice(0, 200)}`
         console.error(`${logPrefix} SMS failed for slug=${clientSlug}: ${smsSkipReason}`)
-        void notifyAdmin(adminBot, adminChat, `⚠️ SMS failed: ${smsSkipReason.slice(0, 100)}`)
+        await notifyAdmin(adminBot, adminChat, `⚠️ SMS failed: ${smsSkipReason.slice(0, 100)}`)
       }
     } catch (err) {
       smsSkipReason = `threw: ${err}`

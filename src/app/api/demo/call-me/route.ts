@@ -7,25 +7,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-// ── Rate limiter: 3 calls per IP per hour ───────────────────────────────────
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 3
-const RATE_WINDOW_MS = 60 * 60 * 1000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = rateLimitMap.get(ip) || []
-  const recent = timestamps.filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, recent)
-  return recent.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+// 3 calls per IP per hour (S13x: shared limiter replaces inline Map)
+const perIpLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)
 
 // ── E.164 validation (North America) ────────────────────────────────────────
 function isValidE164NA(phone: string): boolean {
@@ -46,10 +31,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (isRateLimited(ip)) {
+  const ipCheck = perIpLimiter.check(ip)
+  if (!ipCheck.allowed) {
     return NextResponse.json(
       { error: 'You\'ve reached the demo limit (3 calls/hour). Try again later or sign up for your own agent.' },
-      { status: 429 }
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(ipCheck.retryAfterMs / 1000)) } }
     )
   }
 
@@ -150,21 +136,24 @@ export async function POST(req: NextRequest) {
 
     console.log(`[call-me] Twilio outbound call created: sid=${call.sid} to=${phone}`)
 
-    recordUsage(ip)
+    perIpLimiter.record(ip)
     globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
-    // 4. Log to demo_calls (fire-and-forget)
+    // 4. Log to demo_calls
     const supabase = createServiceClient()
     const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
-    supabase.from('demo_calls').insert({
-      demo_id: demo.id,
-      caller_name: phone,
-      ultravox_call_id: uvCall.callId,
-      source: 'call-me-widget',
-      ip_hash: ipHash,
-    }).then(({ error }) => {
+    try {
+      const { error } = await supabase.from('demo_calls').insert({
+        demo_id: demo.id,
+        caller_name: phone,
+        ultravox_call_id: uvCall.callId,
+        source: 'call-me-widget',
+        ip_hash: ipHash,
+      })
       if (error) console.error(`[call-me] Failed to log demo call: ${error.message}`)
-    })
+    } catch (e) {
+      console.error('[call-me] Demo call log threw:', e)
+    }
 
     return NextResponse.json({
       success: true,

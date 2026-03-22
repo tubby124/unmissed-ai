@@ -104,16 +104,18 @@ export async function POST(
 
   // ── Stale live call cleanup ────────────────────────────────────────────────
   // Any 'live' row older than 15 min for this client = webhook never fired. Mark MISSED.
-  supabase.from('call_logs')
-    .update({ call_status: 'MISSED', ai_summary: 'Call ended without webhook delivery' })
-    .eq('client_id', client.id)
-    .eq('call_status', 'live')
-    .lt('started_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-    .select('id')
-    .then(({ error, data }) => {
-      if (error) console.warn(`[inbound] Stale cleanup failed: ${error.message}`)
-      else if (data?.length) console.log(`[inbound] Cleaned ${data.length} stale live row(s) for client=${client.id}`)
-    })
+  try {
+    const { error: staleErr, data: staleData } = await supabase.from('call_logs')
+      .update({ call_status: 'MISSED', ai_summary: 'Call ended without webhook delivery' })
+      .eq('client_id', client.id)
+      .eq('call_status', 'live')
+      .lt('started_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+      .select('id')
+    if (staleErr) console.warn(`[inbound] Stale cleanup failed: ${staleErr.message}`)
+    else if (staleData?.length) console.log(`[inbound] Cleaned ${staleData.length} stale live row(s) for client=${client.id}`)
+  } catch (e) {
+    console.error('[inbound] Stale cleanup threw:', e)
+  }
 
   // ── Per-call context assembly (Phase 2: replaces scattered inline assembly) ──────────────
   const now = new Date()
@@ -271,7 +273,8 @@ export async function POST(
 
   console.log(`[inbound] Ultravox call created: callId=${ultravoxCall.callId} joinUrl=${ultravoxCall.joinUrl.slice(0, 60)}...`)
 
-  // Fire-and-forget: insert 'live' row (B3: persist initial call state for audit)
+  // Intentionally fire-and-forget: TwiML must return immediately to avoid caller silence.
+  // S9g stuck-row recovery handles DB insert failures. Do not convert to await. (S10m)
   const initialCallState = defaultCallState(client.niche as string | null)
   supabase.from('call_logs').insert({
     ultravox_call_id: ultravoxCall.callId,

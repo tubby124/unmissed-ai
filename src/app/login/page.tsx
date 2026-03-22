@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
@@ -18,7 +18,11 @@ function LoginContent() {
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createBrowserClient()
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
+  if (!supabaseRef.current) {
+    supabaseRef.current = createBrowserClient()
+  }
+  const supabase = supabaseRef.current
 
   useEffect(() => {
     const urlError = searchParams.get('error')

@@ -4,6 +4,7 @@
  * S9c: Periodic check for failed notifications.
  * S9.5e: Detect permanently stuck `processing` rows (>10 min).
  * S9.5f: Detect orphaned `live`/`transferred` rows (>30 min).
+ * S19a: Detect missing billed_duration_seconds (native webhook may be dead).
  *
  * Queries notification_logs for status=failed in the last hour,
  * plus call_logs for stuck/orphaned rows, and sends a summary
@@ -133,10 +134,31 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // ── S19a: Missing billed_duration_seconds (native webhook liveness) ────────
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { count: unbilledCount, error: unbilledErr } = await supabase
+    .from('call_logs')
+    .select('id', { count: 'exact', head: true })
+    .in('call_status', ['completed', 'LEAD', 'WARM', 'HOT', 'JUNK', 'MISSED'])
+    .gte('created_at', twentyFourHoursAgo)
+    .is('billed_duration_seconds', null)
+
+  if (unbilledErr) {
+    console.error('[notification-health] Unbilled query failed:', unbilledErr.message)
+  } else if (unbilledCount && unbilledCount > 0) {
+    unhealthy = true
+    alerts.push(
+      ``,
+      `\u26a0\ufe0f <b>Unbilled Calls (last 24h) — native webhook may be dead</b>`,
+      `Count: ${unbilledCount} completed calls with no billed_duration_seconds`,
+      `Check Ultravox webhook ${process.env.ULTRAVOX_WEBHOOK_ID?.slice(0, 8) || 'unknown'} status`,
+    )
+  }
+
   // ── Send alert if anything is unhealthy ─────────────────────────────────────
   if (!unhealthy) {
-    console.log('[notification-health] All healthy — no failures, no stuck rows, no orphans')
-    return NextResponse.json({ status: 'healthy', failures: 0, stuck_processing: 0, orphaned: 0 })
+    console.log('[notification-health] All healthy — no failures, no stuck rows, no orphans, no unbilled')
+    return NextResponse.json({ status: 'healthy', failures: 0, stuck_processing: 0, orphaned: 0, unbilled: 0 })
   }
 
   const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
@@ -155,6 +177,7 @@ export async function GET(req: NextRequest) {
     failures: failures?.length || 0,
     stuck_processing: stuckRows?.length || 0,
     orphaned: orphanRows?.length || 0,
+    unbilled: unbilledCount || 0,
   }
   console.log(`[notification-health] Unhealthy:`, result)
   return NextResponse.json(result)

@@ -8,25 +8,10 @@ import { toIntakePayload } from '@/lib/intake-transform'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
 import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-// Simple in-memory rate limiter: 10 demos per IP per hour
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 10
-const RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = rateLimitMap.get(ip) || []
-  const recent = timestamps.filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, recent)
-  return recent.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+// 10 demos per IP per hour (S13x: shared limiter replaces inline Map)
+const perIpLimiter = new SlidingWindowRateLimiter(10, 60 * 60 * 1000)
 
 // Default voices for onboard preview calls
 const VOICE_AISHA      = '87edb04c-06d4-47c2-bd94-683bc47e8fbe' // real estate
@@ -61,10 +46,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (isRateLimited(ip)) {
+  const ipCheck = perIpLimiter.check(ip)
+  if (!ipCheck.allowed) {
     return NextResponse.json(
       { error: 'Demo limit reached. You can try again in an hour, or sign up to get your own agent.' },
-      { status: 429 }
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(ipCheck.retryAfterMs / 1000)) } }
     )
   }
 
@@ -116,20 +102,23 @@ HANG-UP RULES (mandatory — follow exactly):
         call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice })
       }
 
-      recordUsage(ip)
+      perIpLimiter.record(ip)
       globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
       const supabaseLog = createServiceClient()
       const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
-      supabaseLog.from('demo_calls').insert({
-        demo_id: `preview:${niche}`,
-        caller_name: callerName,
-        ultravox_call_id: call.callId,
-        source: 'onboard-preview',
-        ip_hash: ipHash,
-      }).then(({ error }) => {
+      try {
+        const { error } = await supabaseLog.from('demo_calls').insert({
+          demo_id: `preview:${niche}`,
+          caller_name: callerName,
+          ultravox_call_id: call.callId,
+          source: 'onboard-preview',
+          ip_hash: ipHash,
+        })
         if (error) console.error(`[demo] Failed to log preview call: ${error.message}`)
-      })
+      } catch (e) {
+        console.error('[demo] Preview call log threw:', e)
+      }
 
       console.log(`[demo] Onboard preview started: niche=${niche} company="${companyName}" callId=${call.callId}`)
 
@@ -204,20 +193,23 @@ HANG-UP RULES (mandatory — follow exactly):
       call = await createDemoCall({ systemPrompt: promptWithContext, voice: fallbackVoice, tools: demoTools, callbackUrl: demoCallbackUrl })
     }
 
-    recordUsage(ip)
+    perIpLimiter.record(ip)
     globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
     const supabaseLog = createServiceClient()
     const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
-    supabaseLog.from('demo_calls').insert({
-      demo_id: demoId,
-      caller_name: callerName,
-      ultravox_call_id: call.callId,
-      source: 'browser',
-      ip_hash: ipHash,
-    }).then(({ error }) => {
+    try {
+      const { error } = await supabaseLog.from('demo_calls').insert({
+        demo_id: demoId,
+        caller_name: callerName,
+        ultravox_call_id: call.callId,
+        source: 'browser',
+        ip_hash: ipHash,
+      })
       if (error) console.error(`[demo] Failed to log demo call: ${error.message}`)
-    })
+    } catch (e) {
+      console.error('[demo] Demo call log threw:', e)
+    }
 
     console.log(`[demo:browser] callId=${call.callId} tools=${demoTools.length} medium=webrtc demoId=${demoId} callerName=${callerName}`)
 

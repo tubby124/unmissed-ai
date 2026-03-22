@@ -114,18 +114,23 @@ export async function POST(
     }
 
     if (client.id) {
-      supabase.from('bookings').insert({
-        client_id: client.id,
-        call_id: bookingCallLogId,
-        slug,
-        caller_phone: callerPhone || null,
-        caller_name: resolvedCallerName,
-        appointment_time: matchedSlot.displayTime,
-        appointment_date: date,
-        service: service || null,
-        calendar_url: event.htmlLink || null,
-        google_event_id: event.id || null,
-      }).then(({ error }) => { if (error) console.error('[calendar/book] booking record failed:', error.message) })
+      try {
+        const { error: bookingErr } = await supabase.from('bookings').insert({
+          client_id: client.id,
+          call_id: bookingCallLogId,
+          slug,
+          caller_phone: callerPhone || null,
+          caller_name: resolvedCallerName,
+          appointment_time: matchedSlot.displayTime,
+          appointment_date: date,
+          service: service || null,
+          calendar_url: event.htmlLink || null,
+          google_event_id: event.id || null,
+        })
+        if (bookingErr) console.error('[calendar/book] booking record failed:', bookingErr.message)
+      } catch (e) {
+        console.error('[calendar/book] booking insert threw:', e)
+      }
     }
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)

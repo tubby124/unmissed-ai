@@ -11,23 +11,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 60 * 1000 // 1 minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, timestamps)
-  return timestamps.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+// 5 uploads per IP per minute (S13x: shared limiter replaces inline Map)
+const perIpLimiter = new SlidingWindowRateLimiter(5, 60 * 1000)
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const MAX_TEXT_LENGTH = 4000
@@ -66,8 +53,12 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
 
-  if (isRateLimited(ip)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  const ipCheck = perIpLimiter.check(ip)
+  if (!ipCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(ipCheck.retryAfterMs / 1000)) } }
+    )
   }
 
   try {
@@ -140,7 +131,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to save document' }, { status: 500 })
     }
 
-    recordUsage(ip)
+    perIpLimiter.record(ip)
     console.log(`[knowledge-upload] Stored ${file.name} (${charCount} chars) for intake=${intakeId}`)
 
     return NextResponse.json({

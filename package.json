@@ -28,6 +28,8 @@
     "test:notification-guards": "npx tsx --test src/lib/__tests__/notification-guards.test.ts",
     "test:all": "npx tsx --test src/lib/__tests__/*.test.ts",
     "test:canary": "npx tsx ../tests/canary/eval-harness.ts",
+    "test:smoke": "bash scripts/smoke-test.sh",
+    "db:types": "npx supabase gen types typescript --project-id qwhvblomlgeapzhnuwlb > src/lib/database.types.ts",
     "test:ui": "npx playwright test",
     "test:ui:headed": "npx playwright test --headed",
     "test:ui:report": "npx playwright show-report",

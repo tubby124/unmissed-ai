@@ -78,18 +78,21 @@ export async function POST(req: NextRequest) {
 
     console.log(`[demo:ivr] callId=${call.callId} tools=1 medium=twilio-inbound niche=${demoId} caller=${callerPhone}`)
 
-    // Log phone demo call (fire-and-forget)
+    // Log phone demo call
     const supabase = createServiceClient()
     const ipHash = crypto.createHash('sha256').update(callerPhone).digest('hex').slice(0, 16)
-    supabase.from('demo_calls').insert({
-      demo_id: demoId,
-      caller_name: callerPhone,
-      ultravox_call_id: call.callId,
-      source: 'phone',
-      ip_hash: ipHash,
-    }).then(({ error }) => {
+    try {
+      const { error } = await supabase.from('demo_calls').insert({
+        demo_id: demoId,
+        caller_name: callerPhone,
+        ultravox_call_id: call.callId,
+        source: 'phone',
+        ip_hash: ipHash,
+      })
       if (error) console.error(`[demo-ivr] Failed to log demo call: ${error.message}`)
-    })
+    } catch (e) {
+      console.error('[demo-ivr] Demo call log threw:', e)
+    }
 
     const twiml = buildStreamTwiml(call.joinUrl)
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })

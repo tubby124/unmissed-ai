@@ -1,14 +1,61 @@
 #!/bin/sh
-# S12-OPS6: Run type check before every push.
+# S18o: Run full build before every push (catches module-level SDK init + type errors).
+# S18p: Grep guard for module-level SDK initialization patterns.
 # Install: git config core.hooksPath .githooks
 
-echo "Running type check before push..."
-npx tsc --noEmit 2>&1
+echo "=== Pre-push checks ==="
+
+# ── S18p: Detect module-level SDK initialization ─────────────────────────────
+echo "[1/4] Checking for module-level SDK initialization..."
+MATCHES=$(grep -rn '^\(export \)\{0,1\}const .* = new Stripe\|^\(export \)\{0,1\}const .* = createClient(\|^\(export \)\{0,1\}const .* = createServiceClient(\|^\(export \)\{0,1\}const .* = createBrowserClient(' src/app/ src/lib/ 2>/dev/null || true)
+
+if [ -n "$MATCHES" ]; then
+  echo ""
+  echo "BLOCKED: Module-level SDK initialization detected (S18m/S18p)."
+  echo "These patterns crash during next build when env vars are unavailable:"
+  echo ""
+  echo "$MATCHES"
+  echo ""
+  echo "Fix: Move initialization inside function bodies or use lazy-init pattern."
+  exit 1
+fi
+echo "  No module-level SDK init found."
+
+# ── S18o: Full build check ───────────────────────────────────────────────────
+echo "[2/4] Running full build (npm run build)..."
+npm run build 2>&1
 
 if [ $? -ne 0 ]; then
   echo ""
-  echo "Type check failed. Push aborted. Fix type errors and try again."
+  echo "Build failed. Push aborted. Fix build errors and try again."
   exit 1
 fi
 
-echo "Type check passed."
+# ── S18p: Detect module-level SDK initialization (post-build double-check) ────
+echo "[3/4] Checking for module-level SDK initialization (S18p)..."
+MODULE_INIT=$(grep -rn '^\(export \)\?const .* = new Stripe\|^\(export \)\?const .* = createClient()\|^\(export \)\?const .* = createServiceClient()' src/app/ src/lib/ 2>/dev/null || true)
+if [ -n "$MODULE_INIT" ]; then
+  echo ""
+  echo "ERROR: Module-level SDK initialization detected (S18p):"
+  echo "$MODULE_INIT"
+  echo ""
+  echo "Move these into function bodies or use lazy-init pattern."
+  echo "See memory/feedback-nextjs-build-safety.md"
+  exit 1
+fi
+echo "  No module-level SDK init found."
+
+# ── S18b: Fire-and-forget .then() baseline check ─────────────────────────────
+echo "[4/4] Checking .then() count in route handlers (S18b)..."
+THEN_COUNT=$(grep -r '\.then(' src/app/api/ --include='*.ts' 2>/dev/null | wc -l | tr -d ' ')
+THEN_BASELINE=1
+if [ "$THEN_COUNT" -gt "$THEN_BASELINE" ]; then
+  echo ""
+  echo "ERROR: .then() count in route handlers increased ($THEN_COUNT > baseline $THEN_BASELINE)"
+  echo "Convert new .then() patterns to await. See S18b."
+  exit 1
+fi
+echo "  .then() count OK ($THEN_COUNT <= baseline $THEN_BASELINE)."
+
+echo ""
+echo "=== All pre-push checks passed ==="

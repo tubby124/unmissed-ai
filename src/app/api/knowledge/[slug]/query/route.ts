@@ -125,13 +125,15 @@ export async function POST(
     sorted.length, topSimilarity, RRF_MIN_SCORE, latency,
   )
 
-  // K8: Increment hit_count for matched chunks (fire-and-forget)
+  // K8: Increment hit_count for matched chunks
   if (sorted.length > 0) {
     const matchedIds = sorted.map(m => m.id)
-    supabase.rpc('increment_chunk_hits', { chunk_ids: matchedIds })
-      .then(({ error: hitErr }) => {
-        if (hitErr) console.error(`[knowledge-query] hit tracking failed: ${hitErr.message}`)
-      })
+    try {
+      const { error: hitErr } = await supabase.rpc('increment_chunk_hits', { chunk_ids: matchedIds })
+      if (hitErr) console.error(`[knowledge-query] hit tracking failed: ${hitErr.message}`)
+    } catch (e) {
+      console.error('[knowledge-query] hit tracking threw:', e)
+    }
   }
 
   if (sorted.length === 0) {
