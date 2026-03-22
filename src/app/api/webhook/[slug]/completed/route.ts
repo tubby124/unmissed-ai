@@ -38,8 +38,8 @@ export async function POST(
 
   // ── HMAC signature verification (S13b: mandatory when secret configured) ──
   const sig = req.nextUrl.searchParams.get('sig')
-  const nonce = req.nextUrl.searchParams.get('nonce')
-  const ts = req.nextUrl.searchParams.get('ts')
+  const nonce = req.nextUrl.searchParams.get('n') || req.nextUrl.searchParams.get('nonce')
+  const ts = req.nextUrl.searchParams.get('t') || req.nextUrl.searchParams.get('ts')
   const hasSecret = !!process.env.WEBHOOK_SIGNING_SECRET
 
   if (hasSecret && !sig) {

@@ -31,6 +31,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche)')
       .eq('user_id', user.id)
       .single()
+
+    // S12-V5b: No client_users row = user authenticated but not authorized for any client
+    if (!cu) {
+      redirect('/onboard')
+    }
+
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
     const clientData = cu?.clients as { business_name?: string; status?: string; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null } | null

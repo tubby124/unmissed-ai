@@ -29,11 +29,11 @@ const CALLBACK_SIG_MAX_AGE_MS = 30 * 60 * 1000
 export function signCallbackUrl(baseUrl: string, slug: string): string {
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   if (!secret) return baseUrl // dev: no secret → no sig
-  const nonce = crypto.randomBytes(16).toString('hex')
+  const nonce = crypto.randomBytes(8).toString('hex') // 8 bytes = 16 hex chars (keep URL under 200)
   const ts = Date.now().toString()
   const sig = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
   const sep = baseUrl.includes('?') ? '&' : '?'
-  return `${baseUrl}${sep}sig=${sig}&nonce=${nonce}&ts=${ts}`
+  return `${baseUrl}${sep}sig=${sig}&n=${nonce}&t=${ts}`
 }
 
 /**
