@@ -58,16 +58,16 @@ Sync Triggers (settings/route.ts lines 293-300):
 | 12 | BookingCard | `BookingCard.tsx` | `booking_service_duration_minutes`, `booking_buffer_minutes` + Google Calendar OAuth link | DB-only (booking_enabled via calendar connect) | Both | `usePatchSettings` |
 | 13 | TestCallCard | `TestCallCard.tsx` | fires POST `/api/dashboard/test-call` | N/A (creates call, doesn't save settings) | Both | Custom (test-call endpoint) |
 
-### Still Inline — Need Extraction (6 sections)
+### Extracted in 8d (6 components — all formerly inline)
 
-| # | Proposed Component | AgentTab Lines | Fields Saved | Sync Path | Visibility | Complexity |
-|---|-------------------|---------------|-------------|-----------|------------|------------|
-| 14 | **SetupCard** | ~460-600 | `forwarding_number`, `transfer_conditions`, `setup_complete` | YES — forwarding_number + transfer_conditions trigger Ultravox tools | Client only | MEDIUM |
-| 15 | **GodModeCard** | ~760-870 | `telegram_bot_token`, `telegram_chat_id`, `twilio_number`, `timezone`, `monthly_minute_limit` + test telegram | DB-only | Admin only | MEDIUM |
-| 16 | **PromptEditorCard** | ~880-1120 | `system_prompt` (direct textarea edit) | YES — prompt changed -> Ultravox sync + version | Admin=editor, Client=behavior summary | HIGH |
-| 17 | **LearningLoopCard** | ~1220-1290 | read-only (auto-analysis from call patterns) | N/A | Both | LOW |
-| 18 | **AIImproveCard** | ~1290-1370 | applies improved prompt to editor state | N/A (writes to parent prompt state) | Admin only | MEDIUM |
-| 19 | **PromptHistoryCard** | ~1370-1461 | restore version -> updates `system_prompt` | YES — restored prompt -> Ultravox sync | Admin only | MEDIUM |
+| # | Component | File | Fields Saved | Sync Path | Visibility | Complexity |
+|---|-----------|------|-------------|-----------|------------|------------|
+| 14 | **SetupCard** | `SetupCard.tsx` | `forwarding_number`, `transfer_conditions`, `setup_complete` | YES — forwarding_number + transfer_conditions trigger Ultravox tools | Client only | MEDIUM |
+| 15 | **GodModeCard** | `GodModeCard.tsx` | `telegram_bot_token`, `telegram_chat_id`, `twilio_number`, `timezone`, `monthly_minute_limit` + test telegram | DB-only | Admin only | MEDIUM |
+| 16 | **PromptEditorCard** | `PromptEditorCard.tsx` | `system_prompt` (direct textarea edit) | YES — prompt changed -> Ultravox sync + version | Admin=editor, Client=behavior summary | HIGH |
+| 17 | **LearningLoopCard** | `LearningLoopCard.tsx` | read-only (auto-analysis from call patterns) | N/A | Both | LOW |
+| 18 | **ImprovePromptCard** | `ImprovePromptCard.tsx` | applies improved prompt to editor state | N/A (writes to parent prompt state via `onApply`) | Admin only | MEDIUM |
+| 19 | **PromptVersionsCard** | `PromptVersionsCard.tsx` | restore version -> updates `system_prompt` | YES — restored prompt via `onRestore` callback | Admin only | MEDIUM |
 
 ---
 
@@ -245,8 +245,9 @@ Active bugs are tracked in `docs/settings-card-tracker.md`. Quick status:
 |------|-----------|--------|
 | Wave 1 | BookingCard, TestCallCard, WebhooksCard, AgentConfigCard | **DONE** 2026-03-22 — all 4 extracted, tsc clean, AgentTab 1774→1461 lines |
 | Unification | All 7 cards + AgentOverviewCard: `mode`/`onSave`/`error` | **DONE** 2026-03-22 — `usePatchSettings` hook upgraded, `CardMode` type, error display on all cards, mode-aware copy/visibility. D15 (validation) + D16 (error surfacing) fixed. |
-| Wave 2 | SetupCard, GodModeCard, LearningLoopCard | NOT STARTED |
-| Wave 3 | PromptEditorCard, AIImproveCard, PromptHistoryCard | NOT STARTED |
+| Wave 2 | SetupCard, GodModeCard, LearningLoopCard | **DONE** 2026-03-22 — all 3 extracted |
+| Wave 3 | PromptEditorCard, ImprovePromptCard, PromptVersionsCard | **DONE** 2026-03-22 — all 3 extracted, prompt state kept in parent |
+| **8d Reorg** | SettingsSection groups + AgentTab rewrite | **DONE** 2026-03-22 — AgentTab 1502→534 lines, 6 collapsible sections, build clean |
 
 ### Extraction Checklist Template
 For each component:

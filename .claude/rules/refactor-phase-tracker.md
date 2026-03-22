@@ -156,7 +156,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | 8a | Agent Capability Dashboard | CapabilitiesCard upgraded: progress bar, ReadinessBadge, clickable scroll-to-section items, detail strings, knowledge layer legend. Visible to ALL users. | HIGH | **DONE** 2026-03-22 |
 | 8b | Knowledge vs Memory Explainer | Blue "Always knows" banner in AdvancedContextCard, purple "Searched when needed" in KnowledgeEngineCard. Badge text "Persistent" → "Every call". | MEDIUM | **DONE** 2026-03-22 |
 | 8c | Agent Name → Prompt Sync | D26: `patchAgentName()` in prompt-patcher.ts. Word-boundary regex, `validatePrompt()` gate, auto-syncs to Ultravox on save. | MEDIUM | **DONE** 2026-03-22 |
-| 8d | Settings Page Reorganization | Group cards by purpose: (1) Identity & Voice, (2) What It Knows, (3) What It Can Do, (4) Talk to Your Agent. Collapsible sections. Reduces overwhelm. | MEDIUM | NOT STARTED |
+| 8d | Settings Page Reorganization | Group cards by purpose: (1) Identity & Voice, (2) What It Knows, (3) What It Can Do, (4) Talk to Your Agent. Collapsible sections. 6 SettingsSection groups. AgentTab 1502→534 lines. All 19 cards now standalone components. | MEDIUM | **DONE** 2026-03-22 |
 | 8e | Prompt-Aware Suggestions | Read the prompt, extract what the agent actually says/does, surface as "Your agent will..." bullets. Helps users verify behavior without making a call. | LOW | NOT STARTED |
 | 8f | Change Impact Preview | When user edits a field (FAQ, hours, voice), show "This change means your agent will now..." before saving. Reduces anxiety about breaking things. | LOW | NOT STARTED |
 | 8g | Quick-Add from Calls Page | After reviewing a call transcript, suggest: "Your agent didn't know X — add it as a FAQ?" One-click adds to extra_qa. | MEDIUM | NOT STARTED |
@@ -247,7 +247,8 @@ DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
          GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense),
          GATE-3: S14a-d (voicemail fallback + settings UI),
          GATE-4: S10a-f + D1-D29 (dashboard observability + session discoveries),
-         D17/D18 (realtime scoping), D26/8c (agent name→prompt sync), 8a-8b (capability UX)
+         D17/D18 (realtime scoping), D26/8c (agent name→prompt sync), 8a-8b (capability UX),
+         8d (settings page reorg: 6 sections, 19 cards extracted, AgentTab 1502→534 lines)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
@@ -287,5 +288,5 @@ DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
 - **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
 - **Prompt injection defense required:** All agent prompts must include reveal/role-override/code-output defense rules. `validatePrompt()` enforces for generated prompts. Hand-crafted `SYSTEM_PROMPT.txt` files need manual addition matching each client's style (e.g. "Never X" vs numbered rules). Always dry-run `deploy_prompt.py --dry-run` before live deploy to verify tools aren't wiped.
 - **Prompt section patching:** `lib/prompt-patcher.ts` for feature-toggle patches (calendar block, voice style, agent name). `lib/prompt-sections.ts` for marker-based section replacement (`<!-- unmissed:SECTION_ID -->`). Never edit prompt text inline in route handlers. Multi-field patch order: identity (name) → sensory (voice) → operational (calendar/hours).
-- **Settings card extraction pattern:** New settings cards go in `components/dashboard/settings/`. Use `usePatchSettings` hook for PATCH `/api/dashboard/settings`. Cards: HoursCard, VoiceStyleCard, VoicemailGreetingCard, SectionEditorCard, AdvancedContextCard, BookingCard, WebhooksCard, AgentConfigCard, TestCallCard. Wave 2 next: SetupCard, GodModeCard, LearningLoopCard.
+- **Settings card extraction pattern:** All 19 settings cards are in `components/dashboard/settings/`. Use `usePatchSettings` hook for PATCH `/api/dashboard/settings`. AgentTab.tsx (534 lines) is a layout shell — all logic lives in individual card components. Cards grouped into 6 collapsible `SettingsSection` groups. See `memory/settings-card-architecture.md` for full section map.
 - **Call-time injection (not prompt-time):** Ephemeral data (`injected_note`, returning caller context) is injected via `callerContextBlock()` in `lib/agent-context.ts` at call creation — NOT baked into `system_prompt` in DB. DB prompt = stable base. Call-time additions = dynamic overlay via `templateContext`.
