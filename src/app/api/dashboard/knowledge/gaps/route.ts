@@ -83,6 +83,82 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * POST /api/dashboard/knowledge/gaps
+ *
+ * Inserts unanswered questions detected from test call transcripts.
+ * Body: { client_id?, questions: string[] }
+ * Deduplicates against existing unresolved rows for the same client.
+ * Source: 'transcript' (vs 'rag' for RAG misses).
+ */
+export async function POST(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
+
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!cu) return new NextResponse('No client found', { status: 404 })
+
+  const body = await req.json().catch(() => ({})) as {
+    client_id?: string
+    questions?: string[]
+  }
+
+  const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
+  const questions = body.questions
+
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return NextResponse.json({ error: 'questions array is required' }, { status: 400 })
+  }
+
+  if (cu.role !== 'admin' && clientId !== cu.client_id) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  const svc = createServiceClient()
+
+  // Fetch existing unresolved queries for dedup
+  const { data: existing } = await svc
+    .from('knowledge_query_log')
+    .select('query_text')
+    .eq('client_id', clientId)
+    .eq('result_count', 0)
+    .is('resolved_at', null)
+    .limit(500)
+
+  const existingNormalized = new Set(
+    (existing ?? []).map(r => r.query_text.toLowerCase().trim().replace(/\s+/g, ' '))
+  )
+
+  // Filter out duplicates and insert new gaps
+  const newQuestions = questions
+    .map(q => q.trim())
+    .filter(q => q.length > 5)
+    .filter(q => !existingNormalized.has(q.toLowerCase().trim().replace(/\s+/g, ' ')))
+    .slice(0, 10) // cap at 10 per call
+
+  if (newQuestions.length === 0) {
+    return NextResponse.json({ ok: true, inserted: 0 })
+  }
+
+  const rows = newQuestions.map(q => ({
+    client_id: clientId,
+    query_text: q,
+    result_count: 0,
+    source: 'transcript',
+  }))
+
+  const { error } = await svc.from('knowledge_query_log').insert(rows)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, inserted: rows.length })
+}
+
+/**
  * PATCH /api/dashboard/knowledge/gaps
  *
  * Resolves a gap by marking all matching query_log rows as resolved.

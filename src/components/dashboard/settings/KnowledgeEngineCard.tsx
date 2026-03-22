@@ -98,6 +98,15 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
     if (localEnabled) fetchStats()
   }, [localEnabled, fetchStats])
 
+  // L5-GAP: Listen for refresh signal from ImprovementHints (after transcript gaps are POSTed)
+  useEffect(() => {
+    function handleRefresh() {
+      if (localEnabled) fetchStats()
+    }
+    window.addEventListener('knowledge-gaps-refresh', handleRefresh)
+    return () => window.removeEventListener('knowledge-gaps-refresh', handleRefresh)
+  }, [localEnabled, fetchStats])
+
   // Sync status from API response
   const [toggleSyncStatus, setToggleSyncStatus] = useState<'synced' | 'failed' | null>(null)
 

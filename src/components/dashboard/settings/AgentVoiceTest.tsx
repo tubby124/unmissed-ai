@@ -214,10 +214,22 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
     try {
       const insight = analyzeTranscriptClient(transcripts, knowledge)
       setCallInsight(insight)
+
+      // L5-GAP: Fire-and-forget POST unanswered questions to knowledge gap pipeline
+      if (insight.unansweredQuestions.length > 0) {
+        const questions = insight.unansweredQuestions.map(q => q.question)
+        const body: Record<string, unknown> = { questions }
+        if (isAdmin) body.client_id = clientId
+        fetch('/api/dashboard/knowledge/gaps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).catch(() => { /* non-blocking, non-fatal */ })
+      }
     } catch {
       // Analysis failure is non-critical — config hints still show
     }
-  }, [callState, knowledge, transcripts])
+  }, [callState, knowledge, transcripts, isAdmin, clientId])
 
   // Cleanup on unmount
   useEffect(() => {

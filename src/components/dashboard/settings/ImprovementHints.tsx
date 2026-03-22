@@ -159,13 +159,22 @@ export default function ImprovementHints({ knowledge, callInsight, onScrollTo }:
 
   if (hints.length === 0) return null
 
+  function handleHintClick(hint: HintItem) {
+    onScrollTo?.(hint.section)
+    // L5-GAP: When clicking a knowledge/advanced-context hint, signal KnowledgeEngineCard
+    // to refresh its gaps list so the newly-inserted transcript questions appear immediately
+    if (hint.section === 'knowledge' || hint.section === 'advanced-context') {
+      window.dispatchEvent(new CustomEvent('knowledge-gaps-refresh'))
+    }
+  }
+
   return (
     <div className="w-full space-y-1.5">
       <p className="text-[10px] font-semibold uppercase tracking-wider t3">Ways to improve</p>
       {hints.map((h, i) => (
         <button
           key={`${h.source}-${h.section}-${i}`}
-          onClick={() => onScrollTo?.(h.section)}
+          onClick={() => handleHintClick(h)}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/[0.04] transition-colors text-left cursor-pointer group"
         >
           <span className="text-sm shrink-0">{h.icon}</span>
