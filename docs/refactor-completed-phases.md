@@ -763,7 +763,7 @@ S4 work revealed that S1a only fixed 5 of 11 deploy paths. Audited all 11 routes
 
 ---
 
-## S10 — Dashboard Observability — NOT STARTED
+## S10 — Dashboard Observability — GATE-4 PASS (2026-03-22)
 
 **Goal:** Surface notification, booking, and audit data in the dashboard UI.
 
@@ -775,12 +775,12 @@ S4 work revealed that S1a only fixed 5 of 11 deploy paths. Audited all 11 routes
 - S7k — Audit trail backfill — pre-S6 prompt_versions NULL columns (LOW — one-time script)
 
 **Items:**
-- [ ] S10a — Prompt version history with audit context (who, when, char delta)
-- [ ] S10b — "Last regenerated X minutes ago" status on Refresh button
-- [ ] S10c — Notifications tab: recent notification_logs by client, filterable
-- [ ] S10d — Bookings tab: bookings by client with calendar link + status
-- [ ] S10e — Call detail view: inline notification + booking context
-- [ ] S10f — Failed notification badge/counter in sidebar
+- [x] S10a — **Prompt version history with audit context (DONE 2026-03-22):** `prompt-versions/route.ts` returns version history with `changed_by`, `role`, `char_count`, `char_delta`. Surfaced in AgentTab prompt section.
+- [x] S10b — **"Agent last updated Xm ago" status (DONE 2026-03-22):** 11-line addition to AgentTab — shows relative time since last `clients.updated_at` under the regen button. Label says "Agent last updated" (not "regenerated") since it tracks any client mutation.
+- [x] S10c — **Notifications tab (DONE 2026-03-22):** Full notifications page with channel-colored icons (telegram=blue, email=purple, sms=green, system=amber), status filters, date grouping, motion transitions. Paginated with offset-based Load More. Realtime subscription on `notification_logs`.
+- [x] S10d — **Bookings tab / Calendar page (DONE 2026-03-22):** Calendar page with upcoming/past/today/cancelled filter pills, mini date picker sidebar, status badges (booked=green, cancelled=red, completed=blue). Server-side filtering via `status`, `date_from`, `date_to` API params. Paginated with Load More. Realtime subscription on `bookings`.
+- [x] S10e — **Call detail view (DONE 2026-03-22):** `/dashboard/calls/[id]` shows CallNotifications + CallBookings sub-panels for each call. Dual-ID lookup (tries `ultravox_call_id` first, falls back to `call_logs.id` UUID) to handle both booking and notification cross-references.
+- [x] S10f — **Failed notification badge (DONE 2026-03-22):** Red badge in sidebar nav showing count of failed notifications in last 24h. Realtime via `postgres_changes` on both `call_logs` AND `notification_logs` tables. Badge auto-updates without page refresh.
 - [ ] S10g — Duplicate webhook rate metric (alert if idempotency guard >5%)
 - [ ] S10h — Booking lifecycle: detect Google Calendar cancel/reschedule (from S2-gap3 + S9e)
 - [ ] S10i — Calendar OAuth health check: proactive status (from S9f)
@@ -1481,6 +1481,36 @@ Not in scope for initial S13b, but the end-state architecture:
 | S18e | S18 | **DONE** (script written, S18e-VALIDATE pending) |
 | S18o | S18 | **DONE** (pre-push runs full build) |
 
+### Session Discoveries (2026-03-22) — Bugs & Gaps Found During GATE-4
+
+Systemic issues surfaced while implementing S10a-f. All fixed in the same session.
+
+| # | Type | Description | Severity | Status |
+|---|------|-------------|----------|--------|
+| D1 | **BUG** | Booking→call links broken: `bookings.call_id` stores `call_logs.id` (UUID) but `/dashboard/calls/[id]` queried `.eq('ultravox_call_id', id)` only. **Fix:** dual-ID lookup — tries `ultravox_call_id` first, falls back to `call_logs.id`. | HIGH | **DONE** |
+| D2 | UX | Sidebar nav says "Calendar" but page title was "Bookings". **Fix:** page title changed to "Calendar". | LOW | **DONE** |
+| D3 | API | Bookings API lacked server-side filtering. **Fix:** added `status`, `date_from`, `date_to` query params to `/api/dashboard/bookings`. | LOW | **DONE** |
+| D4 | PRECISION | S10b "Last updated" label was imprecise — fires on ANY client mutation, not just prompt regen. **Fix:** label changed to "Agent last updated". | LOW | **DONE** |
+| D5 | UX | Notifications page had basic list UI vs Calendar's timeline design. **Fix:** full rewrite — stats bar, channel-colored icons, timeline cards, grouped by date, motion transitions. | LOW | **DONE** |
+| D6 | REALTIME | Sidebar notification badge subscribed to `call_logs` realtime but NOT `notification_logs` — badge went stale mid-session when new notifications arrived. **Fix:** added second `.on('postgres_changes', { table: 'notification_logs' })` handler to existing sidebar channel. File: `Sidebar.tsx`. | MEDIUM | **DONE** |
+| D7 | UX | No "Load more" pagination — Calendar capped at 100, Notifications at 50, truncated for high-volume clients. **Fix:** offset-based pagination with "Load more (X of Y)" button on both pages. Bookings API updated to use `.range()` + `{ count: 'exact' }` + return `total`. File: `bookings/route.ts`, `calendar/page.tsx`, `notifications/page.tsx`. | MEDIUM | **DONE** |
+| D8 | WIRING | Bookings API had `status`/`date_from`/`date_to` server-side filters (from D3) but Calendar frontend didn't use them — fetched all 100 and filtered client-side. **Fix:** `buildParams()` in Calendar page maps filter pills to API query params. Server does the filtering. File: `calendar/page.tsx`. | LOW | **DONE** |
+| D9 | REALTIME | No realtime subscriptions on Calendar or Notifications pages — new records required manual refresh. **Fix:** `postgres_changes` subscription on `bookings` table (Calendar) and `notification_logs` table (Notifications). Auto-refetch on INSERT/UPDATE/DELETE. File: `calendar/page.tsx`, `notifications/page.tsx`. | MEDIUM | **DONE** |
+| D10 | PATTERN | `notification_logs.call_id` uses internal UUID — same systemic pattern as D1. Already handled by D1 dual-ID lookup in call detail view. Documented as pattern note, no separate fix needed. | LOW | N/A |
+
+**Files changed (D1-D10 combined):**
+- `src/app/dashboard/calls/[id]/page.tsx` — D1 dual-ID lookup
+- `src/app/dashboard/calendar/page.tsx` — D2 title, D7 pagination, D8 server filters, D9 realtime
+- `src/app/dashboard/notifications/page.tsx` — D5 timeline rewrite, D7 pagination, D9 realtime
+- `src/app/api/dashboard/bookings/route.ts` — D3 filter params, D7 offset/count/total
+- `src/components/dashboard/Sidebar.tsx` — D4 label, D6 notification_logs realtime
+- `src/app/api/dashboard/notifications/route.ts` — already had offset/limit/channel/status (no changes needed)
+
+**Commits:**
+- `43ef8c6` — feat(GATE-4): S10b+d dashboard observability — bookings redesign + regen timestamp
+- `0170639` — feat(GATE-4): S10b-f dashboard observability + settings component extraction + injected_note fix
+- `d745922` — feat(GATE-4): D6-D10 dashboard polish — realtime + pagination + server filters
+
 ---
 
 ## S12 Execution Slices
@@ -1816,7 +1846,7 @@ P0-LAUNCH-GATE (do before ANY new S12 features — see P0-LAUNCH-GATE section ab
   GATE-1 → S15-PRE → S15-ENV/CODE → S12-V15 → S12-LOGIN1 → S12-V22 (auth + email + branding)
   GATE-2 → S13-REC1 + S16a + S16e (privacy + compliance + prompt injection defense)
   GATE-3 → S14a-d (outage resilience — voicemail fallback core)
-  GATE-4 → S10a-f (dashboard observability — surface existing data)
+  GATE-4 → S10a-f (dashboard observability — surface existing data) + D1-D10 (session discoveries)
   GATE-5 → S18a + S18c + S18e + S18o (guard rails — fire-and-forget, types, smoke test, build check)
 
 S12 SLICES (after P0 gates pass — see S12 Execution Slices section above):
