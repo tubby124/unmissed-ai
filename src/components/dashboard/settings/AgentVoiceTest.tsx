@@ -13,6 +13,8 @@ import {
   type AgentStatus,
   type TranscriptEntry,
 } from '@/components/DemoCallVisuals'
+import ImprovementHints from './ImprovementHints'
+import { analyzeTranscriptClient, type CallInsight } from '@/lib/transcript-analysis'
 
 let UltravoxSession: typeof import('ultravox-client').UltravoxSession | null = null
 let UltravoxSessionStatus: typeof import('ultravox-client').UltravoxSessionStatus | null = null
@@ -47,6 +49,7 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
   const [secondsLeft, setSecondsLeft] = useState(300)
   const [agentName, setAgentName] = useState('Your Agent')
   const [energy, setEnergy] = useState(0.3)
+  const [callInsight, setCallInsight] = useState<CallInsight | null>(null)
 
   const sessionRef = useRef<InstanceType<typeof import('ultravox-client').UltravoxSession> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -110,6 +113,7 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
     setError(null)
     setTranscripts([])
     setSecondsLeft(300)
+    setCallInsight(null)
 
     if (!soundRef.current) soundRef.current = createSoundCues()
 
@@ -203,6 +207,17 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
       setCallState('error')
     }
   }, [clientId, isAdmin])
+
+  // L5/R1: Client-side transcript analysis — runs instantly when call ends
+  useEffect(() => {
+    if (callState !== 'ended' || !knowledge || transcripts.length === 0) return
+    try {
+      const insight = analyzeTranscriptClient(transcripts, knowledge)
+      setCallInsight(insight)
+    } catch {
+      // Analysis failure is non-critical — config hints still show
+    }
+  }, [callState, knowledge, transcripts])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -388,14 +403,14 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
               </div>
             )}
 
-            {/* Post-call improvement hints */}
+            {/* Post-call improvement hints (L5: transcript-aware + config-aware) */}
             {knowledge && (
-              <ImprovementHints knowledge={knowledge} onScrollTo={onScrollTo} />
+              <ImprovementHints knowledge={knowledge} callInsight={callInsight} onScrollTo={onScrollTo} />
             )}
 
             <div className="flex gap-2 w-full">
               <button
-                onClick={() => { setCallState('idle'); setTranscripts([]) }}
+                onClick={() => { setCallState('idle'); setTranscripts([]); setCallInsight(null) }}
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-colors cursor-pointer"
               >
                 Talk Again
@@ -446,49 +461,4 @@ function TryChip({ text }: { text: string }) {
   )
 }
 
-interface HintItem {
-  icon: string
-  label: string
-  section: string
-}
-
-function ImprovementHints({ knowledge, onScrollTo }: { knowledge: AgentKnowledge; onScrollTo?: (s: string) => void }) {
-  const hints: HintItem[] = []
-
-  if (!knowledge.hasFacts && !knowledge.hasFaqs)
-    hints.push({ icon: '💬', label: 'Add FAQs so your agent can answer common questions', section: 'advanced-context' })
-  if (!knowledge.hasHours)
-    hints.push({ icon: '🕐', label: 'Set your business hours', section: 'hours' })
-  if (!knowledge.hasWebsite)
-    hints.push({ icon: '🌐', label: 'Add your website to teach your agent more', section: 'advanced-context' })
-  if (!knowledge.hasBooking)
-    hints.push({ icon: '📅', label: 'Connect your calendar for appointment booking', section: 'booking' })
-  if (!knowledge.hasKnowledge)
-    hints.push({ icon: '📄', label: 'Upload documents to your knowledge base', section: 'knowledge' })
-  if (!knowledge.hasTransfer)
-    hints.push({ icon: '📞', label: 'Add a forwarding number for urgent calls', section: 'agent-config' })
-
-  if (hints.length === 0) return null
-
-  // Show max 3 most impactful hints
-  const visible = hints.slice(0, 3)
-
-  return (
-    <div className="w-full space-y-1.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wider t3">Ways to improve</p>
-      {visible.map((h, i) => (
-        <button
-          key={i}
-          onClick={() => onScrollTo?.(h.section)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/[0.04] transition-colors text-left cursor-pointer"
-        >
-          <span className="text-sm shrink-0">{h.icon}</span>
-          <span className="text-[11px] t2 flex-1">{h.label}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-zinc-500 shrink-0">
-            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      ))}
-    </div>
-  )
-}
+// ImprovementHints extracted to ./ImprovementHints.tsx (L5)

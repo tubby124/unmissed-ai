@@ -13,6 +13,7 @@ import {
   type CompletedClient,
 } from '@/lib/completed-notifications'
 import { getSignedRecordingUrl } from '@/lib/recording-url'
+import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig } from '@/lib/transcript-analysis'
 
 export const maxDuration = 120
 
@@ -149,7 +150,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, office_hours, knowledge_backend, website_url, business_facts, extra_qa')
         .eq('slug', slug)
         .single()
 
@@ -316,6 +317,32 @@ export async function POST(
             if (flagError) console.error(`[completed] seconds_counted flag update FAILED for callId=${callId}: ${flagError.message}`)
             console.log(`[completed] Seconds incremented: clientId=${client.id} +${durationSeconds}s (${Math.ceil(durationSeconds / 60)}min)`)
           }
+        }
+      }
+
+      // ── L5: Per-call transcript analysis (keyword-based, $0 cost) ───────────
+      if (transcript.length > 0 && callLogId && !skipClassification) {
+        try {
+          const insight = analyzeTranscriptServer(transcript, client as unknown as ServerClientConfig)
+          if (!isEmptyInsight(insight)) {
+            const { error: insightError } = await supabase
+              .from('call_insights')
+              .upsert({
+                call_id: callLogId,
+                client_id: client.id,
+                unanswered_questions: insight.unansweredQuestions,
+                feature_suggestions: insight.featureSuggestions,
+                caller_frustrated: insight.callerFrustrated,
+                repeated_questions: insight.repeatedQuestions,
+                agent_confused_moments: insight.agentConfusedMoments,
+                source: insight.source,
+              }, { onConflict: 'call_id' })
+
+            if (insightError) console.error(`[completed] L5 insight write failed for callId=${callId}: ${insightError.message}`)
+            else console.log(`[completed] L5 insight saved: callId=${callId} gaps=${insight.unansweredQuestions.length} features=${insight.featureSuggestions.length} frustrated=${insight.callerFrustrated}`)
+          }
+        } catch (analysisErr) {
+          console.error('[completed] L5 analysis error (non-fatal):', analysisErr)
         }
       }
 
