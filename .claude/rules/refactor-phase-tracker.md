@@ -139,6 +139,17 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | D3 | API | Bookings API lacked server-side filtering (no status/date params) | LOW | **DONE** 2026-03-22 -- added `status`, `date_from`, `date_to` query params |
 | D4 | PRECISION | S10b "Last updated" fires on ANY client mutation, not just prompt regen | LOW | **DONE** 2026-03-22 -- label changed to "Agent last updated" |
 | D5 | UX | Notifications page had basic list UI vs Calendar's timeline design | LOW | **DONE** 2026-03-22 -- full rewrite: stats, channel-colored icons, timeline cards, grouped by date, motion transitions |
+| D6 | REALTIME | Sidebar notification badge subscribes to `call_logs` changes only, not `notification_logs`. Badge goes stale mid-session. | MEDIUM | **DONE** 2026-03-22 -- added `notification_logs` realtime subscription |
+| D7 | UX | No "Load more" pagination — Calendar caps at 100, Notifications at 50. Heavy-volume clients see truncated view. | LOW | **DONE** 2026-03-22 -- added Load More button to both pages |
+| D8 | WIRING | D3 API filters exist (`status`, `date_from`, `date_to`) but Calendar frontend doesn't use them — still fetches all and filters client-side. | LOW | **DONE** 2026-03-22 -- Calendar now uses server-side status/date filters |
+| D9 | REALTIME | Calendar and Notifications pages have no realtime — new bookings/notifications require manual refresh. | LOW | **DONE** 2026-03-22 -- added `postgres_changes` subscriptions to both pages |
+| D10 | PATTERN | `notification_logs.call_id` uses internal UUID (same pattern as bookings D1). Already handled by D1 dual-ID lookup in call detail page. | NOTE | N/A -- documented pattern, no code change needed |
+| D11 | **BUG** | `voice_style_preset` save was a no-op — wrote to DB but never patched the prompt or synced to Ultravox. Preset selection had zero effect on calls. | HIGH | **DONE** 2026-03-22 -- `patchVoiceStyleSection()` in prompt-patcher.ts, wired into settings API |
+| D12 | **BUG** | `injected_note` (Today's Update) had 3 distinct bugs: (1) prompt-patching at save time never persisted combined prompt, (2) next agent sync wiped it, (3) inbound webhook didn't SELECT it. | HIGH | **DONE** 2026-03-22 -- converted to call-time injection via `callerContextBlock` in agent-context.ts |
+| D13 | REFACTOR | AgentTab.tsx was 2239-line monolith — extracted 5 settings cards + shared `usePatchSettings` hook. AgentTab now 1774 lines. | MEDIUM | **DONE** 2026-03-22 -- HoursCard, VoiceStyleCard, VoicemailGreetingCard, SectionEditorCard, AdvancedContextCard |
+| D14 | TECH DEBT | Booking config card is the last inline settings card in AgentTab.tsx (`saveBookingConfig` + state). Not extracted because it interacts with calendar block prompt patching. | LOW | NOT STARTED |
+| D15 | **GAP** | Voice style + calendar prompt patches skip `validatePrompt()` — if replacement pushes prompt over 8K chars, it won't be caught. Section editor DOES validate. | MEDIUM | NOT STARTED |
+| D16 | UX GAP | `usePatchSettings` hook doesn't surface errors to user. If PATCH fails (prompt validation, Ultravox sync), 4 cards show no error. Only `SectionEditorCard` has error display (custom save logic). | MEDIUM | NOT STARTED |
 
 ---
 

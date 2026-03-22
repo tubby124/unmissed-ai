@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 interface Notification {
   id: string
@@ -74,29 +75,54 @@ function channelColor(ch: string): { bg: string; text: string; border: string } 
   }
 }
 
+const PAGE_SIZE = 50
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [channel, setChannel] = useState<ChannelFilter>('')
   const [status, setStatus] = useState<StatusFilter>('')
 
-  useEffect(() => {
-    setLoading(true)
+  const buildParams = useCallback((offset = 0) => {
     const params = new URLSearchParams()
-    params.set('limit', '50')
+    params.set('limit', String(PAGE_SIZE))
+    params.set('offset', String(offset))
     if (channel) params.set('channel', channel)
     if (status) params.set('status', status)
-
-    fetch(`/api/dashboard/notifications?${params}`)
-      .then(r => r.json())
-      .then(d => {
-        setNotifications(d.notifications || [])
-        setTotal(d.total ?? 0)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    return params
   }, [channel, status])
+
+  const fetchNotifications = useCallback(async (offset = 0, append = false) => {
+    if (!append) setLoading(true)
+    else setLoadingMore(true)
+    try {
+      const r = await fetch(`/api/dashboard/notifications?${buildParams(offset)}`)
+      const d = await r.json()
+      const items: Notification[] = d.notifications || []
+      setNotifications(prev => append ? [...prev, ...items] : items)
+      setTotal(d.total ?? 0)
+    } catch { /* swallow */ }
+    setLoading(false)
+    setLoadingMore(false)
+  }, [buildParams])
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
+
+  // Realtime: refresh when notification_logs change
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    const ch = supabase
+      .channel('notifications_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_logs' }, () => {
+        fetchNotifications()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [fetchNotifications])
 
   const counts = useMemo(() => {
     const sent = notifications.filter(n => n.status === 'sent').length
@@ -365,10 +391,17 @@ export default function NotificationsPage() {
             </motion.div>
           </AnimatePresence>
 
-          {total > 0 && (
-            <p className="text-xs text-center" style={{ color: 'var(--color-text-3)' }}>
-              Showing {notifications.length} of {total}
-            </p>
+          {notifications.length < total && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => fetchNotifications(notifications.length, true)}
+                disabled={loadingMore}
+                className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)' }}
+              >
+                {loadingMore ? 'Loading...' : `Load more (${notifications.length} of ${total})`}
+              </button>
+            </div>
           )}
         </motion.div>
       )}

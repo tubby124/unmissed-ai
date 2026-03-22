@@ -298,6 +298,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       .on('postgres_changes', { event: '*', schema: 'public', table: 'call_logs' }, () => {
         loadCounts()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_logs' }, () => {
+        loadFailedNotifs()
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

@@ -19,16 +19,17 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+  const offset = parseInt(searchParams.get('offset') || '0')
   const statusFilter = searchParams.get('status')
   const dateFrom = searchParams.get('date_from')
   const dateTo = searchParams.get('date_to')
 
   let query = svc
     .from('bookings')
-    .select('id, slug, caller_name, caller_phone, appointment_date, appointment_time, service, calendar_url, created_at, client_id, status, call_id, google_event_id, clients(business_name)')
+    .select('id, slug, caller_name, caller_phone, appointment_date, appointment_time, service, calendar_url, created_at, client_id, status, call_id, google_event_id, clients(business_name)', { count: 'exact' })
     .order('appointment_date', { ascending: true })
     .order('appointment_time', { ascending: true })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
 
   if (statusFilter) query = query.eq('status', statusFilter)
   if (dateFrom) query = query.gte('appointment_date', dateFrom)
@@ -40,11 +41,11 @@ export async function GET(req: NextRequest) {
     query = query.eq('client_id', cu.client_id)
   }
 
-  const { data: bookings, error } = await query
+  const { data: bookings, count, error } = await query
   if (error) {
     console.error('[bookings] query error:', error.message)
     return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
   }
 
-  return NextResponse.json({ bookings: bookings || [] })
+  return NextResponse.json({ bookings: bookings || [], total: count ?? 0 })
 }

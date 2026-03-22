@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 interface Booking {
   id: string
@@ -22,23 +23,61 @@ interface Booking {
 
 type Filter = '' | 'upcoming' | 'today' | 'past' | 'cancelled'
 
+const PAGE_SIZE = 50
+
 export default function CalendarPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState<Filter>('')
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date()
     return { month: now.getMonth(), year: now.getFullYear() }
   })
 
-  useEffect(() => {
-    fetch('/api/dashboard/bookings?limit=100')
-      .then(r => r.json())
-      .then(d => { setBookings(d.bookings || []); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
-
   const today = new Date().toISOString().split('T')[0]
+
+  const buildParams = useCallback((offset = 0) => {
+    const params = new URLSearchParams()
+    params.set('limit', String(PAGE_SIZE))
+    params.set('offset', String(offset))
+    if (filter === 'cancelled') params.set('status', 'cancelled')
+    if (filter === 'upcoming') { params.set('date_from', today); /* exclude today — handled client-side */ }
+    if (filter === 'today') { params.set('date_from', today); params.set('date_to', today) }
+    if (filter === 'past') params.set('date_to', today)
+    return params
+  }, [filter, today])
+
+  const fetchBookings = useCallback(async (offset = 0, append = false) => {
+    if (!append) setLoading(true)
+    else setLoadingMore(true)
+    try {
+      const r = await fetch(`/api/dashboard/bookings?${buildParams(offset)}`)
+      const d = await r.json()
+      const items: Booking[] = d.bookings || []
+      setBookings(prev => append ? [...prev, ...items] : items)
+      setTotal(d.total ?? 0)
+    } catch { /* swallow */ }
+    setLoading(false)
+    setLoadingMore(false)
+  }, [buildParams])
+
+  useEffect(() => {
+    fetchBookings()
+  }, [fetchBookings])
+
+  // Realtime: refresh when bookings change
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel('calendar_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+        fetchBookings()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [fetchBookings])
 
   const counts = useMemo(() => {
     const upcoming = bookings.filter(b => b.appointment_date && b.appointment_date > today && b.status !== 'cancelled').length
@@ -48,12 +87,9 @@ export default function CalendarPage() {
     return { upcoming, today: todayCount, past, cancelled, total: bookings.length }
   }, [bookings, today])
 
+  // For 'upcoming' filter, we fetch date_from=today but need to exclude today client-side
   const filtered = useMemo(() => {
-    if (!filter) return bookings
     if (filter === 'upcoming') return bookings.filter(b => b.appointment_date && b.appointment_date > today && b.status !== 'cancelled')
-    if (filter === 'today') return bookings.filter(b => b.appointment_date === today && b.status !== 'cancelled')
-    if (filter === 'past') return bookings.filter(b => b.appointment_date && b.appointment_date < today)
-    if (filter === 'cancelled') return bookings.filter(b => b.status === 'cancelled')
     return bookings
   }, [bookings, filter, today])
 
@@ -358,6 +394,20 @@ export default function CalendarPage() {
                   ))}
                 </motion.div>
               </AnimatePresence>
+
+              {/* Load more */}
+              {bookings.length < total && (
+                <div className="text-center pt-2">
+                  <button
+                    onClick={() => fetchBookings(bookings.length, true)}
+                    disabled={loadingMore}
+                    className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                    style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)' }}
+                  >
+                    {loadingMore ? 'Loading...' : `Load more (${bookings.length} of ${total})`}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
