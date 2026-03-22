@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { getSignedRecordingUrl } from '@/lib/recording-url'
 
 function formatPhone(p: string): string {
   const d = p.replace(/\D/g, '')
@@ -107,8 +108,12 @@ export async function POST(req: NextRequest) {
 
       lines.push(`${emoji} <b>${call.call_status}</b> · ${name} · ${phone}`)
       lines.push(`   ${ago}${summary}`)
+      // S13-REC1: generate signed URL from stored path (private bucket)
       if (call.recording_url) {
-        lines.push(`   🎧 <a href="${call.recording_url}">Listen</a>`)
+        const signedUrl = await getSignedRecordingUrl(call.recording_url)
+        if (signedUrl) {
+          lines.push(`   🎧 <a href="${signedUrl}">Listen</a>`)
+        }
       }
       lines.push(``)
     }

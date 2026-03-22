@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { getSignedRecordingUrl } from '@/lib/recording-url'
 
 export async function GET(
   req: NextRequest,
@@ -21,24 +22,29 @@ export async function GET(
 
   const range = req.headers.get('range')
 
-  // ── Stored recording_url (Supabase Storage) — proxy with Range support ───
+  // ── Supabase Storage (private bucket) — generate signed URL, proxy with Range ──
+  // S13-REC1: recording_url stores a path ("callId.mp3") or legacy public URL.
+  // Either way, getSignedRecordingUrl() generates a fresh signed URL via service client.
   if (call.recording_url) {
-    const upstream = await fetch(call.recording_url, {
-      headers: range ? { Range: range } : {},
-    })
-    if (!upstream.ok && upstream.status !== 206) {
-      return new NextResponse('Recording unavailable', { status: 404 })
+    const signedUrl = await getSignedRecordingUrl(call.recording_url, 3600) // 1 hour
+    if (signedUrl) {
+      const upstream = await fetch(signedUrl, {
+        headers: range ? { Range: range } : {},
+      })
+      if (upstream.ok || upstream.status === 206) {
+        const headers = new Headers({
+          'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/mpeg',
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'private, max-age=3600',
+        })
+        for (const h of ['Content-Length', 'Content-Range']) {
+          const v = upstream.headers.get(h)
+          if (v) headers.set(h, v)
+        }
+        return new NextResponse(upstream.body, { status: upstream.status, headers })
+      }
+      // Signed URL fetch failed — fall through to Ultravox
     }
-    const headers = new Headers({
-      'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/mpeg',
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': 'public, max-age=3600',
-    })
-    for (const h of ['Content-Length', 'Content-Range']) {
-      const v = upstream.headers.get(h)
-      if (v) headers.set(h, v)
-    }
-    return new NextResponse(upstream.body, { status: upstream.status, headers })
   }
 
   // ── Ultravox API fallback ─────────────────────────────────────────────────

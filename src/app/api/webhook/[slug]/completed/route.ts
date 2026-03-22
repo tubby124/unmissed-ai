@@ -12,6 +12,7 @@ import {
   notificationsAlreadySent,
   type CompletedClient,
 } from '@/lib/completed-notifications'
+import { getSignedRecordingUrl } from '@/lib/recording-url'
 
 export const maxDuration = 120
 
@@ -259,10 +260,11 @@ export async function POST(
           if (uploadError) {
             console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
           } else {
-            const { data: urlData } = supabase.storage.from('recordings').getPublicUrl(`${callId}.mp3`)
-            recordingUrl = urlData.publicUrl
-            await supabase.from('call_logs').update({ recording_url: recordingUrl }).eq('ultravox_call_id', callId)
-            console.log(`[completed] Recording uploaded: callId=${callId} url=${recordingUrl}`)
+            // S13-REC1: store path only (bucket is private). Generate signed URL for notifications.
+            const storagePath = `${callId}.mp3`
+            await supabase.from('call_logs').update({ recording_url: storagePath }).eq('ultravox_call_id', callId)
+            recordingUrl = await getSignedRecordingUrl(storagePath)
+            console.log(`[completed] Recording uploaded: callId=${callId} path=${storagePath}`)
           }
         } else {
           console.warn(`[completed] Recording not available for callId=${callId} status=${recordingRes.status}`)
