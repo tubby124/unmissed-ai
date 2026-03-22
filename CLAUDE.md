@@ -18,7 +18,7 @@ If ambiguous: ask one clarifying question. Never assume scope on client-affectin
 ## BEFORE BUILDING (mandatory gates)
 
 ### Editing ANY client system prompt → read this FIRST:
-- **`memory/glm46-prompting-rules.md` — MANDATORY before every prompt edit.** Ultravox v0.7 = GLM-4.6. Known bugs: repetition loop, double-speak, thinking leakage. Rules 12–14 must be present in every prompt. Prompt length hard max: 8K chars.
+- **`memory/glm46-prompting-rules.md` — MANDATORY before every prompt edit.** Ultravox v0.7 = GLM-4.6. Known bugs: repetition loop, double-speak, thinking leakage. Rules 12–14 must be present in every prompt. Prompt length: warn at 8K, hard max 12K chars.
 
 ### Touching any of these → read the architecture doc first:
 - `lib/ultravox.ts` → read `memory/system-architecture.md` §2 (agent anatomy) + §5 (tools)

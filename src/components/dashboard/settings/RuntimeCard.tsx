@@ -70,13 +70,13 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
   }
 
   const promptColor =
-    data.promptLength > 8000 ? 'text-red-400' :
-    data.promptLength > 6000 ? 'text-amber-400' :
+    data.promptLength > 12000 ? 'text-red-400' :
+    data.promptLength > 8000 ? 'text-amber-400' :
     'text-green-400'
 
   const promptBg =
-    data.promptLength > 8000 ? 'bg-red-500/10 border-red-500/20' :
-    data.promptLength > 6000 ? 'bg-amber-500/10 border-amber-500/20' :
+    data.promptLength > 12000 ? 'bg-red-500/10 border-red-500/20' :
+    data.promptLength > 8000 ? 'bg-amber-500/10 border-amber-500/20' :
     'bg-green-500/10 border-green-500/20'
 
   // Format max duration from "600s" to "10 min"
@@ -130,7 +130,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
         <div className={`px-3 py-2.5 rounded-xl border ${promptBg}`}>
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Prompt</p>
           <p className={`text-sm font-mono font-semibold tabular-nums ${promptColor}`}>
-            {data.promptLength.toLocaleString()} <span className="text-[10px] font-normal t3">/ 8,000</span>
+            {data.promptLength.toLocaleString()} <span className="text-[10px] font-normal t3">/ 12,000</span>
           </p>
         </div>
 

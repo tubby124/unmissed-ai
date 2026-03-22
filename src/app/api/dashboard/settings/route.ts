@@ -11,7 +11,8 @@ import { insertPromptVersion } from '@/lib/prompt-version-utils'
 interface PromptWarning { field: string; message: string }
 interface PromptValidation { valid: boolean; error?: string; warnings: PromptWarning[] }
 
-const PROMPT_MAX_CHARS = 8000
+const PROMPT_WARN_CHARS = 8000
+const PROMPT_MAX_CHARS = 12000
 
 function validatePrompt(prompt: string): PromptValidation {
   const warnings: PromptWarning[] = []
@@ -22,6 +23,10 @@ function validatePrompt(prompt: string): PromptValidation {
       error: `Prompt is ${prompt.length.toLocaleString()} characters — maximum is ${PROMPT_MAX_CHARS.toLocaleString()}. Remove content before saving.`,
       warnings,
     }
+  }
+
+  if (prompt.length > PROMPT_WARN_CHARS) {
+    warnings.push({ field: 'length', message: `Prompt is ${prompt.length.toLocaleString()} characters. GLM-4.6 works best under ${PROMPT_WARN_CHARS.toLocaleString()} — consider trimming for optimal voice quality.` })
   }
 
   // Soft warnings — returned but not blocked

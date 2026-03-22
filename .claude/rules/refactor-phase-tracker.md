@@ -124,12 +124,39 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | Slice | Name | Scope | Status |
 |-------|------|-------|--------|
 | 1 | Prompt Variable Injection | PROMPT-TEST1+2 | NOT STARTED |
-| 2 | Trial WebRTC Orb | TRIAL1 only | NOT STARTED |
+| 2 | Talk to Your Agent | TRIAL1 — phased below | **2a DONE** |
 | 3 | Scrape Verify + Harden | SCRAPE6/7/8/10 | NOT STARTED |
 | 4 | Empty States | TOUR3: 4 empty state variants | NOT STARTED |
 | 5 | Guided Tour | TOUR2: driver.js, 4 steps | NOT STARTED (needs Slice 4) |
 | 6 | Advanced Trial Extras | TRIAL1b-1d, TRIAL2-6 | DEFERRED (no research) |
 | 7 | External Deps | Domain, email E2E, phone E2E | BLOCKED (domain purchase) |
+
+### Slice 2 Sub-Phases — "Talk to Your Agent" + Agent Intelligence UX
+
+| Phase | Name | What | Status |
+|-------|------|------|--------|
+| 2a | WebRTC Orb for All | AgentVoiceTest.tsx, TestCallCard rewrite, "Talk to Your Agent" copy, phone fallback | **DONE** 2026-03-22 |
+| 2b | Post-Call Hints | After call ends: "Ways to improve" chips (Add FAQs, Set hours, Change voice). Dynamic based on capability gaps. Scroll-to-section via `id="section-*"` on cards. Pre-call "Try asking" prompts based on what's enabled. | **DONE** 2026-03-22 |
+| 2c | Agent Knowledge Card | "What your agent knows" summary: business facts count, FAQ count, hours set?, booking on?, voice style, knowledge docs. Visible pre-call and post-call. | NOT STARTED |
+| 2d | Try-Asking Prompts | Pre-call suggestions: "Try asking about your hours", "Ask to book an appointment", "Ask about [FAQ topic]". Generated from client config. | NOT STARTED |
+| 2e | Inline Mini-Editors | Onboarding-specific: quick FAQ add, hours toggle, voice preview — all inline, no settings navigation needed. Uses same `usePatchSettings` hook. | NOT STARTED |
+| 2f | Website Scrape Hint | Post-call + settings hint: "Add your website to teach your agent more". Triggers existing scrape flow (SCRAPE1-3). Shows scraped facts/QAs with approve/reject. User chooses: add to prompt (business_facts/extra_qa) OR add to knowledge base (RAG chunks). | NOT STARTED |
+
+**Goal:** Users understand what their agent knows, get guided on what to improve, and can make changes without navigating the full settings page. Post-call is the highest-leverage moment — user just heard the agent and is most motivated to improve. Website scrape is the easiest "teach your agent" path — paste URL, approve facts, agent gets smarter.
+
+### Slice 8 — Agent Intelligence Deep (from audit discoveries)
+
+| Phase | Name | What | Priority | Status |
+|-------|------|------|----------|--------|
+| 8a | Agent Capability Dashboard | Standalone "What your agent can do" card at top of settings — reads from client config, shows enabled/disabled features with toggles. Replaces the hidden "How your agent behaves" list in AgentTab. | HIGH | NOT STARTED |
+| 8b | Knowledge vs Memory Explainer | User-facing distinction: "Always knows" (core prompt facts, Q&As) vs "Can look up" (knowledge base docs). Help text + visual in AdvancedContextCard + KnowledgeEngineCard. | MEDIUM | NOT STARTED |
+| 8c | Agent Name → Prompt Sync | D26: changing agent_name in settings should auto-patch the name in system_prompt identity section. Currently name change is display-only until prompt regen. | MEDIUM | NOT STARTED |
+| 8d | Settings Page Reorganization | Group cards by purpose: (1) Identity & Voice, (2) What It Knows, (3) What It Can Do, (4) Talk to Your Agent. Collapsible sections. Reduces overwhelm. | MEDIUM | NOT STARTED |
+| 8e | Prompt-Aware Suggestions | Read the prompt, extract what the agent actually says/does, surface as "Your agent will..." bullets. Helps users verify behavior without making a call. | LOW | NOT STARTED |
+| 8f | Change Impact Preview | When user edits a field (FAQ, hours, voice), show "This change means your agent will now..." before saving. Reduces anxiety about breaking things. | LOW | NOT STARTED |
+| 8g | Quick-Add from Calls Page | After reviewing a call transcript, suggest: "Your agent didn't know X — add it as a FAQ?" One-click adds to extra_qa. | MEDIUM | NOT STARTED |
+| 8h | Onboarding Progress Ring | Visual progress indicator: "Your agent is 60% set up" based on which capabilities are configured. Motivates completion. | MEDIUM | NOT STARTED |
+| 8i | Settings Search/Filter | Search box at top of settings to quickly find "hours", "voice", "booking" etc. Filters visible cards. For power users with many settings. | LOW | NOT STARTED |
 
 ---
 
@@ -160,6 +187,8 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | D25 | UNIFICATION | All 7 extracted cards + AgentOverviewCard now support `mode` prop ('settings' \| 'onboarding'), `onSave` callback, and error display. `usePatchSettings` hook upgraded with `error`/`clearError`/`CardMode` type. Onboarding and settings share same components, same DB writes, same Ultravox sync. | DONE | **DONE** 2026-03-22 |
 | D26 | **GAP** | `agent_name` save does NOT update `system_prompt` — name is baked in during prompt generation only. Changing name in settings/onboarding changes display but agent still uses old name on calls until prompt regen. | MEDIUM | NOT STARTED |
 | D27 | **GAP** | No feedback loop for call-time injection fields (hours, facts, Q&A). User saves but sees no confirmation the agent "knows" it — only a test call verifies. Consider a "preview what agent knows" panel. | LOW | NOT STARTED |
+| D28 | **FIX** | `PROMPT_MAX_CHARS` was 8000 (hard block). User confirmed real limit is 12K. Changed to: warn at 8K, hard block at 12K. Updated 11 files: route.ts, AgentTab, RuntimeCard, AgentOverviewCard, knowledge-summary, inbound/transfer webhooks, CLAUDE.md, docs. | HIGH | **DONE** 2026-03-22 |
+| D29 | **GAP** | WebRTC orb (in-browser voice test) only visible to admin in `/dashboard/lab` (`adminOnly: true`). Paid users and trial users have NO in-browser test option — only phone-based TestCallCard. Lab page also broken for admin (shows "select a client first" with no selection UI). | HIGH | **DONE** 2026-03-22 -- AgentVoiceTest.tsx + TestCallCard rewrite. WebRTC orb primary, phone secondary for all users. |
 
 ---
 

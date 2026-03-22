@@ -187,10 +187,10 @@ export async function POST(
         ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
         : ctx.retrieval.promptInstruction
       const estimatedTotal = (client.system_prompt?.length ?? 0) + combined.length + callerContextBlock.length + (ctx.assembled.contextDataBlock?.length ?? 0) + 10
-      if (estimatedTotal <= 8000) {
+      if (estimatedTotal <= 12000) {
         knowledgeBlockStr = combined
       } else {
-        console.warn(`[transfer-status] Retrieval instruction skipped for slug=${slug} — would exceed 8K prompt limit (estimated ${estimatedTotal} chars)`)
+        console.warn(`[transfer-status] Retrieval instruction skipped for slug=${slug} — would exceed 12K prompt limit (estimated ${estimatedTotal} chars)`)
       }
     }
     const contextDataStr = ctx.assembled.contextDataBlock

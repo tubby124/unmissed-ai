@@ -646,12 +646,14 @@ export default function AgentTab({
       </motion.div>
 
       {/* 1.5 — Voice Style Preset */}
+      <div id="section-voice-style">
       <VoiceStyleCard
         clientId={client.id}
         isAdmin={isAdmin}
         initialPreset={voiceStylePreset[client.id] ?? 'casual_friendly'}
         previewMode={previewMode}
       />
+      </div>
 
       {/* 2 — Webhooks + Phone (collapsible, admin only) */}
       {isAdmin && (
@@ -660,13 +662,15 @@ export default function AgentTab({
 
       {/* 3 — Agent Configuration (admin only) */}
       {isAdmin && (
-        <AgentConfigCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          agentVoiceId={client.agent_voice_id}
-          ultravoxAgentId={client.ultravox_agent_id}
-          telegramChatId={client.telegram_chat_id}
-        />
+        <div id="section-agent-config">
+          <AgentConfigCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            agentVoiceId={client.agent_voice_id}
+            ultravoxAgentId={client.ultravox_agent_id}
+            telegramChatId={client.telegram_chat_id}
+          />
+        </div>
       )}
 
       {/* 3b — Advanced Config (admin only) */}
@@ -777,15 +781,17 @@ export default function AgentTab({
 
       {/* 4c — Booking (gated by niche capability) */}
       {hasCapability(niche, 'bookAppointments') && (
-        <BookingCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          calendarAuthStatus={client.calendar_auth_status}
-          googleCalendarId={client.google_calendar_id}
-          initialDuration={bookingDuration[client.id] ?? 60}
-          initialBuffer={bookingBuffer[client.id] ?? 15}
-          previewMode={previewMode}
-        />
+        <div id="section-booking">
+          <BookingCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            calendarAuthStatus={client.calendar_auth_status}
+            googleCalendarId={client.google_calendar_id}
+            initialDuration={bookingDuration[client.id] ?? 60}
+            initialBuffer={bookingBuffer[client.id] ?? 15}
+            previewMode={previewMode}
+          />
+        </div>
       )}
 
       {/* 5 — System Prompt (collapsible) */}
@@ -845,8 +851,8 @@ export default function AgentTab({
                         Edit your agent&apos;s script below. Changes go live as soon as you save.
                       </p>
                       <div className="flex items-center gap-3 shrink-0 ml-3">
-                        <span className={`text-xs tabular-nums font-mono ${charCount > 8000 ? 'text-red-400' : charCount > 7000 ? 'text-amber-400' : 't3'}`}>
-                          {charCount.toLocaleString()} / 8,000 chars (~{Math.ceil(charCount / 4).toLocaleString()} tokens)
+                        <span className={`text-xs tabular-nums font-mono ${charCount > 12000 ? 'text-red-400' : charCount > 8000 ? 'text-amber-400' : 't3'}`}>
+                          {charCount.toLocaleString()} / 12,000 chars (~{Math.ceil(charCount / 4).toLocaleString()} tokens)
                         </span>
                         {dirty && (
                           <input
@@ -859,10 +865,10 @@ export default function AgentTab({
                         )}
                         <button
                           onClick={save}
-                          disabled={!dirty || saving || charCount > 8000 || previewMode}
-                          title={charCount > 8000 ? 'Prompt exceeds 8,000 character limit' : undefined}
+                          disabled={!dirty || saving || charCount > 12000 || previewMode}
+                          title={charCount > 12000 ? 'Prompt exceeds 12,000 character limit' : undefined}
                           className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                            charCount > 8000
+                            charCount > 12000
                               ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
                               : saved
                               ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -871,7 +877,7 @@ export default function AgentTab({
                               : 'bg-hover t3 cursor-not-allowed border b-theme'
                           }`}
                         >
-                          {charCount > 8000 ? 'Over limit' : saving ? 'Saving…' : (
+                          {charCount > 12000 ? 'Over limit' : saving ? 'Saving…' : (
                             <AnimatePresence mode="wait">
                               {saved ? (
                                 <motion.span
@@ -944,14 +950,19 @@ export default function AgentTab({
                       <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            charCount > 8000 ? 'bg-red-500' : charCount > 7000 ? 'bg-amber-500' : 'bg-blue-500/60'
+                            charCount > 12000 ? 'bg-red-500' : charCount > 8000 ? 'bg-amber-500' : 'bg-blue-500/60'
                           }`}
-                          style={{ width: `${Math.min((charCount / 8000) * 100, 100)}%` }}
+                          style={{ width: `${Math.min((charCount / 12000) * 100, 100)}%` }}
                         />
                       </div>
-                      {charCount > 8000 && (
+                      {charCount > 12000 && (
                         <p className="text-[10px] text-red-400 mt-1">
-                          Over limit by {(charCount - 8000).toLocaleString()} chars. Remove content before saving.
+                          Over limit by {(charCount - 12000).toLocaleString()} chars. Remove content before saving.
+                        </p>
+                      )}
+                      {charCount > 8000 && charCount <= 12000 && (
+                        <p className="text-[10px] text-amber-400 mt-1">
+                          GLM-4.6 works best under 8,000 chars — consider trimming for optimal voice quality.
                         </p>
                       )}
                     </div>
@@ -1108,16 +1119,37 @@ export default function AgentTab({
       </motion.div>
 
       {/* 5b-pre — Knowledge Engine Card (visible to both admin and client) */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.014 }}
-      >
-        <KnowledgeEngineCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
-      </motion.div>
+      <div id="section-knowledge">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.014 }}
+        >
+          <KnowledgeEngineCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+        </motion.div>
+      </div>
 
-      {/* 5a — Test Call */}
-      <TestCallCard clientId={client.id} isAdmin={isAdmin} previewMode={previewMode} />
+      {/* 5a — Talk to Your Agent */}
+      <TestCallCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        previewMode={previewMode}
+        knowledge={{
+          agentName: client.agent_name || undefined,
+          hasFacts: !!(client.business_facts),
+          hasFaqs: !!(client.extra_qa && client.extra_qa.length > 0),
+          hasHours: !!(client.business_hours_weekday),
+          hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
+          hasTransfer: !!(client.forwarding_number),
+          hasSms: !!(client.sms_enabled),
+          hasKnowledge: client.knowledge_backend === 'pgvector',
+          hasWebsite: !!(client.website_url),
+        }}
+        onScrollTo={(section) => {
+          const el = document.getElementById(`section-${section}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }}
+      />
 
       {/* 5b — Learning Loop */}
       {learningState === 'checking' && (
@@ -1406,6 +1438,7 @@ export default function AgentTab({
       {/* 8a — Right Now (injected_note) — REMOVED: duplicate of Quick Inject in AgentOverviewCard */}
 
       {/* 8a2 — Hours & After-Hours (A3) */}
+      <div id="section-hours">
       <HoursCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -1415,6 +1448,7 @@ export default function AgentTab({
         initialPhone={afterHoursPhone[client.id] ?? ''}
         previewMode={previewMode}
       />
+      </div>
 
       {/* S14 — Voicemail Greeting */}
       <VoicemailGreetingCard
@@ -1446,16 +1480,18 @@ export default function AgentTab({
       ))}
 
       {/* 8b — Advanced Context */}
-      <AdvancedContextCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialFacts={businessFacts[client.id] ?? ''}
-        initialQA={extraQA[client.id] ?? []}
-        initialContextData={contextData[client.id] ?? ''}
-        initialContextDataLabel={contextDataLabel[client.id] ?? ''}
-        prompt={prompt[client.id] ?? ''}
-        previewMode={previewMode}
-      />
+      <div id="section-advanced-context">
+        <AdvancedContextCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialFacts={businessFacts[client.id] ?? ''}
+          initialQA={extraQA[client.id] ?? []}
+          initialContextData={contextData[client.id] ?? ''}
+          initialContextDataLabel={contextDataLabel[client.id] ?? ''}
+          prompt={prompt[client.id] ?? ''}
+          previewMode={previewMode}
+        />
+      </div>
 
   </>)
 }

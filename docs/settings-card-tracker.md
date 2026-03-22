@@ -65,9 +65,9 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ### SET-3: Prompt char count stale after prompt-modifying saves (LOW)
 
-**Problem:** The agent capabilities section shows "3,453 / 8,000" chars. After Voice Style or SectionEditor saves modify `system_prompt`, the count doesn't update until full page reload.
+**Problem:** The agent capabilities section shows "3,453 / 12,000" chars. After Voice Style or SectionEditor saves modify `system_prompt`, the count doesn't update until full page reload.
 
-**User impact:** Client could unknowingly push past the 8K limit without seeing the count change. Related to tracked item D15 (validatePrompt not called on style/calendar patches).
+**User impact:** Client could unknowingly push past the 12K limit without seeing the count change. Related to tracked item D15 (validatePrompt not called on style/calendar patches — NOW FIXED).
 
 **Fix:** After any save that returns a modified `system_prompt`, update the char count in the parent AgentTab state. Or return `new_char_count` from the API response and propagate.
 

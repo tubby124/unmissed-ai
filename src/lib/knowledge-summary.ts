@@ -9,7 +9,7 @@
  * - KnowledgeSummary is the ONLY knowledge injected into the runtime prompt by default
  * - contextData (tenant tables, lookup data) is NOT knowledge — it stays full (handled separately)
  * - Long-form content (website scrape, knowledge docs, full businessFacts) stored but not injected
- * - Prompt length is measured and enforced: target 6K chars, hard max 8K chars
+ * - Prompt length is measured and enforced: target 6K chars, warn 8K, hard max 12K chars
  *
  * Sources:
  * - businessFacts: free-text business facts from client dashboard
@@ -34,7 +34,7 @@ export const SUMMARY_CHAR_LIMIT = 1200
 export const PROMPT_CHAR_TARGET = 6000
 
 /** GLM-4.6 prompt length hard max — error above this */
-export const PROMPT_CHAR_HARD_MAX = 8000
+export const PROMPT_CHAR_HARD_MAX = 12000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
