@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight } from "lucide-react"
+import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell } from "lucide-react"
 import {
   VoiceOrb,
   WaveformBars,
@@ -14,6 +14,7 @@ import {
   type TranscriptEntry,
 } from "@/components/DemoCallVisuals"
 import { useUltravoxCall, type CallState } from "@/hooks/useUltravoxCall"
+import { useOnboarding } from "@/hooks/useOnboarding"
 
 interface AgentTestCardProps {
   agentName: string
@@ -25,6 +26,8 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
   const [isRequesting, setIsRequesting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [returnedCallId, setReturnedCallId] = useState<string | null>(null)
+  const { incrementTestCalls, isStepComplete } = useOnboarding()
+  const hasRecordedCallEnd = useRef(false)
 
   const {
     callState,
@@ -75,6 +78,17 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
     handleStartTest()
   }, [handleStartTest])
 
+  // Auto-complete "meet_agent" checklist step when test call ends
+  useEffect(() => {
+    if (callState === "ended" && !hasRecordedCallEnd.current) {
+      hasRecordedCallEnd.current = true
+      incrementTestCalls()
+    }
+    if (callState === "idle") {
+      hasRecordedCallEnd.current = false
+    }
+  }, [callState, incrementTestCalls])
+
   // Derive display state from both API request + hook state
   const displayState: "idle" | "loading" | "active" | "ended" | "error" =
     apiError ? "error" :
@@ -89,7 +103,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
   const errorMsg = apiError || hookError
 
   return (
-    <div className="mb-6">
+    <div id="agent-test-card" className="mb-6">
       <AnimatePresence mode="wait">
         {/* ─── Idle: CTA Card ─── */}
         {displayState === "idle" && (
@@ -280,10 +294,46 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
               )}
             </div>
 
-            {isTrial && (
-              <p className="text-xs text-center mt-3" style={{ color: "var(--color-text-3)" }}>
-                Your agent just handled that call. Get a phone number so real callers can reach it.
-              </p>
+            {/* What's Next guidance — only show incomplete steps */}
+            {(!isStepComplete("train_agent") || !isStepComplete("setup_alerts") || isTrial) && (
+              <div
+                className="mt-4 rounded-xl p-3 space-y-2"
+                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "var(--color-text-3)" }}>
+                  What&apos;s next
+                </p>
+                {!isStepComplete("train_agent") && (
+                  <a
+                    href="/dashboard/settings?tab=knowledge"
+                    className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                    style={{ color: "var(--color-text-2)" }}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: "#a78bfa" }} />
+                    Add FAQs and service info to improve responses
+                  </a>
+                )}
+                {!isStepComplete("setup_alerts") && (
+                  <a
+                    href="/dashboard/settings?tab=notifications"
+                    className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                    style={{ color: "var(--color-text-2)" }}
+                  >
+                    <Bell className="w-3.5 h-3.5 shrink-0" style={{ color: "#f59e0b" }} />
+                    Connect Telegram for instant call alerts
+                  </a>
+                )}
+                {isTrial && (
+                  <a
+                    href="/dashboard/settings?tab=billing"
+                    className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                    style={{ color: "var(--color-text-2)" }}
+                  >
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" style={{ color: "#818cf8" }} />
+                    Get a phone number so real callers reach your agent
+                  </a>
+                )}
+              </div>
             )}
           </motion.div>
         )}

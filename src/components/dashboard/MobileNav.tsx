@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'motion/react'
+import UpgradeCTA from './UpgradeCTA'
 
 const NAV = [
   {
@@ -118,7 +119,7 @@ const NAV = [
   },
 ]
 
-export default function MobileNav({ businessName, isAdmin = false }: { businessName?: string; isAdmin?: boolean }) {
+export default function MobileNav({ businessName, isAdmin = false, clientStatus }: { businessName?: string; isAdmin?: boolean; clientStatus?: string | null }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -232,6 +233,12 @@ export default function MobileNav({ businessName, isAdmin = false }: { businessN
                   Back to Site
                 </Link>
               </nav>
+
+              {!isAdmin && clientStatus === 'trial' && (
+                <div className="px-3 py-2">
+                  <UpgradeCTA />
+                </div>
+              )}
 
               <div className="px-3 py-4 border-t" style={{ borderColor: "var(--color-border)" }}>
                 <button

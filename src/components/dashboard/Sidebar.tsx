@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import ThemeToggle from '../ThemeToggle'
+import UpgradeCTA from './UpgradeCTA'
 import { hasCapability } from '@/lib/niche-capabilities'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 
@@ -253,9 +254,10 @@ interface SidebarProps {
   setupIncomplete?: boolean
   telegramConnected?: boolean
   niche?: string | null
+  clientStatus?: string | null
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -463,6 +465,13 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         })
         })()}
       </nav>
+
+      {/* Upgrade CTA for trial users */}
+      {!isAdmin && clientStatus === 'trial' && (
+        <div className="px-2 pb-2">
+          <UpgradeCTA collapsed={collapsed} />
+        </div>
+      )}
 
       {/* Theme toggle + Sign out + collapse */}
       <div className="px-2 py-4 border-t space-y-1" style={{ borderColor: "var(--color-border)" }}>

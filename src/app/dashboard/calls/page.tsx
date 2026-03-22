@@ -118,6 +118,20 @@ export default async function CallsPage() {
 
   const hasReceivedCall = allCalls.length > 0
 
+  // Check if knowledge base has content for onboarding checklist
+  let hasKnowledge = false
+  if (!isAdmin && clientId) {
+    const { count } = await supabase
+      .from('knowledge_chunks')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .limit(1)
+    hasKnowledge = (count ?? 0) > 0
+  }
+
+  const isTrial = clientStatus === 'trial'
+  const showChecklist = !isAdmin && (clientStatus === 'trial' || clientStatus === 'active')
+
   return (
     <div className="p-3 sm:p-6">
       {!isAdmin && clientHasAgent && (
@@ -127,12 +141,13 @@ export default async function CallsPage() {
           clientStatus={clientStatus}
         />
       )}
-      {!isAdmin && clientStatus === 'active' && (
+      {showChecklist && (
         <OnboardingChecklist
           hasPhoneNumber={!!clientPhone}
           hasReceivedCall={hasReceivedCall}
           telegramConnected={telegramConnected}
-          twilioNumber={clientPhone}
+          hasKnowledge={hasKnowledge}
+          isTrial={isTrial}
         />
       )}
       <OperatorActivity clientId={clientId} />

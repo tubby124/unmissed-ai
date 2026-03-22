@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import NoNotifications from '@/components/dashboard/empty-states/NoNotifications'
 
 interface Notification {
   id: string
@@ -171,37 +172,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {!loading && notifications.length === 0 && !channel && !status && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-12 text-center border"
-          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-        >
-          <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-indigo-400">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <p className="font-semibold text-lg mb-2" style={{ color: 'var(--color-text-1)' }}>No notifications yet</p>
-          <p className="text-sm max-w-sm mx-auto" style={{ color: 'var(--color-text-3)' }}>
-            When your AI agent sends Telegram alerts, emails, or SMS follow-ups, they'll appear here.
-          </p>
-          <Link
-            href="/dashboard/settings"
-            className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-indigo-500/10"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="1.5"/>
-              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
-            </svg>
-            Configure notifications
-          </Link>
-        </motion.div>
-      )}
+      {!loading && notifications.length === 0 && !channel && !status && <NoNotifications />}
 
       {!loading && (notifications.length > 0 || channel || status) && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">

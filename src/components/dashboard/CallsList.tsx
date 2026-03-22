@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { createSoundCues } from '@/components/DemoCallVisuals'
 import CallRow from './CallRow'
 import EmptyState from './EmptyState'
+import NoCalls from './empty-states/NoCalls'
 import KanbanBoard from './KanbanBoard'
 import LiveCallBanner from './LiveCallBanner'
 import StatsGrid from './StatsGrid'
@@ -589,7 +590,11 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               <CallsListSkeleton />
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState phone={phone} />
+            clientStatus === 'trial' || !phone ? (
+              <NoCalls isTrial={clientStatus === 'trial'} />
+            ) : (
+              <EmptyState phone={phone} />
+            )
           ) : (
             <div>
               {grouped.map(group => (
