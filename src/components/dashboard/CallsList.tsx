@@ -160,11 +160,22 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
 
   useEffect(() => { soundCuesRef.current = createSoundCues() }, [])
 
-  // Realtime subscription
+  // Realtime subscription — scoped to client_id for non-admin users
   useEffect(() => {
+    const insertOpts: { event: 'INSERT'; schema: 'public'; table: 'call_logs'; filter?: string } = {
+      event: 'INSERT', schema: 'public', table: 'call_logs',
+    }
+    const updateOpts: { event: 'UPDATE'; schema: 'public'; table: 'call_logs'; filter?: string } = {
+      event: 'UPDATE', schema: 'public', table: 'call_logs',
+    }
+    if (!isAdmin && clientId) {
+      insertOpts.filter = `client_id=eq.${clientId}`
+      updateOpts.filter = `client_id=eq.${clientId}`
+    }
+
     const channel = supabase
       .channel('call_logs_realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_logs' }, (payload) => {
+      .on('postgres_changes', insertOpts, (payload) => {
         const row = payload.new as CallLog
         setCalls(prev => {
           if (prev.some(c => c.id === row.id)) return prev
@@ -174,7 +185,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         })
         if (row.call_status === 'live') soundCuesRef.current?.connectChime()
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'call_logs' }, (payload) => {
+      .on('postgres_changes', updateOpts, (payload) => {
         const row = payload.new as CallLog
         setCalls(prev => prev.map(c => c.id === row.id ? { ...c, ...row } : c))
       })
@@ -182,7 +193,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
 
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [clientId, isAdmin])
 
   // Polling fallback — catches Realtime misses for live/processing calls every 6s
   useEffect(() => {

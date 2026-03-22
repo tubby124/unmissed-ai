@@ -29,6 +29,11 @@
 
 **Settings Cards (D11-D16 + SET-1 to SET-6):** `docs/settings-card-tracker.md` — dedicated tracker for settings card bugs found via Playwright testing. Architecture ref: `memory/settings-card-architecture.md`
 
+**Sonar Pro Research (2026-03-22):**
+- Realtime best practices: RLS > client-side filters, debounce rapid updates, cap array sizes, max 500 channels/connection
+- Voice AI dashboard UX: sentiment deep metrics, frustration counters, weekly failure digests, live call observability emerging as standard
+- Prompt management: surgical patching confirmed correct, multi-field patch ordering (identity→voice→operational), coherence drift detection after 5+ patches
+
 ---
 
 ## Completed Phases Summary
@@ -148,15 +153,23 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 
 | Phase | Name | What | Priority | Status |
 |-------|------|------|----------|--------|
-| 8a | Agent Capability Dashboard | Standalone "What your agent can do" card at top of settings — reads from client config, shows enabled/disabled features with toggles. Replaces the hidden "How your agent behaves" list in AgentTab. | HIGH | NOT STARTED |
-| 8b | Knowledge vs Memory Explainer | User-facing distinction: "Always knows" (core prompt facts, Q&As) vs "Can look up" (knowledge base docs). Help text + visual in AdvancedContextCard + KnowledgeEngineCard. | MEDIUM | NOT STARTED |
-| 8c | Agent Name → Prompt Sync | D26: changing agent_name in settings should auto-patch the name in system_prompt identity section. Currently name change is display-only until prompt regen. | MEDIUM | NOT STARTED |
+| 8a | Agent Capability Dashboard | CapabilitiesCard upgraded: progress bar, ReadinessBadge, clickable scroll-to-section items, detail strings, knowledge layer legend. Visible to ALL users. | HIGH | **DONE** 2026-03-22 |
+| 8b | Knowledge vs Memory Explainer | Blue "Always knows" banner in AdvancedContextCard, purple "Searched when needed" in KnowledgeEngineCard. Badge text "Persistent" → "Every call". | MEDIUM | **DONE** 2026-03-22 |
+| 8c | Agent Name → Prompt Sync | D26: `patchAgentName()` in prompt-patcher.ts. Word-boundary regex, `validatePrompt()` gate, auto-syncs to Ultravox on save. | MEDIUM | **DONE** 2026-03-22 |
 | 8d | Settings Page Reorganization | Group cards by purpose: (1) Identity & Voice, (2) What It Knows, (3) What It Can Do, (4) Talk to Your Agent. Collapsible sections. Reduces overwhelm. | MEDIUM | NOT STARTED |
 | 8e | Prompt-Aware Suggestions | Read the prompt, extract what the agent actually says/does, surface as "Your agent will..." bullets. Helps users verify behavior without making a call. | LOW | NOT STARTED |
 | 8f | Change Impact Preview | When user edits a field (FAQ, hours, voice), show "This change means your agent will now..." before saving. Reduces anxiety about breaking things. | LOW | NOT STARTED |
 | 8g | Quick-Add from Calls Page | After reviewing a call transcript, suggest: "Your agent didn't know X — add it as a FAQ?" One-click adds to extra_qa. | MEDIUM | NOT STARTED |
 | 8h | Onboarding Progress Ring | Visual progress indicator: "Your agent is 60% set up" based on which capabilities are configured. Motivates completion. | MEDIUM | NOT STARTED |
 | 8i | Settings Search/Filter | Search box at top of settings to quickly find "hours", "voice", "booking" etc. Filters visible cards. For power users with many settings. | LOW | NOT STARTED |
+| 8j | Intent Confidence / Containment Rate | Track per-capability success rate from call transcripts. Requires call analytics pipeline (transcript → intent classification → success/fail). Source: Sonar Pro research. | LOW | NOT STARTED |
+| 8k | Cost-Per-Call Dashboard Widget | Usage cost breakdown per call: Ultravox minutes, Twilio, SMS, knowledge queries. Helps users understand ROI. Source: Sonar Pro research. | LOW | NOT STARTED |
+| 8l | A/B Prompt Testing | Test two prompt variants side-by-side, route 50/50, compare metrics. Requires call volume + analytics pipeline. Source: Sonar Pro research. | LOW | NOT STARTED |
+| 8m | Failure-to-Refine Pipeline | Auto-detect unanswered questions from transcripts → surface as "Add this as a FAQ?" notification. Extends 8g with automated detection. Source: Sonar Pro research. | MEDIUM | NOT STARTED |
+| 8n | Conversation Flow Visualization | Visual decision tree of agent behavior: greeting → qualification → booking/transfer/FAQ. Non-technical users understand agent without reading prompt. Extends 8e. Source: Sonar Pro research. | LOW | NOT STARTED |
+| 8o | Frustration/Interruption Metrics | Per-call frustration score (repeated questions, interruptions, silence gaps). Enriches `completed` webhook classification. Feeds into D35 AI suggestions + D36 weekly digest. Sonar Pro: industry-standard for voice AI observability. | MEDIUM | NOT STARTED |
+| 8p | Prompt Coherence Guard | Track cumulative patch count per prompt. After 5+ surgical patches without full regen, surface warning: "Your agent's prompt has been patched many times — consider regenerating for best results." Prevents personality drift from incremental edits. | LOW | NOT STARTED |
+| 8q | Live Call Duration Timer | Enhance LiveCallBanner with per-call duration counter (elapsed since `started_at`). Shows "2:34 and counting" for each active call. Sonar Pro: emerging standard for voice AI dashboards. | LOW | NOT STARTED |
 
 ---
 
@@ -180,15 +193,23 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | D14 | TECH DEBT | Booking config card was last inline settings card in AgentTab.tsx. | LOW | **DONE** 2026-03-22 — Wave 1: BookingCard + WebhooksCard + AgentConfigCard + TestCallCard extracted. AgentTab 1774→1461 lines. |
 | D15 | **GAP** | Voice style + calendar prompt patches skip `validatePrompt()` — if replacement pushes prompt over 8K chars, it won't be caught. Section editor DOES validate. | MEDIUM | **DONE** 2026-03-22 — both patches now run `validatePrompt()`, block save + return error if >8K |
 | D16 | UX GAP | `usePatchSettings` hook doesn't surface errors to user. If PATCH fails (prompt validation, Ultravox sync), cards show no error. | MEDIUM | **DONE** 2026-03-22 — hook returns `error`/`clearError`, all 7 cards display errors. AgentOverviewCard also has `footerError`. |
-| D17 | REALTIME | Calls page (`/dashboard/calls`) has no `postgres_changes` subscription. New calls during a session require manual refresh. Same gap that D9 fixed for Calendar/Notifications. | LOW | NOT STARTED |
-| D18 | REALTIME | Leads page (`/dashboard/leads`) has no realtime subscription. New leads from calls require manual refresh. | LOW | NOT STARTED |
+| D17 | REALTIME | Calls page (`/dashboard/calls`) realtime subscription was unscoped — listened to ALL rows. Now filtered by `client_id` for non-admin users, matching D9 pattern. | LOW | **DONE** 2026-03-22 — `CallsList.tsx` filter + dep array fix |
+| D18 | REALTIME | Leads page (`/dashboard/leads`) admin LeadQueue had no realtime. Added `postgres_changes` on `campaign_leads` with INSERT/UPDATE handlers. | LOW | **DONE** 2026-03-22 — `LeadQueue.tsx` realtime subscription |
 | D19 | TECH DEBT | Settings PATCH route uses 30+ manual `typeof` field checks instead of a Zod schema. Not a bug (each field is individually validated) but a drift risk — new fields can be added without validation. | LOW | NOT STARTED |
 | D20 | WIP | S12 Slice 4/5 partially started — uncommitted files exist: `TrialBadge.tsx`, `UpgradeCTA.tsx`, `empty-states/`, `useOnboarding.ts`, modified `AgentTestCard.tsx`, `OnboardingChecklist.tsx`. Need to decide: commit as WIP branch or discard. | INFO | NEEDS DECISION |
 | D25 | UNIFICATION | All 7 extracted cards + AgentOverviewCard now support `mode` prop ('settings' \| 'onboarding'), `onSave` callback, and error display. `usePatchSettings` hook upgraded with `error`/`clearError`/`CardMode` type. Onboarding and settings share same components, same DB writes, same Ultravox sync. | DONE | **DONE** 2026-03-22 |
-| D26 | **GAP** | `agent_name` save does NOT update `system_prompt` — name is baked in during prompt generation only. Changing name in settings/onboarding changes display but agent still uses old name on calls until prompt regen. | MEDIUM | NOT STARTED |
+| D26 | **GAP** | `agent_name` save now patches `system_prompt` via `patchAgentName()` in prompt-patcher.ts. Word-boundary regex, `validatePrompt()` gate, auto-syncs to Ultravox. | MEDIUM | **DONE** 2026-03-22 — prompt-patcher.ts + settings route.ts |
 | D27 | **GAP** | No feedback loop for call-time injection fields (hours, facts, Q&A). User saves but sees no confirmation the agent "knows" it — only a test call verifies. Consider a "preview what agent knows" panel. | LOW | NOT STARTED |
 | D28 | **FIX** | `PROMPT_MAX_CHARS` was 8000 (hard block). User confirmed real limit is 12K. Changed to: warn at 8K, hard block at 12K. Updated 11 files: route.ts, AgentTab, RuntimeCard, AgentOverviewCard, knowledge-summary, inbound/transfer webhooks, CLAUDE.md, docs. | HIGH | **DONE** 2026-03-22 |
 | D29 | **GAP** | WebRTC orb (in-browser voice test) only visible to admin in `/dashboard/lab` (`adminOnly: true`). Paid users and trial users have NO in-browser test option — only phone-based TestCallCard. Lab page also broken for admin (shows "select a client first" with no selection UI). | HIGH | **DONE** 2026-03-22 -- AgentVoiceTest.tsx + TestCallCard rewrite. WebRTC orb primary, phone secondary for all users. |
+| D30 | OPTIMIZATION | Realtime re-render storms: high-volume clients (10+ calls/min) can cause rapid `setCalls` updates from `postgres_changes`. Should debounce/batch realtime events (collect in queue, flush every 100-250ms). Sonar Pro research confirms React 18+ `useDeferredValue`/`useTransition` or manual debounce. | LOW | NOT STARTED |
+| D31 | OPTIMIZATION | Unbounded state arrays: `CallsList`, `LeadQueue`, Calendar, Notifications all prepend to arrays without caps. Long sessions could accumulate thousands of entries in memory. Should implement `.slice(0, MAX)` after prepend or virtual scrolling for 500+ rows. | LOW | NOT STARTED |
+| D32 | SECURITY | RLS-based realtime filtering: current `postgres_changes` uses client-side `filter: 'client_id=eq.X'` which reduces noise but doesn't enforce security at the DB level. Supabase Realtime respects RLS policies — should verify RLS is enabled on `call_logs`, `campaign_leads`, `notification_logs`, `bookings` for realtime channels. If RLS is active, the client-side filter is redundant (belt-and-suspenders). | MEDIUM | NOT STARTED |
+| D33 | **PATTERN** | Multi-field prompt patch ordering: when user changes name + voice + hours in single save, patches should apply in dependency order — (1) identity/name, (2) sensory/voice, (3) operational/calendar — with `validatePrompt()` after each step, not just the final result. Currently settings route applies patches independently which could compound over 12K limit. | LOW | NOT STARTED |
+| D34 | FEATURE | Call sentiment deep metrics: beyond HOT/WARM/COLD classification, add frustration detection (repeated questions count), interruption rate, silence gaps, and per-call satisfaction score. Sonar Pro research shows these are becoming industry standard for voice AI observability. `call_logs` already has `sentiment` + `quality_score` columns — needs enrichment in `completed` webhook. | MEDIUM | NOT STARTED |
+| D35 | FEATURE | AI-assisted prompt improvement suggestions: after N calls with similar failure patterns (e.g. agent couldn't answer same question 3x), surface automated suggestion: "Your agent didn't know X — add it as a FAQ?" Extends Slice 8g (Quick-Add from Calls) with pattern detection. | MEDIUM | NOT STARTED |
+| D36 | FEATURE | Weekly failure digest: automated cron that analyzes escalated/missed/low-quality calls from past 7 days, groups recurring failure reasons, and sends summary to client via dashboard notification + optional email. Sonar Pro: "failure log analysis is a goldmine for improvement." | LOW | NOT STARTED |
+| D37 | FEATURE | Agent personality coherence check: when cumulative prompt patches (name + voice + hours + calendar) drift the prompt far from the original template, detect and warn. Track patch count per prompt version — if >5 surgical patches without a full regen, suggest "Regenerate prompt to ensure consistency." | LOW | NOT STARTED |
 
 ---
 
@@ -225,7 +246,8 @@ DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
          S18 partial (guard rails), S19a (webhook liveness),
          GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense),
          GATE-3: S14a-d (voicemail fallback + settings UI),
-         GATE-4: S10a-f + D1-D13 (dashboard observability + session discoveries)
+         GATE-4: S10a-f + D1-D29 (dashboard observability + session discoveries),
+         D17/D18 (realtime scoping), D26/8c (agent name→prompt sync), 8a-8b (capability UX)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
@@ -264,6 +286,6 @@ DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
 - **Multi-tenant auth:** Every dashboard API route needs `client_users` gating after session auth.
 - **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
 - **Prompt injection defense required:** All agent prompts must include reveal/role-override/code-output defense rules. `validatePrompt()` enforces for generated prompts. Hand-crafted `SYSTEM_PROMPT.txt` files need manual addition matching each client's style (e.g. "Never X" vs numbered rules). Always dry-run `deploy_prompt.py --dry-run` before live deploy to verify tools aren't wiped.
-- **Prompt section patching:** `lib/prompt-patcher.ts` for feature-toggle patches (calendar block, voice style). `lib/prompt-sections.ts` for marker-based section replacement (`<!-- unmissed:SECTION_ID -->`). Never edit prompt text inline in route handlers.
+- **Prompt section patching:** `lib/prompt-patcher.ts` for feature-toggle patches (calendar block, voice style, agent name). `lib/prompt-sections.ts` for marker-based section replacement (`<!-- unmissed:SECTION_ID -->`). Never edit prompt text inline in route handlers. Multi-field patch order: identity (name) → sensory (voice) → operational (calendar/hours).
 - **Settings card extraction pattern:** New settings cards go in `components/dashboard/settings/`. Use `usePatchSettings` hook for PATCH `/api/dashboard/settings`. Cards: HoursCard, VoiceStyleCard, VoicemailGreetingCard, SectionEditorCard, AdvancedContextCard, BookingCard, WebhooksCard, AgentConfigCard, TestCallCard. Wave 2 next: SetupCard, GodModeCard, LearningLoopCard.
 - **Call-time injection (not prompt-time):** Ephemeral data (`injected_note`, returning caller context) is injected via `callerContextBlock()` in `lib/agent-context.ts` at call creation — NOT baked into `system_prompt` in DB. DB prompt = stable base. Call-time additions = dynamic overlay via `templateContext`.

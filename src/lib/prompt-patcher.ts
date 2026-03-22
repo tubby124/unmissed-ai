@@ -121,6 +121,28 @@ export function patchVoiceStyleSection(
   ).replace(/\n{3,}/g, '\n\n').trimEnd()
 }
 
+// ── Agent name patcher ──────────────────────────────────────────────────────
+
+/**
+ * Replace all occurrences of the old agent name with the new name in the prompt.
+ *
+ * Uses word-boundary matching so "Mark" doesn't match "Marketing" or "Bookmark".
+ * Returns the original prompt unchanged if oldName equals newName (case-insensitive)
+ * or if no occurrences are found.
+ */
+export function patchAgentName(
+  prompt: string,
+  oldName: string,
+  newName: string,
+): string {
+  if (!oldName || !newName) return prompt
+  if (oldName.trim().toLowerCase() === newName.trim().toLowerCase()) return prompt
+
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`\\b${escaped}\\b`, 'g')
+  return prompt.replace(re, newName.trim())
+}
+
 // ── Service type lookup ─────────────────────────────────────────────────────
 
 const NICHE_SERVICE_TYPES: Record<string, string> = {

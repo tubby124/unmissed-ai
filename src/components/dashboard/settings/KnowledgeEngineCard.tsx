@@ -217,6 +217,17 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
         </p>
       )}
 
+      {/* Knowledge layer explainer (8b) */}
+      {localEnabled && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/[0.04] border border-purple-500/15 mt-3 ml-0">
+          <span className="w-2 h-2 rounded-full bg-purple-400/80 shrink-0" />
+          <p className="text-[10px] t2 leading-relaxed">
+            <span className="font-semibold text-purple-400/90">Searched when needed</span>
+            {' '}&mdash; your agent only searches this during a call when the question is relevant. Not loaded every call.
+          </p>
+        </div>
+      )}
+
       {/* Expanded content */}
       {!collapsed && localEnabled && (
         <div className="mt-4 space-y-4">

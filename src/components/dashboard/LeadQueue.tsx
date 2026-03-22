@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { createBrowserClient } from '@/lib/supabase/client'
 import DialModal from './DialModal'
 import { slaTag } from '@/lib/utils/sla'
 
@@ -64,6 +65,27 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
   const [addClientId, setAddClientId] = useState('')
   const [addError, setAddError] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  // Realtime: refresh when campaign_leads change
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel('lead_queue_realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_leads' }, (payload) => {
+        const row = payload.new as Lead
+        setLeads(prev => {
+          if (prev.some(l => l.id === row.id)) return prev
+          return [{ ...row, clients: clients.find(c => c.id === row.client_id) ? { business_name: clients.find(c => c.id === row.client_id)!.business_name } : null }, ...prev]
+        })
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_leads' }, (payload) => {
+        const row = payload.new as Lead
+        setLeads(prev => prev.map(l => l.id === row.id ? { ...l, ...row } : l))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = leads.filter(l => l.status === tab)
 

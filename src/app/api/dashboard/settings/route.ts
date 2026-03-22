@@ -3,7 +3,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
-import { patchCalendarBlock, patchVoiceStyleSection, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { VOICE_PRESETS } from '@/lib/prompt-builder'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
@@ -311,6 +311,39 @@ export async function PATCH(req: NextRequest) {
           updates.system_prompt = patched
           updates.updated_at = new Date().toISOString()
           console.log(`[settings] Voice style patched to '${body.voice_style_preset}' for client=${targetClientId}`)
+        }
+      }
+    }
+  }
+
+  // ── Auto-patch prompt when agent_name changes ──────────────────────────────
+  // Replace all occurrences of the old name with the new name in the stored
+  // system_prompt so the agent actually uses the new name on calls.
+  if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
+    // Fetch the current agent_name to get the old name for replacement
+    const { data: nameRow } = await supabase
+      .from('clients')
+      .select('agent_name, system_prompt')
+      .eq('id', targetClientId)
+      .single()
+
+    const oldName = (nameRow?.agent_name as string) ?? null
+    const newName = body.agent_name.trim()
+
+    if (oldName && oldName !== newName) {
+      let promptToPatch: string | null = typeof updates.system_prompt === 'string'
+        ? updates.system_prompt as string
+        : (nameRow?.system_prompt as string) ?? null
+
+      if (promptToPatch) {
+        const patched = patchAgentName(promptToPatch, oldName, newName)
+        if (patched !== promptToPatch) {
+          const anV = validatePrompt(patched)
+          if (!anV.valid) return NextResponse.json({ error: anV.error }, { status: 400 })
+          if (anV.warnings.length) promptWarnings = [...promptWarnings, ...anV.warnings]
+          updates.system_prompt = patched
+          updates.updated_at = new Date().toISOString()
+          console.log(`[settings] Agent name patched '${oldName}' → '${newName}' in prompt for client=${targetClientId}`)
         }
       }
     }

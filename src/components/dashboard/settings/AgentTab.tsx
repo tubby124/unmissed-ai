@@ -1098,16 +1098,21 @@ export default function AgentTab({
       </div>
       </motion.div>
 
-      {/* 5x — Capabilities card (client view only) */}
-      {!isAdmin && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.01 }}
-        >
-          <CapabilitiesCard client={client} />
-        </motion.div>
-      )}
+      {/* 5x — Agent Capability Dashboard (8a — visible to all users) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.01 }}
+      >
+        <CapabilitiesCard
+          client={client}
+          isAdmin={isAdmin}
+          onScrollTo={(section) => {
+            const el = document.getElementById(`section-${section}`)
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }}
+        />
+      </motion.div>
 
       {/* 5y — Runtime config card */}
       <motion.div

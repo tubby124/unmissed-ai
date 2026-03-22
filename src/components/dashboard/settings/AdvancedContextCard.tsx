@@ -70,11 +70,20 @@ export default function AdvancedContextCard({
           {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
         </div>
 
+        {/* Knowledge layer explainer (8b) */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.04] border border-blue-500/15 mb-4">
+          <span className="w-2 h-2 rounded-full bg-blue-400/80 shrink-0" />
+          <p className="text-[10px] t2 leading-relaxed">
+            <span className="font-semibold text-blue-400/90">Always knows</span>
+            {' '}&mdash; this info is given to your agent on every call. It never needs to search for it.
+          </p>
+        </div>
+
         {/* Business Facts */}
         <div className="space-y-1.5 mb-5">
           <div className="flex items-center gap-2">
             <label className="text-[11px] t3 block">What your agent knows</label>
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Every call</span>
           </div>
           <p className="text-[11px] t3">
             Core business info — hours, location, team members, services. Your agent uses this to answer caller questions.
@@ -94,7 +103,7 @@ export default function AdvancedContextCard({
             <div>
               <div className="flex items-center gap-2">
                 <label className="text-[11px] t3 block">Common questions callers ask</label>
-                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
+                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Every call</span>
               </div>
               <p className="text-[11px] t3">Add questions and answers. Your agent uses these to respond to callers directly.</p>
             </div>
