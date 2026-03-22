@@ -11,6 +11,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
+function esc(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 interface ClientRow {
   id: string
   slug: string
@@ -143,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#e4e4e7;background:#09090b">
-  <h2 style="margin:0 0 4px;font-size:20px;color:#fafafa">${agentName}'s Weekly Report</h2>
+  <h2 style="margin:0 0 4px;font-size:20px;color:#fafafa">${esc(agentName)}'s Weekly Report</h2>
   <p style="margin:0 0 24px;font-size:13px;color:#71717a">Here's what happened in the last 7 days</p>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
@@ -173,7 +177,7 @@ export async function POST(req: NextRequest) {
   ${topTopics.length > 0 ? `
   <div style="padding:12px 16px;background:#18181b;border:1px solid #27272a;border-radius:12px;margin-bottom:24px">
     <div style="font-size:12px;color:#71717a;margin-bottom:8px">Top Topics</div>
-    <div>${topTopics.map(t => `<span style="display:inline-block;padding:4px 10px;margin:2px 4px 2px 0;background:#27272a;border-radius:6px;font-size:12px;color:#a1a1aa">${t}</span>`).join('')}</div>
+    <div>${topTopics.map(t => `<span style="display:inline-block;padding:4px 10px;margin:2px 4px 2px 0;background:#27272a;border-radius:6px;font-size:12px;color:#a1a1aa">${esc(t)}</span>`).join('')}</div>
   </div>
   ` : ''}
 

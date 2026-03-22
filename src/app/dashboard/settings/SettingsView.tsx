@@ -357,6 +357,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         <AlertsTab
           client={client}
           previewMode={previewMode}
+          isAdmin={isAdmin}
           tgStyle={tgStyle[client.id] ?? 'standard'}
           setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
         />

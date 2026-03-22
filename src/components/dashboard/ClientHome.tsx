@@ -160,7 +160,7 @@ export default function ClientHome() {
     actions.push({ text: 'Set your business hours', link: '/dashboard/settings', priority: 'medium' })
   }
   if (stats.totalCalls === 0) {
-    actions.push({ text: 'Test your agent with a call', link: '/dashboard/calls', priority: 'high' })
+    actions.push({ text: 'Test your agent with a call', link: '/dashboard/settings', priority: 'high' })
   }
   if (usageHigh) {
     actions.push({ text: `${usage.minutesUsed} of ${usage.totalAvailable} minutes used this month`, link: '/dashboard/settings', priority: 'high' })
@@ -214,7 +214,7 @@ export default function ClientHome() {
       </div>
 
       {/* Quick stats row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
           <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
           <div className="flex items-baseline gap-2">
