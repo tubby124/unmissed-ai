@@ -165,6 +165,9 @@ export async function POST(req: NextRequest) {
 
   const validation = validatePrompt(prompt);
   if (!validation.valid) {
+    // Rollback orphaned rows (S12-V18: was missing — left dangling intake + client rows)
+    await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
+    await supa.from("clients").delete().eq("id", clientId);
     return NextResponse.json({ error: "Prompt failed validation", errors: validation.errors }, { status: 422 });
   }
 

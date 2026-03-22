@@ -1707,6 +1707,7 @@ function buildRealEstatePrompt(intake: Record<string, unknown>): string {
   const customRecip   = ((intake.niche_customRecipient  as string) || '').trim()
   const customNotes   = ((intake.niche_customNotes      as string) || '').trim()
   const callbackPhone = ((intake.callback_phone         as string) || '').trim()
+  const callerFaq     = ((intake.caller_faq             as string) || '').trim()
 
   const serviceAreasStr = serviceAreas.length > 0 ? serviceAreas.join(', ') : 'the local area'
   const specialtiesStr  = specialties.length  > 0 ? specialties.join(', ').toLowerCase() : ''
@@ -1873,7 +1874,13 @@ ${specialtiesStr ? `"What does ${pronSub} specialize in?" → "${ownerName} focu
 "How do I reach ${ownerFirst} directly?" → "Best way is to text this same number — ${pronSub} checks messages regularly."
 "Are you an AI?" → "I'm ${agentName}, ${ownerName}'s assistant! I handle ${pronPoss} calls when ${pronSub}'s busy."
 "Is ${ownerFirst} the agent on [property]?" → "Let me take your info and ${pronSub}'ll call ya right back with all the details."
+${callerFaq ? `
+ADDITIONAL BUSINESS KNOWLEDGE
 
+${callerFaq}
+
+Use the above when answering caller questions. If a caller asks about something covered here, answer naturally and conversationally — don't read it word for word.
+` : ''}
 EDGE CASES
 
 SILENCE:
@@ -2380,9 +2387,10 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     errors.push(`Unfilled template variables: ${unfilled.join(', ')}`)
   }
 
-  // Minimum viable length
-  if (prompt.length < 5000) {
-    errors.push(`Prompt too short: ${prompt.length} chars (minimum 5000)`)
+  // Minimum viable length — lowered from 5000 to 1500 (S12-V18: auto-generated prompts
+  // for some niches are legitimately shorter; GLM-4.6 handles them fine)
+  if (prompt.length < 1500) {
+    errors.push(`Prompt too short: ${prompt.length} chars (minimum 1500)`)
   }
 
   // hangUp tool must be referenced
