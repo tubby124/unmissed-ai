@@ -7,6 +7,7 @@ import { OnboardingData } from '@/types/onboarding'
 import { toIntakePayload } from '@/lib/intake-transform'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
 import { APP_URL } from '@/lib/app-url'
+import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 
 // Simple in-memory rate limiter: 10 demos per IP per hour
 const rateLimitMap = new Map<string, number[]>()
@@ -51,6 +52,14 @@ const MALE_NICHES = new Set(['auto_glass', 'hvac', 'plumbing'])
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
+
+  const globalCheck = globalDemoBudget.check(GLOBAL_DEMO_KEY)
+  if (!globalCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Demo service is temporarily at capacity. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(globalCheck.retryAfterMs / 1000)) } }
+    )
+  }
 
   if (isRateLimited(ip)) {
     return NextResponse.json(
@@ -97,6 +106,7 @@ HANG-UP RULES (mandatory — follow exactly):
       }
 
       recordUsage(ip)
+      globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
       const supabaseLog = createServiceClient()
       const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
@@ -184,6 +194,7 @@ HANG-UP RULES (mandatory — follow exactly):
     }
 
     recordUsage(ip)
+    globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
     const supabaseLog = createServiceClient()
     const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)

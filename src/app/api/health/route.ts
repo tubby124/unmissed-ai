@@ -12,7 +12,7 @@ export async function GET() {
     const supabase = createServiceClient()
     const { data, error } = await supabase
       .from('clients')
-      .select('id, slug, ultravox_agent_id')
+      .select('id, ultravox_agent_id')
       .eq('status', 'active')
       .limit(10)
 
@@ -21,7 +21,7 @@ export async function GET() {
 
     // ── Ultravox agent liveness ─────────────────────────────────────────────
     const agentClients = (data ?? []).filter(c => c.ultravox_agent_id)
-    const agentChecks: Record<string, string> = {}
+    let agentsHealthy = 0
 
     await Promise.all(agentClients.map(async (c) => {
       try {
@@ -29,26 +29,28 @@ export async function GET() {
           headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! },
         })
         if (!res.ok) {
-          agentChecks[c.slug] = `http_${res.status}`
           allOk = false
           return
         }
         const body = await res.json()
-        agentChecks[c.slug] = body.publishedRevisionId ? 'ok' : 'draft_uncallable'
-        if (!body.publishedRevisionId) allOk = false
-      } catch (err) {
-        agentChecks[c.slug] = `error:${err instanceof Error ? err.message : String(err)}`
+        if (body.publishedRevisionId) {
+          agentsHealthy++
+        } else {
+          allOk = false
+        }
+      } catch {
         allOk = false
       }
     }))
 
-    checks.agents = agentChecks
+    checks.agents_checked = agentClients.length
+    checks.agents_healthy = agentsHealthy
 
   } catch (err) {
     checks.supabase = `error:${err instanceof Error ? err.message : String(err)}`
     allOk = false
   }
 
-  checks.ok = allOk
+  checks.status = allOk ? 'ok' : 'degraded'
   return NextResponse.json(checks, { status: allOk ? 200 : 503 })
 }

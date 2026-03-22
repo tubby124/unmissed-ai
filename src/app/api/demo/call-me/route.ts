@@ -6,6 +6,7 @@ import { buildStreamTwiml } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
+import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 
 // ── Rate limiter: 3 calls per IP per hour ───────────────────────────────────
 const rateLimitMap = new Map<string, number[]>()
@@ -37,7 +38,14 @@ export async function POST(req: NextRequest) {
     || req.headers.get('x-real-ip')
     || 'unknown'
 
-  // Rate limit check
+  const globalCheck = globalDemoBudget.check(GLOBAL_DEMO_KEY)
+  if (!globalCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Demo service is temporarily at capacity. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(globalCheck.retryAfterMs / 1000)) } }
+    )
+  }
+
   if (isRateLimited(ip)) {
     return NextResponse.json(
       { error: 'You\'ve reached the demo limit (3 calls/hour). Try again later or sign up for your own agent.' },
@@ -142,8 +150,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`[call-me] Twilio outbound call created: sid=${call.sid} to=${phone}`)
 
-    // Record rate limit usage after successful call creation
     recordUsage(ip)
+    globalDemoBudget.record(GLOBAL_DEMO_KEY)
 
     // 4. Log to demo_calls (fire-and-forget)
     const supabase = createServiceClient()
