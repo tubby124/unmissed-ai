@@ -319,6 +319,7 @@ export async function scrapeWebsite(
         messages: [{ role: 'user', content: extractionPrompt }],
         max_tokens: 2000,
       }),
+      signal: AbortSignal.timeout(15_000),
     })
 
     if (!res.ok) {

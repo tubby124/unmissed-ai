@@ -12,9 +12,11 @@ interface WebsiteScrapePreviewProps {
 
 export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePreviewProps) {
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedQa, setExpandedQa] = useState<Set<number>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasFetchedRef = useRef(false);
 
   const websiteUrl = data.websiteUrl?.trim() || '';
@@ -38,7 +40,11 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
     abortRef.current = controller;
 
     setLoading(true);
+    setSlow(false);
     setError(null);
+
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    slowTimerRef.current = setTimeout(() => setSlow(true), 20_000);
 
     try {
       const res = await fetch('/api/onboard/scrape-preview', {
@@ -72,6 +78,8 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
+      setSlow(false);
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     }
   }, [websiteUrl, data.niche, onUpdate]);
 
@@ -91,6 +99,7 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
   }, []);
 
@@ -131,8 +140,29 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Scanning your website...</p>
-            <p className="text-xs text-muted-foreground mt-0.5">This takes 10-20 seconds</p>
+            <p className="text-sm font-semibold text-foreground">
+              {slow ? 'Still working on it...' : 'Scanning your website...'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {slow
+                ? 'This is taking longer than expected. You can wait or try again.'
+                : 'This takes 10\u201320 seconds'}
+            </p>
+            {slow && (
+              <button
+                type="button"
+                onClick={() => {
+                  abortRef.current?.abort();
+                  setLoading(false);
+                  setSlow(false);
+                  if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+                  setError('Scan was taking too long. Please try again.');
+                }}
+                className="mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-700 rounded-lg px-3 py-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors cursor-pointer"
+              >
+                Cancel and retry
+              </button>
+            )}
           </div>
         </div>
         <div className="space-y-3">

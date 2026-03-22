@@ -48,12 +48,19 @@ export async function POST(request: NextRequest) {
 
   limiter.record(ip);
 
+  const SCRAPE_TIMEOUT_MS = 30_000;
+
   try {
-    const scrapeResult = await scrapeWebsite(websiteUrl, niche.trim());
+    const scrapeResult = await Promise.race([
+      scrapeWebsite(websiteUrl, niche.trim()),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SCRAPE_TIMEOUT")), SCRAPE_TIMEOUT_MS),
+      ),
+    ]);
 
     if (scrapeResult.failureBucket !== "success") {
       return NextResponse.json(
-        { error: `Scrape failed: ${scrapeResult.failureBucket}`, warnings: scrapeResult.warnings },
+        { error: `Scrape failed: ${scrapeResult.failureBucket}`, code: "scrape_failed", warnings: scrapeResult.warnings },
         { status: 500 },
       );
     }
@@ -74,7 +81,19 @@ export async function POST(request: NextRequest) {
       scrapedAt: new Date().toISOString(),
     });
   } catch (err) {
+    const isTimeout =
+      err instanceof Error &&
+      (err.message === "SCRAPE_TIMEOUT" || err.name === "TimeoutError");
+
+    if (isTimeout) {
+      console.warn(`[scrape-preview] Timeout after ${SCRAPE_TIMEOUT_MS}ms | url=${websiteUrl}`);
+      return NextResponse.json(
+        { error: "Website scan timed out. The site may be slow or temporarily unavailable.", code: "timeout" },
+        { status: 504 },
+      );
+    }
+
     console.error("[scrape-preview] Unexpected error:", err);
-    return NextResponse.json({ error: "Internal server error during scrape" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error during scrape", code: "error" }, { status: 500 });
   }
 }
