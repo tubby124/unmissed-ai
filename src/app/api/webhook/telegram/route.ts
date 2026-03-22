@@ -16,13 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
+import { createServiceClient } from '@/lib/supabase/server'
 
 interface TelegramUpdate {
   message?: {
@@ -42,6 +36,7 @@ async function sendTelegramMessage(chatId: number, text: string): Promise<void> 
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const adminSupa = createServiceClient()
   let update: TelegramUpdate
   try {
     update = await req.json() as TelegramUpdate

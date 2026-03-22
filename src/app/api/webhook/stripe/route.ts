@@ -17,12 +17,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
 import { sendAlert } from '@/lib/telegram'
 import { activateClient } from '@/lib/activate-client'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
+import { createServiceClient } from '@/lib/supabase/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 function getTierLabel(): string {
   return 'Starter ($30)'
@@ -51,21 +53,15 @@ function extractDiscountInfo(sub: Stripe.Subscription): {
   }
 }
 
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
-
-
 export async function POST(req: NextRequest) {
+  const adminSupa = createServiceClient()
   const rawBody = await req.text()
   const sig = req.headers.get('stripe-signature') ?? ''
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
+    event = getStripe().webhooks.constructEvent(rawBody, sig, webhookSecret)
   } catch (err) {
     console.error('[stripe-webhook] Signature verification failed:', err)
     return new NextResponse('Invalid signature', { status: 400 })
@@ -103,7 +99,7 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (cl) {
-        const sub = await stripe.subscriptions.retrieve(subId)
+        const sub = await getStripe().subscriptions.retrieve(subId)
         const tier = sub.metadata?.tier ?? null
         const minuteLimit = getNicheMinuteLimit(cl.niche)
         const tierLabel = getTierLabel()
@@ -468,7 +464,7 @@ export async function POST(req: NextRequest) {
     ? session.subscription : (session.subscription as { id: string })?.id
   if (subscriptionId) {
     try {
-      const sub = await stripe.subscriptions.retrieve(subscriptionId)
+      const sub = await getStripe().subscriptions.retrieve(subscriptionId)
       const { discountName, effectiveRate } = extractDiscountInfo(sub)
       await adminSupa.from('clients').update({
         stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,

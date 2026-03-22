@@ -4,7 +4,9 @@ import { createServerClient } from '@/lib/supabase/server'
 import { MINUTE_RELOAD } from '@/lib/pricing'
 import { APP_URL } from '@/lib/app-url'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 const CENTS_PER_MINUTE = MINUTE_RELOAD.perMinuteRate * 100 // 20 cents per minute
 
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const amount = minutes * CENTS_PER_MINUTE
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     line_items: [{
       price_data: {

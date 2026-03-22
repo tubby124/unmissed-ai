@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
 export async function POST(req: NextRequest) {
+  const adminSupa = createServiceClient()
   const TAG = '[send-login-link]'
 
   // ── Auth check — admin only ──────────────────────────────────────────────

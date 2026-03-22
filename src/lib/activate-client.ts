@@ -7,7 +7,7 @@
  *   trial_convert  — Twilio purchase + SMS + Telegram, but SKIP auth user (already exists from trial)
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
@@ -16,12 +16,6 @@ import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { APP_URL } from '@/lib/app-url'
-
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
 
 async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
   if (!bot || !chat) return
@@ -37,6 +31,7 @@ export async function activateClient(params: {
   trialDays?: number
   stripeSession?: any // Stripe.Checkout.Session
 }): Promise<{ success: boolean; twilioNumber?: string; telegramLink?: string; setupUrl?: string; error?: string }> {
+  const adminSupa = createServiceClient()
   const { mode, intakeId, clientId, clientSlug, reservedNumber = null, trialDays = 7, stripeSession } = params
   const logPrefix = `[activate-client][${mode}]`
 

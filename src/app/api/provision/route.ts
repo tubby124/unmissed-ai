@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OnboardingData } from "@/types/onboarding";
-import { createClient } from "@supabase/supabase-js";
 import { sendAlert } from "@/lib/telegram";
+import { createServiceClient } from "@/lib/supabase/server";
 import { toIntakePayload, slugify } from "@/lib/intake-transform";
 
 const rateLimitMap = new Map<string, number[]>()
@@ -21,13 +21,8 @@ function recordUsage(ip: string) {
   rateLimitMap.set(ip, timestamps)
 }
 
-// Supabase service client — bypasses RLS for intake management
-const supa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-
 export async function POST(req: NextRequest) {
+  const supa = createServiceClient()
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
   if (isRateLimited(ip)) {

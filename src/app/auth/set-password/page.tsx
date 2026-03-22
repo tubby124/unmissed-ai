@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createBrowserClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { motion, AnimatePresence } from 'motion/react'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
@@ -16,17 +16,26 @@ export default function SetPasswordPage() {
   const [checking, setChecking] = useState(true)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient()
+  const supabaseRef = useRef<SupabaseClient | null>(null)
+
+  function getSupabase() {
+    if (!supabaseRef.current) {
+      // Lazy-init: only runs in browser (never during SSR prerender)
+      const { createBrowserClient } = require('@/lib/supabase/client')
+      supabaseRef.current = createBrowserClient()
+    }
+    return supabaseRef.current!
+  }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    getSupabase().auth.getUser().then(({ data }) => {
       if (!data.user) {
         router.replace('/login')
       } else {
         setChecking(false)
       }
     })
-  }, [supabase, router])
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,7 +53,7 @@ export default function SetPasswordPage() {
 
     setLoading(true)
 
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { error: updateError } = await getSupabase().auth.updateUser({ password })
 
     if (updateError) {
       setError(updateError.message)

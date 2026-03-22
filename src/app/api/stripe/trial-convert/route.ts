@@ -11,10 +11,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 function getSubscriptionPriceId(): string {
   const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
@@ -22,13 +24,8 @@ function getSubscriptionPriceId(): string {
   return priceId
 }
 
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
-
 export async function GET(req: NextRequest) {
+  const adminSupa = createServiceClient()
   const { searchParams } = req.nextUrl
   const clientId = searchParams.get('clientId')
 
@@ -72,7 +69,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Subscription price not configured', detail: String(err) }, { status: 500 })
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       allow_promotion_codes: true,
       line_items: [{ price: subscriptionPriceId, quantity: 1 }],

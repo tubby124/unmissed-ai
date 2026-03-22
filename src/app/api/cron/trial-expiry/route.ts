@@ -8,15 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
-
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
 
 interface ExpiredClient {
   id: string
@@ -26,6 +20,7 @@ interface ExpiredClient {
 }
 
 export async function POST(req: NextRequest) {
+  const adminSupa = createServiceClient()
   // ── Auth: same pattern as daily-digest ────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET
   const token = (req.headers.get('authorization') || '').replace('Bearer ', '')

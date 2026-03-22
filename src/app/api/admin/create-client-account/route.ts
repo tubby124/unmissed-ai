@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
 import { APP_URL } from '@/lib/app-url'
-
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
+  const adminSupa = createServiceClient()
   // Auth check — must be admin
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()

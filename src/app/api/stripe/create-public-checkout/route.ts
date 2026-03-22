@@ -13,14 +13,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 /** Single subscription price — $30/mo CAD. Discount codes (BETA20) reduce this at checkout. */
 function getSubscriptionPriceId(): string {
@@ -46,17 +48,13 @@ function recordUsage(ip: string) {
   rateLimitMap.set(ip, timestamps)
 }
 
-const svc = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
-
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
 export async function POST(req: NextRequest) {
+  const svc = createServiceClient()
+
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
   if (isRateLimited(ip)) {
@@ -154,10 +152,10 @@ export async function POST(req: NextRequest) {
 
   let stripeCustomerId: string | undefined
   if (customerEmail) {
-    const existing = await stripe.customers.list({ email: customerEmail, limit: 1 })
+    const existing = await getStripe().customers.list({ email: customerEmail, limit: 1 })
     stripeCustomerId = existing.data[0]?.id
     if (!stripeCustomerId) {
-      const cust = await stripe.customers.create({ email: customerEmail, name: businessName })
+      const cust = await getStripe().customers.create({ email: customerEmail, name: businessName })
       stripeCustomerId = cust.id
     }
   }
@@ -317,7 +315,7 @@ export async function POST(req: NextRequest) {
   let session: { url: string | null }
   try {
     const isInventory = !!selectedNumber
-    session = await stripe.checkout.sessions.create({
+    session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       customer: stripeCustomerId,
       allow_promotion_codes: true,

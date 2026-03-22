@@ -12,7 +12,9 @@ import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { STRIPE_IDS } from '@/lib/pricing'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -54,17 +56,17 @@ export async function POST(req: NextRequest) {
   try {
     if (action === 'apply') {
       const coupon = coupon_id || STRIPE_IDS.betaCoupon
-      await stripe.subscriptions.update(subId, { discounts: [{ coupon }] })
+      await getStripe().subscriptions.update(subId, { discounts: [{ coupon }] })
       console.log(`[admin/apply-promo] Applied coupon=${coupon} to sub=${subId} slug=${client.slug}`)
     } else if (action === 'remove') {
-      await stripe.subscriptions.update(subId, { discounts: [] })
+      await getStripe().subscriptions.update(subId, { discounts: [] })
       console.log(`[admin/apply-promo] Removed coupon from sub=${subId} slug=${client.slug}`)
     } else {
       return NextResponse.json({ error: 'action must be "apply" or "remove"' }, { status: 400 })
     }
 
     // Re-fetch subscription to get updated discount state
-    const sub = await stripe.subscriptions.retrieve(subId)
+    const sub = await getStripe().subscriptions.retrieve(subId)
 
     let discountName: string | null = null
     let effectiveRate: number | null = null

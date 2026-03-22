@@ -7,15 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { extractAreaCode, detectProvinceFromAreaCode } from '@/lib/phone'
-
-const svc = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
 
 async function requireAdmin() {
   const supabase = await createServerClient()
@@ -34,6 +27,7 @@ export async function GET() {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const svc = createServiceClient()
   // Join with clients to get business_name for assigned numbers
   const { data: rows, error } = await svc
     .from('number_inventory')
@@ -57,6 +51,7 @@ export async function POST(req: NextRequest) {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const svc = createServiceClient()
   const body = await req.json().catch(() => ({})) as { phone_number?: string }
   const rawNumber = (body.phone_number ?? '').trim()
 

@@ -10,13 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const adminSupa = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
+import { createServiceClient } from '@/lib/supabase/server'
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 5
@@ -68,6 +62,7 @@ async function extractText(buffer: Buffer, filename: string, mimeType: string): 
 }
 
 export async function POST(req: NextRequest) {
+  const adminSupa = createServiceClient()
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
 

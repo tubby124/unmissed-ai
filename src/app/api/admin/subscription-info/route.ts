@@ -9,7 +9,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const sub = await stripe.subscriptions.retrieve(client.stripe_subscription_id as string, {
+    const sub = await getStripe().subscriptions.retrieve(client.stripe_subscription_id as string, {
       expand: ['default_payment_method', 'discounts.source.coupon'],
     })
 

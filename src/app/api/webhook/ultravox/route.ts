@@ -70,9 +70,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (!signatureValid) {
-    console.error(`[ultravox-webhook] HMAC signature mismatch — rejecting. ts=${timestamp} bodyLen=${rawBody.length}`)
+    console.error(`[ultravox-webhook] HMAC signature mismatch — rejecting. ts=${timestamp} bodyLen=${rawBody.length} sigCount=${signatures.length} expectedLen=${expected.length}`)
     return new NextResponse('Invalid signature', { status: 401 })
   }
+
+  console.log(`[ultravox-webhook] HMAC verified OK — ts=${timestamp}`)
 
   // ── Parse payload ────────────────────────────────────────────────────────
   let payload: { event: string; call: Record<string, unknown> }

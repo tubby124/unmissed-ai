@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getModelById, isFreeTier, estimateCost, estimateClientCost } from '@/lib/ai-models'
 import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats, type TrendSummary, type FollowUpGapSummary, type TranscriptEntry, type ClientSetup } from '@/lib/advisor-constants'
 import { computeTrends, findFollowUpGaps, formatTranscriptForPrompt, type CallRow } from '@/lib/advisor-data'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
-
 export async function POST(req: NextRequest) {
+  const supabase = createServiceClient()
   // ── 1. Auth ───────────────────────────────────────────────────────────────
   const authHeader = req.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {

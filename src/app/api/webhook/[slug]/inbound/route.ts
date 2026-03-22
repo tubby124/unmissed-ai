@@ -165,7 +165,6 @@ export async function POST(
   // callerContextRaw   = 'TODAY: ...\nCALLER PHONE: ...'   — for Agents API template substitution (no brackets)
   const callerContextBlock = ctx.assembled.callerContextBlock
   const callerContextRaw   = callerContextBlock.slice(1, -1)
-  const firstPriorCallId   = ctx.caller.firstPriorCallId ?? undefined
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
   // Phase 4: append retrieval instruction when enabled, guarded by prompt length hard max
   let knowledgeBlockStr = ctx.knowledge.block
@@ -229,7 +228,6 @@ export async function POST(
           metadata: callMeta,
           languageHint: 'en',
           initialState: callState as unknown as Record<string, unknown>,
-          ...(firstPriorCallId ? { priorCallId: firstPriorCallId } : {}),
         })
         console.log(`[inbound] createCall fallback succeeded: callId=${ultravoxCall.callId}`)
       }
@@ -244,7 +242,6 @@ export async function POST(
         metadata: callMeta,
         languageHint: 'en',
         initialState: callState as unknown as Record<string, unknown>,
-        ...(firstPriorCallId ? { priorCallId: firstPriorCallId } : {}),
       })
     }
   } catch (error) {

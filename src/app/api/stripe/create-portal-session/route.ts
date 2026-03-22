@@ -13,7 +13,9 @@ import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: client.stripe_customer_id as string,
       return_url: `${APP_URL}/dashboard/settings`,
     })
