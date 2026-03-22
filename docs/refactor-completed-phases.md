@@ -1908,3 +1908,102 @@ DEFERRED (not before launch):
 - **Ultravox native webhook is account-level.** One webhook registration (`POST /api/webhooks`) covers ALL agents on the account. No per-client config needed. Events: `call.started`, `call.joined`, `call.ended`, `call.billed`. Each event fires once per call — historical events that already fired (and were rejected by broken HMAC) will NOT retry retroactively. Billing data only populates for calls occurring AFTER the webhook is working.
 - **Webhook registration workflow:** (1) `python scripts/register-ultravox-webhook.py` — omits `secret` field, (2) script prints `secrets[0]` from response, (3) set `ULTRAVOX_WEBHOOK_SECRET` in Railway to that exact value, (4) set `ULTRAVOX_WEBHOOK_ID` in Railway for reference, (5) redeploy. Current webhook: `8451a083-2af4-4d88-a77e-dd158c764cce`.
 - **Debugging external webhook HMAC: use bypass + verbose logging pattern.** When HMAC fails: (1) add verbose logging (raw headers, body hash, computed vs received sig), (2) add temporary `WEBHOOK_HMAC_BYPASS=true` env var to confirm events arrive at all, (3) isolate: is it delivery failure or signature mismatch? (4) remove bypass + diagnostics after fix. Never leave bypass in production.
+
+---
+
+## Completed: FND — Foundation + Client Experience (2026-03-22)
+
+Error boundaries, loading skeletons (5 routes), sonner toast system, ClientHome dashboard, weekly digest cron, global error/404 pages. 11 new files, ~7 edits. Pre-push audit: 5 fixes (XSS, silent failures, design tokens, responsive grid, wrong links).
+
+---
+
+## Completed: GATE-3 — Outage Resilience (2026-03-22)
+
+| Item | Source | Status |
+|------|--------|--------|
+| S14a | S14 | **DONE** 2026-03-22 -- `buildVoicemailTwiml()` in twilio.ts, replaces "technical difficulties" hangup in inbound catch block |
+| S14b | S14 | **DONE** 2026-03-22 -- `/api/webhook/[slug]/voicemail` recording callback, downloads to Supabase storage, updates call_log |
+| S14c | S14 | **DONE** 2026-03-22 -- Telegram notification to client + operator on voicemail capture |
+| S14d | S14 | **DONE** 2026-03-22 -- fallback/route.ts upgraded to attempt voicemail (client lookup + branded greeting) |
+| S14-UI | S14 | **DONE** 2026-03-22 -- Voicemail Greeting section in dashboard settings (custom text, audio URL support) |
+
+DB: `voicemail_greeting_text` + `voicemail_greeting_audio_url` on clients, `ultravox_call_id` now nullable. call_status='VOICEMAIL' for fallback entries.
+
+---
+
+## Completed: GATE-4 — Dashboard Observability (2026-03-22)
+
+| Item | Source | Status |
+|------|--------|--------|
+| S10a | S10 | **DONE** -- prompt version history with audit (who, role, char delta) in settings prompt-versions route |
+| S10b | S10 | **DONE** 2026-03-22 -- "Last updated Xm ago" under regen button in AgentTab |
+| S10c | S10 | **DONE** -- notifications tab with channel + status filters, paginated, multi-tenant scoped |
+| S10d | S10 | **DONE** -- bookings tab (Calendar page) with upcoming/past split, status badges, calendar links |
+| S10e | S10 | **DONE** -- call detail view with CallNotifications + CallBookings sub-panels per call_id |
+| S10f | S10 | **DONE** -- failed notification red badge in sidebar, 24h window, realtime via postgres_changes |
+
+Verified + D1-D13 session discoveries fixed (voice_style save, injected_note, AgentTab extraction, realtime, pagination, server filters).
+
+---
+
+## Completed: GATE-5 — Guard Rails (2026-03-22)
+
+| Item | Source | Status |
+|------|--------|--------|
+| S18a | S18 | DONE (verified 2026-03-22) |
+| S18c | S18 | DONE (types generated, S18c-TRIAGE pending) |
+| S18e | S18 | DONE (script written, S18e-VALIDATE pending) |
+| S18o | S18 | DONE (pre-push runs full build) |
+
+Core items done. Remaining S18c-TRIAGE + S18e-VALIDATE are follow-ups, not blockers.
+
+---
+
+## Completed: Session Discoveries D1-D29 (2026-03-22)
+
+All items found and fixed during GATE-4 implementation session.
+
+| # | Type | Description | Status |
+|---|------|-------------|--------|
+| D1 | **BUG** | Booking→call links broken: dual-ID lookup fix in call detail page | **DONE** |
+| D2 | UX | Sidebar "Calendar" vs page "Bookings" title mismatch | **DONE** |
+| D3 | API | Bookings API server-side filtering (status/date params) | **DONE** |
+| D4 | PRECISION | "Last updated" label → "Agent last updated" | **DONE** |
+| D5 | UX | Notifications page full rewrite (stats, timeline, motion) | **DONE** |
+| D6 | REALTIME | Sidebar badge → added `notification_logs` realtime | **DONE** |
+| D7 | UX | Load More pagination on Calendar + Notifications | **DONE** |
+| D8 | WIRING | Calendar frontend now uses server-side filters | **DONE** |
+| D9 | REALTIME | Calendar + Notifications `postgres_changes` subscriptions | **DONE** |
+| D10 | PATTERN | `notification_logs.call_id` internal UUID pattern documented | N/A |
+| D11 | **BUG** | `voice_style_preset` save was no-op → `patchVoiceStyleSection()` + Ultravox sync | **DONE** |
+| D12 | **BUG** | `injected_note` 3 bugs → converted to call-time injection via `callerContextBlock` | **DONE** |
+| D13 | REFACTOR | AgentTab 2239→1774 lines, 5 cards extracted + `usePatchSettings` hook | **DONE** |
+| D14 | TECH DEBT | Wave 1 extraction: BookingCard + WebhooksCard + AgentConfigCard + TestCallCard. 1774→1461 lines | **DONE** |
+| D15 | **GAP** | Voice style + calendar patches now run `validatePrompt()` | **DONE** |
+| D16 | UX GAP | `usePatchSettings` hook returns `error`/`clearError`, all 7 cards display errors | **DONE** |
+| D17 | REALTIME | Calls page realtime scoped by `client_id` for non-admin | **DONE** |
+| D18 | REALTIME | Leads page `LeadQueue` realtime subscription added | **DONE** |
+| D25 | UNIFICATION | All 7 cards + AgentOverviewCard support `mode` prop, `onSave`, error display | **DONE** |
+| D26 | **GAP** | Agent name → prompt sync via `patchAgentName()` + `validatePrompt()` | **DONE** |
+| D28 | **FIX** | `PROMPT_MAX_CHARS` 8000→12K (warn at 8K, block at 12K). 11 files updated. | **DONE** |
+| D29 | **GAP** | WebRTC orb for all users, phone fallback. AgentVoiceTest.tsx + TestCallCard rewrite. | **DONE** |
+
+---
+
+## Completed: Slice 2a-2b — Talk to Your Agent (2026-03-22)
+
+| Phase | Name | What | Status |
+|-------|------|------|--------|
+| 2a | WebRTC Orb for All | AgentVoiceTest.tsx, TestCallCard rewrite, "Talk to Your Agent" copy, phone fallback | **DONE** |
+| 2b | Post-Call Hints | "Ways to improve" chips, dynamic capability gaps, scroll-to-section, pre-call "Try asking" prompts | **DONE** |
+
+---
+
+## Completed: Slice 8a-8d — Agent Intelligence UX (2026-03-22)
+
+| Phase | Name | What | Status |
+|-------|------|------|--------|
+| 8a | Agent Capability Dashboard | CapabilitiesCard: progress bar, ReadinessBadge, clickable scroll-to-section, knowledge layer legend | **DONE** |
+| 8b | Knowledge vs Memory Explainer | Blue "Always knows" banner in AdvancedContextCard, purple "Searched when needed" in KnowledgeEngineCard | **DONE** |
+| 8c | Agent Name → Prompt Sync | `patchAgentName()` in prompt-patcher.ts, word-boundary regex, `validatePrompt()` gate, Ultravox sync | **DONE** |
+| 8d | Settings Page Reorganization | 6 SettingsSection groups, 19 cards standalone, AgentTab 1502→534 lines | **DONE** |
