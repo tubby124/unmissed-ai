@@ -53,6 +53,8 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S13.5 | Call Quality | Agents API fix (`toolOverrides` format), transcript isolation, `priorCallId` removed |
 | S18 partial | Guard Rails | Pre-push hooks (build+grep+.then baseline), cron parity tests, Supabase types generated |
 | S19a | Webhook Liveness | `notification-health` cron monitors `billed_duration_seconds IS NULL` |
+| S13-REC1 | Recording Privacy | Bucket private, `lib/recording-url.ts` signed URLs, legacy URL compat, policy cleanup |
+| S16e | Prompt Injection Defense | Rules 14-16 generic + 12-14 real_estate, `validatePrompt()` gate |
 
 ---
 
@@ -71,9 +73,11 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 ### GATE-2 -- Privacy + Compliance + Safety
 | Item | Source | Status |
 |------|--------|--------|
-| S13-REC1 | S13 | NOT STARTED -- recording bucket -> private + signed URLs |
+| S13-REC1 | S13 | **DONE** 2026-03-22 -- bucket private, signed URLs, legacy compat, overpermissive policy dropped |
+| S13-REC2 | S13-REC1 | NOT STARTED -- backfill existing recording_url values from full public URLs to paths (one-time migration) |
 | S16a | S16 | NOT STARTED -- call recording consent disclosure |
-| S16e | S16 | NOT STARTED -- prompt injection defense |
+| S16e | S16 | **DONE** 2026-03-22 -- rules 14-16 in generic + 12-14 in real_estate + voicemail, validatePrompt() check |
+| S16e-LIVE | S16e | NOT STARTED -- deploy injection defense to 4 live agents (only new prompts have it, live prompts don't) |
 
 ### GATE-3 -- Outage Resilience (core only)
 | Item | Source | Status |
@@ -126,10 +130,10 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S12 Ph3d | Website scrape transparency hardening | Slice 3 |
 | S12 Ph4 | Post-signup communication (welcome email, first-login) | BLOCKED on domain |
 | S12 Ph5 | Dashboard visual redesign | LAST |
-| S13 remaining | c (log hygiene), d (deprecate deploy_prompt.py), j-l (timeouts), p (rate limit alerts), w (create-draft rate limit), s-1 (RLS column restriction), REC1 (recording privacy) | Mixed |
+| S13 remaining | c (log hygiene), d (deprecate deploy_prompt.py), j-l (timeouts), p (rate limit alerts), w (create-draft rate limit), s-1 (RLS column restriction) | Mixed |
 | S14 | Ultravox outage resilience -- voicemail fallback | GATE-3 |
 | S15 | Domain migration (unmissed.ai -> theboringphone.com) | GATE-1 |
-| S16 | Compliance -- recording consent, SMS consent, PIPEDA, prompt injection | GATE-2 partial |
+| S16 | Compliance -- recording consent (S16a GATE-2), SMS consent (S16b), PIPEDA (S16c-d), prompt injection (S16e DONE) | S16e DONE, S16a GATE-2, rest NOT STARTED |
 | S17 | Operational maturity -- staging, backups, logging, monitoring | NOT STARTED |
 | S18 remaining | c-TRIAGE (type errors), d (CI types), e-VALIDATE (smoke test prod), f (deploy column), g (route checklist), h (import tests), i (webhook integration tests), j (cron execution log), l (fetch timeout sweep -- 80 naked fetches) | Mixed |
 | S19 | Billing observability -- source-of-truth alignment, usage alerts | S19a DONE, rest NOT STARTED |
@@ -141,11 +145,12 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 
 ```
 DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
-         S18 partial (guard rails), S19a (webhook liveness)
+         S18 partial (guard rails), S19a (webhook liveness),
+         GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
-  GATE-2 -> S13-REC1 + S16a + S16e (privacy + compliance)
+  GATE-2 -> S16a only remaining (call recording consent disclosure in prompts)
   GATE-3 -> S14a-d (voicemail fallback)
   GATE-4 -> S10a-f (dashboard observability)
   GATE-5 -> PASS (S18a/c/e/o done)
@@ -175,6 +180,7 @@ DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
 - **Centralized URLs:** `APP_URL` + `SITE_URL` in `lib/app-url.ts`. Domain migration = 1 file + 1 env var.
 - **Callback URL max 200 chars.** Short nonces (8 bytes), single-letter param names.
 - **npm `prepare` must be Docker-safe:** Guard with `if [ -d .git ]; then ...; fi`.
+- **Recordings are PRIVATE:** `recordings` bucket is private. Never use `getPublicUrl()`. Use `getSignedRecordingUrl()` from `lib/recording-url.ts`. Store paths (not URLs) in `call_logs.recording_url`.
 - **"DONE" means deployed + verified,** not just committed.
 - **Multi-tenant auth:** Every dashboard API route needs `client_users` gating after session auth.
 - **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
