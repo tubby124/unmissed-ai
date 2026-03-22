@@ -211,6 +211,9 @@ export async function POST(
       transfer_recovery: 'true',
     }
 
+    // S13.5g: Override agent's stored tools with runtime tools (includes X-Tool-Secret headers)
+    const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+
     const recoveryGreeting = "Hey, looks like they're tied up right now. Would you like to leave a message and I'll make sure they get it?"
     let ultravoxCall: { joinUrl: string; callId: string }
 
@@ -218,6 +221,7 @@ export async function POST(
       ultravoxCall = await callViaAgent(client.ultravox_agent_id, {
         callbackUrl: signedCallbackUrl,
         metadata: callMeta,
+        overrideTools: tools,
         callerContext: callerContextWithFailure,
         firstSpeakerText: recoveryGreeting,
         ...(knowledgeBlockStr ? { businessFacts: knowledgeBlockStr } : {}),
@@ -225,12 +229,12 @@ export async function POST(
       })
     } catch (agentErr) {
       // Fallback to createCall if agents API fails
-      console.error(`[transfer-status] Agents API failed: ${agentErr}, trying createCall`)
+      const agentErrMsg = agentErr instanceof Error ? agentErr.message : String(agentErr)
+      console.error(`[transfer-status] Agents API FAILED for slug=${slug} agentId=${client.ultravox_agent_id} toolCount=${tools?.length ?? 0} — falling back to createCall. Error: ${agentErrMsg.slice(0, 500)}`)
       let promptFull = client.system_prompt + `\n\n[${callerContextWithFailure}]`
       if (knowledgeBlockStr) promptFull += `\n\n${knowledgeBlockStr}`
       if (contextDataStr) promptFull += `\n\n${contextDataStr}`
 
-      const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
       ultravoxCall = await createCall({
         systemPrompt: promptFull,
         voice: client.agent_voice_id,

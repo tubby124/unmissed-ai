@@ -105,8 +105,6 @@ export type CallerContext = {
   lastCallDate: string | null
   /** First 120 chars of ai_summary from most recent prior call */
   lastCallSummary: string | null
-  /** ultravox_call_id of most recent prior call (for Ultravox priorCallId) */
-  firstPriorCallId: string | null
 }
 
 // ── AssembledContextBlocks — ready-to-inject strings ─────────────────────────
@@ -277,8 +275,6 @@ export function buildAgentContext(
   let returningCallerName: string | null = null
   let lastCallDate: string | null = null
   let lastCallSummary: string | null = null
-  let firstPriorCallId: string | null = null
-
   if (callerPhoneNormalized && priorCalls.length > 0) {
     isReturningCaller = true
     priorCallCount = priorCalls.length
@@ -292,8 +288,6 @@ export function buildAgentContext(
       : null
     returningCallerName =
       (priorCalls.find((c) => c.caller_name)?.caller_name as string | null) ?? null
-    firstPriorCallId =
-      (priorCalls[0].ultravox_call_id as string | null) ?? null
   }
 
   const caller: CallerContext = {
@@ -308,7 +302,6 @@ export function buildAgentContext(
     returningCallerName,
     lastCallDate,
     lastCallSummary,
-    firstPriorCallId,
   }
 
   // ── Assemble context blocks (same strings as inbound/route.ts) ────────────

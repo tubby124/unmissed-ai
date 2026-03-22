@@ -132,14 +132,13 @@ interface CreateCallOptions {
   metadata?: Record<string, string>
   callbackUrl?: string
   tools?: object[]
-  priorCallId?: string
   languageHint?: string
   firstSpeakerText?: string
   /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
   initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, priorCallId, languageHint, firstSpeakerText, initialState }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, initialState }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -159,13 +158,8 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   if (initialState) body.initialState = initialState
 
-  // priorCallId reuses conversation history from a prior call — only works with POST /api/calls (not agent calls)
-  const url = priorCallId
-    ? `${ULTRAVOX_BASE}/calls?priorCallId=${priorCallId}`
-    : `${ULTRAVOX_BASE}/calls`
-
   // S9.6c: 10s timeout prevents caller hearing silence if Ultravox hangs
-  const res = await fetch(url, {
+  const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
     method: 'POST',
     headers: ultravoxHeaders(),
     body: JSON.stringify(body),

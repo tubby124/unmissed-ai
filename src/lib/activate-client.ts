@@ -416,7 +416,7 @@ export async function activateClient(params: {
           // Fallback: Supabase default email (no custom branding)
           try {
             await adminSupa.auth.resetPasswordForEmail(contactEmail, {
-              redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+              redirectTo: `${appUrl}/auth/callback?next=/auth/set-password`,
             })
             emailActuallySent = true
           } catch (emailErr) {

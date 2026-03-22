@@ -319,10 +319,6 @@ describe('buildAgentContext() — returning caller', () => {
     assert.ok((ctx.caller.lastCallSummary as string).includes('Stensrud Rd'))
   })
 
-  test('firstPriorCallId is from the most recent call', () => {
-    assert.equal(ctx.caller.firstPriorCallId, 'uv-call-abc123')
-  })
-
   test('lastCallDate is non-null and human-readable', () => {
     assert.ok(ctx.caller.lastCallDate !== null)
     // e.g. "Mar 10"
