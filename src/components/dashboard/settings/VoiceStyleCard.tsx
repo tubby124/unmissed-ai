@@ -22,7 +22,7 @@ interface VoiceStyleCardProps {
 
 export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previewMode, mode = 'settings', onSave }: VoiceStyleCardProps) {
   const [preset, setPreset] = useState(initialPreset || 'casual_friendly')
-  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { saving, saved, error, syncStatus, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
   async function save() {
     await patch({ voice_style_preset: preset })
@@ -70,15 +70,23 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
             )
           })}
         </div>
-        <div className="px-5 py-3 border-t border-white/[0.04] flex justify-end">
-          <button
-            onClick={save}
-            disabled={saving || previewMode}
-            className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : saved ? 'Saved' : 'Save Style'}
-          </button>
-          {error && <p className="text-[11px] text-red-400 ml-2">{error}</p>}
+        <div className="px-5 py-3 border-t border-white/[0.04]">
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={save}
+              disabled={saving || previewMode}
+              className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : saved ? (syncStatus === 'synced' ? '\u2713 Synced' : syncStatus === 'failed' ? '\u26A0 Saved' : '\u2713 Saved') : 'Save Style'}
+            </button>
+          </div>
+          {saved && syncStatus === 'synced' && (
+            <p className="text-[10px] text-green-400/70 text-right mt-1.5">Prompt updated &amp; synced to agent</p>
+          )}
+          {saved && syncStatus === 'failed' && (
+            <p className="text-[10px] text-amber-400/70 text-right mt-1.5">Saved to DB but agent sync failed — changes may not take effect until next deploy</p>
+          )}
+          {error && <p className="text-[11px] text-red-400 text-right mt-1.5">{error}</p>}
         </div>
       </div>
     </motion.div>

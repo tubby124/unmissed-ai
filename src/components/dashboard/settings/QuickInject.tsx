@@ -106,9 +106,25 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
               : 'bg-blue-500 hover:bg-blue-400 text-white'
           }`}
         >
-          {injectLoading ? 'Saving...' : injectSaved ? '✓ Saved' : 'Save'}
+          {injectLoading ? 'Saving...' : injectSaved ? '✓ Active' : 'Save'}
         </button>
       </div>
+      {/* Call-time injection confirmation */}
+      {injectSaved && injectedNote && (
+        <div className="mt-2 px-3 py-2 rounded-xl bg-amber-500/[0.04] border border-amber-500/15">
+          <p className="text-[10px] text-amber-400/80 leading-relaxed">
+            Your agent will see on the next call: <span className="font-mono font-medium text-amber-300/90">RIGHT NOW: {injectedNote.length > 80 ? injectedNote.slice(0, 80) + '...' : injectedNote}</span>
+          </p>
+          <p className="text-[9px] t3 mt-1">
+            This is injected at call time — not stored in the system prompt. Clear it when done.
+          </p>
+        </div>
+      )}
+      {injectSaved && !injectedNote && (
+        <p className="text-[10px] text-green-400/70 mt-2">
+          Cleared — no override active. Agent uses default behavior on next call.
+        </p>
+      )}
     </div>
   )
 }

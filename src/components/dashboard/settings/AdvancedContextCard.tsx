@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
 
@@ -12,6 +12,9 @@ interface AdvancedContextCardProps {
   initialContextData: string
   initialContextDataLabel: string
   prompt: string
+  injectedNote?: string
+  knowledgeEnabled?: boolean
+  timezone?: string
   previewMode?: boolean
   mode?: CardMode
   onSave?: () => void
@@ -25,6 +28,9 @@ export default function AdvancedContextCard({
   initialContextData,
   initialContextDataLabel,
   prompt,
+  injectedNote,
+  knowledgeEnabled,
+  timezone,
   previewMode,
   mode = 'settings',
   onSave,
@@ -32,6 +38,7 @@ export default function AdvancedContextCard({
   const [facts, setFacts] = useState(initialFacts)
   const [qa, setQa] = useState<{ q: string; a: string }[]>(initialQA)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
+  const [contextPreviewOpen, setContextPreviewOpen] = useState(false)
 
   const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
@@ -43,6 +50,46 @@ export default function AdvancedContextCard({
       context_data_label: initialContextDataLabel,
     })
   }
+
+  // Assemble a preview of what the agent sees at call time
+  const assembledPreview = useMemo(() => {
+    const tz = timezone || 'America/Regina'
+    const now = new Date()
+    const todayIso = now.toLocaleDateString('en-CA', { timeZone: tz })
+    const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'long' })
+    const timeNow = now.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true })
+
+    const lines: string[] = []
+    lines.push(`TODAY: ${todayIso} (${dayOfWeek})`)
+    lines.push(`CURRENT TIME: ${timeNow} (${tz})`)
+    lines.push('CALLER PHONE: [caller\'s number]')
+    if (injectedNote?.trim()) {
+      lines.push(`RIGHT NOW: ${injectedNote.trim()}`)
+    }
+
+    const sections: string[] = []
+    sections.push(`[${lines.join('\n')}]`)
+
+    if (facts.trim()) {
+      sections.push(`## Business Facts\n${facts.trim()}`)
+    }
+
+    const validQa = qa.filter(p => p.q?.trim() && p.a?.trim())
+    if (validQa.length > 0) {
+      const qaStr = validQa.map(p => `"${p.q}" → "${p.a}"`).join('\n')
+      sections.push(`## Q&A\n${qaStr}`)
+    }
+
+    if (initialContextData?.trim()) {
+      sections.push(`## ${initialContextDataLabel || 'Reference Data'}\n${initialContextData.trim()}`)
+    }
+
+    const knowledgeLine = knowledgeEnabled
+      ? '🔍 queryKnowledge tool active — agent searches pgvector when caller asks something not covered above'
+      : '(No knowledge base configured — agent relies on facts and Q&A above only)'
+
+    return { contextBlock: sections.join('\n\n'), knowledgeLine }
+  }, [facts, qa, injectedNote, knowledgeEnabled, timezone, initialContextData, initialContextDataLabel])
 
   return (
     <motion.div
@@ -65,10 +112,25 @@ export default function AdvancedContextCard({
                 : 'bg-zinc-700 hover:bg-zinc-600 t1'
             } disabled:opacity-40`}
           >
-            {saving ? 'Saving\u2026' : saved ? '\u2713 Active on next call' : 'Save'}
+            {saving ? 'Saving\u2026' : saved ? '\u2713 Saved' : 'Save'}
           </button>
-          {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
         </div>
+        {/* Save confirmation detail */}
+        <AnimatePresence>
+          {saved && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="text-[10px] text-green-400/80 mb-3 -mt-2"
+            >
+              Injected on every call — not stored in the prompt. Changes take effect on the next call.
+            </motion.p>
+          )}
+        </AnimatePresence>
+        {error && (
+          <p className="text-[11px] text-red-400 mb-3 -mt-2">{error}</p>
+        )}
 
         {/* Knowledge layer explainer (8b) */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.04] border border-blue-500/15 mb-4">
@@ -162,7 +224,8 @@ export default function AdvancedContextCard({
 
         {/* Prompt Preview */}
         {mode !== 'onboarding' && (
-        <div className="mt-5 pt-4 border-t b-theme">
+        <div className="mt-5 pt-4 border-t b-theme space-y-3">
+          {/* Stored system prompt */}
           <button
             onClick={() => setPromptPreviewOpen(prev => !prev)}
             className="flex items-center gap-2 text-[11px] t3 hover:t2 transition-colors w-full"
@@ -172,7 +235,7 @@ export default function AdvancedContextCard({
               <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
             </svg>
             <span className="font-medium">Current system prompt</span>
-            <span className="text-[10px] t3 ml-1">({prompt.length} chars — context data &amp; facts appended at call time)</span>
+            <span className="text-[10px] t3 ml-1">({prompt.length} chars — stored in agent)</span>
             <svg
               width="10" height="10" viewBox="0 0 24 24" fill="none"
               className="ml-auto shrink-0 transition-transform duration-200"
@@ -191,9 +254,55 @@ export default function AdvancedContextCard({
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 style={{ overflow: 'hidden' }}
               >
-                <pre className="mt-3 p-4 rounded-xl bg-black/30 border b-theme text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
+                <pre className="mt-1 p-4 rounded-xl bg-black/30 border b-theme text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
                   {prompt || 'No prompt configured'}
                 </pre>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* What your agent sees at call time */}
+          <button
+            onClick={() => setContextPreviewOpen(prev => !prev)}
+            className="flex items-center gap-2 text-[11px] t3 hover:t2 transition-colors w-full"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="font-medium">What your agent sees at call time</span>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Live preview</span>
+            <svg
+              width="10" height="10" viewBox="0 0 24 24" fill="none"
+              className="ml-auto shrink-0 transition-transform duration-200"
+              style={{ transform: contextPreviewOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <AnimatePresence initial={false}>
+            {contextPreviewOpen && (
+              <motion.div
+                key="context-preview"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="mt-1 space-y-2">
+                  <p className="text-[10px] t3">
+                    This is the context block appended to the system prompt when a call starts. It includes your business facts, Q&amp;A, today&apos;s update, and caller info.
+                  </p>
+                  <pre className="p-4 rounded-xl bg-blue-500/[0.03] border border-blue-500/15 text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
+                    {assembledPreview.contextBlock}
+                  </pre>
+                  <p className="text-[10px] t3 flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${knowledgeEnabled ? 'bg-purple-400/80' : 'bg-zinc-500/50'}`} />
+                    {assembledPreview.knowledgeLine}
+                  </p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

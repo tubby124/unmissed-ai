@@ -89,10 +89,14 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
     if (localEnabled) fetchStats()
   }, [localEnabled, fetchStats])
 
+  // Sync status from API response
+  const [toggleSyncStatus, setToggleSyncStatus] = useState<'synced' | 'failed' | null>(null)
+
   async function handleToggle() {
     const newVal = !localEnabled
     setToggling(true)
     setToggleSaved(false)
+    setToggleSyncStatus(null)
     try {
       const res = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
@@ -103,9 +107,11 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
         }),
       })
       if (!res.ok) throw new Error('Failed to save')
+      const data = await res.json().catch(() => ({}))
       setLocalEnabled(newVal)
       setToggleSaved(true)
-      setTimeout(() => setToggleSaved(false), 3000)
+      setToggleSyncStatus(data.ultravox_synced === true ? 'synced' : data.ultravox_synced === false ? 'failed' : null)
+      setTimeout(() => { setToggleSaved(false); setToggleSyncStatus(null) }, 5000)
     } catch {
       // revert on failure
     } finally {
@@ -176,7 +182,15 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
             </span>
           )}
 
-          {toggleSaved && <span className="text-[10px] text-green-400">Saved</span>}
+          {toggleSaved && (
+            <span className={`text-[10px] ${toggleSyncStatus === 'failed' ? 'text-amber-400' : 'text-green-400'}`}>
+              {toggleSyncStatus === 'synced'
+                ? '\u2713 Tool updated'
+                : toggleSyncStatus === 'failed'
+                ? '\u26A0 Saved'
+                : '\u2713 Saved'}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -214,6 +228,20 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode }: Kn
           {localEnabled
             ? `Agent searches ${stats?.approved ?? '...'} knowledge chunks during calls for detailed answers.`
             : 'Enable to let the agent search embedded knowledge during calls.'}
+        </p>
+      )}
+
+      {/* Toggle sync detail */}
+      {toggleSaved && toggleSyncStatus === 'synced' && (
+        <p className="text-[10px] text-green-400/70 mt-1.5 ml-5">
+          {localEnabled
+            ? 'queryKnowledge tool registered on agent — searches active on next call'
+            : 'queryKnowledge tool removed from agent — searches disabled'}
+        </p>
+      )}
+      {toggleSaved && toggleSyncStatus === 'failed' && (
+        <p className="text-[10px] text-amber-400/70 mt-1.5 ml-5">
+          Saved to DB but agent sync failed — tool change may not take effect until next deploy
         </p>
       )}
 

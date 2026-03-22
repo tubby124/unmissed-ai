@@ -24,6 +24,7 @@ import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
+import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import type { GodConfigEntry } from './constants'
 import { fmtPhone } from '@/lib/settings-utils'
 
@@ -390,6 +391,9 @@ export default function AgentTab({
           initialContextData={contextData[client.id] ?? ''}
           initialContextDataLabel={contextDataLabel[client.id] ?? ''}
           prompt={prompt[client.id] ?? ''}
+          injectedNote={client.injected_note ?? ''}
+          knowledgeEnabled={client.knowledge_backend === 'pgvector'}
+          timezone={client.timezone ?? 'America/Regina'}
           previewMode={previewMode}
         />
       </div>
@@ -529,6 +533,9 @@ export default function AgentTab({
         <RuntimeCard client={client} />
       </SettingsSection>
     )}
+
+    {/* ── ACTIVITY LOG ──────────────────────────────────────────── */}
+    <ActivityLog clientId={client.id} isAdmin={isAdmin} />
 
   </div>)
 }
