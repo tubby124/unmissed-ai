@@ -130,8 +130,8 @@ describe('Prompt length safety', () => {
     )
   })
 
-  test('detects when patching pushes prompt over 8K', () => {
-    const longPrompt = 'X'.repeat(7500)
+  test('detects when patching pushes prompt over hard max', () => {
+    const longPrompt = 'X'.repeat(11000)
     const patched = patchCalendarBlock(longPrompt, true, 'appointment', 'the team')
     assert.ok(
       patched.length > PROMPT_CHAR_HARD_MAX,
