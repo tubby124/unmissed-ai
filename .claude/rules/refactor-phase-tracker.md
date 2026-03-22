@@ -54,8 +54,9 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S18 partial | Guard Rails | Pre-push hooks (build+grep+.then baseline), cron parity tests, Supabase types generated |
 | S19a | Webhook Liveness | `notification-health` cron monitors `billed_duration_seconds IS NULL` |
 | S13-REC1 | Recording Privacy | Bucket private, `lib/recording-url.ts` signed URLs, legacy URL compat, policy cleanup |
-| S16e | Prompt Injection Defense | Rules 14-16 generic + 12-14 real_estate, `validatePrompt()` gate |
+| S16e | Prompt Injection Defense | Rules 14-16 generic + 12-14 real_estate + voicemail, `validatePrompt()` gate, deployed to all 5 live agents, 12 promptfoo adversarial tests |
 | S14a-d | Voicemail Fallback | `buildVoicemailTwiml()`, recording callback, Telegram notify, branded fallback, settings UI |
+| S10a-f | Dashboard Observability | Prompt version history, notifications tab, bookings (Calendar page), call detail context, failed notif badge |
 
 ---
 
@@ -94,7 +95,14 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 ### GATE-4 -- Dashboard Observability (core only)
 | Item | Source | Status |
 |------|--------|--------|
-| S10a-f | S10 | NOT STARTED -- prompt history, notifications tab, bookings tab, call detail, badge |
+| S10a | S10 | **DONE** -- prompt version history with audit (who, role, char delta) in settings prompt-versions route |
+| S10b | S10 | **DONE** 2026-03-22 -- "Last updated Xm ago" under regen button in AgentTab |
+| S10c | S10 | **DONE** -- notifications tab with channel + status filters, paginated, multi-tenant scoped |
+| S10d | S10 | **DONE** -- bookings tab (Calendar page) with upcoming/past split, status badges, calendar links |
+| S10e | S10 | **DONE** -- call detail view with CallNotifications + CallBookings sub-panels per call_id |
+| S10f | S10 | **DONE** -- failed notification red badge in sidebar, 24h window, realtime via postgres_changes |
+
+**GATE-4 status: PASS. All 6 items verified. S10b was only new code (11 lines). Rest pre-existed.**
 
 ### GATE-5 -- Guard Rails
 | Item | Source | Status |
@@ -126,7 +134,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 
 | Phase | Summary | Status |
 |-------|---------|--------|
-| S10 | Dashboard observability -- surface notifications/bookings/audit data | GATE-4 items + S10g-w deferred |
+| S10 | Dashboard observability -- surface notifications/bookings/audit data | **GATE-4 PASS** (S10a-f done). S10g-w deferred |
 | S11 | Data retention -- purge old logs, recordings, stripe_events | NOT STARTED |
 | S12 Ph2 | Setup wizards (Telegram, SMS, Calendar, Knowledge, Forwarding) | NOT STARTED |
 | S12 Ph2b | Calendar & call routing UX overhaul | NOT STARTED |
@@ -154,13 +162,14 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
          S18 partial (guard rails), S19a (webhook liveness),
          GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense),
-         GATE-3: S14a-d (voicemail fallback + settings UI)
+         GATE-3: S14a-d (voicemail fallback + settings UI),
+         GATE-4: S10a-f (dashboard observability — all 6 items)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
   GATE-2 -> S16a only remaining (call recording consent disclosure in prompts)
   GATE-3 -> PASS (S14a-d done)
-  GATE-4 -> S10a-f (dashboard observability)
+  GATE-4 -> PASS (S10a-f done)
   GATE-5 -> PASS (S18a/c/e/o done)
 
 THEN (S12 Slices 1-5):
@@ -192,3 +201,4 @@ DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
 - **"DONE" means deployed + verified,** not just committed.
 - **Multi-tenant auth:** Every dashboard API route needs `client_users` gating after session auth.
 - **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
+- **Prompt injection defense required:** All agent prompts must include reveal/role-override/code-output defense rules. `validatePrompt()` enforces for generated prompts. Hand-crafted `SYSTEM_PROMPT.txt` files need manual addition matching each client's style (e.g. "Never X" vs numbered rules). Always dry-run `deploy_prompt.py --dry-run` before live deploy to verify tools aren't wiped.
