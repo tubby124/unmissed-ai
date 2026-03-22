@@ -38,6 +38,7 @@ export type ClientRow = {
   context_data?: string | null
   context_data_label?: string | null
   knowledge_backend?: string | null
+  injected_note?: string | null
 }
 
 // ── Input type: one prior call row from call_logs ─────────────────────────────
@@ -322,6 +323,12 @@ export function buildAgentContext(
     callerContextStr += `\nOFFICE HOURS (for caller inquiries):\n${hoursLines.join('\n')}`
   }
   if (afterHoursBehaviorNote) callerContextStr += `\n${afterHoursBehaviorNote}`
+
+  // Today's Update — time-sensitive temporary override from dashboard
+  const injectedNote = (client.injected_note as string | null)?.trim()
+  if (injectedNote) {
+    callerContextStr += `\nRIGHT NOW: ${injectedNote}`
+  }
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')
 

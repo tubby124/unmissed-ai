@@ -10,6 +10,11 @@ import { hasCapability } from '@/lib/niche-capabilities'
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
 import RuntimeCard from '@/components/dashboard/settings/RuntimeCard'
 import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngineCard'
+import HoursCard from '@/components/dashboard/settings/HoursCard'
+import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
+import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
+import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
+import SectionEditorCard from '@/components/dashboard/settings/SectionEditorCard'
 import { fmtPhone } from '@/lib/settings-utils'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import type { PromptVersion, ImproveResult, LearningStatus, GodConfigEntry } from './constants'
@@ -186,28 +191,10 @@ export default function AgentTab({
   const [godSaving, setGodSaving] = useState(false)
   const [godSaved, setGodSaved] = useState(false)
 
-  const [hoursSaving, setHoursSaving] = useState(false)
-  const [hoursSaved, setHoursSaved] = useState(false)
-
-  const [sectionSaving, setSectionSaving] = useState<Record<string, Record<string, boolean>>>({})
-  const [sectionSaved, setSectionSaved] = useState<Record<string, Record<string, boolean>>>({})
-  const [sectionError, setSectionError] = useState<Record<string, Record<string, string>>>({})
-  const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, Record<string, boolean>>>(() => ({ [client.id]: {} }))
-
-  const [advancedSaving, setAdvancedSaving] = useState(false)
-  const [advancedSaved, setAdvancedSaved] = useState(false)
-  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
 
   const [bookingSaving, setBookingSaving] = useState(false)
   const [bookingSaved, setBookingSaved] = useState(false)
 
-  // S14 — Voicemail greeting state
-  const [vmGreetingText, setVmGreetingText] = useState(client.voicemail_greeting_text ?? '')
-  const [vmSaving, setVmSaving] = useState(false)
-  const [vmSaved, setVmSaved] = useState(false)
-
-  const [presetSaving, setPresetSaving] = useState(false)
-  const [presetSaved, setPresetSaved] = useState(false)
 
   const [testPhone, setTestPhone] = useState('')
   const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -277,38 +264,6 @@ export default function AgentTab({
       const d = await res.json().catch(() => ({}))
       setSaveError(d.error || 'Save failed — try again.')
       setTimeout(() => setSaveError(''), 5000)
-    }
-  }
-
-  async function saveSection(sectionId: string, content: string) {
-    setSectionSaving(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
-    setSectionError(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: '' } }))
-    setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } }))
-    const body: Record<string, unknown> = { section_id: sectionId, section_content: content }
-    if (isAdmin) body.client_id = client.id
-    try {
-      const res = await fetch('/api/dashboard/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        throw new Error(d.error || 'Save failed')
-      }
-      setSectionContent(prev => ({
-        ...prev,
-        [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: content },
-      }))
-      setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: true } }))
-      setTimeout(() => setSectionSaved(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } })), 2500)
-    } catch (err) {
-      setSectionError(prev => ({
-        ...prev,
-        [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: String(err instanceof Error ? err.message : err) },
-      }))
-    } finally {
-      setSectionSaving(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: false } }))
     }
   }
 
@@ -514,69 +469,6 @@ export default function AgentTab({
     setSyncing(false)
   }
 
-  async function saveAdvanced() {
-    setAdvancedSaving(true)
-    setAdvancedSaved(false)
-    const body: Record<string, unknown> = {
-      business_facts: businessFacts[client.id] ?? '',
-      extra_qa: extraQA[client.id] ?? [],
-      context_data: contextData[client.id] ?? '',
-      context_data_label: contextDataLabel[client.id] ?? '',
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setAdvancedSaving(false)
-    if (res.ok) {
-      setAdvancedSaved(true)
-      setTimeout(() => setAdvancedSaved(false), 3000)
-    }
-  }
-
-  async function saveHoursConfig() {
-    setHoursSaving(true)
-    setHoursSaved(false)
-    const body: Record<string, unknown> = {
-      business_hours_weekday: hoursWeekday[client.id] ?? '',
-      business_hours_weekend: hoursWeekend[client.id] ?? '',
-      after_hours_behavior: afterHoursBehavior[client.id] ?? 'take_message',
-      after_hours_emergency_phone: afterHoursPhone[client.id] ?? '',
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setHoursSaving(false)
-    if (res.ok) {
-      setHoursSaved(true)
-      setTimeout(() => setHoursSaved(false), 3000)
-    }
-  }
-
-  async function saveVoicemailGreeting() {
-    setVmSaving(true)
-    setVmSaved(false)
-    const body: Record<string, unknown> = {
-      voicemail_greeting_text: vmGreetingText,
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setVmSaving(false)
-    if (res.ok) {
-      setVmSaved(true)
-      setTimeout(() => setVmSaved(false), 3000)
-    }
-  }
-
   async function saveBookingConfig() {
     setBookingSaving(true)
     setBookingSaved(false)
@@ -594,25 +486,6 @@ export default function AgentTab({
     if (res.ok) {
       setBookingSaved(true)
       setTimeout(() => setBookingSaved(false), 3000)
-    }
-  }
-
-  async function saveVoiceStylePreset() {
-    setPresetSaving(true)
-    setPresetSaved(false)
-    const body: Record<string, unknown> = {
-      voice_style_preset: voiceStylePreset[client.id] ?? 'casual_friendly',
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setPresetSaving(false)
-    if (res.ok) {
-      setPresetSaved(true)
-      setTimeout(() => setPresetSaved(false), 3000)
     }
   }
 
@@ -862,63 +735,12 @@ export default function AgentTab({
       </motion.div>
 
       {/* 1.5 — Voice Style Preset */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.03 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.04]">
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
-              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voice Style</p>
-          </div>
-          <p className="text-[11px] t3 mt-1">How your agent sounds on calls — tone, pacing, and filler words.</p>
-        </div>
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {([
-            { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, upbeat, natural fillers and slang — great for trades and small shops' },
-            { id: 'professional_warm', label: 'Professional & Warm', desc: 'Polished but friendly, clean sentences, no slang — real estate, law, medical' },
-            { id: 'direct_efficient', label: 'Direct & Efficient', desc: 'Minimal small talk, straight to the point — high-volume and busy offices' },
-            { id: 'empathetic_care', label: 'Empathetic & Patient', desc: 'Extra validation, slower pace, gentle tone — healthcare and senior services' },
-          ] as const).map(p => {
-            const selected = (voiceStylePreset[client.id] || 'casual_friendly') === p.id
-            return (
-              <button
-                key={p.id}
-                onClick={() => setVoiceStylePreset(prev => ({ ...prev, [client.id]: p.id }))}
-                className={`text-left rounded-xl border p-3 transition-all ${
-                  selected
-                    ? 'border-blue-500/60 bg-blue-500/[0.06]'
-                    : 'border-white/[0.06] bg-hover hover:border-white/[0.12]'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`w-2.5 h-2.5 rounded-full border-2 shrink-0 ${
-                    selected ? 'border-blue-400 bg-blue-400' : 'border-zinc-600'
-                  }`} />
-                  <span className="text-xs font-medium t1">{p.label}</span>
-                </div>
-                <p className="text-[11px] t3 ml-[18px]">{p.desc}</p>
-              </button>
-            )
-          })}
-        </div>
-        <div className="px-5 py-3 border-t border-white/[0.04] flex justify-end">
-          <button
-            onClick={saveVoiceStylePreset}
-            disabled={presetSaving || previewMode}
-            className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
-          >
-            {presetSaving ? 'Saving...' : presetSaved ? 'Saved' : 'Save Style'}
-          </button>
-        </div>
-      </div>
-      </motion.div>
+      <VoiceStyleCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialPreset={voiceStylePreset[client.id] ?? 'casual_friendly'}
+        previewMode={previewMode}
+      />
 
       {/* 2 — Webhooks + Phone (collapsible, admin only) */}
       {isAdmin && (
@@ -1336,7 +1158,7 @@ export default function AgentTab({
                       </div>
                       {client.updated_at && (
                         <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-text-3)' }}>
-                          Last updated {(() => {
+                          Agent last updated {(() => {
                             const diff = Date.now() - new Date(client.updated_at!).getTime()
                             const mins = Math.floor(diff / 60000)
                             if (mins < 1) return 'just now'
@@ -1897,343 +1719,56 @@ export default function AgentTab({
       {/* 8a — Right Now (injected_note) — REMOVED: duplicate of Quick Inject in AgentOverviewCard */}
 
       {/* 8a2 — Hours & After-Hours (A3) */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Hours &amp; After-Hours</p>
-            <p className="text-[11px] t3 mt-0.5">Configure when your agent treats calls as after-hours</p>
-          </div>
-          <button
-            onClick={saveHoursConfig}
-            disabled={hoursSaving || previewMode}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              hoursSaved
-                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
-            } disabled:opacity-40`}
-          >
-            {hoursSaving ? 'Saving…' : hoursSaved ? '✓ Saved' : 'Save'}
-          </button>
-        </div>
+      <HoursCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialWeekday={hoursWeekday[client.id] ?? ''}
+        initialWeekend={hoursWeekend[client.id] ?? ''}
+        initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
+        initialPhone={afterHoursPhone[client.id] ?? ''}
+        previewMode={previewMode}
+      />
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-[11px] font-medium t2 mb-1.5">Weekday hours</p>
-            <input
-              type="text"
-              value={hoursWeekday[client.id] ?? ''}
-              onChange={e => setHoursWeekday(prev => ({ ...prev, [client.id]: e.target.value }))}
-              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-              placeholder="e.g. Monday to Friday, 9am to 5pm"
-            />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium t2 mb-1.5">Weekend hours <span className="t3 font-normal">(leave blank if closed)</span></p>
-            <input
-              type="text"
-              value={hoursWeekend[client.id] ?? ''}
-              onChange={e => setHoursWeekend(prev => ({ ...prev, [client.id]: e.target.value }))}
-              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-              placeholder="e.g. Saturday 10am to 2pm, or leave blank for closed"
-            />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium t2 mb-1.5">When you&apos;re closed, your agent should&hellip;</p>
-            <select
-              value={afterHoursBehavior[client.id] ?? 'take_message'}
-              onChange={e => setAfterHoursBehavior(prev => ({ ...prev, [client.id]: e.target.value }))}
-              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-            >
-              <option value="take_message">Take a message</option>
-              <option value="route_emergency">Route emergencies to a phone number</option>
-              <option value="custom_message">Custom message only</option>
-            </select>
-          </div>
-          {afterHoursBehavior[client.id] === 'route_emergency' && (
-            <div>
-              <p className="text-[11px] font-medium t2 mb-1.5">Emergency phone number</p>
-              <input
-                type="tel"
-                value={afterHoursPhone[client.id] ?? ''}
-                onChange={e => setAfterHoursPhone(prev => ({ ...prev, [client.id]: e.target.value }))}
-                className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-                placeholder="e.g. +13065550101"
-              />
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
-        </div>
-      </div>
-      </motion.div>
-
-      {/* S14 — Voicemail Greeting (fallback when AI agent is unavailable) */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.0 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voicemail Greeting</p>
-          <button
-            onClick={saveVoicemailGreeting}
-            disabled={vmSaving || previewMode}
-            className={`px-3 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-              vmSaved
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-white/5 hover:bg-white/10 t2 border b-theme'
-            }`}
-          >
-            {vmSaving ? 'Saving...' : vmSaved ? 'Saved' : 'Save'}
-          </button>
-        </div>
-        <p className="text-[11px] t3 mb-3">
-          Played to callers when the AI agent is temporarily unavailable. Leave blank to auto-generate from your business name.
-        </p>
-        <textarea
-          rows={3}
-          value={vmGreetingText}
-          onChange={e => setVmGreetingText(e.target.value)}
-          className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors resize-y"
-          placeholder={`Hi, you've reached ${client.business_name || 'our office'}. We're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`}
-        />
-        <p className="text-[10px] t3 mt-1.5">
-          {client.voicemail_greeting_audio_url
-            ? 'Custom audio greeting is active (set by admin). Text greeting is used as fallback.'
-            : 'Tip: Contact support to upload a custom audio greeting for a more personalized experience.'}
-        </p>
-      </div>
-      </motion.div>
+      {/* S14 — Voicemail Greeting */}
+      <VoicemailGreetingCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialText={client.voicemail_greeting_text ?? ''}
+        businessName={client.business_name}
+        hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+        previewMode={previewMode}
+      />
 
       {/* 8c — Section Editors (admin-only — marker parsing) */}
-      {isAdmin && ([
+      {isAdmin && [
         { id: 'identity', label: 'Agent Identity', desc: 'Agent name, greeting, and personality', rows: 6 },
         { id: 'knowledge', label: 'Knowledge Base', desc: 'Upload documents for your agent to search through — policies, procedures, or detailed guides.', rows: 10 },
-      ] as const).map(({ id: sectionId, label, desc, rows }) => {
-        const parsed = sectionContent[client.id] ?? {}
-        const hasMarker = sectionId in parsed
-        const collapsed = sectionCollapsed[client.id]?.[sectionId] ?? true
-        const saving = sectionSaving[client.id]?.[sectionId] ?? false
-        const saved = sectionSaved[client.id]?.[sectionId] ?? false
-        const error = sectionError[client.id]?.[sectionId] ?? ''
-        const value = parsed[sectionId] ?? ''
-        return (
-          <motion.div
-            key={sectionId}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.0 }}
-          >
-            <div className="rounded-2xl border b-theme bg-surface p-5">
-              <button
-                className="flex items-center justify-between w-full text-left"
-                onClick={() => setSectionCollapsed(prev => ({
-                  ...prev,
-                  [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: !collapsed },
-                }))}
-              >
-                <div>
-                  <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{label}</p>
-                  <p className="text-[11px] t3 mt-0.5">{desc}</p>
-                </div>
-                <svg
-                  className={`w-4 h-4 t3 transition-transform ${collapsed ? '' : 'rotate-180'}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {!collapsed && (
-                <div className="mt-4 space-y-3">
-                  {!hasMarker && (
-                    <p className="text-[10px] t3 italic">This section wasn&apos;t found in your prompt — saving will add it automatically.</p>
-                  )}
-                  <textarea
-                    rows={rows}
-                    className="w-full rounded-xl border b-theme bg-input px-3 py-2 text-[12px] t1 resize-y font-mono"
-                    placeholder={`Enter ${label.toLowerCase()} content...`}
-                    value={value}
-                    onChange={e => setSectionContent(prev => ({
-                      ...prev,
-                      [client.id]: { ...(prev[client.id] ?? {}), [sectionId]: e.target.value },
-                    }))}
-                  />
-                  {error && <p className="text-[11px] text-red-500">{error}</p>}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => saveSection(sectionId, value)}
-                      disabled={saving || previewMode}
-                      className="px-4 py-1.5 rounded-xl text-[11px] font-semibold bg-accent text-white disabled:opacity-50"
-                    >
-                      {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
-                    </button>
-                    <p className="text-[10px] t3">Changes sync to your agent immediately.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )
-      })}
+      ].map(({ id, label, desc, rows }) => (
+        <SectionEditorCard
+          key={id}
+          clientId={client.id}
+          isAdmin={isAdmin}
+          sectionId={id}
+          label={label}
+          desc={desc}
+          rows={rows}
+          initialContent={(sectionContent[client.id] ?? {})[id] ?? ''}
+          hasMarker={id in (sectionContent[client.id] ?? {})}
+          previewMode={previewMode}
+        />
+      ))}
 
       {/* 8b — Advanced Context */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.0 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
-            <p className="text-[11px] t3 mt-0.5">{isAdmin ? 'Extra knowledge injected at call time — not stored in the prompt' : 'Information your agent uses to help callers'}</p>
-          </div>
-          <button
-            onClick={saveAdvanced}
-            disabled={advancedSaving || previewMode}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              advancedSaved
-                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                : 'bg-zinc-700 hover:bg-zinc-600 t1'
-            } disabled:opacity-40`}
-          >
-            {advancedSaving ? 'Saving…' : advancedSaved ? '✓ Active on next call' : 'Save'}
-          </button>
-        </div>
-
-        {/* Business Facts */}
-        <div className="space-y-1.5 mb-5">
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] t3 block">What your agent knows</label>
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
-          </div>
-          <p className="text-[11px] t3">
-            Core business info — hours, location, team members, services. Your agent uses this to answer caller questions.
-          </p>
-          <textarea
-            value={businessFacts[client.id] ?? ''}
-            onChange={e => setBusinessFacts(prev => ({ ...prev, [client.id]: e.target.value }))}
-            rows={4}
-            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
-            placeholder="e.g. Parking is free out front. We're near the Walmart on 22nd St. Our lead tech is Ryan. Closed Christmas Day and Boxing Day."
-          />
-        </div>
-
-        {/* Extra Q&A pairs */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] t3 block">Common questions callers ask</label>
-                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">Persistent</span>
-              </div>
-              <p className="text-[11px] t3">Add questions and answers. Your agent uses these to respond to callers directly.</p>
-            </div>
-            {(extraQA[client.id]?.length ?? 0) < 10 && (
-              <button
-                type="button"
-                onClick={() => setExtraQA(prev => ({
-                  ...prev,
-                  [client.id]: [...(prev[client.id] ?? []), { q: '', a: '' }],
-                }))}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium t2 border b-theme hover:t1 hover:b-theme transition-all"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
-                Add
-              </button>
-            )}
-          </div>
-
-          {(extraQA[client.id] ?? []).length === 0 && (
-            <p className="text-[11px] t3 py-1">No Q&amp;A pairs yet — add up to 10.</p>
-          )}
-
-          <div className="space-y-2">
-            {(extraQA[client.id] ?? []).map((pair, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start">
-                <input
-                  type="text"
-                  value={pair.q}
-                  onChange={e => setExtraQA(prev => {
-                    const updated = [...(prev[client.id] ?? [])]
-                    updated[idx] = { ...updated[idx], q: e.target.value }
-                    return { ...prev, [client.id]: updated }
-                  })}
-                  placeholder="Question…"
-                  className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-                />
-                <input
-                  type="text"
-                  value={pair.a}
-                  onChange={e => setExtraQA(prev => {
-                    const updated = [...(prev[client.id] ?? [])]
-                    updated[idx] = { ...updated[idx], a: e.target.value }
-                    return { ...prev, [client.id]: updated }
-                  })}
-                  placeholder="Answer…"
-                  className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setExtraQA(prev => ({
-                    ...prev,
-                    [client.id]: (prev[client.id] ?? []).filter((_, i) => i !== idx),
-                  }))}
-                  className="p-2 rounded-xl t3 hover:text-red-400 hover:bg-red-500/[0.07] transition-all"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Context Data — REMOVED: duplicate of Context Data in AgentOverviewCard. State kept for saveAdvanced() compat. */}
-
-        {/* Prompt Preview */}
-        <div className="mt-5 pt-4 border-t b-theme">
-          <button
-            onClick={() => setPromptPreviewOpen(prev => !prev)}
-            className="flex items-center gap-2 text-[11px] t3 hover:t2 transition-colors w-full"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-            <span className="font-medium">Current system prompt</span>
-            <span className="text-[10px] t3 ml-1">({(prompt[client.id] ?? '').length} chars — context data &amp; facts appended at call time)</span>
-            <svg
-              width="10" height="10" viewBox="0 0 24 24" fill="none"
-              className="ml-auto shrink-0 transition-transform duration-200"
-              style={{ transform: promptPreviewOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            >
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <AnimatePresence initial={false}>
-            {promptPreviewOpen && (
-              <motion.div
-                key="prompt-preview"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                style={{ overflow: 'hidden' }}
-              >
-                <pre className="mt-3 p-4 rounded-xl bg-black/30 border b-theme text-[11px] t2 font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto leading-relaxed select-all">
-                  {prompt[client.id] || 'No prompt configured'}
-                </pre>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-      </motion.div>
+      <AdvancedContextCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialFacts={businessFacts[client.id] ?? ''}
+        initialQA={extraQA[client.id] ?? []}
+        initialContextData={contextData[client.id] ?? ''}
+        initialContextDataLabel={contextDataLabel[client.id] ?? ''}
+        prompt={prompt[client.id] ?? ''}
+        previewMode={previewMode}
+      />
 
   </>)
 }

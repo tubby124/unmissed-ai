@@ -12,11 +12,22 @@ export default async function CallDetailPage({ params }: Props) {
   const { id } = await params
   const supabase = await createServerClient()
 
-  const { data: call } = await supabase
+  // Support both ultravox_call_id (from call links) and call_logs.id (from booking links)
+  let { data: call } = await supabase
     .from('call_logs')
     .select('*, clients(business_name)')
     .eq('ultravox_call_id', id)
     .single()
+
+  if (!call) {
+    // Fallback: try by internal call_logs.id (bookings store this as call_id)
+    const fallback = await supabase
+      .from('call_logs')
+      .select('*, clients(business_name)')
+      .eq('id', id)
+      .single()
+    call = fallback.data
+  }
 
   if (!call) notFound()
 

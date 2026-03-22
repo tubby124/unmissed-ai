@@ -88,7 +88,7 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-1)' }}>
-          Bookings
+          Calendar
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>
           Appointments booked by your AI agent during calls.

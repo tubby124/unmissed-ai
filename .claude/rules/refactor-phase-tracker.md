@@ -130,6 +130,18 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 
 ---
 
+## Session Discoveries (2026-03-22) — Bugs & Gaps Found During GATE-4
+
+| # | Type | Description | Severity | Status |
+|---|------|-------------|----------|--------|
+| D1 | **BUG** | Booking→call links broken: `bookings.call_id` stores `call_logs.id` (UUID) but `/dashboard/calls/[id]` queries `.eq('ultravox_call_id', id)`. | HIGH | **DONE** 2026-03-22 -- call detail page tries `ultravox_call_id` then falls back to `call_logs.id` |
+| D2 | UX | Sidebar nav says "Calendar" but page content was titled "Bookings" | LOW | **DONE** 2026-03-22 -- page title changed to "Calendar" |
+| D3 | API | Bookings API lacked server-side filtering (no status/date params) | LOW | **DONE** 2026-03-22 -- added `status`, `date_from`, `date_to` query params |
+| D4 | PRECISION | S10b "Last updated" fires on ANY client mutation, not just prompt regen | LOW | **DONE** 2026-03-22 -- label changed to "Agent last updated" |
+| D5 | UX | Notifications page had basic list UI vs Calendar's timeline design | LOW | **DONE** 2026-03-22 -- full rewrite: stats, channel-colored icons, timeline cards, grouped by date, motion transitions |
+
+---
+
 ## Pending Phases (details in archive)
 
 | Phase | Summary | Status |

@@ -287,25 +287,8 @@ export async function PATCH(req: NextRequest) {
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
-  // injected_note: rebuild system_prompt before Supabase update
-  if ('injected_note' in updates) {
-    const { data: promptRow } = await supabase
-      .from('clients')
-      .select('system_prompt')
-      .eq('id', targetClientId)
-      .single()
-
-    if (promptRow) {
-      const INJECT_MARKER = /\n\n## RIGHT NOW — Time-sensitive info[\s\S]*$/
-      let newPrompt = (promptRow.system_prompt ?? '').replace(INJECT_MARKER, '')
-      const noteText = updates.injected_note as string | null
-      if (noteText) {
-        newPrompt += `\n\n## RIGHT NOW — Time-sensitive info\n${noteText}\n`
-      }
-      updates.system_prompt = newPrompt
-      updates.updated_at = new Date().toISOString()
-    }
-  }
+  // injected_note is now injected at call time via buildAgentContext() callerContextBlock.
+  // No prompt rebuild needed — the note lives in the DB column and flows through templateContext.
 
   const needsAgentSync =
     typeof updates.system_prompt === 'string' ||

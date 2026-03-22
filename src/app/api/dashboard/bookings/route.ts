@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+  const statusFilter = searchParams.get('status')
+  const dateFrom = searchParams.get('date_from')
+  const dateTo = searchParams.get('date_to')
 
   let query = svc
     .from('bookings')
@@ -26,6 +29,10 @@ export async function GET(req: NextRequest) {
     .order('appointment_date', { ascending: true })
     .order('appointment_time', { ascending: true })
     .limit(limit)
+
+  if (statusFilter) query = query.eq('status', statusFilter)
+  if (dateFrom) query = query.gte('appointment_date', dateFrom)
+  if (dateTo) query = query.lte('appointment_date', dateTo)
 
   // Non-admin: scope to own client
   if (cu.role !== 'admin') {

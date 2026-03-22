@@ -97,7 +97,7 @@ export async function POST(
   }
   const { data: client } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, telegram_bot_token, telegram_chat_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, grace_period_end, trial_expires_at, trial_converted')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, telegram_bot_token, telegram_chat_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, grace_period_end, trial_expires_at, trial_converted, injected_note')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -170,6 +170,7 @@ export async function POST(
       context_data: client.context_data as string | null,
       context_data_label: client.context_data_label as string | null,
       knowledge_backend: client.knowledge_backend as string | null,
+      injected_note: client.injected_note as string | null,
     }
 
     // pgvector is the only active backend
