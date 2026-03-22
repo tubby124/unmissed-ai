@@ -121,22 +121,84 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 | D11 | voice_style_preset was a no-op | **FIXED** (patchVoiceStyleSection wired in) |
 | D12 | injected_note 3-bug fix | **FIXED** (call-time inject) |
 | D13 | Settings component extraction | **DONE** (5 cards extracted) |
-| D14 | Booking config card still inline in AgentTab | NOT STARTED (LOW) |
-| D15 | Voice/calendar prompt patches skip validatePrompt() | NOT STARTED (MEDIUM) |
-| D16 | usePatchSettings doesn't surface errors to user | NOT STARTED (MEDIUM) |
+| D14 | Booking config card still inline in AgentTab | **FIXED** (extracted to BookingCard.tsx) |
+| D15 | Voice/calendar prompt patches skip validatePrompt() | **FIXED** (both run validatePrompt before save) |
+| D16 | usePatchSettings doesn't surface errors to user | **FIXED** (hook returns error/clearError, all cards display) |
+
+---
+
+### SET-7: SectionEditorCard save doesn't update parent prompt state (MEDIUM)
+
+**Problem:** SectionEditorCard modifies `system_prompt` server-side via `replacePromptSection()`, but the parent AgentTab `prompt` state is never updated. After a section save, PromptEditorCard still shows the OLD prompt text. If admin then opens the prompt editor and saves, they overwrite the section edit with the stale version.
+
+**Scope:** Only affects admin users who use both SectionEditorCard and PromptEditorCard in the same session without refreshing.
+
+**Fix:** SectionEditorCard needs an `onPromptChange` callback prop. After successful save, API should return `new_system_prompt` in the response body. SectionEditorCard calls `onPromptChange(newPrompt)` which flows up to AgentTab's `setPrompt`. Also fixes SET-3 (stale char count).
+
+**Files:** `SectionEditorCard.tsx`, `AgentTab.tsx`, `settings/route.ts`
+
+---
+
+### SET-8: Dead props in AgentTabProps — 14 unused setters (LOW)
+
+**Problem:** After 8d extraction, AgentTabProps still declares 14 setter props that are no longer used. Cards manage their own local state. Dead setters: `setGodConfig`, `setTelegramTest`, `setHoursWeekday`, `setHoursWeekend`, `setAfterHoursBehavior`, `setAfterHoursPhone`, `setSectionContent`, `setBusinessFacts`, `setExtraQA`, `setBookingDuration`, `setBookingBuffer`, `setForwardingNumber`, `setTransferConditions`, `setVoiceStylePreset`. Their matching getters are still used (as `initialX` props to cards).
+
+**Impact:** No functional bug — just interface bloat. SettingsView still creates and passes these setters unnecessarily.
+
+**Fix:** Remove unused setter props from AgentTabProps. Then remove matching `useState` calls from SettingsView. Keep the getter Records (used for initial values).
+
+**Files:** `AgentTab.tsx`, `SettingsView.tsx`
+
+---
+
+### SET-9: Section open/close state resets on navigation (LOW)
+
+**Problem:** `openSections` is `useState` — resets to defaults on every navigation away and back. Admin who frequently works in "Agent Script" or "Configuration" has to re-expand every time.
+
+**Fix:** Persist to `sessionStorage` keyed by client ID. Read on mount, write on toggle.
+
+**Files:** `AgentTab.tsx`
+
+---
+
+### SET-10: PromptEditorCard has its own collapse — double-accordion (LOW)
+
+**Problem:** PromptEditorCard has an internal `collapsed` state with its own expand/collapse animation. But it's already inside the "Agent Script" SettingsSection which has its own collapse. For admin, opening "Agent Script" section reveals a collapsed PromptEditorCard — user clicks twice to see the prompt. For non-admin, PromptEditorCard sits outside any section and its own collapse is the only one, which is fine.
+
+**Impact:** Admin-only UX friction. Two clicks instead of one.
+
+**Fix options:**
+- A) Remove internal collapse from PromptEditorCard when inside a SettingsSection (pass `defaultExpanded` prop)
+- B) Keep it — it's intentional since the prompt editor is tall (480px textarea) and admin may want it collapsed while working on ImprovePrompt/Versions below it
+
+**Files:** `PromptEditorCard.tsx`, `AgentTab.tsx`
+
+---
+
+### SET-11: SetupCard rendered both inside and outside SettingsSection (LOW)
+
+**Problem:** In AgentTab, SetupCard is rendered for non-admin users OUTSIDE any section (line 254), plus there's an admin "Mark as done" button inside the Identity section (line 332). SetupCard itself also has an `isAdmin` early return that renders just the "Mark as done" button. This means SetupCard's admin mode is redundant with the inline button in AgentTab. Both exist.
+
+**Impact:** No visual bug (admin never sees SetupCard's full form because of the early return). But the admin "Mark as done" button in AgentTab (lines 332-341) duplicates logic that lives in SetupCard.handleMarkComplete.
+
+**Fix:** Remove the inline admin button from AgentTab Identity section. Admin already has setup controls via the SetupCard component (which early-returns the mark-complete button for admin).
+
+**Files:** `AgentTab.tsx`
 
 ---
 
 ## Priority Order
 
 ```
-SET-1 (filler contradiction) -- MEDIUM-HIGH, affects call quality on preset switch
-SET-2 (preset not shown)     -- LOW-MEDIUM, UX confusion
-D15   (validatePrompt gap)   -- MEDIUM, could exceed 8K silently
-SET-4 (duplicate sections)   -- LOW-MEDIUM, data integrity
-D16   (error surfacing)      -- MEDIUM, save failures invisible
-SET-3 (stale char count)     -- LOW, cosmetic
-SET-5 (runtime 404)          -- LOW, missing feature
-SET-6 (hydration error)      -- LOW, cosmetic
-D14   (booking card inline)  -- LOW, code cleanliness
+SET-1 (filler contradiction)   -- MEDIUM-HIGH, affects call quality on preset switch
+SET-7 (stale parent prompt)    -- MEDIUM, admin prompt overwrite risk after section edit
+SET-2 (preset not shown)       -- LOW-MEDIUM, UX confusion
+SET-4 (duplicate sections)     -- LOW-MEDIUM, data integrity
+SET-3 (stale char count)       -- LOW, cosmetic (fixed by SET-7)
+SET-10 (double accordion)      -- LOW, admin UX friction (may be intentional)
+SET-8 (dead props)             -- LOW, code cleanliness
+SET-9 (section state resets)   -- LOW, admin convenience
+SET-11 (duplicate admin btn)   -- LOW, code duplication
+SET-5 (runtime 404)            -- LOW, missing feature
+SET-6 (hydration error)        -- LOW, cosmetic
 ```
