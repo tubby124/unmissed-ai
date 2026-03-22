@@ -2425,8 +2425,12 @@ export function validatePrompt(prompt: string): PromptValidationResult {
   }
 
   // Phase 3: GLM-4.6 prompt length enforcement
+  // S12-V18-BUG7: Changed hard max from error to warning — auto-generated prompts
+  // for data-rich niches (real estate with multiple service areas, specialties, custom
+  // notes, website scrape) legitimately exceed 8K. Blocking provisioning is worse than
+  // marginal GLM-4.6 performance at ~9K chars.
   if (prompt.length > PROMPT_CHAR_HARD_MAX) {
-    errors.push(`Prompt exceeds hard max: ${prompt.length} chars (limit ${PROMPT_CHAR_HARD_MAX}) — will degrade GLM-4.6 performance`)
+    warnings.push(`Prompt exceeds target max: ${prompt.length} chars (limit ${PROMPT_CHAR_HARD_MAX}) — consider trimming for optimal GLM-4.6 performance`)
   } else if (prompt.length > PROMPT_CHAR_TARGET) {
     warnings.push(`Prompt exceeds target: ${prompt.length} chars (target ${PROMPT_CHAR_TARGET}, hard max ${PROMPT_CHAR_HARD_MAX})`)
   }
