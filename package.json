@@ -31,7 +31,7 @@
     "test:ui": "npx playwright test",
     "test:ui:headed": "npx playwright test --headed",
     "test:ui:report": "npx playwright show-report",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "if [ -d .git ]; then git config core.hooksPath .githooks; fi"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",
