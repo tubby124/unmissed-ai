@@ -25,12 +25,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No client linked to your account' }, { status: 403 })
   }
 
+  // Admin override: allow testing any client's agent
+  const body = await req.json().catch(() => ({}))
+  let targetClientId = cu.client_id
+  if (cu.role === 'admin' && body.client_id) {
+    targetClientId = body.client_id
+  }
+
   // Fetch client data
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
     .select('id, ultravox_agent_id, tools, business_name, agent_name, status, slug')
-    .eq('id', cu.client_id)
+    .eq('id', targetClientId)
     .single()
 
   if (clientErr || !client) {

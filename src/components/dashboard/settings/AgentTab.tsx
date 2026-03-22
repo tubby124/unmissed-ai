@@ -13,6 +13,7 @@ import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import SectionEditorCard from '@/components/dashboard/settings/SectionEditorCard'
+import { findExistingSectionHeader } from '@/lib/prompt-sections'
 import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
 import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
 import BookingCard from '@/components/dashboard/settings/BookingCard'
@@ -26,6 +27,7 @@ import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCa
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import { useDirtyGuardEffect } from './useDirtyGuard'
+import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
 import { fmtPhone } from '@/lib/settings-utils'
 
@@ -164,6 +166,7 @@ export default function AgentTab({
   previewMode,
 }: AgentTabProps) {
   useDirtyGuardEffect()
+  const { patch: patchSettings } = usePatchSettings(client.id, isAdmin)
 
   // ─── Section open/close state ─────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -192,28 +195,17 @@ export default function AgentTab({
       if (!confirm(`Pause ${client.business_name}? Calls will not be answered until you reactivate.`)) return
     }
     setStatus(prev => ({ ...prev, [client.id]: next }))
-    const body: Record<string, unknown> = { status: next }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    const res = await patchSettings({ status: next })
     if (!res.ok) {
       setStatus(prev => ({ ...prev, [client.id]: next === 'active' ? 'paused' : 'active' }))
-      alert('Status update failed \u2014 try again.')
     }
   }
 
   async function handleMarkSetupComplete() {
-    const body: Record<string, unknown> = { setup_complete: true }
-    if (isAdmin) body.client_id = client.id
-    await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setSetupComplete(prev => ({ ...prev, [client.id]: true }))
+    const res = await patchSettings({ setup_complete: true })
+    if (res.ok) {
+      setSetupComplete(prev => ({ ...prev, [client.id]: true }))
+    }
   }
 
   // Scroll-to-section with auto-expand
@@ -378,6 +370,7 @@ export default function AgentTab({
           rows={6}
           initialContent={(sectionContent[client.id] ?? {}).identity ?? ''}
           hasMarker={'identity' in (sectionContent[client.id] ?? {})}
+          hasExistingHeader={!('identity' in (sectionContent[client.id] ?? {})) && !!findExistingSectionHeader(prompt[client.id] ?? '', 'identity')}
           previewMode={previewMode}
           onPromptChange={handlePromptChange}
         />
@@ -422,6 +415,7 @@ export default function AgentTab({
           rows={10}
           initialContent={(sectionContent[client.id] ?? {}).knowledge ?? ''}
           hasMarker={'knowledge' in (sectionContent[client.id] ?? {})}
+          hasExistingHeader={!('knowledge' in (sectionContent[client.id] ?? {})) && !!findExistingSectionHeader(prompt[client.id] ?? '', 'knowledge')}
           previewMode={previewMode}
           onPromptChange={handlePromptChange}
         />

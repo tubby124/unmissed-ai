@@ -12,6 +12,7 @@ interface SectionEditorCardProps {
   rows: number
   initialContent: string
   hasMarker: boolean
+  hasExistingHeader?: boolean
   previewMode?: boolean
   onPromptChange?: (prompt: string) => void
 }
@@ -25,6 +26,7 @@ export default function SectionEditorCard({
   rows,
   initialContent,
   hasMarker,
+  hasExistingHeader,
   previewMode,
   onPromptChange,
 }: SectionEditorCardProps) {
@@ -87,7 +89,11 @@ export default function SectionEditorCard({
         {!collapsed && (
           <div className="mt-4 space-y-3">
             {!hasMarker && (
-              <p className="text-[10px] t3 italic">This section wasn&apos;t found in your prompt — saving will add it automatically.</p>
+              <p className="text-[10px] t3 italic">
+                {hasExistingHeader
+                  ? 'This section exists in your prompt without tracking markers — saving will replace it with a tracked version.'
+                  : 'This section wasn\u2019t found in your prompt — saving will add it automatically.'}
+              </p>
             )}
             <textarea
               rows={rows}

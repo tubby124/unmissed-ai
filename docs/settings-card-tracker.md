@@ -14,7 +14,7 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 | Hours & After-Hours | PASS | PASS | DB-only, call-time inject | Clean |
 | Voicemail Greeting | PASS | PASS | DB-only, voicemail-time | Clean |
 | Advanced Context | PASS | PASS | DB-only, call-time inject | Button shows "Active on next call" |
-| Agent Identity (SectionEditor) | PASS | PASS | Ultravox (prompt section) | Appends duplicate — see SET-4 |
+| Agent Identity (SectionEditor) | PASS | PASS | Ultravox (prompt section) | SET-4 FIXED — replaces existing section |
 | Today's Update (injected_note) | PASS | PASS | DB-only, call-time inject | Away/Holiday/Promo quick-fill works |
 
 ---
@@ -53,18 +53,15 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-4: SectionEditorCard appends duplicate identity content (LOW-MEDIUM)
+### SET-4: SectionEditorCard appends duplicate identity content (LOW-MEDIUM) -- FIXED 2026-03-22
 
 **Problem:** When a prompt has an IDENTITY section without `<!-- unmissed:identity -->` markers (all hand-crafted prompts), saving via SectionEditorCard appends a NEW section with markers at the end. This creates two identity definitions in the same prompt.
 
 **Evidence:** Demo prompt had `IDENTITY\nYou are Tyler...` in body, plus appended `<!-- unmissed:identity -->\nYou are Tyler...<!-- /unmissed:identity -->` at the end.
 
-**Fix options:**
-- A) Before appending, search for common section headers (IDENTITY, KNOWLEDGE, etc.) and warn the user
-- B) Only allow SectionEditor on prompts that were generated with markers (template prompts)
-- C) When appending a new section, strip any existing section with matching header name
+**Fix (option C):** `replacePromptSection()` now detects existing section headers (IDENTITY, KNOWLEDGE, AFTER HOURS, TONE, etc.) via `findExistingSectionHeader()` and replaces the entire section with the marked version instead of appending. SectionEditorCard shows contextual info message ("will replace the existing section with a tracked version" vs "will add it automatically").
 
-**Files:** `src/lib/prompt-sections.ts` (`replacePromptSection()`), `src/components/dashboard/settings/SectionEditorCard.tsx`
+**Files:** `src/lib/prompt-sections.ts` (`replacePromptSection()`, `findExistingSectionHeader()`), `src/components/dashboard/settings/SectionEditorCard.tsx`, `src/components/dashboard/settings/AgentTab.tsx`
 
 ---
 
@@ -211,13 +208,13 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-16: No loading state for settings page (LOW-MEDIUM)
+### SET-16: No loading state for settings page (LOW-MEDIUM) -- FIXED 2026-03-22
 
 **Problem:** No `loading.tsx` or Suspense boundary for `/dashboard/settings`. The server component fetches all client data (including full prompts) before rendering. Users see a blank/white page during SSR until all data arrives.
 
-**Fix:** Add `src/app/dashboard/settings/loading.tsx` with a skeleton matching the settings layout (tab bar + 3-4 card skeletons).
+**Fix applied:** Created `src/app/dashboard/settings/loading.tsx` with skeleton matching settings layout — 6 tab placeholders + 4 card skeletons with animate-pulse. Uses project CSS variables for theme consistency.
 
-**Files:** Create `src/app/dashboard/settings/loading.tsx`
+**Files:** `src/app/dashboard/settings/loading.tsx`
 
 ---
 
@@ -231,16 +228,14 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-18: Three raw fetch calls bypass usePatchSettings (LOW-MEDIUM)
+### SET-18: Three raw fetch calls bypass usePatchSettings (LOW-MEDIUM) -- FIXED 2026-03-22
 
 **Problem:** Three save operations use raw `fetch` instead of the `usePatchSettings` hook, missing error/warning/syncStatus handling:
-- `toggleStatus()` in AgentTab (line 193) — manual optimistic update, drops warnings/sync status
-- `handleMarkSetupComplete()` in AgentTab (line 207) — no response check at all, optimistic with no rollback on failure
-- Knowledge toggle in SettingsView (line 398) — raw fetch, ignores sync status/warnings entirely
+- `toggleStatus()` in AgentTab — manual optimistic update, drops warnings/sync status
+- `handleMarkSetupComplete()` in AgentTab — no response check at all, optimistic with no rollback on failure
+- Knowledge toggle in SettingsView — raw fetch, ignores sync status/warnings entirely
 
-**Impact:** If any of these fail silently, user sees stale state. `handleMarkSetupComplete` is worst — it always sets `setup_complete: true` in UI even if the PATCH returns 500.
-
-**Fix:** Convert all three to use `usePatchSettings`, or at minimum add response checking + error display + rollback on failure.
+**Fix applied:** All three converted to `usePatchSettings` hook. `toggleStatus()` keeps optimistic UI + rollback but uses `patch()` for the request. `handleMarkSetupComplete()` now only updates UI on `res.ok`. Knowledge toggle in SettingsView uses its own `usePatchSettings` instance.
 
 **Files:** `AgentTab.tsx`, `SettingsView.tsx`
 
@@ -367,12 +362,12 @@ SET-2  (preset active state)       -- FIXED 2026-03-22, aria-pressed added to Vo
 SET-25 (booking_enabled toggle)    -- FIXED 2026-03-22, toggle + confirm + onPromptChange in BookingCard
 SET-14 (no sync retry)             -- FIXED 2026-03-22, retrySyncFailed() in hook + Telegram alert
 SET-15 (no unsaved warning)        -- FIXED 2026-03-22, useDirtyGuard hook + beforeunload (browser-level only)
+SET-4  (duplicate sections)        -- FIXED 2026-03-22, findExistingSectionHeader replaces existing unmarked sections
+SET-16 (no loading state)          -- FIXED 2026-03-22, loading.tsx skeleton
+SET-18 (raw fetch bypasses hook)   -- FIXED 2026-03-22, all 3 converted to usePatchSettings
 
 --- OPEN ---
-SET-4  (duplicate sections)        -- LOW-MEDIUM, data integrity
-SET-16 (no loading state)          -- LOW-MEDIUM, blank page during load
 SET-17 (no ErrorBoundary)          -- LOW-MEDIUM, one card crash kills page
-SET-18 (raw fetch bypasses hook)   -- LOW-MEDIUM, inconsistent error handling
 SET-19 (syncStatus unused)         -- LOW, wire retrySyncFailed + syncError into cards
 SET-24 (hook re-render churn)      -- LOW, perf optimization
 SET-26 (knowledge toggle no prop)  -- LOW, future-proofing

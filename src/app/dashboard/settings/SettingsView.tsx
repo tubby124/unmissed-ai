@@ -18,6 +18,7 @@ import AlertsTab from '@/components/dashboard/settings/AlertsTab'
 import BillingTab from '@/components/dashboard/settings/BillingTab'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 import { useAdminClient } from '@/contexts/AdminClientContext'
+import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 
 interface SettingsViewProps {
   clients: ClientConfig[]
@@ -141,6 +142,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
   // ─── Derived values ──────────────────────────────────────────────────────────
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
+  const { patch: patchKnowledge } = usePatchSettings(client?.id ?? '', isAdmin)
   if (!client) return null
 
   const minutesUsed = client.seconds_used_this_month != null ? Math.ceil(client.seconds_used_this_month / 60) : (client.minutes_used_this_month ?? 0)
@@ -391,15 +393,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             websiteUrl={client.website_url ?? ''}
             onToggleEnabled={async (enabled) => {
               if (previewMode) return
-              const body: Record<string, unknown> = {
-                knowledge_backend: enabled ? 'pgvector' : null,
-              }
-              if (isAdmin) body.client_id = client.id
-              const res = await fetch('/api/dashboard/settings', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-              })
+              const res = await patchKnowledge({ knowledge_backend: enabled ? 'pgvector' : null })
               if (res.ok) {
                 setKnowledgeEnabled(prev => ({ ...prev, [client.id]: enabled }))
               }

@@ -28,9 +28,53 @@ export function parsePromptSections(prompt: string): Record<string, string> {
   return sections
 }
 
+/** Map sectionId to common header variations found in hand-crafted prompts. */
+const SECTION_HEADER_ALIASES: Record<string, string[]> = {
+  identity:    ['IDENTITY', 'AGENT IDENTITY'],
+  knowledge:   ['KNOWLEDGE', 'KNOWLEDGE BASE', 'KNOWLEDGE LOOKUP'],
+  after_hours: ['AFTER HOURS', 'AFTER-HOURS'],
+  tone:        ['TONE', 'TONE AND STYLE', 'TONE & STYLE'],
+}
+
+/**
+ * Find an existing section header in the prompt that matches the sectionId.
+ * Returns the start index, end-of-section index, or null if not found.
+ * Sections are delimited by all-caps headers on their own line.
+ */
+export function findExistingSectionHeader(
+  prompt: string,
+  sectionId: string,
+): { start: number; end: number } | null {
+  const aliases = SECTION_HEADER_ALIASES[sectionId]
+  if (!aliases) return null
+
+  const escaped = aliases.map(a => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = escaped.join('|')
+  // Match header line: optional prefix (##, **, #, numbers) then the alias, optional suffix (**, —, :)
+  const headerRe = new RegExp(
+    `^[ \\t]*(?:#{1,3}\\s+|\\*\\*)?(?:${pattern})(?:\\s*(?:\\*\\*|:|\\s*[—\\-])[^\\n]*)?\\s*$`,
+    'im',
+  )
+  const m = headerRe.exec(prompt)
+  if (!m) return null
+
+  const start = m.index
+  // Find end: next all-caps header line (at least 2 uppercase words or a single uppercase word 4+ chars)
+  // or end of string
+  const afterHeader = start + m[0].length
+  const nextHeaderRe = /^[ \t]*(?:#{1,3}\s+|\*\*)?[A-Z][A-Z &/\-]{2,}(?:\*\*)?[ \t]*$/m
+  const rest = prompt.slice(afterHeader)
+  const nextMatch = nextHeaderRe.exec(rest)
+  const end = nextMatch ? afterHeader + nextMatch.index : prompt.length
+
+  return { start, end }
+}
+
 /**
  * Replace the content of a named section in a stored prompt.
- * If the section marker doesn't exist, the section is appended to the end.
+ * If markers exist, replaces between markers.
+ * If no markers but a matching header exists, replaces that section with a marked version.
+ * Otherwise appends a new marked section.
  */
 export function replacePromptSection(prompt: string, sectionId: string, newContent: string): string {
   const marker    = `<!-- unmissed:${sectionId} -->`
@@ -40,7 +84,12 @@ export function replacePromptSection(prompt: string, sectionId: string, newConte
   if (re.test(prompt)) {
     return prompt.replace(re, replacement)
   }
-  // Section not found — append it
+  // No markers — check for an existing section header to replace
+  const existing = findExistingSectionHeader(prompt, sectionId)
+  if (existing) {
+    return prompt.slice(0, existing.start) + replacement + prompt.slice(existing.end)
+  }
+  // No markers and no existing header — append
   return `${prompt}\n\n${replacement}`
 }
 
