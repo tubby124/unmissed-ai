@@ -328,6 +328,21 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
+### SET-15b: Client-side navigation doesn't trigger dirty guard (LOW)
+
+**Problem:** SET-15's `beforeunload` handler only fires on browser-level events (tab close, refresh, URL bar navigation). Next.js App Router `<Link>` components use client-side routing via `history.pushState` — clicking sidebar links (Calls, Calendar, etc.) won't trigger the warning even if cards have unsaved changes.
+
+**Impact:** Users lose edits when navigating within the dashboard via sidebar. The most common data-loss scenario (typing FAQs then clicking "Calls") is not covered.
+
+**Fix options:**
+- A) Intercept `history.pushState`/`replaceState` with a proxy that checks `isAnyDirty()` — fragile but universal
+- B) Custom `<NavLink>` wrapper that checks dirty state before navigating and shows a confirm dialog
+- C) Use React Router's `useBlocker` equivalent if Next.js adds one (currently not available in App Router)
+
+**Files:** Sidebar component (likely `DashboardLayout` or nav), `useDirtyGuard.ts`
+
+---
+
 ### SET-3r: Char count badge still reads SSR prop (LOW) — FIXED 2026-03-22
 
 **Problem:** SET-13 fixed the parent `prompt` state but AgentOverviewCard read `client.system_prompt.length` (SSR prop, never updates). Char badge didn't update after prompt-modifying saves.
