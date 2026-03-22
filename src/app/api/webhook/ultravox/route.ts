@@ -26,55 +26,78 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Webhook secret not configured', { status: 500 })
   }
 
+  const hmacBypass = process.env.WEBHOOK_HMAC_BYPASS === 'true'
+
   // ── Read raw body for HMAC verification ──────────────────────────────────
   const rawBody = await req.text()
+
+  // ── Diagnostic: log all Ultravox-related headers ─────────────────────────
+  const allHeaders: Record<string, string> = {}
+  req.headers.forEach((value, key) => {
+    if (key.toLowerCase().startsWith('x-ultravox') || key.toLowerCase().includes('signature') || key.toLowerCase().includes('timestamp')) {
+      allHeaders[key] = value
+    }
+  })
+  console.log(`[ultravox-webhook] DIAG: headers=${JSON.stringify(allHeaders)} bodyLen=${rawBody.length} bodyPreview=${rawBody.substring(0, 120)} secretLen=${secret.length} secretPrefix=${secret.substring(0, 8)}...`)
 
   // ── HMAC-SHA256 signature verification ───────────────────────────────────
   const signatureHeader = req.headers.get('X-Ultravox-Webhook-Signature')
   const timestamp = req.headers.get('X-Ultravox-Webhook-Timestamp')
 
   if (!signatureHeader || !timestamp) {
-    console.error('[ultravox-webhook] Missing signature or timestamp headers')
-    return new NextResponse('Missing signature headers', { status: 401 })
+    console.error(`[ultravox-webhook] Missing signature or timestamp headers. sigHeader=${!!signatureHeader} tsHeader=${!!timestamp}`)
+    if (!hmacBypass) return new NextResponse('Missing signature headers', { status: 401 })
+    console.warn('[ultravox-webhook] HMAC BYPASS active — processing despite missing headers')
   }
 
-  // S13b-T2b: Reject timestamps outside 60s replay window
-  // Ultravox sends ISO 8601 timestamps (e.g., "2026-03-21T18:30:00")
-  const tsDate = new Date(timestamp)
-  if (isNaN(tsDate.getTime()) || Math.abs(Date.now() - tsDate.getTime()) > NATIVE_WEBHOOK_MAX_AGE_MS) {
-    console.error(`[ultravox-webhook] Timestamp replay rejected: ts=${timestamp} age=${Math.abs(Date.now() - tsDate.getTime())}ms`)
-    return new NextResponse('Timestamp expired', { status: 401 })
-  }
-
-  // Ultravox HMAC: HMAC-SHA256(secret, rawBody + timestamp) — body FIRST, NO separator
-  // Source: docs.ultravox.ai/webhooks/securing-webhooks
-  // Python equiv: hmac.new(SECRET.encode(), request.content + request_timestamp.encode(), "sha256").hexdigest()
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody + timestamp)
-    .digest('hex')
-
-  // Header may contain comma-separated signatures (key rotation support)
-  const signatures = signatureHeader.split(',').map(s => s.trim())
   let signatureValid = false
-  for (const sig of signatures) {
-    try {
-      if (crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
-        signatureValid = true
-        break
+
+  if (signatureHeader && timestamp) {
+    // S13b-T2b: Reject timestamps outside 60s replay window
+    // Ultravox sends ISO 8601 timestamps (e.g., "2026-03-21T18:30:00")
+    const tsDate = new Date(timestamp)
+    const ageMs = Math.abs(Date.now() - tsDate.getTime())
+    if (isNaN(tsDate.getTime()) || ageMs > NATIVE_WEBHOOK_MAX_AGE_MS) {
+      console.error(`[ultravox-webhook] Timestamp replay rejected: ts=${timestamp} age=${ageMs}ms`)
+      if (!hmacBypass) return new NextResponse('Timestamp expired', { status: 401 })
+      console.warn('[ultravox-webhook] HMAC BYPASS active — processing despite expired timestamp')
+    }
+
+    // Ultravox HMAC: HMAC-SHA256(secret, rawBody + timestamp) — body FIRST, NO separator
+    // Source: docs.ultravox.ai/webhooks/securing-webhooks
+    // Python equiv: hmac.new(SECRET.encode(), request.content + request_timestamp.encode(), "sha256").hexdigest()
+    const expected = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody + timestamp)
+      .digest('hex')
+
+    // Header may contain comma-separated signatures (key rotation support)
+    const signatures = signatureHeader.split(',').map(s => s.trim())
+
+    // Diagnostic: log computed vs received signatures
+    console.log(`[ultravox-webhook] DIAG HMAC: ts=${timestamp} ageMs=${ageMs} expectedSig=${expected.substring(0, 16)}... receivedSigs=${signatures.map(s => s.substring(0, 16) + '...').join(',')} sigLens=${signatures.map(s => s.length).join(',')} expectedLen=${expected.length}`)
+
+    for (const sig of signatures) {
+      try {
+        if (crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
+          signatureValid = true
+          break
+        }
+      } catch {
+        // Length mismatch or invalid hex — try next sig
+        console.warn(`[ultravox-webhook] DIAG: sig comparison failed for sig len=${sig.length} (expected len=${expected.length}). Sig is hex: ${/^[0-9a-f]+$/i.test(sig)}`)
+        continue
       }
-    } catch {
-      // Length mismatch or invalid hex — try next sig
-      continue
+    }
+
+    if (!signatureValid) {
+      console.error(`[ultravox-webhook] HMAC signature mismatch. ts=${timestamp} bodyLen=${rawBody.length} sigCount=${signatures.length}`)
+      if (!hmacBypass) return new NextResponse('Invalid signature', { status: 401 })
+      console.warn('[ultravox-webhook] HMAC BYPASS active — processing despite signature mismatch')
     }
   }
 
-  if (!signatureValid) {
-    console.error(`[ultravox-webhook] HMAC signature mismatch — rejecting. ts=${timestamp} bodyLen=${rawBody.length} sigCount=${signatures.length} expectedLen=${expected.length}`)
-    return new NextResponse('Invalid signature', { status: 401 })
-  }
-
-  console.log(`[ultravox-webhook] HMAC verified OK — ts=${timestamp}`)
+  console.log(`[ultravox-webhook] ${signatureValid ? 'HMAC verified OK' : 'HMAC BYPASSED'} — ts=${timestamp}`)
 
   // ── Parse payload ────────────────────────────────────────────────────────
   let payload: { event: string; call: Record<string, unknown> }

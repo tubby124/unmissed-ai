@@ -9,7 +9,6 @@ Outputs webhook ID + secret for Railway env vars.
 import os
 import sys
 import json
-import secrets
 import urllib.request
 import urllib.error
 
@@ -76,13 +75,16 @@ def main() -> None:
                 api_request("DELETE", f"/webhooks/{wid}", api_key)
                 print(f"  Deleted.")
 
-    webhook_secret = secrets.token_hex(32)
-
-    print("Registering new webhook...")
+    # IMPORTANT: Let Ultravox auto-generate the secret. Do NOT provide our own.
+    # The `secrets` array in the API response contains the ACTUAL signing key.
+    # Previous attempts using `secrets.token_hex(32)` as the HMAC key all failed (401)
+    # because Ultravox transforms the provided secret — the `secrets[0]` value
+    # in the response is what Ultravox uses for HMAC signing.
+    # Fix (2026-03-22): omit `secret` field, use `secrets[0]` from the response.
+    print("Registering new webhook (auto-generated secret)...")
     result = api_request("POST", "/webhooks", api_key, {
         "url": WEBHOOK_URL,
         "events": EVENTS,
-        "secret": webhook_secret,
     })
 
     if not result:
@@ -90,11 +92,16 @@ def main() -> None:
         sys.exit(1)
 
     webhook_id = result.get("webhookId", "unknown")
+    webhook_secrets = result.get("secrets", [])
+    webhook_secret = webhook_secrets[0] if webhook_secrets else "ERROR_NO_SECRET_RETURNED"
 
     print()
     print("Webhook registered successfully.")
     print(f"ULTRAVOX_WEBHOOK_ID={webhook_id}")
     print(f"ULTRAVOX_WEBHOOK_SECRET={webhook_secret}")
+    print()
+    print("CRITICAL: Use the secrets[0] value above as ULTRAVOX_WEBHOOK_SECRET.")
+    print("This is the ACTUAL signing key Ultravox uses for HMAC verification.")
     print()
     print("Add these to Railway environment variables.")
 
