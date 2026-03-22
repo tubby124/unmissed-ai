@@ -21,31 +21,13 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ## Bugs Found
 
-### SET-1: Voice Style filler contradiction (MEDIUM-HIGH)
+### SET-1: Voice Style filler contradiction (MEDIUM-HIGH) — FIXED 2026-03-22
 
-**Problem:** `patchVoiceStyleSection()` only replaces the TONE & STYLE / VOICE STYLE section. But filler instructions (backchannels, "uh"/"um" usage) also live in other parts of hand-crafted prompts. Switching presets creates contradictory instructions.
+**Problem:** `patchVoiceStyleSection()` only replaced the TONE & STYLE section. Standalone filler instructions from `{{FILLER_STYLE}}` (in VOICE NATURALNESS section) remained, creating contradictions on preset switch.
 
-**Example (demo-auto-glass after switching to professional_warm):**
-- Top of prompt: `Start every response with a quick backchannel: "mmhmm...", "gotcha..."` + `Use "uh" or "um" once or twice per call`
-- TONE section: `No filler words like "uh", "um", "mmhmm", and casual fillers entirely.`
+**Fix applied (option A):** `patchVoiceStyleSection()` now strips standalone filler lines outside the TONE section via `stripStandaloneFillers()`. A `STANDALONE_FILLER_RE` regex matches all 4 preset fillerStyle patterns + hand-crafted variants (e.g. "Use backchannels:", "Start with a backchannel when acknowledging:"). Filler content consolidated into TONE section only.
 
-**Scope:** All 5 clients have patchable headers (CAN PATCH). Currently safe because all real clients are on `casual_friendly` which matches their hand-crafted fillers. Bug triggers when anyone switches presets.
-
-**DB evidence:**
-```
-demo-auto-glass: has_casual_fillers=true, has_no_fillers_rule=true  -- CONTRADICTION
-hasan-sharif:    has_casual_fillers=true, has_no_fillers_rule=false -- OK (casual)
-windshield-hub:  has_casual_fillers=false, has_no_fillers_rule=true -- OK (consistent)
-urban-vibe:      has_casual_fillers=true, has_no_fillers_rule=false -- OK (casual)
-exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consistent)
-```
-
-**Fix options:**
-- A) `patchVoiceStyleSection()` also patches the filler block above the tone section (regex for the "Start every response..." / backchannel block)
-- B) Move all filler instructions INTO the TONE section during prompt generation, so one patch covers everything
-- C) Flag a warning in the UI when switching styles: "This will update your tone section. Other filler instructions in your prompt may need manual editing."
-
-**Files:** `src/lib/prompt-patcher.ts`, `src/lib/prompt-builder.ts`
+**Files changed:** `src/lib/prompt-patcher.ts`
 
 ---
 
@@ -179,18 +161,15 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
-### SET-12: Concurrent prompt-patch race condition (HIGH)
+### SET-12: Concurrent prompt-patch race condition (HIGH) — FIXED 2026-03-22
 
-**Problem:** VoiceStyleCard, SectionEditorCard, agent_name patch, and booking toggle each independently SELECT the current `system_prompt`, patch it, and SAVE. If two fire within milliseconds (e.g., user saves voice style, then immediately saves a section edit), the second overwrites the first because it read a stale prompt from DB. No optimistic locking or version check in `settings/route.ts`.
+**Problem:** VoiceStyleCard, SectionEditorCard, agent_name patch, and booking toggle each independently SELECT the current `system_prompt`, patch it, and SAVE. If two fire within milliseconds, the second overwrites the first because it read a stale prompt from DB.
 
-**Example:** Admin saves voice style (reads prompt v1, patches to v2, writes v2). Before that PATCH completes, admin saves a section edit (reads prompt v1 again, patches to v3, writes v3). Result: voice style change is lost.
+**Fix applied (option B — client-side):** `usePatchSettings` hook now serializes all PATCH requests per client via a module-level promise chain (`serializeForClient()`). When two cards save concurrently, the second request waits for the first to complete. Since the server always re-reads the latest prompt from DB for each patch operation (section edit, voice style, calendar block, agent name), serialization ensures no stale-read overwrites. Combined with SET-13 (prompt returned in response), the parent state stays current between saves.
 
-**Fix options:**
-- A) Add `prompt_version` column to clients table. Each prompt-modifying PATCH includes the expected version. If mismatch, return 409 Conflict and force a re-read.
-- B) Serialize prompt-modifying saves with a per-client mutex in the API route (simpler but adds latency).
-- C) Return the updated prompt in every PATCH response (see SET-13) so the client always has the latest — reduces the race window.
+**Scope:** Prevents same-tab races (the common case — admin clicking two cards quickly). Multi-tab/multi-user races remain possible but are extremely rare; server-side optimistic locking (option A) deferred until needed.
 
-**Files:** `src/app/api/dashboard/settings/route.ts`
+**Files changed:** `src/components/dashboard/settings/usePatchSettings.ts`
 
 ---
 
@@ -367,12 +346,12 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 SET-13 (API no prompt return)      -- FIXED 2026-03-22, also fixes SET-7
 SET-7  (stale parent prompt)       -- FIXED by SET-13
 SET-3  (stale char count)          -- PARTIALLY FIXED by SET-13 (prompt state yes, char badge no)
+SET-12 (prompt race condition)     -- FIXED 2026-03-22, client-side serialization in usePatchSettings
+SET-1  (filler contradiction)      -- FIXED 2026-03-22, stripStandaloneFillers in prompt-patcher
 SET-3r (char count badge SSR)      -- FIXED 2026-03-22, promptLength prop on AgentOverviewCard
 SET-2  (preset active state)       -- FIXED 2026-03-22, aria-pressed added to VoiceStyleCard
 
 --- OPEN ---
-SET-12 (prompt race condition)     -- HIGH, data corruption on concurrent saves
-SET-1  (filler contradiction)      -- MEDIUM-HIGH, affects call quality on preset switch
 SET-25 (booking_enabled toggle)    -- MEDIUM, no UI fires the calendar block patch
 SET-14 (no sync retry)             -- MEDIUM, silent Ultravox drift after failure
 SET-15 (no unsaved warning)        -- MEDIUM, data loss on navigation
