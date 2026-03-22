@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
+import { useDirtyGuard } from './useDirtyGuard'
 
 interface VoicemailGreetingCardProps {
   clientId: string
@@ -27,9 +28,11 @@ export default function VoicemailGreetingCard({
 }: VoicemailGreetingCardProps) {
   const [text, setText] = useState(initialText)
   const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { markDirty, markClean } = useDirtyGuard('voicemail-' + clientId)
 
   async function save() {
-    await patch({ voicemail_greeting_text: text })
+    const res = await patch({ voicemail_greeting_text: text })
+    if (res?.ok) markClean()
   }
 
   return (
@@ -62,7 +65,7 @@ export default function VoicemailGreetingCard({
         <textarea
           rows={3}
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={e => { setText(e.target.value); markDirty() }}
           className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors resize-y"
           placeholder={`Hi, you've reached ${businessName || 'our office'}. We're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`}
         />

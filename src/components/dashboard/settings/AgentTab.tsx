@@ -25,6 +25,7 @@ import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
+import { useDirtyGuardEffect } from './useDirtyGuard'
 import type { GodConfigEntry } from './constants'
 import { fmtPhone } from '@/lib/settings-utils'
 
@@ -162,6 +163,8 @@ export default function AgentTab({
   voiceStylePreset,
   previewMode,
 }: AgentTabProps) {
+  useDirtyGuardEffect()
+
   // ─── Section open/close state ─────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     talk: true,
@@ -460,7 +463,9 @@ export default function AgentTab({
             googleCalendarId={client.google_calendar_id}
             initialDuration={bookingDuration[client.id] ?? 60}
             initialBuffer={bookingBuffer[client.id] ?? 15}
+            initialBookingEnabled={client.booking_enabled ?? false}
             previewMode={previewMode}
+            onPromptChange={handlePromptChange}
           />
         </div>
       )}

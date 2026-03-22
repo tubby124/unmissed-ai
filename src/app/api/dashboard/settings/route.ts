@@ -471,6 +471,15 @@ export async function PATCH(req: NextRequest) {
         ultravox_error = err instanceof Error ? err.message : String(err)
         console.error(`[settings] Ultravox agent sync failed: ${ultravox_error}`)
         // Don't fail the whole request — Supabase save succeeded
+
+        // SET-14: Alert operator via Telegram so drift doesn't go unnoticed
+        const opToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
+        const opChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
+        if (opToken && opChat) {
+          sendAlert(opToken, opChat,
+            `⚠️ Ultravox sync failed for <b>${clientRow.slug}</b>: ${ultravox_error.slice(0, 500)}. DB updated but agent config may be stale.`
+          ).catch(() => { /* non-blocking */ })
+        }
       }
     }
   }

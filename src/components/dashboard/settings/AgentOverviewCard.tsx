@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import BorderBeam from '@/components/ui/border-beam'
@@ -11,6 +11,7 @@ import VoicePicker from './VoicePicker'
 import QuickInject from './QuickInject'
 import ContextDataCard from './ContextDataCard'
 import type { CardMode } from './usePatchSettings'
+import { useDirtyGuard } from './useDirtyGuard'
 
 interface AgentOverviewCardProps {
   client: ClientConfig
@@ -30,6 +31,13 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
   const [savedName, setSavedName] = useState(client.agent_name ?? '')
   const nameDirty = agentName !== savedName
   const footerDirty = nameDirty
+
+  const { markDirty, markClean } = useDirtyGuard('overview-' + client.id)
+
+  useEffect(() => {
+    if (nameDirty) markDirty()
+    else markClean()
+  }, [nameDirty, markDirty, markClean])
 
   // Footer save
   const [footerSaving, setFooterSaving] = useState(false)

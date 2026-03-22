@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
+import { useDirtyGuard } from './useDirtyGuard'
 
 interface HoursCardProps {
   clientId: string
@@ -33,14 +34,16 @@ export default function HoursCard({
   const [phone, setPhone] = useState(initialPhone)
 
   const { saving, saved, error, patch, clearError } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { markDirty, markClean } = useDirtyGuard('hours-' + clientId)
 
   async function save() {
-    await patch({
+    const res = await patch({
       business_hours_weekday: weekday,
       business_hours_weekend: weekend,
       after_hours_behavior: behavior,
       after_hours_emergency_phone: phone,
     })
+    if (res?.ok) markClean()
   }
 
   return (
@@ -77,7 +80,7 @@ export default function HoursCard({
             <input
               type="text"
               value={weekday}
-              onChange={e => setWeekday(e.target.value)}
+              onChange={e => { setWeekday(e.target.value); markDirty() }}
               className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
               placeholder="e.g. Monday to Friday, 9am to 5pm"
             />
@@ -87,7 +90,7 @@ export default function HoursCard({
             <input
               type="text"
               value={weekend}
-              onChange={e => setWeekend(e.target.value)}
+              onChange={e => { setWeekend(e.target.value); markDirty() }}
               className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
               placeholder="e.g. Saturday 10am to 2pm, or leave blank for closed"
             />
@@ -98,7 +101,7 @@ export default function HoursCard({
                 <p className="text-[11px] font-medium t2 mb-1.5">When you&apos;re closed, your agent should&hellip;</p>
                 <select
                   value={behavior}
-                  onChange={e => setBehavior(e.target.value)}
+                  onChange={e => { setBehavior(e.target.value); markDirty() }}
                   className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                 >
                   <option value="take_message">Take a message</option>
@@ -112,7 +115,7 @@ export default function HoursCard({
                   <input
                     type="tel"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => { setPhone(e.target.value); markDirty() }}
                     className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                     placeholder="e.g. +13065550101"
                   />

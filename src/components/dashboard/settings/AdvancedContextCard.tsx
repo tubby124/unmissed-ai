@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
+import { useDirtyGuard } from './useDirtyGuard'
 
 interface AdvancedContextCardProps {
   clientId: string
@@ -41,14 +42,16 @@ export default function AdvancedContextCard({
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false)
 
   const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { markDirty, markClean } = useDirtyGuard('advanced-context-' + clientId)
 
   async function save() {
-    await patch({
+    const res = await patch({
       business_facts: facts,
       extra_qa: qa,
       context_data: initialContextData,
       context_data_label: initialContextDataLabel,
     })
+    if (res?.ok) markClean()
   }
 
   // Assemble a preview of what the agent sees at call time
@@ -152,7 +155,7 @@ export default function AdvancedContextCard({
           </p>
           <textarea
             value={facts}
-            onChange={e => setFacts(e.target.value)}
+            onChange={e => { setFacts(e.target.value); markDirty() }}
             rows={4}
             className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
             placeholder="e.g. Parking is free out front. We're near the Walmart on 22nd St. Our lead tech is Ryan. Closed Christmas Day and Boxing Day."
@@ -172,7 +175,7 @@ export default function AdvancedContextCard({
             {qa.length < 10 && (
               <button
                 type="button"
-                onClick={() => setQa(prev => [...prev, { q: '', a: '' }])}
+                onClick={() => { setQa(prev => [...prev, { q: '', a: '' }]); markDirty() }}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium t2 border b-theme hover:t1 hover:b-theme transition-all"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
@@ -195,6 +198,7 @@ export default function AdvancedContextCard({
                     const updated = [...qa]
                     updated[idx] = { ...updated[idx], q: e.target.value }
                     setQa(updated)
+                    markDirty()
                   }}
                   placeholder="Question\u2026"
                   className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
@@ -206,13 +210,14 @@ export default function AdvancedContextCard({
                     const updated = [...qa]
                     updated[idx] = { ...updated[idx], a: e.target.value }
                     setQa(updated)
+                    markDirty()
                   }}
                   placeholder="Answer\u2026"
                   className="bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                 />
                 <button
                   type="button"
-                  onClick={() => setQa(prev => prev.filter((_, i) => i !== idx))}
+                  onClick={() => { setQa(prev => prev.filter((_, i) => i !== idx)); markDirty() }}
                   className="p-2 rounded-xl t3 hover:text-red-400 hover:bg-red-500/[0.07] transition-all"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>

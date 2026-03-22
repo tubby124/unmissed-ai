@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 /** Card display mode — settings (full) vs onboarding (simplified copy/fields). */
 export type CardMode = 'settings' | 'onboarding'
@@ -48,13 +48,18 @@ export function usePatchSettings(
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(null)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
+
+  // SET-14: Store last payload that triggered a sync failure for retry
+  const lastFailedPayload = useRef<Record<string, unknown> | null>(null)
 
   const patch = useCallback(async (body: Record<string, unknown>) => {
     setSaving(true)
     setSaved(false)
     setError(null)
     setSyncStatus(null)
+    setSyncError(null)
     setWarnings([])
 
     const res = await serializeForClient(clientId, async () => {
@@ -73,8 +78,14 @@ export function usePatchSettings(
       // Surface sync details from the API response
       if (data.ultravox_synced === true) {
         setSyncStatus('synced')
+        // SET-14: Clear failed payload on successful sync
+        lastFailedPayload.current = null
+        setSyncError(null)
       } else if (data.ultravox_synced === false && data.ultravox_error) {
         setSyncStatus('failed')
+        setSyncError(data.ultravox_error)
+        // SET-14: Store payload for retry
+        lastFailedPayload.current = body
       } else {
         // No ultravox_synced field = call-time injection, no agent sync needed
         setSyncStatus('not-needed')
@@ -94,7 +105,14 @@ export function usePatchSettings(
     return res
   }, [clientId, isAdmin, options])
 
+  // SET-14: Re-send the last failed payload to retry Ultravox sync
+  const retrySyncFailed = useCallback(async () => {
+    const payload = lastFailedPayload.current
+    if (!payload) return null
+    return patch(payload)
+  }, [patch])
+
   const clearError = useCallback(() => setError(null), [])
 
-  return { saving, saved, error, syncStatus, warnings, patch, clearError }
+  return { saving, saved, error, syncStatus, syncError, warnings, patch, clearError, retrySyncFailed }
 }

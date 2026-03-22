@@ -187,30 +187,27 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-14: No Ultravox sync retry after transient failure (MEDIUM)
+### SET-14: No Ultravox sync retry after transient failure (MEDIUM) — FIXED 2026-03-22
 
 **Problem:** If `updateAgent()` fails (network error, Ultravox downtime), DB has the new data but Ultravox agent config is stale. No background retry, no admin alert (only `console.error`), no manual re-sync button. The only recovery is to save again. Drift accumulates silently.
 
-**Impact:** Agent keeps using old prompt/tools until someone notices and re-saves. For forwarding_number or booking_enabled changes, this means calls route incorrectly.
+**Fix applied (A + C):**
+1. `usePatchSettings` hook stores failed payload in `lastFailedPayload` ref, exposes `retrySyncFailed()` function + `syncError` string. Cards can now show a "Retry" button when sync fails (wiring individual cards = SET-19 scope).
+2. Server-side: `route.ts` sends Telegram alert to operator when Ultravox sync fails (fire-and-forget via `TELEGRAM_OPERATOR_BOT_TOKEN`/`TELEGRAM_OPERATOR_CHAT_ID`).
 
-**Fix options:**
-- A) Add a "Re-sync Agent" button visible when `ultravox_synced: false` in the response (admin-only or all users)
-- B) Record failed syncs in a queue table, retry via cron (heavier but automatic)
-- C) At minimum: send Telegram alert to operator when sync fails (currently only console.error)
-
-**Files:** `settings/route.ts`, `AgentTab.tsx` or `AgentConfigCard.tsx`
+**Files changed:** `usePatchSettings.ts`, `settings/route.ts`
 
 ---
 
-### SET-15: No unsaved changes warning (MEDIUM)
+### SET-15: No unsaved changes warning (MEDIUM) — FIXED 2026-03-22
 
-**Problem:** No `beforeunload` handler anywhere in the settings page. If a user edits business facts, FAQs, transfer conditions, or any card field and then navigates away (clicks Calls, Calendar, or even switches settings tabs), their edits are silently lost. Only PromptEditorCard has a `dirty` tracking flag — and even that doesn't trigger a browser warning.
+**Problem:** No `beforeunload` handler anywhere in the settings page. If a user edits business facts, FAQs, transfer conditions, or any card field and then navigates away, their edits are silently lost.
 
-**Impact:** Users lose work. Especially painful for AdvancedContextCard where they may have typed multiple FAQs.
+**Fix applied:** New `useDirtyGuard` hook with module-level `Set<string>` tracking dirty card keys. `useDirtyGuardEffect()` called once in AgentTab registers `beforeunload`. 5 cards wired: HoursCard, AdvancedContextCard, BookingCard (duration/buffer only, not toggle), VoicemailGreetingCard, AgentOverviewCard (agent name).
 
-**Fix:** Add a shared `useDirtyGuard` hook. Cards set dirty=true on edit, dirty=false on save. Parent AgentTab aggregates dirty state and registers a `beforeunload` handler. Also warn on tab switch within settings.
+**Known limitation:** `beforeunload` only fires on browser-level navigation (tab close, refresh, URL change). Next.js App Router client-side navigation (clicking sidebar `<Link>` to Calls, Calendar, etc.) does NOT trigger `beforeunload`. Full client-side nav guarding would require intercepting `history.pushState` or a custom `NavigationGuard` — deferred.
 
-**Files:** New hook `useDirtyGuard.ts`, all cards that have editable fields, `AgentTab.tsx`
+**Files changed:** New `useDirtyGuard.ts`, `AgentTab.tsx`, `HoursCard.tsx`, `AdvancedContextCard.tsx`, `BookingCard.tsx`, `VoicemailGreetingCard.tsx`, `AgentOverviewCard.tsx`
 
 ---
 
@@ -291,15 +288,15 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-23: No confirmation on destructive setting changes (LOW)
+### SET-23: No confirmation on destructive setting changes (LOW) — PARTIALLY FIXED by SET-25
 
-**Problem:** Toggling `booking_enabled` off removes the CALENDAR BOOKING FLOW block from the prompt immediately. No "Are you sure?" dialog. Same for `knowledge_backend` toggle (removes knowledge tool from agent). Only `toggleStatus` (pause agent) has a `confirm()` dialog.
+**Problem:** Toggling `booking_enabled` off removes the CALENDAR BOOKING FLOW block from the prompt immediately. Same for `knowledge_backend` toggle.
 
-**Impact:** Accidental toggle-off removes prompt content that can't be recovered without prompt version restore.
+**SET-25 fixed:** `booking_enabled` toggle now has `confirm()` dialog: "Disable booking? This removes the calendar booking instructions from your agent's prompt."
 
-**Fix:** Add `confirm()` dialogs for booking_enabled=false and knowledge_backend=null toggles. Include description of what will change.
+**Still needed:** `knowledge_backend` toggle (in SettingsView) still has no confirm dialog.
 
-**Files:** `BookingCard.tsx`, `SettingsView.tsx` (knowledge toggle)
+**Files:** `SettingsView.tsx` (knowledge toggle only)
 
 ---
 
@@ -313,11 +310,13 @@ All 6 cards save to DB and persist after reload. Tested on production (demo-auto
 
 ---
 
-### SET-25: booking_enabled toggle missing from extracted cards (MEDIUM)
+### SET-25: booking_enabled toggle missing from extracted cards (MEDIUM) — FIXED 2026-03-22
 
-**Problem:** No card or visible UI toggle sends `booking_enabled: true/false` to the settings API. The server-side calendar block patching exists (route.ts lines 237-282), but the client-side toggle that would fire it isn't wired in any extracted card. BookingCard only sends `booking_service_duration_minutes` and `booking_buffer_minutes`. When this toggle gets built, it MUST use `onPromptChange` — the API patches the calendar instruction block into the prompt.
+**Problem:** No card or visible UI toggle sent `booking_enabled: true/false` to the settings API.
 
-**Files:** Needs new toggle in `BookingCard.tsx` or a dedicated component
+**Fix applied:** Added toggle switch to BookingCard with `confirm()` dialog on disable (also partially addresses SET-23). Toggle disabled when calendar not connected (tooltip: "Connect Google Calendar first"). Duration/buffer fields now only show when `enabled && connected`. `onPromptChange` wired so parent prompt state updates after calendar block is patched.
+
+**Files changed:** `BookingCard.tsx`, `AgentTab.tsx`
 
 ---
 
@@ -350,16 +349,16 @@ SET-12 (prompt race condition)     -- FIXED 2026-03-22, client-side serializatio
 SET-1  (filler contradiction)      -- FIXED 2026-03-22, stripStandaloneFillers in prompt-patcher
 SET-3r (char count badge SSR)      -- FIXED 2026-03-22, promptLength prop on AgentOverviewCard
 SET-2  (preset active state)       -- FIXED 2026-03-22, aria-pressed added to VoiceStyleCard
+SET-25 (booking_enabled toggle)    -- FIXED 2026-03-22, toggle + confirm + onPromptChange in BookingCard
+SET-14 (no sync retry)             -- FIXED 2026-03-22, retrySyncFailed() in hook + Telegram alert
+SET-15 (no unsaved warning)        -- FIXED 2026-03-22, useDirtyGuard hook + beforeunload (browser-level only)
 
 --- OPEN ---
-SET-25 (booking_enabled toggle)    -- MEDIUM, no UI fires the calendar block patch
-SET-14 (no sync retry)             -- MEDIUM, silent Ultravox drift after failure
-SET-15 (no unsaved warning)        -- MEDIUM, data loss on navigation
 SET-4  (duplicate sections)        -- LOW-MEDIUM, data integrity
 SET-16 (no loading state)          -- LOW-MEDIUM, blank page during load
 SET-17 (no ErrorBoundary)          -- LOW-MEDIUM, one card crash kills page
 SET-18 (raw fetch bypasses hook)   -- LOW-MEDIUM, inconsistent error handling
-SET-19 (syncStatus unused)         -- LOW, partial implementation
+SET-19 (syncStatus unused)         -- LOW, wire retrySyncFailed + syncError into cards
 SET-24 (hook re-render churn)      -- LOW, perf optimization
 SET-26 (knowledge toggle no prop)  -- LOW, future-proofing
 SET-10 (double accordion)          -- LOW, admin UX (may be intentional)
@@ -369,7 +368,8 @@ SET-9  (section state resets)      -- LOW, admin convenience
 SET-11 (duplicate admin btn)       -- LOW, code duplication
 SET-20 (admin loads all prompts)   -- LOW, future scale concern
 SET-22 (no deep linking)           -- LOW, UX convenience
-SET-23 (no destructive confirm)    -- LOW, UX safety
+SET-23 (destructive confirm)       -- LOW, partially fixed by SET-25 (knowledge toggle remaining)
 SET-5  (runtime 404)               -- LOW, missing feature
 SET-6  (hydration error)           -- LOW, cosmetic
+SET-15b (client-side nav guard)    -- LOW, beforeunload doesn't cover Next.js Link navigation
 ```
