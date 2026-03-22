@@ -4,7 +4,6 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 
 interface AgentKnowledgeCardProps {
   client: ClientConfig
-  isAdmin: boolean
 }
 
 export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) {

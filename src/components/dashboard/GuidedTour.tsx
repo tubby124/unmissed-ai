@@ -27,6 +27,9 @@ export default function GuidedTour() {
     // Already completed
     if (localStorage.getItem(TOUR_KEY)) return
 
+    // Tour targets sidebar nav links which are hidden below lg (1024px)
+    if (window.innerWidth < 1024) return
+
     // Wait for elements to render
     const timer = setTimeout(() => {
       const heroEl = document.querySelector('[data-tour="agent-hero"]')

@@ -602,7 +602,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
             </div>
           ) : filtered.length === 0 ? (
             clientStatus === 'trial' || !phone ? (
-              <NoCalls isTrial={clientStatus === 'trial'} />
+              <NoCalls />
             ) : (
               <EmptyState phone={phone} />
             )

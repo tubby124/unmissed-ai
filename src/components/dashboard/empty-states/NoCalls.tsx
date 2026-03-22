@@ -14,12 +14,7 @@ const PhoneIcon = (
   </svg>
 )
 
-interface NoCallsProps {
-  isTrial?: boolean
-  onTestAgent?: () => void
-}
-
-export default function NoCalls({ isTrial, onTestAgent }: NoCallsProps) {
+export default function NoCalls() {
   return (
     <EmptyStateBase
       icon={PhoneIcon}

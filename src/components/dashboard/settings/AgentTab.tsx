@@ -313,7 +313,7 @@ export default function AgentTab({
         }}
         onScrollTo={handleScrollTo}
       />
-      <AgentKnowledgeCard client={client} isAdmin={isAdmin} />
+      <AgentKnowledgeCard client={client} />
       <LearningLoopCard
         clientId={client.id}
         isAdmin={isAdmin}

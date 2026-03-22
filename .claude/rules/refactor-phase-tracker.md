@@ -99,6 +99,7 @@
 | D35 | FEATURE | AI-assisted prompt improvement suggestions from failure patterns | MEDIUM | NOT STARTED |
 | D36 | FEATURE | Weekly failure digest cron — recurring failure analysis + client notification | LOW | NOT STARTED |
 | D37 | FEATURE | Agent personality coherence check — warn after 5+ surgical patches without regen | LOW | NOT STARTED |
+| D38 | **BUG** | Guided tour breaks on mobile — Sidebar is `hidden lg:flex`, so `data-tour` nav elements invisible below 1024px. Fixed: tour suppressed below 1024px via `window.innerWidth` check. | MEDIUM | **DONE** 2026-03-22 |
 
 ---
 
@@ -112,7 +113,7 @@
 | S12 Ph2b | Calendar & call routing UX overhaul | NOT STARTED |
 | S12 Ph2c | IVR multi-route call handling | DEFERRED |
 | S12 Ph3b | Prompt variable injection testing system | Slice 1 |
-| S12 Ph3c | Trial dashboard experience (tour + WebRTC + gating) | Slices 2/4/5 |
+| S12 Ph3c | Trial dashboard experience (tour + WebRTC + gating) | Slices 2a-2d/4/5 DONE, 2e-2f remaining |
 | S12 Ph3d | Website scrape transparency hardening | Slice 3 |
 | S12 Ph4 | Post-signup communication (welcome email, first-login) | BLOCKED on domain |
 | S12 Ph5 | Dashboard visual redesign | LAST |
@@ -131,17 +132,16 @@
 ```
 DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          GATE-2 partial, GATE-3 PASS, GATE-4 PASS, GATE-5 PASS,
-         D1-D18/D25-D29, FND, Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h
+         D1-D18/D25-D29, FND, L5 (transcript→gap pipeline),
+         Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h
 
 NEXT:
   DB-MIG  -> weekly_digest_enabled migration (30s)
   S16a    -> Call recording consent disclosure (GATE-2)
-  SLICE-2c -> Agent Knowledge Card
-  SLICE-8h -> Onboarding Progress Ring
-  SLICE-8g -> Quick-Add FAQ from Calls
-  SLICE-2d -> Try-Asking Prompts
-  SLICE-4  -> Empty states
-  SLICE-5  -> Guided tour (needs Slice 4)
+  SLICE-2e -> Inline Mini-Editors
+  SLICE-2f -> Website Scrape Hint
+  SLICE-8m -> Failure-to-Refine Pipeline (MEDIUM)
+  SLICE-8o -> Frustration/Interruption Metrics (MEDIUM)
   GATE-1   -> Domain migration (BLOCKED on domain purchase)
 
 DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
@@ -174,55 +174,7 @@ Add call recording consent disclosure to all voice agent system prompts.
 6. Do NOT change any other part of the prompts
 ```
 
-### PROMPT 3 — Agent Knowledge Card (Slice 2c)
-**Tracker ref:** Slice 2c | **Priority:** MEDIUM
-```
-Build AgentKnowledgeCard.tsx — summary of what agent knows (facts count, FAQs, hours, booking, voice, knowledge docs).
-Read memory/settings-card-architecture.md for pattern. Add to "Talk to Your Agent" section in AgentTab.tsx.
-NO new API routes — reuse existing client config data. Run npm run build.
-```
-
-### PROMPT 4 — Onboarding Progress Ring (Slice 8h)
-**Tracker ref:** Slice 8h | **Priority:** MEDIUM
-```
-Create SetupProgressRing.tsx — SVG circle progress ring showing agent setup completeness.
-Reuse CapabilitiesCard capability flags. Place at top of settings for non-admin users.
-100% = green checkmark. Run npm run build.
-```
-
-### PROMPT 5 — Quick-Add FAQ from Calls (Slice 8g)
-**Tracker ref:** Slice 8g | **Priority:** MEDIUM
-```
-Add "Add as FAQ?" button on call detail page for unanswered topics.
-Inline form (question + answer), PATCH settings with extra_qa append.
-Uses existing usePatchSettings pattern. Run npm run build.
-```
-
-### PROMPT 6 — Try-Asking Prompts (Slice 2d)
-**Tracker ref:** Slice 2d | **Priority:** LOW
-```
-Add pre-call "Try asking..." chips to AgentVoiceTest/TestCallCard.
-Dynamic from client config: hours → "Try asking about your hours", booking → "Ask to book", etc.
-Max 4 chips, hidden during/after call. Run npm run build.
-```
-
-### PROMPT 7 — Empty States (Slice 4)
-**Tracker ref:** Slice 4 / TOUR3 | **Priority:** LOW | **Depends on:** Nothing
-```
-Add empty state variants for calls, calendar, notifications, insights pages.
-Icon + heading + subtext + CTA where appropriate. Check D20 for prior uncommitted files.
-Run npm run build.
-```
-
-### PROMPT 8 — Guided Tour (Slice 5)
-**Tracker ref:** Slice 5 / TOUR2 | **Depends on:** Slice 4
-```
-npm install driver.js. Create GuidedTour.tsx with 4 steps.
-Read docs/s12-audit/s12-tour-library-decision.md first.
-Add to dashboard layout for non-admin. localStorage flag to prevent repeat. Run npm run build.
-```
-
-### PROMPT 9 — Domain Migration (GATE-1 — S15)
+### PROMPT 3 — Domain Migration (GATE-1 — S15)
 **Tracker ref:** GATE-1 | **BLOCKED on domain purchase**
 ```
 Update lib/app-url.ts (centralized URL), Railway env vars, Supabase settings, Resend domain,
