@@ -3,7 +3,8 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
-import { patchCalendarBlock, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { patchCalendarBlock, patchVoiceStyleSection, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { VOICE_PRESETS } from '@/lib/prompt-builder'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
 // ── Prompt validation ──────────────────────────────────────────────────────────
@@ -267,6 +268,37 @@ export async function PATCH(req: NextRequest) {
         updates.system_prompt = patched
         updates.updated_at = new Date().toISOString()
         console.log(`[settings] Calendar block ${body.booking_enabled ? 'added to' : 'removed from'} prompt for client=${targetClientId}`)
+      }
+    }
+  }
+
+  // ── Auto-patch prompt when voice_style_preset changes ────────────────────────
+  // Find the VOICE STYLE / TONE AND STYLE section in the stored prompt and replace
+  // it with the new preset's tone + filler content. This triggers Ultravox sync
+  // because system_prompt changes.
+  if (typeof body.voice_style_preset === 'string' && body.voice_style_preset) {
+    const preset = VOICE_PRESETS[body.voice_style_preset]
+    if (preset) {
+      let promptToPatch: string | null = typeof updates.system_prompt === 'string'
+        ? updates.system_prompt as string
+        : null
+
+      if (!promptToPatch) {
+        const { data: row } = await supabase
+          .from('clients')
+          .select('system_prompt')
+          .eq('id', targetClientId)
+          .single()
+        promptToPatch = (row?.system_prompt as string) ?? null
+      }
+
+      if (promptToPatch) {
+        const patched = patchVoiceStyleSection(promptToPatch, preset.toneStyleBlock, preset.fillerStyle)
+        if (patched !== promptToPatch) {
+          updates.system_prompt = patched
+          updates.updated_at = new Date().toISOString()
+          console.log(`[settings] Voice style patched to '${body.voice_style_preset}' for client=${targetClientId}`)
+        }
       }
     }
   }

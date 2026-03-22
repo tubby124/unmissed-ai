@@ -72,6 +72,55 @@ export function patchCalendarBlock(
   return prompt
 }
 
+// ── Voice style section patcher ──────────────────────────────────────────────
+
+/**
+ * Find and replace the VOICE STYLE / TONE AND STYLE section in a stored prompt.
+ *
+ * Handles both formats found in live prompts:
+ *   - "VOICE STYLE\n..." (hand-crafted, no # prefix)
+ *   - "# TONE AND STYLE\n..." (template-generated, with # prefix)
+ *
+ * The section runs from the header line until the next all-caps heading or # heading.
+ * Returns the original prompt unchanged if no voice/tone section is found.
+ */
+export function patchVoiceStyleSection(
+  prompt: string,
+  toneStyleBlock: string,
+  fillerStyle: string,
+): string {
+  // Match the section header: optional "#" prefix, then VOICE STYLE or TONE AND STYLE
+  const headerRe = /^(#+ *)?(?:VOICE STYLE|TONE AND STYLE|TONE & STYLE)\s*$/im
+  const headerMatch = prompt.match(headerRe)
+  if (!headerMatch) return prompt
+
+  const headerStart = prompt.indexOf(headerMatch[0])
+  const afterHeader = headerStart + headerMatch[0].length
+
+  // Find the end: next heading (# or ALL-CAPS line that isn't a bullet/quote)
+  const rest = prompt.slice(afterHeader)
+  const nextHeadingRe = /^(?:#+\s+\S|[A-Z][A-Z ]{2,}[A-Z]$)/m
+  const nextMatch = rest.match(nextHeadingRe)
+
+  let sectionEnd: number
+  if (nextMatch && nextMatch.index !== undefined) {
+    sectionEnd = afterHeader + nextMatch.index
+  } else {
+    sectionEnd = prompt.length
+  }
+
+  // Preserve the original header text (keep whatever format the prompt uses)
+  const header = headerMatch[0]
+  const replacement = `${header}\n${toneStyleBlock}\n${fillerStyle}`
+
+  return (
+    prompt.substring(0, headerStart) +
+    replacement +
+    '\n\n' +
+    prompt.substring(sectionEnd).trimStart()
+  ).replace(/\n{3,}/g, '\n\n').trimEnd()
+}
+
 // ── Service type lookup ─────────────────────────────────────────────────────
 
 const NICHE_SERVICE_TYPES: Record<string, string> = {
