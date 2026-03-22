@@ -38,6 +38,100 @@ interface CallLog {
   quality_score?: number | null
 }
 
+// ─── Call Notifications sub-panel ──────────────────────────────────────────
+function CallNotifications({ callId }: { callId: string }) {
+  const [items, setItems] = useState<{ id: string; channel: string; status: string; recipient: string | null; error: string | null; created_at: string }[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    supabase
+      .from('notification_logs')
+      .select('id, channel, status, recipient, error, created_at')
+      .eq('call_id', callId)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => { setItems(data || []); setLoaded(true) })
+  }, [callId])
+
+  if (!loaded || items.length === 0) return null
+
+  return (
+    <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Notifications Sent</p>
+      <div className="space-y-2">
+        {items.map(n => (
+          <div key={n.id} className="flex items-center gap-3 text-xs">
+            <span className="shrink-0 w-5 text-center">
+              {n.channel === 'telegram' ? '📨' : n.channel === 'email' ? '📧' : n.channel === 'sms_followup' ? '💬' : '⚙️'}
+            </span>
+            <span className="capitalize" style={{ color: "var(--color-text-2)" }}>
+              {n.channel === 'sms_followup' ? 'SMS' : n.channel}
+            </span>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+              n.status === 'failed' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'
+            }`}>
+              {n.status}
+            </span>
+            {n.error && <span className="text-red-400 truncate flex-1">{n.error}</span>}
+            <span className="ml-auto" style={{ color: "var(--color-text-3)" }}>
+              {new Date(n.created_at).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Call Bookings sub-panel ──────────────────────────────────────────
+function CallBookings({ callId }: { callId: string }) {
+  const [items, setItems] = useState<{ id: string; caller_name: string | null; appointment_date: string | null; appointment_time: string | null; service: string | null; status: string | null; calendar_url: string | null }[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const supabase = createBrowserClient()
+    supabase
+      .from('bookings')
+      .select('id, caller_name, appointment_date, appointment_time, service, status, calendar_url')
+      .eq('call_id', callId)
+      .then(({ data }) => { setItems(data || []); setLoaded(true) })
+  }, [callId])
+
+  if (!loaded || items.length === 0) return null
+
+  return (
+    <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Bookings</p>
+      <div className="space-y-2">
+        {items.map(b => (
+          <div key={b.id} className="flex items-center gap-3 text-xs">
+            <span className="shrink-0">📅</span>
+            <span style={{ color: "var(--color-text-2)" }}>{b.caller_name ?? 'Unknown'}</span>
+            {b.appointment_date && (
+              <span style={{ color: "var(--color-text-3)" }}>
+                {new Date(b.appointment_date + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                {b.appointment_time && ` at ${b.appointment_time}`}
+              </span>
+            )}
+            {b.status && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+                b.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                : b.status === 'rescheduled' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                : 'bg-green-500/10 text-green-400 border border-green-500/20'
+              }`}>
+                {b.status}
+              </span>
+            )}
+            {b.calendar_url && (
+              <a href={b.calendar_url} target="_blank" rel="noopener noreferrer" className="ml-auto text-indigo-400 hover:underline">View</a>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Quality score semicircle gauge
 function QualityGauge({ score }: { score: number }) {
   const R = 54, W = 140, H = 80
@@ -580,6 +674,12 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           </div>
         </div>
       )}
+
+      {/* Notifications sent for this call */}
+      {!isActuallyLive && <CallNotifications callId={call.id} />}
+
+      {/* Bookings created from this call */}
+      {!isActuallyLive && <CallBookings callId={call.id} />}
 
       {/* Call Events — classified calls only */}
       {isClassified && (

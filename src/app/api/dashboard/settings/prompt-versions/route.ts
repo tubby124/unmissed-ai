@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const { data: versions, error } = await supabase
     .from('prompt_versions')
-    .select('id, version, content, change_description, created_at, is_active')
+    .select('id, version, content, change_description, created_at, is_active, triggered_by_user_id, triggered_by_role, char_count, prev_char_count')
     .eq('client_id', clientId)
     .order('version', { ascending: false })
     .limit(20)

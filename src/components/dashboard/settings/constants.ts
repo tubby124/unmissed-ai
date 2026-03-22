@@ -7,6 +7,10 @@ export interface PromptVersion {
   change_description: string
   created_at: string
   is_active: boolean
+  triggered_by_role?: string | null
+  triggered_by_user_id?: string | null
+  char_count?: number | null
+  prev_char_count?: number | null
 }
 
 export type ImproveState = 'idle' | 'loading' | 'done' | 'error'

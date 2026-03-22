@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   let query = svc
     .from('bookings')
-    .select('id, slug, caller_name, caller_phone, appointment_date, appointment_time, service, calendar_url, created_at, client_id, clients(business_name)')
+    .select('id, slug, caller_name, caller_phone, appointment_date, appointment_time, service, calendar_url, created_at, client_id, status, call_id, google_event_id, clients(business_name)')
     .order('appointment_date', { ascending: true })
     .order('appointment_time', { ascending: true })
     .limit(limit)

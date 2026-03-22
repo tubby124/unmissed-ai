@@ -149,6 +149,18 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
       </svg>
     ),
   },
+  {
+    href: '/dashboard/notifications',
+    label: 'Notifications',
+    adminOnly: false,
+    group: 2,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
   // ── Group 3 — TOOLS (admin) ───────────────────────────────────────────────
   {
     href: '/dashboard/demos',
@@ -247,6 +259,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
+  const [failedNotifCount, setFailedNotifCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -266,6 +279,19 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
     }
 
     loadCounts()
+
+    async function loadFailedNotifs() {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      let q = supabase
+        .from('notification_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'failed')
+        .gte('created_at', since)
+      if (!isAdmin && clientId) q = q.eq('client_id', clientId)
+      const { count } = await q
+      setFailedNotifCount(count ?? 0)
+    }
+    loadFailedNotifs()
 
     const channel = supabase
       .channel('sidebar_counts')
@@ -417,6 +443,12 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     {isCalls && processingCount > 0 && (
                       <span className="ml-auto text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
                         {processingCount}
+                      </span>
+                    )}
+                    {/* Red failed notification count pill */}
+                    {item.href === '/dashboard/notifications' && failedNotifCount > 0 && (
+                      <span className="ml-auto text-[9px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                        {failedNotifCount}
                       </span>
                     )}
                   </motion.span>

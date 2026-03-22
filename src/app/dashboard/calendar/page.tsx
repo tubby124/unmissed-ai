@@ -13,6 +13,9 @@ interface Booking {
   service: string | null
   calendar_url: string | null
   created_at: string
+  status: string | null
+  call_id: string | null
+  google_event_id: string | null
   clients?: { business_name?: string } | null
 }
 
@@ -123,6 +126,17 @@ function BookingSection({ title, bookings, faded }: { title: string; bookings: B
                 <span className="font-medium" style={{ color: 'var(--color-text-1)' }}>
                   {b.caller_name ?? 'Unknown caller'}
                 </span>
+                {b.status && (
+                  <span
+                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+                      b.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      : b.status === 'rescheduled' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    }`}
+                  >
+                    {b.status}
+                  </span>
+                )}
                 {b.service && (
                   <span
                     className="text-xs px-2 py-0.5 rounded-full"

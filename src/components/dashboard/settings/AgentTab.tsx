@@ -1442,9 +1442,24 @@ export default function AgentTab({
                       </ul>
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <p className="text-[10px] t3 leading-relaxed">
-                        Need behavior changes? Update your business details above, or contact support for advanced customization.
-                      </p>
+                      <div>
+                        <p className="text-[10px] t3 leading-relaxed">
+                          Need behavior changes? Update your business details above, or contact support for advanced customization.
+                        </p>
+                        {versions.length > 0 && (
+                          <p className="text-[10px] t3 mt-1">
+                            Last updated {(() => {
+                              const mins = Math.floor((Date.now() - new Date(versions[0].created_at).getTime()) / 60000)
+                              if (mins < 1) return 'just now'
+                              if (mins < 60) return `${mins}m ago`
+                              const hrs = Math.floor(mins / 60)
+                              if (hrs < 24) return `${hrs}h ago`
+                              return `${Math.floor(hrs / 24)}d ago`
+                            })()}
+                            {versions[0].triggered_by_role && <> by <span className="font-medium t2">{versions[0].triggered_by_role}</span></>}
+                          </p>
+                        )}
+                      </div>
                       <ShimmerButton
                         onClick={handleRegen}
                         disabled={regenState === 'loading' || previewMode || regenCooldownLeft > 0}
@@ -1765,6 +1780,14 @@ export default function AgentTab({
                           <span className="text-[11px] t3">
                             {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
+                          {v.triggered_by_role && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] t3 border border-white/[0.06]">{v.triggered_by_role}</span>
+                          )}
+                          {v.char_count != null && v.prev_char_count != null && v.char_count !== v.prev_char_count && (
+                            <span className={`text-[9px] font-mono ${v.char_count > v.prev_char_count ? 'text-green-400' : 'text-amber-400'}`}>
+                              {v.char_count > v.prev_char_count ? '+' : ''}{v.char_count - v.prev_char_count}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] t3 truncate mt-0.5">{v.change_description}</p>
                       </div>

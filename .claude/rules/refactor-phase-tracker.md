@@ -1652,33 +1652,23 @@ All Railway env var updates. Do them together, redeploy once.
 ### Bug class 1: Silent failures (fire-and-forget)
 **Pattern:** `.then()` / `void fn()` / `.catch(() => {})` in route handlers silently drops errors. Fixed 20+ sites in S9-S9.6, but 8+ remain and new ones get introduced because nothing prevents it.
 
-- [ ] S18a — **Final fire-and-forget cleanup (HIGH):** Convert remaining `.then()` patterns in production routes to `await`:
-  - `webhook/[slug]/inbound/route.ts` (2 sites: call_logs insert line 113, update line 287)
-  - `calendar/[slug]/book/route.ts` (1 site: bookings insert line 128 — also S10k)
-  - `knowledge/[slug]/query/route.ts` (1 site: knowledge_hits insert — also S13k)
-  - `activate-client.ts` (15 `.then()` chains — heaviest offender, covers Twilio number search/buy, SMS send, etc.)
-  - `demo/start`, `demo/call-me`, `demo/inbound` (3 sites — also S13j)
-  **Note:** `inbound/route.ts` line 287 (call_logs insert) is intentionally fire-and-forget for TwiML latency — document with inline comment, don't convert. All others should be awaited.
+- [x] S18a — **Final fire-and-forget cleanup (HIGH):** DONE (verified 2026-03-22). All `.then()` patterns in `src/lib/*.ts` and `src/app/api/**/*.ts` already converted to `await` during S9-S9.6. Only 1 remains: `inbound/route.ts:288` (intentional for TwiML latency, documented with inline comment S10m). Tracker was stale — all 8 "remaining" sites were fixed in prior phases.
 
-- [x] S18b — **Pre-push `.then()` baseline guard (MEDIUM):** DONE 2026-03-22. Added to `.githooks/pre-push` step 4/4: counts `.then(` in `src/app/api/`, fails if exceeds baseline (1). Prevents new fire-and-forget patterns.
+- [x] S18b — **Pre-push `.then()` baseline guard (MEDIUM):** DONE 2026-03-22. Added to `.githooks/pre-push` step 4/4: counts `.then(` in `src/app/api/` + `src/lib/` (scope expanded 2026-03-22), fails if exceeds baseline (1). Prevents new fire-and-forget patterns.
 
 ### Bug class 2: Untyped Supabase queries
 **Pattern:** All `supabase.from('table').select('column')` calls use raw strings. Column typos, missing tables, and schema drift compile fine but fail at runtime. Caused: S13f-FIX (stripe_events table never created — code referenced it for weeks), S12 audit SQL errors (wrong column names), stale column references after migrations.
 
-- [ ] S18c — **Generate Supabase TypeScript types (HIGH):** Run `supabase gen types typescript --project-id qwhvblomlgeapzhnuwlb > src/lib/database.types.ts`. Create typed Supabase client wrapper. Column typos become build errors instead of runtime errors. **Scope:** Start with `createServiceClient()` return type. Don't need to convert all 200+ `supabase.from()` calls at once — new code uses typed client, old code migrates incrementally.
+- [x] S18c — **Generate Supabase TypeScript types (HIGH):** DONE 2026-03-22. Generated 1730-line `database.types.ts` from live schema via MCP. Added `createTypedServiceClient()` to `lib/supabase/server.ts` — new code uses it for compile-time column safety. Existing untyped `createServiceClient()` unchanged (incremental migration). Wiring types into existing clients surfaced **123 type errors across 60 files** — mostly `string | null` vs `string` mismatches. These are potential null-reference bugs. Triage tracked as S18c-TRIAGE below.
+- [ ] S18c-TRIAGE — **Triage 123 type mismatches from S18c (MEDIUM):** When `Database` generic was applied to all 3 Supabase clients, 123 type errors surfaced across 60 files. Reverted generic application (build-breaking), but errors represent real schema/code disagreements. Categorize: (a) harmless — column is never null in practice, (b) latent bug — code assumes non-null but column IS nullable, (c) wrong type — code uses `TranscriptMessage[]` but DB stores `Json`. Fix category (b) first — those are runtime crashes waiting to happen. Run: apply `Database` generic to `createServiceClient` temporarily, `npx tsc --noEmit 2>&1 | grep "error TS"` to get full list.
 
 - [ ] S18d — **Add `supabase gen types` to CI/pre-push (LOW):** After S18c, add type generation to build pipeline. If a migration adds/removes a column, types auto-update. Stale types = build failure. Requires `SUPABASE_ACCESS_TOKEN` in CI env.
 
 ### Bug class 3: Deploy ≠ Done (no post-deploy verification)
 **Pattern:** Items marked DONE when code merges, but never verified working in production. Caused: S13b native webhook (env vars set, handler deployed, events never arrived), S12-V8-BUG1 (trial-expiry cron dead for weeks — GET vs POST), S13f-FIX (stripe_events table never created — migration not applied).
 
-- [ ] S18e — **Post-deploy smoke test script (HIGH):** `scripts/smoke-test.sh` — runs after every Railway deploy. Checks:
-  1. `GET /api/health` → 200 (app is up)
-  2. Each cron route with `CRON_SECRET` header → not 405 (method match)
-  3. `GET /api/webhook/ultravox` → 200 (native webhook handler reachable)
-  4. Supabase connectivity (service client can query `clients` table)
-  5. Key tables exist (`stripe_events`, `notification_logs`, `bookings` — tables that were missing before)
-  **Trigger:** Manual after deploy, or Railway deploy hook if supported. Sends Telegram alert on any failure.
+- [x] S18e — **Post-deploy smoke test script (HIGH):** DONE 2026-03-22. `scripts/smoke-test.sh` — 5 check categories, 13 assertions: health endpoint, cron route methods + auth, Ultravox webhook handler, auth enforcement, public pages. Usage: `CRON_SECRET=xxx bash scripts/smoke-test.sh`. Not yet validated against production (needs CRON_SECRET from Railway).
+- [ ] S18e-VALIDATE — **Run smoke test against production (LOW):** `scripts/smoke-test.sh` has never been run against live Railway. Needs CRON_SECRET env var. Run once to confirm all 13 assertions pass. Quick — 30 seconds.
 
 - [ ] S18f — **"Deployed" verification column on tracker (PROCESS):** A task isn't DONE until the commit hash is confirmed live on Railway. Add `| Deployed |` column to active phase tables. Relates to S12-OPS9 (same gap, now formalized). S13a proved this — code committed but never deployed for a week.
 
@@ -1725,14 +1715,14 @@ All Railway env var updates. Do them together, redeploy once.
 ### Bug class 7: Missing fetch timeouts
 **Pattern:** External API calls without `AbortSignal.timeout()` cause route handlers to hang until Railway kills them. Fixed in S9.5c (Ultravox transcript/recording), S9.6c (call creation), S13i (Telegram). Still missing on: `activate-client.ts` (6 Twilio/Ultravox calls — S13y), `embeddings.ts` + `website-scraper.ts` (S13z), `google-calendar.ts` (3 calls — S10l), admin Ultravox ops (S13l).
 
-- [ ] S18l — **Timeout audit + blanket fix (MEDIUM):** Grep for `fetch(` without `signal:` in `src/lib/` and `src/app/api/`. Add `AbortSignal.timeout()` to every external fetch. Default: 10s for caller-facing, 15s for admin, 30s for background. Consolidates S13y + S13z + S10l + S13l into one sweep. **Approach:** Create `lib/fetch-with-timeout.ts` wrapper that adds timeout by default — new code uses it, eliminates the class entirely.
+- [ ] S18l — **Timeout audit + blanket fix (MEDIUM):** **80 naked `await fetch()` calls** without `signal:` across `src/lib/` + `src/app/api/` (verified 2026-03-22). Too many for a pre-push baseline guard. Default: 10s for caller-facing, 15s for admin, 30s for background. Consolidates S13y + S13z + S10l + S13l into one sweep. **Approach:** Create `lib/fetch-with-timeout.ts` wrapper that adds timeout by default — new code uses it, eliminates the class entirely. Sweep existing 80 calls in a dedicated session.
 
 ### Bug class 8: Module-level SDK initialization (build-time bombs)
 **Pattern:** `new Stripe()`, `createClient()`, `createServiceClient()` at module scope crash during `next build` page data collection when env vars aren't available in build workers. Also: `createBrowserClient()` in `'use client'` component bodies runs during SSR prerendering. Caused: 4 failed Railway builds, 31-file emergency fix (commit `2c4250e`, 2026-03-21). `tsc --noEmit` missed ALL of them.
 
 - [x] S18m — **Fix 31 module-level init files (DONE 2026-03-21):** All Stripe `new Stripe()` → `function getStripe()`. All module-level `createClient()` / `createServiceClient()` → inside handler. `set-password/page.tsx` → `useRef` lazy-init. Commit `2c4250e`.
 - [x] S18n — **Fix `login/page.tsx` createBrowserClient() (MEDIUM):** DONE 2026-03-22. Converted to `useRef` lazy-init pattern matching `set-password/page.tsx`. tsc clean.
-- [ ] S18o — **Pre-push hook: `tsc --noEmit` → `npm run build` (HIGH):** `.githooks/pre-push` only runs type checking. This caught ZERO of the 31 broken files. `next build` catches them all. **Trade-off:** `npm run build` takes ~30s vs `tsc` ~5s. Consider `npm run build` on push, `tsc` on commit. Or add a `scripts/quick-build-check.sh` that runs page data collection without full static generation.
+- [x] S18o — **Pre-push hook: `tsc --noEmit` → `npm run build` (HIGH):** DONE 2026-03-22. `.githooks/pre-push` step 2/4 runs `npm run build` (full Next.js build). Catches module-level SDK init, SSR issues, and all errors `tsc` misses.
 - [x] S18p — **Pre-push grep for module-level SDK init (MEDIUM):** DONE 2026-03-22. Added to `.githooks/pre-push` step 3/4: greps for `new Stripe(`, `= createClient(`, `= createServiceClient(` at module level in `src/app/` and `src/lib/`. Fails push if any matches found.
 
 ### Cross-cutting: Inline rate limiter consolidation
