@@ -94,6 +94,11 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAddAnswer }: Knowle
                   <span className={`text-[10px] font-mono ${gap.count >= 3 ? 'text-red-400' : gap.count >= 2 ? 'text-amber-400' : 'text-zinc-500'}`}>
                     {gap.count}x
                   </span>
+                  {gap.count >= 3 && (
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
+                      Recommended: Add as FAQ
+                    </span>
+                  )}
                   <span className="text-[10px] text-zinc-600">
                     {gap.count > 1 ? `${new Date(gap.first_seen).toLocaleDateString()} — ${new Date(gap.last_seen).toLocaleDateString()}` : new Date(gap.last_seen).toLocaleDateString()}
                   </span>

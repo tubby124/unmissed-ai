@@ -403,7 +403,16 @@ export default function AgentTab({
         />
       </div>
       <div id="section-knowledge">
-        <KnowledgeEngineCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+        <KnowledgeEngineCard
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+          onClientUpdate={(updates) => {
+            if (updates.extra_qa) {
+              extraQA[client.id] = updates.extra_qa
+            }
+          }}
+        />
       </div>
       {isAdmin && (
         <SectionEditorCard

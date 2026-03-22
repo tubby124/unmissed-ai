@@ -262,6 +262,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
   const [failedNotifCount, setFailedNotifCount] = useState(0)
+  const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -295,6 +296,21 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
     }
     loadFailedNotifs()
 
+    async function loadKnowledgeGaps() {
+      try {
+        const params = new URLSearchParams({ days: '30' })
+        if (clientId) params.set('client_id', clientId)
+        const res = await fetch(`/api/dashboard/knowledge/gaps?${params}`)
+        if (res.ok) {
+          const data = await res.json()
+          setKnowledgeGapCount(data.total ?? 0)
+        }
+      } catch {
+        // silent
+      }
+    }
+    loadKnowledgeGaps()
+
     const channel = supabase
       .channel('sidebar_counts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'call_logs' }, () => {
@@ -302,6 +318,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_logs' }, () => {
         loadFailedNotifs()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'knowledge_query_log' }, () => {
+        loadKnowledgeGaps()
       })
       .subscribe()
 
@@ -454,6 +473,12 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     {item.href === '/dashboard/notifications' && failedNotifCount > 0 && (
                       <span className="ml-auto text-[9px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
                         {failedNotifCount}
+                      </span>
+                    )}
+                    {/* Amber knowledge gap count pill */}
+                    {item.href === '/dashboard/settings' && knowledgeGapCount > 0 && (
+                      <span className="ml-auto text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                        {knowledgeGapCount}
                       </span>
                     )}
                   </motion.span>
