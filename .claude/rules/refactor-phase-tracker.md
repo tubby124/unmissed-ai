@@ -55,6 +55,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S19a | Webhook Liveness | `notification-health` cron monitors `billed_duration_seconds IS NULL` |
 | S13-REC1 | Recording Privacy | Bucket private, `lib/recording-url.ts` signed URLs, legacy URL compat, policy cleanup |
 | S16e | Prompt Injection Defense | Rules 14-16 generic + 12-14 real_estate, `validatePrompt()` gate |
+| S14a-d | Voicemail Fallback | `buildVoicemailTwiml()`, recording callback, Telegram notify, branded fallback, settings UI |
 
 ---
 
@@ -77,12 +78,18 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S13-REC2 | S13-REC1 | NOT STARTED -- backfill existing recording_url values from full public URLs to paths (one-time migration) |
 | S16a | S16 | NOT STARTED -- call recording consent disclosure |
 | S16e | S16 | **DONE** 2026-03-22 -- rules 14-16 in generic + 12-14 in real_estate + voicemail, validatePrompt() check |
-| S16e-LIVE | S16e | NOT STARTED -- deploy injection defense to 4 live agents (only new prompts have it, live prompts don't) |
+| S16e-LIVE | S16e | **DONE** 2026-03-22 -- deployed to all 5 agents (hasan v56, windshield v23, urban-vibe v25, exp-realty v18, demo v7) |
 
 ### GATE-3 -- Outage Resilience (core only)
 | Item | Source | Status |
 |------|--------|--------|
-| S14a-d | S14 | NOT STARTED -- voicemail fallback + logging + notification + storage |
+| S14a | S14 | **DONE** 2026-03-22 -- `buildVoicemailTwiml()` in twilio.ts, replaces "technical difficulties" hangup in inbound catch block |
+| S14b | S14 | **DONE** 2026-03-22 -- `/api/webhook/[slug]/voicemail` recording callback, downloads to Supabase storage, updates call_log |
+| S14c | S14 | **DONE** 2026-03-22 -- Telegram notification to client + operator on voicemail capture |
+| S14d | S14 | **DONE** 2026-03-22 -- fallback/route.ts upgraded to attempt voicemail (client lookup + branded greeting) |
+| S14-UI | S14 | **DONE** 2026-03-22 -- Voicemail Greeting section in dashboard settings (custom text, audio URL support) |
+
+**GATE-3 status: PASS. DB: `voicemail_greeting_text` + `voicemail_greeting_audio_url` on clients, `ultravox_call_id` now nullable. call_status='VOICEMAIL' for fallback entries.**
 
 ### GATE-4 -- Dashboard Observability (core only)
 | Item | Source | Status |
@@ -131,7 +138,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S12 Ph4 | Post-signup communication (welcome email, first-login) | BLOCKED on domain |
 | S12 Ph5 | Dashboard visual redesign | LAST |
 | S13 remaining | c (log hygiene), d (deprecate deploy_prompt.py), j-l (timeouts), p (rate limit alerts), w (create-draft rate limit), s-1 (RLS column restriction) | Mixed |
-| S14 | Ultravox outage resilience -- voicemail fallback | GATE-3 |
+| S14 | Ultravox outage resilience -- voicemail fallback | **DONE** (GATE-3 PASS) |
 | S15 | Domain migration (unmissed.ai -> theboringphone.com) | GATE-1 |
 | S16 | Compliance -- recording consent (S16a GATE-2), SMS consent (S16b), PIPEDA (S16c-d), prompt injection (S16e DONE) | S16e DONE, S16a GATE-2, rest NOT STARTED |
 | S17 | Operational maturity -- staging, backups, logging, monitoring | NOT STARTED |
@@ -146,12 +153,13 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 ```
 DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
          S18 partial (guard rails), S19a (webhook liveness),
-         GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense)
+         GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense),
+         GATE-3: S14a-d (voicemail fallback + settings UI)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
   GATE-2 -> S16a only remaining (call recording consent disclosure in prompts)
-  GATE-3 -> S14a-d (voicemail fallback)
+  GATE-3 -> PASS (S14a-d done)
   GATE-4 -> S10a-f (dashboard observability)
   GATE-5 -> PASS (S18a/c/e/o done)
 

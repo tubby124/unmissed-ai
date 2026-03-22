@@ -33,3 +33,9 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 7783 | **Hash:** 1822fa4578dd8b45
 **Supabase version_id:** adaba2a2-055d-42a4-9f20-7728bffe548c
 **Ultravox revision:** 24a1b61a-0e2c-4124-9dba-01a937042b4b
+
+## v7 — 2026-03-22 15:09 UTC
+**Change:** S16e: prompt injection defense rules
+**Chars:** 8648 | **Hash:** e9775fe5a41d7363
+**Supabase version_id:** 4ff52351-57fa-4403-beb1-20de3736db34
+**Ultravox revision:** 8ba04f14-1a19-47d2-83a3-e0c92119385d

@@ -248,3 +248,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 7490 | **Hash:** ae3e1f712011f251
 **Supabase version_id:** 626e0004-963e-4b9a-9ba9-902078e313de
 **Ultravox revision:** 706191da-a59a-4c0b-95c9-616e013afab3
+
+## v56 — 2026-03-22 15:08 UTC
+**Change:** S16e: prompt injection defense rules
+**Chars:** 7958 | **Hash:** 66eab2d38add673b
+**Supabase version_id:** 3cdd3836-5623-48be-bdbe-5969e091667c
+**Ultravox revision:** b36494ae-a271-4405-8599-465166fc9c98

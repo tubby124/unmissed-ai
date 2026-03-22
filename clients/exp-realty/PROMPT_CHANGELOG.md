@@ -93,3 +93,9 @@
 **Chars:** 9972 | **Hash:** 68be815bf1122975
 **Supabase version_id:** efdeb1df-5776-4038-93ca-f806dc63647e
 **Ultravox revision:** 910dbbc1-a694-4447-8de3-5660f8cb1dae
+
+## v18 — 2026-03-22 15:09 UTC
+**Change:** S16e: prompt injection defense rules
+**Chars:** 10439 | **Hash:** 8b9551ffc193e4ae
+**Supabase version_id:** 92a08fc5-5fdb-443f-bde0-03274839308f
+**Ultravox revision:** c2869be8-054a-4ffa-9bb6-42340f469e82

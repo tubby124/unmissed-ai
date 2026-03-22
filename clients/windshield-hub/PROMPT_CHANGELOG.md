@@ -131,3 +131,9 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 8239 | **Hash:** fd5064892166ac9c
 **Supabase version_id:** 6848cfaf-2d16-4d67-87cf-99eead849982
 **Ultravox revision:** af93c2ce-5ea1-4d84-abdf-eef0060f59e6
+
+## v23 — 2026-03-22 15:09 UTC
+**Change:** S16e: prompt injection defense rules
+**Chars:** 8693 | **Hash:** f398f8005a8088e6
+**Supabase version_id:** cf06bcb4-1d50-4bab-8d93-0d4fbbddc19d
+**Ultravox revision:** 215b2c11-1c5f-485f-b05e-6d7c6c98bc64

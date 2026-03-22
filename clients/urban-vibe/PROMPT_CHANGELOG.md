@@ -134,3 +134,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9549 | **Hash:** bac8562a03d0cf82
 **Supabase version_id:** 62b55342-0a14-4ef2-aac3-8296f9c959d0
 **Ultravox revision:** be370b08-fa3f-4b59-afba-a7ddbbfd6023
+
+## v25 — 2026-03-22 15:09 UTC
+**Change:** S16e: prompt injection defense rules
+**Chars:** 9816 | **Hash:** 76234cce30f9b51a
+**Supabase version_id:** 05986963-52bc-4f8f-acc9-475289fea237
+**Ultravox revision:** 6977da07-7812-452c-ae4d-d955df196628
