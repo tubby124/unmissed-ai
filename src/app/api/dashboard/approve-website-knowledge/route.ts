@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { embedText } from '@/lib/embeddings'
-import { syncClientTools } from '@/lib/sync-client-tools'
+import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 
 type ApprovedPackage = {
   businessFacts: string[]
@@ -11,8 +10,8 @@ type ApprovedPackage = {
 
 /**
  * Approve website-scraped knowledge.
- * Saves extracted facts + Q&A as knowledge_chunks with status=pending (for review)
- * or status=approved (if auto_approve=true and user is admin).
+ * Seeds knowledge_chunks via shared seedKnowledgeFromScrape utility (SCRAPE7 cleanup + serviceTags included).
+ * Chunk status: pending (default) or approved (if auto_approve=true and user is admin).
  *
  * Also merges into business_facts/extra_qa on the client row for backward compat
  * (agent-context.ts injects these into the prompt at call time).
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
   // ── Load client row ───────────────────────────────────────────────────────
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('business_facts, extra_qa, website_url, website_scrape_pages, website_knowledge_preview, slug, system_prompt')
+    .select('business_facts, extra_qa, website_url, website_scrape_pages, website_knowledge_preview, slug')
     .eq('id', clientId)
     .single()
 
@@ -72,87 +71,21 @@ export async function POST(req: NextRequest) {
 
   // ── Determine chunk status based on role ──────────────────────────────────
   const chunkStatus = body.auto_approve && cu.role === 'admin' ? 'approved' : 'pending'
-  const sourceUrl = Array.isArray(client.website_scrape_pages) && client.website_scrape_pages.length > 0
-    ? client.website_scrape_pages[0]
-    : client.website_url ?? 'website_scrape'
   const runId = `website-scrape-${Date.now()}`
 
-  // ── Create knowledge chunks from facts ────────────────────────────────────
-  let stored = 0
-  let failed = 0
-  const errors: string[] = []
-
-  for (const fact of approved.businessFacts) {
-    if (!fact?.trim()) continue
-    const embedding = await embedText(fact.trim())
-    if (!embedding) {
-      failed++
-      errors.push(`Embedding failed: ${fact.slice(0, 60)}...`)
-      continue
-    }
-
-    const { error } = await svc
-      .from('knowledge_chunks')
-      .upsert(
-        {
-          client_id: clientId,
-          content: fact.trim(),
-          chunk_type: 'fact',
-          source: 'website_scrape',
-          source_run_id: runId,
-          trust_tier: 'medium',
-          status: chunkStatus,
-          embedding: JSON.stringify(embedding),
-          metadata: { url: sourceUrl },
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'client_id,content_hash,chunk_type,source' },
-      )
-
-    if (error) {
-      failed++
-      errors.push(`DB: ${error.message}`)
-    } else {
-      stored++
-    }
-  }
-
-  // ── Create knowledge chunks from Q&A pairs ────────────────────────────────
-  for (const qa of approved.extraQa) {
-    if (!qa.q?.trim() || !qa.a?.trim()) continue
-    const content = `Q: ${qa.q.trim()}\nA: ${qa.a.trim()}`
-    const embedding = await embedText(content)
-    if (!embedding) {
-      failed++
-      errors.push(`Embedding failed: ${qa.q.slice(0, 60)}...`)
-      continue
-    }
-
-    const { error } = await svc
-      .from('knowledge_chunks')
-      .upsert(
-        {
-          client_id: clientId,
-          content,
-          chunk_type: 'qa',
-          source: 'website_scrape',
-          source_run_id: runId,
-          trust_tier: 'medium',
-          status: chunkStatus,
-          embedding: JSON.stringify(embedding),
-          metadata: { url: sourceUrl, question: qa.q.trim() },
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'client_id,content_hash,chunk_type,source' },
-      )
-
-    if (error) {
-      failed++
-      errors.push(`DB: ${error.message}`)
-    } else {
-      stored++
-    }
-  }
+  // ── Seed knowledge chunks via shared utility ──────────────────────────────
+  // Handles: SCRAPE7 cleanup, serviceTags, embeddings, syncClientTools
+  const seedResult = await seedKnowledgeFromScrape(svc, {
+    clientId,
+    clientSlug: client.slug as string,
+    scrapeData: null,
+    rawScrapeResult: null,
+    approvedPackage: approved,
+    runId,
+    routeLabel: 'approve-website-knowledge',
+    chunkStatus,
+    trustTier: 'medium',
+  })
 
   // ── Also merge into business_facts/extra_qa for prompt injection ──────────
   // agent-context.ts still reads these for inline prompt injection
@@ -188,24 +121,15 @@ export async function POST(req: NextRequest) {
 
   const factLines = mergedFacts.split('\n').filter((l: string) => l.trim().length > 0)
 
-  console.log(`[approve-website-knowledge] client=${client.slug} stored=${stored} failed=${failed} facts=${factLines.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
-
-  // S5: if chunks were auto-approved, rebuild clients.tools
-  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
-  if (chunkStatus === 'approved' && stored > 0) {
-    try { await syncClientTools(svc, clientId) } catch (err) {
-      console.error(`[approve-website-knowledge] tools sync failed: ${err}`)
-    }
-  }
+  console.log(`[approve-website-knowledge] client=${client.slug} stored=${seedResult.stored} failed=${seedResult.failed} facts=${factLines.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
 
   return NextResponse.json({
     success: true,
     mergedFacts: factLines.length,
     mergedQa: mergedQa.length,
-    chunksStored: stored,
-    chunksFailed: failed,
+    chunksStored: seedResult.stored,
+    chunksFailed: seedResult.failed,
     chunkStatus,
-    errors: errors.length > 0 ? errors : undefined,
+    errors: seedResult.errors.length > 0 ? seedResult.errors : undefined,
   })
 }
-

@@ -16,6 +16,10 @@ export type ChunkInput = {
   chunkType: 'fact' | 'qa' | 'page_content' | 'manual' | 'niche_template' | 'call_learning'
   source: string
   metadata?: Record<string, unknown>
+  /** Optional chunk status (e.g. 'pending', 'approved'). If omitted, DB default applies. */
+  status?: string
+  /** Optional trust tier (e.g. 'low', 'medium', 'high'). If omitted, DB default applies. */
+  trustTier?: string
 }
 
 export type EmbedResult = {
@@ -108,21 +112,22 @@ export async function embedChunks(
       continue
     }
 
+    const row: Record<string, unknown> = {
+      client_id: clientId,
+      content: chunk.content,
+      chunk_type: chunk.chunkType,
+      source: chunk.source,
+      source_run_id: sourceRunId,
+      metadata: chunk.metadata ?? {},
+      embedding: JSON.stringify(embedding),
+      updated_at: new Date().toISOString(),
+    }
+    if (chunk.status) row.status = chunk.status
+    if (chunk.trustTier) row.trust_tier = chunk.trustTier
+
     const { error } = await supabase
       .from('knowledge_chunks')
-      .upsert(
-        {
-          client_id: clientId,
-          content: chunk.content,
-          chunk_type: chunk.chunkType,
-          source: chunk.source,
-          source_run_id: sourceRunId,
-          metadata: chunk.metadata ?? {},
-          embedding: JSON.stringify(embedding),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'client_id,content_hash,chunk_type,source' },
-      )
+      .upsert(row, { onConflict: 'client_id,content_hash,chunk_type,source' })
 
     if (error) {
       failed++

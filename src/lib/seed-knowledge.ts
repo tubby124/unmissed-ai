@@ -9,7 +9,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { WebsiteScrapeResult } from '@/types/onboarding'
-import { embedChunks, prepareFactChunks, prepareQaChunks, prepareServiceTagChunks } from '@/lib/embeddings'
+import { embedChunks, deleteClientChunks, prepareFactChunks, prepareQaChunks, prepareServiceTagChunks } from '@/lib/embeddings'
 import { validateScrapeResult } from '@/lib/scrape-validation'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import type { scrapeWebsite } from '@/lib/website-scraper'
@@ -23,15 +23,25 @@ export interface SeedKnowledgeParams {
   scrapeData: unknown | null
   /** Raw scrape result from scrapeWebsite() — used as fallback */
   rawScrapeResult: RawScrapeResult | null
+  /** Pre-filtered approved package — bypasses WebsiteScrapeResult validation.
+   *  Use this from the dashboard approve route where facts/qa are already filtered by user selection. */
+  approvedPackage?: { businessFacts: string[]; extraQa: { q: string; a: string }[]; serviceTags: string[] } | null
   /** Unique run ID for dedup (e.g. "trial-{intakeId}" or "checkout-{intakeId}") */
   runId: string
   /** Route label for console logs */
   routeLabel: string
+  /** Optional chunk status (e.g. 'pending', 'approved'). If omitted, DB default applies. */
+  chunkStatus?: string
+  /** Optional trust tier (e.g. 'medium'). If omitted, DB default applies. */
+  trustTier?: string
 }
 
 export interface SeedKnowledgeResult {
   seeded: boolean
   chunkCount: number
+  stored: number
+  failed: number
+  errors: string[]
 }
 
 /**
@@ -46,13 +56,19 @@ export async function seedKnowledgeFromScrape(
   svc: SupabaseClient,
   params: SeedKnowledgeParams,
 ): Promise<SeedKnowledgeResult> {
-  const { clientId, clientSlug, scrapeData, rawScrapeResult, runId, routeLabel } = params
+  const { clientId, clientSlug, scrapeData, rawScrapeResult, approvedPackage, runId, routeLabel, chunkStatus, trustTier } = params
+  const empty: SeedKnowledgeResult = { seeded: false, chunkCount: 0, stored: 0, failed: 0, errors: [] }
 
   let factsToSeed: string[] = []
   let qaToSeed: { q: string; a: string }[] = []
   let serviceTagsToSeed: string[] = []
 
-  if (scrapeData && validateScrapeResult(scrapeData)) {
+  if (approvedPackage) {
+    // Pre-filtered approved data (from dashboard approve route)
+    factsToSeed = approvedPackage.businessFacts?.filter(f => f?.trim()) ?? []
+    qaToSeed = approvedPackage.extraQa?.filter(q => q.q?.trim() && q.a?.trim()) ?? []
+    serviceTagsToSeed = approvedPackage.serviceTags ?? []
+  } else if (scrapeData && validateScrapeResult(scrapeData)) {
     // Prefer user-approved data from scrape preview
     const validated = scrapeData as WebsiteScrapeResult
     factsToSeed = validated.businessFacts.filter((_, i) => validated.approvedFacts[i] !== false)
@@ -76,7 +92,7 @@ export async function seedKnowledgeFromScrape(
   }
 
   if (factsToSeed.length === 0 && qaToSeed.length === 0 && serviceTagsToSeed.length === 0) {
-    return { seeded: false, chunkCount: 0 }
+    return empty
   }
 
   const chunks = [
@@ -86,7 +102,22 @@ export async function seedKnowledgeFromScrape(
   ]
 
   if (chunks.length === 0) {
-    return { seeded: false, chunkCount: 0 }
+    return empty
+  }
+
+  // Apply optional status/trustTier to all chunks
+  if (chunkStatus || trustTier) {
+    for (const chunk of chunks) {
+      if (chunkStatus) chunk.status = chunkStatus
+      if (trustTier) chunk.trustTier = trustTier
+    }
+  }
+
+  // SCRAPE7: Remove stale website-derived chunks before reseeding.
+  // Only deletes source='website_scrape' — manual, bulk_import, gap_resolution chunks are preserved.
+  const deleted = await deleteClientChunks(clientId, 'website_scrape')
+  if (deleted > 0) {
+    console.log(`[${routeLabel}] SCRAPE7: Cleared ${deleted} stale website_scrape chunks for ${clientSlug}`)
   }
 
   const embedResult = await embedChunks(clientId, chunks, runId)
@@ -95,5 +126,11 @@ export async function seedKnowledgeFromScrape(
   // Rebuild tools so queryKnowledge is registered
   await syncClientTools(svc, clientId)
 
-  return { seeded: true, chunkCount: embedResult.stored }
+  return {
+    seeded: true,
+    chunkCount: embedResult.stored,
+    stored: embedResult.stored,
+    failed: embedResult.failed,
+    errors: embedResult.errors,
+  }
 }
