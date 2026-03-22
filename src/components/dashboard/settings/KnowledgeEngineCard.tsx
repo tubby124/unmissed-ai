@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 
 interface KnowledgeEngineCardProps {
@@ -119,9 +120,10 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       setLocalEnabled(newVal)
       setToggleSaved(true)
       setToggleSyncStatus(data.ultravox_synced === true ? 'synced' : data.ultravox_synced === false ? 'failed' : null)
+      toast.success(newVal ? 'Knowledge base enabled' : 'Knowledge base disabled')
       setTimeout(() => { setToggleSaved(false); setToggleSyncStatus(null) }, 5000)
     } catch {
-      // revert on failure
+      toast.error('Failed to update knowledge setting')
     } finally {
       setToggling(false)
     }
@@ -207,12 +209,16 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       // Remove from local list
       setGaps(prev => prev.filter(g => g.query !== query))
       setGapsCount(prev => Math.max(0, prev - 1))
-      setGapSuccess(destination === 'faq' ? 'Added as FAQ — agent will know this every call' : 'Added to knowledge base — agent will search this when relevant')
+      const msg = destination === 'faq' ? 'Added as FAQ — agent will know this every call' : 'Added to knowledge base — agent will search this when relevant'
+      setGapSuccess(msg)
+      toast.success(msg)
       setAnsweringGap(null)
       setGapAnswer('')
       setTimeout(() => setGapSuccess(null), 4000)
     } catch (err) {
-      setGapError(err instanceof Error ? err.message : 'Failed to save answer')
+      const errMsg = err instanceof Error ? err.message : 'Failed to save answer'
+      setGapError(errMsg)
+      toast.error(errMsg)
     } finally {
       setGapSaving(false)
     }

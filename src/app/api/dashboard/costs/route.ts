@@ -13,7 +13,7 @@ const PRICING = {
 const OUTBOUND_CLIENT_SLUGS = new Set<string>([]) // future: add outbound clients here
 
 const ULTRAVOX_API = 'https://api.ultravox.ai/api'
-const ULTRAVOX_KEY = process.env.ULTRAVOX_API_KEY ?? '4FowyUSm.ZEkda8oOwMgWl8HUGMBnSegpOGjU3acw'
+const ULTRAVOX_KEY = process.env.ULTRAVOX_API_KEY
 
 function getDateRange(range: string): { from: Date; to: Date; label: string } {
   const to = new Date()
@@ -80,7 +80,7 @@ async function fetchUltravoxLive(from: Date, to: Date): Promise<{
     if (cursor) url.searchParams.set('cursor', cursor)
 
     const res = await fetch(url.toString(), {
-      headers: { 'X-API-Key': ULTRAVOX_KEY },
+      headers: { 'X-API-Key': ULTRAVOX_KEY! },
     })
 
     if (!res.ok) break
@@ -179,6 +179,7 @@ export async function GET(req: NextRequest) {
     .eq('user_id', user.id)
     .single()
   if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!ULTRAVOX_KEY) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
   const range = req.nextUrl.searchParams.get('range') ?? 'month'
   const { from, to, label } = getDateRange(range)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
+import { toast } from 'sonner'
 
 /** Card display mode — settings (full) vs onboarding (simplified copy/fields). */
 export type CardMode = 'settings' | 'onboarding'
@@ -97,10 +98,18 @@ export function usePatchSettings(
         options?.onPromptChange?.(data.system_prompt)
       }
       options?.onSave?.()
+      // Toast feedback
+      if (data.ultravox_synced === false && data.ultravox_error) {
+        toast.warning('Saved, but agent sync failed — retry from the card')
+      } else {
+        toast.success('Saved')
+      }
       setTimeout(() => { setSaved(false); setSyncStatus(null); setWarnings([]) }, 5000)
     } else {
       const data = await res.json().catch(() => ({}))
-      setError(data.error || `Save failed (${res.status})`)
+      const msg = data.error || `Save failed (${res.status})`
+      setError(msg)
+      toast.error(msg)
     }
     return res
   }, [clientId, isAdmin, options])

@@ -13,6 +13,24 @@ interface AlertsTabProps {
 
 export default function AlertsTab({ client, previewMode, tgStyle, setTgStyle }: AlertsTabProps) {
   const [tgStyleSaving, setTgStyleSaving] = useState(false)
+  const [weeklyDigest, setWeeklyDigest] = useState(client.weekly_digest_enabled !== false)
+  const [digestSaving, setDigestSaving] = useState(false)
+
+  async function toggleWeeklyDigest() {
+    const newVal = !weeklyDigest
+    setWeeklyDigest(newVal)
+    setDigestSaving(true)
+    try {
+      await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: client.id, weekly_digest_enabled: newVal }),
+      })
+    } catch {
+      setWeeklyDigest(!newVal) // revert on failure
+    }
+    setDigestSaving(false)
+  }
 
   async function saveTelegramStyle(style: string) {
     setTgStyle(style)
@@ -209,6 +227,32 @@ export default function AlertsTab({ client, previewMode, tgStyle, setTgStyle }: 
         </div>
       </div>
     </div>
+
+    {/* Weekly digest toggle */}
+    {client.contact_email && (
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Weekly Performance Email</p>
+            <p className="text-[11px] t3">
+              Receive a weekly summary of calls, leads, and bookings every Sunday at 9 AM.
+            </p>
+            <p className="text-[10px] t3 mt-1">Sent to {client.contact_email}</p>
+          </div>
+          <button
+            onClick={toggleWeeklyDigest}
+            disabled={digestSaving || previewMode}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+              weeklyDigest ? 'bg-blue-500' : 'bg-zinc-700'
+            } ${digestSaving ? 'opacity-50' : ''}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+              weeklyDigest ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
+      </div>
+    )}
 
     </motion.div>
   )

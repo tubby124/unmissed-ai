@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import ShimmerButton from '@/components/ui/shimmer-button'
 import { fmtPhone } from '@/lib/settings-utils'
@@ -71,14 +72,17 @@ export default function PromptEditorCard({
       const json = await res.json()
       if (json.synced === false) {
         setRegenState('partial')
+        toast.warning('Regenerated, but agent sync pending')
         setTimeout(() => setRegenState('idle'), 4000)
       } else {
         setRegenState('done')
+        toast.success('Prompt regenerated')
         setTimeout(() => setRegenState('idle'), 3000)
       }
     } catch (e) {
       console.error('[regen]', e)
       setRegenState('error')
+      toast.error('Regeneration failed')
       setTimeout(() => setRegenState('idle'), 3000)
     }
   }, [client.id])
@@ -105,13 +109,18 @@ export default function PromptEditorCard({
       setTimeout(() => setSaved(false), 3000)
       if (!data.ultravox_synced && data.ultravox_error) {
         setUltravoxWarning(`Ultravox sync failed: ${data.ultravox_error}. Use "Re-sync Agent" to retry.`)
+        toast.warning('Saved, but agent sync failed')
+      } else {
+        toast.success('Prompt saved')
       }
       if (data.warnings?.length) {
         setPromptWarnings(data.warnings)
       }
     } else {
       const d = await res.json().catch(() => ({}))
-      setSaveError(d.error || 'Save failed \u2014 try again.')
+      const msg = d.error || 'Save failed \u2014 try again.'
+      setSaveError(msg)
+      toast.error(msg)
       setTimeout(() => setSaveError(''), 5000)
     }
   }

@@ -136,6 +136,9 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.telegram_style === 'string' && ['compact', 'standard', 'action_card'].includes(body.telegram_style)) {
     updates.telegram_style = body.telegram_style
   }
+  if (typeof body.weekly_digest_enabled === 'boolean') {
+    updates.weekly_digest_enabled = body.weekly_digest_enabled
+  }
   // Timezone — available to all roles (required for correct booking slot times per client)
   if (typeof body.timezone === 'string' && body.timezone) {
     updates.timezone = body.timezone

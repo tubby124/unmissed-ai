@@ -9,6 +9,7 @@ import ForwardingBanner from '@/components/dashboard/ForwardingBanner'
 import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
+import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -105,6 +106,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
         </AdminClientProvider>
       </Suspense>
+      <DashboardToaster />
     </div>
   )
 }

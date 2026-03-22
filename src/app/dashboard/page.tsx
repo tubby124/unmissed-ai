@@ -4,6 +4,7 @@ import SystemPulse from '@/components/dashboard/SystemPulse'
 import ActionItems from '@/components/dashboard/ActionItems'
 import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
+import ClientHome from '@/components/dashboard/ClientHome'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +22,8 @@ export default async function DashboardPage() {
 
   const isAdmin = cu?.role === 'admin'
 
-  // Non-admin: redirect to calls list (preserve original behavior)
-  if (!isAdmin) redirect('/dashboard/calls')
+  // Non-admin: show client home dashboard
+  if (!isAdmin) return <ClientHome />
 
   // Fetch admin data for Command Center
   const { data: allClients } = await supabase
