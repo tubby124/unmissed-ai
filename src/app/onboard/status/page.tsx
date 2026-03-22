@@ -8,6 +8,7 @@ import { AdminTestPanel } from "@/components/onboard/AdminTestPanel";
 import { AgentPreviewCard, type IntakePreview } from "@/components/onboard/AgentPreviewCard";
 import { TrialSuccessScreen } from "@/components/onboard/TrialSuccessScreen";
 import { SuccessView } from "@/components/onboard/SuccessView";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 
 interface InventoryNumber {
   phone_number: string;
@@ -288,8 +289,8 @@ function StatusContent() {
       </a>
       <p className="text-xs text-muted-foreground/70">
         Questions?{" "}
-        <a href="mailto:support@unmissed.ai" className="underline">
-          support@unmissed.ai
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">
+          {SUPPORT_EMAIL}
         </a>
       </p>
     </div>

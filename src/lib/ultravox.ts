@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { stripPromptMarkers } from '@/lib/prompt-sections'
 import { getNicheVoice } from '@/lib/niche-config'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME } from '@/lib/brand'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -200,7 +201,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     maxDuration: maxDuration || '600s',
     recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
-    timeExceededMessage: timeExceededMessage || "hey I wanna respect your time — check out unmissed dot ai whenever you're ready. take care!",
+    timeExceededMessage: timeExceededMessage || `hey I wanna respect your time — check out ${BRAND_NAME.replace('.', ' dot ')} whenever you're ready. take care!`,
     vadSettings: DEFAULT_VAD,
     firstSpeakerSettings: { agent: { uninterruptible: true } },
     selectedTools: [HANGUP_TOOL, ...(tools || [])],
@@ -510,7 +511,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, knowledge_chunk_count, transfer_conditions }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
-    systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
+    systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
     model: 'ultravox-v0.7',
     voice: voice || DEFAULT_VOICE,
     maxDuration: '600s',
@@ -524,7 +525,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
       properties: {
         callerContext:  { type: 'string' },
         businessFacts:  { type: 'string' },
-        extraQa:        { type: 'string' },
+        extraQa:        { type: 'string' },  // kept for backwards compat — resolves to '' at call time
         contextData:    { type: 'string' },
       },
     },
@@ -541,7 +542,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
     method: 'POST',
     headers: ultravoxHeaders(),
-    body: JSON.stringify({ name: name || 'unmissed-agent', callTemplate }),
+    body: JSON.stringify({ name: name || `${BRAND_NAME.replace('.', '-')}-agent`, callTemplate }),
   })
 
   if (!res.ok) {
@@ -588,7 +589,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
       properties: {
         callerContext:  { type: 'string' },
         businessFacts:  { type: 'string' },
-        extraQa:        { type: 'string' },
+        extraQa:        { type: 'string' },  // kept for backwards compat — resolves to '' at call time
         contextData:    { type: 'string' },
       },
     },
@@ -602,13 +603,15 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     // these resolve at call time via templateContext and must always be present.
     const INJECTED_DATA_BLOCK = '## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
     let sp = stripPromptMarkers(updates.systemPrompt)
+    // Remove legacy {{extraQa}} placeholder — QA data is folded into KnowledgeSummary
+    // which goes through {{businessFacts}}. The placeholder always resolved to empty string.
+    sp = sp.replace(/\n\n\{\{extraQa\}\}/g, '')
     if (!sp.includes('{{callerContext}}')) {
       // Brand new prompt — append all placeholders in order
-      sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n{{extraQa}}\n\n${INJECTED_DATA_BLOCK}`
+      sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n${INJECTED_DATA_BLOCK}`
     } else {
       // callerContext present — ensure newer placeholders are also present
       if (!sp.includes('{{businessFacts}}')) sp = sp + '\n\n{{businessFacts}}'
-      if (!sp.includes('{{extraQa}}'))       sp = sp + '\n\n{{extraQa}}'
       if (!sp.includes('{{contextData}}'))   sp = sp + `\n\n${INJECTED_DATA_BLOCK}`
     }
     callTemplate.systemPrompt = sp
@@ -638,8 +641,6 @@ interface CallViaAgentOptions {
   callerContext?: string
   /** Stable business facts (hours, staff, location notes) via {{businessFacts}} templateContext. */
   businessFacts?: string
-  /** Client-entered Q&A pairs via {{extraQa}} templateContext. */
-  extraQa?: string
   /** Inject per-call reference data (CSV/text) via {{contextData}} templateContext. */
   contextData?: string
   /** Override the agent's default first speaker text (used for transfer recovery). */
@@ -654,7 +655,7 @@ interface CallViaAgentOptions {
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, medium, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, medium, callerContext, businessFacts, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: medium === 'webrtc' ? { webRtc: {} } : { twilio: {} },
@@ -664,7 +665,6 @@ export async function callViaAgent(
     templateContext: {
       callerContext:  callerContext  || '',
       businessFacts:  businessFacts  || '',
-      extraQa:        extraQa        || '',
       contextData:    contextData    || '',
     },
   }

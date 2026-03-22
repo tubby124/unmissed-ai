@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BRAND_NAME } from "@/lib/brand";
 
 const outcomes = [
   {
@@ -140,7 +141,7 @@ export default function VideoTestimonialCarousel() {
                 {/* Agent label */}
                 {o.agentName && (
                   <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
-                    Handled by {o.agentName} · unmissed.ai
+                    Handled by {o.agentName} · {BRAND_NAME}
                   </p>
                 )}
               </div>

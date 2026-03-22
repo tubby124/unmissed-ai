@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 const SUMMARIZE_COST_CENTS = 5
 
@@ -68,8 +69,8 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${openrouterKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai advisor',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} advisor`,
       },
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',

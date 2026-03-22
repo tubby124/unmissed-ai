@@ -12,8 +12,10 @@ import Step4 from "./steps/step4";
 import Step5Handling from "./steps/step5-handling";
 import Step6Review from "./steps/step6-review";
 import ThemeToggle from "@/components/ThemeToggle";
+import { BRAND_NAME } from "@/lib/brand";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
-const STORAGE_KEY = "unmissed-onboard-draft";
+const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
 
 function getStepSequence(niche: Niche | null): number[] {
   if (niche === "voicemail") return [1, 2, 3, 6]; // skip Knowledge (4) and Call Handling (5)
@@ -240,7 +242,7 @@ export default function OnboardPage() {
         {/* Header */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-indigo-600 tracking-tight">unmissed.ai</span>
+            <span className="text-sm font-bold text-indigo-600 tracking-tight">{BRAND_NAME}</span>
             <span className="hidden sm:block text-muted-foreground/70 text-xs">·</span>
             <span className="hidden sm:block text-xs text-muted-foreground">Set up your AI agent — ~5 min</span>
           </div>

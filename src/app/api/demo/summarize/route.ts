@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 // Simple in-memory rate limiter: 5 summaries per IP per hour
 const rateLimitMap = new Map<string, number[]>()
@@ -50,8 +51,8 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai demo summary',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} demo summary`,
       },
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',

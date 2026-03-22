@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 export const maxDuration = 60
 
-const SYSTEM_PROMPT = `You are a voice agent prompt optimizer for unmissed.ai, a done-for-you AI phone agent platform. You receive a live system prompt currently powering a phone agent, plus a call intelligence brief showing real caller patterns and friction points.
+const SYSTEM_PROMPT = `You are a voice agent prompt optimizer for ${BRAND_NAME}, a done-for-you AI phone agent platform. You receive a live system prompt currently powering a phone agent, plus a call intelligence brief showing real caller patterns and friction points.
 
 Your job: suggest MINIMAL, TARGETED changes that improve call handling based on evidence from actual calls.
 
@@ -184,8 +185,8 @@ Task: Based ONLY on the friction points and top topics above, add 1-2 targeted s
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://unmissed.ai',
-      'X-Title': 'unmissed.ai prompt improver',
+      'HTTP-Referer': BRAND_REFERER,
+      'X-Title': `${BRAND_NAME} prompt improver`,
     },
     body: JSON.stringify({
       model: 'anthropic/claude-haiku-4.5',

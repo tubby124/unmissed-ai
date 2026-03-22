@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
+import { BRAND_NAME } from "@/lib/brand";
 
 const rows = [
   {
@@ -92,7 +93,7 @@ export default function CostComparisonTable() {
                   className="text-center p-4 font-semibold rounded-t-none"
                   style={{ color: "var(--color-primary)", backgroundColor: "var(--color-surface)" }}
                 >
-                  unmissed.ai ⭐
+                  {BRAND_NAME} ⭐
                 </th>
               </tr>
             </thead>

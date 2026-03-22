@@ -14,6 +14,7 @@ import json
 import urllib.request
 
 ULTRAVOX_BASE = "https://api.ultravox.ai/api"
+BRAND = os.environ.get("BRAND_NAME", "unmissed.ai")
 
 def main():
     api_key = os.environ.get("ULTRAVOX_API_KEY")
@@ -21,9 +22,10 @@ def main():
         print("ERROR: ULTRAVOX_API_KEY env var is required", file=sys.stderr)
         sys.exit(1)
 
+    corpus_name = f"{BRAND.replace('.', '-')}-shared-corpus"
     payload = json.dumps({
-        "name": "unmissed-shared-corpus",
-        "description": "Shared knowledge base for all unmissed.ai voice agent clients",
+        "name": corpus_name,
+        "description": f"Shared knowledge base for all {BRAND} voice agent clients",
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -45,7 +47,7 @@ def main():
                 sys.exit(1)
 
             print(f"Corpus created successfully!")
-            print(f"  Name: unmissed-shared-corpus")
+            print(f"  Name: {corpus_name}")
             print(f"  Corpus ID: {corpus_id}")
             print()
             print(f"Set this as a Railway env var:")

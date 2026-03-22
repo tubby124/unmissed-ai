@@ -180,18 +180,12 @@ export async function POST(
 
     const callerContextBlock = ctx.assembled.callerContextBlock
     const callerContextRaw = callerContextBlock.slice(1, -1)
-    // Phase 4: append retrieval instruction when enabled, guarded by prompt length hard max
+    // Phase 4: always inject retrieval instruction when enabled — never drop it
     let knowledgeBlockStr = ctx.knowledge.block
     if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
-      const combined = knowledgeBlockStr
+      knowledgeBlockStr = knowledgeBlockStr
         ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
         : ctx.retrieval.promptInstruction
-      const estimatedTotal = (client.system_prompt?.length ?? 0) + combined.length + callerContextBlock.length + (ctx.assembled.contextDataBlock?.length ?? 0) + 10
-      if (estimatedTotal <= 12000) {
-        knowledgeBlockStr = combined
-      } else {
-        console.warn(`[transfer-status] Retrieval instruction skipped for slug=${slug} — would exceed 12K prompt limit (estimated ${estimatedTotal} chars)`)
-      }
     }
     const contextDataStr = ctx.assembled.contextDataBlock
 

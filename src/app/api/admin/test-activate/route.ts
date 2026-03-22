@@ -26,6 +26,7 @@ import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -419,13 +420,13 @@ export async function POST(req: NextRequest) {
           } catch { setupUrl = `${APP_URL}/login` }
         }
         const resend = new Resend(resendKey)
-        const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+        const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
         await resend.emails.send({
           from: fromAddress,
           to: contactEmail,
           subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
           html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
+  <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
   <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
   <p><strong>Set up your dashboard password</strong></p>
@@ -433,7 +434,7 @@ export async function POST(req: NextRequest) {
   <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
   ${telegramLink ? `<p><strong>Connect Telegram:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
 </div>`,
         })
         emailSent = true

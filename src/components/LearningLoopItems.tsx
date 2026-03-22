@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react'
 import { BarChart3, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react'
+import { BRAND_NAME } from '@/lib/brand'
 
 const LIST_ITEMS = [
   'Weekly transcript analysis — automated',
@@ -27,7 +28,7 @@ export default function LearningLoopItems() {
           className="text-xs font-mono uppercase tracking-widest mb-3"
           style={{ color: 'var(--color-primary)' }}
         >
-          Only at unmissed.ai
+          Only at {BRAND_NAME}
         </p>
         <h2
           className="text-3xl md:text-4xl font-bold mb-4"

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { BRAND_NAME } from "@/lib/brand";
 
 const INDUSTRIES = [
   { label: "Auto Glass", href: "/for-auto-glass" },
@@ -60,7 +61,7 @@ export default function Navbar() {
             U
           </div>
           <span className="font-semibold text-lg tracking-tight" style={{ color: "var(--color-text-1)" }}>
-            unmissed<span style={{ color: "var(--color-primary)" }}>.ai</span>
+            {BRAND_NAME.replace('.ai', '')}<span style={{ color: "var(--color-primary)" }}>.ai</span>
           </span>
         </Link>
 

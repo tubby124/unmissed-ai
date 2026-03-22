@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HELLO_EMAIL } from "@/lib/brand";
 
 const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_EMAIL_CAPTURE_WEBHOOK || "";
 
@@ -98,7 +99,7 @@ export default function EmailCapture() {
 
         {status === "error" && (
           <p className="text-red-400 text-xs mt-2">
-            Something went wrong. Email us directly: hello@unmissed.ai
+            Something went wrong. Email us directly: {HELLO_EMAIL}
           </p>
         )}
 

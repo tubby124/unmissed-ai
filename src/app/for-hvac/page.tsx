@@ -10,16 +10,17 @@ import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 import { Home, Thermometer, Clock, Calendar, MapPin, Phone, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "AI Receptionist for HVAC Companies — unmissed.ai",
+  title: `AI Receptionist for HVAC Companies — ${BRAND_NAME}`,
   description:
     "Never lose a furnace repair call to voicemail. Your AI agent handles calls 24/7 — even during emergency season.",
   alternates: {
-    canonical: "https://unmissed.ai/for-hvac",
+    canonical: `https://${BRAND_DOMAIN}/for-hvac`,
   },
   openGraph: {
-    title: "AI Receptionist for HVAC Companies — unmissed.ai",
+    title: `AI Receptionist for HVAC Companies — ${BRAND_NAME}`,
     description: "Never lose a furnace repair call to voicemail. Your AI agent handles calls 24/7 — even during emergency season.",
   },
 };

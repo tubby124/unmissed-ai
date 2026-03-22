@@ -4,6 +4,7 @@ import { validateSignature } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+import { BRAND_NAME } from '@/lib/brand'
 
 export const maxDuration = 10
 
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Handle HELP/AIDE keywords (CRTC requirement)
   if (isHelp) {
     console.log(`[sms-inbound] HELP request: from=${from} client=${client.id}`)
-    return twimlResponse(`${client.business_name || 'This service'} — AI voice assistant powered by unmissed.ai. Reply STOP to unsubscribe. For support, call this number.`)
+    return twimlResponse(`${client.business_name || 'This service'} — AI voice assistant powered by ${BRAND_NAME}. Reply STOP to unsubscribe. For support, call this number.`)
   }
 
   // Regular inbound message — forward to Telegram

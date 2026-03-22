@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { SUPPORT_EMAIL } from "@/lib/brand";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: string | null; setupUrl: string | null; telegramLink: string | null }) {
   useEffect(() => {
-    try { localStorage.removeItem("unmissed-onboard-draft"); } catch { /* ignore */ }
+    try { localStorage.removeItem(STORAGE_KEYS.ONBOARD_DRAFT); } catch { /* ignore */ }
   }, []);
 
   const checklistItems = [
@@ -97,8 +99,8 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
       {/* Footer */}
       <p className="text-xs text-muted-foreground/70 text-center">
         Questions?{" "}
-        <a href="mailto:support@unmissed.ai" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
-          support@unmissed.ai
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
+          {SUPPORT_EMAIL}
         </a>
       </p>
     </div>

@@ -5,13 +5,14 @@ import DemoAudioPlayer from "@/components/DemoAudioPlayer";
 import LeadCard from "@/components/LeadCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Link from "next/link";
+import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Hear a Real Demo — unmissed.ai",
+  title: `Hear a Real Demo — ${BRAND_NAME}`,
   description:
     "Listen to real AI receptionist calls for auto glass, HVAC, plumbing, and more. This is exactly what your customers will hear.",
   openGraph: {
-    title: "Hear a Real Demo — unmissed.ai",
+    title: `Hear a Real Demo — ${BRAND_NAME}`,
     description: "Real AI receptionist calls for auto glass, HVAC, plumbing, dental, legal, and salon businesses.",
   },
 };

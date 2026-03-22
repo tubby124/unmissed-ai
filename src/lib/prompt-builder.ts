@@ -1962,10 +1962,15 @@ TOOL ERROR (fallback=true or no response): fall back to message mode — collect
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
-  // ── Website content injection ──────────────────────────────────────────────
+  // ── Website content — NOT inlined into stored prompt ─────────────────────
+  // Website-scraped facts/QA are already:
+  //   1. Merged into business_facts/extra_qa (approve-website-knowledge route)
+  //   2. Seeded into knowledge_chunks for pgvector retrieval
+  //   3. Injected at call-time via KnowledgeSummary (agent-context.ts Phase 3)
+  // Inlining them here caused double-injection + prompt bloat on GLM-4.6.
+  // The websiteContent param is kept for backward compat but intentionally ignored.
   if (websiteContent) {
-    const existingFaq = (intake.caller_faq as string) || ''
-    intake.caller_faq = `WEBSITE CONTENT (auto-scraped):\n${websiteContent}\n\n${existingFaq ? `CLIENT-PROVIDED FAQ:\n${existingFaq}` : ''}`.trim()
+    console.log(`[prompt-builder] websiteContent (${websiteContent.length} chars) NOT inlined — served via KnowledgeSummary + pgvector retrieval`)
   }
 
   const niche = (intake.niche as string) || 'other'
@@ -2159,10 +2164,11 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   const legacyFaq = (intake.caller_faq as string)?.trim() || ''
   variables.FAQ_PAIRS = [faqPairsFormatted, legacyFaq].filter(Boolean).join('\n\n') || 'No FAQ pairs configured yet.'
 
-  // Knowledge base documents injection
+  // Knowledge docs — NOT inlined into stored prompt
+  // Uploaded docs are already seeded into knowledge_chunks for pgvector retrieval.
+  // Inlining raw document text bloats prompts past GLM-4.6 limits.
   if (knowledgeDocs?.trim()) {
-    const kbDocsSection = `\n\n## KNOWLEDGE BASE DOCUMENTS\n\n${knowledgeDocs}\n`
-    variables._KNOWLEDGE_DOCS = kbDocsSection
+    console.log(`[prompt-builder] knowledgeDocs (${knowledgeDocs.length} chars) NOT inlined — served via pgvector retrieval`)
   }
 
   // Fallback defaults
@@ -2347,10 +2353,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   }
 
 
-  // Append knowledge base documents if provided
-  if (variables._KNOWLEDGE_DOCS) {
-    prompt += variables._KNOWLEDGE_DOCS
-  }
+  // Knowledge docs are served via pgvector retrieval — no longer appended to stored prompt
 
   // Append calendar booking block if booking_enabled AND niche supports appointments
   if (intake.booking_enabled === true && caps.bookAppointments) {

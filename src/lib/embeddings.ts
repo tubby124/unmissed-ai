@@ -166,8 +166,9 @@ export async function deleteClientChunks(clientId: string, source?: string): Pro
 
 /**
  * Convert business_facts text into ChunkInputs (one per non-empty line).
+ * @param source — chunk source tag. 'website_scrape' for scrape-derived, 'settings_edit' for dashboard edits.
  */
-export function prepareFactChunks(businessFacts: string | null): ChunkInput[] {
+export function prepareFactChunks(businessFacts: string | null, source: string = 'website_scrape'): ChunkInput[] {
   if (!businessFacts) return []
   return businessFacts
     .split('\n')
@@ -176,20 +177,21 @@ export function prepareFactChunks(businessFacts: string | null): ChunkInput[] {
     .map(line => ({
       content: line,
       chunkType: 'fact' as const,
-      source: 'website_scrape',
+      source,
     }))
 }
 
 /**
  * Convert extra_qa pairs into ChunkInputs (one per Q&A pair).
+ * @param source — chunk source tag. 'website_scrape' for scrape-derived, 'settings_edit' for dashboard edits.
  */
-export function prepareQaChunks(extraQa: { q: string; a: string }[]): ChunkInput[] {
+export function prepareQaChunks(extraQa: { q: string; a: string }[], source: string = 'website_scrape'): ChunkInput[] {
   return extraQa
     .filter(pair => pair.q?.trim() && pair.a?.trim())
     .map(pair => ({
       content: `Q: ${pair.q.trim()}\nA: ${pair.a.trim()}`,
       chunkType: 'qa' as const,
-      source: 'website_scrape',
+      source,
     }))
 }
 
@@ -205,4 +207,43 @@ export function prepareServiceTagChunks(serviceTags: string[]): ChunkInput[] {
     chunkType: 'fact' as const,
     source: 'website_scrape',
   }]
+}
+
+// ── Settings-edit knowledge reseed ─────────────────────────────────────────
+/**
+ * Reseed knowledge chunks from business_facts + extra_qa after a settings edit.
+ * Replaces only 'settings_edit' source chunks — preserves website_scrape, manual, etc.
+ * Fire-and-forget safe: logs errors but does not throw.
+ */
+export async function reseedKnowledgeFromSettings(
+  clientId: string,
+  businessFacts: string | null,
+  extraQa: { q: string; a: string }[],
+): Promise<{ stored: number; failed: number }> {
+  try {
+    const chunks = [
+      ...prepareFactChunks(businessFacts, 'settings_edit'),
+      ...prepareQaChunks(extraQa, 'settings_edit'),
+    ]
+
+    // Clear old settings_edit chunks (does NOT touch website_scrape or manual chunks)
+    await deleteClientChunks(clientId, 'settings_edit')
+
+    if (chunks.length === 0) {
+      return { stored: 0, failed: 0 }
+    }
+
+    // Mark as approved + high trust (user explicitly wrote these)
+    for (const chunk of chunks) {
+      chunk.status = 'approved'
+      chunk.trustTier = 'high'
+    }
+
+    const result = await embedChunks(clientId, chunks, `settings-edit-${Date.now()}`)
+    console.log(`[embeddings] reseedKnowledgeFromSettings: clientId=${clientId} stored=${result.stored} failed=${result.failed}`)
+    return { stored: result.stored, failed: result.failed }
+  } catch (err) {
+    console.error(`[embeddings] reseedKnowledgeFromSettings failed for clientId=${clientId}:`, err)
+    return { stored: 0, failed: 0 }
+  }
 }

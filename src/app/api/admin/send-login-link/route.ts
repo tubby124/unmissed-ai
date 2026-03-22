@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME } from '@/lib/brand'
 
 export async function POST(req: NextRequest) {
   const adminSupa = createServiceClient()
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
         const smsBody = new URLSearchParams({
           From: twilioNumber,
           To: callbackPhone,
-          Body: `Set up your unmissed.ai dashboard password:\n${setupUrl}\n\nThis link expires in 24 hours.`,
+          Body: `Set up your ${BRAND_NAME} dashboard password:\n${setupUrl}\n\nThis link expires in 24 hours.`,
         })
 
         const smsRes = await fetch(

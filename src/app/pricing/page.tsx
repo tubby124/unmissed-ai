@@ -19,17 +19,18 @@ import {
   POLICIES,
   getEffectiveMonthly,
 } from "@/lib/pricing";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 const effectivePrice = getEffectiveMonthly();
 
 export const metadata: Metadata = {
-  title: "Pricing — unmissed.ai AI Receptionist",
+  title: `Pricing — ${BRAND_NAME} AI Receptionist`,
   description: `Simple monthly pricing, no contracts. AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. Cancel anytime.`,
   alternates: {
-    canonical: "https://unmissed.ai/pricing",
+    canonical: `https://${BRAND_DOMAIN}/pricing`,
   },
   openGraph: {
-    title: "Pricing — unmissed.ai",
+    title: `Pricing — ${BRAND_NAME}`,
     description: `AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. No contracts, no per-minute charges.`,
   },
 };
@@ -108,7 +109,7 @@ export default function PricingPage() {
                     </tr>
                   ))}
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
-                    <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>unmissed.ai</td>
+                    <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>{BRAND_NAME}</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>{BETA_PROMO.enabled ? BETA_PROMO.minutes : BASE_PLAN.minutes} min</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}</td>
@@ -123,7 +124,7 @@ export default function PricingPage() {
               style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)" }}
             >
               <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
-                At ${effectivePrice}/mo, unmissed.ai costs less than every competitor — and includes every feature.
+                At ${effectivePrice}/mo, {BRAND_NAME} costs less than every competitor — and includes every feature.
                 No per-minute overages. No tier restrictions.
               </p>
             </div>
@@ -162,7 +163,7 @@ export default function PricingPage() {
                       className="text-center p-3 font-semibold text-xs"
                       style={{ color: "var(--color-primary)", backgroundColor: "var(--color-accent,#EEF2FF)" }}
                     >
-                      unmissed.ai
+                      {BRAND_NAME}
                     </th>
                   </tr>
                 </thead>
@@ -210,11 +211,11 @@ export default function PricingPage() {
           <FaqAccordion />
         </ErrorBoundary>
 
-        {/* Is unmissed.ai right for you? */}
+        {/* Is {BRAND_NAME} right for you? */}
         <section className="py-16 px-4" style={{ backgroundColor: "var(--color-surface)" }}>
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
-              Is unmissed.ai right for you?
+              Is {BRAND_NAME} right for you?
             </h2>
             <p className="mb-8" style={{ color: "var(--color-text-2)" }}>
               Great fit if you answer yes to any of these:

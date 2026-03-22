@@ -1,3 +1,5 @@
+import { BRAND_NAME, BRAND_USER_AGENT, BRAND_REFERER } from '@/lib/brand'
+
 /**
  * Website scraping via direct fetch + Claude Haiku extraction (OpenRouter).
  *
@@ -80,7 +82,7 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
 
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; unmissed-scraper/1.0; +https://unmissed.ai)',
+        'User-Agent': BRAND_USER_AGENT,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
@@ -311,8 +313,8 @@ export async function scrapeWebsite(
       headers: {
         Authorization: `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai website scraper',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} website scraper`,
       },
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',

@@ -30,11 +30,11 @@ export const MAX_FACT_CHARS = 100
 /** Maximum total characters for the entire summary block */
 export const SUMMARY_CHAR_LIMIT = 1200
 
-/** GLM-4.6 prompt length target — warn above this */
-export const PROMPT_CHAR_TARGET = 6000
+/** Call-time prompt length target — warn above this (niche-heavy prompts are ~19K stored + ~2K injected) */
+export const PROMPT_CHAR_TARGET = 15000
 
-/** GLM-4.6 prompt length hard max — error above this */
-export const PROMPT_CHAR_HARD_MAX = 12000
+/** Call-time prompt length hard max — error-log above this, but never drop content (GLM-4.6 handles it) */
+export const PROMPT_CHAR_HARD_MAX = 25000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

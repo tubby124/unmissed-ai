@@ -6,6 +6,7 @@ import { sendAlert } from '@/lib/telegram'
 import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { VOICE_PRESETS } from '@/lib/prompt-builder'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { reseedKnowledgeFromSettings } from '@/lib/embeddings'
 
 // ── Prompt validation ──────────────────────────────────────────────────────────
 interface PromptWarning { field: string; message: string }
@@ -363,6 +364,24 @@ export async function PATCH(req: NextRequest) {
     .eq('id', targetClientId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // 1b — Reseed knowledge chunks when business_facts or extra_qa changed
+  // Fire-and-forget: non-blocking, logs errors but doesn't fail the request.
+  // Only reseeds 'settings_edit' source — preserves website_scrape, manual, gap_resolution chunks.
+  if ('business_facts' in updates || 'extra_qa' in updates) {
+    const { data: freshClient } = await supabase
+      .from('clients')
+      .select('business_facts, extra_qa, knowledge_backend')
+      .eq('id', targetClientId)
+      .single()
+    if (freshClient?.knowledge_backend === 'pgvector') {
+      const facts = typeof freshClient.business_facts === 'string' ? freshClient.business_facts : null
+      const qa: { q: string; a: string }[] = Array.isArray(freshClient.extra_qa) ? freshClient.extra_qa : []
+      reseedKnowledgeFromSettings(targetClientId, facts, qa)
+        .then(r => console.log(`[settings] Knowledge reseed: stored=${r.stored} failed=${r.failed} client=${targetClientId}`))
+        .catch(err => console.error(`[settings] Knowledge reseed failed: ${err}`))
+    }
+  }
 
   // 2 — Sync to Ultravox Agent
   let ultravox_synced = false

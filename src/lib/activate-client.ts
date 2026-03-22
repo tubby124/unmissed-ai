@@ -16,6 +16,7 @@ import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
   if (!bot || !chat) return
@@ -374,7 +375,7 @@ export async function activateClient(params: {
             }
 
             const resend = new Resend(resendKey)
-            const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+            const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
 
             const isTrial = mode === 'trial'
             const subjectLine = isTrial
@@ -387,7 +388,7 @@ export async function activateClient(params: {
               subject: subjectLine,
               html: `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
+  <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
   <p style="color:#555;margin-top:0">${isTrial ? 'Your 7-day free trial has started.' : 'Your AI receptionist is now live.'}</p>
 
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
@@ -403,7 +404,7 @@ export async function activateClient(params: {
   ${!isTrial && telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
 
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
 </div>`,
             })
             emailActuallySent = true

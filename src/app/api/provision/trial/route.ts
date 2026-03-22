@@ -279,6 +279,27 @@ export async function POST(req: NextRequest) {
     console.error(`[provision/trial] Knowledge seeding failed for ${clientSlug}:`, seedErr);
   }
 
+  // Save approved scrape facts to business_facts/extra_qa so KnowledgeSummary works at call-time
+  const scrapeSource = data.websiteScrapeResult ?? rawScrapeResult;
+  if (scrapeSource && (scrapeSource.businessFacts?.length > 0 || scrapeSource.extraQa?.length > 0)) {
+    const preview = data.websiteScrapeResult as { approvedFacts?: boolean[]; approvedQa?: boolean[] } | undefined;
+    const approvedFacts = preview?.approvedFacts
+      ? scrapeSource.businessFacts.filter((_: string, i: number) => preview.approvedFacts![i] !== false)
+      : scrapeSource.businessFacts;
+    const approvedQa = preview?.approvedQa
+      ? scrapeSource.extraQa.filter((_: { q: string; a: string }, i: number) => preview.approvedQa![i] !== false)
+      : scrapeSource.extraQa;
+    const factsText = approvedFacts.filter((f: string) => f?.trim()).join('\n');
+    const qaArray = approvedQa.filter((q: { q: string; a: string }) => q.q?.trim() && q.a?.trim());
+    if (factsText || qaArray.length > 0) {
+      await supa.from('clients').update({
+        ...(factsText ? { business_facts: factsText } : {}),
+        ...(qaArray.length > 0 ? { extra_qa: qaArray } : {}),
+      }).eq('id', clientId);
+      console.log(`[provision/trial] Saved scraped knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${qaArray.length}`);
+    }
+  }
+
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   return NextResponse.json({

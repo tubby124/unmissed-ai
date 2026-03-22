@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots, createEvent } from '@/lib/google-calendar'
 import { parseCallState, setStateUpdate, bookingInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { normalizeTime, toPreferredTime } from '@/lib/calendar-time'
+import { BRAND_NAME } from '@/lib/brand'
 
 export async function POST(
   req: NextRequest,
@@ -91,7 +92,7 @@ export async function POST(
     const description = [
       service ? `Service: ${service}` : null,
       callerPhone ? `Phone: ${callerPhone}` : null,
-      `Booked via ${client.business_name || 'unmissed.ai'}`,
+      `Booked via ${client.business_name || BRAND_NAME}`,
     ].filter(Boolean).join('\n')
 
     const event = await createEvent(accessToken, calendarId, {

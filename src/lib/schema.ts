@@ -1,6 +1,7 @@
 import { BETA_PROMO, BASE_PLAN, FUTURE_TIERS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
 
 import { SITE_URL } from "@/lib/app-url";
+import { BRAND_NAME, BRAND_PRODUCT } from "@/lib/brand";
 
 const siteUrl = SITE_URL;
 
@@ -56,13 +57,13 @@ export const faqSchema = {
 export const pricingSchema = {
   "@context": "https://schema.org",
   "@type": "Product",
-  name: "unmissed.ai AI Receptionist",
+  name: `${BRAND_NAME} ${BRAND_PRODUCT}`,
   description:
     "Done-for-you AI receptionist service. AI voice agent answers every call 24/7, collects lead info, and sends instant notifications to your phone.",
   url: `${siteUrl}/pricing`,
   brand: {
     "@type": "Brand",
-    name: "unmissed.ai",
+    name: BRAND_NAME,
   },
   offers: {
     "@type": "AggregateOffer",
@@ -77,11 +78,11 @@ export function nicheSchema(niche: string, description: string) {
   return {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: `unmissed.ai — AI Receptionist for ${niche}`,
+    name: `${BRAND_NAME} — ${BRAND_PRODUCT} for ${niche}`,
     description,
     provider: {
       "@type": "Organization",
-      name: "unmissed.ai",
+      name: BRAND_NAME,
       url: siteUrl,
     },
     serviceType: "AI Receptionist",

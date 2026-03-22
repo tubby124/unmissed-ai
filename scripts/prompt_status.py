@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-prompt_status.py — Per-client prompt drift check for unmissed.ai
+prompt_status.py — Per-client prompt drift check
 
 Usage:
   python3 scripts/prompt_status.py           # all clients

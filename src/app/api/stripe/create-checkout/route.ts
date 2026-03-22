@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME } from '@/lib/brand'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
           currency: 'cad',
           unit_amount: 2500,
           product_data: {
-            name: 'unmissed.ai Voice Agent Setup',
+            name: `${BRAND_NAME} Voice Agent Setup`,
             description: `One-time setup fee — includes 50 free minutes.`,
           },
         },

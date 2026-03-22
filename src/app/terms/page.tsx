@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { BRAND_NAME, SUPPORT_EMAIL } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — unmissed.ai",
+  title: `Terms of Service — ${BRAND_NAME}`,
   description:
-    "Terms and conditions for using the unmissed.ai AI voice agent platform. Service agreements, billing, acceptable use, and more.",
+    `Terms and conditions for using the ${BRAND_NAME} AI voice agent platform. Service agreements, billing, acceptable use, and more.`,
   openGraph: {
-    title: "Terms of Service — unmissed.ai",
+    title: `Terms of Service — ${BRAND_NAME}`,
     description:
-      "Terms and conditions for the unmissed.ai AI voice agent platform.",
+      `Terms and conditions for the ${BRAND_NAME} AI voice agent platform.`,
   },
 };
 
@@ -48,8 +49,8 @@ export default function TermsPage() {
               {/* Intro */}
               <div>
                 <p>
-                  These Terms of Service (&quot;Terms&quot;) govern your use of the unmissed.ai
-                  platform and services (&quot;Service&quot;) operated by unmissed.ai
+                  These Terms of Service (&quot;Terms&quot;) govern your use of the {BRAND_NAME}
+                  platform and services (&quot;Service&quot;) operated by {BRAND_NAME}
                   (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). By subscribing to or
                   using the Service, you (&quot;Client,&quot; &quot;you,&quot; or
                   &quot;your&quot;) agree to be bound by these Terms.
@@ -65,7 +66,7 @@ export default function TermsPage() {
                   1. Service Description
                 </h2>
                 <p>
-                  unmissed.ai provides a done-for-you AI voice agent platform for service
+                  {BRAND_NAME} provides a done-for-you AI voice agent platform for service
                   businesses. We build, deploy, and manage AI-powered phone agents that answer
                   inbound calls, capture lead information, book appointments, and deliver
                   real-time notifications on your behalf.
@@ -151,7 +152,7 @@ export default function TermsPage() {
                 <ul className="list-disc list-inside space-y-2 text-gray-400">
                   <li>
                     <span className="text-white font-medium">Our property:</span> The
-                    unmissed.ai platform, agent architecture, prompt engineering
+                    {BRAND_NAME} platform, agent architecture, prompt engineering
                     methodologies, workflow templates, and all related software, branding, and
                     documentation are our proprietary intellectual property
                   </li>
@@ -178,7 +179,7 @@ export default function TermsPage() {
                 <p>
                   Our AI agents record calls for the purpose of service delivery, lead
                   capture, and quality improvement. As the business client deploying an
-                  unmissed.ai agent, you are responsible for:
+                  {BRAND_NAME} agent, you are responsible for:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-gray-400 mt-3">
                   <li>Understanding and complying with call recording consent laws in your jurisdiction and the jurisdictions of your callers</li>
@@ -213,7 +214,7 @@ export default function TermsPage() {
                     inherent limitation
                   </li>
                   <li>
-                    In no event shall unmissed.ai be liable for any indirect, incidental,
+                    In no event shall {BRAND_NAME} be liable for any indirect, incidental,
                     special, consequential, or punitive damages, including but not limited to
                     loss of revenue, lost profits, lost business, or loss of data
                   </li>
@@ -231,7 +232,7 @@ export default function TermsPage() {
                   8. Indemnification
                 </h2>
                 <p>
-                  You agree to indemnify and hold harmless unmissed.ai, its founders,
+                  You agree to indemnify and hold harmless {BRAND_NAME}, its founders,
                   employees, and contractors from any claims, damages, losses, or expenses
                   (including reasonable legal fees) arising from your use of the Service, your
                   violation of these Terms, or your failure to comply with applicable laws
@@ -319,15 +320,15 @@ export default function TermsPage() {
                   className="mt-4 p-4 rounded-xl"
                   style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border)" }}
                 >
-                  <p className="text-white font-semibold">unmissed.ai</p>
+                  <p className="text-white font-semibold">{BRAND_NAME}</p>
                   <p className="text-gray-400 mt-1">
                     Email:{" "}
                     <a
-                      href="mailto:support@unmissed.ai"
+                      href={`mailto:${SUPPORT_EMAIL}`}
                       className="hover:text-white transition-colors"
                       style={{ color: "var(--color-primary)" }}
                     >
-                      support@unmissed.ai
+                      {SUPPORT_EMAIL}
                     </a>
                   </p>
                   <p className="text-gray-500 text-xs mt-2">

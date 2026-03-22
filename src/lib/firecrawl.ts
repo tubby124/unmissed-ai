@@ -1,3 +1,5 @@
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
+
 /**
  * Website scraping via Perplexity Sonar (OpenRouter) + Haiku extraction.
  *
@@ -27,8 +29,8 @@ export async function scrapeAndExtract(url: string): Promise<string> {
       headers: {
         Authorization: `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai website scraper',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} website scraper`,
       },
       body: JSON.stringify({
         model: 'perplexity/sonar',
@@ -105,8 +107,8 @@ Write in plain text. No markdown formatting. No bullet points. Use short paragra
       headers: {
         Authorization: `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai prompt enrichment',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} prompt enrichment`,
       },
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4.5',

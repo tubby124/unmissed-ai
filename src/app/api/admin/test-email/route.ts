@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
   try {
     const { Resend } = await import('resend')
     const resend = new Resend(resendKey)
-    const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+    const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
     const businessName = client.business_name || body.clientSlug
     const twilioNumber = client.twilio_number
 
@@ -71,13 +72,13 @@ export async function POST(req: NextRequest) {
   <p style="background:#fef3c7;padding:8px 12px;border-radius:6px;font-size:12px;color:#92400e;margin-bottom:16px">
     This is a <strong>test email</strong> sent from the admin panel. Not a real activation.
   </p>
-  <h2 style="margin-bottom:4px">Welcome to unmissed.ai</h2>
+  <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
   <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : '<p><em>No Twilio number assigned (skipTwilio was on)</em></p>'}
   <p><strong>Set up your dashboard password</strong></p>
   <p><a href="${APP_URL}/login" style="display:inline-block;padding:10px 20px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a></p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
 </div>`,
     })
 

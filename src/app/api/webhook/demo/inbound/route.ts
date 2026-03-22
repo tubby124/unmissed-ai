@@ -6,6 +6,7 @@ import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+import { BRAND_NAME } from '@/lib/brand'
 
 // S13o: 30 calls per 60s — same threshold as production inbound
 const demoCallRateLimiter = new SlidingWindowRateLimiter(30, 60_000)
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${APP_URL}/api/webhook/demo/inbound" method="POST" timeout="8">
-    <Say voice="Polly.Joanna">Welcome to unmissed dot A I. Press 1 to talk to an auto glass receptionist. Press 2 for a property management assistant. Press 3 for a real estate agent.</Say>
+    <Say voice="Polly.Joanna">Welcome to ${BRAND_NAME.replace('.', ' dot ')}. Press 1 to talk to an auto glass receptionist. Press 2 for a property management assistant. Press 3 for a real estate agent.</Say>
   </Gather>
   <Say voice="Polly.Joanna">We didn't get your selection. Goodbye.</Say>
 </Response>`
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     console.error(`[demo-ivr] Ultravox call creation failed: ${err}`)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Sorry, we're experiencing technical difficulties. Please try again later or visit unmissed dot A I.</Say>
+  <Say voice="Polly.Joanna">Sorry, we're experiencing technical difficulties. Please try again later or visit ${BRAND_NAME.replace('.', ' dot ')}.</Say>
 </Response>`
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   }

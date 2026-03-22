@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 interface ExpiredClient {
   id: string
@@ -91,25 +92,25 @@ export async function POST(req: NextRequest) {
         try {
           const { Resend } = await import('resend')
           const resend = new Resend(resendKey)
-          const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+          const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
           const convertUrl = `${APP_URL}/api/stripe/trial-convert?clientId=${client.id}`
 
           await resend.emails.send({
             from: fromAddress,
             to: client.contact_email,
-            subject: 'Your unmissed.ai trial has ended — activate to keep your agent',
+            subject: `Your ${BRAND_NAME} trial has ended — activate to keep your agent`,
             html: `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
   <h2 style="margin-bottom:4px">Your trial has ended</h2>
   <p>Hi${client.business_name ? ` ${client.business_name}` : ''},</p>
-  <p>Your unmissed.ai voice agent trial has expired and your agent has been paused.</p>
+  <p>Your ${BRAND_NAME} voice agent trial has expired and your agent has been paused.</p>
   <p>To keep your AI receptionist active and never miss another call, activate your subscription now:</p>
   <a href="${convertUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
     Activate my agent
   </a>
   <p style="font-size:14px;color:#555">Your agent configuration and call history are preserved. Activating will resume service immediately.</p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for service businesses</p>
+  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
 </div>`,
           })
           emailSent = true

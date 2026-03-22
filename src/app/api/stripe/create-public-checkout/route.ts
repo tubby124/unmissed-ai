@@ -337,6 +337,27 @@ export async function POST(req: NextRequest) {
       // Chunk seeding failure should NOT block checkout
       console.error(`[create-public-checkout] Knowledge seeding failed for ${clientSlug}:`, seedErr);
     }
+
+    // Save approved scrape facts to business_facts/extra_qa so KnowledgeSummary works at call-time
+    const scrapeSource = (intakeData.websiteScrapeResult as { businessFacts: string[]; extraQa: { q: string; a: string }[]; approvedFacts?: boolean[]; approvedQa?: boolean[] } | null) ?? rawScrapeResult;
+    if (scrapeSource && (scrapeSource.businessFacts?.length > 0 || scrapeSource.extraQa?.length > 0)) {
+      const preview = intakeData.websiteScrapeResult as { approvedFacts?: boolean[]; approvedQa?: boolean[] } | undefined;
+      const approvedFacts = preview?.approvedFacts
+        ? scrapeSource.businessFacts.filter((_: string, i: number) => preview.approvedFacts![i] !== false)
+        : scrapeSource.businessFacts;
+      const approvedQa = preview?.approvedQa
+        ? scrapeSource.extraQa.filter((_: { q: string; a: string }, i: number) => preview.approvedQa![i] !== false)
+        : scrapeSource.extraQa;
+      const factsText = approvedFacts.filter((f: string) => f?.trim()).join('\n');
+      const qaArray = approvedQa.filter((q: { q: string; a: string }) => q.q?.trim() && q.a?.trim());
+      if (factsText || qaArray.length > 0) {
+        await svc.from('clients').update({
+          ...(factsText ? { business_facts: factsText } : {}),
+          ...(qaArray.length > 0 ? { extra_qa: qaArray } : {}),
+        }).eq('id', clientId);
+        console.log(`[create-public-checkout] Saved scraped knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${qaArray.length}`);
+      }
+    }
   }
 
   // ── Create Stripe Checkout session ─────────────────────────────────────────

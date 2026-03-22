@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,8 +21,8 @@ const siteUrl = SITE_URL;
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "unmissed.ai — AI Receptionist for Service Businesses",
-    template: "%s | unmissed.ai",
+    default: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
+    template: `%s | ${BRAND_NAME}`,
   },
   description:
     "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you instant notifications. AI receptionist for small businesses.",
@@ -36,8 +37,8 @@ export const metadata: Metadata = {
     "done for you AI receptionist",
     "small business call answering",
   ],
-  authors: [{ name: "unmissed.ai" }],
-  creator: "unmissed.ai",
+  authors: [{ name: BRAND_NAME }],
+  creator: BRAND_NAME,
   other: {
     "theme-color": "#F9FAFB",
   },
@@ -45,8 +46,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_CA",
     url: siteUrl,
-    siteName: "unmissed.ai",
-    title: "unmissed.ai — AI Receptionist for Service Businesses",
+    siteName: BRAND_NAME,
+    title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
       "Stop losing leads to voicemail. Your AI agent answers every call 24/7, knows your business, and sends you the lead instantly. AI receptionist for small businesses.",
     images: [
@@ -54,13 +55,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "unmissed.ai — AI Receptionist for Service Businesses",
+        alt: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "unmissed.ai — AI Receptionist for Service Businesses",
+    title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
       "Stop losing leads to voicemail. AI agent answers every call 24/7. AI receptionist for small businesses.",
     images: ["/og-image.png"],
@@ -90,7 +91,7 @@ export const metadata: Metadata = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "unmissed.ai",
+  name: BRAND_NAME,
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
   description:
@@ -107,7 +108,7 @@ const organizationSchema = {
 const softwareApplicationSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "unmissed.ai",
+  name: BRAND_NAME,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: {

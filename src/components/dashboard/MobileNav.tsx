@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'motion/react'
 import UpgradeCTA from './UpgradeCTA'
+import { BRAND_NAME } from '@/lib/brand'
 
 const NAV = [
   {
@@ -141,7 +142,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus 
               <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="font-semibold text-sm tracking-tight" style={{ color: "var(--color-text-1)" }}>unmissed.ai</span>
+          <span className="font-semibold text-sm tracking-tight" style={{ color: "var(--color-text-1)" }}>{BRAND_NAME}</span>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -181,7 +182,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus 
                     </svg>
                   </div>
                   <div>
-                    <span className="font-semibold text-sm tracking-tight block" style={{ color: "var(--color-text-1)" }}>unmissed.ai</span>
+                    <span className="font-semibold text-sm tracking-tight block" style={{ color: "var(--color-text-1)" }}>{BRAND_NAME}</span>
                     {businessName && <span className="text-xs" style={{ color: "var(--color-text-2)" }}>{businessName}</span>}
                   </div>
                 </div>

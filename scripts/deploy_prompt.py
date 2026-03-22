@@ -222,7 +222,7 @@ def deploy(slug, change_description):
     print(f"  ✓ clients.system_prompt + active_prompt_version_id updated")
 
     # Build selectedTools — always include hangUp; add calendar tools if booking_enabled
-    APP_URL = "https://unmissed-ai-production.up.railway.app"
+    APP_URL = os.environ.get("NEXT_PUBLIC_APP_URL", "https://unmissed-ai-production.up.railway.app")
     # B3: Automatic parameter that injects current call state into every tool request header
     CALL_STATE_PARAM = {"name": "X-Call-State", "location": "PARAMETER_LOCATION_HEADER", "knownValue": "KNOWN_PARAM_CALL_STATE"}
     tool_secret = os.environ.get("WEBHOOK_SIGNING_SECRET")

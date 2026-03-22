@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { BRAND_NAME } from "@/lib/brand";
 
 function formatCurrency(n: number) {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
@@ -181,7 +182,7 @@ export default function RoiCalculator() {
             >
               <div>
                 <p className="text-green-400 text-sm font-semibold">
-                  unmissed.ai Pro Plan
+                  {BRAND_NAME} Pro Plan
                 </p>
                 <p className="text-xs" style={{ color: "var(--color-text-2)" }}>${agentCost}/month</p>
               </div>

@@ -16,16 +16,17 @@ import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 import { BETA_PROMO, TRIAL, BASE_PLAN, getEffectiveMonthly } from "@/lib/pricing";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "unmissed.ai — AI Receptionist for Service Businesses",
+  title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
   description:
     "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you an instant notification.",
   alternates: {
-    canonical: "https://unmissed.ai",
+    canonical: `https://${BRAND_DOMAIN}`,
   },
   openGraph: {
-    title: "unmissed.ai — AI Receptionist for Service Businesses",
+    title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
       "Stop losing leads to voicemail. AI agent answers every call, captures every lead, sends instant alerts. Built for service businesses.",
   },

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { SETUP, TRIAL, BASE_PLAN, BETA_PROMO, POLICIES, getEffectiveMonthly } from "@/lib/pricing";
+import { BRAND_NAME } from "@/lib/brand";
 
 const price = getEffectiveMonthly();
 
@@ -13,7 +14,7 @@ const faqs = [
       "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (required by law and good practice), but most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
   },
   {
-    question: `Why is unmissed.ai only $${price}/mo when others charge $49–$99?`,
+    question: `Why is ${BRAND_NAME} only $${price}/mo when others charge $49–$99?`,
     answer:
       `We're in beta and want early adopters to lock in our best rate. The regular price will be $${BASE_PLAN.monthly}/mo — still cheaper than every competitor once you factor in their per-minute overages. At $${price}/mo you get every feature included: Telegram alerts, SMS follow-up, calendar booking, live transfer, and the Learning Loop. No tiers, no paywalls.`,
   },

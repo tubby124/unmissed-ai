@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 export const maxDuration = 120
 
@@ -102,8 +103,8 @@ async function analyzeClient(clientId: string): Promise<{
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://unmissed.ai',
-      'X-Title': 'unmissed.ai call analyzer',
+      'HTTP-Referer': BRAND_REFERER,
+      'X-Title': `${BRAND_NAME} call analyzer`,
     },
     body: JSON.stringify({
       model: 'anthropic/claude-haiku-4.5',
@@ -180,7 +181,7 @@ async function analyzeClient(clientId: string): Promise<{
 // After analysis, check if ≥5 new meaningful calls since last prompt version.
 // If so, run improve-prompt logic and send a Telegram with specific suggestions.
 
-const IMPROVE_SYSTEM_PROMPT = `You are a voice agent prompt optimizer for unmissed.ai. You receive a live system prompt and a call intelligence brief showing real caller patterns and friction points.
+const IMPROVE_SYSTEM_PROMPT = `You are a voice agent prompt optimizer for ${BRAND_NAME}. You receive a live system prompt and a call intelligence brief showing real caller patterns and friction points.
 
 Your job: suggest MINIMAL, TARGETED changes that improve call handling based on evidence from actual calls.
 
@@ -326,8 +327,8 @@ async function autoImproveClient(clientId: string): Promise<void> {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://unmissed.ai',
-      'X-Title': 'unmissed.ai learning loop',
+      'HTTP-Referer': BRAND_REFERER,
+      'X-Title': `${BRAND_NAME} learning loop`,
     },
     body: JSON.stringify({
       model: 'anthropic/claude-haiku-4.5',

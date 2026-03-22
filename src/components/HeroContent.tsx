@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react'
 import Link from 'next/link'
+import { BRAND_NAME } from '@/lib/brand'
 
 export default function HeroContent(_props: { callsStat?: string } = {}) {
   return (
@@ -48,7 +49,7 @@ export default function HeroContent(_props: { callsStat?: string } = {}) {
           className="text-lg md:text-xl font-semibold mb-10 max-w-2xl mx-auto"
           style={{ color: 'var(--color-text-1)' }}
         >
-          unmissed.ai fixes that — for good.
+          {BRAND_NAME} fixes that — for good.
         </p>
       </motion.div>
 

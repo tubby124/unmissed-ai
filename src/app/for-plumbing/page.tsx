@@ -10,16 +10,17 @@ import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 import { Droplets, AlertTriangle, Home, MapPin, Calendar, Phone, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "AI Receptionist for Plumbers — unmissed.ai",
+  title: `AI Receptionist for Plumbers — ${BRAND_NAME}`,
   description:
     "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
   alternates: {
-    canonical: "https://unmissed.ai/for-plumbing",
+    canonical: `https://${BRAND_DOMAIN}/for-plumbing`,
   },
   openGraph: {
-    title: "AI Receptionist for Plumbers — unmissed.ai",
+    title: `AI Receptionist for Plumbers — ${BRAND_NAME}`,
     description: "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
   },
 };

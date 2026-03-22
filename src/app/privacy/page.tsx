@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { BRAND_NAME, SUPPORT_EMAIL } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — unmissed.ai",
+  title: `Privacy Policy — ${BRAND_NAME}`,
   description:
-    "How unmissed.ai collects, uses, and protects your data. Our commitment to privacy and security for businesses and their callers.",
+    `How ${BRAND_NAME} collects, uses, and protects your data. Our commitment to privacy and security for businesses and their callers.`,
   openGraph: {
-    title: "Privacy Policy — unmissed.ai",
+    title: `Privacy Policy — ${BRAND_NAME}`,
     description:
-      "How unmissed.ai collects, uses, and protects your data.",
+      `How ${BRAND_NAME} collects, uses, and protects your data.`,
   },
 };
 
@@ -48,14 +49,14 @@ export default function PrivacyPage() {
               {/* Intro */}
               <div>
                 <p>
-                  unmissed.ai (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates an
+                  {BRAND_NAME} (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates an
                   AI voice agent platform that answers phone calls on behalf of service
                   businesses. This Privacy Policy explains how we collect, use, store, and
                   protect information when you use our services or when callers interact with
                   an AI agent we operate on your behalf.
                 </p>
                 <p className="mt-3">
-                  By using unmissed.ai, you agree to the practices described in this policy. If
+                  By using {BRAND_NAME}, you agree to the practices described in this policy. If
                   you do not agree, please discontinue use of our services.
                 </p>
               </div>
@@ -125,7 +126,7 @@ export default function PrivacyPage() {
                   3. Call Recording Disclosure
                 </h2>
                 <p>
-                  Calls handled by unmissed.ai agents are recorded and transcribed. These
+                  Calls handled by {BRAND_NAME} agents are recorded and transcribed. These
                   recordings are used to deliver the service (capturing lead details, booking
                   appointments) and to improve agent quality over time.
                 </p>
@@ -255,7 +256,7 @@ export default function PrivacyPage() {
                   </li>
                 </ul>
                 <p className="mt-3 text-gray-400">
-                  If you are a caller who interacted with an unmissed.ai agent and wish to
+                  If you are a caller who interacted with an {BRAND_NAME} agent and wish to
                   exercise your rights, please contact us at the email below and we will work
                   with the relevant business client to address your request.
                 </p>
@@ -299,15 +300,15 @@ export default function PrivacyPage() {
                   className="mt-4 p-4 rounded-xl"
                   style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border)" }}
                 >
-                  <p className="text-white font-semibold">unmissed.ai</p>
+                  <p className="text-white font-semibold">{BRAND_NAME}</p>
                   <p className="text-gray-400 mt-1">
                     Email:{" "}
                     <a
-                      href="mailto:support@unmissed.ai"
+                      href={`mailto:${SUPPORT_EMAIL}`}
                       className="hover:text-white transition-colors"
                       style={{ color: "var(--color-primary)" }}
                     >
-                      support@unmissed.ai
+                      {SUPPORT_EMAIL}
                     </a>
                   </p>
                   <p className="text-gray-500 text-xs mt-2">

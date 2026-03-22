@@ -9,6 +9,7 @@ import ThemeToggle from '../ThemeToggle'
 import UpgradeCTA from './UpgradeCTA'
 import { hasCapability } from '@/lib/niche-capabilities'
 import { useAdminClient } from '@/contexts/AdminClientContext'
+import { BRAND_NAME } from '@/lib/brand'
 
 const GROUP_LABELS: Record<number, string | null> = { 1: 'OPS', 2: 'CLIENTS', 3: 'TOOLS', 4: null }
 
@@ -359,7 +360,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 className="min-w-0 overflow-hidden"
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-sm tracking-tight whitespace-nowrap" style={{ color: "var(--color-text-1)" }}>unmissed.ai</span>
+                  <span className="font-semibold text-sm tracking-tight whitespace-nowrap" style={{ color: "var(--color-text-1)" }}>{BRAND_NAME}</span>
                   {isAdmin && (
                     <span className="text-[9px] font-bold tracking-wide text-indigo-500 bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-500/30 dark:text-indigo-400 rounded-full px-1.5 py-0.5 leading-none">
                       Admin

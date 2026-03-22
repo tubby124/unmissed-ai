@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { BRAND_NAME } from '@/lib/brand'
 
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
 
   // ── Build message ───────────────────────────────────────────────────────────
   const dateStr = now.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })
-  const lines: string[] = [`<b>unmissed.ai — Daily Digest</b>\n${dateStr}`]
+  const lines: string[] = [`<b>${BRAND_NAME} — Daily Digest</b>\n${dateStr}`]
 
   // New intakes section
   if (newIntakes.length > 0) {

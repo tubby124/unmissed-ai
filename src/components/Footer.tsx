@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { BRAND_NAME } from "@/lib/brand";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -32,7 +33,7 @@ export default function Footer() {
                 U
               </div>
               <span className="font-semibold text-lg" style={{ color: "var(--color-text-1)" }}>
-                unmissed<span style={{ color: "var(--color-primary)" }}>.ai</span>
+                {BRAND_NAME.replace('.ai', '')}<span style={{ color: "var(--color-primary)" }}>.ai</span>
               </span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "var(--color-text-2)" }}>
@@ -117,7 +118,7 @@ export default function Footer() {
         >
           <div className="flex flex-col gap-1">
             <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
-              &copy; 2026 unmissed.ai. All rights reserved.
+              &copy; 2026 {BRAND_NAME}. All rights reserved.
             </p>
             <p className="text-xs max-w-md" style={{ color: "var(--color-text-3)" }}>
               Your data is encrypted and stored securely. We never sell or share

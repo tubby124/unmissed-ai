@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { SUPPORT_EMAIL } from '@/lib/brand'
 
 interface TelegramUpdate {
   message?: {
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     console.warn(`[telegram-webhook] No client found for token=${token.slice(0, 8)}...`)
     await sendTelegramMessage(
       chatId,
-      '⚠️ This link is invalid or has already been used.\n\nContact <b>support@unmissed.ai</b> to get a new link.'
+      `⚠️ This link is invalid or has already been used.\n\nContact <b>${SUPPORT_EMAIL}</b> to get a new link.`
     )
     return new NextResponse('OK', { status: 200 }) // 200 — don't retry invalid tokens
   }

@@ -13,7 +13,7 @@ import urllib.request
 import urllib.error
 
 ULTRAVOX_BASE = "https://api.ultravox.ai/api"
-WEBHOOK_URL = "https://unmissed-ai-production.up.railway.app/api/webhook/ultravox"
+WEBHOOK_URL = os.environ.get("NEXT_PUBLIC_APP_URL", "https://unmissed-ai-production.up.railway.app") + "/api/webhook/ultravox"
 EVENTS = ["call.ended", "call.billed"]
 
 

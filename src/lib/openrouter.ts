@@ -1,3 +1,5 @@
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
+
 const VALID_STATUSES = ['HOT', 'WARM', 'COLD', 'JUNK'] as const
 const VALID_SERVICE_TYPES = ['appointment', 'quote_request', 'emergency', 'complaint', 'follow_up', 'wrong_number', 'spam', 'other'] as const
 const VALID_SENTIMENTS = ['positive', 'neutral', 'negative', 'frustrated', 'indifferent'] as const
@@ -148,8 +150,8 @@ export async function classifyCall(
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://unmissed.ai',
-          'X-Title': 'unmissed.ai call classifier',
+          'HTTP-Referer': BRAND_REFERER,
+          'X-Title': `${BRAND_NAME} call classifier`,
         },
         body: JSON.stringify({
           model: 'anthropic/claude-haiku-4.5',

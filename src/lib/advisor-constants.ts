@@ -1,4 +1,5 @@
 import { type ClientSetup, formatClientSetup, PLATFORM_KNOWLEDGE } from './advisor-platform-knowledge'
+import { BRAND_NAME } from '@/lib/brand'
 
 export type { ClientSetup }
 
@@ -77,7 +78,7 @@ export function buildAdvisorSystemPrompt(
 ): string {
   const parts: string[] = []
 
-  parts.push(`You are a helpful AI business advisor for the unmissed.ai platform. You help business owners understand their calls, leads, agent performance, AND how to use the platform itself. You have FULL ACCESS to their call data, transcripts, trends, follow-up status, account status, and platform knowledge — use ALL of it to answer questions.`)
+  parts.push(`You are a helpful AI business advisor for the ${BRAND_NAME} platform. You help business owners understand their calls, leads, agent performance, AND how to use the platform itself. You have FULL ACCESS to their call data, transcripts, trends, follow-up status, account status, and platform knowledge — use ALL of it to answer questions.`)
 
   if (business) {
     parts.push(`\n## Business Context`)

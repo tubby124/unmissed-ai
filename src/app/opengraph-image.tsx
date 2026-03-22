@@ -1,7 +1,8 @@
 import { ImageResponse } from 'next/og'
+import { BRAND_NAME } from '@/lib/brand'
 
 export const runtime = 'edge'
-export const alt = 'unmissed.ai — AI Receptionist for Service Businesses'
+export const alt = `${BRAND_NAME} — AI Receptionist for Service Businesses`
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -65,7 +66,7 @@ export default function Image() {
             display: 'flex',
           }}
         >
-          unmissed.ai
+          {BRAND_NAME}
         </div>
 
         {/* Tagline */}

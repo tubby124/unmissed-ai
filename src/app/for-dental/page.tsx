@@ -10,16 +10,17 @@ import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 import { Stethoscope, HeartPulse, Clock, Shield, Calendar, Phone, ClipboardList } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "AI Receptionist for Dental Offices — unmissed.ai",
+  title: `AI Receptionist for Dental Offices — ${BRAND_NAME}`,
   description:
     "Never lose a new patient to voicemail. Your AI receptionist answers calls 24/7, books appointments, and sends you instant patient cards.",
   alternates: {
-    canonical: "https://unmissed.ai/for-dental",
+    canonical: `https://${BRAND_DOMAIN}/for-dental`,
   },
   openGraph: {
-    title: "AI Receptionist for Dental Offices — unmissed.ai",
+    title: `AI Receptionist for Dental Offices — ${BRAND_NAME}`,
     description: "Never lose a new patient to voicemail. Your AI receptionist answers calls 24/7, books appointments, and sends you instant patient cards.",
   },
 };

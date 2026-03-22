@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 function esc(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     callsByClient.set(c.client_id, arr)
   }
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
   let sent = 0
   let skipped = 0
   const details: { slug: string; sent: boolean; reason?: string }[] = []
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
 
   <hr style="border:none;border-top:1px solid #27272a;margin:24px 0">
   <p style="font-size:11px;color:#52525b;text-align:center">
-    unmissed.ai — AI receptionist for service businesses<br>
+    ${BRAND_NAME} — ${BRAND_TAGLINE}<br>
     <a href="${dashboardUrl}/settings" style="color:#52525b">Manage email preferences</a>
   </p>
 </div>`

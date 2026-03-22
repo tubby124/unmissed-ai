@@ -10,16 +10,17 @@ import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 import { Car, Zap, MapPin, Wrench, Clock, Phone, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "AI Receptionist for Auto Glass Shops — unmissed.ai",
+  title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
   description:
     "Never lose another windshield job to voicemail. Your AI agent handles calls while you do installs — 24/7, with instant lead cards delivered to your phone.",
   alternates: {
-    canonical: "https://unmissed.ai/for-auto-glass",
+    canonical: `https://${BRAND_DOMAIN}/for-auto-glass`,
   },
   openGraph: {
-    title: "AI Receptionist for Auto Glass Shops — unmissed.ai",
+    title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
     description: "Stop losing $150–$800 windshield jobs to voicemail. AI agent answers every call, collects vehicle details, ADAS requirements, and sends instant alerts.",
   },
 };

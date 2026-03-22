@@ -5,6 +5,7 @@ import { defaultCallState } from '@/lib/call-state'
 import { validateSignature, buildStreamTwiml, buildVoicemailTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { measurePromptLength } from '@/lib/knowledge-summary'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
@@ -169,21 +170,27 @@ export async function POST(
   const callerContextBlock = ctx.assembled.callerContextBlock
   const callerContextRaw   = callerContextBlock.slice(1, -1)
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
-  // Phase 4: append retrieval instruction when enabled, guarded by prompt length hard max
+  // Phase 4: always inject retrieval instruction when enabled — never drop it
   let knowledgeBlockStr = ctx.knowledge.block
   if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
-    const combined = knowledgeBlockStr
+    knowledgeBlockStr = knowledgeBlockStr
       ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
       : ctx.retrieval.promptInstruction
-    // Hard-max guard: only inject if it won't push the prompt over 12K
-    const estimatedTotal = (client.system_prompt?.length ?? 0) + combined.length + callerContextBlock.length + (ctx.assembled.contextDataBlock?.length ?? 0) + 10
-    if (estimatedTotal <= 12000) {
-      knowledgeBlockStr = combined
-    } else {
-      console.warn(`[inbound] Retrieval instruction skipped for slug=${slug} — would exceed 12K prompt limit (estimated ${estimatedTotal} chars)`)
-    }
   }
   const contextDataStr     = ctx.assembled.contextDataBlock
+
+  // ── Prompt length measurement (Phase 3) ────────────────────────────────────
+  const promptReport = measurePromptLength(
+    client.system_prompt ?? '',
+    knowledgeBlockStr,
+    callerContextBlock,
+    contextDataStr,
+  )
+  if (promptReport.overHardMax) {
+    console.error(`[inbound] PROMPT OVER HARD MAX for slug=${slug}: ${promptReport.totalChars} chars (max 12000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
+  } else if (promptReport.overTarget) {
+    console.warn(`[inbound] Prompt over target for slug=${slug}: ${promptReport.totalChars} chars (target 6000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
+  }
 
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed
   const rawCallbackUrl = `${APP_URL}/api/webhook/${slug}/completed`

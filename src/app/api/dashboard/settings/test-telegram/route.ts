@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { BRAND_NAME } from '@/lib/brand'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   const ok = await sendAlert(
     client.telegram_bot_token,
     client.telegram_chat_id,
-    `<b>unmissed.ai — Test Message</b>\n\nTelegram is configured correctly for <b>${client.business_name}</b>. You will receive call alerts here.`
+    `<b>${BRAND_NAME} — Test Message</b>\n\nTelegram is configured correctly for <b>${client.business_name}</b>. You will receive call alerts here.`
   )
 
   return NextResponse.json({ ok })

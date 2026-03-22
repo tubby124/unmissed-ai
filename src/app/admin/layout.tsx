@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { BRAND_NAME } from '@/lib/brand'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -20,7 +21,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-6 text-sm">
-        <span className="font-semibold text-white tracking-tight">unmissed.ai</span>
+        <span className="font-semibold text-white tracking-tight">{BRAND_NAME}</span>
         <Link href="/admin/calls" className="text-gray-400 hover:text-white transition-colors">
           Calls
         </Link>

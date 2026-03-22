@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase/server'
 import { MINUTE_RELOAD } from '@/lib/pricing'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME } from '@/lib/brand'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
         currency: 'cad',
         unit_amount: amount,
         product_data: {
-          name: `unmissed.ai Minute Reload — ${minutes} min`,
+          name: `${BRAND_NAME} Minute Reload — ${minutes} min`,
           description: `${minutes} minutes for ${client.business_name}`,
         },
       },

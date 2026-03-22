@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 const ANALYSIS_SYSTEM_PROMPT = `You are an AI voice agent performance analyst. You will receive a batch of classified call summaries for a service business and identify patterns, issues, and specific recommendations to improve the AI agent's performance.
 
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unmissed.ai', 'X-Title': 'unmissed.ai analyzer' },
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': BRAND_REFERER, 'X-Title': `${BRAND_NAME} analyzer` },
     body: JSON.stringify({
       model: 'anthropic/claude-haiku-4.5',
       messages: [

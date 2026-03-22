@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Optional Sonar Pro enrichment ──────────────────────────────────────────
+  // ── Optional Sonar Pro enrichment (admin-only provisioning, NOT automatic scraping) ──
   if (shouldEnrichSonar) {
     const businessName = (intakeData.business_name as string) || intake.business_name || ''
     const city = (intakeData.city as string) || (intakeData.location as string) || ''

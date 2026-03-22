@@ -10,16 +10,17 @@ import { nicheSchema } from "@/lib/schema";
 import Link from "next/link";
 import { Scale, ClipboardList, Clock, Calendar, Phone, Users, MapPin } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "AI Receptionist for Law Firms — unmissed.ai",
+  title: `AI Receptionist for Law Firms — ${BRAND_NAME}`,
   description:
     "Never lose a potential client to voicemail. Your AI receptionist screens calls, collects case details, and sends instant consultation requests.",
   alternates: {
-    canonical: "https://unmissed.ai/for-legal",
+    canonical: `https://${BRAND_DOMAIN}/for-legal`,
   },
   openGraph: {
-    title: "AI Receptionist for Law Firms — unmissed.ai",
+    title: `AI Receptionist for Law Firms — ${BRAND_NAME}`,
     description: "Never lose a potential client to voicemail. Your AI receptionist screens calls, collects case details, and sends instant consultation requests.",
   },
 };

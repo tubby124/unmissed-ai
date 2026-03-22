@@ -4,6 +4,8 @@
  * call forwarding setup, settings, and troubleshooting.
  */
 
+import { BRAND_NAME } from '@/lib/brand'
+
 // ── Client Setup Context (dynamic per user) ──────────────────────────────────
 
 export interface ClientSetup {
@@ -90,7 +92,7 @@ export function formatClientSetup(setup: ClientSetup): string {
 // ── Static Platform Knowledge Base ───────────────────────────────────────────
 
 export const PLATFORM_KNOWLEDGE = `
-## unmissed.ai Platform Guide
+## ${BRAND_NAME} Platform Guide
 
 ### Dashboard Pages
 - **Calls** (/dashboard/calls): View all inbound calls handled by your AI agent. Filter by status (HOT, WARM, COLD, JUNK, MISSED). Click any call to see the full transcript, AI summary, duration, sentiment, and quality score.

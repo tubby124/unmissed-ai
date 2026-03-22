@@ -11,6 +11,7 @@ import { getSmsTemplate } from '@/lib/sms-templates'
 import twilio from 'twilio'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -380,7 +381,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
 
     const { Resend } = await import('resend')
     const resend = new Resend(resendKey)
-    const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+    const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
 
     const transcriptText = transcript
       .map((m) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
@@ -403,7 +404,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
         <h3 style="margin:0 0 8px">Transcript</h3>
         <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <p style="font-size:12px;color:#888">unmissed.ai — AI voicemail for your business</p>
+        <p style="font-size:12px;color:#888">${BRAND_NAME} — AI voicemail for your business</p>
       </div>`
     const emailResult = await resend.emails.send({
       from: fromAddress,

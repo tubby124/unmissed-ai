@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivationProgressDark } from "./ActivationProgress";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 
 export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string | null; intakeId: string | null }) {
   return (
@@ -139,8 +140,8 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
         {/* Footer */}
         <p className="text-center text-xs text-slate-600">
           Questions?{" "}
-          <a href="mailto:support@unmissed.ai" className="text-slate-500 hover:text-slate-400 underline underline-offset-2 transition-colors">
-            support@unmissed.ai
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-slate-500 hover:text-slate-400 underline underline-offset-2 transition-colors">
+            {SUPPORT_EMAIL}
           </a>
         </p>
       </div>

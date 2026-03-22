@@ -1,3 +1,5 @@
+import { BRAND_NAME } from '@/lib/brand'
+
 interface LeadCardProps {
   niche?: "auto-glass" | "hvac" | "plumbing" | "dental" | "legal" | "salon" | "realty";
   className?: string;
@@ -118,7 +120,7 @@ export default function LeadCard({ niche = "auto-glass", className = "" }: LeadC
           >
             U
           </div>
-          <span className="text-gray-400">unmissed.ai</span>
+          <span className="text-gray-400">{BRAND_NAME}</span>
         </div>
         <span
           className="px-2 py-0.5 rounded-full text-xs font-bold text-white"

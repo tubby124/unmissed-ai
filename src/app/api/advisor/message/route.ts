@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getModelById, isFreeTier, estimateCost, estimateClientCost } from '@/lib/ai-models'
 import { buildAdvisorSystemPrompt, type BusinessContext, type RecentCall, type CallStats, type TrendSummary, type FollowUpGapSummary, type TranscriptEntry, type ClientSetup } from '@/lib/advisor-constants'
 import { computeTrends, findFollowUpGaps, formatTranscriptForPrompt, type CallRow } from '@/lib/advisor-data'
+import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
 
 export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
@@ -316,8 +317,8 @@ export async function POST(req: NextRequest) {
       headers: {
         'Authorization': `Bearer ${orApiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://unmissed.ai',
-        'X-Title': 'unmissed.ai advisor',
+        'HTTP-Referer': BRAND_REFERER,
+        'X-Title': `${BRAND_NAME} advisor`,
       },
       body: JSON.stringify({
         model: model.id,

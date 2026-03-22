@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createDemoCall } from '@/lib/ultravox'
 import { buildContextBlock } from '@/lib/context-data'
+import { buildKnowledgeSummary } from '@/lib/knowledge-summary'
+import type { BusinessConfig } from '@/lib/agent-context'
 
 // In-memory rate limiter: 10 browser test calls per client per day
 const rateLimitMap = new Map<string, number[]>()
@@ -108,32 +110,42 @@ export async function POST(req: NextRequest) {
 
   voiceId = (client?.agent_voice_id as string | null) ?? null
 
-  // Inject business facts + Q&A + context data — same order as the inbound webhook
-  const businessFacts = client?.business_facts as string | null
-  if (businessFacts) {
-    systemPrompt = `${systemPrompt}\n\n${buildContextBlock('Business Facts', businessFacts)}`
-  }
-  const extraQaRaw = (client?.extra_qa as { q: string; a: string }[] | null) ?? []
-  const extraQaFormatted = extraQaRaw
-    .filter(p => p.q?.trim() && p.a?.trim())
-    .map(p => `"${p.q}" → "${p.a}"`)
-    .join('\n')
-  if (extraQaFormatted) {
-    systemPrompt = `${systemPrompt}\n\n${buildContextBlock('Q&A', extraQaFormatted)}`
-  }
-  const contextData = client?.context_data as string | null
-  if (contextData) {
-    const label = (client?.context_data_label as string | null) || 'Reference Data'
-    systemPrompt = `${systemPrompt}\n\n${buildContextBlock(label, contextData)}`
-  }
+  // ── Resolve templateContext placeholders ──────────────────────────────────
+  // Production (Agents API) resolves {{callerContext}}, {{businessFacts}}, {{contextData}}
+  // at call time via templateContext. Lab tests must do the same — otherwise placeholders
+  // appear as literal text and raw data gets double-injected.
 
-  // ── Inject fake callerContext ──────────────────────────────────────────────
-  // Production prompts contain {{callerContext}} — inject a fake context so
-  // the prompt renders correctly during lab tests.
-  systemPrompt = systemPrompt.replace(
-    /\{\{callerContext\}\}/g,
-    'CALLER PHONE: +15555550100 [LAB TEST]'
-  )
+  // Build KnowledgeSummary — same condensed layer production uses (Phase 3)
+  const extraQaRaw = (client?.extra_qa as { q: string; a: string }[] | null) ?? []
+  const filteredQa = extraQaRaw.filter(p => p.q?.trim() && p.a?.trim())
+  const businessConfig: BusinessConfig = {
+    clientId: targetClientId,
+    slug: '',
+    niche: 'other',
+    businessName: '',
+    timezone: 'America/Regina',
+    hoursWeekday: null,
+    hoursWeekend: null,
+    afterHoursBehavior: 'take_message',
+    afterHoursEmergencyPhone: null,
+    businessFacts: (client?.business_facts as string | null) ?? null,
+    extraQa: filteredQa,
+    contextData: null,
+    contextDataLabel: 'Reference Data',
+  }
+  const knowledge = buildKnowledgeSummary(businessConfig)
+
+  // Context data block (NOT knowledge — structured reference data, stays full)
+  const contextData = client?.context_data as string | null
+  const contextDataLabel = (client?.context_data_label as string | null) || 'Reference Data'
+  const contextDataBlock = contextData ? buildContextBlock(contextDataLabel, contextData) : ''
+
+  // Resolve all 4 templateContext placeholders — matches what Agents API does at call time
+  systemPrompt = systemPrompt
+    .replace(/\{\{callerContext\}\}/g, 'CALLER PHONE: +15555550100 [LAB TEST]')
+    .replace(/\{\{businessFacts\}\}/g, knowledge.block)
+    .replace(/\{\{extraQa\}\}/g, '')
+    .replace(/\{\{contextData\}\}/g, contextDataBlock)
 
   // ── Create ephemeral WebRTC call (no Twilio, no webhook, no call_logs) ──────
   try {

@@ -3,6 +3,8 @@
  * Each demo is modeled after a real production client with fake company details.
  */
 
+import { BRAND_NAME } from '@/lib/brand'
+
 /** Tool capabilities available for this demo agent. Drives which tools get injected per entry path. */
 export interface DemoCapabilities {
   /** Calendar booking endpoints exist for this slug. */
@@ -41,13 +43,13 @@ const VOICE_ZARA = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'    // Jacqueline — c
 export const DEMO_AGENTS: Record<string, DemoAgent> = {
   unmissed_demo: {
     id: 'unmissed_demo',
-    companyName: 'unmissed.ai',
+    companyName: BRAND_NAME,
     niche: 'unmissed_demo',
     nicheLabel: 'AI Receptionist Demo',
     agentName: 'Zara',
     voiceId: VOICE_ZARA,
     voiceGender: 'female',
-    description: 'AI receptionist demo agent for unmissed.ai — qualifies prospects and books demo calls',
+    description: `AI receptionist demo agent for ${BRAND_NAME} — qualifies prospects and books demo calls`,
     useLivePrompt: true,
     clientSlug: 'unmissed-demo',
     capabilities: { calendarEnabled: true, transferEnabled: true, smsEnabled: true },

@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { BRAND_NAME } from '@/lib/brand'
 
 export const metadata: Metadata = {
-  title: 'Page Not Found — unmissed.ai',
+  title: `Page Not Found — ${BRAND_NAME}`,
 }
 
 export default function NotFound() {
