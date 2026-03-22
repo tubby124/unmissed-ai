@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { defaultCallState } from '@/lib/call-state'
-import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
+import { validateSignature, buildStreamTwiml, buildVoicemailTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
@@ -50,7 +50,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -266,9 +266,30 @@ export async function POST(
       }
     }
 
-    const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say voice="alice">Sorry, we're experiencing technical difficulties. Please try again shortly.</Say></Response>`
-    return new NextResponse(fallbackTwiml, { headers: { 'Content-Type': 'text/xml' } })
+    // S14a: Voicemail fallback — capture the lead instead of hanging up
+    const recordingCallbackUrl = `${APP_URL}/api/webhook/${slug}/voicemail`
+    console.log(`[inbound] Returning voicemail TwiML for slug=${slug} callerPhone=${callerPhone}`)
+
+    // Create call_log entry for the voicemail (no Ultravox call)
+    supabase.from('call_logs').insert({
+      client_id: client.id,
+      caller_phone: callerPhone,
+      twilio_call_sid: callSid,
+      call_status: 'VOICEMAIL',
+      started_at: new Date().toISOString(),
+      ai_summary: 'Voicemail fallback — AI agent unavailable',
+    }).then(({ error: vmLogErr }) => {
+      if (vmLogErr) console.error(`[inbound] Voicemail call_log insert failed:`, vmLogErr.message)
+      else console.log(`[inbound] Voicemail call_log created for callSid=${callSid}`)
+    })
+
+    const vmTwiml = buildVoicemailTwiml({
+      businessName: client.business_name as string | null,
+      greetingText: (client as Record<string, unknown>).voicemail_greeting_text as string | null,
+      audioUrl: (client as Record<string, unknown>).voicemail_greeting_audio_url as string | null,
+      recordingCallbackUrl,
+    })
+    return new NextResponse(vmTwiml, { headers: { 'Content-Type': 'text/xml' } })
   }
 
   console.log(`[inbound] Ultravox call created: callId=${ultravoxCall.callId} joinUrl=${ultravoxCall.joinUrl.slice(0, 60)}...`)

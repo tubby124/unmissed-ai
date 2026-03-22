@@ -201,6 +201,11 @@ export default function AgentTab({
   const [bookingSaving, setBookingSaving] = useState(false)
   const [bookingSaved, setBookingSaved] = useState(false)
 
+  // S14 — Voicemail greeting state
+  const [vmGreetingText, setVmGreetingText] = useState(client.voicemail_greeting_text ?? '')
+  const [vmSaving, setVmSaving] = useState(false)
+  const [vmSaved, setVmSaved] = useState(false)
+
   const [presetSaving, setPresetSaving] = useState(false)
   const [presetSaved, setPresetSaved] = useState(false)
 
@@ -550,6 +555,25 @@ export default function AgentTab({
     if (res.ok) {
       setHoursSaved(true)
       setTimeout(() => setHoursSaved(false), 3000)
+    }
+  }
+
+  async function saveVoicemailGreeting() {
+    setVmSaving(true)
+    setVmSaved(false)
+    const body: Record<string, unknown> = {
+      voicemail_greeting_text: vmGreetingText,
+    }
+    if (isAdmin) body.client_id = client.id
+    const res = await fetch('/api/dashboard/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setVmSaving(false)
+    if (res.ok) {
+      setVmSaved(true)
+      setTimeout(() => setVmSaved(false), 3000)
     }
   }
 
@@ -1310,6 +1334,19 @@ export default function AgentTab({
                           {regenState === 'loading' ? 'Re-generating…' : regenState === 'done' ? 'Done!' : regenState === 'partial' ? 'Regenerated — syncing to agent…' : regenState === 'error' ? 'Error — try again' : regenCooldownLeft > 0 ? `Wait ${Math.floor(regenCooldownLeft / 60)}:${String(regenCooldownLeft % 60).padStart(2, '0')}` : 'Re-generate from template'}
                         </ShimmerButton>
                       </div>
+                      {client.updated_at && (
+                        <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-text-3)' }}>
+                          Last updated {(() => {
+                            const diff = Date.now() - new Date(client.updated_at!).getTime()
+                            const mins = Math.floor(diff / 60000)
+                            if (mins < 1) return 'just now'
+                            if (mins < 60) return `${mins}m ago`
+                            const hrs = Math.floor(mins / 60)
+                            if (hrs < 24) return `${hrs}h ago`
+                            return `${Math.floor(hrs / 24)}d ago`
+                          })()}
+                        </p>
+                      )}
                     </div>
 
                     {dirty && (
@@ -1931,6 +1968,45 @@ export default function AgentTab({
           )}
           <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
         </div>
+      </div>
+      </motion.div>
+
+      {/* S14 — Voicemail Greeting (fallback when AI agent is unavailable) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.0 }}
+      >
+      <div className="rounded-2xl border b-theme bg-surface p-5">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voicemail Greeting</p>
+          <button
+            onClick={saveVoicemailGreeting}
+            disabled={vmSaving || previewMode}
+            className={`px-3 py-1 text-[11px] font-medium rounded-lg transition-colors ${
+              vmSaved
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                : 'bg-white/5 hover:bg-white/10 t2 border b-theme'
+            }`}
+          >
+            {vmSaving ? 'Saving...' : vmSaved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+        <p className="text-[11px] t3 mb-3">
+          Played to callers when the AI agent is temporarily unavailable. Leave blank to auto-generate from your business name.
+        </p>
+        <textarea
+          rows={3}
+          value={vmGreetingText}
+          onChange={e => setVmGreetingText(e.target.value)}
+          className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors resize-y"
+          placeholder={`Hi, you've reached ${client.business_name || 'our office'}. We're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`}
+        />
+        <p className="text-[10px] t3 mt-1.5">
+          {client.voicemail_greeting_audio_url
+            ? 'Custom audio greeting is active (set by admin). Text greeting is used as fallback.'
+            : 'Tip: Contact support to upload a custom audio greeting for a more personalized experience.'}
+        </p>
       </div>
       </motion.div>
 

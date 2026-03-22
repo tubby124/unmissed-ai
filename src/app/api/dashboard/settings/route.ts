@@ -159,6 +159,14 @@ export async function PATCH(req: NextRequest) {
     updates.transfer_conditions = body.transfer_conditions.trim() || null
   }
 
+  // S14 — Voicemail greeting: custom text or audio URL for fallback when AI agent is unavailable
+  if (typeof body.voicemail_greeting_text === 'string') {
+    updates.voicemail_greeting_text = body.voicemail_greeting_text.trim() || null
+  }
+  if (typeof body.voicemail_greeting_audio_url === 'string') {
+    updates.voicemail_greeting_audio_url = body.voicemail_greeting_audio_url.trim() || null
+  }
+
   // B1 — Section editor: replace a named section in the stored prompt
   // section_id must be a client-editable section; admins can also edit locked sections
   if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {

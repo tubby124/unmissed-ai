@@ -64,3 +64,40 @@ export function buildStreamTwiml(joinUrl: string): string {
   </Connect>
 </Response>`
 }
+
+/**
+ * S14: Voicemail fallback TwiML — plays greeting then records a message.
+ * Priority: audioUrl > greetingText > auto-generated from businessName.
+ * recordingCallback receives Twilio POST when recording file is ready.
+ */
+export function buildVoicemailTwiml(opts: {
+  businessName?: string | null
+  greetingText?: string | null
+  audioUrl?: string | null
+  recordingCallbackUrl: string
+}): string {
+  const { businessName, greetingText, audioUrl, recordingCallbackUrl } = opts
+
+  // Greeting: custom audio > custom text > auto-generated
+  let greetingTwiml: string
+  if (audioUrl) {
+    greetingTwiml = `<Play>${escapeXml(audioUrl)}</Play>`
+  } else {
+    const text = greetingText
+      || (businessName
+        ? `Hi, you've reached ${businessName}. We're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`
+        : `Hi, we're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`)
+    greetingTwiml = `<Say voice="Polly.Joanna">${escapeXml(text)}</Say>`
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${greetingTwiml}
+  <Record maxLength="120" playBeep="true" recordingStatusCallback="${escapeXml(recordingCallbackUrl)}" recordingStatusCallbackMethod="POST" />
+  <Say voice="Polly.Joanna">We didn't receive a message. Goodbye.</Say>
+</Response>`
+}
+
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+}
