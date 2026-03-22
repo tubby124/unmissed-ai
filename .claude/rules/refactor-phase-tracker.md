@@ -23,7 +23,7 @@ All research, findings, and implementation plans for S12+ items. **Read the link
 |------|-------------|------|--------|-------|
 | S12-TOUR1 (library research) | `docs/research-notes/s12-tour1-onboarding-library-research.md` | — | COMPLETE | Recommends **driver.js** (5KB, battle-tested) + custom checklist |
 | S12-TOUR1 (UX patterns) | `docs/research-notes/s12-tour1-onboarding-tour-research.md` | — | COMPLETE | Recommends **NextStepjs** (Next.js native) + checklist pattern |
-| S12-TOUR1 (library decision) | `docs/s12-audit/s12-tour-library-decision.md` | — | **USER DECISION NEEDED** | Analysis recommends driver.js over NextStepjs (5KB vs 12KB, 25K vs 972 stars, no React version coupling). Decision doc has full comparison table. **Two research docs disagree — read both + decision doc, then decide.** |
+| S12-TOUR1 (library decision) | `docs/s12-audit/s12-tour-library-decision.md` | — | **DECIDED: driver.js** | 5KB vs 12KB, 25K vs 972 stars, no React version coupling. Decision doc recommends driver.js. TOUR2 unblocked. |
 | S12-TOUR2 (guided tour build) | All 3 TOUR1 docs above | Master plan §3-A3, Wave 3 | NOT YET | Blocked on TOUR1 library decision. 4-step tour: Meet Agent → Set Up Alerts → Train Agent → Go Live. |
 | S12-TOUR3 (empty states) | `s12-tour1-onboarding-tour-research.md` §5.2 | Master plan §3-A2, Wave 1 | NOT YET | 4 variants: NoCalls, NoKnowledge, NoNotifications, NoBookings. Action-first pattern (Notion/Stripe model). |
 | S12-TRIAL1 (WebRTC orb) | `docs/s12-audit/s12-trial1-competitor-webrtc-research.md` | Master plan §4-B1/B2/B3, Wave 2 | NOT YET | Zero SMB competitors have this — first-mover. New `POST /api/dashboard/agent-test` route. Reuse `DemoCallVisuals.tsx`. |
@@ -44,6 +44,11 @@ All research, findings, and implementation plans for S12+ items. **Read the link
 | S12-SCRAPE3 (pre-populated KB) | Same findings doc §6 | Same plan Phase D3 | **DONE** (2026-03-21) | Fallback in D1/D2: if no user-approved data, seeds from raw scrape result. queryKnowledge tool auto-registered. |
 | S12-SCRAPE4 (custom notes as chunks) | — | — | NO RESEARCH | Needs architecture decision: where in the seeding flow |
 | S12-SCRAPE5 ("add more" CTA) | — | — | NO RESEARCH | UX only — can derive from SCRAPE1 UI patterns |
+| S12-SCRAPE6 (preview route timeout) | — | — | NOT YET | `scrapeWebsite()` call has no `AbortSignal.timeout()` — route can hang indefinitely |
+| S12-SCRAPE7 (stale chunk cleanup) | — | — | NOT YET | Re-scrape with different content leaves old chunks; no `deleteClientChunks` before seeding |
+| S12-SCRAPE8 (validation parity) | — | — | NOT YET | `validateScrapeResult()` doesn't check `approvedFacts.length === businessFacts.length` |
+| S12-SCRAPE9 (toggleable service tags) | — | — | NOT YET | Service tags are read-only pills; users can't remove individual tags like facts/QAs |
+| S12-SCRAPE10 (orphan chunk cleanup) | — | — | NOT YET | Client deletion doesn't cascade to `knowledge_chunks` — orphaned embeddings persist |
 | Top 1% considerations | Findings doc §11 (11a-11o) | — | RESEARCH ONLY | Inline editing, batch approve, re-scrape diff, Places merge, etc. |
 
 ### S12 Phase 3b — Prompt Variable Injection Testing
@@ -784,7 +789,7 @@ S4 work revealed that S1a only fixed 5 of 11 deploy paths. Audited all 11 routes
 **Folded in from S9.6 gap audit:**
 - [ ] S10k — **book/route.ts bookings insert fire-and-forget (MEDIUM):** Line 128 `.then()` — booking record silently lost on DB failure. **Fix:** `const { error } = await supabase.from('bookings').insert(...)` with error logging.
 - [ ] S10l — **Google Calendar fetch timeouts (MEDIUM, caller-facing):** `getAccessToken()`, `listSlots()`, `createEvent()` in `lib/google-calendar.ts` have no `AbortSignal`. Google hang = caller hears silence during slot check or booking. **Fix:** `AbortSignal.timeout(10_000)` on all 3. Note: this is S13-class (caller-facing reliability) — prioritize with S13y, not S10.
-- [ ] S10m — **Document inbound route live row insert as intentional (INFO):** Line 273 `supabase.from('call_logs').insert({...}).then()` — fire-and-forget is intentional (TwiML latency trade-off). S9g stuck-row recovery covers DB failure. Add inline comment documenting this decision.
+- [x] S10m — **Document inbound route live row insert as intentional (INFO):** DONE 2026-03-22. Added inline comment documenting intentional fire-and-forget for TwiML latency. S9g stuck-row recovery covers DB failure.
 - [x] S10n — **Transfer recovery call missing call_state init (HIGH):** FIXED 2026-03-21. Added `call_state: defaultCallState(client.niche)` to the recovery call `call_logs` insert in `transfer-status/route.ts`. B3 coaching/state tracking now works on recovery calls.
 - [ ] S10o — **Transfer-status parallel prompt assembly (MEDIUM):** Lines 93-144 manually call `buildAgentContext()` + assemble knowledge/context blocks inline. Same class of drift as D-new (inline tool assembly) before S1a fixed it. If prompt assembly logic changes in the inbound route, transfer-status won't pick it up. **Fix:** Extract shared prompt assembly utility or have the recovery path use a minimal approach (agent already has the prompt, only context overrides needed via `callViaAgent`).
 - [x] S10p — **Transfer-status recovery failure is silent (MEDIUM):** FIXED 2026-03-21. Added `notifySystemFailure()` (admin alert) + `sendAlert()` (client Telegram) to the recovery catch block. Client now gets "MISSED LEAD" alert with caller phone. Admin gets system failure log.
@@ -792,7 +797,12 @@ S4 work revealed that S1a only fixed 5 of 11 deploy paths. Audited all 11 routes
 - [x] S10r — **Transfer recovery success is invisible (MEDIUM):** FIXED 2026-03-21. Added Telegram alert to client when transfer fails but AI recovery succeeds: "Transfer failed ({reason}) — AI agent resumed the call. Caller: {phone}". Client knows it happened without digging through logs.
 - [x] S10s — **Recovery guard uses fragile ILIKE string match (LOW):** FIXED 2026-03-21. Replaced `ai_summary ILIKE 'Transfer recovery%'` with `parent_call_log_id IS NOT NULL` check. Uses the S10q FK instead of text scanning.
 - [x] S10t — **Transfer recovery alerts missing from notification_logs (MEDIUM):** FIXED 2026-03-21. Both alert paths (recovery success + recovery failure) now insert `notification_logs` rows with channel=telegram, matching the S2/S9j pattern. Visible in S10c notifications dashboard + notification-health cron.
-- [ ] S10u — **Cost Intel page lives at `/admin/costs` instead of `/dashboard/costs` (MEDIUM, UX):** Every other dashboard page follows `/dashboard/*` routing pattern. Cost Intel is the only page under `/admin/costs`, which breaks navigation consistency. It should be at `/dashboard/costs` (admin-only gated, like other admin-specific dashboard sections). Also needs UX review — the page content/layout may need work beyond just the route move. **Fix:** Move route from `app/admin/costs/` to `app/dashboard/costs/`, update sidebar link, keep admin-only auth guard.
+- [ ] S10u — **Admin page consolidation — move Costs + Numbers + Calendar into `/dashboard` (MEDIUM, UX):** Three admin-only pages live under `/admin/*` instead of `/dashboard/*`, breaking navigation consistency. All other dashboard pages follow `/dashboard/*`. The admin layout (`app/admin/layout.tsx`) has its own top nav bar, completely separate from the Sidebar. **Pages to move:**
+  - `/admin/costs` → `/dashboard/costs` (admin-only gated). Also needs UX review — layout may need work beyond route move.
+  - `/admin/numbers` → `/dashboard/numbers` (admin-only gated). Twilio number inventory management (227 lines, `'use client'`). Uses hardcoded `bg-gray-900` instead of CSS variables — needs theming update to match dashboard.
+  - `/admin/calendar` → **DELETE** (duplicate of `/dashboard/calendar` but with admin-level access). Dashboard calendar already handles both admin + owner views via `/api/dashboard/bookings` role scoping. Admin calendar is a redundant server component with a flat table.
+  **Fix per page:** Move route directory, update Sidebar links (lines 176-198 currently point to `/admin/costs` and `/admin/numbers`), update MobileNav, keep admin-only auth guard. After all 3 moves, evaluate whether `/admin/layout.tsx` and remaining admin pages (Calls, Prompt, Test Lab, Insights, Clients) should also move — but that's a separate decision.
+  **Cross-ref:** S12-CAL1 (calendar visual overhaul with 7/30-day view) is a separate UX concern — do the route move first, then the calendar redesign.
 - [ ] S10v — **Concurrent call cost exposure (LOW-MEDIUM):** No limit on simultaneous Ultravox calls per client. If 30 callers hit the same number at once (within S13e rate limit), each creates a separate Ultravox call. Twilio handles this natively (each call = separate webhook), but 30 concurrent AI calls = unbounded Ultravox API cost. S13e rate limiter (30/slug/60s) is the only backstop. **Fix (at scale):** Add `max_concurrent_calls` column to `clients` (default 3-5). Before `createCall`/`callViaAgent`, query `call_logs WHERE call_status='live' AND client_id=X`. If at max → return TwiML voicemail instead. Low priority at 4 clients, critical at 50+.
 - [ ] S10w — **Client-facing analytics dashboard (MEDIUM, retention risk):** Owners see their calls list and settings but no performance summary. No "this week: 12 calls, 4 leads, 2 bookings" view. Clients paying $77/mo can't see ROI. `call_analysis_reports` exists (from `analyze-calls` cron) but owners couldn't even read it until S13s-2 added the RLS policy. **Fix:** Add `/dashboard/analytics` page (owner-visible): weekly call volume chart, lead classification breakdown (pie chart), booking count, SMS sent count. Data already exists in `call_logs` + `call_analysis_reports` + `bookings` + `notification_logs`. Pure frontend + 1 API route.
 
@@ -934,7 +944,7 @@ These could not be tested in headless Playwright or were missed entirely. Must v
 - [x] S12-V18-BUG2 — **Trial route leaves orphaned DB rows on validation failure (HIGH):** FIXED. If `validatePrompt()` fails, `intake_submissions` + `clients` rows were created but never cleaned up. Added rollback: marks intake as abandoned, deletes client row.
 - [x] S12-V18-BUG3 — **Website scrape data silently discarded for real_estate niche (HIGH):** FIXED. `buildPromptFromIntake()` injects website content into `intake.caller_faq`, but `buildRealEstatePrompt()` never read `caller_faq`. Added `ADDITIONAL BUSINESS KNOWLEDGE` section between PRODUCT KNOWLEDGE BASE and EDGE CASES.
 - [x] S12-V18-BUG4 — **Province abbreviation spoken literally by AI (MEDIUM):** FIXED. `serviceAreasStr` contained raw "Calgary, AB" — AI reads "AB" out loud. Now expands to "Calgary, Alberta" using `RE_PROVINCE_NAMES` map. `licensedProvinces` already expanded correctly; this fixes the service areas string used throughout the prompt.
-- [ ] S12-V18-BUG5 — **Demo preview call doesn't include website scrape data (MEDIUM):** `demo/start/route.ts` calls `buildPromptFromIntake(intake)` without the `websiteContent` parameter. Website scraping only happens in the trial provisioning route. Demo calls never see scraped website content. **Fix:** Either run `scrapeWebsite()` in the demo route (adds latency) or pass website content from the client-side review page if available.
+- [x] S12-V18-BUG5 — **Demo preview call doesn't include website scrape data (MEDIUM):** FIXED 2026-03-21. `demo/start/route.ts` now extracts approved scrape facts/QA from `onboardingData.websiteScrapeResult` and passes as `websiteContent` to `buildPromptFromIntake()`. Also: trial + checkout routes skip duplicate scrape when preview data exists. Shared `seedKnowledgeFromScrape()` utility extracted. Commit `4697bca`.
 - [ ] S12-V18-BUG6 — **Post-demo feedback buttons are non-functional UX theater (LOW):** "More friendly" / "More professional" / "Sounds perfect!" buttons in `step6-review.tsx` set local React state but don't modify the prompt, call any API, or persist anything. They show a message saying "tune in Settings after activation" — misleading since the user expects their click to do something. **Fix:** Either (a) remove the buttons entirely and show "tune in Settings" upfront, or (b) actually apply tone shift to the demo prompt and regenerate.
 - [x] S12-V18-BUG7 — **`validatePrompt()` hard max (8000) rejects valid auto-generated prompts (MEDIUM):** FIXED 2026-03-22. Real estate prompts with moderate intake data reach ~8720-10838 chars. Changed hard max from error to warning. GLM-4.6 handles prompts up to ~12K fine. Commit `6280cd6`.
 - [ ] S12-V18-BUG8 — **`clients.business_name` uses contact form name, not Google Places full name (LOW):** Trial route writes `intake_submissions.business_name` (what user typed in contact form, e.g., "Rose") to `clients.business_name`. The full Google Places name ("Rose Calvelo Team | eXp Realty | Calgary Realtor") is in `intake_json.businessName` but isn't used. Not necessarily a bug — depends on whether we want the user-entered name or the Places name as the display name. **Consider:** Add a separate `display_name` field or let the user choose during onboarding which name to use as the business identity.
@@ -977,7 +987,7 @@ These could not be tested in headless Playwright or were missed entirely. Must v
 - [ ] S12-V25 — **All niche templates must be audited for website/FAQ content injection (HIGH):** `buildPromptFromIntake()` injects website scrape into `intake.caller_faq` at line 1961. The generic template reads it (line 2284). But `buildRealEstatePrompt()` didn't (FIXED in V18-BUG3). `buildVoicemailPrompt()` also doesn't read it (LOW risk — unlikely combo). Any NEW niche-specific builder must read `caller_faq` or the website scrape is silently lost. **Fix:** Add a unit test that calls `buildPromptFromIntake(intake, 'test website content')` for EVERY niche and asserts the output contains 'test website content'. Catches this entire class at build time.
 - [ ] S12-V26 — **Province/state abbreviations affect all niches, not just real_estate (MEDIUM):** The generic template injects `{{CITY}}` which comes from `intake.city` (e.g., "Calgary"). Province code appears in `{{PROVINCE}}` as "AB". If the prompt says "we're located in Calgary, AB" the AI reads "AB" out loud. Real estate FIXED. **Fix:** Add province expansion to the generic template's variable processing. Expand `{{PROVINCE}}` from "AB" to "Alberta" using the same `RE_PROVINCE_NAMES` map. Also expand US state abbreviations (CA→California, etc.).
 - [ ] S12-V27 — **No integration test for trial provisioning endpoint (CRITICAL):** The most important customer-facing API endpoint (`/api/provision/trial`) had ZERO test coverage. Three bugs found only by manually testing in production. **Fix:** Add to `tests/integration/`: mock intake data → POST to provision/trial → assert: client row created, agent created, prompt_versions seeded, activation chain runs, response includes clientId + setupUrl. Covers S12-V18-BUG1/2/3/4 as regression tests.
-- [ ] S12-V28 — **Demo preview path diverges from trial provisioning path (MEDIUM):** `demo/start` calls `buildPromptFromIntake(intake)` — no website content, no knowledge docs. Trial route does full enrichment (scrape + knowledge docs + validation). These paths produce different quality prompts for the same data. **Fix:** Either (a) the review page scrapes the website client-side and passes content to demo/start, or (b) demo/start does a quick scrape (adds ~2s latency), or (c) accept the divergence and document it. Related to S12i (generate-prompt vs create-public-checkout parity).
+- [x] S12-V28 — **Demo preview path diverges from trial provisioning path (MEDIUM):** PARTIALLY FIXED 2026-03-21. Website scrape content gap closed — demo/start now passes `websiteContent` from scrape preview (commit `4697bca`). Remaining divergence: demo doesn't do knowledge doc enrichment or prompt validation. Acceptable for preview — trial route is the authoritative path.
 - [ ] S12-V29 — **Form field semantics vary by niche but form doesn't adapt (MEDIUM):** `ownerName` means "realtor's personal name" for real_estate (primary identity) but "business owner" for other niches. The generic "Your name" field doesn't convey this. **Fix:** Niche-specific field labels. Real estate: "Realtor's full name". Auto glass: "Shop owner's name". Part of S12h (intake form UX).
 
 ### Phase 2: Setup wizards (step-by-step, idiot-proof)
@@ -994,7 +1004,7 @@ These could not be tested in headless Playwright or were missed entirely. Must v
 
 **Goal:** Make calendar and call routing feel like first-class features, not afterthoughts.
 
-- [ ] S12-CAL1 — **Calendar page visual overhaul (HIGH, 21st.dev):** Replace the current bookings list with a proper calendar UI component (source from 21st.dev — e.g., a month/week view calendar). Show booked appointments as events on the calendar. Click an event → see caller name, phone, service, Google Calendar link. Keep the list view as a secondary tab/toggle for quick scanning.
+- [ ] S12-CAL1 — **Calendar page visual overhaul (HIGH, 21st.dev):** Replace the current bookings list with a proper calendar UI component (source from 21st.dev — e.g., a month/week view calendar). 7-day and 30-day views showing who booked, what time they called, caller info. Click an event → see caller name, phone, service, Google Calendar link. Keep the list view as a secondary tab/toggle for quick scanning. **Prereq:** S10u (admin calendar deletion + route consolidation) should complete first so there's one calendar page to redesign, not two.
 - [ ] S12-CAL2 — **"Connect your calendar" CTA state (HIGH):** When `calendar_auth_status !== 'connected'`, show a prominent connect card instead of the empty bookings state. Big "Connect Google Calendar" button that triggers the existing OAuth flow (`/api/auth/google?client_id=X`). After connect → calendar view with their actual events. Current empty state just says "connect in Settings" — that's a dead end.
 - [ ] S12-CAL3 — **Post-connect verification (MEDIUM):** After Google OAuth callback, the system already sets `booking_enabled: true` + calls `updateAgent()` with `buildAgentTools()` (confirmed: `auth/google/callback/route.ts` lines 83-84, 132-144). This correctly adds `checkCalendarAvailability` + `bookAppointment` tools to the Ultravox agent. **Verify:** The agent prompt also needs booking instructions — confirm that `buildAgentTools()` output includes tool `_instruction` fields that tell the agent HOW to use calendar tools. If not, the agent has the tools but doesn't know when to offer booking.
 - [ ] S12-CAL4 — **Calendar sync status indicator (LOW):** Show last-synced time, connection health, which Google Calendar is linked. Surface `calendar_auth_status` (connected/expired/error) visually on the calendar page, not just in Settings.
@@ -1088,6 +1098,11 @@ These could not be tested in headless Playwright or were missed entirely. Must v
 - [ ] S12-SCRAPE3 — **Knowledge base pre-populated on first login (HIGH):** When trial user first visits Settings → Knowledge Base, they should see the seeded chunks from their website scrape + any custom notes from intake. NOT an empty page. Shows: "Your agent already knows 12 things about your business. Add more to make it smarter." This bridges the gap between "onboarding collected data" and "dashboard shows nothing." **Research:** findings doc §6, plan Phase D3 (fallback: seed from raw scrape if no user-approved data). **Status: READY TO BUILD.**
 - [ ] S12-SCRAPE4 — **Custom notes as editable knowledge (MEDIUM):** The custom notes from intake (e.g., "Rose specializes in luxury homes, buyers relocating from BC/Ontario, acreages in Cochrane area") should also be seeded as a knowledge chunk. Users can see exactly what they told the AI and edit/expand it from the dashboard. **Research:** NO RESEARCH — needs architecture decision: where in the seeding flow, what chunk category, how to handle edits.
 - [ ] S12-SCRAPE5 — **"Add more" prompt after scrape preview (LOW):** After showing what was scraped, prompt: "Want to add anything else? Upload documents, paste FAQs, or type details your website doesn't mention." Direct link to knowledge upload. Captures the momentum of "wow it knows stuff" → "let me teach it more." **Research:** UX only — can derive from SCRAPE1 UI patterns. Findings doc §11 has "Top 1% Builder Considerations" (11a-11o) for polish ideas.
+- [ ] S12-SCRAPE6 — **Scrape-preview route fetch timeout (MEDIUM):** `POST /api/onboard/scrape-preview` line 52 calls `scrapeWebsite(websiteUrl, niche)` with no `AbortSignal.timeout()`. If the target website hangs or the scraper's upstream (Brave+Haiku) is slow, the user waits indefinitely with a loading spinner. **Fix:** Add `AbortSignal.timeout(30_000)` to the `scrapeWebsite()` call (same pattern as S9.6c/S13i). 30s is generous for a scrape. Also: consider adding a client-side timeout in `WebsiteScrapePreview.tsx` to show "taking too long" after 20s. Related to S13z (scraper fetch timeouts) and S18l (blanket timeout audit).
+- [ ] S12-SCRAPE7 — **Stale chunk cleanup before re-seeding (MEDIUM):** `seedKnowledgeFromScrape()` always appends chunks via `embedChunks()` (upsert by `content_hash`). If a user re-activates or the trial is retried, chunks with changed content persist alongside new ones — the old content is never removed. `deleteClientChunks(clientId, 'website_scrape')` already exists in `lib/embeddings.ts` but is never called before seeding. **Fix:** Call `deleteClientChunks(clientId, 'website_scrape')` at the top of `seedKnowledgeFromScrape()` before inserting new chunks. Clean slate per activation attempt. Low risk: worst case is a brief window with 0 chunks before new ones are inserted.
+- [ ] S12-SCRAPE8 — **Validation length parity check (LOW):** `validateScrapeResult()` doesn't verify `approvedFacts.length === businessFacts.length` or `approvedQa.length === extraQa.length`. Mismatched arrays cause silent behavior: missing approval entries resolve to `undefined !== false` = `true`, so unapproved facts get included. Not a security issue (defaults to inclusive), but indicates corrupted client data. **Fix:** Add length parity check to `validateScrapeResult()`. Mismatched lengths → return false → falls back to raw scrape (safe path).
+- [ ] S12-SCRAPE9 — **Service tags toggleable in preview (LOW/UX):** Service tags appear as read-only indigo pills in `WebsiteScrapePreview.tsx`. Users can toggle individual facts and Q&As on/off with checkboxes, but can't remove individual service tags (e.g., a dentist might want to remove "Teeth Whitening" if they don't offer it). **Fix:** Add per-tag toggle checkboxes matching the fact/QA pattern. Add `approvedServiceTags: boolean[]` to `WebsiteScrapeResult` type. Filter in `seedKnowledgeFromScrape()`.
+- [ ] S12-SCRAPE10 — **Knowledge chunk orphans on client deletion (MEDIUM):** When trial clients are abandoned/deleted (S12-CODE1 rollback path in `provision/trial/route.ts`), `knowledge_chunks` rows for that `client_id` persist as orphaned embeddings. `deleteClientChunks()` exists but is never called during client deletion. **Fix:** Add `deleteClientChunks(clientId)` to the rollback path in `provision/trial/route.ts` before deleting the client row. Also add to any future deprovisioning flow (S20).
 
 ### Phase 4: Post-signup communication
 
@@ -1314,20 +1329,20 @@ Not in scope for initial S13b, but the end-state architecture:
 **Folded in from S9.6 gap audit:**
 - [x] S13i — **Telegram sendAlert() fetch timeout (MEDIUM):** FIXED 2026-03-21. Added `AbortSignal.timeout(10_000)` to the `fetch()` call in `sendAlert()`. Telegram outage no longer hangs route handlers indefinitely.
 - [ ] S13j — **Demo route fire-and-forget cleanup (LOW):** `demo/[demoSlug]/inbound/route.ts` has 3 `.then()` patterns (demo_call_logs insert, update, Supabase ops). Non-production but should match production patterns. **Fix:** Convert to await.
-- [ ] S13k — **Knowledge hit tracking fire-and-forget (LOW):** `knowledge/[slug]/query/route.ts` has a `.then()` for `knowledge_hits` insert (analytics tracking). Silent loss = inaccurate knowledge usage stats. **Fix:** Convert to await.
+- [x] S13k — **Knowledge hit tracking (LOW):** ALREADY DONE — verified 2026-03-22. Route already uses `try { await ... } catch` pattern. No `.then()` patterns remain.
 - [ ] S13l — **Admin-only Ultravox API timeouts (LOW):** `createDemoCall`, `createAgent`, `updateAgent`, and 4 admin tool ops in `ultravox.ts` have no `AbortSignal`. Admin-initiated so not caller-facing, but can cause request timeouts. **Fix:** `AbortSignal.timeout(15_000)` on all.
 
 **Discovered during S13e+f implementation (2026-03-21):**
 - [x] S13o — **SMS inbound + demo inbound rate limiting (MEDIUM):** FIXED 2026-03-21. Added `SlidingWindowRateLimiter` to both routes after Twilio sig validation. SMS: 60/slug/60s (higher than voice — SMS bursts are normal). Demo: 30/60s (matches inbound). Blocked SMS returns empty TwiML; blocked demo returns polite voice message.
 - [ ] S13p — **Operator alert on rate limit trigger (MEDIUM):** Rate-limited requests only log `console.warn` — no Telegram alert. An active flood is invisible until someone checks Railway logs. **Fix:** On first rate-limited request per slug per window, call `notifySystemFailure()` from `admin-alerts.ts`. Deduplicate: only alert once per slug per 5-min window.
-- [ ] S13q — **Demo route inline rate limiters → shared utility (LOW):** `demo/start`, `demo/call-me`, `demo/summarize` each have identical inline rate limiting code (Map + timestamp array). **Fix:** Replace with `SlidingWindowRateLimiter` import. Deduplicates 3 copies. See also S13x for full scope (5 routes total).
+- [x] S13q — **Demo route inline rate limiters → shared utility (LOW):** DONE 2026-03-22 (as part of S13x). All 5 inline `rateLimitMap` patterns replaced with `SlidingWindowRateLimiter`.
 - [x] S13r — **Demo endpoint billing exposure (HIGH):** FIXED 2026-03-22. Created `lib/demo-budget.ts` — shared `SlidingWindowRateLimiter` instance (100 calls/hour globally across ALL IPs). Both `demo/start` and `demo/call-me` check global budget BEFORE per-IP limits. Returns 429 with `Retry-After` when exceeded. Distributed attacks capped at 100/hr total regardless of IP count. Per-IP limits (10/hr start, 3/hr call-me) remain as inner defense.
 - [x] S13s — **RLS policy audit (HIGH):** DONE 2026-03-21. Full audit of all 26 public tables. See S13s section below for findings + fixes.
 - [x] S13t — **Partial activation failure alerting (MEDIUM):** FIXED 2026-03-21. Added `notifySystemFailure()` call when `activateClient()` returns `success: false` in Stripe webhook. Operator gets Telegram alert + `notification_logs` entry (channel=system). Stripe returns 200 (won't retry), but operator now knows to manually intervene.
 - [x] S13u — **`/api/stages/[slug]/escalate` has ZERO auth (HIGH):** FIXED 2026-03-22. Added `X-Tool-Secret` header validation matching the coaching check route pattern. Missing/wrong secret returns 403. 4 lines added.
 - [x] S13v — **`/api/health` leaks client slugs + Ultravox agent IDs (MEDIUM):** FIXED 2026-03-22. Stripped all per-client detail from response. Now returns only `{ agents_checked, agents_healthy, status: 'ok'|'degraded' }`. No slugs, no agent IDs, no per-agent status. Endpoint stays unauthenticated for uptime monitors.
 - [ ] S13w — **`/api/onboard/create-draft` has no rate limit (LOW):** Public endpoint (intentional for onboarding), but unlike `places-lookup` and `knowledge/upload`, it has zero IP rate limiting. Spam could fill `intake_submissions` with junk rows. **Fix:** Add same `rateLimitMap` pattern (or `SlidingWindowRateLimiter`) — 10/min/IP matches other onboard routes.
-- [ ] S13x — **5 inline rate limiters should use shared `SlidingWindowRateLimiter` (LOW):** `demo/start`, `demo/call-me`, `provision/route`, `onboard/places-lookup`, `client/knowledge/upload` all have copy-pasted `rateLimitMap` code. S13q tracks 3 demo routes — expand to include `provision/route` and `client/knowledge/upload`. Single import, zero logic duplication.
+- [x] S13x — **5 inline rate limiters consolidated (LOW):** DONE 2026-03-22. `demo/start` (10/hr), `demo/call-me` (3/hr), `provision/route` (10/hr), `onboard/places-lookup` (10/min), `client/knowledge/upload` (5/min) — all replaced with `SlidingWindowRateLimiter` import. Added `Retry-After` headers. Zero inline `rateLimitMap` patterns remain.
 - [ ] S13y — **`lib/activate-client.ts` — 6 external fetches with no timeout (MEDIUM):** Twilio number search (3 calls), Twilio buy, Ultravox PATCH, Twilio SMS — all missing `AbortSignal`. If any external API hangs during activation, the entire Stripe webhook handler stalls until Railway kills it. **Fix:** `AbortSignal.timeout(15_000)` on all 6 fetch calls.
 - [ ] S13z — **`lib/embeddings.ts` + `lib/website-scraper.ts` — fetches with no timeout (LOW):** OpenAI embedding call + URL fetch + OpenRouter summarization. Admin-triggered so lower priority. **Fix:** `AbortSignal.timeout(30_000)` on all.
 - [ ] S13-REC1 — **Call recordings stored in PUBLIC Supabase bucket (HIGH, privacy/PIPEDA):** `completed/route.ts` line 256 uses `getPublicUrl('recordings')` — anyone with the URL can access any client's call recordings without auth. These contain caller PII (phone conversations). **Fix:** Change `recordings` bucket to private in Supabase dashboard. Replace `getPublicUrl()` with `createSignedUrl()` (expiry: 1 hour). Update all recording URL consumers (dashboard call detail, voicemail email links) to request signed URLs on demand. This is a data breach vector — one leaked URL exposes a caller's entire conversation.
@@ -1398,6 +1413,91 @@ Not in scope for initial S13b, but the end-state architecture:
 **Also noted (non-blocking):**
 - **Booking `call_id` is NULL** on the latest booking — existing S10k item (book/route.ts fire-and-forget). Booking otherwise correct: google_event_id populated, calendar URL valid, Mar 24 at 5 PM.
 - **Native Ultravox webhook HMAC — FIXED (2026-03-22).** Root cause: `secrets[0]` from API response is the actual HMAC key. Attempt 4 PASS — 2 calls verified, `billed_duration_seconds` populated, diagnostics removed. See S13b-VERIFY1.
+
+---
+
+## P0-LAUNCH-GATE — Production Prerequisites (do before ANY new S12 features)
+
+**Rule:** No new feature slices (tours, orbs, scrape polish) start until all GATE items pass. These are not features — they are the minimum conditions for a product that won't embarrass you in production.
+
+### GATE-1 — Auth + Email Deliverability
+
+**Problem:** Email fails (Resend domain unverified). Non-Gmail users have ZERO login path. Public production with broken auth is amateur hour.
+
+| Item | Source | Status |
+|------|--------|--------|
+| S15-PRE1-7 | S15 | NOT STARTED — domain purchase + DNS + external configs |
+| S15-ENV1-4 | S15 | NOT STARTED — Railway env var updates after domain |
+| S15-CODE1-11 | S15 | NOT STARTED — brand text + legal pages + SEO metadata |
+| S12-V15 | S12 Phase 1b | NOT STARTED — email deliverability E2E (unblocked by domain) |
+| S12-LOGIN1 | S12 Phase 4 | BLOCKED on S15-PRE3 — non-Gmail login path |
+| S12-V22 | S12 Phase 1b | NOT STARTED — Supabase email template branding |
+
+### GATE-2 — Privacy + Compliance + Safety
+
+**Problem:** Call recordings are in a PUBLIC Supabase bucket. No recording consent disclosure. No prompt injection defense. Any of these is a launch-blocking liability.
+
+| Item | Source | Status |
+|------|--------|--------|
+| S13-REC1 | S13 | NOT STARTED — recording bucket → private + signed URLs |
+| S16a | S16 | NOT STARTED — call recording consent disclosure in prompts |
+| S16e | S16 | NOT STARTED — prompt injection defense across all agents |
+
+### GATE-3 — Outage Resilience (core only)
+
+**Problem:** Ultravox down = callers hear "technical difficulties" + hang up. Zero lead capture, zero recovery. Every outage minute = lost revenue.
+
+| Item | Source | Status |
+|------|--------|--------|
+| S14a | S14 | NOT STARTED — voicemail fallback TwiML on Ultravox failure |
+| S14b | S14 | NOT STARTED — failed call logging (invisible today) |
+| S14c | S14 | NOT STARTED — client notification on outage |
+| S14d | S14 | NOT STARTED — voicemail storage + retrieval |
+
+### GATE-4 — Dashboard Observability (core only)
+
+**Problem:** Can't operate what you can't see. Notification failures, booking gaps, audit trail data — all exist in DB but aren't surfaced.
+
+| Item | Source | Status |
+|------|--------|--------|
+| S10a | S10 | NOT STARTED — prompt version history with audit context |
+| S10b | S10 | NOT STARTED — "Last regenerated X min ago" on Refresh button |
+| S10c | S10 | NOT STARTED — notifications tab (recent notification_logs) |
+| S10d | S10 | NOT STARTED — bookings tab with calendar link + status |
+| S10e | S10 | NOT STARTED — call detail view with notification + booking context |
+| S10f | S10 | NOT STARTED — failed notification badge in sidebar |
+
+### GATE-5 — Guard Rails
+
+**Problem:** Entire bug classes keep recurring. Fire-and-forget silent failures, untyped Supabase queries, no post-deploy smoke test, tsc doesn't catch build failures. Fix the system, not the symptoms.
+
+| Item | Source | Status |
+|------|--------|--------|
+| S18a | S18 | NOT STARTED — final fire-and-forget cleanup (8 remaining) |
+| S18c | S18 | NOT STARTED — Supabase TypeScript types (catch typos at build time) |
+| S18e | S18 | NOT STARTED — post-deploy smoke test script |
+| S18o | S18 | NOT STARTED — pre-push hook: tsc → full build |
+
+---
+
+## S12 Execution Slices
+
+**Rule:** S12 is NOT one phase. Each slice = one chat, one branch, one PR. Explicit scope + explicit out-of-scope per slice. No "continue S12" prompts.
+
+| Slice | Name | Scope | Out of Scope | Depends on | Status |
+|-------|------|-------|-------------|------------|--------|
+| 0 | Tracker Cleanup | Reconcile stale entries, create P0-LAUNCH-GATE, rewrite execution order | Code changes | nothing | **THIS TASK** |
+| 1 | Prompt Variable Injection Harness | PROMPT-TEST1+2: audit niche builders, snapshot tests, assertion matrix | Onboarding UI, tours, orb | nothing | NOT STARTED |
+| 2 | Trial WebRTC Orb | TRIAL1 only: in-dashboard agent test, reuse DemoCallVisuals | Tours, share links, tool demo extras, mobile | nothing | NOT STARTED |
+| 3 | Scrape Verify + Harden | Verify SCRAPE1-3 in prod, then SCRAPE6 (timeout), SCRAPE7 (stale chunks), SCRAPE8 (validation), SCRAPE10 (orphans) | Inline editing, diff viewer, toggleable tags, top-1% ideas | SCRAPE1-3 verified | NOT STARTED |
+| 4 | Empty States | TOUR3: NoCalls, NoKnowledge, NoNotifications, NoBookings | Tour library, animations, checklist persistence | nothing | NOT STARTED |
+| 5 | Guided Tour | TOUR2: driver.js, 4 steps, skippable, persisted, relaunchable | Cross-page wizard, segmentation, Shepherd | Slice 4 | NOT STARTED |
+| 6 | Advanced Trial Extras | TRIAL1b-1d, TRIAL2-6 | Everything not researched yet | Slice 2, Sonar Pro research | DEFERRED |
+| 7 | External Deps Lane | Domain, email E2E, live phone E2E, mobile responsive | Product features | S15-PRE (domain purchase) | BLOCKED |
+
+**Slices 1-5 run AFTER P0-LAUNCH-GATE passes.**
+**Slice 7 runs in parallel as an independent lane when domain is purchased.**
+**Slice 6 is deferred — no research exists, don't drag unknowns into the first pass.**
 
 ---
 
@@ -1560,7 +1660,7 @@ All Railway env var updates. Do them together, redeploy once.
   - `demo/start`, `demo/call-me`, `demo/inbound` (3 sites — also S13j)
   **Note:** `inbound/route.ts` line 287 (call_logs insert) is intentionally fire-and-forget for TwiML latency — document with inline comment, don't convert. All others should be awaited.
 
-- [ ] S18b — **ESLint rule or pre-commit grep for `.then()` in route handlers (MEDIUM):** Add to `.githooks/pre-push` (or new pre-commit hook): `grep -r '\.then(' src/app/api/ --include='*.ts'` — fail if count increases above baseline. Alternatively, `eslint-plugin-no-floating-promises` or `@typescript-eslint/no-floating-promises` (requires `tsconfig` strict). Prevents new fire-and-forget patterns from entering the codebase.
+- [x] S18b — **Pre-push `.then()` baseline guard (MEDIUM):** DONE 2026-03-22. Added to `.githooks/pre-push` step 4/4: counts `.then(` in `src/app/api/`, fails if exceeds baseline (1). Prevents new fire-and-forget patterns.
 
 ### Bug class 2: Untyped Supabase queries
 **Pattern:** All `supabase.from('table').select('column')` calls use raw strings. Column typos, missing tables, and schema drift compile fine but fail at runtime. Caused: S13f-FIX (stripe_events table never created — code referenced it for weeks), S12 audit SQL errors (wrong column names), stale column references after migrations.
@@ -1620,7 +1720,7 @@ All Railway env var updates. Do them together, redeploy once.
   3. `notification-health` cron (already hourly) adds check: "did every scheduled cron run within its expected window?" Missing execution = Telegram alert.
   **Alternative (simpler):** Each cron logs to `notification_logs` with `channel='cron'`. notification-health already queries this table — just add a "last cron run" check.
 
-- [ ] S18k — **Cron method parity test (LOW):** Unit test that reads `railway.json` cron config and verifies each route exports the correct HTTP method (GET vs POST). Would have caught S12-V8-BUG1 at build time. 5 lines of test code.
+- [x] S18k — **Cron method parity test (LOW):** DONE 2026-03-22. 7 tests in `cron-method-parity.test.ts`: 6 per-route method checks + 1 reverse orphan check. Would have caught S12-V8-BUG1.
 
 ### Bug class 7: Missing fetch timeouts
 **Pattern:** External API calls without `AbortSignal.timeout()` cause route handlers to hang until Railway kills them. Fixed in S9.5c (Ultravox transcript/recording), S9.6c (call creation), S13i (Telegram). Still missing on: `activate-client.ts` (6 Twilio/Ultravox calls — S13y), `embeddings.ts` + `website-scraper.ts` (S13z), `google-calendar.ts` (3 calls — S10l), admin Ultravox ops (S13l).
@@ -1631,14 +1731,9 @@ All Railway env var updates. Do them together, redeploy once.
 **Pattern:** `new Stripe()`, `createClient()`, `createServiceClient()` at module scope crash during `next build` page data collection when env vars aren't available in build workers. Also: `createBrowserClient()` in `'use client'` component bodies runs during SSR prerendering. Caused: 4 failed Railway builds, 31-file emergency fix (commit `2c4250e`, 2026-03-21). `tsc --noEmit` missed ALL of them.
 
 - [x] S18m — **Fix 31 module-level init files (DONE 2026-03-21):** All Stripe `new Stripe()` → `function getStripe()`. All module-level `createClient()` / `createServiceClient()` → inside handler. `set-password/page.tsx` → `useRef` lazy-init. Commit `2c4250e`.
-- [ ] S18n — **Fix `login/page.tsx` createBrowserClient() in component body (MEDIUM):** Line 21 has the same fragile pattern that broke `set-password`. Works now because `NEXT_PUBLIC_*` vars happen to be available at build time on Railway, but breaks if build config changes. **Fix:** Same `useRef` + lazy-init pattern as `set-password`.
+- [x] S18n — **Fix `login/page.tsx` createBrowserClient() (MEDIUM):** DONE 2026-03-22. Converted to `useRef` lazy-init pattern matching `set-password/page.tsx`. tsc clean.
 - [ ] S18o — **Pre-push hook: `tsc --noEmit` → `npm run build` (HIGH):** `.githooks/pre-push` only runs type checking. This caught ZERO of the 31 broken files. `next build` catches them all. **Trade-off:** `npm run build` takes ~30s vs `tsc` ~5s. Consider `npm run build` on push, `tsc` on commit. Or add a `scripts/quick-build-check.sh` that runs page data collection without full static generation.
-- [ ] S18p — **Pre-push grep for module-level SDK init (MEDIUM):** Add to `.githooks/pre-push`:
-  ```bash
-  # Detect module-level SDK init outside function bodies
-  grep -rn '^const .* = new Stripe\|^const .* = createClient\|^const .* = createServiceClient' src/app/ src/lib/
-  ```
-  Fail if any matches found. Prevents the pattern from re-entering the codebase. Cheaper than full build.
+- [x] S18p — **Pre-push grep for module-level SDK init (MEDIUM):** DONE 2026-03-22. Added to `.githooks/pre-push` step 3/4: greps for `new Stripe(`, `= createClient(`, `= createServiceClient(` at module level in `src/app/` and `src/lib/`. Fails push if any matches found.
 
 ### Cross-cutting: Inline rate limiter consolidation
 Already tracked as S13x (5 routes with copy-pasted `rateLimitMap`). Folded here for completeness — same "code path duplication" class as S18g.
@@ -1669,7 +1764,7 @@ LATER  → S18d (Supabase types in CI)
 
 **Problem:** Native Ultravox webhook could silently die again (S13b took 4 attempts). Billing source-of-truth uses our own duration estimate, not what Ultravox actually bills us.
 
-- [ ] S19a — **Webhook liveness monitoring (HIGH):** Add check to `notification-health` cron: query `call_logs` for calls completed in last 24h that have `billed_duration_seconds IS NULL`. If count > 0, the native webhook may have stopped working. Telegram alert to operator. Would have caught S13b's 3-day outage within 1 hour.
+- [x] S19a — **Webhook liveness monitoring (HIGH):** DONE 2026-03-22. Added to `notification-health` cron: queries `call_logs` for completed calls in last 24h with `billed_duration_seconds IS NULL`. Count > 0 triggers Telegram alert with webhook ID hint. Included in both healthy/unhealthy JSON response.
 - [ ] S19b — **Billing source-of-truth alignment (MEDIUM, at scale):** Currently `increment_seconds_used` uses our own `joined`/`ended` duration calc. `billed_duration_seconds` is what Ultravox actually charges us. Drift = billing inaccuracy. At scale, use `billed_duration_seconds` as the source of truth for `increment_seconds_used`. Not urgent at 4 clients.
 - [ ] S19c — **Historical billing data backfill (LOW, one-time):** ~199 calls across 4 clients have `billed_duration_seconds = NULL` (pre-fix). Can query `GET /calls/{callId}` per call to pull billing data. Not urgent — going forward is fine.
 - [ ] S19d — **Approaching-limit proactive notification (MEDIUM):** No warning when a client approaches their `monthly_minute_limit`. They're surprised by overage. **Fix:** In the completed webhook, after `increment_seconds_used`, check if `seconds_used_this_month / 60` crosses 80% or 90% of `monthly_minute_limit`. On first crossing per billing cycle, send Telegram alert to client: "You've used 80% of your monthly minutes (X of Y). Upgrade or manage usage from your dashboard." Also alert operator. Simple threshold check — 10 lines of code in `completed/route.ts` after the billing increment block. Store last-alerted threshold in `clients` table (e.g., `usage_alert_threshold_sent: 80`) to avoid repeat alerts.
@@ -1707,46 +1802,48 @@ LATER  → S18d (Supabase types in CI)
 
 ## Execution Order Summary
 
+**Updated 2026-03-22: Production-gate-first. S12 split into slices. Feature work comes AFTER launch gates pass.**
+
 ```
-DONE  → S12 Phase 1  (BUG1-2, BUG5, BUG6a-b, DATA1-3, V1 fixed 2026-03-21) + S13a+e+f+g+h+i+m+n + S13.5a+b+e + S13b-VERIFY1
-DONE  → Railway build fix (prepare script Docker guard, commit 635a673) + callback URL 200-char fix (commit 1063d16)
-DONE  → S13.5 VERIFIED LIVE: Agents API working, unique transcripts, correct classification, callback URL passing (call 0ee5009f, 2026-03-21)
-DONE  → S12-V5b VERIFIED (2026-03-22): Fresh Gmail OAuth → /onboard redirect PASS, dashboard gate PASS, activity API empty PASS, admin login PASS. S13s-BUG1 data leak fix confirmed working in production.
-DONE  → S13.5c (16 admin calls reclassified) + S13.5f+g+h (dead code removed, transfer-status tools fixed)
-DONE  → S12-BUG6-RETEST PASS (2026-03-22) + S12-BUG6-NEW FIXED (3 files: login, activate-client, create-client-account → next=/auth/set-password)
-DONE  → 2026-03-22 test call (01:17 UTC): unique AI summary PASS, classification PASS, transfer PASS. Confirms S13.5 transcript isolation + Agents API working post-deploy.
-DONE  → S13b-VERIFY1 PASS (2026-03-22): Root cause = `secrets[0]` is actual HMAC key. Attempt 4 verified on 2 live calls. `billed_duration_seconds` populating. Diagnostics removed. Commits `e8e2b00` + `9b87fee`.
-DONE  → S13u+v+r (2026-03-22): escalate X-Tool-Secret auth, health endpoint data stripped, demo global budget 100/hr
-DONE  → S12-V18 PARTIAL PASS (2026-03-22): Trial activation PASS, agent created, Google OAuth PASS, dashboard PASS. Email FAIL (S12-V15). Data mapping correct.
-NOW   → S15-PRE (domain purchase prep) — unblocks email, non-Gmail login, branding
-       → S12-PROMPT-TEST1+2 (prompt variable injection test harness — verify auto-generated prompts match manual quality)
-       → S12-TRIAL1 (in-dashboard WebRTC orb — #1 trial conversion blocker)
-       → S12-SCRAPE1 (website scrape preview during onboarding — "wow moment")
-NEXT  → S12-TOUR1 library decision (driver.js vs NextStepjs — user must decide) + S12-TOUR2 (step-by-step guided tour — BLOCKED on library choice)
-       → S12-SCRAPE2+3 (seed knowledge base from scrape + pre-populate on first login)
-       → S12-TRIAL1b (tool demo during test call) + S12-TRIAL2 (guided first-login)
-       → S12-V22 (Supabase email templates) + S12-V23 (Twilio balance check)
-       → S18a+c+e (guard rails)
-THEN  → S15-ENV + S15-CODE (domain migration — after domain purchased)
-       → S12-V15 (email deliverability — unblocked by domain) + S12-LOGIN1 (non-Gmail login — unblocked by domain)
-       → S12-V16 (real phone call E2E)
-       → S12-TRIAL1c (shareable test link) + S12-TRIAL3 (feature gating) + S12-SCRAPE4+5 (custom notes + "add more")
-       → S10 (dashboard observability) + S18i+j+l (webhook integration tests, cron health, timeout audit)
-BEFORE LAUNCH → S13-REC1 (recording bucket → private, HIGH privacy) + S16e (prompt injection defense)
-               → S13 MEDIUM (o,p) + LOW (c,d,j-l,q,w,x) + S14 (outage resilience) + S16a (recording consent)
-               → S18b+g+k (ESLint guard, route checklist, cron method test)
-               → S12-TOUR3 (empty-state hints) + S12-TRIAL4+5 (admin analytics, preview) + S12-TRIAL1d (temp Twilio for trial — cost analysis)
-POST-LAUNCH  → S12-CAL1+2 (calendar page overhaul — 21st.dev component + connect CTA) + S12-FWD1+2 (forwarding setup flow + emergency config)
-              → S12-FWD3 (forwarding E2E verification) + S12-CAL3+4 (post-connect verify + sync indicator)
-              → S11 (data retention) + S12 Phases 3-5 (agent quality + UX) + S16b-d (CASL/PIPEDA)
-              → S18d+f+h (Supabase types CI, deploy verification, import tests)
-              → S19a (webhook liveness monitoring — add to notification-health cron)
-              → S20a+d (Twilio number release + Stripe cancellation handler — cost bleeding)
-              → S10w (client-facing analytics — retention)
-LATER → S12-IVR1+2+3 (IVR multi-route call handling — new product feature)
-       → S17 (operational maturity) + S19b+c (billing alignment + backfill)
-       → S20b+c+e+f (agent deactivation, session invalidation, admin button, reactivation)
-       → S10v (concurrent call limiting — at scale only)
+DONE  → S1-S9.6 (tool unification, notifications, webhook decomp, self-serve regen, knowledge truth,
+         settings cleanup, onboarding defaults, path parity, notification reliability, live call hardening)
+DONE  → S12 Phase 1 bugs (BUG1-6, DATA1-5, CODE1-4, OPS1-8, V1-V14, V18 partial, V23-24)
+DONE  → S12 SCRAPE1-3 (website scrape preview UI + chunk seeding + pre-populated KB)
+DONE  → S13a+e+f+g+h+i+m+n+o+r+s+t+u+v (security hardening — cron auth, rate limiting,
+         Stripe idempotency, RLS audit, transfer-status auth, demo budget, health endpoint)
+DONE  → S13b VERIFIED (native Ultravox HMAC + per-call nonce+timestamp signing)
+DONE  → S13.5 VERIFIED LIVE (Agents API + transcript isolation + toolOverrides format fix)
+DONE  → Railway build fixes (Docker prepare guard, callback URL 200-char limit)
+DONE  → S12-V18 PARTIAL PASS (trial activation, agent creation, Google OAuth, dashboard — email FAIL)
+DONE  → S19a (webhook liveness monitoring in notification-health cron)
+DONE  → S18b+k+n+p, S13q+x, S10m (guard rails batch: pre-push hooks, cron parity tests,
+         login lazy-init, rate limiter consolidation, inbound fire-and-forget doc)
+
+P0-LAUNCH-GATE (do before ANY new S12 features — see P0-LAUNCH-GATE section above):
+  GATE-1 → S15-PRE → S15-ENV/CODE → S12-V15 → S12-LOGIN1 → S12-V22 (auth + email + branding)
+  GATE-2 → S13-REC1 + S16a + S16e (privacy + compliance + prompt injection defense)
+  GATE-3 → S14a-d (outage resilience — voicemail fallback core)
+  GATE-4 → S10a-f (dashboard observability — surface existing data)
+  GATE-5 → S18a + S18c + S18e + S18o (guard rails — fire-and-forget, types, smoke test, build check)
+
+S12 SLICES (after P0 gates pass — see S12 Execution Slices section above):
+  SLICE-1 → S12-PROMPT-TEST1+2 (prompt variable injection harness)
+  SLICE-2 → S12-TRIAL1 (in-dashboard WebRTC orb — #1 conversion blocker)
+  SLICE-3 → Verify SCRAPE1-3 prod + SCRAPE6/7/8/10 (scrape hardening)
+  SLICE-4 → S12-TOUR3 (empty states — before tour)
+  SLICE-5 → S12-TOUR2 (guided tour — driver.js, 4 steps)
+
+DEFERRED (not before launch):
+  → TRIAL1b-1d, TRIAL2-6 (no research, no implementation)
+  → SCRAPE4/5/9, top-1% scrape polish
+  → S12-CAL1+2, S12-FWD1+2+3 (calendar + forwarding UX overhaul)
+  → S12-IVR1+2+3 (IVR multi-route — new product feature)
+  → S13 LOW (c,d,j-l,w) + S13 MEDIUM (p)
+  → S11 (data retention) + S16b-d (CASL/PIPEDA legal)
+  → S17-S20 (operational maturity, billing, deprovisioning)
+  → S18d+f+g+h (CI types, deploy verification, route checklist, import tests)
+  → S10g-w (advanced observability — concurrent limits, client analytics, cost page move)
+  → S19b-d (billing alignment, backfill, usage alerts)
 ```
 
 ---
