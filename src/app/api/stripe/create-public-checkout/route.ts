@@ -17,8 +17,7 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
-import { embedChunks, prepareFactChunks, prepareQaChunks } from '@/lib/embeddings'
-import { syncClientTools } from '@/lib/sync-client-tools'
+import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
@@ -186,16 +185,35 @@ export async function POST(req: NextRequest) {
     if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
 
     // ── Website scraping enrichment ────────────────────────────────────────────
+    // H: Skip duplicate scrape when user already previewed their website during onboarding
     let websiteContent = ''
     let rawScrapeResult: Awaited<ReturnType<typeof scrapeWebsite>> | null = null
     const websiteUrlForScrape = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
-    if (websiteUrlForScrape) {
+
+    const scrapePreview = (intakeData.websiteScrapeResult as {
+      businessFacts: string[];
+      extraQa: { q: string; a: string }[];
+      approvedFacts: boolean[];
+      approvedQa: boolean[];
+    } | null) || null
+
+    if (scrapePreview) {
+      // Reconstruct websiteContent from user-approved scrape preview data (saves 10-20s)
+      const approvedFacts = scrapePreview.businessFacts.filter((_, i) => scrapePreview.approvedFacts[i] !== false)
+      const approvedQa = scrapePreview.extraQa.filter((_, i) => scrapePreview.approvedQa[i] !== false)
+      const factLines = approvedFacts.map((f: string) => `- ${f}`).join('\n')
+      const qaLines = approvedQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
+      websiteContent = [factLines, qaLines].filter(Boolean).join('\n\n')
+      if (websiteContent) {
+        console.log(`[create-public-checkout] Using scrape preview: ${websiteContent.length} chars for slug=${clientSlug}`)
+      }
+    } else if (websiteUrlForScrape) {
+      // Fallback: no preview data, scrape fresh
       const niche = intake.niche || 'other'
       rawScrapeResult = await scrapeWebsite(websiteUrlForScrape, niche)
-      const scrapeResult = rawScrapeResult
-      if (scrapeResult.rawContent) {
-        const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join('\n')
-        const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
+      if (rawScrapeResult.rawContent) {
+        const factLines = rawScrapeResult.businessFacts.map((f: string) => `- ${f}`).join('\n')
+        const qaLines = rawScrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
         websiteContent = [factLines, qaLines].filter(Boolean).join('\n\n')
         if (websiteContent) {
           console.log(`[create-public-checkout] Website scraping: ${websiteContent.length} chars for slug=${clientSlug}`)
@@ -305,39 +323,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`[create-public-checkout] Auto-provisioned: ${clientSlug} (${clientId}) agent=${agentId}`)
 
-    // SCRAPE2: Seed knowledge chunks from website scrape data
+    // SCRAPE2/K2: Seed knowledge chunks from website scrape data
     try {
-      const scrapeData = (intakeData.websiteScrapeResult as {
-        businessFacts: string[];
-        extraQa: { q: string; a: string }[];
-        approvedFacts: boolean[];
-        approvedQa: boolean[];
-      } | null) || null;
-      let factsToSeed: string[] = [];
-      let qaToSeed: { q: string; a: string }[] = [];
-
-      if (scrapeData) {
-        // Prefer user-approved data from scrape preview
-        factsToSeed = scrapeData.businessFacts.filter((_, i) => scrapeData.approvedFacts[i] !== false);
-        qaToSeed = scrapeData.extraQa.filter((_, i) => scrapeData.approvedQa[i] !== false);
-      } else if (rawScrapeResult) {
-        // Fallback: use raw scrape result from earlier in this route
-        factsToSeed = rawScrapeResult.businessFacts || [];
-        qaToSeed = rawScrapeResult.extraQa || [];
-      }
-
-      if (factsToSeed.length > 0 || qaToSeed.length > 0) {
-        const chunks = [
-          ...prepareFactChunks(factsToSeed.join('\n')),
-          ...prepareQaChunks(qaToSeed),
-        ];
-        if (chunks.length > 0) {
-          const embedResult = await embedChunks(clientId, chunks, `checkout-${intakeId}`);
-          console.log(`[create-public-checkout] Knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`);
-          // Rebuild tools so queryKnowledge is registered
-          await syncClientTools(svc, clientId);
-        }
-      }
+      await seedKnowledgeFromScrape(svc, {
+        clientId,
+        clientSlug,
+        scrapeData: intakeData.websiteScrapeResult ?? null,
+        rawScrapeResult,
+        runId: `checkout-${intakeId}`,
+        routeLabel: 'create-public-checkout',
+      });
     } catch (seedErr) {
       // Chunk seeding failure should NOT block checkout
       console.error(`[create-public-checkout] Knowledge seeding failed for ${clientSlug}:`, seedErr);

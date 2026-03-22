@@ -78,10 +78,21 @@ export async function POST(req: NextRequest) {
     const agentName = onboardingData.agentName || NICHE_AGENT_NAME[niche] || 'Sam'
     const companyName = onboardingData.businessName || 'Your Business'
 
+    // Extract approved website scrape data for prompt injection
+    let websiteContent = ''
+    const sr = onboardingData.websiteScrapeResult
+    if (sr && sr.businessFacts?.length > 0) {
+      const approvedFacts = sr.businessFacts.filter((_: string, i: number) => sr.approvedFacts[i] !== false)
+      const approvedQa = sr.extraQa.filter((_: { q: string; a: string }, i: number) => sr.approvedQa[i] !== false)
+      const factLines = approvedFacts.map((f: string) => `- ${f}`).join('\n')
+      const qaLines = approvedQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
+      websiteContent = [factLines, qaLines].filter(Boolean).join('\n\n')
+    }
+
     let prompt: string
     try {
       const intake = toIntakePayload(onboardingData)
-      prompt = buildPromptFromIntake(intake as Record<string, unknown>)
+      prompt = buildPromptFromIntake(intake as Record<string, unknown>, websiteContent || undefined)
     } catch (err) {
       return NextResponse.json({ error: `Prompt generation failed: ${err}` }, { status: 500 })
     }

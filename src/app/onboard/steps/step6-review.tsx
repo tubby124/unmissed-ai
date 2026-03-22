@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Component, useState, type ReactNode } from "react";
 import { OnboardingData, nicheLabels, Niche, defaultAgentNames } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
 import { BETA_PROMO, BASE_PLAN, SETUP, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
@@ -58,6 +58,42 @@ const AFTER_HOURS_LABELS: Record<string, string> = {
   standard: "Tell caller hours & take message",
   route_emergency: "Route to emergency line",
 };
+
+// ── Scrape Preview Error Boundary (I2) ──────────────────────────────────────
+
+class ScrapePreviewBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error("[ScrapePreviewBoundary] Render crash:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 flex flex-col items-center gap-2 text-center">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Website scan unavailable</p>
+          <p className="text-xs text-amber-700 dark:text-amber-300">The preview could not load. This won&apos;t affect your activation.</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+            className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ── Demo Call Section ────────────────────────────────────────────────────────
 
@@ -407,9 +443,11 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
         </div>
       </div>
 
-      {/* Website scrape preview */}
+      {/* Website scrape preview — wrapped in error boundary (I2) */}
       {data.websiteUrl && (
-        <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
+        <ScrapePreviewBoundary>
+          <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
+        </ScrapePreviewBoundary>
       )}
 
       {/* No-FAQ warning */}

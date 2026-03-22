@@ -188,3 +188,17 @@ export function prepareQaChunks(extraQa: { q: string; a: string }[]): ChunkInput
       source: 'website_scrape',
     }))
 }
+
+/**
+ * Convert service tags into a single ChunkInput.
+ * Seeds: "Services offered: tag1, tag2, tag3"
+ */
+export function prepareServiceTagChunks(serviceTags: string[]): ChunkInput[] {
+  const tags = serviceTags.filter(t => t?.trim())
+  if (tags.length === 0) return []
+  return [{
+    content: `Services offered: ${tags.join(', ')}`,
+    chunkType: 'fact' as const,
+    source: 'website_scrape',
+  }]
+}

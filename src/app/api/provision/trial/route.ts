@@ -14,8 +14,7 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
-import { embedChunks, prepareFactChunks, prepareQaChunks } from "@/lib/embeddings";
-import { syncClientTools } from "@/lib/sync-client-tools";
+import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 3
@@ -136,15 +135,25 @@ export async function POST(req: NextRequest) {
   if (!intakeData.niche && data.niche) intakeData.niche = data.niche;
 
   // Website scraping enrichment
+  // H: Skip duplicate scrape when user already previewed their website during onboarding
   let websiteContent = "";
   let rawScrapeResult: Awaited<ReturnType<typeof scrapeWebsite>> | null = null;
   const websiteUrl = data.websiteUrl || "";
-  if (websiteUrl) {
+
+  if (data.websiteScrapeResult) {
+    // Reconstruct websiteContent from user-approved scrape preview data (saves 10-20s)
+    const sr = data.websiteScrapeResult;
+    const approvedFacts = sr.businessFacts.filter((_, i) => sr.approvedFacts[i] !== false);
+    const approvedQa = sr.extraQa.filter((_, i) => sr.approvedQa[i] !== false);
+    const factLines = approvedFacts.map((f: string) => `- ${f}`).join("\n");
+    const qaLines = approvedQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join("\n\n");
+    websiteContent = [factLines, qaLines].filter(Boolean).join("\n\n");
+  } else if (websiteUrl) {
+    // Fallback: no preview data, scrape fresh
     rawScrapeResult = await scrapeWebsite(websiteUrl, data.niche || "other");
-    const scrapeResult = rawScrapeResult;
-    if (scrapeResult.rawContent) {
-      const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join("\n");
-      const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join("\n\n");
+    if (rawScrapeResult.rawContent) {
+      const factLines = rawScrapeResult.businessFacts.map((f: string) => `- ${f}`).join("\n");
+      const qaLines = rawScrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join("\n\n");
       websiteContent = [factLines, qaLines].filter(Boolean).join("\n\n");
     }
   }
@@ -255,34 +264,16 @@ export async function POST(req: NextRequest) {
 
   // Telegram alert handled by activateClient() — no duplicate needed
 
-  // SCRAPE2: Seed knowledge chunks from website scrape data
+  // SCRAPE2/K2: Seed knowledge chunks from website scrape data
   try {
-    const scrapeData = data.websiteScrapeResult;
-    let factsToSeed: string[] = [];
-    let qaToSeed: { q: string; a: string }[] = [];
-
-    if (scrapeData) {
-      // Prefer user-approved data from scrape preview
-      factsToSeed = scrapeData.businessFacts.filter((_, i) => scrapeData.approvedFacts[i] !== false);
-      qaToSeed = scrapeData.extraQa.filter((_, i) => scrapeData.approvedQa[i] !== false);
-    } else if (rawScrapeResult) {
-      // Fallback: use raw scrape result from earlier in this route
-      factsToSeed = rawScrapeResult.businessFacts || [];
-      qaToSeed = rawScrapeResult.extraQa || [];
-    }
-
-    if (factsToSeed.length > 0 || qaToSeed.length > 0) {
-      const chunks = [
-        ...prepareFactChunks(factsToSeed.join('\n')),
-        ...prepareQaChunks(qaToSeed),
-      ];
-      if (chunks.length > 0) {
-        const embedResult = await embedChunks(clientId, chunks, `trial-${intakeId}`);
-        console.log(`[provision/trial] Knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`);
-        // Rebuild tools so queryKnowledge is registered
-        await syncClientTools(supa, clientId);
-      }
-    }
+    await seedKnowledgeFromScrape(supa, {
+      clientId,
+      clientSlug,
+      scrapeData: data.websiteScrapeResult ?? null,
+      rawScrapeResult,
+      runId: `trial-${intakeId}`,
+      routeLabel: 'provision/trial',
+    });
   } catch (seedErr) {
     // Chunk seeding failure should NOT block activation
     console.error(`[provision/trial] Knowledge seeding failed for ${clientSlug}:`, seedErr);

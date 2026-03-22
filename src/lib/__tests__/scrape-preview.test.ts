@@ -1,6 +1,8 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { WebsiteScrapeResult } from '@/types/onboarding'
+import { validateScrapeResult } from '@/lib/scrape-validation'
+import { prepareServiceTagChunks } from '@/lib/embeddings'
 
 // ---------------------------------------------------------------------------
 // Pure logic extracted from SCRAPE1/SCRAPE2 features.
@@ -10,27 +12,25 @@ import type { WebsiteScrapeResult } from '@/types/onboarding'
 //   - types/onboarding.ts (type shape)
 // ---------------------------------------------------------------------------
 
-type ScrapeResult = WebsiteScrapeResult
-
 // Toggle logic — mirrors WebsiteScrapePreview.tsx toggleFact/toggleQa
-function toggleFact(result: ScrapeResult, index: number): ScrapeResult {
+function toggleFact(result: WebsiteScrapeResult, index: number): WebsiteScrapeResult {
   const next = [...result.approvedFacts]
   next[index] = !next[index]
   return { ...result, approvedFacts: next }
 }
 
-function toggleQa(result: ScrapeResult, index: number): ScrapeResult {
+function toggleQa(result: WebsiteScrapeResult, index: number): WebsiteScrapeResult {
   const next = [...result.approvedQa]
   next[index] = !next[index]
   return { ...result, approvedQa: next }
 }
 
 // Filtering logic — mirrors provision/trial/route.ts + create-public-checkout/route.ts
-function filterApprovedFacts(result: ScrapeResult): string[] {
+function filterApprovedFacts(result: WebsiteScrapeResult): string[] {
   return result.businessFacts.filter((_, i) => result.approvedFacts[i] !== false)
 }
 
-function filterApprovedQa(result: ScrapeResult): { q: string; a: string }[] {
+function filterApprovedQa(result: WebsiteScrapeResult): { q: string; a: string }[] {
   return result.extraQa.filter((_, i) => result.approvedQa[i] !== false)
 }
 
@@ -45,7 +45,7 @@ function isStale(scrapedAt: string, now: number = Date.now()): boolean {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function makeScrapeResult(overrides?: Partial<ScrapeResult>): ScrapeResult {
+function makeScrapeResult(overrides?: Partial<WebsiteScrapeResult>): WebsiteScrapeResult {
   return {
     businessFacts: ['Open 7 days a week', 'Licensed and insured', 'Free estimates'],
     extraQa: [
@@ -227,5 +227,120 @@ describe('SCRAPE1: Stale detection (24-hour boundary)', () => {
   it('48 hours ago IS stale', () => {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     assert.equal(isStale(fortyEightHoursAgo), true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Phase I — validateScrapeResult
+// ---------------------------------------------------------------------------
+
+describe('Phase I: validateScrapeResult', () => {
+  it('valid shape passes', () => {
+    const data = makeScrapeResult()
+    assert.equal(validateScrapeResult(data), true)
+  })
+
+  it('null / undefined / non-object fails', () => {
+    assert.equal(validateScrapeResult(null), false)
+    assert.equal(validateScrapeResult(undefined), false)
+    assert.equal(validateScrapeResult('string'), false)
+    assert.equal(validateScrapeResult(42), false)
+  })
+
+  it('missing businessFacts fails', () => {
+    const data = makeScrapeResult()
+    const { businessFacts: _, ...rest } = data
+    assert.equal(validateScrapeResult(rest), false)
+  })
+
+  it('businessFacts with non-string element fails', () => {
+    const data = makeScrapeResult({ businessFacts: ['ok', 123 as unknown as string] })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('missing approvedFacts fails', () => {
+    const data = makeScrapeResult()
+    const { approvedFacts: _, ...rest } = data
+    assert.equal(validateScrapeResult(rest), false)
+  })
+
+  it('approvedFacts with non-boolean element fails', () => {
+    const data = makeScrapeResult({ approvedFacts: [true, 'yes' as unknown as boolean] })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('missing extraQa fails', () => {
+    const data = makeScrapeResult()
+    const { extraQa: _, ...rest } = data
+    assert.equal(validateScrapeResult(rest), false)
+  })
+
+  it('extraQa with wrong shape fails', () => {
+    const data = makeScrapeResult({ extraQa: [{ q: 'ok', a: 123 }] as unknown as { q: string; a: string }[] })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('missing approvedQa fails', () => {
+    const data = makeScrapeResult()
+    const { approvedQa: _, ...rest } = data
+    assert.equal(validateScrapeResult(rest), false)
+  })
+
+  it('serviceTags missing is OK (optional)', () => {
+    const data = makeScrapeResult()
+    const { serviceTags: _, ...rest } = data
+    assert.equal(validateScrapeResult(rest), true)
+  })
+
+  it('serviceTags with non-string element fails', () => {
+    const data = makeScrapeResult({ serviceTags: ['ok', 42 as unknown as string] })
+    assert.equal(validateScrapeResult(data), false)
+  })
+
+  it('empty arrays are valid', () => {
+    const data = makeScrapeResult({
+      businessFacts: [],
+      approvedFacts: [],
+      extraQa: [],
+      approvedQa: [],
+      serviceTags: [],
+    })
+    assert.equal(validateScrapeResult(data), true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Phase J — prepareServiceTagChunks
+// ---------------------------------------------------------------------------
+
+describe('Phase J: prepareServiceTagChunks', () => {
+  it('produces one chunk with comma-separated tags', () => {
+    const chunks = prepareServiceTagChunks(['windshield', 'rock chip', 'side glass'])
+    assert.equal(chunks.length, 1)
+    assert.equal(chunks[0].content, 'Services offered: windshield, rock chip, side glass')
+    assert.equal(chunks[0].chunkType, 'fact')
+    assert.equal(chunks[0].source, 'website_scrape')
+  })
+
+  it('empty array produces no chunks', () => {
+    const chunks = prepareServiceTagChunks([])
+    assert.equal(chunks.length, 0)
+  })
+
+  it('whitespace-only tags are filtered out', () => {
+    const chunks = prepareServiceTagChunks(['', '  ', 'valid'])
+    assert.equal(chunks.length, 1)
+    assert.equal(chunks[0].content, 'Services offered: valid')
+  })
+
+  it('all whitespace tags produces no chunks', () => {
+    const chunks = prepareServiceTagChunks(['', ' ', '  '])
+    assert.equal(chunks.length, 0)
+  })
+
+  it('single tag produces one chunk', () => {
+    const chunks = prepareServiceTagChunks(['plumbing'])
+    assert.equal(chunks.length, 1)
+    assert.equal(chunks[0].content, 'Services offered: plumbing')
   })
 })
