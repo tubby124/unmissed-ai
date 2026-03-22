@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { usePatchSettings } from './usePatchSettings'
+import { usePatchSettings, type CardMode } from './usePatchSettings'
 
 const PRESETS = [
   { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, upbeat, natural fillers and slang — great for trades and small shops' },
@@ -16,11 +16,13 @@ interface VoiceStyleCardProps {
   isAdmin: boolean
   initialPreset: string
   previewMode?: boolean
+  mode?: CardMode
+  onSave?: () => void
 }
 
-export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previewMode }: VoiceStyleCardProps) {
+export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previewMode, mode = 'settings', onSave }: VoiceStyleCardProps) {
   const [preset, setPreset] = useState(initialPreset || 'casual_friendly')
-  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
   async function save() {
     await patch({ voice_style_preset: preset })
@@ -40,9 +42,9 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
               <path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voice Style</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'How Should Your Agent Sound?' : 'Voice Style'}</p>
           </div>
-          <p className="text-[11px] t3 mt-1">How your agent sounds on calls — tone, pacing, and filler words.</p>
+          <p className="text-[11px] t3 mt-1">{mode === 'onboarding' ? 'Pick a personality. You can change this anytime in settings.' : 'How your agent sounds on calls — tone, pacing, and filler words.'}</p>
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {PRESETS.map(p => {
@@ -76,6 +78,7 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
           >
             {saving ? 'Saving...' : saved ? 'Saved' : 'Save Style'}
           </button>
+          {error && <p className="text-[11px] text-red-400 ml-2">{error}</p>}
         </div>
       </div>
     </motion.div>

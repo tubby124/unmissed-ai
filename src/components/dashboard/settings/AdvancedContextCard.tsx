@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { usePatchSettings } from './usePatchSettings'
+import { usePatchSettings, type CardMode } from './usePatchSettings'
 
 interface AdvancedContextCardProps {
   clientId: string
@@ -13,6 +13,8 @@ interface AdvancedContextCardProps {
   initialContextDataLabel: string
   prompt: string
   previewMode?: boolean
+  mode?: CardMode
+  onSave?: () => void
 }
 
 export default function AdvancedContextCard({
@@ -24,12 +26,14 @@ export default function AdvancedContextCard({
   initialContextDataLabel,
   prompt,
   previewMode,
+  mode = 'settings',
+  onSave,
 }: AdvancedContextCardProps) {
   const [facts, setFacts] = useState(initialFacts)
   const [qa, setQa] = useState<{ q: string; a: string }[]>(initialQA)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
 
-  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
   async function save() {
     await patch({
@@ -49,8 +53,8 @@ export default function AdvancedContextCard({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
-            <p className="text-[11px] t3 mt-0.5">{isAdmin ? 'Extra knowledge injected at call time — not stored in the prompt' : 'Information your agent uses to help callers'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'Teach Your Agent' : isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
+            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Add info so your agent can answer caller questions about your business' : isAdmin ? 'Extra knowledge injected at call time — not stored in the prompt' : 'Information your agent uses to help callers'}</p>
           </div>
           <button
             onClick={save}
@@ -63,6 +67,7 @@ export default function AdvancedContextCard({
           >
             {saving ? 'Saving\u2026' : saved ? '\u2713 Active on next call' : 'Save'}
           </button>
+          {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
         </div>
 
         {/* Business Facts */}
@@ -147,6 +152,7 @@ export default function AdvancedContextCard({
         </div>
 
         {/* Prompt Preview */}
+        {mode !== 'onboarding' && (
         <div className="mt-5 pt-4 border-t b-theme">
           <button
             onClick={() => setPromptPreviewOpen(prev => !prev)}
@@ -183,6 +189,7 @@ export default function AdvancedContextCard({
             )}
           </AnimatePresence>
         </div>
+        )}
       </div>
     </motion.div>
   )

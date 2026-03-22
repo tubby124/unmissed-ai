@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { usePatchSettings } from './usePatchSettings'
+import { usePatchSettings, type CardMode } from './usePatchSettings'
 
 interface VoicemailGreetingCardProps {
   clientId: string
@@ -11,6 +11,8 @@ interface VoicemailGreetingCardProps {
   businessName: string | null
   hasAudioGreeting: boolean
   previewMode?: boolean
+  mode?: CardMode
+  onSave?: () => void
 }
 
 export default function VoicemailGreetingCard({
@@ -20,9 +22,11 @@ export default function VoicemailGreetingCard({
   businessName,
   hasAudioGreeting,
   previewMode,
+  mode = 'settings',
+  onSave,
 }: VoicemailGreetingCardProps) {
   const [text, setText] = useState(initialText)
-  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
   async function save() {
     await patch({ voicemail_greeting_text: text })
@@ -36,7 +40,7 @@ export default function VoicemailGreetingCard({
     >
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Voicemail Greeting</p>
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'Voicemail Backup' : 'Voicemail Greeting'}</p>
           <button
             onClick={save}
             disabled={saving || previewMode}
@@ -48,9 +52,12 @@ export default function VoicemailGreetingCard({
           >
             {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
           </button>
+          {error && <p className="text-[11px] text-red-400">{error}</p>}
         </div>
         <p className="text-[11px] t3 mb-3">
-          Played to callers when the AI agent is temporarily unavailable. Leave blank to auto-generate from your business name.
+          {mode === 'onboarding'
+            ? 'If your agent is ever unavailable, callers hear this. Leave blank for an auto-generated greeting.'
+            : 'Played to callers when the AI agent is temporarily unavailable. Leave blank to auto-generate from your business name.'}
         </p>
         <textarea
           rows={3}
@@ -59,11 +66,13 @@ export default function VoicemailGreetingCard({
           className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors resize-y"
           placeholder={`Hi, you've reached ${businessName || 'our office'}. We're unable to take your call right now. Please leave a message after the beep and we'll get back to you as soon as possible.`}
         />
-        <p className="text-[10px] t3 mt-1.5">
-          {hasAudioGreeting
-            ? 'Custom audio greeting is active (set by admin). Text greeting is used as fallback.'
-            : 'Tip: Contact support to upload a custom audio greeting for a more personalized experience.'}
-        </p>
+        {mode !== 'onboarding' && (
+          <p className="text-[10px] t3 mt-1.5">
+            {hasAudioGreeting
+              ? 'Custom audio greeting is active (set by admin). Text greeting is used as fallback.'
+              : 'Tip: Contact support to upload a custom audio greeting for a more personalized experience.'}
+          </p>
+        )}
       </div>
     </motion.div>
   )

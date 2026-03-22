@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { usePatchSettings } from './usePatchSettings'
+import { usePatchSettings, type CardMode } from './usePatchSettings'
 
 interface HoursCardProps {
   clientId: string
@@ -12,6 +12,8 @@ interface HoursCardProps {
   initialBehavior: string
   initialPhone: string
   previewMode?: boolean
+  mode?: CardMode
+  onSave?: () => void
 }
 
 export default function HoursCard({
@@ -22,13 +24,15 @@ export default function HoursCard({
   initialBehavior,
   initialPhone,
   previewMode,
+  mode = 'settings',
+  onSave,
 }: HoursCardProps) {
   const [weekday, setWeekday] = useState(initialWeekday)
   const [weekend, setWeekend] = useState(initialWeekend)
   const [behavior, setBehavior] = useState(initialBehavior)
   const [phone, setPhone] = useState(initialPhone)
 
-  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+  const { saving, saved, error, patch, clearError } = usePatchSettings(clientId, isAdmin, { onSave })
 
   async function save() {
     await patch({
@@ -48,8 +52,8 @@ export default function HoursCard({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Hours &amp; After-Hours</p>
-            <p className="text-[11px] t3 mt-0.5">Configure when your agent treats calls as after-hours</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Hours & After-Hours'}</p>
+            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent uses this to tell callers when you\'re available' : 'Configure when your agent treats calls as after-hours'}</p>
           </div>
           <button
             onClick={save}
@@ -63,6 +67,9 @@ export default function HoursCard({
             {saving ? 'Saving\u2026' : saved ? '\u2713 Saved' : 'Save'}
           </button>
         </div>
+        {error && (
+          <p className="text-[11px] text-red-400 mt-2">{error}</p>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -85,31 +92,38 @@ export default function HoursCard({
               placeholder="e.g. Saturday 10am to 2pm, or leave blank for closed"
             />
           </div>
-          <div>
-            <p className="text-[11px] font-medium t2 mb-1.5">When you&apos;re closed, your agent should&hellip;</p>
-            <select
-              value={behavior}
-              onChange={e => setBehavior(e.target.value)}
-              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-            >
-              <option value="take_message">Take a message</option>
-              <option value="route_emergency">Route emergencies to a phone number</option>
-              <option value="custom_message">Custom message only</option>
-            </select>
-          </div>
-          {behavior === 'route_emergency' && (
-            <div>
-              <p className="text-[11px] font-medium t2 mb-1.5">Emergency phone number</p>
-              <input
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
-                placeholder="e.g. +13065550101"
-              />
-            </div>
+          {mode !== 'onboarding' && (
+            <>
+              <div>
+                <p className="text-[11px] font-medium t2 mb-1.5">When you&apos;re closed, your agent should&hellip;</p>
+                <select
+                  value={behavior}
+                  onChange={e => setBehavior(e.target.value)}
+                  className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+                >
+                  <option value="take_message">Take a message</option>
+                  <option value="route_emergency">Route emergencies to a phone number</option>
+                  <option value="custom_message">Custom message only</option>
+                </select>
+              </div>
+              {behavior === 'route_emergency' && (
+                <div>
+                  <p className="text-[11px] font-medium t2 mb-1.5">Emergency phone number</p>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+                    placeholder="e.g. +13065550101"
+                  />
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
+            </>
           )}
-          <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
+          {mode === 'onboarding' && (
+            <p className="text-[11px] t3 mt-1">Your agent answers calls 24/7. These hours help it tell callers when you&apos;re available in person.</p>
+          )}
         </div>
       </div>
     </motion.div>

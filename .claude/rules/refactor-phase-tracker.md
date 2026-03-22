@@ -27,6 +27,8 @@
 **Other (S10, S11, S14, S16-S20):** NO RESEARCH yet. See archive for details.
 **Phase 0:** `docs/research-notes/phase0-tooling-research.md` | `docs/refactor-baseline/PHASE-0D-TRUTH-MAP.md`
 
+**Settings Cards (D11-D16 + SET-1 to SET-6):** `docs/settings-card-tracker.md` — dedicated tracker for settings card bugs found via Playwright testing. Architecture ref: `memory/settings-card-architecture.md`
+
 ---
 
 ## Completed Phases Summary
@@ -57,6 +59,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S16e | Prompt Injection Defense | Rules 14-16 generic + 12-14 real_estate + voicemail, `validatePrompt()` gate, deployed to all 5 live agents, 12 promptfoo adversarial tests |
 | S14a-d | Voicemail Fallback | `buildVoicemailTwiml()`, recording callback, Telegram notify, branded fallback, settings UI |
 | S10a-f | Dashboard Observability | Prompt version history, notifications tab, bookings (Calendar page), call detail context, failed notif badge |
+| D1-D13 | GATE-4 Session Discoveries | 10 bugs/gaps found + 3 refactors. Dual-ID lookup, server filters, realtime subs, pagination, voice_style/injected_note fixes, AgentTab extraction |
 
 ---
 
@@ -102,7 +105,7 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | S10e | S10 | **DONE** -- call detail view with CallNotifications + CallBookings sub-panels per call_id |
 | S10f | S10 | **DONE** -- failed notification red badge in sidebar, 24h window, realtime via postgres_changes |
 
-**GATE-4 status: PASS. All 6 items verified. S10b was only new code (11 lines). Rest pre-existed.**
+**GATE-4 status: PASS. S10a-f verified + D1-D13 session discoveries fixed (voice_style save, injected_note, AgentTab extraction, realtime, pagination, server filters).**
 
 ### GATE-5 -- Guard Rails
 | Item | Source | Status |
@@ -147,9 +150,16 @@ All phases below are DONE (2026-03-21/22). Sub-item details in `docs/refactor-co
 | D11 | **BUG** | `voice_style_preset` save was a no-op — wrote to DB but never patched the prompt or synced to Ultravox. Preset selection had zero effect on calls. | HIGH | **DONE** 2026-03-22 -- `patchVoiceStyleSection()` in prompt-patcher.ts, wired into settings API |
 | D12 | **BUG** | `injected_note` (Today's Update) had 3 distinct bugs: (1) prompt-patching at save time never persisted combined prompt, (2) next agent sync wiped it, (3) inbound webhook didn't SELECT it. | HIGH | **DONE** 2026-03-22 -- converted to call-time injection via `callerContextBlock` in agent-context.ts |
 | D13 | REFACTOR | AgentTab.tsx was 2239-line monolith — extracted 5 settings cards + shared `usePatchSettings` hook. AgentTab now 1774 lines. | MEDIUM | **DONE** 2026-03-22 -- HoursCard, VoiceStyleCard, VoicemailGreetingCard, SectionEditorCard, AdvancedContextCard |
-| D14 | TECH DEBT | Booking config card is the last inline settings card in AgentTab.tsx (`saveBookingConfig` + state). Not extracted because it interacts with calendar block prompt patching. | LOW | NOT STARTED |
-| D15 | **GAP** | Voice style + calendar prompt patches skip `validatePrompt()` — if replacement pushes prompt over 8K chars, it won't be caught. Section editor DOES validate. | MEDIUM | NOT STARTED |
-| D16 | UX GAP | `usePatchSettings` hook doesn't surface errors to user. If PATCH fails (prompt validation, Ultravox sync), 4 cards show no error. Only `SectionEditorCard` has error display (custom save logic). | MEDIUM | NOT STARTED |
+| D14 | TECH DEBT | Booking config card was last inline settings card in AgentTab.tsx. | LOW | **DONE** 2026-03-22 — Wave 1: BookingCard + WebhooksCard + AgentConfigCard + TestCallCard extracted. AgentTab 1774→1461 lines. |
+| D15 | **GAP** | Voice style + calendar prompt patches skip `validatePrompt()` — if replacement pushes prompt over 8K chars, it won't be caught. Section editor DOES validate. | MEDIUM | **DONE** 2026-03-22 — both patches now run `validatePrompt()`, block save + return error if >8K |
+| D16 | UX GAP | `usePatchSettings` hook doesn't surface errors to user. If PATCH fails (prompt validation, Ultravox sync), cards show no error. | MEDIUM | **DONE** 2026-03-22 — hook returns `error`/`clearError`, all 7 cards display errors. AgentOverviewCard also has `footerError`. |
+| D17 | REALTIME | Calls page (`/dashboard/calls`) has no `postgres_changes` subscription. New calls during a session require manual refresh. Same gap that D9 fixed for Calendar/Notifications. | LOW | NOT STARTED |
+| D18 | REALTIME | Leads page (`/dashboard/leads`) has no realtime subscription. New leads from calls require manual refresh. | LOW | NOT STARTED |
+| D19 | TECH DEBT | Settings PATCH route uses 30+ manual `typeof` field checks instead of a Zod schema. Not a bug (each field is individually validated) but a drift risk — new fields can be added without validation. | LOW | NOT STARTED |
+| D20 | WIP | S12 Slice 4/5 partially started — uncommitted files exist: `TrialBadge.tsx`, `UpgradeCTA.tsx`, `empty-states/`, `useOnboarding.ts`, modified `AgentTestCard.tsx`, `OnboardingChecklist.tsx`. Need to decide: commit as WIP branch or discard. | INFO | NEEDS DECISION |
+| D25 | UNIFICATION | All 7 extracted cards + AgentOverviewCard now support `mode` prop ('settings' \| 'onboarding'), `onSave` callback, and error display. `usePatchSettings` hook upgraded with `error`/`clearError`/`CardMode` type. Onboarding and settings share same components, same DB writes, same Ultravox sync. | DONE | **DONE** 2026-03-22 |
+| D26 | **GAP** | `agent_name` save does NOT update `system_prompt` — name is baked in during prompt generation only. Changing name in settings/onboarding changes display but agent still uses old name on calls until prompt regen. | MEDIUM | NOT STARTED |
+| D27 | **GAP** | No feedback loop for call-time injection fields (hours, facts, Q&A). User saves but sees no confirmation the agent "knows" it — only a test call verifies. Consider a "preview what agent knows" panel. | LOW | NOT STARTED |
 
 ---
 
@@ -186,7 +196,7 @@ DONE  -> S0-S9.6, S12 Phase 1, S13 (security), S13.5 (call quality),
          S18 partial (guard rails), S19a (webhook liveness),
          GATE-2: S13-REC1 (recording privacy) + S16e (prompt injection defense),
          GATE-3: S14a-d (voicemail fallback + settings UI),
-         GATE-4: S10a-f (dashboard observability — all 6 items)
+         GATE-4: S10a-f + D1-D13 (dashboard observability + session discoveries)
 
 NEXT (P0-LAUNCH-GATE):
   GATE-1 -> S15 domain + email (BLOCKED on domain purchase)
@@ -225,3 +235,6 @@ DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
 - **Multi-tenant auth:** Every dashboard API route needs `client_users` gating after session auth.
 - **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
 - **Prompt injection defense required:** All agent prompts must include reveal/role-override/code-output defense rules. `validatePrompt()` enforces for generated prompts. Hand-crafted `SYSTEM_PROMPT.txt` files need manual addition matching each client's style (e.g. "Never X" vs numbered rules). Always dry-run `deploy_prompt.py --dry-run` before live deploy to verify tools aren't wiped.
+- **Prompt section patching:** `lib/prompt-patcher.ts` for feature-toggle patches (calendar block, voice style). `lib/prompt-sections.ts` for marker-based section replacement (`<!-- unmissed:SECTION_ID -->`). Never edit prompt text inline in route handlers.
+- **Settings card extraction pattern:** New settings cards go in `components/dashboard/settings/`. Use `usePatchSettings` hook for PATCH `/api/dashboard/settings`. Cards: HoursCard, VoiceStyleCard, VoicemailGreetingCard, SectionEditorCard, AdvancedContextCard, BookingCard, WebhooksCard, AgentConfigCard, TestCallCard. Wave 2 next: SetupCard, GodModeCard, LearningLoopCard.
+- **Call-time injection (not prompt-time):** Ephemeral data (`injected_note`, returning caller context) is injected via `callerContextBlock()` in `lib/agent-context.ts` at call creation — NOT baked into `system_prompt` in DB. DB prompt = stable base. Call-time additions = dynamic overlay via `templateContext`.

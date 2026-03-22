@@ -15,11 +15,15 @@ import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import SectionEditorCard from '@/components/dashboard/settings/SectionEditorCard'
+import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
+import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
+import BookingCard from '@/components/dashboard/settings/BookingCard'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { fmtPhone } from '@/lib/settings-utils'
 import { parsePromptSections } from '@/lib/prompt-sections'
 import type { PromptVersion, ImproveResult, LearningStatus, GodConfigEntry } from './constants'
-import { TIMEZONES, KNOWN_VOICES } from './constants'
-import { fmtDate, CopyButton, UrlRow, ConfigRow } from './shared'
+import { TIMEZONES } from './constants'
+import { fmtDate, CopyButton } from './shared'
 
 interface AgentTabProps {
   client: ClientConfig
@@ -184,25 +188,10 @@ export default function AgentTab({
   const [viewingVersion, setViewingVersion] = useState<PromptVersion | null>(null)
   const [showAllVersions, setShowAllVersions] = useState(false)
 
-  const [syncing, setSyncing] = useState(false)
-  const [syncState, setSyncState] = useState<'idle' | 'ok' | 'error'>('idle')
-  const [syncError, setSyncError] = useState('')
-
   const [godSaving, setGodSaving] = useState(false)
   const [godSaved, setGodSaved] = useState(false)
 
-
-  const [bookingSaving, setBookingSaving] = useState(false)
-  const [bookingSaved, setBookingSaved] = useState(false)
-
-
-  const [testPhone, setTestPhone] = useState('')
-  const [testCallState, setTestCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
-  const [testCallResult, setTestCallResult] = useState<{ callId?: string; twilio_sid?: string } | null>(null)
-  const [testCallError, setTestCallError] = useState('')
-
   const [promptCollapsed, setPromptCollapsed] = useState(isAdmin)
-  const [webhooksCollapsed, setWebhooksCollapsed] = useState(true)
 
   const [setupCollapsed, setSetupCollapsed] = useState(() => !!(client.setup_complete || client.twilio_number))
   const [setupSaving, setSetupSaving] = useState(false)
@@ -212,13 +201,10 @@ export default function AgentTab({
   // ─── Derived values ────────────────────────────────────────────────────────
   const niche = client.niche ?? ''
   const nicheConfig = NICHE_CONFIG[niche] ?? { label: niche || 'General', color: 't2', border: 'border-zinc-500/30' }
-  const voiceName = client.agent_voice_id ? (KNOWN_VOICES[client.agent_voice_id] ?? null) : null
   const currentPrompt = prompt[client.id] ?? ''
   const originalPrompt = client.system_prompt ?? ''
   const dirty = currentPrompt !== originalPrompt
   const charCount = currentPrompt.length
-  const inboundUrl = `${appUrl}/api/webhook/${client.slug}/inbound`
-  const completedUrl = `${appUrl}/api/webhook/${client.slug}/completed`
   const isActive = status[client.id] === 'active'
 
   // ─── Handler functions ─────────────────────────────────────────────────────
@@ -439,81 +425,6 @@ export default function AgentTab({
       await loadVersions()
     }
     setRestoring(null)
-  }
-
-  async function syncAgent() {
-    setSyncing(true)
-    setSyncState('idle')
-    setSyncError('')
-    const body: Record<string, unknown> = {}
-    if (isAdmin) body.client_id = client.id
-    try {
-      const res = await fetch('/api/dashboard/settings/sync-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setSyncState('ok')
-        setSaveUltravoxWarning(null)
-        setTimeout(() => setSyncState('idle'), 3000)
-      } else {
-        setSyncState('error')
-        setSyncError(data.error || 'Sync failed')
-      }
-    } catch {
-      setSyncState('error')
-      setSyncError('Network error')
-    }
-    setSyncing(false)
-  }
-
-  async function saveBookingConfig() {
-    setBookingSaving(true)
-    setBookingSaved(false)
-    const body: Record<string, unknown> = {
-      booking_service_duration_minutes: bookingDuration[client.id] ?? 30,
-      booking_buffer_minutes: bookingBuffer[client.id] ?? 0,
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setBookingSaving(false)
-    if (res.ok) {
-      setBookingSaved(true)
-      setTimeout(() => setBookingSaved(false), 3000)
-    }
-  }
-
-  async function fireTestCall() {
-    if (!testPhone.trim()) return
-    setTestCallState('calling')
-    setTestCallResult(null)
-    setTestCallError('')
-    const body: Record<string, unknown> = { to_phone: testPhone.trim() }
-    if (isAdmin) body.client_id = client.id
-    try {
-      const res = await fetch('/api/dashboard/test-call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setTestCallState('done')
-        setTestCallResult({ callId: data.callId, twilio_sid: data.twilio_sid })
-      } else {
-        setTestCallState('error')
-        setTestCallError(data.error || 'Failed to start test call')
-      }
-    } catch {
-      setTestCallState('error')
-      setTestCallError('Network error')
-    }
   }
 
   async function saveSetup() {
@@ -744,113 +655,18 @@ export default function AgentTab({
 
       {/* 2 — Webhooks + Phone (collapsible, admin only) */}
       {isAdmin && (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.06 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
-        <button
-          onClick={() => setWebhooksCollapsed(p => !p)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
-              <polyline points="16 18 22 12 16 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="8 6 2 12 8 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Developer Settings</p>
-          </div>
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            className={`t3 transition-transform duration-200 ${webhooksCollapsed ? '' : 'rotate-180'}`}
-          >
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <AnimatePresence initial={false}>
-          {!webhooksCollapsed && (
-            <motion.div
-              key="webhooks-content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div className="px-5 pb-5 border-t b-theme">
-                <p className="text-[11px] t3 mt-4 mb-3">These URLs are pre-configured in your Twilio console. No action needed.</p>
-                <UrlRow label="Inbound" url={inboundUrl} />
-                <UrlRow label="Completed" url={completedUrl} />
-                <div className="flex items-center gap-3 py-2.5 border-b b-theme last:border-0">
-                  <span className="text-xs t3 w-24 shrink-0">Twilio Number</span>
-                  <span className="flex-1 text-sm font-mono font-medium t1">
-                    {fmtPhone(client.twilio_number)}
-                  </span>
-                  {client.twilio_number && <CopyButton value={client.twilio_number} />}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      </motion.div>
+        <WebhooksCard appUrl={appUrl} slug={client.slug} twilioNumber={client.twilio_number} />
       )}
 
       {/* 3 — Agent Configuration (admin only) */}
       {isAdmin && (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.12 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Agent Configuration</p>
-        <p className="text-[11px] t3 mb-4">Voice and AI model settings</p>
-        {client.agent_voice_id ? (
-          <ConfigRow
-            label="Voice"
-            value={voiceName ? `${voiceName}  ·  ${client.agent_voice_id}` : client.agent_voice_id}
-            copyValue={client.agent_voice_id}
-          />
-        ) : (
-          <ConfigRow label="Voice" value="Not configured" />
-        )}
-        <div className="py-2">
-          <a
-            href="/dashboard/voices"
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            Change voice →
-          </a>
-        </div>
-        <ConfigRow label="AI Model" value="Ultravox v0.7 (fixie-ai)" />
-        <ConfigRow label="Client ID" value={client.id} copyValue={client.id} />
-        {client.telegram_chat_id && (
-          <ConfigRow label="Telegram Chat" value={client.telegram_chat_id} copyValue={client.telegram_chat_id} />
-        )}
-        {client.ultravox_agent_id && (
-          <div className="flex items-center gap-3 pt-3 mt-1 border-t b-theme">
-            <button
-              onClick={syncAgent}
-              disabled={syncing}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 ${
-                syncState === 'ok'
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : syncState === 'error'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-hover t2 border b-theme hover:bg-hover hover:t1'
-              }`}
-            >
-              {syncing ? 'Syncing…' : syncState === 'ok' ? '✓ Synced' : syncState === 'error' ? '✗ Sync failed' : 'Re-sync Agent'}
-            </button>
-            <span className="text-[11px] t3">
-              {syncState === 'error' ? syncError : 'Force-push current prompt + voice to Ultravox'}
-            </span>
-          </div>
-        )}
-      </div>
-      </motion.div>
+        <AgentConfigCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          agentVoiceId={client.agent_voice_id}
+          ultravoxAgentId={client.ultravox_agent_id}
+          telegramChatId={client.telegram_chat_id}
+        />
       )}
 
       {/* 3b — Advanced Config (admin only) */}
@@ -961,81 +777,15 @@ export default function AgentTab({
 
       {/* 4c — Booking (gated by niche capability) */}
       {hasCapability(niche, 'bookAppointments') && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-400/80">Booking</p>
-            </div>
-          </div>
-          <p className="text-[11px] t3 mb-4">Connect Google Calendar to let your agent check availability and book appointments on live calls.</p>
-
-          {/* Connection status */}
-          {client.calendar_auth_status === 'connected' ? (
-            <div className="flex items-center gap-3 mb-4 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span className="text-xs text-emerald-300">Calendar connected</span>
-              {client.google_calendar_id && (
-                <span className="text-[10px] font-mono t3 truncate">{client.google_calendar_id}</span>
-              )}
-            </div>
-          ) : client.calendar_auth_status === 'expired' ? (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400">
-              Calendar authorization expired — reconnect below.
-            </div>
-          ) : null}
-
-          {/* Connect button */}
-          <a
-            href={`/api/auth/google${isAdmin ? `?client_id=${client.id}` : ''}`}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            {client.calendar_auth_status === 'connected' ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
-          </a>
-
-          {/* Duration + buffer settings (only when connected) */}
-          {client.calendar_auth_status === 'connected' && (
-            <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] t3 block mb-1">Appointment duration</label>
-                  <select
-                    value={bookingDuration[client.id] ?? 60}
-                    onChange={e => setBookingDuration(prev => ({ ...prev, [client.id]: Number(e.target.value) }))}
-                    className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:border-emerald-500/40"
-                  >
-                    {[30, 45, 60, 90, 120].map(m => (
-                      <option key={m} value={m}>{m} min</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] t3 block mb-1">Buffer between appointments</label>
-                  <select
-                    value={bookingBuffer[client.id] ?? 15}
-                    onChange={e => setBookingBuffer(prev => ({ ...prev, [client.id]: Number(e.target.value) }))}
-                    className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:border-emerald-500/40"
-                  >
-                    {[0, 10, 15, 30].map(m => (
-                      <option key={m} value={m}>{m} min</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <button
-                onClick={saveBookingConfig}
-                disabled={bookingSaving || previewMode}
-                className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  bookingSaved
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30'
-                } disabled:opacity-40`}
-              >
-                {bookingSaving ? 'Saving…' : bookingSaved ? '✓ Saved' : 'Save Booking Config'}
-              </button>
-            </div>
-          )}
-        </div>
+        <BookingCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          calendarAuthStatus={client.calendar_auth_status}
+          googleCalendarId={client.google_calendar_id}
+          initialDuration={bookingDuration[client.id] ?? 60}
+          initialBuffer={bookingBuffer[client.id] ?? 15}
+          previewMode={previewMode}
+        />
       )}
 
       {/* 5 — System Prompt (collapsible) */}
@@ -1367,70 +1117,7 @@ export default function AgentTab({
       </motion.div>
 
       {/* 5a — Test Call */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.02 }}
-      >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Test Your Agent</p>
-        <p className="text-[11px] t3 mb-4">
-          {isAdmin
-            ? 'Trigger the agent to call a phone number. Use after prompt changes to verify the agent sounds right. Logged as a test call in Call Logs.'
-            : 'Hear your agent in action — enter your phone number and your agent will call you.'}
-        </p>
-        <div className="flex items-center gap-2">
-          <input
-            type="tel"
-            value={testPhone}
-            onChange={e => setTestPhone(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && fireTestCall()}
-            placeholder="+14031234567"
-            disabled={testCallState === 'calling' || previewMode}
-            className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
-          />
-          <ShimmerButton
-            onClick={fireTestCall}
-            disabled={!testPhone.trim() || testCallState === 'calling' || previewMode}
-            borderRadius="12px"
-            shimmerColor="rgba(99,102,241,0.5)"
-            background="rgba(59,130,246,1)"
-            className="px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 shrink-0"
-          >
-            {testCallState === 'calling' ? 'Dialing…' : 'Call Me'}
-          </ShimmerButton>
-        </div>
-
-        {testCallState === 'done' && testCallResult && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/[0.07] border border-green-500/20">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-[11px] text-green-400/90">
-              Call started — SID: <span className="font-mono">{testCallResult.twilio_sid?.slice(-8)}</span>
-            </span>
-            <button
-              onClick={() => setTestCallState('idle')}
-              className="ml-auto text-[10px] t3 hover:t2"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {testCallState === 'error' && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/[0.07] border border-red-500/20">
-            <span className="text-[11px] text-red-400/90 flex-1">{testCallError}</span>
-            <button
-              onClick={() => setTestCallState('idle')}
-              className="text-[10px] t3 hover:t2"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-      </div>
-      </motion.div>
+      <TestCallCard clientId={client.id} isAdmin={isAdmin} previewMode={previewMode} />
 
       {/* 5b — Learning Loop */}
       {learningState === 'checking' && (

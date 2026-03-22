@@ -10,6 +10,7 @@ import AgentIdentityHeader from './AgentIdentityHeader'
 import VoicePicker from './VoicePicker'
 import QuickInject from './QuickInject'
 import ContextDataCard from './ContextDataCard'
+import type { CardMode } from './usePatchSettings'
 
 interface AgentOverviewCardProps {
   client: ClientConfig
@@ -17,9 +18,11 @@ interface AgentOverviewCardProps {
   isActive: boolean
   onToggleStatus: () => void
   previewMode?: boolean
+  mode?: CardMode
+  onSave?: () => void
 }
 
-export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus, previewMode }: AgentOverviewCardProps) {
+export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus, previewMode, mode = 'settings', onSave }: AgentOverviewCardProps) {
   // Editable identity fields
   const [agentName, setAgentName] = useState(client.agent_name ?? '')
   const [savedName, setSavedName] = useState(client.agent_name ?? '')
@@ -29,6 +32,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
   // Footer save
   const [footerSaving, setFooterSaving] = useState(false)
   const [footerSaved, setFooterSaved] = useState(false)
+  const [footerError, setFooterError] = useState<string | null>(null)
 
   // SMS chip
   const [localSmsEnabled, setLocalSmsEnabled] = useState(client.sms_enabled ?? false)
@@ -57,13 +61,18 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
     if (!nameDirty) return
     setFooterSaving(true)
     setFooterSaved(false)
+    setFooterError(null)
     const trimmed = agentName.trim()
     const res = await patch({ agent_name: trimmed })
     setFooterSaving(false)
     if (res.ok) {
       setSavedName(trimmed)
       setFooterSaved(true)
+      onSave?.()
       setTimeout(() => setFooterSaved(false), 3000)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setFooterError(data.error || `Save failed (${res.status})`)
     }
   }
 
@@ -105,7 +114,14 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
         )}
 
         {/* ── Row 1: Identity ─────────────────────────────────────────────────── */}
-        <AgentIdentityHeader client={client} isActive={isActive} onToggleStatus={onToggleStatus} />
+        {mode === 'onboarding' ? (
+          <div className="mb-4">
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Name Your Agent</p>
+            <p className="text-[11px] t3">Give your AI receptionist a name and voice. Callers will hear this identity on every call.</p>
+          </div>
+        ) : (
+          <AgentIdentityHeader client={client} isActive={isActive} onToggleStatus={onToggleStatus} />
+        )}
 
         {/* ── Row 2: Editable fields 2-col grid ─────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 mb-5">
@@ -134,8 +150,8 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
           </div>
         </div>
 
-        {/* ── Row 3: Usage bar ───────────────────────────────────────────────────── */}
-        <div className="mb-5 pt-4 border-t b-theme">
+        {/* ── Row 3: Usage bar (settings only) ─────────────────────────────────── */}
+        {mode !== 'onboarding' && <div className="mb-5 pt-4 border-t b-theme">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Minutes This Month</p>
             <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {totalAvailable} min</span>
@@ -158,10 +174,10 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               <p className="text-[11px] t3 tabular-nums font-mono">{totalAvailable - minutesUsed} min remaining</p>
             </div>
           )}
-        </div>
+        </div>}
 
-        {/* ── Row 4: Connected services chips ───────────────────────────────────── */}
-        <div className="mb-5 pt-4 border-t b-theme">
+        {/* ── Row 4: Connected services chips (settings only) ────────────────── */}
+        {mode !== 'onboarding' && <div className="mb-5 pt-4 border-t b-theme">
           <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Connected services</p>
           <div className="flex flex-wrap gap-2">
             {/* Telegram — always on */}
@@ -219,9 +235,10 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               Transfer {client.forwarding_number ? fmtPhone(client.forwarding_number) : 'off'}
             </div>
           </div>
-        </div>
+        </div>}
 
-        {/* ── Row 5: Capability summary ────────────────────────────────────────── */}
+        {/* ── Row 5-6: Capabilities + inject + context (settings only) ────────── */}
+        {mode !== 'onboarding' && (<>
         <div className="mb-5 pt-4 border-t b-theme">
           <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Agent capabilities</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -243,33 +260,35 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
           </div>
         </div>
 
-        {/* ── Row 6: Quick inject ────────────────────────────────────────────────── */}
         <QuickInject client={client} isAdmin={isAdmin} />
 
-        {/* ── Row 6: Context data (CSV) ─────────────────────────────────────────── */}
         <ContextDataCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+        </>)}
 
         {/* ── Footer: Save name ──────────────────────────────────────────────────── */}
-        {footerDirty && (
+        {(footerDirty || mode === 'onboarding') && (
           <div className="mt-5 pt-4 border-t b-theme flex items-center justify-between">
-            <p className="text-[11px] t3">Unsaved changes to agent identity</p>
+            <div>
+              <p className="text-[11px] t3">{mode === 'onboarding' ? 'Set your agent identity' : 'Unsaved changes to agent identity'}</p>
+              {footerError && <p className="text-[11px] text-red-400 mt-1">{footerError}</p>}
+            </div>
             <button
               onClick={saveFooter}
-              disabled={footerSaving || previewMode}
+              disabled={footerSaving || previewMode || (!footerDirty && mode !== 'onboarding')}
               className={`text-xs px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-40 ${
                 footerSaved
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-blue-500 hover:bg-blue-400 text-white'
               }`}
             >
-              {footerSaving ? 'Saving...' : footerSaved ? '✓ Saved' : 'Save changes'}
+              {footerSaving ? 'Saving...' : footerSaved ? '\u2713 Saved' : 'Save changes'}
             </button>
           </div>
         )}
       </div>
 
-      {/* ── Calendar modal ─────────────────────────────────────────────────────── */}
-      <AnimatePresence>
+      {/* ── Calendar modal (settings only) ─────────────────────────────────── */}
+      {mode !== 'onboarding' && <AnimatePresence>
         {showCalendarModal && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -333,7 +352,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>}
     </>
   )
 }

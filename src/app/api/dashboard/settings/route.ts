@@ -265,6 +265,10 @@ export async function PATCH(req: NextRequest) {
         getClosePerson(promptToPatch, clientAgentName),
       )
       if (patched !== promptToPatch) {
+        // D15: Validate patched prompt before saving
+        const calV = validatePrompt(patched)
+        if (!calV.valid) return NextResponse.json({ error: calV.error }, { status: 400 })
+        if (calV.warnings.length) promptWarnings = [...promptWarnings, ...calV.warnings]
         updates.system_prompt = patched
         updates.updated_at = new Date().toISOString()
         console.log(`[settings] Calendar block ${body.booking_enabled ? 'added to' : 'removed from'} prompt for client=${targetClientId}`)
@@ -295,6 +299,10 @@ export async function PATCH(req: NextRequest) {
       if (promptToPatch) {
         const patched = patchVoiceStyleSection(promptToPatch, preset.toneStyleBlock, preset.fillerStyle)
         if (patched !== promptToPatch) {
+          // D15: Validate patched prompt before saving
+          const vsV = validatePrompt(patched)
+          if (!vsV.valid) return NextResponse.json({ error: vsV.error }, { status: 400 })
+          if (vsV.warnings.length) promptWarnings = [...promptWarnings, ...vsV.warnings]
           updates.system_prompt = patched
           updates.updated_at = new Date().toISOString()
           console.log(`[settings] Voice style patched to '${body.voice_style_preset}' for client=${targetClientId}`)

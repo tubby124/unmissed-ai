@@ -167,6 +167,90 @@
 
 ---
 
+## Component Unification Strategy (Onboarding = Settings)
+
+> Reference: `docs/settings-extraction-tracker.md` — full field map, extraction order, data flow
+
+### Core Principle
+
+Onboarding and settings edit the **same DB fields** via the **same API endpoint** (`PATCH /api/dashboard/settings`). They must share the same UI components.
+
+```
+Trial Onboarding          Settings Page (paid user)
+  ┌──────────────┐         ┌──────────────┐
+  │ HoursCard    │  ──────▶│ HoursCard    │  (same component, full view)
+  │ (simplified) │         │              │
+  └──────────────┘         └──────────────┘
+  ┌──────────────┐         ┌──────────────┐
+  │ VoiceStyle   │  ──────▶│ VoiceStyle   │
+  │ (pick one)   │         │ (full editor)│
+  └──────────────┘         └──────────────┘
+```
+
+### Rules
+
+1. **Never build a separate onboarding component for a field that already has a settings card.** Use the settings card with a `mode="onboarding"` or `simplified` prop.
+2. **`usePatchSettings` is the shared save hook** — onboarding uses it too.
+3. **AgentTestCard (voice orb) is permanent** — not just for onboarding. All users (trial + paid) should be able to talk to their agent from the dashboard at any time.
+4. **After conversion, nothing changes** — the settings page shows exactly what the trial user configured during onboarding. No migration, no re-entry.
+
+### Reusable Settings Cards for Onboarding
+
+From `docs/settings-extraction-tracker.md`, these already-extracted cards map directly to onboarding steps:
+
+| Onboarding Step | Settings Card | Fields |
+|-----------------|--------------|--------|
+| Train your agent | `AdvancedContextCard` | `business_facts`, `extra_qa`, `context_data` |
+| Train your agent | `KnowledgeEngineCard` | `knowledge_backend` |
+| Set up alerts | (NotificationsTab) | `telegram_bot_token`, `telegram_chat_id` |
+| Meet your agent | `AgentTestCard` | (fires test call, no field save) |
+| Go live | `SetupCard` (Wave 2 extraction) | `forwarding_number`, `transfer_conditions` |
+
+### Cards NOT needed for onboarding (admin/advanced only)
+
+- `SectionEditorCard` — admin prompt editing
+- `AgentConfigCard` — admin sync/model info
+- `WebhooksCard` — admin webhook URLs
+- `GodModeCard` — admin Telegram/Twilio/timezone
+- `PromptEditorCard` / `AIImproveCard` / `PromptHistoryCard` — admin prompt management
+
+---
+
+## Wave 7: Agent Preview + Self-Service (future)
+
+> All users (trial + paid) should be able to talk to their agent from the dashboard to hear what callers experience.
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 7.1 | Make AgentTestCard permanent for all user types (not just onboarding) | NOT STARTED | Currently shows for non-admin with agent. Should be accessible from settings or a dedicated "Test" page for paid users too (e.g. Windshield Hub owner wants to hear their agent). |
+| 7.2 | Post-test-call feedback capture — "What would you change?" | NOT STARTED | After hearing the agent, user can note revision requests. Store as `revision_requests` or similar. |
+| 7.3 | Agent self-update via conversation (future) | NOT STARTED | User talks to orb and requests changes. Agent is **scope-aware** — knows its own toolset (call forwarding, SMS, booking, IVR, knowledge base, hours, voicemail). If the request is within scope (e.g. "add info about our new roofing service", "enable SMS", "change my hours"), agent confirms it can do that and queues the change. If outside scope, agent says so. User sees a pending changes list and approves before anything applies. Requires: capability registry, intent detection, change proposal UI, approval flow. |
+
+---
+
+## Wave 8: Conversion Optimization (discovered gaps)
+
+> These gaps were identified from analyzing the current trial UX against SaaS conversion best practices.
+
+| # | Task | Priority | Status | Notes |
+|---|------|----------|--------|-------|
+| 8.1 | **Trial countdown** — "X days left" badge in sidebar + checklist | HIGH | NOT STARTED | Every SaaS trial shows expiration. #1 urgency driver. Needs: `trial_started_at` or `trial_expires_at` on `clients` table. Display in sidebar header + checklist footer. |
+| 8.2 | **Simplified trial nav** — hide/dim empty pages during trial | MEDIUM | NOT STARTED | Trial users see Live, Insights, Calendar, Notifications — all empty. Hide or gray-out until relevant data exists. Reduces confusion, focuses attention on checklist steps. |
+| 8.3 | **Before/after training comparison** — prompt re-test after knowledge add | MEDIUM | NOT STARTED | After user adds FAQs/knowledge, show "Your agent just got smarter — test again to hear the difference." Link back to AgentTestCard. Ties training to visible outcome. |
+| 8.4 | **Trial admin funnel** — admin view of trial user engagement | HIGH | NOT STARTED | Dashboard for admin: which trial users tested agent, which step they're stuck on, days remaining, last login. Enables proactive outreach. Needs: aggregate `onboarding_state` across all trial `client_users`. |
+| 8.5 | **Suggested test prompts** — guided scenarios during test call | MEDIUM | NOT STARTED | Pre-call or during-call suggestions: "Try asking about pricing", "Ask to book an appointment", "Call after hours". Shows capabilities without user guessing what to say. Could be niche-specific. |
+| 8.6 | **Shareable demo link** — let trial user share agent with partner | LOW | NOT STARTED | Generate a time-limited link that lets a non-authenticated person hear the agent. Decision-makers often consult partners. Needs: public demo endpoint with rate limiting. |
+| 8.7 | **Contextual help per step** — "Need help?" tied to checklist items | MEDIUM | NOT STARTED | Each checklist step gets a help tooltip or expandable FAQ. "Train your agent" → "What kind of info should I add?" Advisor bubble could be step-aware. Research: support engagement = +45% conversion. |
+| 8.8 | **Usage/minutes transparency** — show plan limits and usage | LOW | NOT STARTED | Trial: "You've used 2 of 5 test calls". Active: "142 of 500 minutes used this month". Needs: `monthly_minute_limit` is already on `clients` table, just not surfaced in dashboard. |
+
+### BUG: Trial minute limit is 100 instead of 50
+
+**Location:** `src/lib/niche-config.ts:70` — `DEFAULT_MINUTE_LIMIT = 100`
+**Problem:** `getNicheMinuteLimit()` returns 100 for all niches (except voicemail=50). Trial users get 100 minutes but `pricing.ts` SETUP says "50 free minutes included".
+**Fix:** Add `TRIAL_MINUTE_LIMIT = 50` to pricing.ts or niche-config.ts. Use it in `activate-client.ts` and `stripe/route.ts` when provisioning trial clients. On paid conversion (Stripe webhook), upgrade to `BASE_PLAN.minutes` (100).
+
+---
+
 ## Conflict Zones (parallel instance)
 
 **DO NOT TOUCH:**
