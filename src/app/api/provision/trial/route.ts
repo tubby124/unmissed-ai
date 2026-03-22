@@ -14,6 +14,8 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
+import { embedChunks, prepareFactChunks, prepareQaChunks } from "@/lib/embeddings";
+import { syncClientTools } from "@/lib/sync-client-tools";
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 3
@@ -135,9 +137,11 @@ export async function POST(req: NextRequest) {
 
   // Website scraping enrichment
   let websiteContent = "";
+  let rawScrapeResult: Awaited<ReturnType<typeof scrapeWebsite>> | null = null;
   const websiteUrl = data.websiteUrl || "";
   if (websiteUrl) {
-    const scrapeResult = await scrapeWebsite(websiteUrl, data.niche || "other");
+    rawScrapeResult = await scrapeWebsite(websiteUrl, data.niche || "other");
+    const scrapeResult = rawScrapeResult;
     if (scrapeResult.rawContent) {
       const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join("\n");
       const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join("\n\n");
@@ -250,6 +254,39 @@ export async function POST(req: NextRequest) {
   }
 
   // Telegram alert handled by activateClient() — no duplicate needed
+
+  // SCRAPE2: Seed knowledge chunks from website scrape data
+  try {
+    const scrapeData = data.websiteScrapeResult;
+    let factsToSeed: string[] = [];
+    let qaToSeed: { q: string; a: string }[] = [];
+
+    if (scrapeData) {
+      // Prefer user-approved data from scrape preview
+      factsToSeed = scrapeData.businessFacts.filter((_, i) => scrapeData.approvedFacts[i] !== false);
+      qaToSeed = scrapeData.extraQa.filter((_, i) => scrapeData.approvedQa[i] !== false);
+    } else if (rawScrapeResult) {
+      // Fallback: use raw scrape result from earlier in this route
+      factsToSeed = rawScrapeResult.businessFacts || [];
+      qaToSeed = rawScrapeResult.extraQa || [];
+    }
+
+    if (factsToSeed.length > 0 || qaToSeed.length > 0) {
+      const chunks = [
+        ...prepareFactChunks(factsToSeed.join('\n')),
+        ...prepareQaChunks(qaToSeed),
+      ];
+      if (chunks.length > 0) {
+        const embedResult = await embedChunks(clientId, chunks, `trial-${intakeId}`);
+        console.log(`[provision/trial] Knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`);
+        // Rebuild tools so queryKnowledge is registered
+        await syncClientTools(supa, clientId);
+      }
+    }
+  } catch (seedErr) {
+    // Chunk seeding failure should NOT block activation
+    console.error(`[provision/trial] Knowledge seeding failed for ${clientSlug}:`, seedErr);
+  }
 
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 

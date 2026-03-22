@@ -100,6 +100,13 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // S12-TRIAL1: Dashboard agent test calls — log for ops visibility, process normally
+  // (call_logs row with status='test' already exists from agent-test route)
+  const source = metadata.source || ''
+  if (source === 'dashboard-agent-test') {
+    console.log(`[ultravox-webhook] Agent test: event=${event} callId=${callId}`)
+  }
+
   // ── Event routing ────────────────────────────────────────────────────────
   const supabase = createServiceClient()
 

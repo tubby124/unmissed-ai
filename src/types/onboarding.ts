@@ -42,6 +42,17 @@ export interface BusinessHours {
   closed: boolean;
 }
 
+export interface WebsiteScrapeResult {
+  businessFacts: string[];
+  extraQa: { q: string; a: string }[];
+  serviceTags: string[];
+  warnings: string[];
+  scrapedAt: string;
+  scrapedUrl: string;
+  approvedFacts: boolean[];
+  approvedQa: boolean[];
+}
+
 export interface OnboardingData {
   // Step 1
   niche: Niche | null;
@@ -103,6 +114,9 @@ export interface OnboardingData {
   faqPairs: { question: string; answer: string; source?: 'scraped' | 'manual' }[];
   knowledgeDocs: { id: string; filename: string; charCount: number }[];
   timezone: string;
+
+  // SCRAPE1: Website scrape preview data (populated on step 6)
+  websiteScrapeResult: WebsiteScrapeResult | null;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -177,6 +191,7 @@ export const defaultOnboardingData: OnboardingData = {
   faqPairs: [],
   knowledgeDocs: [],
   timezone: '',
+  websiteScrapeResult: null,
 };
 
 export const nicheLabels: Record<Niche, string> = {

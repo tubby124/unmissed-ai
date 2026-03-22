@@ -4,12 +4,14 @@ import { useState } from "react";
 import { OnboardingData, nicheLabels, Niche, defaultAgentNames } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
 import { BETA_PROMO, BASE_PLAN, SETUP, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
+import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 
 interface Props {
   data: OnboardingData;
   stepSequence: number[];
   onEdit: (step: number) => void;
   onActivate: (mode: "trial" | "paid") => void;
+  onUpdate: (updates: Partial<OnboardingData>) => void;
   isSubmitting: boolean;
   error: string | null;
 }
@@ -342,7 +344,7 @@ function PromptPreview({ data }: { data: OnboardingData }) {
 
 const effectivePrice = getEffectiveMonthly();
 
-export default function Step6Review({ data, stepSequence, onEdit, onActivate, isSubmitting, error }: Props) {
+export default function Step6Review({ data, stepSequence, onEdit, onActivate, onUpdate, isSubmitting, error }: Props) {
 
   // ── Completeness score ──────────────────────────────────────────────────────
   const defaultAgentName = data.niche ? (defaultAgentNames[data.niche as Niche] ?? "") : "";
@@ -404,6 +406,11 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, is
           )}
         </div>
       </div>
+
+      {/* Website scrape preview */}
+      {data.websiteUrl && (
+        <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
+      )}
 
       {/* No-FAQ warning */}
       {showNoFaqWarning && stepSequence.includes(4) && (

@@ -632,6 +632,8 @@ interface CallViaAgentOptions {
   callbackUrl?: string
   metadata?: Record<string, string>
   maxDuration?: string
+  /** Call medium: 'twilio' for phone calls (default), 'webrtc' for browser-based calls (S12-TRIAL1). */
+  medium?: 'twilio' | 'webrtc'
   /** Inject returning-caller context as an initial hidden tool message. */
   callerContext?: string
   /** Stable business facts (hours, staff, location notes) via {{businessFacts}} templateContext. */
@@ -652,10 +654,10 @@ interface CallViaAgentOptions {
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, medium, callerContext, businessFacts, extraQa, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
-    medium: { twilio: {} },
+    medium: medium === 'webrtc' ? { webRtc: {} } : { twilio: {} },
     metadata: metadata || {},
     joinTimeout: '15s',
     // Always inject all templateContext keys so placeholders resolve cleanly (empty string = no output)

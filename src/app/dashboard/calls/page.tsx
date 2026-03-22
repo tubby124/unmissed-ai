@@ -4,6 +4,7 @@ import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import CallsList from '@/components/dashboard/CallsList'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import OperatorActivity from '@/components/dashboard/OperatorActivity'
+import AgentTestCard from '@/components/dashboard/AgentTestCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,8 @@ interface ClientInfo {
   seconds_used_this_month?: number | null
   monthly_minute_limit?: number | null
   bonus_minutes?: number | null
+  agent_name?: string | null
+  ultravox_agent_id?: string | null
 }
 
 export default async function CallsPage() {
@@ -28,6 +31,8 @@ export default async function CallsPage() {
   let clientBusinessName: string | null = null
   let clientId: string | null = null
   let clientStatus: string | null = null
+  let clientAgentName: string | null = null
+  let clientHasAgent = false
   let isAdmin = false
   let adminClients: ClientInfo[] = []
   let minutesUsed = 0
@@ -38,7 +43,7 @@ export default async function CallsPage() {
   if (user) {
     const { data: cu } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(twilio_number, slug, business_name, status, seconds_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id)')
+      .select('client_id, role, clients(twilio_number, slug, business_name, status, seconds_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id, agent_name, ultravox_agent_id)')
       .eq('user_id', user.id)
       .single()
 
@@ -50,12 +55,14 @@ export default async function CallsPage() {
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
     } else {
-      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null } | null
+      const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null; agent_name?: string | null; ultravox_agent_id?: string | null } | null
       clientPhone = clientData?.twilio_number ?? null
       clientSlug = clientData?.slug ?? null
       clientBusinessName = clientData?.business_name ?? null
       clientId = cu?.client_id ?? null
       clientStatus = clientData?.status ?? null
+      clientAgentName = clientData?.agent_name ?? null
+      clientHasAgent = !!clientData?.ultravox_agent_id
       minutesUsed = Math.ceil((clientData?.seconds_used_this_month ?? 0) / 60)
       minuteLimit = clientData?.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
       bonusMinutes = clientData?.bonus_minutes ?? 0
@@ -74,6 +81,7 @@ export default async function CallsPage() {
     .from('call_logs')
     .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, confidence, sentiment, key_topics, next_steps, quality_score, transfer_status, clients(business_name, slug)')
     .gte('started_at', monthStart)
+    .neq('call_status', 'test')
     .order('started_at', { ascending: false })
     .limit(500)
 
@@ -112,6 +120,13 @@ export default async function CallsPage() {
 
   return (
     <div className="p-3 sm:p-6">
+      {!isAdmin && clientHasAgent && (
+        <AgentTestCard
+          agentName={clientAgentName || clientBusinessName || 'Your Agent'}
+          businessName={clientBusinessName || ''}
+          clientStatus={clientStatus}
+        />
+      )}
       {!isAdmin && clientStatus === 'active' && (
         <OnboardingChecklist
           hasPhoneNumber={!!clientPhone}

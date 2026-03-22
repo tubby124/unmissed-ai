@@ -3,8 +3,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
 export const maxDuration = 10
+
+// S13o: 60 messages per slug per 60s — SMS flood prevention
+const smsRateLimiter = new SlidingWindowRateLimiter(60, 60_000)
 
 const OPT_OUT_KEYWORDS = ['STOP', 'END', 'CANCEL', 'QUIT', 'UNSUBSCRIBE', 'ARRET']
 const HELP_KEYWORDS = ['HELP', 'AIDE']
@@ -44,6 +48,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!messageSid || !from) {
     return new NextResponse('Bad Request', { status: 400 })
   }
+
+  // S13o: Rate limit per slug — block SMS floods before any DB work
+  const rl = smsRateLimiter.check(slug)
+  if (!rl.allowed) {
+    console.warn(`[sms-inbound] RATE LIMITED: slug=${slug} from=${from} retryAfter=${Math.ceil(rl.retryAfterMs / 1000)}s`)
+    return twimlResponse()
+  }
+  smsRateLimiter.record(slug)
 
   const supabase = createServiceClient()
 

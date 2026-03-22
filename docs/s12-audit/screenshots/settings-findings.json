@@ -1,0 +1,137 @@
+{
+  "findings": [
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Agent tab - prompt area",
+      "detail": "Found prompt display area"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Agent tab - refresh button",
+      "detail": "Found Refresh Agent button"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Agent tab - Call Me",
+      "detail": "Found Call Me button"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Agent tab - voice",
+      "detail": "Voice name displayed"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "SMS tab - toggles",
+      "detail": "Found 0 toggles"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "SMS tab - explanation text",
+      "detail": "Has explanation"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "SMS tab - phone field",
+      "detail": "Phone number visible"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Voice tab - voice options",
+      "detail": "Found 0 voice-related elements"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Voice tab - audio preview",
+      "detail": "No audio preview"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Alerts tab - Telegram section",
+      "detail": "Telegram section found"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Alerts tab - setup guidance",
+      "detail": "Has setup instructions"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Alerts tab - email notifications",
+      "detail": "Email section found"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Billing tab - usage info",
+      "detail": "Usage/plan info visible"
+    },
+    {
+      "track": "A2",
+      "severity": "INFO",
+      "title": "Billing tab - manage/upgrade",
+      "detail": "Manage/Upgrade button found"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Knowledge tab - empty state",
+      "detail": "Has empty state message"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Knowledge tab - upload",
+      "detail": "Upload button found"
+    },
+    {
+      "track": "A5",
+      "severity": "INFO",
+      "title": "Knowledge tab - existing data",
+      "detail": "Found 0 knowledge-related elements"
+    },
+    {
+      "track": "D1",
+      "severity": "CRITICAL",
+      "title": "RLS data leak",
+      "detail": "Response from https://unmissed-ai-production.up.railway.app/api/dashboard/system-pulse contains slug \"hasan-sharif\" (other client's data)"
+    },
+    {
+      "track": "D1",
+      "severity": "CRITICAL",
+      "title": "RLS data leak",
+      "detail": "Response from https://unmissed-ai-production.up.railway.app/api/dashboard/system-pulse contains slug \"exp-realty\" (other client's data)"
+    },
+    {
+      "track": "D1",
+      "severity": "CRITICAL",
+      "title": "RLS data leak",
+      "detail": "Response from https://unmissed-ai-production.up.railway.app/api/dashboard/system-pulse contains slug \"urban-vibe\" (other client's data)"
+    },
+    {
+      "track": "D1",
+      "severity": "WARN",
+      "title": "system-pulse (unauthenticated endpoint)",
+      "detail": "Status: 200, body length: 223"
+    },
+    {
+      "track": "D1",
+      "severity": "INFO",
+      "title": "system-pulse (unauthenticated endpoint) response",
+      "detail": "{\"ok\":true,\"ts\":1774127677653,\"supabase\":\"ok\",\"agents\":{\"e2e-test-plumbing-co\":\"ok\",\"exp-realty\":\"ok\",\"urban-vibe\":\"ok\",\"hasan-sharif\":\"ok\",\"true-color-display-printing-ltd\":\"ok\",\"windshield-hub\":\"ok\""
+    }
+  ],
+  "consoleErrors": []
+}

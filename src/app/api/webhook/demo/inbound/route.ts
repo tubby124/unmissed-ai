@@ -5,6 +5,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+
+// S13o: 30 calls per 60s — same threshold as production inbound
+const demoCallRateLimiter = new SlidingWindowRateLimiter(30, 60_000)
 
 const IVR_MENU: Record<string, string> = {
   '1': 'auto_glass',
@@ -26,6 +30,15 @@ export async function POST(req: NextRequest) {
     console.error(`[demo-ivr] Twilio signature FAILED`)
     return new NextResponse('Forbidden', { status: 403 })
   }
+
+  // S13o: Rate limit — block floods before any Ultravox work
+  const rl = demoCallRateLimiter.check('demo')
+  if (!rl.allowed) {
+    console.warn(`[demo-ivr] RATE LIMITED: caller=${callerPhone} retryAfter=${Math.ceil(rl.retryAfterMs / 1000)}s`)
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">We are experiencing unusually high call volume. Please try again later.</Say></Response>`
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+  demoCallRateLimiter.record('demo')
 
   // No digits yet = first call in, play IVR menu
   if (!digits) {

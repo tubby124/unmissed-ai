@@ -284,6 +284,7 @@ export default function OnboardPage() {
                     stepSequence={stepSequence}
                     onEdit={(s) => { setDirection(s < step ? -1 : 1); setStep(s); }}
                     onActivate={handleActivate}
+                    onUpdate={update}
                     isSubmitting={isSubmitting}
                     error={error}
                   />

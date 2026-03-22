@@ -17,6 +17,8 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { embedChunks, prepareFactChunks, prepareQaChunks } from '@/lib/embeddings'
+import { syncClientTools } from '@/lib/sync-client-tools'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 
@@ -185,10 +187,12 @@ export async function POST(req: NextRequest) {
 
     // ── Website scraping enrichment ────────────────────────────────────────────
     let websiteContent = ''
+    let rawScrapeResult: Awaited<ReturnType<typeof scrapeWebsite>> | null = null
     const websiteUrlForScrape = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
     if (websiteUrlForScrape) {
       const niche = intake.niche || 'other'
-      const scrapeResult = await scrapeWebsite(websiteUrlForScrape, niche)
+      rawScrapeResult = await scrapeWebsite(websiteUrlForScrape, niche)
+      const scrapeResult = rawScrapeResult
       if (scrapeResult.rawContent) {
         const factLines = scrapeResult.businessFacts.map((f: string) => `- ${f}`).join('\n')
         const qaLines = scrapeResult.extraQa.map((qa: { q: string; a: string }) => `Q: ${qa.q}\nA: ${qa.a}`).join('\n\n')
@@ -300,6 +304,44 @@ export async function POST(req: NextRequest) {
       .eq('id', intakeId)
 
     console.log(`[create-public-checkout] Auto-provisioned: ${clientSlug} (${clientId}) agent=${agentId}`)
+
+    // SCRAPE2: Seed knowledge chunks from website scrape data
+    try {
+      const scrapeData = (intakeData.websiteScrapeResult as {
+        businessFacts: string[];
+        extraQa: { q: string; a: string }[];
+        approvedFacts: boolean[];
+        approvedQa: boolean[];
+      } | null) || null;
+      let factsToSeed: string[] = [];
+      let qaToSeed: { q: string; a: string }[] = [];
+
+      if (scrapeData) {
+        // Prefer user-approved data from scrape preview
+        factsToSeed = scrapeData.businessFacts.filter((_, i) => scrapeData.approvedFacts[i] !== false);
+        qaToSeed = scrapeData.extraQa.filter((_, i) => scrapeData.approvedQa[i] !== false);
+      } else if (rawScrapeResult) {
+        // Fallback: use raw scrape result from earlier in this route
+        factsToSeed = rawScrapeResult.businessFacts || [];
+        qaToSeed = rawScrapeResult.extraQa || [];
+      }
+
+      if (factsToSeed.length > 0 || qaToSeed.length > 0) {
+        const chunks = [
+          ...prepareFactChunks(factsToSeed.join('\n')),
+          ...prepareQaChunks(qaToSeed),
+        ];
+        if (chunks.length > 0) {
+          const embedResult = await embedChunks(clientId, chunks, `checkout-${intakeId}`);
+          console.log(`[create-public-checkout] Knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`);
+          // Rebuild tools so queryKnowledge is registered
+          await syncClientTools(svc, clientId);
+        }
+      }
+    } catch (seedErr) {
+      // Chunk seeding failure should NOT block checkout
+      console.error(`[create-public-checkout] Knowledge seeding failed for ${clientSlug}:`, seedErr);
+    }
   }
 
   // ── Create Stripe Checkout session ─────────────────────────────────────────

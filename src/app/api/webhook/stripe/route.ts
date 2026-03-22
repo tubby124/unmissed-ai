@@ -21,6 +21,7 @@ import { sendAlert } from '@/lib/telegram'
 import { activateClient } from '@/lib/activate-client'
 import { getNicheMinuteLimit } from '@/lib/niche-config'
 import { createServiceClient } from '@/lib/supabase/server'
+import { notifySystemFailure } from '@/lib/admin-alerts'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -445,6 +446,13 @@ export async function POST(req: NextRequest) {
 
   if (!result.success) {
     console.error(`[stripe-webhook] activateClient failed for slug=${client_slug}: ${result.error}`)
+    // S13t: Alert operator — partial activation is invisible otherwise (Stripe won't retry 200)
+    await notifySystemFailure(
+      `Stripe activation FAILED for ${client_slug}`,
+      result.error ?? 'Unknown activation error',
+      adminSupa,
+      client_id,
+    )
   }
 
   // ── Set tier-based minute limit ───────────────────────────────────────────────
