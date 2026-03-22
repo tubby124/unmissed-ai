@@ -532,5 +532,6 @@ export async function PATCH(req: NextRequest) {
     ultravox_synced,
     ...(ultravox_error ? { ultravox_error } : {}),
     ...(promptWarnings.length ? { warnings: promptWarnings } : {}),
+    ...(typeof updates.system_prompt === 'string' ? { system_prompt: updates.system_prompt } : {}),
   })
 }

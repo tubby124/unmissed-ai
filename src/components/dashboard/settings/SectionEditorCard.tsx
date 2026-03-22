@@ -13,6 +13,7 @@ interface SectionEditorCardProps {
   initialContent: string
   hasMarker: boolean
   previewMode?: boolean
+  onPromptChange?: (prompt: string) => void
 }
 
 export default function SectionEditorCard({
@@ -25,6 +26,7 @@ export default function SectionEditorCard({
   initialContent,
   hasMarker,
   previewMode,
+  onPromptChange,
 }: SectionEditorCardProps) {
   const [content, setContent] = useState(initialContent)
   const [collapsed, setCollapsed] = useState(true)
@@ -44,9 +46,12 @@ export default function SectionEditorCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+      const d = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
         throw new Error(d.error || 'Save failed')
+      }
+      if (typeof d.system_prompt === 'string') {
+        onPromptChange?.(d.system_prompt)
       }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)

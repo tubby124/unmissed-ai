@@ -243,6 +243,11 @@ export default function AgentTab({
     }
   }, [openSections])
 
+  // SET-13: When any card modifies the prompt server-side, update parent state
+  const handlePromptChange = useCallback((newPrompt: string) => {
+    setPrompt(prev => ({ ...prev, [client.id]: newPrompt }))
+  }, [client.id, setPrompt])
+
   // ─── JSX ───────────────────────────────────────────────────────────────────────
 
   return (<div className="space-y-2">
@@ -329,6 +334,8 @@ export default function AgentTab({
         isActive={isActive}
         onToggleStatus={toggleStatus}
         previewMode={previewMode}
+        onPromptChange={handlePromptChange}
+        promptLength={(prompt[client.id] ?? '').length}
       />
       {isAdmin && !setupComplete[client.id] && (
         <div className="flex justify-end">
@@ -347,6 +354,7 @@ export default function AgentTab({
           isAdmin={isAdmin}
           initialPreset={voiceStylePreset[client.id] ?? 'casual_friendly'}
           previewMode={previewMode}
+          onPromptChange={handlePromptChange}
         />
       </div>
       <VoicemailGreetingCard
@@ -368,6 +376,7 @@ export default function AgentTab({
           initialContent={(sectionContent[client.id] ?? {}).identity ?? ''}
           hasMarker={'identity' in (sectionContent[client.id] ?? {})}
           previewMode={previewMode}
+          onPromptChange={handlePromptChange}
         />
       )}
     </SettingsSection>
@@ -411,6 +420,7 @@ export default function AgentTab({
           initialContent={(sectionContent[client.id] ?? {}).knowledge ?? ''}
           hasMarker={'knowledge' in (sectionContent[client.id] ?? {})}
           previewMode={previewMode}
+          onPromptChange={handlePromptChange}
         />
       )}
     </SettingsSection>

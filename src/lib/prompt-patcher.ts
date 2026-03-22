@@ -75,6 +75,46 @@ export function patchCalendarBlock(
 // ── Voice style section patcher ──────────────────────────────────────────────
 
 /**
+ * SET-1: Patterns that identify standalone filler instruction lines.
+ * These come from the {{FILLER_STYLE}} template variable in the VOICE NATURALNESS
+ * section. When a preset is switched, the TONE section gets the new fillerStyle
+ * but these standalone lines retain the old preset's instructions — causing
+ * contradictions (e.g. "use backchannels" + "avoid backchannels").
+ */
+const STANDALONE_FILLER_RE = new RegExp(
+  [
+    // All 4 presets' first filler line patterns
+    String.raw`^Start (?:every response|responses) with (?:a (?:quick backchannel|brief acknowledgment|gentle acknowledgment)|an? \w+).*$`,
+    String.raw`^Do not start with backchannels or fillers\..*$`,
+    // All 4 presets' second filler line patterns
+    String.raw`^Use "(?:uh|like)"(?: or "um")? .*$`,
+    String.raw`^Avoid "uh",?\s*"um".*$`,
+    String.raw`^Never use "uh",?\s*"um".*$`,
+    String.raw`^Use brief pauses between thoughts\..*$`,
+    // Hand-crafted niche variants
+    String.raw`^Use backchannels:.*$`,
+    String.raw`^- Start with a backchannel when acknowledging:.*$`,
+  ].join('|'),
+  'gm',
+)
+
+/**
+ * Strip standalone filler instruction lines that live outside the TONE section.
+ * After stripping, collapse any resulting blank-line runs to max 2 newlines.
+ */
+function stripStandaloneFillers(prompt: string, toneStart: number, toneEnd: number): string {
+  // Only strip lines OUTSIDE the TONE section boundaries
+  const before = prompt.substring(0, toneStart)
+  const toneSection = prompt.substring(toneStart, toneEnd)
+  const after = prompt.substring(toneEnd)
+
+  const strip = (text: string) =>
+    text.replace(STANDALONE_FILLER_RE, '').replace(/\n{3,}/g, '\n\n')
+
+  return strip(before) + toneSection + strip(after)
+}
+
+/**
  * Find and replace the VOICE STYLE / TONE AND STYLE section in a stored prompt.
  *
  * Handles both formats found in live prompts:
@@ -83,6 +123,9 @@ export function patchCalendarBlock(
  *
  * The section runs from the header line until the next all-caps heading or # heading.
  * Returns the original prompt unchanged if no voice/tone section is found.
+ *
+ * SET-1: Also strips standalone filler instructions outside the TONE section
+ * to prevent contradictions when switching between voice presets.
  */
 export function patchVoiceStyleSection(
   prompt: string,
@@ -113,12 +156,20 @@ export function patchVoiceStyleSection(
   const header = headerMatch[0]
   const replacement = `${header}\n${toneStyleBlock}\n${fillerStyle}`
 
-  return (
+  let result = (
     prompt.substring(0, headerStart) +
     replacement +
     '\n\n' +
     prompt.substring(sectionEnd).trimStart()
   ).replace(/\n{3,}/g, '\n\n').trimEnd()
+
+  // SET-1: Strip standalone filler lines outside the new TONE section
+  // to eliminate contradictions (e.g. old "use backchannels" vs new "avoid backchannels")
+  const newToneStart = headerStart
+  const newToneEnd = headerStart + replacement.length
+  result = stripStandaloneFillers(result, newToneStart, newToneEnd)
+
+  return result.replace(/\n{3,}/g, '\n\n').trimEnd()
 }
 
 // ── Agent name patcher ──────────────────────────────────────────────────────

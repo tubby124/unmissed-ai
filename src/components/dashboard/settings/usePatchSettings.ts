@@ -10,12 +10,34 @@ export type SyncStatus = 'synced' | 'not-needed' | 'failed' | null
 
 export interface UsePatchSettingsOptions {
   onSave?: () => void
+  onPromptChange?: (prompt: string) => void
+}
+
+// SET-12: Serialize PATCH requests per client to prevent prompt race conditions.
+// When two cards save simultaneously (e.g. voice style + section edit), the second
+// waits for the first to complete. Since the server re-reads the latest prompt from
+// DB for each patch operation, serialization ensures no stale-read overwrites.
+const inflightPatches = new Map<string, Promise<unknown>>()
+
+function serializeForClient<T>(clientId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = inflightPatches.get(clientId) ?? Promise.resolve()
+  const next = prev.then(fn, fn) // Run fn even if prev rejected
+  inflightPatches.set(clientId, next)
+  // Clean up when the chain settles to avoid memory leak
+  next.then(
+    () => { if (inflightPatches.get(clientId) === next) inflightPatches.delete(clientId) },
+    () => { if (inflightPatches.get(clientId) === next) inflightPatches.delete(clientId) },
+  )
+  return next
 }
 
 /**
  * Shared hook for PATCH /api/dashboard/settings.
  * Handles loading/saved/error state, admin client_id injection,
  * and surfaces Ultravox sync status + warnings from the API response.
+ *
+ * SET-12: All requests for the same client are serialized — concurrent saves
+ * queue instead of racing. This prevents last-writer-wins prompt corruption.
  */
 export function usePatchSettings(
   clientId: string,
@@ -34,12 +56,16 @@ export function usePatchSettings(
     setError(null)
     setSyncStatus(null)
     setWarnings([])
-    const payload = { ...body, ...(isAdmin ? { client_id: clientId } : {}) }
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+
+    const res = await serializeForClient(clientId, async () => {
+      const payload = { ...body, ...(isAdmin ? { client_id: clientId } : {}) }
+      return fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
     })
+
     setSaving(false)
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -55,6 +81,9 @@ export function usePatchSettings(
       }
       if (Array.isArray(data.warnings)) {
         setWarnings(data.warnings.map((w: { message?: string }) => w.message || String(w)))
+      }
+      if (typeof data.system_prompt === 'string') {
+        options?.onPromptChange?.(data.system_prompt)
       }
       options?.onSave?.()
       setTimeout(() => { setSaved(false); setSyncStatus(null); setWarnings([]) }, 5000)

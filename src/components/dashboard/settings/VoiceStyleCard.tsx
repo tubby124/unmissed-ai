@@ -18,11 +18,12 @@ interface VoiceStyleCardProps {
   previewMode?: boolean
   mode?: CardMode
   onSave?: () => void
+  onPromptChange?: (prompt: string) => void
 }
 
-export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previewMode, mode = 'settings', onSave }: VoiceStyleCardProps) {
+export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previewMode, mode = 'settings', onSave, onPromptChange }: VoiceStyleCardProps) {
   const [preset, setPreset] = useState(initialPreset || 'casual_friendly')
-  const { saving, saved, error, syncStatus, patch } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { saving, saved, error, syncStatus, patch } = usePatchSettings(clientId, isAdmin, { onSave, onPromptChange })
 
   async function save() {
     await patch({ voice_style_preset: preset })
@@ -53,6 +54,7 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
               <button
                 key={p.id}
                 onClick={() => setPreset(p.id)}
+                aria-pressed={selected}
                 className={`text-left rounded-xl border p-3 transition-all ${
                   selected
                     ? 'border-blue-500/60 bg-blue-500/[0.06]'

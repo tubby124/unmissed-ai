@@ -20,9 +20,11 @@ interface AgentOverviewCardProps {
   previewMode?: boolean
   mode?: CardMode
   onSave?: () => void
+  onPromptChange?: (prompt: string) => void
+  promptLength?: number
 }
 
-export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus, previewMode, mode = 'settings', onSave }: AgentOverviewCardProps) {
+export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleStatus, previewMode, mode = 'settings', onSave, onPromptChange, promptLength }: AgentOverviewCardProps) {
   // Editable identity fields
   const [agentName, setAgentName] = useState(client.agent_name ?? '')
   const [savedName, setSavedName] = useState(client.agent_name ?? '')
@@ -66,6 +68,10 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
     const res = await patch({ agent_name: trimmed })
     setFooterSaving(false)
     if (res.ok) {
+      const data = await res.json().catch(() => ({}))
+      if (typeof data.system_prompt === 'string') {
+        onPromptChange?.(data.system_prompt)
+      }
       setSavedName(trimmed)
       setFooterSaved(true)
       onSave?.()
@@ -247,7 +253,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               { label: 'Calendar', on: client.calendar_auth_status === 'connected' && !!client.booking_enabled },
               { label: 'SMS follow-up', on: localSmsEnabled },
               { label: 'Knowledge base', on: client.knowledge_backend === 'pgvector' },
-              { label: 'Prompt', detail: `${((client.system_prompt ?? '').length).toLocaleString()} / 12,000` },
+              { label: 'Prompt', detail: `${(promptLength ?? (client.system_prompt ?? '').length).toLocaleString()} / 12,000` },
             ].map(cap => (
               <div key={cap.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border b-theme">
                 {'on' in cap ? (

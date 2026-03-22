@@ -49,29 +49,25 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
-### SET-2: Voice Style preset not shown on page load (LOW-MEDIUM)
+### SET-2: Voice Style preset not shown on page load (LOW-MEDIUM) — FIXED 2026-03-22
 
-**Problem:** When the settings page loads, no preset button has `[active]` state. The DB has `voice_style_preset = 'professional_warm'` but the VoiceStyleCard doesn't read this initial value to highlight the correct preset.
+**Problem:** Playwright snapshot showed preset buttons without `[active]` state. Visual styling actually worked (blue border + filled dot via `useState(initialPreset)`), but `aria-pressed` attribute was missing — Playwright accessibility check couldn't detect the active state.
 
-**Evidence:** Playwright snapshot on page load shows all 4 preset buttons without `[active]`. Only after clicking does the active state appear.
+**Fix:** Added `aria-pressed={selected}` to each preset button in VoiceStyleCard.
 
-**User impact:** Client can't see which voice style is currently active. They might re-save the same preset thinking nothing is set, or accidentally switch without knowing what the current one is.
-
-**Fix:** Pass `initialPreset` from the DB row to VoiceStyleCard. Initialize local state from it. Highlight the matching preset button on mount.
-
-**Files:** `src/components/dashboard/settings/VoiceStyleCard.tsx`, `src/components/dashboard/settings/AgentTab.tsx`
+**Files:** `src/components/dashboard/settings/VoiceStyleCard.tsx`
 
 ---
 
-### SET-3: Prompt char count stale after prompt-modifying saves (LOW)
+### SET-3: Prompt char count stale after prompt-modifying saves (LOW) — PARTIALLY FIXED by SET-13
 
 **Problem:** The agent capabilities section shows "3,453 / 12,000" chars. After Voice Style or SectionEditor saves modify `system_prompt`, the count doesn't update until full page reload.
 
-**User impact:** Client could unknowingly push past the 12K limit without seeing the count change. Related to tracked item D15 (validatePrompt not called on style/calendar patches — NOW FIXED).
+**SET-13 fixed:** Parent `prompt` state now updates after prompt-modifying saves. PromptEditorCard shows the correct text.
 
-**Fix:** After any save that returns a modified `system_prompt`, update the char count in the parent AgentTab state. Or return `new_char_count` from the API response and propagate.
+**Still broken:** AgentOverviewCard line 255 reads `client.system_prompt.length` — that's the SSR prop, not the `prompt` state. Need to pass `promptLength` prop or the live `prompt` value so the char count badge updates without page reload.
 
-**Files:** `src/components/dashboard/settings/AgentTab.tsx`, `src/app/api/dashboard/settings/route.ts`
+**Files:** `AgentOverviewCard.tsx`, `AgentTab.tsx`
 
 ---
 
@@ -127,15 +123,11 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
-### SET-7: SectionEditorCard save doesn't update parent prompt state (MEDIUM)
+### SET-7: SectionEditorCard save doesn't update parent prompt state (MEDIUM) — FIXED by SET-13
 
 **Problem:** SectionEditorCard modifies `system_prompt` server-side via `replacePromptSection()`, but the parent AgentTab `prompt` state is never updated. After a section save, PromptEditorCard still shows the OLD prompt text. If admin then opens the prompt editor and saves, they overwrite the section edit with the stale version.
 
-**Scope:** Only affects admin users who use both SectionEditorCard and PromptEditorCard in the same session without refreshing.
-
-**Fix:** SectionEditorCard needs an `onPromptChange` callback prop. After successful save, API should return `new_system_prompt` in the response body. SectionEditorCard calls `onPromptChange(newPrompt)` which flows up to AgentTab's `setPrompt`. Also fixes SET-3 (stale char count).
-
-**Files:** `SectionEditorCard.tsx`, `AgentTab.tsx`, `settings/route.ts`
+**Fix:** SET-13 added `onPromptChange` callback to SectionEditorCard. API returns `system_prompt`, card calls `onPromptChange`, AgentTab updates parent state. PromptEditorCard now always has the latest prompt.
 
 ---
 
@@ -202,15 +194,17 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
-### SET-13: API doesn't return updated prompt text (MEDIUM)
+### SET-13: API doesn't return updated prompt text (MEDIUM) — FIXED 2026-03-22
 
 **Problem:** The PATCH response is `{ ok, ultravox_synced, warnings }` but never returns the new `system_prompt`. This is the root cause of SET-3 (stale char count) and SET-7 (stale parent prompt). Every prompt-modifying save (voice style, section edit, agent name, booking toggle) changes the prompt server-side but the client never gets the result back.
 
-**Impact:** Fixing this at the API level fixes SET-3 and SET-7 in one shot. Cards that modify the prompt can call `onPromptChange(response.system_prompt)` to keep parent state in sync.
+**Fix applied:**
+1. API route returns `system_prompt` in the response whenever prompt was modified
+2. `usePatchSettings` hook accepts `onPromptChange` callback, calls it when API returns a new prompt
+3. `VoiceStyleCard`, `SectionEditorCard`, `AgentOverviewCard` all accept `onPromptChange` prop
+4. `AgentTab` wires `handlePromptChange` callback to all prompt-modifying cards → updates parent `prompt` state
 
-**Fix:** When `updates.system_prompt` is set, include `system_prompt: updates.system_prompt` in the JSON response. Update `usePatchSettings` to return it. Add `onPromptChange` callback to VoiceStyleCard and SectionEditorCard.
-
-**Files:** `settings/route.ts`, `usePatchSettings.ts`, `VoiceStyleCard.tsx`, `SectionEditorCard.tsx`, `AgentTab.tsx`
+**Files changed:** `settings/route.ts`, `usePatchSettings.ts`, `VoiceStyleCard.tsx`, `SectionEditorCard.tsx`, `AgentOverviewCard.tsx`, `AgentTab.tsx`
 
 ---
 
@@ -330,22 +324,65 @@ exp-realty:      has_casual_fillers=false, has_no_fillers_rule=true -- OK (consi
 
 ---
 
+### SET-24: usePatchSettings recreates `patch` on every render (LOW)
+
+**Problem:** `options` is an object literal passed to `usePatchSettings` — new reference every render. It's in the `useCallback` dep array for `patch`, so `patch` gets recreated every render, causing unnecessary child re-renders.
+
+**Fix:** Use `useRef` for options inside the hook, or stabilize with `useMemo` at call sites.
+
+**Files:** `usePatchSettings.ts`
+
+---
+
+### SET-25: booking_enabled toggle missing from extracted cards (MEDIUM)
+
+**Problem:** No card or visible UI toggle sends `booking_enabled: true/false` to the settings API. The server-side calendar block patching exists (route.ts lines 237-282), but the client-side toggle that would fire it isn't wired in any extracted card. BookingCard only sends `booking_service_duration_minutes` and `booking_buffer_minutes`. When this toggle gets built, it MUST use `onPromptChange` — the API patches the calendar instruction block into the prompt.
+
+**Files:** Needs new toggle in `BookingCard.tsx` or a dedicated component
+
+---
+
+### SET-26: knowledge_backend toggle doesn't propagate prompt change (LOW)
+
+**Problem:** SettingsView line 392-406 toggles `knowledge_backend` via raw `fetch`. This triggers Ultravox tool sync (adds/removes queryKnowledge tool) but doesn't read or propagate the `system_prompt` from the response. Currently the API doesn't modify the prompt for `knowledge_backend` changes, so no data loss — but if prompt patching is added for knowledge in the future, this will silently lose it.
+
+**Files:** `SettingsView.tsx`
+
+---
+
+### SET-3r: Char count badge still reads SSR prop (LOW) — FIXED 2026-03-22
+
+**Problem:** SET-13 fixed the parent `prompt` state but AgentOverviewCard read `client.system_prompt.length` (SSR prop, never updates). Char badge didn't update after prompt-modifying saves.
+
+**Fix:** Added `promptLength?: number` prop to AgentOverviewCard. AgentTab passes `(prompt[client.id] ?? '').length`. Card uses `promptLength` with fallback to `client.system_prompt.length`.
+
+**Files:** `AgentOverviewCard.tsx`, `AgentTab.tsx`
+
+---
+
 ## Priority Order
 
 ```
+--- FIXED ---
+SET-13 (API no prompt return)      -- FIXED 2026-03-22, also fixes SET-7
+SET-7  (stale parent prompt)       -- FIXED by SET-13
+SET-3  (stale char count)          -- PARTIALLY FIXED by SET-13 (prompt state yes, char badge no)
+SET-3r (char count badge SSR)      -- FIXED 2026-03-22, promptLength prop on AgentOverviewCard
+SET-2  (preset active state)       -- FIXED 2026-03-22, aria-pressed added to VoiceStyleCard
+
+--- OPEN ---
 SET-12 (prompt race condition)     -- HIGH, data corruption on concurrent saves
 SET-1  (filler contradiction)      -- MEDIUM-HIGH, affects call quality on preset switch
-SET-13 (API no prompt return)      -- MEDIUM, root cause of SET-3 + SET-7
+SET-25 (booking_enabled toggle)    -- MEDIUM, no UI fires the calendar block patch
 SET-14 (no sync retry)             -- MEDIUM, silent Ultravox drift after failure
 SET-15 (no unsaved warning)        -- MEDIUM, data loss on navigation
-SET-7  (stale parent prompt)       -- MEDIUM, admin prompt overwrite (fixed by SET-13)
-SET-2  (preset not shown)          -- LOW-MEDIUM, UX confusion
 SET-4  (duplicate sections)        -- LOW-MEDIUM, data integrity
 SET-16 (no loading state)          -- LOW-MEDIUM, blank page during load
 SET-17 (no ErrorBoundary)          -- LOW-MEDIUM, one card crash kills page
 SET-18 (raw fetch bypasses hook)   -- LOW-MEDIUM, inconsistent error handling
-SET-3  (stale char count)          -- LOW, cosmetic (fixed by SET-13)
 SET-19 (syncStatus unused)         -- LOW, partial implementation
+SET-24 (hook re-render churn)      -- LOW, perf optimization
+SET-26 (knowledge toggle no prop)  -- LOW, future-proofing
 SET-10 (double accordion)          -- LOW, admin UX (may be intentional)
 SET-8  (dead props)                -- LOW, code cleanliness
 SET-21 (useState bloat)            -- LOW, extends SET-8
