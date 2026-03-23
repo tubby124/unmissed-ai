@@ -71,7 +71,7 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
         </td>
         <td className="px-4 py-3 text-xs" style={{ color: "var(--color-text-2)" }}>
           {intake.contact_email
-            ? <a href={`mailto:${intake.contact_email}`} className="transition-colors" style={{ color: "var(--color-text-2)" }} onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")} onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")} onClick={e => e.stopPropagation()}>{intake.contact_email}</a>
+            ? <a href={`mailto:${intake.contact_email}`} className="t2 hover:t1 transition-colors duration-200" onClick={e => e.stopPropagation()}>{intake.contact_email}</a>
             : <span style={{ color: "var(--color-text-3)" }}>—</span>
           }
         </td>
@@ -451,7 +451,7 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>
+            <label className="block text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 t3">
               Client Email
             </label>
             <input
@@ -552,7 +552,7 @@ export default function IntakeTable({ intakes }: { intakes: Intake[] }) {
       {intakes.length === 0 ? (
         <div className="text-center py-16 text-sm" style={{ color: "var(--color-text-3)" }}>No submissions yet</div>
       ) : (
-        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--color-border)" }}>
+        <div className="rounded-2xl card-surface overflow-hidden">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>

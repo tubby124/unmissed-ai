@@ -228,7 +228,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       )}
 
       {/* Tab list */}
-      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--color-border)" }}>
+      <div className="rounded-2xl card-surface overflow-hidden">
         <div className="flex border-b" style={{ borderColor: "var(--color-border)" }}>
           {(['queued', 'called', 'dnc'] as Tab[]).map(t => (
             <button

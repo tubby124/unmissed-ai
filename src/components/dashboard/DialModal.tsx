@@ -90,7 +90,7 @@ export default function DialModal({ clients, defaultSlug, defaultPhone, onClose,
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: "var(--color-text-3)" }}>Outbound Dial</p>
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Outbound Dial</p>
               <p className="text-base font-semibold mt-0.5" style={{ color: "var(--color-text-1)" }}>Place a call</p>
             </div>
             <button
