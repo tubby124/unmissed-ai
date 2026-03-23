@@ -48,6 +48,10 @@ interface HomeData {
   onboarding: {
     businessName: string
     clientStatus: string | null
+    subscriptionStatus: string | null
+    trialExpiresAt: string | null
+    servicesOffered: string | null
+    agentVoiceId: string | null
     hasPhoneNumber: boolean
     hasAgent: boolean
     telegramConnected: boolean
@@ -90,12 +94,19 @@ function TrendBadge({ value }: { value: number | null }) {
   )
 }
 
+const WELCOME_DISMISSED_KEY = 'trial_welcome_dismissed'
+
 export default function ClientHome() {
   const [data, setData] = useState<HomeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
+  const [welcomeDismissed, setWelcomeDismissed] = useState(true) // start dismissed to avoid flash
   const searchParams = useSearchParams()
   const clientId = searchParams.get('client_id')
+
+  useEffect(() => {
+    setWelcomeDismissed(localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true')
+  }, [])
 
   useEffect(() => {
     const url = clientId
@@ -145,20 +156,24 @@ export default function ClientHome() {
   }
 
   if (!data) return null
-  if (data.admin) return null // No client selected — should not reach here in preview mode
+  if (data.admin) return null
 
   const { agent, stats, usage, recentCalls, capabilities, onboarding } = data
   const usagePct = usage.totalAvailable > 0 ? Math.min((usage.minutesUsed / usage.totalAvailable) * 100, 100) : 0
   const usageHigh = usagePct >= 80
 
-  const isTrial = onboarding.clientStatus === 'trial'
-  const showChecklist = onboarding.clientStatus === 'trial' || onboarding.clientStatus === 'active'
+  const isTrial = onboarding.subscriptionStatus === 'trialing'
+  const showChecklist = onboarding.clientStatus === 'active'
   const hasRealCalls = stats.totalCalls > 0
 
-  // Build action items (suppressed when checklist is visible — they duplicate)
-  const actions: { text: string; link: string; priority: 'high' | 'medium' | 'low' }[] = []
+  function dismissWelcome() {
+    localStorage.setItem(WELCOME_DISMISSED_KEY, 'true')
+    setWelcomeDismissed(true)
+  }
 
-  if (!showChecklist) {
+  // Action items (non-trial only — trial has focused guidance cards)
+  const actions: { text: string; link: string; priority: 'high' | 'medium' | 'low' }[] = []
+  if (!isTrial && !showChecklist) {
     if (!capabilities.hasFacts && !capabilities.hasFaqs) {
       actions.push({ text: 'Teach your agent about your business', link: '/dashboard/settings?tab=knowledge', priority: 'high' })
     }
@@ -175,6 +190,46 @@ export default function ClientHome() {
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
+
+      {/* Trial welcome banner — dismissable */}
+      {isTrial && !welcomeDismissed && (
+        <div
+          className="rounded-2xl p-4 sm:p-5 relative"
+          style={{ background: 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-surface) 100%)', border: '1px solid var(--color-border)' }}
+        >
+          <button
+            onClick={dismissWelcome}
+            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full hover:bg-hover transition-colors"
+            style={{ color: 'var(--color-text-3)' }}
+            aria-label="Dismiss"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <div className="flex items-start gap-3 pr-8">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary)' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold t1">Welcome — {agent.name} is ready for you</p>
+              <p className="text-xs t3 mt-1 leading-relaxed">
+                Call your agent from your browser and hear exactly how it handles real calls. When you&apos;re ready, upgrade to get your own phone number so customers can reach you directly.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trial label above the orb */}
+      {isTrial && onboarding.hasAgent && (
+        <p className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-2" style={{ color: 'var(--color-primary)' }}>
+          Your agent is ready — call it now
+        </p>
+      )}
+
       {/* Test your agent — the aha moment */}
       {onboarding.hasAgent && (
         <AgentTestCard
@@ -195,61 +250,173 @@ export default function ClientHome() {
         />
       )}
 
-      {/* Hero card */}
-      <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-2.5 h-2.5 rounded-full ${isTrial ? 'bg-amber-400' : agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
-          <h1 className="text-lg font-semibold t1">{agent.name}</h1>
-          {isTrial ? (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Trial
-            </span>
-          ) : (
-            <span
-              className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
-              style={{
-                backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
-                color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
-              }}
-            >
-              {agent.status === 'active' ? 'Live' : agent.status}
-            </span>
-          )}
-        </div>
+      {/* Hero stats card — hidden for trial users with no calls (avoid sad "0 calls" state) */}
+      {(!isTrial || hasRealCalls) && (
+        <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
+            <h1 className="text-lg font-semibold t1">{agent.name}</h1>
+            {isTrial ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Trial
+              </span>
+            ) : (
+              <span
+                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
+                  color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
+                }}
+              >
+                {agent.status === 'active' ? 'Live' : agent.status}
+              </span>
+            )}
+          </div>
 
-        {/* Big stat */}
-        <div className="mb-4">
-          <p className="text-3xl font-bold t1 tracking-tight">
-            {stats.totalCalls}
-            <span className="text-sm font-normal t3 ml-2">
-              call{stats.totalCalls !== 1 ? 's' : ''} this month
-            </span>
-          </p>
-          <TrendBadge value={stats.trends.callsChange} />
-        </div>
-
-        {/* Minutes usage bar */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[12px] t3">
-              <span className={`font-semibold ${usageHigh ? 'text-amber-400' : 't1'}`}>{usage.minutesUsed}</span> of {usage.totalAvailable} minutes used
+          <div className="mb-4">
+            <p className="text-3xl font-bold t1 tracking-tight">
+              {stats.totalCalls}
+              <span className="text-sm font-normal t3 ml-2">
+                call{stats.totalCalls !== 1 ? 's' : ''} this month
+              </span>
             </p>
-            <p className="text-[11px] t3">{Math.round(usagePct)}%</p>
+            <TrendBadge value={stats.trends.callsChange} />
           </div>
-          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
-            <div
-              className={`h-full rounded-full transition-all ${usageHigh ? 'bg-amber-500' : 'bg-blue-500'}`}
-              style={{ width: `${usagePct}%` }}
-            />
-          </div>
-          {usage.bonusMinutes > 0 && (
-            <p className="text-[11px] t3 mt-1">Includes {usage.bonusMinutes} bonus minutes</p>
-          )}
-        </div>
-      </div>
 
-      {/* Quick stats row — hidden until first real call */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[12px] t3">
+                <span className={`font-semibold ${usageHigh ? 'text-amber-400' : 't1'}`}>{usage.minutesUsed}</span> of {usage.totalAvailable} minutes used
+              </p>
+              <p className="text-[11px] t3">{Math.round(usagePct)}%</p>
+            </div>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
+              <div
+                className={`h-full rounded-full transition-all ${usageHigh ? 'bg-amber-500' : 'bg-blue-500'}`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+            {usage.bonusMinutes > 0 && (
+              <p className="text-[11px] t3 mt-1">Includes {usage.bonusMinutes} bonus minutes</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* What Your Agent Knows — trial users */}
+      {isTrial && (
+        <div className="rounded-2xl p-4 card-surface">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">What callers experience</p>
+            <Link href="/dashboard/settings?tab=knowledge" className="text-[12px] font-medium hover:opacity-75 transition-opacity" style={{ color: 'var(--color-primary)' }}>
+              Improve →
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            {onboarding.servicesOffered && (
+              <div className="flex items-start gap-3">
+                <span className="text-[11px] font-medium t3 w-20 shrink-0 pt-0.5">Services</span>
+                <span className="text-[11px] t2 flex-1 leading-relaxed">{onboarding.servicesOffered}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium t3 w-20 shrink-0">Hours</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasHours ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                {capabilities.hasHours ? 'Configured' : 'Not set'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium t3 w-20 shrink-0">FAQs</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasFaqs ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                {capabilities.hasFaqs ? 'Configured' : 'None added yet'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium t3 w-20 shrink-0">Knowledge</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasKnowledge ? 'bg-green-500/10 text-green-400' : capabilities.hasFacts ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                {capabilities.hasKnowledge ? 'Website loaded' : capabilities.hasFacts ? 'Facts added' : 'Basic only'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium t3 w-20 shrink-0">Booking</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasBooking ? 'bg-green-500/10 text-green-400' : 'bg-zinc-500/10 text-zinc-400'}`}>
+                {capabilities.hasBooking ? 'Calendar connected' : 'Not connected'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* How it works — trial users with no real calls */}
+      {isTrial && !hasRealCalls && (
+        <div className="rounded-2xl p-4 card-surface">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-4">How it works when you go live</p>
+          <div className="flex items-start gap-0">
+            {[
+              { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', label: 'Caller dials your number' },
+              { icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label: 'Agent answers & helps them' },
+              { icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', label: 'You get notified instantly' },
+            ].map((step, i) => (
+              <div key={i} className="flex items-start flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 shrink-0" style={{ backgroundColor: 'var(--color-accent-tint)', border: '1px solid var(--color-border)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="t2">
+                      <path d={step.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className="text-[11px] t2 text-center font-medium leading-snug px-1">{step.label}</p>
+                </div>
+                {i < 2 && (
+                  <div className="flex items-center mt-4 mx-1 shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] t3 mt-4 pt-3 leading-relaxed" style={{ borderTop: '1px solid var(--color-border)' }}>
+            Right now: test your agent from your browser above. After upgrading: real callers reach your agent automatically on your own phone number.
+          </p>
+        </div>
+      )}
+
+      {/* Locked features preview — trial only */}
+      {isTrial && (
+        <div className="rounded-2xl p-4 card-surface">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Unlocks when you go live</p>
+          <div className="space-y-2 mb-4">
+            {[
+              'Your own business phone number',
+              'Real call forwarding from your existing line',
+              'Live call dashboard + hot lead tracking',
+              'Instant Telegram, email & SMS alerts',
+              'Full leads & notifications hub',
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-xs t2">{feature}</span>
+              </div>
+            ))}
+          </div>
+          <a
+            href="/dashboard/settings?tab=billing"
+            className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            Get your phone number — from $97/mo
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      )}
+
+      {/* Quick stats row — only when there are real calls */}
       {hasRealCalls && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="rounded-2xl p-4 card-surface">
@@ -270,7 +437,7 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* Action items */}
+      {/* Action items — non-trial only */}
       {actions.length > 0 && (
         <div className="rounded-2xl p-4 space-y-2 card-surface">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Suggested Actions</p>
@@ -296,13 +463,13 @@ export default function ClientHome() {
       <div className="rounded-2xl p-4 card-surface">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
-          <Link href="/dashboard/calls" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200">
+          <Link href="/dashboard/calls" className="text-[12px] font-medium hover:opacity-75 transition-opacity" style={{ color: 'var(--color-primary)' }}>
             View all
           </Link>
         </div>
 
         {recentCalls.length === 0 ? (
-          <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent to get started.</p>
+          <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent above to get started.</p>
         ) : (
           <div className="space-y-1">
             {recentCalls.map(call => (
@@ -311,12 +478,10 @@ export default function ClientHome() {
                 href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-hover"
               >
-                {/* Status badge */}
                 <span className="shrink-0">
                   <StatusBadge status={call.call_status} showDot={false} />
                 </span>
 
-                {/* Caller + summary */}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium t1 truncate">{formatPhone(call.caller_phone)}</p>
                   {call.ai_summary && (
@@ -324,7 +489,6 @@ export default function ClientHome() {
                   )}
                 </div>
 
-                {/* Duration + time */}
                 <div className="text-right shrink-0">
                   <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
                   <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>

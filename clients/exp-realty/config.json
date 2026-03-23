@@ -13,7 +13,7 @@
   "telegram_chat_id":     "6879041049",
   "timezone":             "America/Regina",
   "timezone_display":     "Saskatchewan",
-  "greeting": "Hey! This is Fatema, Omar's AI assistant... how can I help ya?",
+  "greeting": "Hi, you've reached Omar — I'm Fatema, his assistant. He's with clients right now, so go ahead and leave your name and number, or let me know how I can help.",
   "vad_min_interruption": "0.400s",
   "deployed_at":          "2026-03-13"
 }

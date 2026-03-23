@@ -2046,11 +2046,12 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     if (priceRange) variables.PRICE_RANGE = priceRange
     const walkInPolicy = (intake.niche_walkInPolicy as string)?.trim()
     if (walkInPolicy) variables.WALK_IN_POLICY = walkInPolicy
-    // Set CLOSE_PERSON from owner first name if available
-    const ownerName = (intake.owner_name as string)?.trim()
-    if (ownerName) {
-      variables.CLOSE_PERSON = ownerName.split(' ')[0] || ownerName
-    }
+  }
+
+  // Universal: if owner provided their name, personalise CLOSE_PERSON to first name (all niches)
+  const ownerNameGlobal = (intake.owner_name as string)?.trim()
+  if (ownerNameGlobal) {
+    variables.CLOSE_PERSON = ownerNameGlobal.split(' ')[0] || ownerNameGlobal
   }
 
   // Transfer — if owner_phone provided AND niche supports live transfers

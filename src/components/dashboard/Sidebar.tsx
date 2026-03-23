@@ -21,9 +21,11 @@ interface SidebarProps {
   telegramConnected?: boolean
   niche?: string | null
   clientStatus?: string | null
+  subscriptionStatus?: string | null
+  trialExpiresAt?: string | null
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null, subscriptionStatus = null, trialExpiresAt = null }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -33,6 +35,11 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const router = useRouter()
   const supabase = createBrowserClient()
   const { previewMode, selectedClient: previewClient } = useAdminClient()
+
+  const isTrialing = !isAdmin && subscriptionStatus === 'trialing'
+  const daysRemaining = isTrialing && trialExpiresAt
+    ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / 86400000))
+    : undefined
 
   // In Cloak mode, preserve ?preview=true&client_id=X on all nav links
   const cloakSuffix = previewMode && previewClient ? `?preview=true&client_id=${previewClient.id}` : ''
@@ -141,7 +148,15 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 {businessName && (
                   <span className="text-xs flex items-center gap-1.5 truncate" style={{ color: "var(--color-text-2)" }}>
                     {businessName}
-                    {!isAdmin && (
+                    {!isAdmin && isTrialing && (
+                      <span
+                        className="text-[9px] font-bold tracking-wide rounded-full px-1.5 py-0.5 leading-none shrink-0"
+                        style={{ backgroundColor: 'rgb(245 158 11 / 0.15)', color: 'rgb(251 191 36)', border: '1px solid rgb(245 158 11 / 0.3)' }}
+                      >
+                        Trial
+                      </span>
+                    )}
+                    {!isAdmin && !isTrialing && (
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${telegramConnected ? 'bg-green-500' : 'bg-amber-500'}`}
                         title={telegramConnected ? 'Telegram connected' : 'Telegram not connected'}
@@ -178,6 +193,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           const isCalls = item.href === '/dashboard/calls'
           const isLive = item.href === '/dashboard/live'
           const isSetup = item.href === '/dashboard/setup'
+          const isLocked = isTrialing && !!item.trialLocked
           return (
             <Fragment key={item.href}>
               {groupChanged && isAdmin && !collapsed && (
@@ -191,26 +207,33 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 </>
               )}
             <Link
-              href={`${item.href}${cloakSuffix}`}
-              title={collapsed ? item.label : undefined}
+              href={isLocked ? '/dashboard/settings?tab=billing' : `${item.href}${cloakSuffix}`}
+              title={isLocked ? 'Available when you go live' : (collapsed ? item.label : undefined)}
               {...(item.href === '/dashboard/calls' ? { 'data-tour': 'nav-calls' } : {})}
               {...(item.href === '/dashboard/setup' ? { 'data-tour': 'nav-agent' } : {})}
               {...(item.href === '/dashboard/settings' ? { 'data-tour': 'nav-settings' } : {})}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
-                active
+                isLocked
+                  ? 'opacity-40'
+                  : active
                   ? 'border-l-[3px]'
-                  : isSetup && setupIncomplete && !active
-                  ? 'hover:bg-hover'
                   : 'hover:bg-hover'
               }`}
-              style={active
+              style={active && !isLocked
                 ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
-                : isSetup && setupIncomplete && !active
+                : isSetup && setupIncomplete && !active && !isTrialing
                 ? { color: 'var(--color-text-2)', boxShadow: 'inset 0 0 0 1px var(--color-warning)' }
                 : { color: "var(--color-text-2)" }}
             >
               <span className="shrink-0 relative">
-                <NavIcon name={item.iconName} />
+                {isLocked ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                ) : (
+                  <NavIcon name={item.iconName} />
+                )}
                 {/* Pulsing green dot when a call is live */}
                 {isCalls && liveCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
@@ -218,14 +241,14 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                   </span>
                 )}
-                {isLive && liveCount > 0 && (
+                {isLive && liveCount > 0 && !isLocked && (
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                   </span>
                 )}
-                {/* Pulsing amber dot when setup is incomplete */}
-                {isSetup && setupIncomplete && !active && (
+                {/* Pulsing amber dot when setup is incomplete — suppressed for trial users */}
+                {isSetup && setupIncomplete && !active && !isTrialing && (
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
@@ -295,9 +318,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       </nav>
 
       {/* Upgrade CTA for trial users */}
-      {!isAdmin && clientStatus === 'trial' && (
+      {!isAdmin && isTrialing && (
         <div className="px-2 pb-2">
-          <UpgradeCTA collapsed={collapsed} />
+          <UpgradeCTA collapsed={collapsed} daysRemaining={daysRemaining} />
         </div>
       )}
 

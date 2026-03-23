@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { defaultCallState } from '@/lib/call-state'
-import { validateSignature, buildStreamTwiml, buildVoicemailTwiml } from '@/lib/twilio'
+import { validateSignature, buildStreamTwiml, buildVoicemailTwiml, buildIvrGatherTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { measurePromptLength } from '@/lib/knowledge-summary'
@@ -29,9 +29,10 @@ export async function POST(
   const callSid = body.CallSid || 'unknown'
   console.log(`[inbound] slug=${slug} callerPhone=${callerPhone} callSid=${callSid}`)
 
-  // Validate Twilio signature
+  // Validate Twilio signature — include query params so ?skip_ivr=1 redirects validate correctly
   const signature = req.headers.get('X-Twilio-Signature') || ''
-  const url = `${APP_URL}/api/webhook/${slug}/inbound`
+  const reqUrl = new URL(req.url)
+  const url = `${APP_URL}/api/webhook/${slug}/inbound${reqUrl.search || ''}`
   if (!validateSignature(signature, url, body)) {
     console.error(`[inbound] Twilio signature FAILED for slug=${slug} url=${url}`)
     return new NextResponse('Forbidden', { status: 403 })
@@ -51,7 +52,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, ivr_enabled, ivr_prompt')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -65,6 +66,21 @@ export async function POST(
     console.error(`[inbound] No system_prompt for slug=${slug} clientId=${client.id} — returning unavailable message`)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Sorry, this line is temporarily unavailable. Please try again later.</Say></Response>`
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  // ── IVR pre-filter gate ────────────────────────────────────────────────────
+  // For clients whose callers are voicemail-trained: plays a menu before connecting
+  // to the AI agent. Press 1 → voicemail. No digit/other → connect to agent.
+  // skip_ivr=1 is set by the ivr-gather route when routing caller to the agent.
+  const skipIvr = reqUrl.searchParams.has('skip_ivr')
+  if ((client as Record<string, unknown>).ivr_enabled && !skipIvr) {
+    const ivrPrompt = ((client as Record<string, unknown>).ivr_prompt as string | null)
+      || `Hi, you've reached ${client.business_name || 'us'}. Press 1 to leave a voicemail, or stay on the line and our assistant will be with you.`
+    const gatherUrl = `${APP_URL}/api/webhook/${slug}/ivr-gather`
+    console.log(`[inbound] IVR gate active for slug=${slug}`)
+    return new NextResponse(buildIvrGatherTwiml(ivrPrompt, gatherUrl), {
+      headers: { 'Content-Type': 'text/xml' },
+    })
   }
 
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)

@@ -81,12 +81,12 @@ export default function OnboardingChecklist({
       id: 'go_live',
       label: 'Go live',
       description: isTrial
-        ? 'Get a phone number so real callers can reach your agent.'
+        ? 'After upgrading: forward your existing business line. Callers reach your agent automatically.'
         : 'Forward your business line so calls reach your agent.',
-      doneDescription: isTrial ? 'Upgrade to get started' : 'Your agent is live',
+      doneDescription: isTrial ? 'Upgrade to go live' : 'Your agent is live',
       done: liveDone,
       link: isTrial ? '/dashboard/settings?tab=billing' : '/dashboard/setup',
-      linkLabel: isTrial ? 'Get a number' : 'Setup instructions',
+      linkLabel: isTrial ? 'Upgrade to go live' : 'Setup instructions',
     },
   ]
 

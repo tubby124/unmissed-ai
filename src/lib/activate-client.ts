@@ -359,21 +359,9 @@ export async function activateClient(params: {
         const resendKey = process.env.RESEND_API_KEY
         if (resendKey) {
           try {
-            const { data: linkData } = await adminSupa.auth.admin.generateLink({
-              type: 'recovery',
-              email: contactEmail,
-            })
-            const actionLink = linkData?.properties?.action_link ?? ''
-            let emailSetupUrl = `${appUrl}/dashboard`
-            if (actionLink) {
-              try {
-                const parsed = new URL(actionLink)
-                const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-                if (tokenHash) {
-                  emailSetupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
-                }
-              } catch { emailSetupUrl = `${appUrl}/login` }
-            }
+            // Reuse setupUrl already generated above — a second generateLink() call would
+            // invalidate the first token (Supabase recovery tokens are single-use).
+            const emailSetupUrl = setupUrl || `${appUrl}/login`
 
             const resend = new Resend(resendKey)
             const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
@@ -507,7 +495,9 @@ export async function activateClient(params: {
   try {
     const updatePayload: Record<string, unknown> = {
       status: 'active',
-      setup_complete: false,
+      // Trial users have nothing to set up (no Twilio number) — don't mark setup incomplete.
+      // setup_complete: false only applies to paid activations that still need forwarding configured.
+      ...(mode !== 'trial' ? { setup_complete: false } : {}),
       updated_at: new Date().toISOString(),
       telegram_registration_token: telegramRegToken,
       sms_enabled: callerAutoText,

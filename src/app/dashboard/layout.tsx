@@ -24,6 +24,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let isAdmin = false
 
   let clientStatus: string | null = null
+  let subscriptionStatus: string | null = null
+  let trialExpiresAt: string | null = null
   let telegramConnected = false
   let setupComplete = true
   let twilioNumber: string | null = null
@@ -33,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (user) {
     const { data: cuRows } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche)')
+      .select('client_id, role, clients(business_name, status, subscription_status, trial_expires_at, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche)')
       .eq('user_id', user.id)
       .order('role').limit(1)
     const cu = cuRows?.[0] ?? null
@@ -45,9 +47,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
-    const clientData = cu?.clients as { business_name?: string; status?: string; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null } | null
+    const clientData = cu?.clients as { business_name?: string; status?: string; subscription_status?: string | null; trial_expires_at?: string | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null } | null
     businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
     clientStatus = isAdmin ? null : clientData?.status ?? null
+    subscriptionStatus = isAdmin ? null : clientData?.subscription_status ?? null
+    trialExpiresAt = isAdmin ? null : clientData?.trial_expires_at ?? null
     telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
     setupComplete = isAdmin ? true : (clientData?.setup_complete ?? true)
     twilioNumber = isAdmin ? null : (clientData?.twilio_number ?? null)
@@ -83,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       {/* Mobile top bar */}
       <MobileNav businessName={businessName} isAdmin={isAdmin} clientStatus={clientStatus} niche={clientNiche} />
 
-      {!isAdmin && !setupComplete && clientStatus === 'active' && (
+      {!isAdmin && !setupComplete && clientStatus === 'active' && subscriptionStatus !== 'trialing' && (
         <ForwardingBanner twilioNumber={twilioNumber} />
       )}
 
@@ -92,7 +96,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
             <div className="flex flex-1 relative overflow-hidden">
               {/* Desktop sidebar */}
-              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} />
+              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} />
 
               {/* Main content */}
               <main className="flex-1 min-w-0 overflow-y-auto">

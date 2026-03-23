@@ -98,6 +98,22 @@ export function buildVoicemailTwiml(opts: {
 </Response>`
 }
 
+/**
+ * IVR pre-filter TwiML — plays a menu prompt and waits for a single digit.
+ * Caller presses 1 → voicemail. No digit / other → falls through to <Redirect> (safety).
+ * The <Redirect> fallback fires only if <Gather> errors; normal timeout submits to actionUrl.
+ * Used by /api/webhook/[slug]/inbound when client.ivr_enabled = true.
+ */
+export function buildIvrGatherTwiml(prompt: string, actionUrl: string, timeout = 6): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${escapeXml(actionUrl)}" method="POST" timeout="${timeout}">
+    <Say voice="Polly.Joanna">${escapeXml(prompt)}</Say>
+  </Gather>
+  <Redirect method="POST">${escapeXml(actionUrl)}</Redirect>
+</Response>`
+}
+
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }

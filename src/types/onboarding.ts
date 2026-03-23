@@ -117,6 +117,9 @@ export interface OnboardingData {
 
   // SCRAPE1: Website scrape preview data (populated on step 6)
   websiteScrapeResult: WebsiteScrapeResult | null;
+
+  // IVR pre-filter — voicemail menu before connecting to AI agent
+  ivrEnabled: boolean;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -192,6 +195,7 @@ export const defaultOnboardingData: OnboardingData = {
   knowledgeDocs: [],
   timezone: '',
   websiteScrapeResult: null,
+  ivrEnabled: false,
 };
 
 export const nicheLabels: Record<Niche, string> = {

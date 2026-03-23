@@ -99,3 +99,9 @@
 **Chars:** 10439 | **Hash:** 8b9551ffc193e4ae
 **Supabase version_id:** 92a08fc5-5fdb-443f-bde0-03274839308f
 **Ultravox revision:** c2869be8-054a-4ffa-9bb6-42340f469e82
+
+## v19 — 2026-03-23 16:29 UTC
+**Change:** Voicemail-style opening: go-ahead cue + leave your name and number framing to reduce early hangups from voicemail-trained callers
+**Chars:** 10530 | **Hash:** 18700d34727aba55
+**Supabase version_id:** 92dd92d8-42e9-47fd-8fe6-950873670e2d
+**Ultravox revision:** da3edeb6-9631-4435-a9b3-a78c7db32af5

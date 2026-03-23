@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     // Client config
     supabase
       .from('clients')
-      .select('id, business_name, agent_name, status, niche, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id')
+      .select('id, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, services_offered, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id')
       .eq('id', clientId)
       .single(),
 
@@ -151,6 +151,10 @@ export async function GET(request: Request) {
     onboarding: {
       businessName: client.business_name,
       clientStatus: client.status,
+      subscriptionStatus: (client as Record<string, unknown>).subscription_status as string | null ?? null,
+      trialExpiresAt: (client as Record<string, unknown>).trial_expires_at as string | null ?? null,
+      servicesOffered: (client as Record<string, unknown>).services_offered as string | null ?? null,
+      agentVoiceId: (client as Record<string, unknown>).agent_voice_id as string | null ?? null,
       hasPhoneNumber: !!client.twilio_number,
       hasAgent: !!client.ultravox_agent_id,
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),

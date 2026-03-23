@@ -5,6 +5,8 @@ export interface NavItem {
   adminOnly: boolean
   group: number
   iconName: string
+  // trialLocked: item requires a live phone number — shown dimmed with lock icon for trial users
+  trialLocked?: boolean
 }
 
 export const GROUP_LABELS: Record<number, string | null> = {
@@ -19,18 +21,18 @@ export const NAV_ITEMS: NavItem[] = [
   // ── Group 1 ──────────────────────────────────────────────────────────────
   { href: '/dashboard', label: 'Command Center', adminOnly: true, group: 1, iconName: 'command-center' },
   { href: '/dashboard/calls', label: 'Overview', adminOnly: false, group: 1, iconName: 'phone' },
-  { href: '/dashboard/insights', label: 'Insights', adminOnly: false, group: 1, iconName: 'bar-chart' },
-  { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 1, iconName: 'broadcast' },
-  { href: '/dashboard/setup', label: 'Setup', adminOnly: false, group: 1, iconName: 'wrench' },
+  { href: '/dashboard/insights', label: 'Insights', adminOnly: false, group: 1, iconName: 'bar-chart', trialLocked: true },
+  { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 1, iconName: 'broadcast', trialLocked: true },
+  { href: '/dashboard/setup', label: 'Go Live Setup', adminOnly: false, group: 1, iconName: 'wrench' },
   { href: '/dashboard/advisor', label: 'Advisor', adminOnly: false, group: 1, iconName: 'message-dots' },
   // ── Group 2 — CLIENTS (admin) ───────────────────────────────────────────
   { href: '/dashboard/clients', label: 'Clients', adminOnly: true, group: 2, iconName: 'users' },
   { href: '/dashboard/campaigns', label: 'Performance', adminOnly: true, group: 2, iconName: 'chart-columns' },
   // ── Group 3 — MANAGE ────────────────────────────────────────────────────
-  { href: '/dashboard/leads', label: 'Leads', adminLabel: 'Outbound Queue', adminOnly: false, group: 3, iconName: 'list' },
+  { href: '/dashboard/leads', label: 'Leads', adminLabel: 'Outbound Queue', adminOnly: false, group: 3, iconName: 'list', trialLocked: true },
   { href: '/dashboard/intake', label: 'Intake', adminOnly: true, group: 3, iconName: 'inbox' },
-  { href: '/dashboard/calendar', label: 'Calendar', adminOnly: false, group: 3, iconName: 'calendar' },
-  { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 3, iconName: 'bell' },
+  { href: '/dashboard/calendar', label: 'Calendar', adminOnly: false, group: 3, iconName: 'calendar', trialLocked: true },
+  { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 3, iconName: 'bell', trialLocked: true },
   // ── Group 4 — TOOLS (admin) ─────────────────────────────────────────────
   { href: '/dashboard/demos', label: 'Demos', adminOnly: true, group: 4, iconName: 'activity' },
   { href: '/dashboard/lab', label: 'Lab', adminOnly: true, group: 4, iconName: 'grid' },

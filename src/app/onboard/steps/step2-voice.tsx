@@ -295,6 +295,59 @@ export default function Step2Voice({ data, onUpdate }: Props) {
           )}
         </div>
       )}
+
+      {/* ── Voicemail menu (IVR) ──────────────────────────────────────────── */}
+      {!isVoicemail && (
+        <div className="space-y-3 pt-4 border-t border-border">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Voicemail menu</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Are your callers used to leaving you voicemail?
+            </p>
+          </div>
+
+          <div
+            onClick={() => onUpdate({ ivrEnabled: !data.ivrEnabled })}
+            className="flex items-center justify-between rounded-xl border border-border p-4 cursor-pointer hover:bg-muted/30 transition-all"
+          >
+            <div className="flex-1">
+              <span className="text-sm font-medium text-foreground">
+                Add a voicemail option before connecting to {data.agentName || "your agent"}
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Callers hear: &quot;Press 1 to leave a voicemail, or stay on the line to speak with {data.agentName || "your agent"}.&quot;
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={data.ivrEnabled}
+              onClick={(e) => { e.stopPropagation(); onUpdate({ ivrEnabled: !data.ivrEnabled }); }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                data.ivrEnabled ? "bg-indigo-600" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow ring-0 transition duration-200 ease-in-out ${
+                  data.ivrEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {data.ivrEnabled && (
+            <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-1">
+              <p className="text-xs font-medium text-foreground">What callers will hear:</p>
+              <p className="text-xs text-muted-foreground italic">
+                &quot;Hi, you&apos;ve reached {data.businessName || "[your business]"}. Press 1 to leave a voicemail, or stay on the line and {data.agentName || "our assistant"} will be with you.&quot;
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-2">
+                Callers who press 1 leave a voicemail recording. Callers who wait are connected to {data.agentName || "your agent"}.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

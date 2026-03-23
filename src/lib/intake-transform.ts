@@ -101,6 +101,18 @@ export function toIntakePayload(data: OnboardingData) {
     ? "open Saturdays only"
     : "open Sundays only";
 
+  // Build weekend hours string (null if both Saturday and Sunday closed)
+  const satDay = data.hours?.saturday
+  const sunDay = data.hours?.sunday
+  let hoursWeekend: string | null = null
+  if (satDay && !satDay.closed && sunDay && !sunDay.closed) {
+    hoursWeekend = `Saturday ${to12h(satDay.open)}–${to12h(satDay.close)}, Sunday ${to12h(sunDay.open)}–${to12h(sunDay.close)}`
+  } else if (satDay && !satDay.closed) {
+    hoursWeekend = `Saturday ${to12h(satDay.open)}–${to12h(satDay.close)}`
+  } else if (sunDay && !sunDay.closed) {
+    hoursWeekend = `Sunday ${to12h(sunDay.open)}–${to12h(sunDay.close)}`
+  }
+
   return {
     business_name: data.businessName,
     niche,
@@ -140,6 +152,7 @@ export function toIntakePayload(data: OnboardingData) {
       (data.commonObjections || []).filter(p => p.question?.trim() && p.answer?.trim())
     ),
 
+    hours_weekend: hoursWeekend,
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>

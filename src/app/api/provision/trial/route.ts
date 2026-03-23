@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       agent_name: data.agentName || null,
       // Phase 0b: Write onboarding fields so settings dashboard shows them
       business_hours_weekday: intakePayload.hours_weekday || null,
-      business_hours_weekend: null,
+      business_hours_weekend: intakePayload.hours_weekend || null,
       after_hours_behavior: data.afterHoursBehavior || 'take_message',
       after_hours_emergency_phone: data.emergencyPhone || null,
       website_url: data.websiteUrl || null,
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
       state: data.state || null,
       services_offered: intakePayload.services_offered || null,
       callback_phone: intakePayload.callback_phone || null,
+      ivr_enabled: data.ivrEnabled ?? false,
     })
     .select("id")
     .single();
