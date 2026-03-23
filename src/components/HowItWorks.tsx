@@ -1,32 +1,33 @@
 'use client'
 
 import { motion } from 'motion/react'
+import { PhoneIncoming, Bot, BellRing, CircleCheck, type LucideIcon } from 'lucide-react'
 
-const steps = [
+const steps: { number: string; icon: LucideIcon; title: string; description: string }[] = [
   {
     number: "01",
-    icon: "📞",
+    icon: PhoneIncoming,
     title: "Customer calls your number",
     description:
       "Your existing business number (or a new one) forwards to your AI agent. Zero downtime, zero configuration by you.",
   },
   {
     number: "02",
-    icon: "🤖",
+    icon: Bot,
     title: "AI agent answers — every time",
     description:
       "Your agent knows your business, your services, your pricing. It speaks naturally, collects the caller's info, and qualifies the lead.",
   },
   {
     number: "03",
-    icon: "📲",
+    icon: BellRing,
     title: "You get an instant alert",
     description:
       "A structured lead card hits your Telegram or SMS within seconds: caller name, number, what they need, and how hot the lead is.",
   },
   {
     number: "04",
-    icon: "✅",
+    icon: CircleCheck,
     title: "You call back only warm leads",
     description:
       "No more chasing cold voicemails. You see the full context before you dial. Close the job, not the guesswork.",
@@ -58,49 +59,44 @@ export default function HowItWorks() {
 
         {/* Steps grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          {steps.map((step, i) => (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.1 }}
-              className="relative rounded-2xl p-6"
-              style={{
-                backgroundColor: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              {/* Step number */}
-              <div className="flex items-start gap-4">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black"
-                  style={{ backgroundColor: "var(--color-surface)", color: "var(--color-primary)" }}
-                >
-                  {step.number}
-                </motion.div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">{step.icon}</span>
-                    <h3 className="font-semibold" style={{ color: "var(--color-text-1)" }}>{step.title}</h3>
+          {steps.map((step, i) => {
+            const StepIcon = step.icon
+            return (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.1 }}
+                className="relative rounded-2xl p-6 cursor-pointer"
+                style={{
+                  backgroundColor: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: "rgba(99,102,241,0.12)" }}
+                  >
+                    <StepIcon size={20} style={{ color: "var(--color-primary)" }} />
                   </div>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-3)" }}>
-                    {step.description}
-                  </p>
+                  <div className="flex-1">
+                    <p
+                      className="text-[10px] font-mono uppercase tracking-widest mb-1"
+                      style={{ color: "var(--color-text-3)" }}
+                    >
+                      {step.number}
+                    </p>
+                    <h3 className="font-semibold mb-2" style={{ color: "var(--color-text-1)" }}>{step.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-3)" }}>
+                      {step.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Connector arrow (for steps 1, 2, 3 on desktop) */}
-              {i < steps.length - 1 && (
-                <div
-                  className="hidden md:block absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xl leading-none z-10"
-                  style={{ color: "var(--color-text-3)", display: i % 2 === 1 ? "none" : undefined }}
-                >
-                </div>
-              )}
-            </motion.div>
-          ))}
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Bottom proof line */}

@@ -74,7 +74,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
           transition={{ type: "spring", stiffness: 300, damping: 24, delay: compact ? 0 : 0.1 }}
           whileHover={{
             y: -4,
-            boxShadow: "0 12px 40px rgba(59,130,246,0.25)",
+            boxShadow: "0 12px 40px rgba(99,102,241,0.25)",
           }}
           className="rounded-2xl p-6 relative flex flex-col"
           style={{

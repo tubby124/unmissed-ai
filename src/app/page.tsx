@@ -142,18 +142,18 @@ export default async function HomePage() {
         {/* ── 8. FINAL CTA — Bookend with phone input ───────────── */}
         <section
           className="py-24 px-4 text-center"
-          style={{ backgroundColor: "#0a0a0a" }}
+          style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-2xl mx-auto">
             <h2
               className="text-4xl md:text-5xl font-black mb-4"
-              style={{ color: "#FFFFFF" }}
+              style={{ color: "var(--color-text-1)" }}
             >
               Stop leaving money on the table.
             </h2>
             <p
               className="text-xl mb-8"
-              style={{ color: "rgba(255,255,255,0.65)" }}
+              style={{ color: "var(--color-text-2)" }}
             >
               Every call you miss is a job that went to someone who picked up.
             </p>
@@ -165,12 +165,12 @@ export default async function HomePage() {
 
             <div
               className="flex items-center justify-center gap-6 text-sm"
-              style={{ color: "rgba(255,255,255,0.45)" }}
+              style={{ color: "var(--color-text-3)" }}
             >
               <span>{TRIAL.label}</span>
               <span
                 className="w-px h-3"
-                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+                style={{ backgroundColor: "var(--color-border)" }}
               />
               <span>
                 {BETA_PROMO.enabled
@@ -179,7 +179,7 @@ export default async function HomePage() {
               </span>
               <span
                 className="w-px h-3"
-                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+                style={{ backgroundColor: "var(--color-border)" }}
               />
               <span>No contracts</span>
             </div>

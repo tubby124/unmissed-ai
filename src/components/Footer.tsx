@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { BRAND_NAME } from "@/lib/brand";
+import { NAV_NICHES } from "@/lib/niches";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -101,12 +102,9 @@ export default function Footer() {
               Industries
             </p>
             <div className="flex flex-col gap-2">
-              <Link href="/for-auto-glass" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Auto Glass Shops</Link>
-              <Link href="/for-realtors" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Real Estate Agents</Link>
-              <Link href="/for-hvac" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>HVAC Companies</Link>
-              <Link href="/for-plumbing" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Plumbers</Link>
-              <Link href="/for-dental" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Dental Offices</Link>
-              <Link href="/for-legal" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Law Firms</Link>
+              {NAV_NICHES.map(n => (
+                <Link key={n.id} href={n.href} className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>{n.fullLabel}</Link>
+              ))}
             </div>
           </div>
         </div>

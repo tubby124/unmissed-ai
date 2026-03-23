@@ -1,74 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import LeadCard from "./LeadCard";
 import { motion, AnimatePresence } from "motion/react";
-
-const niches = [
-  {
-    id: "auto-glass",
-    icon: "🔧",
-    label: "Auto Glass",
-    href: "/for-auto-glass",
-    stat: "Avg $400/job",
-    leadCardNiche: "auto-glass" as const,
-    live: true,
-  },
-  {
-    id: "property-mgmt",
-    icon: "🏢",
-    label: "Property Mgmt",
-    href: "/for-realtors",
-    stat: "Avg $1,200/unit/yr",
-    leadCardNiche: "realty" as const,
-    live: true,
-  },
-  {
-    id: "hvac",
-    icon: "❄️",
-    label: "HVAC",
-    href: "/for-hvac",
-    stat: "Avg $350/call",
-    leadCardNiche: "hvac" as const,
-  },
-  {
-    id: "plumbing",
-    icon: "🚿",
-    label: "Plumbing",
-    href: "/for-plumbing",
-    stat: "Avg $280/job",
-    leadCardNiche: "plumbing" as const,
-  },
-  {
-    id: "dental",
-    icon: "🦷",
-    label: "Dental Offices",
-    href: "/for-dental",
-    stat: "Avg $800/new patient",
-    leadCardNiche: "dental" as const,
-  },
-  {
-    id: "legal",
-    icon: "⚖️",
-    label: "Law Firms",
-    href: "/for-legal",
-    stat: "Avg $3,000/retainer",
-    leadCardNiche: "legal" as const,
-  },
-  {
-    id: "realty",
-    icon: "🏠",
-    label: "Real Estate",
-    href: "/for-realtors",
-    stat: "Avg $12,000/deal",
-    leadCardNiche: "realty" as const,
-  },
-];
+import { NICHES } from "@/lib/niches";
 
 export default function NicheSelectorGrid() {
   const [hoveredNiche, setHoveredNiche] = useState<string | null>(null);
-  const activeNiche = niches.find((n) => n.id === hoveredNiche);
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+
+  const activeId = hoveredNiche || selectedNiche;
+  const activeNiche = NICHES.find((n) => n.id === activeId);
+
+  const handleTileInteraction = useCallback(
+    (nicheId: string, e: React.MouseEvent) => {
+      if ("ontouchstart" in window && selectedNiche !== nicheId) {
+        e.preventDefault();
+        setSelectedNiche(nicheId);
+      }
+    },
+    [selectedNiche]
+  );
 
   return (
     <section id="niches" className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
@@ -84,55 +38,63 @@ export default function NicheSelectorGrid() {
             I work in…
           </h2>
           <p className="text-lg" style={{ color: "var(--color-text-3)" }}>
-            Hover a tile to see what lead cards look like for your business.
+            Select an industry to see what your lead cards look like.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           {/* Niche tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {niches.map((niche, i) => (
-              <motion.div
-                key={niche.id}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
-                whileHover={{ scale: 1.03, y: -2 }}
-              >
-                <Link
-                  href={niche.href}
-                  className="group rounded-2xl p-4 transition-all duration-200 cursor-pointer block"
-                  style={{
-                    backgroundColor:
-                      hoveredNiche === niche.id ? "var(--color-surface)" : "var(--color-surface)",
-                    border: `1px solid ${
-                      hoveredNiche === niche.id ? "var(--color-primary)" : "var(--color-border)"
-                    }`,
-                  }}
-                  onMouseEnter={() => setHoveredNiche(niche.id)}
-                  onMouseLeave={() => setHoveredNiche(null)}
+            {NICHES.map((niche, i) => {
+              const NicheIcon = niche.icon;
+              return (
+                <motion.div
+                  key={niche.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
+                  whileHover={{ scale: 1.03, y: -2 }}
                 >
-                  <div className="text-2xl mb-2">{niche.icon}</div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>{niche.label}</p>
-                    {"live" in niche && niche.live && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Live
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>{niche.stat}</p>
-                  <p
-                    className="text-xs mt-2 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--color-primary)" }}
+                  <Link
+                    href={niche.href}
+                    className="group rounded-2xl p-4 transition-all duration-200 cursor-pointer block"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      border: `1px solid ${
+                        activeId === niche.id ? "var(--color-primary)" : "var(--color-border)"
+                      }`,
+                    }}
+                    onClick={(e) => handleTileInteraction(niche.id, e)}
+                    onMouseEnter={() => setHoveredNiche(niche.id)}
+                    onMouseLeave={() => setHoveredNiche(null)}
                   >
-                    See example →
-                  </p>
-                </Link>
-              </motion.div>
-            ))}
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
+                      style={{ backgroundColor: "rgba(99,102,241,0.12)" }}
+                    >
+                      <NicheIcon size={20} style={{ color: "var(--color-primary)" }} />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>{niche.label}</p>
+                      {niche.live && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Live
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>{niche.stat}</p>
+                    <p
+                      className="text-xs mt-2 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      See example →
+                    </p>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Lead card preview */}
@@ -149,7 +111,7 @@ export default function NicheSelectorGrid() {
                   <p className="text-xs mb-3 text-center" style={{ color: "var(--color-text-3)" }}>
                     This is what you&apos;d receive after each {activeNiche.label} call:
                   </p>
-                  <LeadCard niche={activeNiche.leadCardNiche} />
+                  <LeadCard niche={activeNiche.leadCardNiche as "auto-glass" | "hvac" | "plumbing" | "dental" | "legal" | "realty"} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -169,9 +131,14 @@ export default function NicheSelectorGrid() {
                     justifyContent: "center",
                   }}
                 >
-                  <p className="text-4xl mb-4">📲</p>
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto"
+                    style={{ backgroundColor: "rgba(99,102,241,0.12)" }}
+                  >
+                    <MessageSquare size={24} style={{ color: "var(--color-primary)" }} />
+                  </div>
                   <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
-                    Hover a tile to see your lead card
+                    Select a tile to see your lead card
                   </p>
                   <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
                     Every call = a structured card delivered to your phone

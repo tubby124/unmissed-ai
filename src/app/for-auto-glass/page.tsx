@@ -96,7 +96,7 @@ export default function ForAutoGlassPage() {
                 </div>
 
                 <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
-                  🔒 No contracts · Agent live within 24 hours
+                  No contracts · Agent live within 24 hours
                 </p>
               </div>
 

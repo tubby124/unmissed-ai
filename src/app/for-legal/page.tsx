@@ -96,7 +96,7 @@ export default function ForLegalPage() {
                 </div>
 
                 <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
-                  {"\u{1F512}"} No contracts &middot; Agent live within 24 hours
+                  No contracts &middot; Agent live within 24 hours
                 </p>
               </div>
 

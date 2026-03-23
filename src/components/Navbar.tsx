@@ -5,15 +5,7 @@ import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { BRAND_NAME } from "@/lib/brand";
-
-const INDUSTRIES = [
-  { label: "Auto Glass", href: "/for-auto-glass" },
-  { label: "Real Estate", href: "/for-realtors" },
-  { label: "HVAC", href: "/for-hvac" },
-  { label: "Plumbing", href: "/for-plumbing" },
-  { label: "Dental", href: "/for-dental" },
-  { label: "Legal", href: "/for-legal" },
-];
+import { NAV_NICHES } from "@/lib/niches";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -94,7 +86,7 @@ export default function Navbar() {
             onMouseLeave={handleMouseLeave}
           >
             <button
-              className="flex items-center gap-1 text-sm transition-colors"
+              className="flex items-center gap-1 text-sm transition-colors cursor-pointer"
               style={{ color: "var(--color-text-2)" }}
               onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
               onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
@@ -115,7 +107,7 @@ export default function Navbar() {
                   borderColor: "var(--color-nav-border)",
                 }}
               >
-                {INDUSTRIES.map(item => (
+                {NAV_NICHES.map(item => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -138,13 +130,6 @@ export default function Navbar() {
             )}
           </div>
 
-          <Link
-            href="/onboard"
-            className="text-sm font-semibold transition-colors"
-            style={{ color: "var(--color-primary)" }}
-          >
-            Try Free
-          </Link>
         </div>
 
         {/* CTA */}
@@ -186,7 +171,7 @@ export default function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden hover:text-white"
+          className="md:hidden hover:text-white cursor-pointer"
           style={{ color: "var(--color-text-2)" }}
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
@@ -233,7 +218,7 @@ export default function Navbar() {
             </button>
             {mobileIndustriesOpen && (
               <div className="flex flex-col gap-2 pl-4 pt-2">
-                {INDUSTRIES.map(item => (
+                {NAV_NICHES.map(item => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -250,15 +235,6 @@ export default function Navbar() {
               </div>
             )}
           </div>
-
-          <Link
-            href="/onboard"
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-primary)" }}
-            onClick={() => setOpen(false)}
-          >
-            Try Free
-          </Link>
 
           <div className="border-t pt-3 flex flex-col gap-3" style={{ borderColor: "var(--color-nav-border)" }}>
             <Link

@@ -63,7 +63,7 @@ export default function TalkToAgentWidget() {
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
             onClick={open}
             aria-label="Talk to Zara, our AI agent"
-            className="fixed bottom-20 left-5 md:bottom-5 z-50 flex items-center gap-2.5 rounded-full text-white text-sm font-semibold cursor-pointer"
+            className="fixed bottom-24 left-5 md:bottom-5 z-50 flex items-center gap-2.5 rounded-full text-white text-sm font-semibold cursor-pointer"
             style={{
               backgroundColor: "var(--color-primary)",
               padding: "14px 20px",
