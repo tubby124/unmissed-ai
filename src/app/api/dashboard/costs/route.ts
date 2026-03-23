@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
   if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!ULTRAVOX_KEY) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 

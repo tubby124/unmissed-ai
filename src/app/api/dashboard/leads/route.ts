@@ -9,7 +9,7 @@ async function requireAdmin() {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
   return { supabase, user, isAdmin: cu?.role === 'admin' }
 }
 

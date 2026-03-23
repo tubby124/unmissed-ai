@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   const isAdmin = cu?.role === 'admin'
 

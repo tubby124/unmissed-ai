@@ -89,7 +89,7 @@ function TrendBadge({ value }: { value: number | null }) {
   if (value === null) return null
   const isUp = value > 0
   return (
-    <span className={`text-[10px] font-medium ${isUp ? 'text-green-400' : value < 0 ? 'text-red-400' : 't3'}`}>
+    <span className={`text-[11px] font-medium ${isUp ? 'text-green-400' : value < 0 ? 'text-red-400' : 't3'}`}>
       {isUp ? '+' : ''}{value}%
     </span>
   )
@@ -113,16 +113,16 @@ export default function ClientHome() {
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="w-48 h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.15 }} />
-        <div className="rounded-2xl border p-6 space-y-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+        <div className="rounded-2xl border p-6 space-y-3 card-surface">
           <div className="w-64 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.12 }} />
           <div className="w-40 h-8 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.1 }} />
           <div className="w-full h-3 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.08 }} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl border p-4 space-y-2" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <div key={i} className="rounded-xl border p-4 space-y-2 card-surface">
               <div className="w-12 h-3 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.12 }} />
               <div className="w-8 h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.1 }} />
             </div>
@@ -134,14 +134,14 @@ export default function ClientHome() {
 
   if (fetchError) {
     return (
-      <div className="p-3 sm:p-6">
-        <div className="rounded-2xl border p-8 text-center" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+      <div className="p-4 sm:p-6">
+        <div className="rounded-2xl p-8 text-center card-surface">
           <p className="text-sm t1 font-medium mb-1">Could not load your dashboard</p>
           <p className="text-xs t3 mb-4">Check your connection and try again.</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 text-xs font-medium rounded-lg transition-colors"
-            style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+            className="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
           >
             Reload
           </button>
@@ -179,7 +179,7 @@ export default function ClientHome() {
   }
 
   return (
-    <div className="p-3 sm:p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
       {/* Test your agent — the aha moment */}
       {onboarding.hasAgent && (
         <AgentTestCard
@@ -201,15 +201,17 @@ export default function ClientHome() {
       )}
 
       {/* Hero card */}
-      <div data-tour="agent-hero" className="rounded-2xl border bg-surface p-5 sm:p-6" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+      <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
           <h1 className="text-lg font-semibold t1">{agent.name}</h1>
-          <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${
-            agent.status === 'active'
-              ? 'bg-green-500/10 text-green-400 border-green-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-          }`}>
+          <span
+            className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+            style={{
+              backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
+              color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
+            }}
+          >
             {agent.status === 'active' ? 'Live' : agent.status}
           </span>
         </div>
@@ -218,7 +220,7 @@ export default function ClientHome() {
         <div className="mb-4">
           <p className="text-3xl font-bold t1 tracking-tight">
             {stats.totalCalls}
-            <span className="text-base font-normal t3 ml-2">
+            <span className="text-sm font-normal t3 ml-2">
               call{stats.totalCalls !== 1 ? 's' : ''} this month
             </span>
           </p>
@@ -228,39 +230,39 @@ export default function ClientHome() {
         {/* Minutes usage bar */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] t3">
+            <p className="text-[12px] t3">
               <span className={`font-semibold ${usageHigh ? 'text-amber-400' : 't1'}`}>{usage.minutesUsed}</span> of {usage.totalAvailable} minutes used
             </p>
-            <p className="text-[10px] t3">{Math.round(usagePct)}%</p>
+            <p className="text-[11px] t3">{Math.round(usagePct)}%</p>
           </div>
-          <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
             <div
               className={`h-full rounded-full transition-all ${usageHigh ? 'bg-amber-500' : 'bg-blue-500'}`}
               style={{ width: `${usagePct}%` }}
             />
           </div>
           {usage.bonusMinutes > 0 && (
-            <p className="text-[9px] t3 mt-1">Includes {usage.bonusMinutes} bonus minutes</p>
+            <p className="text-[11px] t3 mt-1">Includes {usage.bonusMinutes} bonus minutes</p>
           )}
         </div>
       </div>
 
       {/* Quick stats row — hidden until first real call */}
       {hasRealCalls && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl p-4 card-surface">
+            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
               <TrendBadge value={stats.trends.hotChange} />
             </div>
           </div>
-          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Bookings</p>
+          <div className="rounded-xl p-4 card-surface">
+            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Bookings</p>
             <p className="text-2xl font-bold t1">{stats.bookings}</p>
           </div>
-          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Avg Quality</p>
+          <div className="rounded-xl p-4 card-surface col-span-2 sm:col-span-1">
+            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Avg Quality</p>
             <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
           </div>
         </div>
@@ -268,14 +270,16 @@ export default function ClientHome() {
 
       {/* Action items */}
       {actions.length > 0 && (
-        <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Suggested Actions</p>
+        <div className="rounded-xl p-4 space-y-2 card-surface">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Suggested Actions</p>
           {actions.map((action, i) => (
             <Link
               key={i}
               href={action.link}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.03]"
-              style={{ borderColor: 'var(--color-border)' }}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer"
+              style={{ backgroundColor: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                 action.priority === 'high' ? 'bg-amber-400' : action.priority === 'medium' ? 'bg-blue-400' : 'bg-zinc-500'
@@ -290,10 +294,10 @@ export default function ClientHome() {
       )}
 
       {/* Recent calls */}
-      <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+      <div className="rounded-xl p-4 card-surface">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Recent Calls</p>
-          <Link href="/dashboard/calls" className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
+          <Link href="/dashboard/calls" className="text-[12px] transition-colors" style={{ color: 'var(--color-primary)' }}>
             View all
           </Link>
         </div>
@@ -301,15 +305,18 @@ export default function ClientHome() {
         {recentCalls.length === 0 ? (
           <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent to get started.</p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {recentCalls.map(call => (
               <Link
                 key={call.id}
                 href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.03]"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer"
+                style={{ backgroundColor: 'transparent' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 {/* Status badge */}
-                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
                   STATUS_COLORS[call.call_status] ?? STATUS_COLORS.JUNK
                 }`}>
                   {call.call_status}
@@ -319,14 +326,14 @@ export default function ClientHome() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium t1 truncate">{formatPhone(call.caller_phone)}</p>
                   {call.ai_summary && (
-                    <p className="text-[10px] t3 truncate">{call.ai_summary}</p>
+                    <p className="text-[11px] t3 truncate">{call.ai_summary}</p>
                   )}
                 </div>
 
                 {/* Duration + time */}
                 <div className="text-right shrink-0">
-                  <p className="text-[10px] t2">{formatDuration(call.duration_seconds)}</p>
-                  <p className="text-[9px] t3">{timeAgo(call.started_at)}</p>
+                  <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                  <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
                 </div>
               </Link>
             ))}

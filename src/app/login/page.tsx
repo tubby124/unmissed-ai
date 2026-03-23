@@ -102,12 +102,15 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center py-8 px-4 bg-zinc-950">
+    <div className="min-h-dvh flex items-center justify-center py-8 px-4" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="w-full max-w-sm">
         {/* Back to home */}
         <Link
           href="/"
-          className="block text-center text-zinc-600 text-xs mb-5 hover:text-zinc-400 transition-colors"
+          className="block text-center text-xs mb-5 transition-colors"
+          style={{ color: 'var(--color-text-3)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-2)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-3)')}
         >
           ← Back to {BRAND_NAME}
         </Link>
@@ -120,7 +123,7 @@ function LoginContent() {
         >
           {/* Social proof badge */}
           <div className="flex justify-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
               <span className="flex items-center gap-1">
                 {[0,1,2,3,4].map(i => (
                   <svg key={i} width="8" height="8" viewBox="0 0 12 12" fill="currentColor" className="text-amber-400">
@@ -128,25 +131,25 @@ function LoginContent() {
                   </svg>
                 ))}
               </span>
-              <span className="text-[11px] text-zinc-400 font-medium">8,400+ calls handled by {BRAND_NAME}</span>
+              <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-2)' }}>8,400+ calls handled by {BRAND_NAME}</span>
             </div>
           </div>
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 justify-center mb-6">
-            <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center shadow-[0_0_24px_rgba(59,130,246,0.3)]">
+            <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center" style={{ boxShadow: '0 0 24px rgba(59,130,246,0.3)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-white font-semibold text-lg tracking-tight">{BRAND_NAME}</span>
+            <span className="font-semibold text-lg tracking-tight" style={{ color: 'var(--color-text-1)' }}>{BRAND_NAME}</span>
           </div>
         </motion.div>
 
         {/* Login card */}
         <motion.div
-          className="rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl shadow-2xl"
-          style={{ padding: 'clamp(1.25rem, 5vw, 2rem)' }}
+          className="card-surface rounded-2xl backdrop-blur-xl"
+          style={{ boxShadow: 'var(--shadow-md)', padding: 'clamp(1.25rem, 5vw, 2rem)' }}
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ ...spring, delay: 0.1 }}
@@ -160,8 +163,8 @@ function LoginContent() {
                 exit={{ opacity: 0 }}
                 transition={spring}
               >
-                <h1 className="text-white font-semibold text-lg mb-1">Reset password</h1>
-                <p className="text-zinc-500 text-sm mb-5">Enter your email and we&apos;ll send a reset link</p>
+                <h1 className="font-semibold text-lg mb-1" style={{ color: 'var(--color-text-1)' }}>Reset password</h1>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-text-3)' }}>Enter your email and we&apos;ll send a reset link</p>
 
                 <AnimatePresence mode="wait">
                   {resetSent ? (
@@ -178,9 +181,9 @@ function LoginContent() {
                           <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      <p className="text-zinc-300 text-sm font-medium">Reset link sent</p>
-                      <p className="text-zinc-500 text-xs mt-1">Check your inbox at {email}</p>
-                      <p className="text-zinc-600 text-xs mt-3">
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>Reset link sent</p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-3)' }}>Check your inbox at {email}</p>
+                      <p className="text-xs mt-3" style={{ color: 'var(--color-text-3)' }}>
                         Not seeing it? Check spam, or{' '}
                         <button
                           type="button"
@@ -209,7 +212,7 @@ function LoginContent() {
                     >
                       <form onSubmit={handleForgot} className="space-y-4">
                         <div>
-                          <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+                          <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>
                             Email
                           </label>
                           <input
@@ -220,7 +223,10 @@ function LoginContent() {
                             autoComplete="email"
                             inputMode="email"
                             enterKeyHint="go"
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-white/[0.05] transition-all"
+                            className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-all"
+                            style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-text-1)' }}
+                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-border-focus)'; e.currentTarget.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-border-focus) 25%, transparent)' }}
+                            onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-input-border)'; e.currentTarget.style.boxShadow = 'none' }}
                             placeholder="you@company.com"
                           />
                         </div>
@@ -253,8 +259,8 @@ function LoginContent() {
                         <button
                           type="button"
                           onClick={() => setForgotMode(false)}
-                          className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
-                          style={{ touchAction: 'manipulation' }}
+                          className="w-full text-xs transition-colors py-1"
+                          style={{ touchAction: 'manipulation', color: 'var(--color-text-3)' }}
                         >
                           Back to sign in
                         </button>
@@ -271,8 +277,8 @@ function LoginContent() {
                 exit={{ opacity: 0 }}
                 transition={spring}
               >
-                <h1 className="text-white font-semibold text-lg mb-1">Sign in</h1>
-                <p className="text-zinc-500 text-sm mb-5">Access your call dashboard</p>
+                <h1 className="font-semibold text-lg mb-1" style={{ color: 'var(--color-text-1)' }}>Sign in</h1>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-text-3)' }}>Access your call dashboard</p>
 
                 {/* Google sign-in */}
                 <motion.button
@@ -294,14 +300,14 @@ function LoginContent() {
                 </motion.button>
 
                 <div className="relative flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px bg-white/[0.06]" />
-                  <span className="text-[11px] text-zinc-600 font-medium">or</span>
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>or</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>
                       Email
                     </label>
                     <input
@@ -313,21 +319,24 @@ function LoginContent() {
                       autoComplete="email"
                       inputMode="email"
                       enterKeyHint="next"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-white/[0.05] transition-all"
+                      className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-all"
+                      style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-text-1)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-border-focus)'; e.currentTarget.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-border-focus) 25%, transparent)' }}
+                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-input-border)'; e.currentTarget.style.boxShadow = 'none' }}
                       placeholder="you@company.com"
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500">
+                      <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
                         Password
                       </label>
                       <button
                         type="button"
                         onClick={() => setForgotMode(true)}
-                        className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
-                        style={{ touchAction: 'manipulation' }}
+                        className="text-[10px] transition-colors"
+                        style={{ touchAction: 'manipulation', color: 'var(--color-text-3)' }}
                       >
                         Forgot password?
                       </button>
@@ -339,7 +348,10 @@ function LoginContent() {
                       required
                       autoComplete="current-password"
                       enterKeyHint="go"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-white/[0.05] transition-all"
+                      className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-all"
+                      style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-text-1)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-border-focus)'; e.currentTarget.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--color-border-focus) 25%, transparent)' }}
+                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-input-border)'; e.currentTarget.style.boxShadow = 'none' }}
                       placeholder="••••••••"
                     />
                   </div>
@@ -361,7 +373,7 @@ function LoginContent() {
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-500 hover:bg-blue-400 active:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl py-3 transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:shadow-[0_0_20px_rgba(59,130,246,0.35)]"
+                    className="w-full bg-blue-500 hover:bg-blue-400 active:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl py-3 transition-all shadow-lg hover:shadow-xl"
                     style={{ touchAction: 'manipulation' }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -371,17 +383,17 @@ function LoginContent() {
                 </form>
 
                 <div className="relative flex items-center gap-3 my-3">
-                  <div className="flex-1 h-px bg-white/[0.06]" />
-                  <span className="text-[11px] text-zinc-600 font-medium">or</span>
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>or</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
                 </div>
 
                 <motion.button
                   type="button"
                   onClick={handleMagicLink}
                   disabled={loading || !email || magicLinkSent}
-                  className="w-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-300 font-medium text-sm rounded-xl py-3 transition-all"
-                  style={{ touchAction: 'manipulation' }}
+                  className="w-full disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm rounded-xl py-3 transition-all"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-text-2)', touchAction: 'manipulation' }}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -395,7 +407,8 @@ function LoginContent() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="text-zinc-500 text-xs text-center mt-2"
+                      className="text-xs text-center mt-2"
+                      style={{ color: 'var(--color-text-3)' }}
                     >
                       Check your inbox and spam folder. If it doesn&apos;t arrive, use <button type="button" onClick={handleGoogleSignIn} className="text-blue-400 hover:text-blue-300 underline underline-offset-2">Google sign-in</button> instead.
                     </motion.p>
@@ -406,8 +419,8 @@ function LoginContent() {
           </AnimatePresence>
         </motion.div>
 
-        <p className="text-center text-zinc-700 text-xs mt-5">
-          Secured by Supabase Auth · {BRAND_NAME}
+        <p className="text-center text-xs mt-5" style={{ color: 'var(--color-text-3)' }}>
+          {BRAND_NAME}
         </p>
       </div>
     </div>
@@ -416,7 +429,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-zinc-950" />}>
+    <Suspense fallback={<div className="min-h-dvh" style={{ backgroundColor: 'var(--color-bg)' }} />}>
       <LoginContent />
     </Suspense>
   )

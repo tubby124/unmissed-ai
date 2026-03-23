@@ -125,7 +125,7 @@ function CallBookings({ callId }: { callId: string }) {
               </span>
             )}
             {b.calendar_url && (
-              <a href={b.calendar_url} target="_blank" rel="noopener noreferrer" className="ml-auto text-indigo-400 hover:underline">View</a>
+              <a href={b.calendar_url} target="_blank" rel="noopener noreferrer" className="ml-auto hover:underline" style={{ color: 'var(--color-primary)' }}>View</a>
             )}
           </div>
         ))}
@@ -149,7 +149,7 @@ function QualityGauge({ score }: { score: number }) {
         <path
           d={`M ${(W - 2 * R) / 2} ${H} A ${R} ${R} 0 0 1 ${(W + 2 * R) / 2} ${H}`}
           fill="none"
-          stroke="rgba(255,255,255,0.07)"
+          stroke="var(--color-border)"
           strokeWidth="10"
           strokeLinecap="round"
         />
@@ -171,7 +171,7 @@ function QualityGauge({ score }: { score: number }) {
         <text x={W / 2} y={H - 6} textAnchor="middle" fill={color} fontSize="22" fontFamily="monospace" fontWeight="700" opacity={0.95}>
           {score}
         </text>
-        <text x={W / 2} y={H + 6} textAnchor="middle" fill="rgba(161,161,170,0.5)" fontSize="9" fontFamily="monospace">
+        <text x={W / 2} y={H + 6} textAnchor="middle" fill="var(--color-text-3)" fontSize="9" fontFamily="monospace">
           QUALITY
         </text>
       </svg>
@@ -644,7 +644,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                 value={whisper}
                 onChange={e => setWhisper(e.target.value)}
                 placeholder="Whisper to agent (caller won't hear)…"
-                className="w-full border rounded-xl px-4 py-3 text-sm placeholder-zinc-700 focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
+                className="w-full border rounded-xl px-4 py-3 text-sm placeholder:text-[var(--color-text-3)] focus:outline-none focus:border-amber-500/30 transition-colors pr-24"
                 style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
               />
               {whisperSent && (

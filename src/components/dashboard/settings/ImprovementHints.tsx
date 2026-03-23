@@ -175,7 +175,7 @@ export default function ImprovementHints({ knowledge, callInsight, onScrollTo }:
         <button
           key={`${h.source}-${h.section}-${i}`}
           onClick={() => handleHintClick(h)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/[0.04] transition-colors text-left cursor-pointer group"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-page border b-theme hover:border-blue-500/30 hover:bg-blue-500/[0.04] transition-colors text-left cursor-pointer group"
         >
           <span className="text-sm shrink-0">{h.icon}</span>
           <div className="flex-1 min-w-0">

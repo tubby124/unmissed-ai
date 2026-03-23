@@ -71,7 +71,7 @@ export async function PATCH(req: NextRequest) {
     .from('client_users')
     .select('id, onboarding_state')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (cuErr || !cu) {
     return NextResponse.json({ error: 'No client account found' }, { status: 404 })
@@ -138,7 +138,7 @@ export async function GET() {
     .from('client_users')
     .select('onboarding_state')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   const state: OnboardingState = {
     ...DEFAULT_STATE,

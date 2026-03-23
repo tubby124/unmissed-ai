@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
       .from('client_users')
       .select('role')
       .eq('user_id', user.id)
-      .single()
+      .order('role').limit(1).maybeSingle()
 
     if (cu?.role !== 'admin') {
       const url = request.nextUrl.clone()
@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
         .from('client_users')
         .select('id')
         .eq('user_id', user.id)
-        .limit(1)
+        .order('role').limit(1)
         .maybeSingle()
 
       if (!cu) {

@@ -56,10 +56,10 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
         <div className="p-5">
           {voicesLoading ? (
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+              <div className="w-11 h-11 rounded-full bg-hover animate-pulse shrink-0" />
               <div className="space-y-2 flex-1">
-                <div className="h-4 w-28 rounded bg-white/[0.06] animate-pulse" />
-                <div className="h-3 w-44 rounded bg-white/[0.04] animate-pulse" />
+                <div className="h-4 w-28 rounded bg-hover animate-pulse" />
+                <div className="h-3 w-44 rounded bg-hover animate-pulse" />
               </div>
             </div>
           ) : currentVoice ? (
@@ -108,7 +108,7 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
             </div>
           ) : voiceId ? (
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/[0.04] border b-theme flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full bg-hover border b-theme flex items-center justify-center shrink-0">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="t3"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="1.5"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4m-4 0h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <div>
@@ -127,7 +127,7 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
         </div>
 
         {/* Action bar */}
-        <div className="px-5 py-3 border-t b-theme bg-white/[0.01] flex items-center justify-between">
+        <div className="px-5 py-3 border-t b-theme bg-page flex items-center justify-between">
           <p className="text-[10px] t3">
             {playingVoiceId === currentVoice?.voiceId ? 'Playing preview...' : 'Click the avatar to hear a preview'}
           </p>
@@ -150,7 +150,7 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
             { icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', title: 'Test with callers', desc: 'Make a few test calls after switching to ensure the voice feels natural.' },
             { icon: 'M22 11.08V12a10 10 0 1 1-5.93-9.14', title: 'Switch anytime', desc: 'You can change your agent\'s voice as often as you\'d like from the library.' },
           ].map(tip => (
-            <div key={tip.title} className="p-3 rounded-xl bg-white/[0.02] border b-theme">
+            <div key={tip.title} className="p-3 rounded-xl bg-page border b-theme">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-indigo-400/70 mb-2">
                 <path d={tip.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>

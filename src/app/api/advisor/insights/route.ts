@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
     .from('client_users')
     .select('client_id')
     .eq('user_id', user.id)
-    .limit(1)
-    .single()
+    .order('role').limit(1)
+    .limit(1).maybeSingle()
 
   if (!cu?.client_id) {
     return NextResponse.json({ cards: [], trends: null, gaps: [] })

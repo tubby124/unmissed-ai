@@ -138,8 +138,8 @@ export async function POST(req: NextRequest) {
       .from('client_users')
       .select('role')
       .eq('user_id', user.id)
-      .limit(1)
-      .single()
+      .order('role').limit(1)
+      .limit(1).maybeSingle()
 
     if (cuRole?.role !== 'admin') {
       const { error: creditError } = await adminSupa.rpc('deduct_advisor_credits', {

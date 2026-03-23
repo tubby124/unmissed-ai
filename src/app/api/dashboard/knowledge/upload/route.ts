@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     .from('client_users')
     .select('client_id, role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu || !['admin', 'owner'].includes(cu.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

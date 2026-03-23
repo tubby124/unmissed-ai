@@ -187,3 +187,4 @@ See `.claude/rules/learning-loop.md` for full protocol.
 - Never start onboarding without checking `/onboard-client`
 - Never debug a call without checking `/debug-call` or `/system-audit`
 - Never let a new pattern go undocumented — write it to MEMORY.md
+- **Never use `.single()` on `client_users` queries** — admins have multiple rows. Use `.limit(1).maybeSingle()` instead. This is a drop-in replacement (same return type).

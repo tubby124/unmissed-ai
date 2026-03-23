@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     .from('client_users')
     .select('client_id, role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu) {
     // No client_users row = no access to any client data

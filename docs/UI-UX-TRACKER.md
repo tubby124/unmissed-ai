@@ -1,0 +1,275 @@
+# UI/UX Overhaul Tracker — unmissed.ai Dashboard
+
+> Living document. Cross items off as we go. Each pass runs through `/ui-ux-pro-max` + Sonar Pro research before implementation.
+> Design aesthetic: **Notion + Apple + Linear** — clean, minimal, organized. No clutter.
+> Created: 2026-03-23
+
+---
+
+## Design System Foundation (DONE)
+
+- [x] Unified CSS vars in `globals.css` — light + dark tokens
+- [x] `card-surface` utility class (bg + border + shadow)
+- [x] `.t1/.t2/.t3` text hierarchy utilities
+- [x] `.bg-surface`, `.bg-raised`, `.bg-page`, `.bg-hover` utilities
+- [x] Semantic color tokens (success/warning/error/info + tints)
+- [x] Shadow scale (xs/sm/md/lg) — multi-layer for light mode depth
+- [x] `--color-primary` / `--color-accent-tint` brand tokens
+
+---
+
+## PASS 1 — Light Mode Fix (every page/component gets CSS var migration)
+
+Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark:` Tailwind, inline `rgba()`, and `bg-white/[` patterns with CSS vars.
+
+### Priority 1 — Client-Facing Pages (what paying users see)
+
+| # | File | Lines | Issues | Status |
+|---|------|-------|--------|--------|
+| L1 | `Sidebar.tsx` | 566 | 6x `dark:`, hardcoded `bg-indigo-50`, `hover:bg-gray-50` | TODO |
+| L2 | `MobileNav.tsx` | ~200 | Match to Sidebar after L1 | TODO |
+| L3 | `StatusBadge.tsx` | 47 | 6x `dark:`, hardcoded status colors | TODO |
+| L4 | `CallDetail.tsx` | 701 | inline `rgba(255,255,255,0.07)` in QualityGauge SVG, mixed patterns | TODO |
+| L5 | `CallRow.tsx` | 378 | 1x `dark:`, 3x `rgba`, 1x `bg-white/[` | TODO |
+| L6 | `CallsList.tsx` | ~300 | 5x `dark:` | TODO |
+| L7 | `CallEventsPanel.tsx` | 210 | 10x `dark:` — heaviest dark: usage | TODO |
+| L8 | `InsightsView.tsx` | 672 | 1x `dark:`, 9x `rgba`, 1x `bg-white/[` — big file | TODO |
+| L9 | `login/page.tsx` | 423 | 10x `bg-white/[`, 2x `rgba` — card invisible in light | TODO |
+| L10 | `notifications/page.tsx` | 401 | 8x `rgba`, 4x `bg-white/[` | TODO |
+| L11 | `calendar/page.tsx` | 481 | 5x `rgba`, 5x `bg-white/[` | TODO |
+| L12 | `OnboardingChecklist.tsx` | 220 | Mostly done, verify text colors | DONE |
+| L13 | `ClientHome.tsx` | 346 | Mostly done | DONE |
+| L14 | `AgentTestCard.tsx` | 362 | Mostly done | DONE |
+| L15 | `UpgradeCTA.tsx` | 68 | Done | DONE |
+| L16 | `TrialBadge.tsx` | 17 | Done | DONE |
+
+### Priority 2 — Settings Cards (19 total, these need fixes)
+
+| # | File | Issues | Status |
+|---|------|--------|--------|
+| L17 | `RuntimeCard.tsx` | 9x `bg-white/[` | TODO |
+| L18 | `AlertsTab.tsx` | 7x `bg-white/[`, 1x `rgba` | TODO |
+| L19 | `VoiceTab.tsx` | 6x `bg-white/[`, 1x `rgba` | TODO |
+| L20 | `VoicePicker.tsx` | 5x `bg-white/[` | TODO |
+| L21 | `VoiceStyleCard.tsx` | 1x `bg-white/[` | TODO |
+| L22 | `AgentVoiceTest.tsx` | 2x `bg-white/[`, 4x `rgba` | TODO |
+| L23 | `AgentOverviewCard.tsx` | 1x `bg-white/[`, 1x `rgba` | TODO |
+| L24 | `LearningLoopCard.tsx` | 2x `bg-white/[` | TODO |
+| L25 | `PromptVersionsCard.tsx` | 1x `bg-white/[` | TODO |
+| L26 | `ImprovementHints.tsx` | 1x `bg-white/[` | TODO |
+| L27 | `PromptEditorCard.tsx` | 2x `rgba` | TODO |
+| L28 | `TestCallCard.tsx` | 2x `rgba` | TODO |
+| L29 | `GodModeCard.tsx` | 1x `dark:` | TODO |
+| L30 | `ActivityLog.tsx` | 1x `bg-white/[` | TODO |
+
+### Priority 3 — Admin Pages
+
+| # | File | Issues | Status |
+|---|------|--------|--------|
+| L31 | `voices/page.tsx` | 17x `bg-white/[`, 2x `rgba` — worst file | TODO |
+| L32 | `admin/costs/page.tsx` | 16x `bg-white/[` | TODO |
+| L33 | `admin/test-lab/page.tsx` | 17x `bg-white/[` | TODO |
+| L34 | `admin/insights/page.tsx` | 9x `bg-white/[` | TODO |
+| L35 | `admin/clients/page.tsx` | 1x `bg-white/[` | TODO |
+| L36 | `admin/numbers/page.tsx` | 1x `bg-white/[` | TODO |
+
+### Priority 4 — Other Dashboard Components
+
+| # | File | Issues | Status |
+|---|------|--------|--------|
+| L37 | `StatsGrid.tsx` | 9x `dark:`, 15x `rgba` — heavy | TODO |
+| L38 | `KanbanBoard.tsx` | 8x `dark:`, 2x `rgba` | TODO |
+| L39 | `LiveCoachingPanel.tsx` | 3x `dark:` | TODO |
+| L40 | `LeadsView.tsx` | 3x `dark:` | TODO |
+| L41 | `RevenueAtRisk.tsx` | 3x `dark:` | TODO |
+| L42 | `ClientHealthBar.tsx` | 3x `dark:` | TODO |
+| L43 | `CampaignCard.tsx` | 2x `dark:`, 1x `rgba` | TODO |
+| L44 | `UsageSummary.tsx` | 1x `dark:` | TODO |
+
+### Priority 5 — Onboarding Flow
+
+| # | File | Issues | Status |
+|---|------|--------|--------|
+| L45 | `step6-review.tsx` | 41x `dark:` — worst single file | TODO |
+| L46 | `step1.tsx` | 8x `dark:` | TODO |
+| L47 | `step4.tsx` | 5x `dark:` | TODO |
+| L48 | `step5-handling.tsx` | 5x `dark:` | TODO |
+| L49 | `WebsiteScrapePreview.tsx` | 26x `dark:` | TODO |
+| L50 | `TrialSuccessScreen.tsx` | 5x `dark:` | TODO |
+
+### Priority 6 — Shared/Marketing Components
+
+| # | File | Issues | Status |
+|---|------|--------|--------|
+| L51 | `StatsSection.tsx` | 4x `dark:` | TODO |
+| L52 | `DemoCallVisuals.tsx` | 4x `rgba` | TODO |
+| L53 | `DemoCall.tsx` | 3x `rgba` | TODO |
+| L54 | `DemoAudioPlayer.tsx` | 9x `rgba` | TODO |
+| L55 | `HeroCallMockup.tsx` | 4x `rgba` | TODO |
+| L56 | `TalkToAgentWidget.tsx` | 1x `rgba` | TODO |
+| L57 | `TryItNowWidget.tsx` | 1x `rgba` | TODO |
+| L58 | Advisor components (5 files) | Mixed `dark:` + `rgba` | TODO |
+
+---
+
+## PASS 2 — Dark Mode Polish
+
+Goal: Verify dark mode still looks great after Pass 1 changes. Fix any regressions.
+
+| # | Item | Status |
+|---|------|--------|
+| D1 | Full Playwright screenshot audit — every page in dark mode | TODO |
+| D2 | Verify card borders have enough contrast (`#1e1e1e` on `#111111`) | TODO |
+| D3 | Verify status badges readable in dark | TODO |
+| D4 | Verify sidebar active/hover states | TODO |
+| D5 | Verify onboarding flow dark mode | TODO |
+
+---
+
+## PASS 3 — Consistency & Template System
+
+Goal: Every page follows the same visual template. No page looks "different" from the others.
+
+| # | Item | Status |
+|---|------|--------|
+| C1 | Define page template: header pattern, card grid, spacing | TODO |
+| C2 | Sidebar — consistent active state, hover, group separators (CSS vars not Tailwind) | TODO |
+| C3 | All cards use `card-surface` + `rounded-2xl` + consistent padding `p-5` | TODO |
+| C4 | All section headers: `text-[11px] font-semibold tracking-[0.15em] uppercase t3` | TODO |
+| C5 | All page titles: `text-lg font-semibold t1` | TODO |
+| C6 | All "View all" / action links: `text-[12px]` + `var(--color-primary)` | TODO |
+| C7 | Consistent hover pattern for clickable rows (use `var(--color-hover)`) | TODO |
+| C8 | StatusBadge used everywhere (not inline badge styles) | TODO |
+| C9 | Loading states: all pages use SkeletonLoader or shimmer, not custom spinners | TODO |
+| C10 | Empty states: all pages use EmptyState component, not ad-hoc text | TODO |
+| C11 | Error states: consistent error card pattern across pages | TODO |
+| C12 | Mobile responsive: every page works at 375px without horizontal scroll | TODO |
+
+---
+
+## PASS 4 — Dead UI Cleanup
+
+Goal: Remove buttons, links, and components that don't go anywhere or don't make sense.
+
+| # | Item | Status |
+|---|------|--------|
+| X1 | Audit all sidebar nav items — which ones actually work for clients? | TODO |
+| X2 | "Agent" sidebar label — rename to "Setup" or "Go Live" (conflicts with Settings > Agent tab) | TODO |
+| X3 | Remove/hide nav items that link to empty/broken pages for non-admin users | TODO |
+| X4 | Audit all action buttons — do they all have working onClick/href? | TODO |
+| X5 | Remove "Secured by Supabase Auth" from login page | TODO |
+| X6 | Check all Settings tab links (`?tab=knowledge`, `?tab=agent`, etc.) resolve correctly | TODO |
+| X7 | Find and remove dead/unused components (not imported anywhere) | TODO |
+| X8 | Clean up duplicate status badge implementations (inline vs StatusBadge component) | TODO |
+
+---
+
+## PASS 5 — Dynamic & Motion (LATER — after Pass 1-4)
+
+Goal: Add subtle, purposeful micro-interactions. Not decorative — functional.
+
+| # | Item | Priority | Status |
+|---|------|----------|--------|
+| M1 | Page transitions — smooth fade between dashboard pages | Medium | TODO |
+| M2 | Card hover elevation — subtle shadow lift on hover | Medium | TODO |
+| M3 | Data refresh indicator — subtle pulse when realtime data updates | Low | TODO |
+| M4 | Loading skeletons — unified shimmer animation across all pages | Medium | TODO |
+| M5 | Voice orb improvements — smoother energy visualization | Low | TODO |
+| M6 | Number counters — animate stat changes (NumberTicker already exists) | Low | TODO |
+| M7 | Sidebar collapse/expand — already has spring animation, verify smoothness | Low | TODO |
+| M8 | Toast notifications — consistent entrance/exit animation | Low | TODO |
+| M9 | Call status transitions — animate badge color changes | Low | TODO |
+| M10 | Progress bars — animate fill changes (minutes usage, onboarding) | Low | DONE (onboarding has it) |
+
+---
+
+## PASS 6 — Future Enhancements (revenue-generating, not cosmetic)
+
+Goal: Features that help convert trial users or retain active clients. Do after Pass 1-5.
+
+| # | Item | Priority | Status |
+|---|------|----------|--------|
+| F1 | Trial hero badge — amber "Trial" not green "Live" for trial users | High | TODO |
+| F2 | Inline mini-editors — quick FAQ add, hours toggle without settings nav | Medium | TODO |
+| F3 | Website scrape hint — "Add your website to teach your agent more" | Medium | TODO |
+| F4 | Post-call quality signal — color-coded call quality on call list | Medium | TODO |
+| F5 | Mobile onboarding fallback — inline card for <1024px (tour doesn't work) | Medium | TODO |
+| F6 | Settings search/filter | Low | TODO |
+| F7 | Cost-per-call widget | Low | TODO |
+| F8 | Conversation flow visualization | Low | TODO |
+
+---
+
+## PASS 7 — Missing Patterns (from Sonar Pro research — things we haven't built)
+
+Things top SaaS dashboards have that we're missing entirely. Prioritized by revenue impact.
+
+### HIGH — Table Stakes We're Missing
+
+| # | Item | Why | Status |
+|---|------|-----|--------|
+| N1 | **Command palette (`Cmd+K`)** | Jump to any page, search calls, filter leads. Linear/Retool standard. 30% power-user retention boost. | TODO |
+| N2 | **Conversion funnel visualization** | Calls → Leads → Bookings visual. Single most useful chart for non-tech owners. Answers "is my agent making me money?" | TODO |
+| N3 | **Agent health score (0-100)** | One number that answers "is it working?" — combines quality score, booking rate, sentiment. Gauge + trend arrow. | TODO |
+| N4 | **Contextual tooltips on all metrics** | Hover any stat to see "what this means" + "how to improve it". Non-tech users don't know what "Avg Quality 7.2" means. | TODO |
+| N5 | **Threshold alerts** | "No calls in 24h — test agent?" / "3 missed bookings this week" — contextual, not spammy. Banner near relevant metric. | TODO |
+| N6 | **Keyboard shortcut cheat sheet (`?`)** | Show all shortcuts on `?` press. Standard in premium SaaS. | TODO |
+
+### MEDIUM — Engagement & Retention
+
+| # | Item | Why | Status |
+|---|------|-----|--------|
+| N7 | **Pre-filled demo data for new users** | Show fake calls/transcripts/bookings on first login so dashboard doesn't look empty. Transitions to real data after first call. | TODO |
+| N8 | **"Today's Wins" card** | "5 bookings (+20%)" with play buttons for top calls. Positive reinforcement. Owners scan in 5 seconds. | TODO |
+| N9 | **Inline "Fix now" CTAs on metrics** | When a stat is bad (e.g., low quality score), show "Fix: Update greeting →" right there. Data without actions = "So what?" | TODO |
+| N10 | **Progressive notifications** | Start with in-app dot badges, escalate to email/SMS only after 2 ignores. Personalized by niche. | TODO |
+| N11 | **Export to CSV/PDF** | Let owners export call logs, analytics for accountants/partners. `e` keyboard shortcut. | TODO |
+| N12 | **Transcript playback with voice** | Play call recording synced to transcript highlighting. Currently separate. | TODO |
+
+### LOW — Power User / Future
+
+| # | Item | Why | Status |
+|---|------|-----|--------|
+| N13 | **Customizable dashboard widgets** | Drag-drop cards to build personalized layout. Heavy lift but expected in enterprise. | TODO |
+| N14 | **Voice query** | "/show calls from today" or "how many bookings this week?" in the advisor chat. | TODO |
+| N15 | **Role-based views** | Different dashboard for admin vs client owner vs staff. Currently just admin/client split. | TODO |
+| N16 | **Collaborative comments on calls** | Tag team members on specific calls. "Listen to this one — great booking example." | TODO |
+| N17 | **WCAG 2.2 full audit** | Keyboard-navigable grids, screen-reader labels on charts, high-contrast mode. EU Digital Accessibility Act compliance. | TODO |
+| N18 | **Gesture navigation on mobile** | Swipe for transcripts, pinch-zoom charts. Currently basic responsive. | TODO |
+
+---
+
+## Execution Rules
+
+1. **Every pass starts with Sonar Pro research** for that specific topic
+2. **Every pass runs through `/ui-ux-pro-max`** for design validation
+3. **Run `npm run build`** after every file change — no regressions
+4. **Playwright screenshot** before/after each pass for visual diff
+5. **One pass at a time** — don't start Pass 2 until Pass 1 is done
+6. **Within Pass 1**: work Priority 1 files first, then 2, then 3...
+7. **Commit after each priority group** within a pass
+
+---
+
+## Stats
+
+- **Total files needing fixes**: ~58
+- **Total hardcoded instances**: ~326 (143 dark: + 50 rgba + 133 bg-white/[)
+- **Files already migrated**: 7 (globals.css + 6 home page components)
+- **Remaining**: 51 files
+
+---
+
+## Sonar Pro Research Log
+
+| Date | Topic | Key Findings |
+|------|-------|-------------|
+| 2026-03-23 | Light/dark theme consistency | Use semantic tokens, off-black #121212 not #000, off-white #E0E0E0 not #FFF, 4.5:1 contrast min, shape+icon not just color for status |
+| | | Light mode harder than dark — prioritize it. Card shadows + bg separation = key to light mode depth |
+| | | Next: need specific research per pass (sidebar patterns, status badge approaches, etc.) |
+| 2026-03-23 | SaaS dashboard patterns we're missing | Cmd+K palette = table stakes (30% retention). Conversion funnel viz = #1 chart for non-tech owners. |
+| | | Agent health score (0-100 gauge) answers "is it working?" in 1 second. Threshold alerts > scheduled notifications. |
+| | | Empty states: demo shimmer data + personalized CTA = 3x activation vs "No data". Pre-fill with fake calls. |
+| | | Anti-patterns: data without actions, no tooltips on metrics, aggressive modals, blank empty states, no mobile adaptation |
+| | | Keyboard: `?` cheat sheet, `Cmd+K` palette, `space` play transcript, `e` export. Power users 2x stickier. |
+| | | Accessibility: WCAG 2.2 now mandatory (EU Digital Accessibility Act). Screen-reader labels on charts, keyboard nav on grids. |

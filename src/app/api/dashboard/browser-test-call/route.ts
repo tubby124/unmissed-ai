@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     .from('client_users')
     .select('role, client_id')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

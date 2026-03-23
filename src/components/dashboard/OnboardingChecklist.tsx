@@ -108,13 +108,13 @@ export default function OnboardingChecklist({
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="flex items-center gap-3">
             <p
-              className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+              className="text-[11px] font-semibold tracking-[0.15em] uppercase"
               style={{ color: 'var(--color-text-3)' }}
             >
               Get Started
             </p>
             <span
-              className="text-[10px] font-mono tabular-nums"
+              className="text-[11px] font-mono tabular-nums"
               style={{ color: 'var(--color-text-3)' }}
             >
               {completedCount}/{steps.length}
@@ -136,7 +136,8 @@ export default function OnboardingChecklist({
             style={{ backgroundColor: 'var(--color-hover)' }}
           >
             <motion.div
-              className="h-full rounded-full bg-blue-500"
+              className="h-full rounded-full"
+              style={{ backgroundColor: 'var(--color-primary)' }}
               initial={{ width: 0 }}
               animate={{ width: `${(completedCount / steps.length) * 100}%` }}
               transition={{ type: "spring", stiffness: 100, damping: 20 }}
@@ -190,7 +191,7 @@ export default function OnboardingChecklist({
                       {' — '}
                       <Link
                         href={step.link}
-                        className="text-blue-500 hover:text-blue-400 underline"
+                        className="underline" style={{ color: 'var(--color-primary)' }}
                       >
                         {step.linkLabel}
                       </Link>

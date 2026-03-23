@@ -394,7 +394,7 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
 
             {/* Mini transcript preview */}
             {finalTranscripts.length > 0 && (
-              <div className="w-full rounded-xl border b-theme bg-white/[0.02] p-3 max-h-32 overflow-y-auto space-y-1.5">
+              <div className="w-full rounded-xl border b-theme bg-page p-3 max-h-32 overflow-y-auto space-y-1.5">
                 {finalTranscripts.slice(-6).map((t, i) => (
                   <div key={i} className="text-[11px] leading-relaxed">
                     <span className="font-mono t3 mr-1">{t.speaker === 'agent' ? agentName : 'You'}:</span>
@@ -456,7 +456,7 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
 
 function TryChip({ text }: { text: string }) {
   return (
-    <span className="inline-block px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] t3">
+    <span className="inline-block px-2.5 py-1 rounded-full bg-hover border b-theme text-[10px] t3">
       &ldquo;{text}&rdquo;
     </span>
   )

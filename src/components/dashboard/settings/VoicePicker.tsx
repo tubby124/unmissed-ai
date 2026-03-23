@@ -123,7 +123,7 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
           <button
             onClick={e => { e.stopPropagation(); playVoice(currentVoice.voiceId, currentVoice.previewUrl) }}
             className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-              playingVoiceId === currentVoice.voiceId ? 'bg-blue-500 text-white' : 'bg-white/[0.08] text-zinc-400 hover:text-white'
+              playingVoiceId === currentVoice.voiceId ? 'bg-blue-500 text-white' : 'bg-hover t3 hover:t1'
             }`}
           >
             {playingVoiceId === currentVoice.voiceId ? (
@@ -138,7 +138,7 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
           </button>
         )}
         {!currentVoice && voicesLoading && (
-          <div className="w-5 h-5 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+          <div className="w-5 h-5 rounded-full bg-hover animate-pulse shrink-0" />
         )}
         <span className="flex-1 truncate">
           {voicesLoading ? 'Loading…' : (currentVoice?.name ?? (voiceId ? 'Unknown voice' : '— select voice —'))}
@@ -166,12 +166,12 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.12 }}
-            className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-white/[0.1] shadow-2xl overflow-hidden"
+            className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border b-theme shadow-2xl overflow-hidden"
             style={{ background: 'var(--color-surface)', backdropFilter: 'blur(16px)', maxHeight: 280 }}
           >
             {/* Search */}
-            <div className="px-3 pt-2.5 pb-2 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-2.5 py-1.5">
+            <div className="px-3 pt-2.5 pb-2 border-b b-theme">
+              <div className="flex items-center gap-2 bg-hover rounded-lg px-2.5 py-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
                   <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
                   <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -196,7 +196,7 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
               ) : filteredVoices.map(v => (
                 <div
                   key={v.voiceId}
-                  className={`flex items-start gap-2.5 px-3 py-2.5 hover:bg-white/[0.04] cursor-pointer transition-colors group ${v.voiceId === voiceId ? 'bg-blue-500/[0.06]' : ''}`}
+                  className={`flex items-start gap-2.5 px-3 py-2.5 hover:bg-hover cursor-pointer transition-colors group ${v.voiceId === voiceId ? 'bg-blue-500/[0.06]' : ''}`}
                   onClick={() => assignVoice(v.voiceId)}
                 >
                   {/* Play button */}
@@ -205,7 +205,7 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
                     className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                       playingVoiceId === v.voiceId
                         ? 'bg-blue-500 text-white'
-                        : 'bg-white/[0.06] text-zinc-500 hover:bg-white/[0.12] hover:text-white'
+                        : 'bg-hover t3 hover:bg-[var(--color-border)] hover:t1'
                     }`}
                   >
                     {playingVoiceId === v.voiceId ? (

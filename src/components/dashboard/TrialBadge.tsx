@@ -3,15 +3,14 @@
 export default function TrialBadge({ feature }: { feature?: string }) {
   return (
     <span
-      className="text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap"
+      className="text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
       style={{
-        backgroundColor: "rgba(245,158,11,0.1)",
-        color: "#f59e0b",
-        border: "1px solid rgba(245,158,11,0.2)",
+        backgroundColor: "var(--color-warning-tint)",
+        color: "var(--color-warning)",
       }}
-      title={feature ? `${feature} requires a paid plan` : "Requires a paid plan"}
+      title={feature ? `${feature} — available on Pro` : "Available on Pro"}
     >
-      Paid plan
+      Pro
     </span>
   )
 }

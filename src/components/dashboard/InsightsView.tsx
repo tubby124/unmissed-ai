@@ -112,7 +112,7 @@ function TrendBadge({ value }: { value: number | null }) {
   if (value === null || !isFinite(value)) return <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-3)' }}>--</span>
   const up = value >= 0
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold tabular-nums ${up ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold tabular-nums" style={{ color: up ? 'var(--color-success)' : 'var(--color-error)' }}>
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: up ? 'none' : 'rotate(180deg)' }}>
         <path d="M5 2L8.5 6.5H1.5L5 2Z" fill="currentColor" />
       </svg>
@@ -385,7 +385,7 @@ function TopCallersTable({ callers }: { callers: Array<{ phone: string; name: st
       {callers.map((c, i) => {
         const cfg = STATUS_CONFIG[c.lastStatus] ?? STATUS_CONFIG.UNKNOWN
         return (
-          <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/[0.02] transition-colors">
+          <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-hover transition-colors">
             <span className="text-[11px] font-mono w-5 shrink-0" style={{ color: 'var(--color-text-3)' }}>{i + 1}.</span>
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-mono truncate" style={{ color: 'var(--color-text-1)' }}>
@@ -584,8 +584,8 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
                 onClick={() => setRange(r)}
                 className="px-3.5 py-1.5 text-[11px] font-semibold tracking-wide transition-colors"
                 style={{
-                  backgroundColor: range === r ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                  color: range === r ? '#a5b4fc' : 'var(--color-text-3)',
+                  backgroundColor: range === r ? 'var(--color-accent-tint)' : 'transparent',
+                  color: range === r ? 'var(--color-primary)' : 'var(--color-text-3)',
                 }}
               >
                 {r}

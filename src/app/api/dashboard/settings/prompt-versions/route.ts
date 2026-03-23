@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     .from('client_users')
     .select('client_id, role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu) return new NextResponse('No client found', { status: 404 })
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     .from('client_users')
     .select('client_id, role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu || (cu.role !== 'admin' && cu.role !== 'owner')) {
     return new NextResponse('Forbidden', { status: 403 })

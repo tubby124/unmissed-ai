@@ -68,7 +68,7 @@ export default function LearningLoopCard({ clientId, isAdmin, onRequestImproveme
   // Checking state
   if (learningState === 'checking') {
     return (
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/[0.02] border b-theme text-xs t3">
+      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-page border b-theme text-xs t3">
         <div className="w-3 h-3 rounded-full border border-zinc-600 border-t-zinc-400 animate-spin shrink-0" />
         Checking call patterns&hellip;
       </div>
@@ -114,7 +114,7 @@ export default function LearningLoopCard({ clientId, isAdmin, onRequestImproveme
         </div>
 
         {learning.pending_report.top_recs.length > 0 && (
-          <div className="px-3 py-2.5 rounded-xl bg-white/[0.03] border b-theme space-y-2">
+          <div className="px-3 py-2.5 rounded-xl bg-page border b-theme space-y-2">
             {learning.pending_report.top_recs.map((rec, i) => (
               <div key={i} className="text-xs space-y-0.5">
                 <div className="flex items-center gap-1.5">

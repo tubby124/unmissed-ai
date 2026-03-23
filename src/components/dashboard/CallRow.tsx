@@ -145,7 +145,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         onKeyDown={!isProcessingOrLive ? (e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleExpand() }
         } : undefined}
-        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.07] hover:brightness-105 transition-all duration-200 group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
+        className={`w-full text-left px-4 py-3 hover:bg-hover hover:brightness-105 transition-all duration-200 group ${isProcessingOrLive ? 'cursor-default' : 'cursor-pointer'}`}
       >
         {/* Line 1: phone + status + call-back + meta */}
         <div className="flex items-center gap-3 mb-1.5">

@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const { data: cu } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).single()
+  const { data: cuRows } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).order('role').limit(1)
+  const cu = cuRows?.[0] ?? null
   if (!cu || !['admin', 'owner'].includes(cu.role)) return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     .from('clients')
     .select('id, slug, business_name, niche, telegram_bot_token, telegram_chat_id')
     .eq('id', clientId)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 

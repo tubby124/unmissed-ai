@@ -94,7 +94,7 @@ export default function PromptVersionsCard({ clientId, isAdmin, onRestore }: Pro
                   <p className="px-5 py-4 text-xs t3">No saved versions yet. Saving the prompt creates a version.</p>
                 ) : (
                   <>
-                    <div className="divide-y divide-white/[0.04]">
+                    <div className="divide-y divide-[var(--color-border)]">
                       {(showAll ? versions : versions.slice(0, 5)).map(v => (
                         <div key={v.id} className="flex items-center gap-3 px-5 py-3">
                           <div className="flex-1 min-w-0">
@@ -107,7 +107,7 @@ export default function PromptVersionsCard({ clientId, isAdmin, onRestore }: Pro
                                 {new Date(v.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </span>
                               {v.triggered_by_role && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] t3 border border-white/[0.06]">{v.triggered_by_role}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-hover t3 border b-theme">{v.triggered_by_role}</span>
                               )}
                               {v.char_count != null && v.prev_char_count != null && v.char_count !== v.prev_char_count && (
                                 <span className={`text-[9px] font-mono ${v.char_count > v.prev_char_count ? 'text-green-400' : 'text-amber-400'}`}>

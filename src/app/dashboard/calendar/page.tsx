@@ -188,8 +188,8 @@ export default function CalendarPage() {
                     onClick={() => setFilter(f.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                       filter === f.key
-                        ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 shadow-sm shadow-indigo-500/10'
-                        : 'border-transparent hover:bg-white/[0.04]'
+                        ? 'border-indigo-500/40 bg-indigo-500/10 text-[var(--color-primary)] shadow-sm shadow-indigo-500/10'
+                        : 'border-transparent hover:bg-hover'
                     }`}
                     style={filter !== f.key ? { color: 'var(--color-text-3)' } : undefined}
                   >
@@ -343,7 +343,7 @@ export default function CalendarPage() {
                                     {b.call_id && (
                                       <Link
                                         href={`/dashboard/calls/${b.call_id}`}
-                                        className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-white/[0.06]"
+                                        className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-hover"
                                         style={{ color: 'var(--color-text-3)' }}
                                       >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -370,7 +370,7 @@ export default function CalendarPage() {
                   <button
                     onClick={() => fetchBookings(bookings.length, true)}
                     disabled={loadingMore}
-                    className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-hover disabled:opacity-50"
                     style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)' }}
                   >
                     {loadingMore ? 'Loading...' : `Load more (${bookings.length} of ${total})`}
@@ -426,12 +426,12 @@ function MiniCalendar({
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>{monthName}</span>
         <div className="flex gap-1">
-          <button onClick={onPrev} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.06] transition-colors">
+          <button onClick={onPrev} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-hover transition-colors">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
               <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={onNext} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.06] transition-colors">
+          <button onClick={onNext} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-hover transition-colors">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
               <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

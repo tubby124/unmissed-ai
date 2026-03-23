@@ -16,7 +16,8 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const { data: cu } = await supabase.from('client_users').select('role').eq('user_id', user.id).single()
+  const { data: cuRows } = await supabase.from('client_users').select('role').eq('user_id', user.id).order('role').limit(1)
+  const cu = cuRows?.[0] ?? null
   if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
 
   const { error } = await supabase.from('test_scenarios').delete().eq('id', id)
@@ -33,7 +34,8 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const { data: cu } = await supabase.from('client_users').select('role').eq('user_id', user.id).single()
+  const { data: cuRows } = await supabase.from('client_users').select('role').eq('user_id', user.id).order('role').limit(1)
+  const cu = cuRows?.[0] ?? null
   if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))

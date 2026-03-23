@@ -81,7 +81,7 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
         )}
 
         {/* Divider + phone fallback */}
-        <div className="mt-4 pt-3 border-t border-white/[0.06]">
+        <div className="mt-4 pt-3 border-t b-theme">
           <button
             onClick={() => setShowPhone(v => !v)}
             className="text-[11px] t3 hover:t2 transition-colors flex items-center gap-1.5 cursor-pointer"

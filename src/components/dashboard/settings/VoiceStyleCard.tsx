@@ -36,7 +36,7 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
       transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.03 }}
     >
       <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.04]">
+        <div className="px-5 py-4 border-b b-theme">
           <div className="flex items-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
               <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -58,7 +58,7 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
                 className={`text-left rounded-xl border p-3 transition-all ${
                   selected
                     ? 'border-blue-500/60 bg-blue-500/[0.06]'
-                    : 'border-white/[0.06] bg-hover hover:border-white/[0.12]'
+                    : 'b-theme bg-hover hover:border-[var(--color-text-3)]'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -72,12 +72,12 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
             )
           })}
         </div>
-        <div className="px-5 py-3 border-t border-white/[0.04]">
+        <div className="px-5 py-3 border-t b-theme">
           <div className="flex items-center justify-end gap-2">
             <button
               onClick={save}
               disabled={saving || previewMode}
-              className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] t2 transition-colors disabled:opacity-50"
+              className="text-xs px-4 py-1.5 rounded-lg bg-hover hover:bg-[var(--color-border)] t2 transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : saved ? (syncStatus === 'synced' ? '\u2713 Synced' : syncStatus === 'failed' ? '\u26A0 Saved' : '\u2713 Saved') : 'Save Style'}
             </button>

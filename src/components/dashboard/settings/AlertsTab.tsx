@@ -68,13 +68,13 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
           <div className={`p-4 rounded-xl border transition-all ${
             client.telegram_bot_token && client.telegram_chat_id
               ? 'border-blue-500/20 bg-blue-500/[0.04]'
-              : 'b-theme bg-white/[0.01]'
+              : 'b-theme bg-page'
           }`}>
             <div className="flex items-center gap-2.5 mb-2">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 client.telegram_bot_token && client.telegram_chat_id
                   ? 'bg-blue-500/15'
-                  : 'bg-white/[0.04]'
+                  : 'bg-hover'
               }`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={client.telegram_bot_token && client.telegram_chat_id ? 'text-blue-400' : 't3'}>
                   <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -91,7 +91,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
           </div>
 
           {/* Additional channels */}
-          <div className="p-4 rounded-xl border b-theme bg-white/[0.01] col-span-full">
+          <div className="p-4 rounded-xl border b-theme bg-page col-span-full">
             <p className="text-[11px] t3">More alert channels (SMS, email) are in development.</p>
           </div>
         </div>
@@ -126,12 +126,12 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
               className={`text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer group ${
                 tgStyle === opt.id
                   ? 'border-blue-500/40 bg-blue-500/[0.08] shadow-[0_0_12px_rgba(59,130,246,0.06)]'
-                  : 'b-theme bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/[0.12]'
+                  : 'b-theme bg-page hover:bg-hover hover:border-[var(--color-border)]'
               }`}
             >
               <div className="flex items-center gap-2.5 mb-2">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  tgStyle === opt.id ? 'bg-blue-500/15' : 'bg-white/[0.04] group-hover:bg-white/[0.06]'
+                  tgStyle === opt.id ? 'bg-blue-500/15' : 'bg-hover group-hover:bg-[var(--color-border)]'
                 }`}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className={tgStyle === opt.id ? 'text-blue-400' : 't3'}>
                     <path d={opt.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -167,14 +167,14 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
                     }`}>
                       {ch}
                       {ch !== 'Telegram' && (
-                        <span className="text-[8px] font-semibold px-1 py-px rounded bg-white/[0.06] t3">Soon</span>
+                        <span className="text-[8px] font-semibold px-1 py-px rounded bg-hover t3">Soon</span>
                       )}
                     </span>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-[var(--color-border)]">
               {([
                 { event: 'HOT lead', active: true },
                 { event: 'Missed call', active: true },
@@ -198,7 +198,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
                           className={`w-9 h-5 rounded-full relative inline-flex items-center transition-colors duration-200 ${
                             isActive
                               ? 'bg-blue-500'
-                              : 'bg-white/[0.06] opacity-40'
+                              : 'bg-hover opacity-40'
                           }`}
                         >
                           <span className={`w-4 h-4 rounded-full bg-white shadow-sm absolute transition-all duration-200 ${

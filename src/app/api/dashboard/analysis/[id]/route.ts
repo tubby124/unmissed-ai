@@ -59,7 +59,8 @@ export async function POST(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const { data: cu } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).single()
+  const { data: cuRows } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).order('role').limit(1)
+  const cu = cuRows?.[0] ?? null
   if (!cu || cu.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))

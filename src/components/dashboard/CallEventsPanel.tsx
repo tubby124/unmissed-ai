@@ -20,26 +20,26 @@ interface CallEventsPanelProps {
 const SEVERITY_OPTIONS = ['debug', 'info', 'warning', 'error'] as const
 type Severity = (typeof SEVERITY_OPTIONS)[number]
 
-const SEVERITY_STYLES: Record<Severity, { bg: string; text: string; dot: string }> = {
+const SEVERITY_STYLES: Record<Severity, { bg: string; color: string; dotColor: string }> = {
   debug: {
-    bg: 'bg-zinc-100 dark:bg-zinc-700/50',
-    text: 'text-zinc-600 dark:text-zinc-400',
-    dot: 'bg-zinc-400',
+    bg: 'var(--color-hover)',
+    color: 'var(--color-text-3)',
+    dotColor: 'var(--color-text-3)',
   },
   info: {
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    text: 'text-blue-700 dark:text-blue-300',
-    dot: 'bg-blue-500',
+    bg: 'var(--color-info-tint)',
+    color: 'var(--color-info)',
+    dotColor: 'var(--color-info)',
   },
   warning: {
-    bg: 'bg-amber-50 dark:bg-amber-900/20',
-    text: 'text-amber-700 dark:text-amber-300',
-    dot: 'bg-amber-500',
+    bg: 'var(--color-warning-tint)',
+    color: 'var(--color-warning)',
+    dotColor: 'var(--color-warning)',
   },
   error: {
-    bg: 'bg-red-50 dark:bg-red-900/20',
-    text: 'text-red-700 dark:text-red-300',
-    dot: 'bg-red-500',
+    bg: 'var(--color-error-tint)',
+    color: 'var(--color-error)',
+    dotColor: 'var(--color-error)',
   },
 }
 
@@ -96,7 +96,12 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value as Severity)}
-          className="text-xs rounded-lg border px-2 py-1 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="text-xs rounded-lg border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          style={{
+            backgroundColor: 'var(--color-input-bg)',
+            borderColor: 'var(--color-input-border)',
+            color: 'var(--color-text-1)',
+          }}
         >
           {SEVERITY_OPTIONS.map((s) => (
             <option key={s} value={s}>
@@ -117,7 +122,7 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
           ))}
         </div>
       ) : error ? (
-        <div className="text-sm text-red-500 dark:text-red-400 py-4 text-center">
+        <div className="text-sm py-4 text-center" style={{ color: 'var(--color-error)' }}>
           {error}
         </div>
       ) : events.length === 0 ? (
@@ -145,7 +150,8 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
                   <div className="flex items-start gap-2.5">
                     <div className="flex items-center gap-2 shrink-0 pt-0.5">
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${styles.dot}`}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: styles.dotColor }}
                       />
                       <span
                         className="text-[10px] font-mono tabular-nums"
@@ -158,7 +164,8 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.bg} ${styles.text}`}
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ backgroundColor: styles.bg, color: styles.color }}
                         >
                           {event.severity}
                         </span>

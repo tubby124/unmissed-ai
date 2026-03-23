@@ -130,10 +130,10 @@ function CallsListSkeleton() {
     <div className="animate-pulse space-y-3">
       {[...Array(5)].map((_, i) => (
         <div key={i} className="flex gap-3 p-4 rounded-xl" style={{ backgroundColor: 'var(--color-surface)' }}>
-          <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700" />
+          <div className="w-10 h-10 rounded-full bg-[var(--color-border)]" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 rounded bg-gray-300 dark:bg-gray-700 w-1/3" />
-            <div className="h-3 rounded bg-gray-300 dark:bg-gray-700 w-2/3" />
+            <div className="h-3 rounded bg-[var(--color-border)] w-1/3" />
+            <div className="h-3 rounded bg-[var(--color-border)] w-2/3" />
           </div>
         </div>
       ))}
@@ -507,7 +507,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 <button
                   onClick={() => setViewMode('list')}
                   title="List view"
-                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm dark:bg-zinc-700' : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'}`}
+                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'list' ? 'bg-surface shadow-sm' : 'hover:bg-hover'}`}
                   style={viewMode === 'list' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -517,7 +517,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 <button
                   onClick={() => setViewMode('kanban')}
                   title="Kanban view"
-                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm dark:bg-zinc-700' : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'}`}
+                  className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-surface shadow-sm' : 'hover:bg-hover'}`}
                   style={viewMode === 'kanban' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">

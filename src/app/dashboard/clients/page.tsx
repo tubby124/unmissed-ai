@@ -14,7 +14,7 @@ export default async function ClientsPage() {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (cu?.role !== 'admin') redirect('/dashboard/calls')
 

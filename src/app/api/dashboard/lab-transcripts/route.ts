@@ -10,7 +10,8 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 async function requireAdmin(supabase: Awaited<ReturnType<typeof createServerClient>>) {
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) return null
-  const { data: cu } = await supabase.from('client_users').select('role').eq('user_id', user.id).single()
+  const { data: cuRows } = await supabase.from('client_users').select('role').eq('user_id', user.id).order('role').limit(1)
+  const cu = cuRows?.[0] ?? null
   if (cu?.role !== 'admin') return null
   return user
 }

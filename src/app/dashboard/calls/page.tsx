@@ -45,7 +45,7 @@ export default async function CallsPage() {
       .from('client_users')
       .select('client_id, role, clients(twilio_number, slug, business_name, status, seconds_used_this_month, monthly_minute_limit, bonus_minutes, telegram_bot_token, telegram_chat_id, agent_name, ultravox_agent_id)')
       .eq('user_id', user.id)
-      .single()
+      .order('role').limit(1).maybeSingle()
 
     if (cu?.role === 'admin') {
       isAdmin = true

@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .limit(1)
-    .single()
+    .order('role').limit(1)
+    .limit(1).maybeSingle()
 
   const isAdmin = cuRole?.role === 'admin'
 
@@ -125,8 +125,8 @@ export async function POST(req: NextRequest) {
     .from('client_users')
     .select('client_id')
     .eq('user_id', user.id)
-    .limit(1)
-    .single()
+    .order('role').limit(1)
+    .limit(1).maybeSingle()
 
   // Admin with no client_id defaults to hasan-sharif
   if (cu?.client_id) {

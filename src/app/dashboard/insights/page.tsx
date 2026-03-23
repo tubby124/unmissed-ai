@@ -24,7 +24,7 @@ export default async function InsightsPage() {
       .from('client_users')
       .select('client_id, role, clients(business_name, status)')
       .eq('user_id', user.id)
-      .single()
+      .order('role').limit(1).maybeSingle()
 
     if (cu?.role === 'admin') {
       isAdmin = true

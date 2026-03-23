@@ -103,7 +103,7 @@ export default function ActivityLog({ clientId, isAdmin }: ActivityLogProps) {
               {!loading && versions.map(v => {
                 const delta = charDelta(v)
                 return (
-                  <div key={v.id} className="flex items-start gap-3 py-1.5 border-b border-white/[0.03] last:border-0">
+                  <div key={v.id} className="flex items-start gap-3 py-1.5 border-b b-theme last:border-0">
                     <span className="text-[10px] font-mono t3 shrink-0 w-8 text-right tabular-nums">v{v.version}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] t2 leading-relaxed truncate">

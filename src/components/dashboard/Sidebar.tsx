@@ -362,7 +362,10 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-sm tracking-tight whitespace-nowrap" style={{ color: "var(--color-text-1)" }}>{BRAND_NAME}</span>
                   {isAdmin && (
-                    <span className="text-[9px] font-bold tracking-wide text-indigo-500 bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-500/30 dark:text-indigo-400 rounded-full px-1.5 py-0.5 leading-none">
+                    <span
+                      className="text-[9px] font-bold tracking-wide rounded-full px-1.5 py-0.5 leading-none border"
+                      style={{ color: 'var(--color-primary)', backgroundColor: 'var(--color-accent-tint)', borderColor: 'color-mix(in srgb, var(--color-primary) 30%, transparent)' }}
+                    >
                       Admin
                     </span>
                   )}
@@ -427,12 +430,16 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
               {...(item.href === '/dashboard/settings' ? { 'data-tour': 'nav-settings' } : {})}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 active
-                  ? 'bg-indigo-50 border-l-[3px] border-indigo-500 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-400 dark:text-indigo-400'
+                  ? 'border-l-[3px]'
                   : isSetup && setupIncomplete && !active
-                  ? 'hover:bg-gray-50 dark:hover:bg-white/5 ring-1 ring-amber-500/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                  ? 'hover:bg-hover'
+                  : 'hover:bg-hover'
               }`}
-              style={active ? {} : { color: "var(--color-text-2)" }}
+              style={active
+                ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                : isSetup && setupIncomplete && !active
+                ? { color: 'var(--color-text-2)', boxShadow: 'inset 0 0 0 1px var(--color-warning)' }
+                : { color: "var(--color-text-2)" }}
             >
               <span className="shrink-0 relative">
                 {item.icon}
@@ -519,7 +526,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           onClick={signOut}
           title={collapsed ? 'Sign out' : undefined}
           aria-label="Sign out"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors w-full"
           style={{ color: "var(--color-text-2)" }}
         >
           <span className="shrink-0">
@@ -540,7 +547,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           onClick={() => setCollapsed(v => !v)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors w-full"
           style={{ color: "var(--color-text-3)" }}
         >
           <span className="shrink-0">

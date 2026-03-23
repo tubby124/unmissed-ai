@@ -263,7 +263,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               { label: 'Knowledge base', on: client.knowledge_backend === 'pgvector' },
               { label: 'Prompt', detail: `${(promptLength ?? (client.system_prompt ?? '').length).toLocaleString()} / 12,000` },
             ].map(cap => (
-              <div key={cap.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border b-theme">
+              <div key={cap.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-page border b-theme">
                 {'on' in cap ? (
                   <span className={`w-2 h-2 rounded-full shrink-0 ${cap.on ? 'bg-green-400' : 'bg-zinc-600'}`} />
                 ) : null}

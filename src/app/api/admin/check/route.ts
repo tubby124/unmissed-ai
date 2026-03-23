@@ -11,7 +11,7 @@ export async function GET() {
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   return NextResponse.json({ isAdmin: cu?.role === 'admin' })
 }

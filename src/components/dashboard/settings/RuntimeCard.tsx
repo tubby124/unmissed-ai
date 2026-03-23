@@ -53,7 +53,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
         <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Agent Runtime</p>
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-4 rounded bg-white/[0.04] animate-pulse" />
+            <div key={i} className="h-4 rounded bg-hover animate-pulse" />
           ))}
         </div>
       </div>
@@ -135,43 +135,43 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
         </div>
 
         {/* Tool count */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Tools</p>
           <p className="text-sm font-mono font-semibold t1 tabular-nums">{data.toolCount}</p>
         </div>
 
         {/* Max duration */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Max Duration</p>
           <p className="text-sm font-mono font-semibold t1">{durationStr}</p>
         </div>
 
         {/* Total calls */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Total Calls</p>
           <p className="text-sm font-mono font-semibold t1 tabular-nums">{data.totalCalls.toLocaleString()}</p>
         </div>
 
         {/* VAD settings */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">VAD</p>
           <p className="text-xs t2">{vadLabel}</p>
         </div>
 
         {/* Inactivity */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Inactivity</p>
           <p className="text-xs t2">{inactivityLabel}</p>
         </div>
 
         {/* First speaker */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">First Speaker</p>
           <p className="text-xs t2">{firstSpeakerLabel}</p>
         </div>
 
         {/* Recording */}
-        <div className="px-3 py-2.5 rounded-xl border b-theme bg-white/[0.02]">
+        <div className="px-3 py-2.5 rounded-xl border b-theme bg-page">
           <p className="text-[10px] t3 uppercase tracking-wider mb-0.5">Recording</p>
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${data.recordingEnabled ? 'bg-green-400' : 'bg-zinc-600'}`} />
@@ -188,7 +188,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
             {data.tools.map((tool, i) => (
               <span
                 key={`${tool}-${i}`}
-                className="text-[10px] font-mono t2 bg-white/[0.04] border b-theme rounded-md px-2 py-1"
+                className="text-[10px] font-mono t2 bg-hover border b-theme rounded-md px-2 py-1"
               >
                 {tool}
               </span>

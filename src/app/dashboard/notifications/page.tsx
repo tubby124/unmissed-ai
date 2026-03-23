@@ -193,8 +193,8 @@ export default function NotificationsPage() {
                   onClick={() => setChannel(c.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                     channel === c.value
-                      ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 shadow-sm shadow-indigo-500/10'
-                      : 'border-transparent hover:bg-white/[0.04]'
+                      ? 'border-indigo-500/40 bg-indigo-500/10 text-[var(--color-primary)] shadow-sm shadow-indigo-500/10'
+                      : 'border-transparent hover:bg-hover'
                   }`}
                   style={channel !== c.value ? { color: 'var(--color-text-3)' } : undefined}
                 >
@@ -209,8 +209,8 @@ export default function NotificationsPage() {
                   onClick={() => setStatus(s.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                     status === s.value
-                      ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 shadow-sm shadow-indigo-500/10'
-                      : 'border-transparent hover:bg-white/[0.04]'
+                      ? 'border-indigo-500/40 bg-indigo-500/10 text-[var(--color-primary)] shadow-sm shadow-indigo-500/10'
+                      : 'border-transparent hover:bg-hover'
                   }`}
                   style={status !== s.value ? { color: 'var(--color-text-3)' } : undefined}
                 >
@@ -340,7 +340,7 @@ export default function NotificationsPage() {
                                   <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Link
                                       href={`/dashboard/calls/${n.call_id}`}
-                                      className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-white/[0.06] w-fit"
+                                      className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-hover w-fit"
                                       style={{ color: 'var(--color-text-3)' }}
                                     >
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -367,7 +367,7 @@ export default function NotificationsPage() {
               <button
                 onClick={() => fetchNotifications(notifications.length, true)}
                 disabled={loadingMore}
-                className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-hover disabled:opacity-50"
                 style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)' }}
               >
                 {loadingMore ? 'Loading...' : `Load more (${notifications.length} of ${total})`}

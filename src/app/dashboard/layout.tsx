@@ -28,11 +28,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let adminClients: { id: string; slug: string; business_name: string; niche: string | null; status: string | null; twilio_number: string | null }[] = []
 
   if (user) {
-    const { data: cu } = await supabase
+    const { data: cuRows } = await supabase
       .from('client_users')
       .select('client_id, role, clients(business_name, status, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche)')
       .eq('user_id', user.id)
-      .single()
+      .order('role').limit(1)
+    const cu = cuRows?.[0] ?? null
 
     // S12-V5b: No client_users row = user authenticated but not authorized for any client
     if (!cu) {
@@ -75,13 +76,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text-1)' }}>
-      {/* Ambient glow background — dark mode only */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-60 -left-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-0 dark:opacity-100 bg-blue-500/8" />
-        <div className="absolute -bottom-60 -right-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-0 dark:opacity-100 bg-violet-500/8" />
-      </div>
-
+    <div className="min-h-screen flex flex-col bg-page t1">
       {/* Mobile top bar */}
       <MobileNav businessName={businessName} isAdmin={isAdmin} clientStatus={clientStatus} />
 

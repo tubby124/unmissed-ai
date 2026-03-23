@@ -16,7 +16,7 @@ export async function POST(
     .from('client_users')
     .select('role')
     .eq('user_id', user.id)
-    .single()
+    .order('role').limit(1).maybeSingle()
 
   if (!cu || cu.role !== 'admin') {
     return new NextResponse('Forbidden', { status: 403 })
