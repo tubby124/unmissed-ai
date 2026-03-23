@@ -55,7 +55,7 @@ export default function HoursCard({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Hours & After-Hours'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Hours & After-Hours'}</p>
             <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent uses this to tell callers when you\'re available' : 'Configure when your agent treats calls as after-hours'}</p>
           </div>
           <button

@@ -58,7 +58,7 @@ export default function GodModeCard({ clientId, initialConfig, previewMode }: Go
     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-500">Advanced Config</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-amber-500">Advanced Config</p>
           <p className="text-[11px] t3 mt-0.5">Editable infrastructure settings</p>
         </div>
         <button

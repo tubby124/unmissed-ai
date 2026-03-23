@@ -130,7 +130,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
         {/* ── Row 1: Identity ─────────────────────────────────────────────────── */}
         {mode === 'onboarding' ? (
           <div className="mb-4">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Name Your Agent</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Name Your Agent</p>
             <p className="text-[11px] t3">Give your AI receptionist a name and voice. Callers will hear this identity on every call.</p>
           </div>
         ) : (
@@ -167,7 +167,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
         {/* ── Row 3: Usage bar (settings only) ─────────────────────────────────── */}
         {mode !== 'onboarding' && <div className="mb-5 pt-4 border-t b-theme">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Minutes This Month</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Minutes This Month</p>
             <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {totalAvailable} min</span>
           </div>
           <div className="h-1.5 bg-hover rounded-full overflow-hidden">
@@ -192,7 +192,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
 
         {/* ── Row 4: Connected services chips (settings only) ────────────────── */}
         {mode !== 'onboarding' && <div className="mb-5 pt-4 border-t b-theme">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Connected services</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Connected services</p>
           <div className="flex flex-wrap gap-2">
             {/* Telegram — always on */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-[11px] font-medium text-blue-300">
@@ -254,7 +254,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
         {/* ── Row 5-6: Capabilities + inject + context (settings only) ────────── */}
         {mode !== 'onboarding' && (<>
         <div className="mb-5 pt-4 border-t b-theme">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Agent capabilities</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Agent capabilities</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { label: 'Transfer', on: !!client.forwarding_number },

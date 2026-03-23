@@ -26,10 +26,10 @@ export default function MinuteUsage({ minutesUsed, minuteLimit, bonusMinutes }: 
   const fmtShort = (d: Date) => d.toLocaleDateString('en', { month: 'short', day: 'numeric' })
 
   return (
-    <div className="rounded-2xl border bg-surface overflow-hidden p-4 mb-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+    <div className="rounded-2xl overflow-hidden p-4 mb-4 card-surface">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
             Minutes Used
           </p>
           <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-3)' }}>

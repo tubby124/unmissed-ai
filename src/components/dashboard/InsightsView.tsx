@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import ScopedClientLabel from './ScopedClientLabel'
 import NoInsights from './empty-states/NoInsights'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ function KpiCard({ label, value, format, trend, accent, delay }: {
     >
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none"
         style={{ background: `radial-gradient(circle, ${accent}33 0%, transparent 70%)` }} />
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>{label}</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>{label}</p>
       <p className="text-3xl font-bold font-mono tabular-nums leading-none" style={{ color: accent }}>
         <AnimatedNum value={value} format={format} delay={delay} />
       </p>
@@ -472,20 +473,15 @@ function SentimentBar({ sentiment }: { sentiment: Record<string, number> }) {
 
 function Skeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-2xl border p-5 h-[120px]" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <div className="h-2 w-16 rounded" style={{ backgroundColor: 'var(--color-border)' }} />
-            <div className="h-6 w-12 mt-4 rounded" style={{ backgroundColor: 'var(--color-border)' }} />
-          </div>
+          <SkeletonBox key={i} className="rounded-2xl h-[120px]" />
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="rounded-2xl border p-5 h-[280px]" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <div className="h-2 w-24 rounded" style={{ backgroundColor: 'var(--color-border)' }} />
-          </div>
+          <SkeletonBox key={i} className="rounded-2xl h-[280px]" />
         ))}
       </div>
     </div>
@@ -503,7 +499,7 @@ function Card({ title, delay, children, className = '' }: { title: string; delay
       className={`rounded-2xl border p-5 ${className}`}
       style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
     >
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4" style={{ color: 'var(--color-text-3)' }}>{title}</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4" style={{ color: 'var(--color-text-3)' }}>{title}</p>
       {children}
     </motion.div>
   )

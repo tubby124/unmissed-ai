@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface CallEvent {
   callId: string
@@ -88,7 +89,7 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
     >
       <div className="flex items-center justify-between mb-4">
         <p
-          className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+          className="text-[10px] font-semibold tracking-[0.15em] uppercase"
           style={{ color: 'var(--color-text-3)' }}
         >
           Call Events
@@ -114,11 +115,7 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
       {loading ? (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-12 rounded-xl animate-pulse"
-              style={{ backgroundColor: 'var(--color-hover)' }}
-            />
+            <SkeletonBox key={i} className="h-12 rounded-2xl" />
           ))}
         </div>
       ) : error ? (

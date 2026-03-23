@@ -451,7 +451,7 @@ function CreateAccountModal({ intake, onClose, onSuccess }: {
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>
+            <label className="block text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>
               Client Email
             </label>
             <input

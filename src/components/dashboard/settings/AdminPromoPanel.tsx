@@ -78,7 +78,7 @@ export default function AdminPromoPanel({ clientId, client }: AdminPromoPanelPro
 
   return (
     <div className="p-5 border-b b-theme">
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Admin: Promo Management</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Admin: Promo Management</p>
 
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xs t3">Current discount:</span>

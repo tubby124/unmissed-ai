@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface UsageData {
   [key: string]: unknown
@@ -94,7 +95,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
       }}
     >
       <p
-        className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4"
+        className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
         style={{ color: 'var(--color-text-3)' }}
       >
         Ultravox Account Usage
@@ -103,11 +104,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="h-20 rounded-xl animate-pulse"
-              style={{ backgroundColor: 'var(--color-hover)' }}
-            />
+            <SkeletonBox key={i} className="h-20 rounded-2xl" />
           ))}
         </div>
       ) : error ? (

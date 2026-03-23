@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
+import StatusBadge from '@/components/dashboard/StatusBadge'
+import ErrorCard from '@/components/dashboard/ErrorCard'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface HomeData {
   admin: boolean
@@ -77,15 +80,6 @@ function formatDuration(seconds: number | null): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  HOT: 'bg-red-500/15 text-red-400 border-red-500/25',
-  WARM: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-  COLD: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
-  JUNK: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25',
-  MISSED: 'bg-orange-500/15 text-orange-400 border-orange-500/25',
-  VOICEMAIL: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
-}
-
 function TrendBadge({ value }: { value: number | null }) {
   if (value === null) return null
   const isUp = value > 0
@@ -119,18 +113,18 @@ export default function ClientHome() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 space-y-4">
-        <div className="w-48 h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.15 }} />
-        <div className="rounded-2xl border p-6 space-y-3 card-surface">
-          <div className="w-64 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.12 }} />
-          <div className="w-40 h-8 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.1 }} />
-          <div className="w-full h-3 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.08 }} />
+      <div className="p-3 sm:p-6 space-y-6">
+        <SkeletonBox className="w-48 h-6" />
+        <div className="rounded-2xl p-6 space-y-3 card-surface">
+          <SkeletonBox className="w-64 h-5" />
+          <SkeletonBox className="w-40 h-8" />
+          <SkeletonBox className="w-full h-3 rounded-full" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl border p-4 space-y-2 card-surface">
-              <div className="w-12 h-3 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.12 }} />
-              <div className="w-8 h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--color-text-3)', opacity: 0.1 }} />
+            <div key={i} className="rounded-2xl p-4 space-y-2 card-surface">
+              <SkeletonBox className="w-12 h-3" />
+              <SkeletonBox className="w-8 h-6" />
             </div>
           ))}
         </div>
@@ -140,18 +134,12 @@ export default function ClientHome() {
 
   if (fetchError) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="rounded-2xl p-8 text-center card-surface">
-          <p className="text-sm t1 font-medium mb-1">Could not load your dashboard</p>
-          <p className="text-xs t3 mb-4">Check your connection and try again.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
-          >
-            Reload
-          </button>
-        </div>
+      <div className="p-3 sm:p-6">
+        <ErrorCard
+          title="Could not load your dashboard"
+          message="Check your connection and try again."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     )
   }
@@ -186,7 +174,7 @@ export default function ClientHome() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-5">
+    <div className="p-3 sm:p-6 space-y-6">
       {/* Test your agent — the aha moment */}
       {onboarding.hasAgent && (
         <AgentTestCard
@@ -257,19 +245,19 @@ export default function ClientHome() {
       {/* Quick stats row — hidden until first real call */}
       {hasRealCalls && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="rounded-xl p-4 card-surface">
-            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
+          <div className="rounded-2xl p-4 card-surface">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Hot Leads</p>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
               <TrendBadge value={stats.trends.hotChange} />
             </div>
           </div>
-          <div className="rounded-xl p-4 card-surface">
-            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Bookings</p>
+          <div className="rounded-2xl p-4 card-surface">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Bookings</p>
             <p className="text-2xl font-bold t1">{stats.bookings}</p>
           </div>
-          <div className="rounded-xl p-4 card-surface col-span-2 sm:col-span-1">
-            <p className="text-[11px] font-semibold tracking-wide uppercase t3 mb-1">Avg Quality</p>
+          <div className="rounded-2xl p-4 card-surface col-span-2 sm:col-span-1">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Avg Quality</p>
             <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
           </div>
         </div>
@@ -277,16 +265,13 @@ export default function ClientHome() {
 
       {/* Action items */}
       {actions.length > 0 && (
-        <div className="rounded-xl p-4 space-y-2 card-surface">
+        <div className="rounded-2xl p-4 space-y-2 card-surface">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Suggested Actions</p>
           {actions.map((action, i) => (
             <Link
               key={i}
               href={action.link}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer"
-              style={{ backgroundColor: 'transparent' }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-hover"
             >
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                 action.priority === 'high' ? 'bg-amber-400' : action.priority === 'medium' ? 'bg-blue-400' : 'bg-zinc-500'
@@ -301,7 +286,7 @@ export default function ClientHome() {
       )}
 
       {/* Recent calls */}
-      <div className="rounded-xl p-4 card-surface">
+      <div className="rounded-2xl p-4 card-surface">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
           <Link href="/dashboard/calls" className="text-[12px] transition-colors" style={{ color: 'var(--color-primary)' }}>
@@ -317,16 +302,11 @@ export default function ClientHome() {
               <Link
                 key={call.id}
                 href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer"
-                style={{ backgroundColor: 'transparent' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-hover)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-hover"
               >
                 {/* Status badge */}
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
-                  STATUS_COLORS[call.call_status] ?? STATUS_COLORS.JUNK
-                }`}>
-                  {call.call_status}
+                <span className="shrink-0">
+                  <StatusBadge status={call.call_status} showDot={false} />
                 </span>
 
                 {/* Caller + summary */}

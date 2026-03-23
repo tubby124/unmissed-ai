@@ -43,7 +43,7 @@ export default function VoiceStyleCard({ clientId, isAdmin, initialPreset, previ
               <path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'How Should Your Agent Sound?' : 'Voice Style'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'How Should Your Agent Sound?' : 'Voice Style'}</p>
           </div>
           <p className="text-[11px] t3 mt-1">{mode === 'onboarding' ? 'Pick a personality. You can change this anytime in settings.' : 'How your agent sounds on calls — tone, pacing, and filler words.'}</p>
         </div>

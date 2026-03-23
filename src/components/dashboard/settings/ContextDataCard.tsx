@@ -81,7 +81,7 @@ export default function ContextDataCard({ client, isAdmin, previewMode }: Contex
       />
       <div className="flex items-center justify-between mb-1">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Context Data</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Context Data</p>
           <p className="text-[11px] t3 mt-0.5">Reference data like pricing tables, inventory, or schedules. Your agent looks up specific details here.</p>
         </div>
         <div className="flex items-center gap-2">

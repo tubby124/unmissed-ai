@@ -103,7 +103,7 @@ export default function AdvancedContextCard({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'Teach Your Agent' : isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'Teach Your Agent' : isAdmin ? 'Advanced Context' : 'Your Business Knowledge'}</p>
             <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Add info so your agent can answer caller questions about your business' : isAdmin ? 'Extra knowledge injected at call time — not stored in the prompt' : 'Information your agent uses to help callers'}</p>
           </div>
           <button

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import CampaignGrid from '@/components/dashboard/CampaignGrid'
+import PageHeader from '@/components/dashboard/PageHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,14 +64,11 @@ export default async function CampaignsPage() {
   })
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-lg font-semibold t1">Performance</h1>
-        <p className="text-xs t3 mt-0.5">
-          Per-client call performance — {campaigns.length} agent{campaigns.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+    <div className="p-3 sm:p-6 space-y-6">
+      <PageHeader
+        title="Performance"
+        subtitle={`Per-client call performance — ${campaigns.length} agent${campaigns.length !== 1 ? 's' : ''}`}
+      />
 
       <CampaignGrid campaigns={campaigns} />
     </div>

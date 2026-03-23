@@ -114,7 +114,7 @@ export default function CapabilitiesCard({ client, isAdmin, onScrollTo }: Capabi
             <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">What Your Agent Can Do</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Your Agent Can Do</p>
         </div>
         <div className="flex items-center gap-2">
           <ReadinessBadge ratio={activeCount / visible.length} />

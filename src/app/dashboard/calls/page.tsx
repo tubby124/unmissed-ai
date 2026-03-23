@@ -149,7 +149,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   const showChecklist = !isAdmin && (clientStatus === 'trial' || clientStatus === 'active')
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-3 sm:p-6 space-y-6">
       {((!isAdmin && clientHasAgent) || (isAdmin && adminSelectedClientId && clientHasAgent)) && (
         <AgentTestCard
           agentName={clientAgentName || clientBusinessName || 'Your Agent'}

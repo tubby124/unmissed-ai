@@ -49,7 +49,7 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
       {/* Current voice card */}
       <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
         <div className="p-5 border-b b-theme">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Current Voice</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Current Voice</p>
           <p className="text-[11px] t3">The voice your callers hear when they reach your agent.</p>
         </div>
 
@@ -143,7 +143,7 @@ export default function VoiceTab({ client, voices, voicesLoading, isAdmin }: Voi
 
       {/* Voice tips card */}
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Voice Tips</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Voice Tips</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z', title: 'Match your brand', desc: 'Choose a voice that reflects your business personality and caller expectations.' },

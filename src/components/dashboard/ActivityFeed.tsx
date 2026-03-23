@@ -194,7 +194,7 @@ export default function ActivityFeed({ isAdmin, clientId }: ActivityFeedProps) {
     <aside className="hidden xl:flex flex-col w-[272px] shrink-0 border-l h-screen sticky top-0 overflow-hidden" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b shrink-0" style={{ borderColor: "var(--color-border)" }}>
-        <span className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>Live Activity</span>
+        <span className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: "var(--color-text-3)" }}>Live Activity</span>
         {hasLive && (
           <span className="relative flex w-1.5 h-1.5 ml-auto">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />

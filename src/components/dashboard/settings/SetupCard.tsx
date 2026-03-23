@@ -109,7 +109,7 @@ export default function SetupCard({
         className="w-full px-5 py-3 border-b border-amber-500/20 flex items-center gap-2 hover:bg-amber-500/[0.04] transition-colors"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-amber-400 flex-1 text-left">Start here &mdash; complete your setup</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-amber-400 flex-1 text-left">Start here &mdash; complete your setup</p>
         <svg
           width="12" height="12" viewBox="0 0 24 24" fill="none"
           className="text-amber-400/60 shrink-0 transition-transform duration-200"

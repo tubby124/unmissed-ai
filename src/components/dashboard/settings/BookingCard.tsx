@@ -61,7 +61,7 @@ export default function BookingCard({
     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-400/80">{mode === 'onboarding' ? 'Calendar Booking' : 'Booking'}</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-emerald-400/80">{mode === 'onboarding' ? 'Calendar Booking' : 'Booking'}</p>
         </div>
       </div>
       <p className="text-[11px] t3 mb-4">{mode === 'onboarding' ? 'Let your agent book appointments for you. Connect Google Calendar to get started.' : 'Connect Google Calendar to let your agent check availability and book appointments on live calls.'}</p>

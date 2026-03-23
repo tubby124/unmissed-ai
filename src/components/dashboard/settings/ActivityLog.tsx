@@ -64,7 +64,7 @@ export default function ActivityLog({ clientId, isAdmin }: ActivityLogProps) {
           <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
         </svg>
-        <span className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Recent Changes</span>
+        <span className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Recent Changes</span>
         <span className="text-[10px] t3 ml-1">Prompt version history</span>
         <svg
           width="10" height="10" viewBox="0 0 24 24" fill="none"

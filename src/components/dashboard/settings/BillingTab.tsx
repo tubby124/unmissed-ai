@@ -87,7 +87,7 @@ export default function BillingTab({
 
       {/* Section A: Your Plan */}
       <div className="p-5 border-b b-theme">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Your Plan</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Your Plan</p>
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold t1">{planName}</span>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
@@ -120,7 +120,7 @@ export default function BillingTab({
       {/* Section B: Usage This Cycle */}
       <div className="p-5 border-b b-theme">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Usage This Cycle</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Usage This Cycle</p>
           <span className="text-xs font-mono t2 tabular-nums">
             {minutesUsed} / {totalAvailable} min
           </span>
@@ -149,7 +149,7 @@ export default function BillingTab({
 
       {/* Section C: Buy Minutes */}
       <div className="p-5 border-b b-theme">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Buy Minutes</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Buy Minutes</p>
         <div className="grid grid-cols-3 gap-2 mb-4">
           {RELOAD_OPTIONS.map(opt => (
             <button
@@ -196,7 +196,7 @@ export default function BillingTab({
 
       {/* Section D: Account */}
       <div className="p-5 border-b b-theme">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Account</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Account</p>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs t3">Joined</span>

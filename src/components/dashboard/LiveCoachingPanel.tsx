@@ -76,7 +76,7 @@ export default function LiveCoachingPanel({
       }}
     >
       <p
-        className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-4"
+        className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
         style={{ color: 'var(--color-text-3)' }}
       >
         Live Coaching

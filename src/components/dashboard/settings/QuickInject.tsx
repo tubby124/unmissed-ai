@@ -45,7 +45,7 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Today&apos;s Update</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Today&apos;s Update</p>
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/70 border border-amber-500/15">Temporary</span>
           </div>
           <p className="text-[11px] t3 mt-0.5">Temporary override — away message, holiday hours, or promotions. Stays until you clear it.</p>

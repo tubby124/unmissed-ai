@@ -65,7 +65,7 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center gap-2 mb-2">
           <GlobeIcon />
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Website Knowledge</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Website Knowledge</p>
         </div>
         <p className="text-xs t3 leading-relaxed">
           No website URL configured. Add one in the setup section to let your agent learn from your site.
@@ -89,7 +89,7 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <GlobeIcon />
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Website Knowledge</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Website Knowledge</p>
         </div>
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.cls}`}>
           {badge.label}

@@ -245,7 +245,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Knowledge Engine</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Knowledge Engine</p>
 
           {/* Status badge */}
           <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${

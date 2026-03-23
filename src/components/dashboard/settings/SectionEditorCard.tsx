@@ -76,7 +76,7 @@ export default function SectionEditorCard({
           onClick={() => setCollapsed(prev => !prev)}
         >
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{label}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{label}</p>
             <p className="text-[11px] t3 mt-0.5">{desc}</p>
           </div>
           <svg

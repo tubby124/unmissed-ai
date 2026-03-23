@@ -101,8 +101,7 @@ export default function OnboardingChecklist({
         initial={{ opacity: 1 }}
         exit={{ opacity: 0, y: -12, height: 0 }}
         transition={{ duration: 0.3 }}
-        className="rounded-2xl border overflow-hidden mb-4"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        className="rounded-2xl overflow-hidden mb-4 card-surface"
         id="onboarding-checklist"
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2">

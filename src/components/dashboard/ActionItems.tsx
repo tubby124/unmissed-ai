@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface ActionItem {
   severity: 'red' | 'amber'
@@ -140,7 +141,7 @@ export default function ActionItems() {
     return (
       <div className="space-y-2">
         {[1, 2].map(i => (
-          <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-hover)' }} />
+          <SkeletonBox key={i} className="h-10 rounded-2xl" />
         ))}
       </div>
     )

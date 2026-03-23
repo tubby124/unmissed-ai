@@ -50,7 +50,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
   if (loading) {
     return (
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-3">Agent Runtime</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Agent Runtime</p>
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-4 rounded bg-hover animate-pulse" />
@@ -63,7 +63,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
   if (error || !data) {
     return (
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Agent Runtime</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Agent Runtime</p>
         <p className="text-[11px] text-red-400/70">Failed to load runtime config</p>
       </div>
     )
@@ -116,7 +116,7 @@ export default function RuntimeCard({ client }: RuntimeCardProps) {
   return (
     <div className="rounded-2xl border b-theme bg-surface p-5">
       <div className="flex items-center gap-2 mb-1">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Agent Runtime</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Agent Runtime</p>
         {data.stale && (
           <span className="text-[9px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-1.5 py-0.5 leading-none">
             stale

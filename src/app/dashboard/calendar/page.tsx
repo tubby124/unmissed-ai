@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import NoBookings from '@/components/dashboard/empty-states/NoBookings'
+import PageHeader from '@/components/dashboard/PageHeader'
+import { CalendarSkeleton } from '@/components/dashboard/SkeletonLoader'
 
 interface Booking {
   id: string
@@ -121,25 +123,10 @@ export default function CalendarPage() {
   }, [filtered])
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-1)' }}>
-          Calendar
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>
-          Appointments booked by your AI agent during calls.
-        </p>
-      </div>
+    <div className="p-3 sm:p-6 space-y-6">
+      <PageHeader title="Calendar" subtitle="Appointments booked by your AI agent during calls." />
 
-      {loading && (
-        <div className="flex items-center justify-center py-32">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-            <span className="text-sm" style={{ color: 'var(--color-text-3)' }}>Loading bookings...</span>
-          </div>
-        </div>
-      )}
+      {loading && <CalendarSkeleton />}
 
       {!loading && bookings.length === 0 && <NoBookings />}
 
@@ -157,10 +144,7 @@ export default function CalendarPage() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Mini calendar */}
             <div className="lg:w-72 shrink-0">
-              <div
-                className="rounded-2xl border p-4 sticky top-6"
-                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-              >
+              <div className="rounded-2xl p-4 sticky top-6 card-surface">
                 <MiniCalendar
                   month={calMonth.month}
                   year={calMonth.year}
@@ -212,9 +196,8 @@ export default function CalendarPage() {
                   className="space-y-6"
                 >
                   {filtered.length === 0 && (
-                    <div className="text-center py-16 rounded-2xl border"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-                      <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>No bookings match this filter.</p>
+                    <div className="text-center py-16 rounded-2xl card-surface">
+                      <p className="text-sm t3">No bookings match this filter.</p>
                     </div>
                   )}
 
@@ -222,11 +205,11 @@ export default function CalendarPage() {
                     <div key={group.date}>
                       {/* Date header */}
                       <div className="flex items-center gap-3 mb-3">
-                        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] t3">
                           {group.date === today ? 'Today' : group.label}
                         </span>
-                        <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
-                        <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-text-3)' }}>
+                        <div className="flex-1 h-px bg-[var(--color-border)]" />
+                        <span className="text-[10px] tabular-nums t3">
                           {group.bookings.length} {group.bookings.length === 1 ? 'booking' : 'bookings'}
                         </span>
                       </div>
@@ -267,10 +250,7 @@ export default function CalendarPage() {
                             </div>
 
                             {/* Card */}
-                            <div
-                              className="rounded-xl border p-4 transition-all hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/[0.03] group"
-                              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                            >
+                            <div className="rounded-2xl p-4 transition-all hover:shadow-sm card-surface group">
                               <div className="flex items-start gap-4">
                                 {/* Time badge */}
                                 <div
@@ -396,7 +376,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   const c = colors[color] || colors.slate
   return (
     <div
-      className="rounded-xl px-4 py-3 border"
+      className="rounded-2xl px-4 py-3 border"
       style={{ backgroundColor: c.bg, borderColor: c.border }}
     >
       <p className="text-2xl font-bold tabular-nums" style={{ color: c.text }}>{value}</p>

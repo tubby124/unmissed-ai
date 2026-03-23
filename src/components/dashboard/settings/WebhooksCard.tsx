@@ -33,7 +33,7 @@ export default function WebhooksCard({ appUrl, slug, twilioNumber }: WebhooksCar
               <polyline points="16 18 22 12 16 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <polyline points="8 6 2 12 8 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Developer Settings</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Developer Settings</p>
           </div>
           <svg
             width="14" height="14" viewBox="0 0 24 24" fill="none"

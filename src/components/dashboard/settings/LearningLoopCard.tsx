@@ -92,7 +92,7 @@ export default function LearningLoopCard({ clientId, isAdmin, onRequestImproveme
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">Learning Loop</p>
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-blue-400/80">Learning Loop</p>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wider">Auto</span>
             </div>
             <p className="text-xs t2">

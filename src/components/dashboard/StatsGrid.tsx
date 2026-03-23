@@ -124,7 +124,7 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
       )}
 
       <div className="flex items-center justify-between mb-3">
-        <p className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${t.label}`}>{label}</p>
+        <p className={`text-[10px] font-semibold tracking-[0.15em] uppercase ${t.label}`}>{label}</p>
         <span className="relative flex w-1.5 h-1.5">
           {t.pulse && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${t.dot} opacity-75`} />}
           <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${t.dot} opacity-60`} />

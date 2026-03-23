@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface ActivitySummary {
   total: number
@@ -103,9 +104,9 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-3">
-        <div className="h-20 rounded-2xl" style={{ backgroundColor: 'var(--color-surface)' }} />
-        <div className="h-32 rounded-2xl" style={{ backgroundColor: 'var(--color-surface)' }} />
+      <div className="space-y-3">
+        <SkeletonBox className="h-20 rounded-2xl" />
+        <SkeletonBox className="h-32 rounded-2xl" />
       </div>
     )
   }
@@ -130,7 +131,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
 
       {/* Period selector */}
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
           Operator Activity
         </p>
         <div className="flex gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
@@ -168,7 +169,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
           <svg className="w-4 h-4 text-orange-400 shrink-0" viewBox="0 0 24 24" fill="none">
             <path d="M15.05 5A5 5 0 0119 8.95M15.05 1A9 9 0 0123 8.94m-1 7.98v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-5.42-5.42A19.79 19.79 0 01.7 4.11 2 2 0 012.68 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.5a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
             Missed Calls
           </p>
           {missedCalls.length > 0 && (
@@ -219,7 +220,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
             <svg className="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none">
               <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55m-5.68-3.4a6.09 6.09 0 013.33 2.07m1.35-6.22a14.94 14.94 0 014 5.52M9.34 6.71L2 2m7.34 4.71A2 2 0 002.68 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.5a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
               Callback Queue
             </p>
             {activeCallbackQueue.length > 0 && (
@@ -275,8 +276,8 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
 
 function SummaryCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-      <p className="text-[10px] font-semibold tracking-wider uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>
+    <div className="rounded-2xl px-3 py-2.5 text-center card-surface">
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1 t3">
         {label}
       </p>
       <p className={`text-lg font-bold tabular-nums ${color ?? ''}`} style={color ? undefined : { color: 'var(--color-text-1)' }}>

@@ -1,4 +1,4 @@
-function SkeletonBox({ className }: { className?: string }) {
+export function SkeletonBox({ className }: { className?: string }) {
   return (
     <div
       className={`rounded-lg ${className ?? ''}`}
@@ -45,6 +45,60 @@ export function CallsListSkeleton() {
           <SkeletonBox className="h-3 w-16" />
         </div>
       ))}
+    </div>
+  )
+}
+
+export function CalendarSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-2xl p-4 card-surface space-y-2">
+            <SkeletonBox className="h-7 w-10" />
+            <SkeletonBox className="h-3 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Mini calendar */}
+        <div className="lg:w-72 shrink-0">
+          <div className="rounded-2xl p-4 card-surface space-y-3">
+            <div className="flex items-center justify-between">
+              <SkeletonBox className="h-4 w-28" />
+              <div className="flex gap-1">
+                <SkeletonBox className="h-6 w-6 rounded-md" />
+                <SkeletonBox className="h-6 w-6 rounded-md" />
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {[...Array(35)].map((_, i) => (
+                <SkeletonBox key={i} className="h-7 rounded-md" />
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Booking list */}
+        <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex gap-2">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonBox key={i} className="h-7 w-20 rounded-lg" />
+            ))}
+          </div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-2xl p-4 card-surface space-y-2">
+              <div className="flex items-start gap-4">
+                <SkeletonBox className="w-[68px] h-9 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <SkeletonBox className="h-4 w-32" />
+                  <SkeletonBox className="h-3 w-48" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

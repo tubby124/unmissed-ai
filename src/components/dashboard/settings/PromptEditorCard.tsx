@@ -143,7 +143,7 @@ export default function PromptEditorCard({
             </svg>
           </div>
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-400/80">{isAdmin ? 'Agent Script' : 'Agent Behavior'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-blue-400/80">{isAdmin ? 'Agent Script' : 'Agent Behavior'}</p>
             <p className="text-[11px] t3 mt-0.5">
               {collapsed
                 ? (isAdmin ? 'Tap to view and edit what your AI agent says on calls' : 'See what your agent does on calls')

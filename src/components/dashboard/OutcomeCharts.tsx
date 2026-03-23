@@ -237,9 +237,9 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0 }}
-        className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+        className="rounded-2xl p-4 card-surface"
       >
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Outcomes</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Outcomes</p>
         <div className="flex items-center gap-4">
           <DonutChart counts={counts} total={classified.length} />
           <div className="space-y-1.5 flex-1 min-w-0">
@@ -262,9 +262,9 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+        className="rounded-2xl p-4 card-surface"
       >
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Last 7 Days</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Last 7 Days</p>
         <DayBarChart days={days} onDayClick={onDayClick} selectedDay={selectedDay} />
         <p className="text-[10px] mt-1 font-mono" style={{ color: "var(--color-text-3)" }}>{todayCount} today</p>
       </motion.div>
@@ -274,9 +274,9 @@ export default function OutcomeCharts({ calls, onDayClick, selectedDay }: Outcom
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="rounded-2xl border p-4 sm:col-span-2 lg:col-span-1" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+        className="rounded-2xl p-4 sm:col-span-2 lg:col-span-1 card-surface"
       >
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Funnel</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Funnel</p>
         <ConversionFunnel calls={classified} />
       </motion.div>
     </div>

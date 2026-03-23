@@ -91,7 +91,7 @@ export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) 
           <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">What Your Agent Knows</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Your Agent Knows</p>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

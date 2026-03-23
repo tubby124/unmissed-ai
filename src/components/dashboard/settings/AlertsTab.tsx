@@ -46,7 +46,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       <div className="p-5 border-b b-theme">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Alert Channels</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Alert Channels</p>
             <p className="text-[11px] t3">How you receive call notifications from your agent.</p>
           </div>
           <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
@@ -104,7 +104,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Message Style</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Message Style</p>
             <p className="text-[11px] t3">Choose how call summaries appear in your Telegram chat.</p>
           </div>
           {saving && (
@@ -150,7 +150,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
     {/* Notification preferences matrix */}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
       <div className="p-5 border-b b-theme">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Notification Preferences</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Notification Preferences</p>
         <p className="text-[11px] t3">Fine-grained control over which events trigger alerts. SMS and Email channels are in development.</p>
       </div>
       <div className="p-5">
@@ -222,7 +222,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Weekly Performance Email</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Weekly Performance Email</p>
             <p className="text-[11px] t3">
               Receive a weekly summary of calls, leads, and bookings every Sunday at 9 AM.
             </p>

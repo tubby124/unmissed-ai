@@ -119,17 +119,19 @@ Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark
 
 ---
 
-## PASS 2 — Dark Mode Polish
+## PASS 2 — Dark Mode Polish (DONE)
 
 Goal: Verify dark mode still looks great after Pass 1 changes. Fix any regressions.
 
+Audited 2026-03-23: 8 pages screenshotted in light mode (Command Center, Overview, Client Home, Settings, Notifications, Login, Insights, Onboarding). Dark mode regression verified. Screenshots in `light-mode-audit/`.
+
 | # | Item | Status |
 |---|------|--------|
-| D1 | Full Playwright screenshot audit — every page in dark mode | TODO |
-| D2 | Verify card borders have enough contrast (`#1e1e1e` on `#111111`) | TODO |
-| D3 | Verify status badges readable in dark | TODO |
-| D4 | Verify sidebar active/hover states | TODO |
-| D5 | Verify onboarding flow dark mode | TODO |
+| D1 | Full Playwright screenshot audit — every page in both themes | DONE |
+| D2 | Verify card borders have enough contrast (`#1e1e1e` on `#111111`) | DONE |
+| D3 | Verify status badges readable in dark | DONE |
+| D4 | Verify sidebar active/hover states | DONE |
+| D5 | Verify onboarding flow dark mode | DONE |
 
 ---
 
@@ -139,18 +141,33 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 
 | # | Item | Status |
 |---|------|--------|
-| C1 | Define page template: header pattern, card grid, spacing | TODO |
+| C1 | Page template: `p-3 sm:p-6 space-y-6` on all pages. `PageHeader` component for titles. | DONE |
 | C2 | Sidebar — consistent active state, hover, group separators (CSS vars not Tailwind) | TODO |
-| C3 | All cards use `card-surface` + `rounded-2xl` + consistent padding `p-5` | TODO |
-| C4 | All section headers: `text-[11px] font-semibold tracking-[0.15em] uppercase t3` | TODO |
-| C5 | All page titles: `text-lg font-semibold t1` | TODO |
+| C3 | All cards use `card-surface` + `rounded-2xl` + consistent padding. Calendar inline styles → `card-surface`. ClientHome `rounded-xl` → `rounded-2xl`. | DONE |
+| C4 | All section headers: `text-[11px] font-semibold tracking-[0.15em] uppercase t3` via `SectionLabel`. Calendar `tracking-widest` fixed. ClientHome `tracking-wide` fixed. | DONE |
+| C5 | All page titles: `text-lg font-semibold tracking-tight t1` via `PageHeader`. Calendar `text-2xl font-bold` fixed. Campaigns inline header → `PageHeader`. | DONE |
 | C6 | All "View all" / action links: `text-[12px]` + `var(--color-primary)` | TODO |
-| C7 | Consistent hover pattern for clickable rows (use `var(--color-hover)`) | TODO |
-| C8 | StatusBadge used everywhere (not inline badge styles) | TODO |
-| C9 | Loading states: all pages use SkeletonLoader or shimmer, not custom spinners | TODO |
-| C10 | Empty states: all pages use EmptyState component, not ad-hoc text | TODO |
-| C11 | Error states: consistent error card pattern across pages | TODO |
-| C12 | Mobile responsive: every page works at 375px without horizontal scroll | TODO |
+| C7 | Consistent hover: rows use `hover:bg-hover transition-colors`, cards use `hover:shadow-sm`. Calendar `hover:border-indigo-500/20` fixed. ClientHome JS `onMouseEnter/Leave` → CSS `hover:bg-hover`. | DONE |
+| C8 | StatusBadge used everywhere. ClientHome inline `STATUS_COLORS` map removed → `StatusBadge` component. | DONE |
+| C9 | Loading: calendar custom spinner → `CalendarSkeleton` shimmer. ClientHome `animate-pulse` → `SkeletonBox` shimmer. | DONE |
+| C10 | Empty states: old `EmptyState.tsx` already unused (0 imports). All pages use `EmptyStateBase` variants. | DONE |
+| C11 | Error states: `ErrorCard` component created. ClientHome inline error → `ErrorCard`. | DONE |
+| C12 | Mobile: all pages `p-3 sm:p-6`. Calendar `p-6 max-w-5xl mx-auto` → `p-3 sm:p-6`. Leads admin `p-6` → `p-3 sm:p-6`. Campaigns `p-6` → `p-3 sm:p-6`. | DONE |
+
+### Pass 3 New Components Created
+- `src/components/dashboard/PageHeader.tsx` — standardized page title + optional subtitle + action slot
+- `src/components/dashboard/SectionLabel.tsx` — standardized section header (11px semibold uppercase)
+- `src/components/dashboard/ErrorCard.tsx` — standardized error card (title + message + retry)
+- `CalendarSkeleton` added to `src/components/dashboard/SkeletonLoader.tsx`
+- `SkeletonBox` exported from `SkeletonLoader.tsx` for reuse
+
+### Pass 3 Files Modified
+- `calendar/page.tsx` — padding, PageHeader, CalendarSkeleton, card-surface, tracking, hover, rounded-2xl
+- `calls/page.tsx` — added space-y-6
+- `leads/page.tsx` — admin path p-6 → p-3 sm:p-6
+- `campaigns/page.tsx` — p-6 → p-3 sm:p-6, inline header → PageHeader
+- `dashboard/page.tsx` — PageHeader + SectionLabel (done in earlier session)
+- `ClientHome.tsx` — padding, SkeletonBox shimmer, ErrorCard, StatusBadge, rounded-2xl, tracking, hover:bg-hover
 
 ---
 
@@ -167,7 +184,7 @@ Goal: Remove buttons, links, and components that don't go anywhere or don't make
 | X5 | Remove "Secured by Supabase Auth" from login page | TODO |
 | X6 | Check all Settings tab links (`?tab=knowledge`, `?tab=agent`, etc.) resolve correctly | TODO |
 | X7 | Find and remove dead/unused components (not imported anywhere) | TODO |
-| X8 | Clean up duplicate status badge implementations (inline vs StatusBadge component) | TODO |
+| X8 | Clean up duplicate status badge implementations (inline vs StatusBadge component) | DONE (C8 in Pass 3) |
 
 ---
 

@@ -63,7 +63,7 @@ export default function PromptVersionsCard({ clientId, isAdmin, onRestore }: Pro
           className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface transition-colors"
         >
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">Prompt History</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Prompt History</p>
             <p className="text-[11px] t3 mt-0.5">View and restore previous system prompt versions</p>
           </div>
           <svg

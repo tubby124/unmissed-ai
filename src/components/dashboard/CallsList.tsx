@@ -18,6 +18,7 @@ import OutcomeCharts from './OutcomeCharts'
 import DialModal from './DialModal'
 import ClientSelector from './ClientSelector'
 import RevenueAtRisk from './RevenueAtRisk'
+import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 import ClientHealthBar from './ClientHealthBar'
 import ScopedClientLabel from './ScopedClientLabel'
 
@@ -127,15 +128,9 @@ function exportCsv(calls: CallLog[]) {
 
 function CallsListSkeleton() {
   return (
-    <div className="animate-pulse space-y-3">
+    <div className="space-y-3">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex gap-3 p-4 rounded-xl" style={{ backgroundColor: 'var(--color-surface)' }}>
-          <div className="w-10 h-10 rounded-full bg-[var(--color-border)]" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 rounded bg-[var(--color-border)] w-1/3" />
-            <div className="h-3 rounded bg-[var(--color-border)] w-2/3" />
-          </div>
-        </div>
+        <SkeletonBox key={i} className="rounded-2xl h-[58px]" />
       ))}
     </div>
   )
@@ -422,7 +417,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-2)' }}>
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl card-surface t2">
                 <svg className="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -450,7 +445,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           {/* Header */}
           <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
                 Call Log
               </p>
               <ScopedClientLabel />

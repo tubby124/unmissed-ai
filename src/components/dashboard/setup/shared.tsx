@@ -196,7 +196,7 @@ export function StarCard({ stepNum, label, desc, code, icon }: {
           <p className="text-sm font-semibold t1">{label}</p>
           <p className="text-[11px] t3 mt-0.5">{desc}</p>
         </div>
-        <span className="text-[9px] font-black font-mono t1 tracking-[0.2em] shrink-0">{stepNum}</span>
+        <span className="text-[9px] font-black font-mono t1 tracking-[0.15em] shrink-0">{stepNum}</span>
       </div>
       {/* Code block */}
       <div className="px-5 py-5 flex items-center gap-3">

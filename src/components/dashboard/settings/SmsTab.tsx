@@ -88,7 +88,7 @@ export default function SmsTab({
     <div className="rounded-2xl border b-theme bg-surface p-5">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">SMS Follow-up</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">SMS Follow-up</p>
           <p className="text-[11px] t3 mt-0.5">Sent to the caller after each call ends.</p>
         </div>
         <button

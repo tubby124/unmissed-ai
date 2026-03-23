@@ -51,7 +51,7 @@ export default function ImprovePromptCard({ clientId, isAdmin, onApply }: Improv
     <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] p-5">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-purple-400/80">AI Improve</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-purple-400/80">AI Improve</p>
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">Beta</span>
         </div>
         {(state === 'idle' || state === 'error') && (

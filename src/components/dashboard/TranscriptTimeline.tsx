@@ -78,9 +78,9 @@ export default function TranscriptTimeline({
 
   if (!messages.length) {
     return (
-      <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+      <div className="rounded-2xl p-5 card-surface">
         <div className="flex items-center gap-2 mb-4">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: "var(--color-text-3)" }}>
             {isLive ? 'Live Transcript' : 'Transcript'}
           </p>
           {isLive && (
@@ -100,10 +100,10 @@ export default function TranscriptTimeline({
   let lastRole: string | null = null
 
   return (
-    <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
+    <div className="rounded-2xl p-5 card-surface">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase" style={{ color: "var(--color-text-3)" }}>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: "var(--color-text-3)" }}>
             {isLive ? 'Live Transcript' : 'Transcript'}
           </p>
           {isLive && (

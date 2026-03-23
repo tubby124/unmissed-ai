@@ -60,7 +60,7 @@ export default function AgentConfigCard({
       transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.12 }}
     >
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-1">Agent Configuration</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Agent Configuration</p>
         <p className="text-[11px] t3 mb-4">Voice and AI model settings</p>
         {agentVoiceId ? (
           <ConfigRow

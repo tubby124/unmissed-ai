@@ -43,7 +43,7 @@ export default function VoicemailGreetingCard({
     >
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase t3">{mode === 'onboarding' ? 'Voicemail Backup' : 'Voicemail Greeting'}</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'Voicemail Backup' : 'Voicemail Greeting'}</p>
           <button
             onClick={save}
             disabled={saving || previewMode}

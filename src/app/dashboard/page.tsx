@@ -5,6 +5,8 @@ import ActionItems from '@/components/dashboard/ActionItems'
 import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
 import ClientHome from '@/components/dashboard/ClientHome'
+import PageHeader from '@/components/dashboard/PageHeader'
+import SectionLabel from '@/components/dashboard/SectionLabel'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,24 +77,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-text-1)' }}>
-          Command Center
-        </h1>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>
-          What needs attention right now
-        </p>
-      </div>
+      <PageHeader title="Command Center" subtitle="What needs attention right now" />
 
       {/* System health */}
       <SystemPulse />
 
       {/* Action items — the core of this page */}
       <div>
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>
-          Action Items
-        </p>
+        <SectionLabel className="mb-2">Action Items</SectionLabel>
         <ActionItems />
       </div>
 
