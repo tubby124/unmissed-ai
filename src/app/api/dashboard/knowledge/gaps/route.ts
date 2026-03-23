@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
  * PATCH /api/dashboard/knowledge/gaps
  *
  * Resolves a gap by marking all matching query_log rows as resolved.
- * Body: { client_id?, query: string, resolution_type: 'faq' | 'knowledge' }
+ * Body: { client_id?, query: string, resolution_type: 'faq' | 'knowledge' | 'dismissed' }
  */
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
@@ -188,8 +188,8 @@ export async function PATCH(req: NextRequest) {
   const resolutionType = body.resolution_type
 
   if (!query) return NextResponse.json({ error: 'query is required' }, { status: 400 })
-  if (!resolutionType || !['faq', 'knowledge'].includes(resolutionType)) {
-    return NextResponse.json({ error: 'resolution_type must be "faq" or "knowledge"' }, { status: 400 })
+  if (!resolutionType || !['faq', 'knowledge', 'dismissed'].includes(resolutionType)) {
+    return NextResponse.json({ error: 'resolution_type must be "faq", "knowledge", or "dismissed"' }, { status: 400 })
   }
 
   if (cu.role !== 'admin' && clientId !== cu.client_id) {
