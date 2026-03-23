@@ -123,7 +123,7 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
     <div ref={containerRef} className="relative">
       <div className="relative">
         {/* Search icon */}
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
@@ -136,7 +136,7 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
           onChange={handleInputChange}
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
           placeholder="Search your business name..."
-          className="w-full pl-9 pr-9 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          className="w-full pl-9 pr-9 py-2.5 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
           autoComplete="off"
         />
 
@@ -153,24 +153,24 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
 
       {/* Dropdown */}
       {isOpen && predictions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-lg shadow-lg overflow-hidden z-50">
           {predictions.map((p) => (
             <button
               key={p.place_id}
               type="button"
               onMouseDown={(e) => e.preventDefault()} // prevent input blur before click
               onClick={() => handleSelect(p)}
-              className="w-full flex flex-col items-start px-3 py-2.5 text-left hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-0"
+              className="w-full flex flex-col items-start px-3 py-2.5 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-0"
             >
-              <span className="text-sm font-medium text-slate-800">{p.main_text}</span>
+              <span className="text-sm font-medium text-foreground">{p.main_text}</span>
               {p.secondary_text && (
-                <span className="text-xs text-slate-500 truncate w-full mt-0.5">{p.secondary_text}</span>
+                <span className="text-xs text-muted-foreground truncate w-full mt-0.5">{p.secondary_text}</span>
               )}
             </button>
           ))}
-          <div className="px-3 py-1.5 flex items-center gap-1 bg-slate-50 border-t border-gray-100">
+          <div className="px-3 py-1.5 flex items-center gap-1 bg-muted/50 border-t border-border">
             <svg width="12" height="12" viewBox="0 0 488 512" fill="#4285F4"><path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C315.8 103.7 285.2 88 248 88c-94.3 0-170.4 76.5-170.4 168s76.1 168 170.4 168c105.4 0 144.5-75.5 150.4-114.5H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.6z"/></svg>
-            <span className="text-[10px] text-slate-400">Powered by Google</span>
+            <span className="text-[10px] text-muted-foreground">Powered by Google</span>
           </div>
         </div>
       )}

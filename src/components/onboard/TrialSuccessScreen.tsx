@@ -12,8 +12,8 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
   const checklistItems = [
     { label: "Agent configured", done: true, link: null as string | null },
     { label: "Trial activated — 7 days free", done: true, link: null as string | null },
+    { label: "Test your agent with a browser call", done: false, link: setupUrl || "/dashboard" },
     { label: "Set up Telegram to receive call notifications", done: false, link: telegramLink },
-    { label: "Forward your business phone to your new AI number", done: false, link: setupUrl },
   ];
 
   return (
@@ -27,8 +27,8 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">You&apos;re live!</h1>
-          <p className="text-sm text-muted-foreground">Your 7-day trial has started. Here&apos;s what to do next:</p>
+          <h1 className="text-2xl font-bold text-foreground">Your agent is ready!</h1>
+          <p className="text-sm text-muted-foreground">Your 7-day trial has started. Try a browser call to hear your agent, then upgrade for a phone number.</p>
         </div>
 
         {/* Animated checklist */}
@@ -70,21 +70,12 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
 
       {/* Dashboard CTA */}
       <div className="space-y-3">
-        {setupUrl ? (
-          <a
-            href={setupUrl}
-            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base text-center"
-          >
-            Open your Dashboard →
-          </a>
-        ) : (
-          <a
-            href="/dashboard"
-            className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base text-center"
-          >
-            Go to Dashboard
-          </a>
-        )}
+        <a
+          href={setupUrl || "/dashboard"}
+          className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base text-center"
+        >
+          Talk to your agent →
+        </a>
 
         {clientId && (
           <a

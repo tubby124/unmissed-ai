@@ -346,10 +346,10 @@ export default function Step1({ data, onUpdate }: Props) {
       )}
 
       {/* Flat niche chip grid */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-foreground">
+      <div className="space-y-2" role="group" aria-labelledby="niche-group-label">
+        <p id="niche-group-label" className="text-sm font-semibold text-foreground">
           Select your industry
-        </label>
+        </p>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(nicheIcons) as Niche[])
             .filter((niche) => NICHE_PRODUCTION_READY[niche])
@@ -360,6 +360,7 @@ export default function Step1({ data, onUpdate }: Props) {
                 <button
                   key={niche}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => {
                     const updates: Partial<OnboardingData> = { niche }
                     const newName = resolveAgentName(data.agentName, niche)
@@ -367,7 +368,7 @@ export default function Step1({ data, onUpdate }: Props) {
                     onUpdate(updates)
                   }}
                   className={`
-                    flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer
+                    flex items-center gap-2 px-3.5 py-3 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer
                     ${isSelected
                       ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-sm shadow-indigo-100 dark:shadow-none"
                       : "border-border bg-card text-foreground hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20"
@@ -436,6 +437,106 @@ export default function Step1({ data, onUpdate }: Props) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Business details — confirm or fill ─────────────────────────────── */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Your details</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Confirm your info so your agent knows who it&apos;s representing.
+          </p>
+        </div>
+
+        {/* Business Name */}
+        <div className="space-y-1.5">
+          <Label htmlFor="businessName">Business name <span className="text-red-500">*</span></Label>
+          <Input
+            id="businessName"
+            value={data.businessName}
+            onChange={(e) => onUpdate({ businessName: e.target.value })}
+            placeholder="Acme Services"
+          />
+        </div>
+
+        {/* Owner / Contact Name — real estate only */}
+        {data.niche === "real_estate" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="ownerName">Your name <span className="text-red-500">*</span></Label>
+            <Input
+              id="ownerName"
+              value={data.ownerName}
+              onChange={(e) => onUpdate({ ownerName: e.target.value })}
+              placeholder="Jane Smith"
+            />
+          </div>
+        )}
+
+        {/* Phone */}
+        <div className="space-y-1.5">
+          <Label htmlFor="callbackPhone">Business phone <span className="text-red-500">*</span></Label>
+          <Input
+            id="callbackPhone"
+            type="tel"
+            value={data.callbackPhone}
+            onChange={(e) => onUpdate({ callbackPhone: e.target.value })}
+            placeholder="(306) 555-1234"
+          />
+          <p className="text-xs text-muted-foreground">The number callers will be told to call back on.</p>
+        </div>
+
+        {/* Email */}
+        <div className="space-y-1.5">
+          <Label htmlFor="contactEmail">Contact email <span className="text-red-500">*</span></Label>
+          <Input
+            id="contactEmail"
+            type="email"
+            value={data.contactEmail}
+            onChange={(e) => onUpdate({ contactEmail: e.target.value })}
+            placeholder="you@business.com"
+          />
+          <p className="text-xs text-muted-foreground">Used for your dashboard login and notifications.</p>
+        </div>
+
+        {/* City — not needed for voicemail */}
+        {data.niche !== "voicemail" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
+            <Input
+              id="city"
+              value={data.city}
+              onChange={(e) => onUpdate({ city: e.target.value })}
+              placeholder="Saskatoon"
+            />
+          </div>
+        )}
+
+        {/* Business Hours — not needed for voicemail */}
+        {data.niche !== "voicemail" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="businessHoursText">Business hours <span className="text-red-500">*</span></Label>
+            <Input
+              id="businessHoursText"
+              value={data.businessHoursText}
+              onChange={(e) => onUpdate({ businessHoursText: e.target.value })}
+              placeholder="Mon-Fri 9am-5pm, Sat 10am-2pm"
+            />
+            <p className="text-xs text-muted-foreground">Your agent will tell callers when you&apos;re open.</p>
+          </div>
+        )}
+
+        {/* Services — optional */}
+        {data.niche !== "voicemail" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="servicesOffered">Services offered <span className="text-muted-foreground/70 font-normal text-xs">(optional)</span></Label>
+            <Input
+              id="servicesOffered"
+              value={data.servicesOffered}
+              onChange={(e) => onUpdate({ servicesOffered: e.target.value })}
+              placeholder="Windshield repair, chip repair, mobile service"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

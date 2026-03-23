@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { OnboardingData, defaultOnboardingData, Niche } from "@/types/onboarding";
 import Step1 from "./steps/step1";
 import Step2Voice from "./steps/step2-voice";
-import Step3Basics from "./steps/step3-basics";
 import Step4 from "./steps/step4";
-import Step5Handling from "./steps/step5-handling";
 import Step6Review from "./steps/step6-review";
 import ThemeToggle from "@/components/ThemeToggle";
 import { BRAND_NAME } from "@/lib/brand";
@@ -20,16 +18,14 @@ import { loadVisitor } from "@/lib/demo-visitor";
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
 
 function getStepSequence(niche: Niche | null): number[] {
-  if (niche === "voicemail") return [1, 2, 3, 6]; // skip Knowledge (4) and Call Handling (5)
-  return [1, 2, 3, 4, 5, 6]; // full flow for all other niches
+  if (niche === "voicemail") return [1, 2, 6]; // skip Knowledge (4)
+  return [1, 2, 4, 6]; // 4-step flow: Business → Agent → Knowledge → Review
 }
 
 const STEP_TITLES: Record<number, string> = {
-  1: "Your industry",
-  2: "Your agent's voice",
-  3: "Business basics",
+  1: "Your business",
+  2: "Your agent",
   4: "Knowledge & FAQ",
-  5: "Call handling",
   6: "Review & activate",
 };
 
@@ -43,9 +39,9 @@ function isValidEmail(email: string): boolean {
 
 function canAdvance(step: number, data: OnboardingData): boolean {
   switch (step) {
-    case 1: return !!data.niche;
-    case 2: return true; // voice has a default
-    case 3: {
+    case 1: {
+      // Combined: niche selection + business details (old steps 1+3)
+      if (!data.niche) return false;
       const isVM = data.niche === "voicemail";
       const baseValid = !!data.businessName
         && countDigits(data.callbackPhone) >= 10
@@ -54,8 +50,8 @@ function canAdvance(step: number, data: OnboardingData): boolean {
       if (isVM) return baseValid;
       return baseValid && !!data.city && !!data.businessHoursText?.trim();
     }
+    case 2: return true; // voice + call handling have defaults
     case 4: return true; // knowledge + FAQ optional
-    case 5: return true; // all have defaults
     case 6: return true; // review page
     default: return true;
   }
@@ -292,9 +288,7 @@ export default function OnboardPage() {
               >
                 {step === 1 && <Step1 data={data} onUpdate={update} />}
                 {step === 2 && <Step2Voice data={data} onUpdate={update} />}
-                {step === 3 && <Step3Basics data={data} onUpdate={update} />}
                 {step === 4 && <Step4 data={data} onUpdate={update} />}
-                {step === 5 && <Step5Handling data={data} onUpdate={update} />}
                 {step === 6 && (
                   <Step6Review
                     data={data}

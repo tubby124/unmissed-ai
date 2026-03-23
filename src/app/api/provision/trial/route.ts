@@ -113,6 +113,17 @@ export async function POST(req: NextRequest) {
       status: 'setup',
       contact_email: data.contactEmail || null,
       agent_name: data.agentName || null,
+      // Phase 0b: Write onboarding fields so settings dashboard shows them
+      business_hours_weekday: intakePayload.hours_weekday || null,
+      business_hours_weekend: null,
+      after_hours_behavior: data.afterHoursBehavior || 'take_message',
+      after_hours_emergency_phone: data.emergencyPhone || null,
+      website_url: data.websiteUrl || null,
+      owner_name: data.ownerName || null,
+      city: data.city || null,
+      state: data.state || null,
+      services_offered: intakePayload.services_offered || null,
+      callback_phone: intakePayload.callback_phone || null,
     })
     .select("id")
     .single();
@@ -280,7 +291,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Save approved scrape facts to business_facts/extra_qa so KnowledgeSummary works at call-time
+  // Phase 0e: Also merge manual FAQ pairs from onboarding Step 4
   const scrapeSource = data.websiteScrapeResult ?? rawScrapeResult;
+  const scrapedFacts: string[] = [];
+  const scrapedQa: { q: string; a: string }[] = [];
+
   if (scrapeSource && (scrapeSource.businessFacts?.length > 0 || scrapeSource.extraQa?.length > 0)) {
     const preview = data.websiteScrapeResult as { approvedFacts?: boolean[]; approvedQa?: boolean[] } | undefined;
     const approvedFacts = preview?.approvedFacts
@@ -289,15 +304,23 @@ export async function POST(req: NextRequest) {
     const approvedQa = preview?.approvedQa
       ? scrapeSource.extraQa.filter((_: { q: string; a: string }, i: number) => preview.approvedQa![i] !== false)
       : scrapeSource.extraQa;
-    const factsText = approvedFacts.filter((f: string) => f?.trim()).join('\n');
-    const qaArray = approvedQa.filter((q: { q: string; a: string }) => q.q?.trim() && q.a?.trim());
-    if (factsText || qaArray.length > 0) {
-      await supa.from('clients').update({
-        ...(factsText ? { business_facts: factsText } : {}),
-        ...(qaArray.length > 0 ? { extra_qa: qaArray } : {}),
-      }).eq('id', clientId);
-      console.log(`[provision/trial] Saved scraped knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${qaArray.length}`);
-    }
+    scrapedFacts.push(...approvedFacts.filter((f: string) => f?.trim()));
+    scrapedQa.push(...approvedQa.filter((q: { q: string; a: string }) => q.q?.trim() && q.a?.trim()));
+  }
+
+  // Merge manual FAQ pairs (scraped first, manual appended)
+  const manualQa = (data.faqPairs || [])
+    .filter((p: { question: string; answer: string }) => p.question?.trim() && p.answer?.trim())
+    .map((p: { question: string; answer: string }) => ({ q: p.question.trim(), a: p.answer.trim() }));
+  const allQa = [...scrapedQa, ...manualQa];
+
+  const factsText = scrapedFacts.join('\n');
+  if (factsText || allQa.length > 0) {
+    await supa.from('clients').update({
+      ...(factsText ? { business_facts: factsText } : {}),
+      ...(allQa.length > 0 ? { extra_qa: allQa } : {}),
+    }).eq('id', clientId);
+    console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
   }
 
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();

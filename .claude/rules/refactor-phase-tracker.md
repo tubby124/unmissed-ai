@@ -104,7 +104,7 @@
 | D40 | FEATURE | Demo follow-up email — Brevo transactional email after demo with summary + signup link. Requires domain/Brevo setup (GATE-1) | MEDIUM | BLOCKED on domain |
 | D41 | FEATURE | Demo-to-Brevo sync — add demo visitors with email to Brevo contacts for nurture list | LOW | NOT STARTED |
 | D42 | UX | "Not {name}?" link for returning demo visitors — lets them edit saved localStorage info instead of auto-skipping form | LOW | NOT STARTED |
-| D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | NOT STARTED |
+| D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | **DONE** 2026-03-23 (all 6 phases complete: data pipe, bugs, inline edit, consolidation, scrape UX, demo placement, field mapping) |
 
 ---
 

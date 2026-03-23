@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { OnboardingData, Niche } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
-import { Upload, FileText, File, X, Plus, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, File, X, Plus, CheckCircle2, Mic } from "lucide-react";
+import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 import RealEstateNiche from "./niches/real-estate";
 import VoicemailNiche from "./niches/voicemail";
 import RestaurantNiche from "./niches/restaurant";
@@ -343,7 +344,7 @@ export default function Step4({ data, onUpdate }: Props) {
                 <button
                   type="button"
                   onClick={() => removeDoc(doc.id)}
-                  className="text-muted-foreground/70 hover:text-red-500 transition-colors p-1"
+                  className="text-muted-foreground/70 hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -my-2 -mr-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -352,6 +353,19 @@ export default function Step4({ data, onUpdate }: Props) {
           </div>
         )}
       </div>
+
+      {/* Website scrape preview — approve/reject facts before editing FAQs */}
+      {data.websiteUrl && (
+        <div className="space-y-2">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">From your website</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              We scanned your site and found these details. Review and approve what your agent should know.
+            </p>
+          </div>
+          <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
+        </div>
+      )}
 
       {/* Section B: Niche-specific content OR FAQ editor */}
       {NicheComponent ? (
@@ -392,7 +406,7 @@ export default function Step4({ data, onUpdate }: Props) {
                     <button
                       type="button"
                       onClick={() => removeFaqPair(index)}
-                      className="text-muted-foreground/70 hover:text-red-500 transition-colors p-1 mt-5"
+                      className="text-muted-foreground/70 hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mt-3 -mr-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -434,6 +448,19 @@ export default function Step4({ data, onUpdate }: Props) {
           )}
         </div>
       ) : null}
+
+      {/* Demo teaser — nudge to continue */}
+      <div className="flex items-center gap-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-4">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950/40 shrink-0">
+          <Mic className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Want to hear your agent?</p>
+          <p className="text-xs text-muted-foreground">
+            Continue to the next step to talk to {data.agentName || "your agent"} with a free demo call.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -164,6 +164,33 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
           </div>
         </div>
 
+        {/* ── Business profile (settings only, if populated) ───────────────────── */}
+        {mode !== 'onboarding' && (client.owner_name || client.city || client.callback_phone) && (
+          <div className="mb-5 pt-4 border-t b-theme">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Business profile</p>
+            <div className="grid grid-cols-2 gap-3">
+              {client.owner_name && (
+                <div>
+                  <label className="text-[10px] t3 uppercase tracking-wider block mb-1">Owner</label>
+                  <p className="text-xs t2 bg-hover px-3 py-2 rounded-lg border b-theme truncate">{client.owner_name}</p>
+                </div>
+              )}
+              {(client.city || client.state) && (
+                <div>
+                  <label className="text-[10px] t3 uppercase tracking-wider block mb-1">Location</label>
+                  <p className="text-xs t2 bg-hover px-3 py-2 rounded-lg border b-theme truncate">{[client.city, client.state].filter(Boolean).join(', ')}</p>
+                </div>
+              )}
+              {client.callback_phone && (
+                <div>
+                  <label className="text-[10px] t3 uppercase tracking-wider block mb-1">Callback phone</label>
+                  <p className="text-xs t2 font-mono bg-hover px-3 py-2 rounded-lg border b-theme">{fmtPhone(client.callback_phone)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Row 3: Usage bar (settings only) ─────────────────────────────────── */}
         {mode !== 'onboarding' && <div className="mb-5 pt-4 border-t b-theme">
           <div className="flex items-center justify-between mb-2">
