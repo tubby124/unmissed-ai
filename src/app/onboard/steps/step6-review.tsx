@@ -633,15 +633,18 @@ function AgentKnowledgeReviewCard({
   const [editingFactIndex, setEditingFactIndex] = useState<number | null>(null);
   const [editingQaIndex, setEditingQaIndex] = useState<number | null>(null);
   const sr = data.websiteScrapeResult;
+  const hasDocs = data.knowledgeDocs.length > 0;
+  const hasScrapedContent = !!(sr && (sr.businessFacts.length > 0 || sr.extraQa.length > 0 || (sr.serviceTags?.length ?? 0) > 0));
+  const scrapeEmpty = !!(sr && sr.scrapedUrl && !hasScrapedContent);
 
-  // Only render if there is actual scraped content
-  if (!sr || (sr.businessFacts.length === 0 && sr.extraQa.length === 0)) return null;
+  // Render if there's scraped content, docs uploaded, or a scrape was attempted (to show empty state)
+  if (!hasScrapedContent && !hasDocs && !scrapeEmpty) return null;
 
-  // Approved counts (undefined in sparse array = approved by default)
-  const approvedFactCount = sr.businessFacts.filter((_: string, i: number) => sr.approvedFacts[i] !== false).length;
-  const approvedQaCount = sr.extraQa.filter((_: { q: string; a: string }, i: number) => sr.approvedQa[i] !== false).length;
-  const totalFacts = sr.businessFacts.length;
-  const totalQa = sr.extraQa.length;
+  // Approved counts — sr may be null when only hasDocs is true
+  const approvedFactCount = sr ? sr.businessFacts.filter((_: string, i: number) => sr!.approvedFacts[i] !== false).length : 0;
+  const approvedQaCount = sr ? sr.extraQa.filter((_: { q: string; a: string }, i: number) => sr!.approvedQa[i] !== false).length : 0;
+  const totalFacts = sr ? sr.businessFacts.length : 0;
+  const totalQa = sr ? sr.extraQa.length : 0;
   const allApproved = approvedFactCount === totalFacts && approvedQaCount === totalQa;
 
   function toggleFact(i: number, approved: boolean) {
@@ -687,8 +690,13 @@ function AgentKnowledgeReviewCard({
 
   const excludedCount = (totalFacts - approvedFactCount) + (totalQa - approvedQaCount);
   const totalApproved = approvedFactCount + approvedQaCount;
-  const summaryText = allApproved
-    ? `${totalApproved} thing${totalApproved !== 1 ? "s" : ""} your agent knows`
+  const docCount = data.knowledgeDocs.length;
+  const tagCount = sr?.serviceTags?.length ?? 0;
+  const totalItems = totalApproved + tagCount + docCount;
+  const summaryText = scrapeEmpty && !hasDocs
+    ? "Website scanned · nothing extracted · tap to see"
+    : allApproved
+    ? `${totalItems} item${totalItems !== 1 ? "s" : ""} your agent knows`
     : `${excludedCount} item${excludedCount !== 1 ? "s" : ""} excluded · tap to review`;
 
   return (
@@ -757,15 +765,15 @@ function AgentKnowledgeReviewCard({
           )}
 
           {/* Website facts — toggleable + editable */}
-          {sr.businessFacts.length > 0 && (
+          {sr && sr.businessFacts.length > 0 && (
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Website facts
                 <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude · pencil to edit</span>
               </p>
               <ul className="space-y-2">
-                {sr.businessFacts.map((fact: string, i: number) => {
-                  const approved = sr.approvedFacts[i] !== false;
+                {sr!.businessFacts.map((fact: string, i: number) => {
+                  const approved = sr!.approvedFacts[i] !== false;
                   const isEditing = editingFactIndex === i;
                   return (
                     <li key={i} className="flex items-start gap-1 group/fact">
@@ -827,15 +835,15 @@ function AgentKnowledgeReviewCard({
           )}
 
           {/* Scraped FAQs — toggleable + editable */}
-          {sr.extraQa.length > 0 && (
+          {sr && sr.extraQa.length > 0 && (
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 FAQ answers
                 <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude · pencil to edit</span>
               </p>
               <ul className="space-y-3">
-                {sr.extraQa.map((qa: { q: string; a: string }, i: number) => {
-                  const approved = sr.approvedQa[i] !== false;
+                {sr!.extraQa.map((qa: { q: string; a: string }, i: number) => {
+                  const approved = sr!.approvedQa[i] !== false;
                   const isEditing = editingQaIndex === i;
                   return (
                     <li key={i} className="flex items-start gap-1 group/qa">
@@ -895,11 +903,63 @@ function AgentKnowledgeReviewCard({
             </div>
           )}
 
+          {/* Empty scrape state (D49) */}
+          {scrapeEmpty && (
+            <div className="px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                We scanned your website but couldn&apos;t extract enough.{" "}
+                <span className="text-foreground">Add FAQs manually in Knowledge after activation.</span>
+              </p>
+            </div>
+          )}
+
+          {/* Service tags (D51) */}
+          {sr && sr.serviceTags && sr.serviceTags.length > 0 && (
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Service tags
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· detected from your website</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {sr.serviceTags.map((tag: string, i: number) => (
+                  <span key={i} className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Uploaded documents (D52) */}
+          {hasDocs && (
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Uploaded documents
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· will be processed on activation</span>
+              </p>
+              <ul className="space-y-1.5">
+                {data.knowledgeDocs.map((doc) => (
+                  <li key={doc.id} className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-xs text-foreground">{doc.filename}</span>
+                    {doc.charCount > 0 && (
+                      <span className="text-xs text-muted-foreground">· {Math.round(doc.charCount / 1000)}k chars</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Footer actions */}
           <div className="px-4 py-3 flex items-center justify-between gap-3 bg-muted/20">
             <p className="text-xs text-muted-foreground">
-              {allApproved
-                ? "All content approved — your agent knows everything above."
+              {scrapeEmpty && !hasDocs
+                ? "No website content found. You can add knowledge in Settings after activation."
+                : allApproved
+                ? `All content approved${hasDocs ? " · docs will be processed on activation" : ""}.`
                 : `${excludedCount} item${excludedCount !== 1 ? "s" : ""} excluded from your agent.`}
             </p>
             {!allApproved && (
