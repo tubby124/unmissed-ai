@@ -278,20 +278,38 @@ Things top SaaS dashboards have that we're missing entirely. Prioritized by reve
 
 ---
 
-## Marketing Visual Overhaul (separate session)
+## Marketing Visual Overhaul
 
-Current marketing components are functional prototypes, not polished. Full rebuild scope:
+$1M MRR strategy: make the "hear it yourself" phone input the centerpiece. PLG conversion engine.
 
-| # | Component | Current State | Rebuild Notes | Status |
-|---|-----------|--------------|---------------|--------|
-| V1 | `HeroCallMockup.tsx` | Basic card with animated bars, cycling through ringing→live→hot→summary. Gets the idea across but looks generic. | Needs to feel premium — think Linear/Vercel hero quality. 3D orb, real call playback, or cinematic visual. | TODO |
-| V2 | `DemoAudioPlayer.tsx` | Fake iMessage UI inside iPhone 15 frame. Scripted chat bubbles play out. Outcome card appears at end. | iPhone mockup concept is clever but execution is dated. Could be a purpose-built call transcript visual instead. Consider actual voice waveform or video. | TODO |
-| V3 | `DemoCallVisuals.tsx` | VoiceOrb, WaveformBars, StatusBadge, TranscriptBubble, PostCallSummary, EndCallButton — shared by demo + dashboard. | Orb is decent but bars/bubbles could be elevated. PostCallSummary needs better layout. Note: shared with AgentTestCard — changes affect dashboard too. | TODO |
-| V4 | `DemoCall.tsx` | WebRTC call flow: requesting→connecting→active→ended. Glass card container with orb + transcript + timer. | Glass card container could be much slicker. Timer ring is good. Consider split-panel layout for desktop. | TODO |
-| V5 | `TalkToAgentWidget.tsx` | Floating "Talk to Zara" button + full-screen overlay with DemoCall. Basic bottom-sheet on mobile. | Needs polished entry animation, better mobile sheet, branding in header. | TODO |
-| V6 | `TryItNowWidget.tsx` | Floating "Try It Free" button → agent picker → mode picker → name → call. Multi-step modal flow. | Agent picker cards are plain. Mode selection (mic vs phone) could be more visual. Consider single-step with smart defaults. | TODO |
-| V7 | `StatsSection.tsx` | "8,400+ calls handled" hero stats bar on marketing page. | Numbers may be stale/hardcoded. Could be real-time or at least refreshed. Visual treatment is basic. | TODO |
-| V8 | Marketing page overall | `/page.tsx` landing, `/try`, `/pricing` if exists | Full visual audit needed — hero, features, social proof, CTA flow. Separate from component-level work. | TODO |
+### Wave 1 — Conversion Multipliers (DONE)
+
+| # | Component | What Changed | Status |
+|---|-----------|-------------|--------|
+| V1 | `HeroCallMockup.tsx` | Elevated: max-w-xs → max-w-sm, ambient glow backdrop that shifts color per stage (ringing=subtle, live=indigo, hot=red, summary=indigo), premium multi-layer shadows, p-5 → p-6. | DONE |
+| V7 | `StatsSection.tsx` → `TrustBar.tsx` | Replaced fear stats (62% miss calls) with proof stats (8,400+ calls handled, 2,100+ leads, <1s answer, 24/7). Icon+label layout. Stats woven into hero subtitle instead. | DONE |
+| V8a | `page.tsx` hero | Split layout: 2-col grid (copy left, mockup right on lg+). Phone input is now THE primary hero CTA with "Hear it yourself" label. Removed "Get My Agent" button. Added ambient glow behind right column. | DONE |
+| V8b | `page.tsx` final CTA | Phone input bookend replaces "Start Trial" button. Separated trust signals (trial / price / no contracts) with dividers. Secondary "sign up" text link below. | DONE |
+| V8c | `HeroContent.tsx` | Rewrote: pain stats in subtitle, phone CTA as primary action, trust line with pricing, removed competing CTAs. Left-aligned on desktop, centered on mobile. | DONE |
+| V6 | `TryItNowWidget.tsx` | Already dead code (0 imports). Confirmed for cleanup in Pass 4. | DEAD CODE |
+
+### Wave 2 — Engagement Deepeners (TODO)
+
+| # | Component | Rebuild Notes | Status |
+|---|-----------|---------------|--------|
+| V2 | `DemoAudioPlayer.tsx` | Kill iPhone/iMessage frame. Rebuild as call transcript player: waveform left, scrolling transcript right, outcome card below. Keep scripted data, present as phone call. | TODO |
+| V3 | `DemoCallVisuals.tsx` | Orb, waveform, transcript bubble elevation. Shared with dashboard — careful changes. | TODO |
+| V4 | `DemoCall.tsx` | Glass card slicker, consider split-panel for desktop. | TODO |
+| V5 | `TalkToAgentWidget.tsx` | Polish entry animation, better mobile bottom-sheet, branded header. | TODO |
+
+### Wave 3 — Polish (TODO)
+
+| # | Item | Status |
+|---|------|--------|
+| W3a | Full responsive audit — hero on mobile, trust bar, CTA | TODO |
+| W3b | Dark/light mode verification on all marketing sections | TODO |
+| W3c | Performance — lazy load DemoAudioPlayer, NicheSelectorGrid below fold | TODO |
+| W3d | Dead component cleanup — remove TryItNowWidget.tsx, StatsSection.tsx | TODO |
 
 ---
 
