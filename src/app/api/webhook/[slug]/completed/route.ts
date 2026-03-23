@@ -14,6 +14,7 @@ import {
 } from '@/lib/completed-notifications'
 import { getSignedRecordingUrl } from '@/lib/recording-url'
 import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig } from '@/lib/transcript-analysis'
+import { embedText } from '@/lib/embeddings'
 
 export const maxDuration = 120
 
@@ -340,6 +341,66 @@ export async function POST(
 
             if (insightError) console.error(`[completed] L5 insight write failed for callId=${callId}: ${insightError.message}`)
             else console.log(`[completed] L5 insight saved: callId=${callId} gaps=${insight.unansweredQuestions.length} features=${insight.featureSuggestions.length} frustrated=${insight.callerFrustrated}`)
+
+            // L5→Gaps bridge: feed unanswered questions into knowledge_query_log
+            if (insight.unansweredQuestions.length > 0) {
+              try {
+                // Dedup against existing unresolved gaps
+                const { data: existing } = await supabase
+                  .from('knowledge_query_log')
+                  .select('query_text')
+                  .eq('client_id', client.id)
+                  .eq('result_count', 0)
+                  .is('resolved_at', null)
+                  .limit(500)
+
+                const existingNorm = new Set(
+                  (existing ?? []).map(r => r.query_text.toLowerCase().trim().replace(/\s+/g, ' '))
+                )
+
+                const newGaps = insight.unansweredQuestions
+                  .map(q => q.question.trim())
+                  .filter(q => q.length > 5)
+                  .filter(q => !existingNorm.has(q.toLowerCase().trim().replace(/\s+/g, ' ')))
+                  .slice(0, 5)
+
+                if (newGaps.length > 0) {
+                  // Embed + insert each gap (enables auto-cascade + preemptive resolve)
+                  for (const gapText of newGaps) {
+                    const gapEmbed = await embedText(gapText)
+                    const row: Record<string, unknown> = {
+                      client_id: client.id,
+                      slug,
+                      query_text: gapText,
+                      result_count: 0,
+                      source: 'transcript',
+                    }
+                    if (gapEmbed) row.query_embedding = JSON.stringify(gapEmbed)
+
+                    const { data: inserted } = await supabase
+                      .from('knowledge_query_log')
+                      .insert(row)
+                      .select('id')
+                      .single()
+
+                    // Preemptive resolve: auto-close if approved chunk already covers this
+                    if (inserted?.id && gapEmbed) {
+                      try {
+                        await supabase.rpc('try_preemptive_gap_resolve', {
+                          p_query_log_id: inserted.id,
+                          p_client_id: client.id,
+                          p_query_embedding: JSON.stringify(gapEmbed),
+                          p_similarity_threshold: 0.90,
+                        })
+                      } catch { /* non-fatal */ }
+                    }
+                  }
+                  console.log(`[completed] L5→Gaps bridge: inserted ${newGaps.length} transcript gaps for slug=${slug}`)
+                }
+              } catch (gapBridgeErr) {
+                console.error('[completed] L5→Gaps bridge error (non-fatal):', gapBridgeErr)
+              }
+            }
           }
         } catch (analysisErr) {
           console.error('[completed] L5 analysis error (non-fatal):', analysisErr)

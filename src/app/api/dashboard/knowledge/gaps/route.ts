@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { embedText } from '@/lib/embeddings'
 
 /**
  * GET /api/dashboard/knowledge/gaps
@@ -213,5 +214,38 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, resolved_count: count ?? 0 })
+  // Auto-cascade: resolve semantically similar gaps (skip for dismissals)
+  let autoCascadeCount = 0
+  let autoCascadeQueries: string[] = []
+
+  if (resolutionType !== 'dismissed') {
+    try {
+      const embedding = await embedText(query)
+      if (embedding) {
+        const { data: cascadeResult, error: cascadeErr } = await svc.rpc('auto_resolve_similar_gaps', {
+          p_client_id: clientId,
+          p_query_embedding: JSON.stringify(embedding),
+          p_source_query: query,
+          p_similarity_threshold: 0.80,
+          p_max_resolve: 50,
+        })
+        if (!cascadeErr && cascadeResult?.[0]) {
+          autoCascadeCount = cascadeResult[0].resolved_count ?? 0
+          autoCascadeQueries = cascadeResult[0].resolved_queries ?? []
+          if (autoCascadeCount > 0) {
+            console.log(`[knowledge-gaps] Auto-cascade: resolved ${autoCascadeCount} similar gaps for client=${clientId} source="${query.slice(0, 60)}"`)
+          }
+        }
+      }
+    } catch (cascadeErr) {
+      console.error('[knowledge-gaps] Auto-cascade failed (non-fatal):', cascadeErr)
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    resolved_count: count ?? 0,
+    auto_cascade_count: autoCascadeCount,
+    auto_cascade_queries: autoCascadeQueries,
+  })
 }

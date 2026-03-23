@@ -93,7 +93,7 @@ export async function POST(
 
   if (rpcErr) {
     console.error(`[knowledge-query] slug=${slug} RPC error: ${rpcErr.message}`)
-    await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency)
+    await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency, embedding)
     return NextResponse.json({ results: [], count: 0, error: 'search_failed' })
   }
 
@@ -123,6 +123,7 @@ export async function POST(
   const queryLogId = await logQuery(
     supabase, client.id, slug, queryText,
     sorted.length, topSimilarity, RRF_MIN_SCORE, latency,
+    embedding,
   )
 
   // K8: Increment hit_count for matched chunks
@@ -133,6 +134,23 @@ export async function POST(
       if (hitErr) console.error(`[knowledge-query] hit tracking failed: ${hitErr.message}`)
     } catch (e) {
       console.error('[knowledge-query] hit tracking threw:', e)
+    }
+  }
+
+  // Preemptive resolve: if zero results but an approved chunk covers this at 0.90+, auto-resolve the gap
+  if (sorted.length === 0 && queryLogId && embedding) {
+    try {
+      const { data: resolved } = await supabase.rpc('try_preemptive_gap_resolve', {
+        p_query_log_id: queryLogId,
+        p_client_id: client.id,
+        p_query_embedding: JSON.stringify(embedding),
+        p_similarity_threshold: 0.90,
+      })
+      if (resolved) {
+        console.log(`[knowledge-query] slug=${slug} PREEMPTIVE_RESOLVE query="${queryText.slice(0, 60)}" — approved chunk covers this gap`)
+      }
+    } catch (e) {
+      console.error('[knowledge-query] preemptive resolve failed (non-fatal):', e)
     }
   }
 
@@ -188,18 +206,24 @@ async function logQuery(
   topSimilarity: number | null,
   threshold: number,
   latencyMs: number,
+  queryEmbedding?: number[] | null,
 ): Promise<string | null> {
+  const row: Record<string, unknown> = {
+    client_id: clientId,
+    slug,
+    query_text: queryText,
+    result_count: resultCount,
+    top_similarity: topSimilarity,
+    threshold_used: threshold,
+    latency_ms: latencyMs,
+  }
+  // Store embedding for zero-result queries (gaps) — enables auto-cascade resolution
+  if (resultCount === 0 && queryEmbedding) {
+    row.query_embedding = JSON.stringify(queryEmbedding)
+  }
   const { data, error } = await supabase
     .from('knowledge_query_log')
-    .insert({
-      client_id: clientId,
-      slug,
-      query_text: queryText,
-      result_count: resultCount,
-      top_similarity: topSimilarity,
-      threshold_used: threshold,
-      latency_ms: latencyMs,
-    })
+    .insert(row)
     .select('id')
     .single()
 

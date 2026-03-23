@@ -48,6 +48,9 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
   // Error state for save failures
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  // Auto-cascade feedback
+  const [cascadeInfo, setCascadeInfo] = useState<{ count: number; queries: string[] } | null>(null)
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -145,8 +148,8 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
       })
       if (!res.ok) throw new Error('Failed to save')
 
-      // Resolve the gap
-      await fetch('/api/dashboard/knowledge/gaps', {
+      // Resolve the gap + auto-cascade similar ones
+      const resolveRes = await fetch('/api/dashboard/knowledge/gaps', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,23 +158,42 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
           resolution_type: 'faq',
         }),
       })
+      const resolveData = resolveRes.ok ? await resolveRes.json() : null
+      const cascadeCount = resolveData?.auto_cascade_count ?? 0
+      const cascadeQueries: string[] = resolveData?.auto_cascade_queries ?? []
 
-      // Show success, then fade out the gap card
+      // Show success, then fade out the gap card + any auto-cascaded siblings
       const answeredQuery = expandedGap
       setSuccessGap(answeredQuery)
       setExpandedGap(null)
       setAnswerText('')
       setSuggestion(null)
 
+      if (cascadeCount > 0) {
+        setCascadeInfo({ count: cascadeCount, queries: cascadeQueries })
+      }
+
       setTimeout(() => {
         setFadingGap(answeredQuery)
         setTimeout(() => {
-          setGaps(prev => prev.filter(g => g.query !== answeredQuery))
-          setTotalUnanswered(prev => Math.max(0, prev - 1))
+          // Remove the answered gap + any auto-cascaded gaps from the UI
+          const cascadeNormalized = new Set(
+            cascadeQueries.map(q => q.toLowerCase().trim().replace(/\s+/g, ' '))
+          )
+          setGaps(prev => prev.filter(g => {
+            if (g.query === answeredQuery) return false
+            const gNorm = g.query.toLowerCase().trim().replace(/\s+/g, ' ')
+            return !cascadeNormalized.has(gNorm)
+          }))
+          const totalRemoved = 1 + cascadeCount
+          setTotalUnanswered(prev => Math.max(0, prev - totalRemoved))
           setSuccessGap(null)
           setFadingGap(null)
           onAnswered?.()
-          onGapCountChange?.(gaps.length - 1)
+          onGapCountChange?.(Math.max(0, gaps.length - totalRemoved))
+
+          // Clear cascade info after a delay
+          setTimeout(() => setCascadeInfo(null), 3000)
         }, 300)
       }, 1500)
     } catch {
@@ -294,6 +316,20 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
           </select>
         </div>
       </div>
+
+      {/* Auto-cascade success banner */}
+      {cascadeInfo && cascadeInfo.count > 0 && (
+        <div className="px-4 py-2.5 border-b border-zinc-700/50 bg-emerald-500/[0.06]">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-[11px] text-emerald-400">
+              Auto-resolved {cascadeInfo.count} similar question{cascadeInfo.count > 1 ? 's' : ''} with the same answer
+            </p>
+          </div>
+        </div>
+      )}
 
       {gaps.length === 0 ? (
         <div className="p-6 text-center">
