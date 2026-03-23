@@ -177,6 +177,14 @@ export async function PATCH(req: NextRequest) {
     updates.voicemail_greeting_audio_url = body.voicemail_greeting_audio_url.trim() || null
   }
 
+  // IVR — Voicemail menu pre-filter
+  if (typeof body.ivr_enabled === 'boolean') {
+    updates.ivr_enabled = body.ivr_enabled
+  }
+  if (typeof body.ivr_prompt === 'string') {
+    updates.ivr_prompt = body.ivr_prompt.trim() || null
+  }
+
   // B1 — Section editor: replace a named section in the stored prompt
   // section_id must be a client-editable section; admins can also edit locked sections
   if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {

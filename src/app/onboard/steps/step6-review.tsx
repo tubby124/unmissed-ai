@@ -570,6 +570,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
     ...(data.businessHoursText.trim() ? [{ label: "Hours", value: data.businessHoursText, editStep: 1, fieldKey: "hours", inline: true }] : []),
     { label: "After hours", value: AFTER_HOURS_LABELS[data.afterHoursBehavior] || data.afterHoursBehavior, editStep: 2, fieldKey: "afterHours", inline: true },
     { label: "SMS follow-up", value: data.callerAutoText ? "On" : "Off", editStep: 2, fieldKey: "smsFollowUp", inline: true },
+    { label: "Voicemail menu", value: data.ivrEnabled ? "On" : "Off", editStep: 2, fieldKey: "ivrMenu", inline: true },
     { label: "Call handling", value: HANDLING_LABELS[data.callHandlingMode] || data.callHandlingMode, editStep: 2, fieldKey: "callHandling", inline: true },
     { label: "Knowledge docs", value: data.knowledgeDocs.length > 0 ? `${data.knowledgeDocs.length} file${data.knowledgeDocs.length !== 1 ? "s" : ""}` : "None", editStep: 4, fieldKey: "knowledgeDocs", inline: false },
     { label: "FAQ pairs", value: data.faqPairs.length > 0 ? `${data.faqPairs.length} pair${data.faqPairs.length !== 1 ? "s" : ""}` : "None", editStep: 4, fieldKey: "faqPairs", inline: false },
@@ -685,6 +686,15 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
           <InlineToggleEditor
             value={data.callerAutoText}
             onSave={(v) => { onUpdate({ callerAutoText: v }); setEditingField(null); }}
+            onCancel={cancel}
+            label={label}
+          />
+        );
+      case "ivrMenu":
+        return (
+          <InlineToggleEditor
+            value={data.ivrEnabled}
+            onSave={(v) => { onUpdate({ ivrEnabled: v }); setEditingField(null); }}
             onCancel={cancel}
             label={label}
           />

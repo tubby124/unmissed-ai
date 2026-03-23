@@ -11,6 +11,7 @@ import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngine
 import HoursCard from '@/components/dashboard/settings/HoursCard'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
+import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
 import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import SectionEditorCard from '@/components/dashboard/settings/SectionEditorCard'
 import { findExistingSectionHeader } from '@/lib/prompt-sections'
@@ -486,6 +487,15 @@ export default function AgentTab({
           />
         </div>
       )}
+      <IvrMenuCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialEnabled={client.ivr_enabled ?? false}
+        initialPrompt={client.ivr_prompt ?? ''}
+        businessName={client.business_name}
+        agentName={client.agent_name}
+        previewMode={previewMode}
+      />
     </SettingsSection>
 
     {/* ── 5. AGENT SCRIPT (admin only) ─────────────────────────────── */}
