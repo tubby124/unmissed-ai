@@ -9,13 +9,13 @@ import NicheSelectorGrid from "@/components/NicheSelectorGrid";
 import DemoAudioPlayer from "@/components/DemoAudioPlayer";
 import PricingCards from "@/components/PricingCards";
 import FaqAccordion from "@/components/FaqAccordion";
-import StatsSection from "@/components/StatsSection";
+import TrustBar from "@/components/TrustBar";
 import { faqSchema } from "@/lib/schema";
 import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 // TalkToAgentWidget moved to root layout — available site-wide
-import { BETA_PROMO, TRIAL, BASE_PLAN, getEffectiveMonthly } from "@/lib/pricing";
+import { BETA_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -33,12 +33,6 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const stats = [
-    { value: "62%", label: "SMBs Miss Calls Daily" },
-    { value: "85%", label: "Won't Call Back" },
-    { value: "$126K", label: "Avg Revenue Lost/Year" },
-    { value: "24/7", label: "Always Available" },
-  ]
   return (
     <>
       {/* FAQ JSON-LD */}
@@ -51,47 +45,54 @@ export default async function HomePage() {
       <StickyMobileCta />
 
       <main style={{ backgroundColor: "var(--color-bg)" }}>
-        {/* ── 1. HERO ──────────────────────────────────────────── */}
-        <section className="relative pt-32 pb-20 px-4 overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
+        {/* ── 1. HERO — Split layout ────────────────────────────── */}
+        <section
+          className="relative pt-28 sm:pt-32 pb-16 lg:pb-20 px-4 overflow-hidden"
+          style={{ backgroundColor: "var(--color-bg)" }}
+        >
           <div className="relative max-w-6xl mx-auto">
-            <HeroContent />
+            {/* Grid: left copy + right mockup */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* LEFT — Copy + Phone CTA */}
+              <HeroContent />
 
-            {/* Call Me Now — hero inline phone input */}
-            <div className="max-w-md mx-auto mt-8">
-              <CallMeNowWidget compact niche="unmissed_demo" />
-            </div>
-
-            {/* Animated call mockup */}
-            <div className="mt-14 pb-20">
-              <HeroCallMockup />
+              {/* RIGHT — Animated call mockup */}
+              <div className="flex justify-center lg:justify-end">
+                <div className="relative">
+                  {/* Ambient glow backdrop */}
+                  <div
+                    className="absolute -inset-10 rounded-3xl blur-3xl opacity-15 pointer-events-none"
+                    style={{
+                      background:
+                        "radial-gradient(circle, var(--color-primary), transparent 70%)",
+                    }}
+                  />
+                  <HeroCallMockup />
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ── 2. STATS STRIP ─────────────────────────────────── */}
-        <section
-          className="py-12 px-4"
-          style={{ borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}
-        >
-          <StatsSection stats={stats} />
-        </section>
+        {/* ── 2. TRUST BAR — Social proof stats ─────────────────── */}
+        <TrustBar />
 
-        {/* ── 3. DEMO AUDIO PLAYER ─────────────────────────────── */}
+        {/* ── 3. DEMO AUDIO PLAYER ──────────────────────────────── */}
         <ErrorBoundary>
           <DemoAudioPlayer />
         </ErrorBoundary>
 
-        {/* ── 4. HOW IT WORKS ──────────────────────────────────── */}
+        {/* ── 4. HOW IT WORKS ───────────────────────────────────── */}
         <ErrorBoundary>
           <HowItWorks />
         </ErrorBoundary>
 
-        {/* ── 5. NICHE SELECTOR ────────────────────────────────── */}
+        {/* ── 5. NICHE SELECTOR ─────────────────────────────────── */}
         <ErrorBoundary>
           <NicheSelectorGrid />
         </ErrorBoundary>
 
-        {/* ── 6. PRICING ─────────────────────────────────────── */}
+        {/* ── 6. PRICING ────────────────────────────────────────── */}
         <section
           id="pricing"
           className="py-20 px-4"
@@ -105,10 +106,16 @@ export default async function HomePage() {
               >
                 Pricing
               </p>
-              <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: "var(--color-text-1)" }}>
+              <h2
+                className="text-3xl md:text-4xl font-bold mb-3"
+                style={{ color: "var(--color-text-1)" }}
+              >
                 Simple, honest pricing.
               </h2>
-              <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
+              <p
+                className="text-lg"
+                style={{ color: "var(--color-text-2)" }}
+              >
                 No per-minute charges. No overage fees. No surprises.
               </p>
             </div>
@@ -127,32 +134,64 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 7. FAQ ──────────────────────────────────────────── */}
+        {/* ── 7. FAQ ────────────────────────────────────────────── */}
         <ErrorBoundary>
           <FaqAccordion />
         </ErrorBoundary>
 
-        {/* ── 8. FINAL CTA ────────────────────────────────────── */}
+        {/* ── 8. FINAL CTA — Bookend with phone input ───────────── */}
         <section
           className="py-24 px-4 text-center"
           style={{ backgroundColor: "#0a0a0a" }}
         >
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "#FFFFFF" }}>
+            <h2
+              className="text-4xl md:text-5xl font-black mb-4"
+              style={{ color: "#FFFFFF" }}
+            >
               Stop leaving money on the table.
             </h2>
-            <p className="text-xl mb-8" style={{ color: "rgba(255,255,255,0.65)" }}>
+            <p
+              className="text-xl mb-8"
+              style={{ color: "rgba(255,255,255,0.65)" }}
+            >
               Every call you miss is a job that went to someone who picked up.
             </p>
-            <Link
-              href="/onboard"
-              className="inline-block px-10 py-4 rounded-xl text-white font-bold text-lg transition-colors"
-              style={{ backgroundColor: "var(--color-cta)" }}
+
+            {/* Phone input — bookends the hero CTA */}
+            <div className="max-w-md mx-auto mb-6">
+              <CallMeNowWidget compact niche="unmissed_demo" />
+            </div>
+
+            <div
+              className="flex items-center justify-center gap-6 text-sm"
+              style={{ color: "rgba(255,255,255,0.45)" }}
             >
-              Start {TRIAL.days}-Day Free Trial →
-            </Link>
-            <p className="text-xs mt-3" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {TRIAL.label} · {BETA_PROMO.enabled ? `$${BETA_PROMO.monthly}/mo` : `$${BASE_PLAN.monthly}/mo`} · No contracts
+              <span>{TRIAL.label}</span>
+              <span
+                className="w-px h-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+              />
+              <span>
+                {BETA_PROMO.enabled
+                  ? `$${BETA_PROMO.monthly}/mo`
+                  : `$${BASE_PLAN.monthly}/mo`}
+              </span>
+              <span
+                className="w-px h-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+              />
+              <span>No contracts</span>
+            </div>
+
+            <p className="mt-6">
+              <Link
+                href="/onboard"
+                className="text-sm font-medium transition-colors"
+                style={{ color: "var(--color-primary)" }}
+              >
+                Or sign up and build your agent →
+              </Link>
             </p>
           </div>
         </section>

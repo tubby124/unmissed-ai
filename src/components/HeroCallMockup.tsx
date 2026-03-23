@@ -58,17 +58,35 @@ export default function HeroCallMockup() {
   }
 
   return (
-    <div className="relative w-full max-w-xs mx-auto select-none">
+    <div className="relative w-full max-w-sm mx-auto select-none">
+      {/* Ambient glow behind card — shifts color with stage */}
+      <motion.div
+        className="absolute -inset-6 rounded-3xl blur-2xl pointer-events-none"
+        animate={{
+          background:
+            stage === "hot"
+              ? "radial-gradient(circle, rgba(239,68,68,0.12), transparent 70%)"
+              : stage === "summary"
+              ? "radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%)"
+              : stage === "live"
+              ? "radial-gradient(circle, rgba(99,102,241,0.08), transparent 70%)"
+              : "radial-gradient(circle, rgba(99,102,241,0.04), transparent 70%)",
+        }}
+        transition={{ duration: 0.8 }}
+      />
+
       {/* Call card */}
       <motion.div
-        className="rounded-2xl p-5"
+        className="relative rounded-2xl p-6"
         animate={{
           boxShadow:
             stage === "hot"
-              ? "0 0 40px rgba(16,185,129,0.18), 0 4px 24px rgba(0,0,0,0.08)"
+              ? "0 0 60px rgba(239,68,68,0.15), 0 8px 32px rgba(0,0,0,0.12)"
               : stage === "summary"
-              ? "0 0 28px rgba(99,102,241,0.12), 0 4px 24px rgba(0,0,0,0.06)"
-              : "0 4px 24px rgba(0,0,0,0.06)",
+              ? "0 0 40px rgba(99,102,241,0.12), 0 8px 32px rgba(0,0,0,0.10)"
+              : stage === "live"
+              ? "0 0 30px rgba(99,102,241,0.10), 0 8px 32px rgba(0,0,0,0.08)"
+              : "0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(99,102,241,0.04)",
         }}
         transition={{ duration: 0.6 }}
         style={{
