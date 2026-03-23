@@ -134,8 +134,8 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
   return (
     <div
-      className={`border-b transition-colors${call.call_status === 'JUNK' ? ' opacity-[0.55]' : ''}`}
-      style={{ borderBottomColor: "var(--color-border)", borderLeft: `3px solid ${stripeColor}` }}
+      className={`border-b b-theme transition-colors${call.call_status === 'JUNK' ? ' opacity-[0.55]' : ''}`}
+      style={{ borderLeft: `3px solid ${stripeColor}` }}
     >
       {/* Main row — div instead of button to allow nested interactive elements */}
       <div
@@ -271,7 +271,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: "var(--color-border)" }}>
+            <div className="px-4 pb-4 pt-0 border-t b-theme">
               {loading && (
                 <p className="text-[11px] py-3" style={{ color: "var(--color-text-3)" }}>Loading…</p>
               )}
@@ -312,7 +312,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                     }} />
                   )}
                   {!recordingLoading && recordingAvailable && (
-                    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--color-border)" }}>
+                    <div className="rounded-xl overflow-hidden border b-theme">
                       <AudioWaveformPlayer callId={call.ultravox_call_id} />
                     </div>
                   )}

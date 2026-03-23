@@ -134,7 +134,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
         <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
           Operator Activity
         </p>
-        <div className="flex gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
+        <div className="flex gap-1 p-0.5 rounded-lg bg-raised border b-theme">
           {PERIOD_LABELS.map(p => (
             <button
               key={p.value}
@@ -164,8 +164,8 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
       </div>
 
       {/* Missed calls table */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-        <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <div className="rounded-2xl overflow-hidden border b-theme">
+        <div className="px-5 py-3 flex items-center gap-2 border-b b-theme">
           <svg className="w-4 h-4 text-orange-400 shrink-0" viewBox="0 0 24 24" fill="none">
             <path d="M15.05 5A5 5 0 0119 8.95M15.05 1A9 9 0 0123 8.94m-1 7.98v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-5.42-5.42A19.79 19.79 0 01.7 4.11 2 2 0 012.68 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.5a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -180,7 +180,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
         </div>
 
         {missedCalls.length === 0 ? (
-          <div className="px-5 py-8 flex flex-col items-center gap-2" style={{ color: 'var(--color-text-3)' }}>
+          <div className="px-5 py-8 flex flex-col items-center gap-2 t3">
             <svg className="w-8 h-8 text-emerald-400/60" viewBox="0 0 24 24" fill="none">
               <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -188,12 +188,11 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
             <p className="text-sm">No missed calls — nice!</p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="divide-y b-theme">
             {missedCalls.map(call => (
               <div
                 key={call.id}
                 className="px-5 py-3 flex items-center gap-4 text-sm"
-                style={{ borderColor: 'var(--color-border)' }}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-mono text-xs truncate" style={{ color: 'var(--color-text-1)' }}>
@@ -215,8 +214,8 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
 
       {/* Callback queue */}
       {(callbackQueue.length > 0) && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-          <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div className="rounded-2xl overflow-hidden border b-theme">
+          <div className="px-5 py-3 flex items-center gap-2 border-b b-theme">
             <svg className="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none">
               <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55m-5.68-3.4a6.09 6.09 0 013.33 2.07m1.35-6.22a14.94 14.94 0 014 5.52M9.34 6.71L2 2m7.34 4.71A2 2 0 002.68 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 9.5a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -235,12 +234,11 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
               All caught up
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="divide-y b-theme">
               {activeCallbackQueue.map(item => (
                 <div
                   key={item.id}
                   className="px-5 py-3 flex items-center gap-4"
-                  style={{ borderColor: 'var(--color-border)' }}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-mono text-xs truncate" style={{ color: 'var(--color-text-1)' }}>
@@ -252,12 +250,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
                   </div>
                   <button
                     onClick={() => setDismissedIds(prev => new Set(prev).add(item.id))}
-                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:bg-emerald-500/20 hover:border-emerald-500/40"
-                    style={{
-                      backgroundColor: 'var(--color-bg-raised)',
-                      color: 'var(--color-text-2)',
-                      border: '1px solid var(--color-border)',
-                    }}
+                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:bg-emerald-500/20 hover:border-emerald-500/40 bg-raised border b-theme t2"
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

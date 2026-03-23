@@ -20,7 +20,7 @@ export function VersionHistory({ versions, restoring, onRestore }: VersionHistor
   if (versions.length === 0) return null
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+    <div className="rounded-xl overflow-hidden bg-surface border b-theme">
       <button
         className="w-full flex items-center justify-between px-4 min-h-[44px] text-xs font-bold uppercase tracking-wider cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
         style={{ color: "var(--color-text-2)" }}

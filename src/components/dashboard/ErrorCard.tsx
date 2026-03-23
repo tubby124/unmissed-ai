@@ -18,8 +18,7 @@ export default function ErrorCard({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer hover:bg-hover"
-          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
+          className="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer bg-hover hover:bg-hover t1"
         >
           Try again
         </button>

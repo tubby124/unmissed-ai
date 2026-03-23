@@ -117,8 +117,7 @@ function ActiveClientCard({ client, onDeleted }: { client: Client; onDeleted: ()
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden transition-opacity ${isTest ? 'opacity-60' : ''}`}
-      style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
+      className={`rounded-xl border b-theme bg-surface overflow-hidden transition-opacity ${isTest ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-3 p-4">
         <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">

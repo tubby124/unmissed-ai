@@ -76,7 +76,7 @@ const SENTIMENT_CONFIG: Record<string, { color: string; label: string }> = {
 function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color?: string; fill?: string }>; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl px-3 py-2 text-[11px] shadow-2xl border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-raised)' }}>
+    <div className="rounded-xl px-3 py-2 text-[11px] shadow-2xl border b-theme bg-raised">
       {label && <p className="mb-1.5 font-mono uppercase tracking-wider text-[9px]" style={{ color: 'var(--color-text-3)' }}>{label}</p>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2 py-0.5">
@@ -132,8 +132,7 @@ function KpiCard({ label, value, format, trend, accent, delay }: {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="relative rounded-2xl border p-5 overflow-hidden group hover:border-[color:var(--color-hover)] transition-colors"
-      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+      className="relative rounded-2xl border b-theme bg-surface p-5 overflow-hidden group hover:border-[color:var(--color-hover)] transition-colors"
     >
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none"
         style={{ background: `radial-gradient(circle, ${accent}33 0%, transparent 70%)` }} />
@@ -496,8 +495,7 @@ function Card({ title, delay, children, className = '' }: { title: string; delay
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className={`rounded-2xl border p-5 ${className}`}
-      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+      className={`rounded-2xl border b-theme bg-surface p-5 ${className}`}
     >
       <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">{title}</p>
       {children}

@@ -119,7 +119,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
   // ── Connecting ────────────────────────────────────────────────────────────
   if (callState === "idle" || callState === "requesting" || callState === "connecting") {
     return (
-      <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="rounded-2xl p-5 space-y-4 bg-surface border b-theme">
         <div className="flex flex-col items-center gap-3 py-4">
           <div className="relative w-16 h-16" role="img" aria-label="Connecting to agent">
             <div className="w-full h-full rounded-full overflow-hidden">
@@ -137,11 +137,11 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
             ))}
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>Connecting...</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>Allow mic access if prompted</p>
+            <p className="text-sm font-semibold t1">Connecting...</p>
+            <p className="text-xs mt-0.5 t3">Allow mic access if prompted</p>
           </div>
         </div>
-        <div className="rounded-xl p-3 h-32 space-y-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border)" }}>
+        <div className="rounded-xl p-3 h-32 space-y-3 bg-page border b-theme">
           {[75, 50, 66].map((w, i) => (
             <div key={i} className="h-3 rounded" style={{ width: `${w}%`, background: "linear-gradient(90deg, var(--color-border) 25%, var(--color-hover) 50%, var(--color-border) 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
           ))}
@@ -156,8 +156,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 rounded-2xl px-5 py-4"
-        style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        className="flex items-center gap-3 rounded-2xl px-5 py-4 bg-surface border b-theme"
       >
         <motion.div
           initial={{ scale: 0 }}
@@ -170,7 +169,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </motion.div>
-        <span className="text-sm" style={{ color: "var(--color-text-2)" }}>Call ended — results saved above.</span>
+        <span className="text-sm t2">Call ended — results saved above.</span>
       </motion.div>
     )
   }
@@ -209,7 +208,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
         aria-label="Call transcript"
       >
         {transcripts.length === 0 && (
-          <p className="text-xs italic text-center pt-4" style={{ color: "var(--color-text-3)" }}>Waiting for agent to speak...</p>
+          <p className="text-xs italic text-center pt-4 t3">Waiting for agent to speak...</p>
         )}
         {transcripts.map((t, i) => {
           const prevSpeaker = i > 0 ? transcripts[i - 1].speaker : null
