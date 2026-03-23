@@ -12,36 +12,36 @@ interface CallLog {
 
 const THEMES = {
   zinc: {
-    border: 'border-[var(--color-border)]', bg: 'bg-[var(--color-surface)]', glow: undefined,
+    border: 'border border-[var(--color-border)]', bg: 'bg-[var(--color-surface)]', glow: undefined,
     num: 'text-[var(--color-text-1)]', label: 'text-[var(--color-text-3)]', sub: 'text-[var(--color-text-3)]',
     dot: 'bg-zinc-500', spark: 'rgba(161,161,170,0.55)', pulse: false,
     accent: 'rgba(255,255,255,0.03)',
   },
   red: {
-    border: 'border-red-200 dark:border-red-500/20', bg: 'bg-red-50 dark:bg-[#0e0505]',
+    border: 'border border-red-500/30', bg: 'bg-red-500/10',
     glow: '0 0 0 1px rgba(239,68,68,0.06), 0 0 35px rgba(239,68,68,0.08)',
-    num: 'text-red-600 dark:text-red-300', label: 'text-red-500/80 dark:text-red-400/70', sub: 'text-red-500/60 dark:text-red-400/50',
+    num: 'text-red-400', label: 'text-red-400/70', sub: 'text-red-400/50',
     dot: 'bg-red-500', spark: 'rgba(239,68,68,0.65)', pulse: false,
     accent: 'rgba(239,68,68,0.12)',
   },
   blue: {
-    border: 'border-blue-200 dark:border-blue-500/20', bg: 'bg-blue-50 dark:bg-[#03060e]',
+    border: 'border border-blue-500/30', bg: 'bg-blue-500/10',
     glow: '0 0 0 1px rgba(59,130,246,0.06), 0 0 35px rgba(59,130,246,0.07)',
-    num: 'text-blue-600 dark:text-blue-200', label: 'text-blue-500/80 dark:text-blue-400/70', sub: 'text-blue-500/60 dark:text-blue-400/50',
+    num: 'text-blue-400', label: 'text-blue-400/70', sub: 'text-blue-400/50',
     dot: 'bg-blue-500', spark: 'rgba(96,165,250,0.65)', pulse: false,
     accent: 'rgba(59,130,246,0.12)',
   },
   green: {
-    border: 'border-green-200 dark:border-green-500/25', bg: 'bg-green-50 dark:bg-[#030e06]',
+    border: 'border border-emerald-500/30', bg: 'bg-emerald-500/10',
     glow: '0 0 0 1px rgba(34,197,94,0.08), 0 0 35px rgba(34,197,94,0.1)',
-    num: 'text-green-600 dark:text-green-300', label: 'text-green-500/80 dark:text-green-400/70', sub: 'text-green-500/60 dark:text-green-400/50',
-    dot: 'bg-green-500', spark: 'rgba(34,197,94,0.65)', pulse: true,
+    num: 'text-emerald-400', label: 'text-emerald-400/70', sub: 'text-emerald-400/50',
+    dot: 'bg-emerald-500', spark: 'rgba(34,197,94,0.65)', pulse: true,
     accent: 'rgba(34,197,94,0.15)',
   },
   purple: {
-    border: 'border-purple-200 dark:border-purple-500/20', bg: 'bg-purple-50 dark:bg-[#07030e]',
+    border: 'border border-purple-500/30', bg: 'bg-purple-500/10',
     glow: '0 0 0 1px rgba(168,85,247,0.06), 0 0 35px rgba(168,85,247,0.08)',
-    num: 'text-purple-600 dark:text-purple-200', label: 'text-purple-500/80 dark:text-purple-400/70', sub: 'text-purple-500/60 dark:text-purple-400/50',
+    num: 'text-purple-400', label: 'text-purple-400/70', sub: 'text-purple-400/50',
     dot: 'bg-purple-500', spark: 'rgba(168,85,247,0.65)', pulse: false,
     accent: 'rgba(168,85,247,0.14)',
   },
@@ -67,7 +67,7 @@ function DeltaBadge({ pct }: { pct: number | null }) {
   if (pct === null || !isFinite(pct)) return null
   const up = pct >= 0
   return (
-    <span className={`text-[10px] font-mono font-semibold tabular-nums ${up ? 'text-green-600 dark:text-green-400/80' : 'text-red-500 dark:text-red-400/70'}`}>
+    <span className={`text-[10px] font-mono font-semibold tabular-nums ${up ? 'text-emerald-400/80' : 'text-red-400/70'}`}>
       {up ? '▲' : '▼'} {Math.abs(Math.round(pct))}%
     </span>
   )
@@ -105,7 +105,7 @@ function StatCard({ label, value, sub, theme, format, sparkValues, delta, liveOr
   }, [value, format, index])
 
   return (
-    <div className={`relative rounded-2xl border ${t.border} ${t.bg} p-5 overflow-hidden hover:border-[var(--color-hover)] transition-colors cursor-pointer`} style={{ boxShadow: t.glow }}>
+    <div className={`relative rounded-2xl ${t.border} ${t.bg} p-5 overflow-hidden hover:border-[var(--color-hover)] transition-colors cursor-pointer`} style={{ boxShadow: t.glow }}>
       {/* Radial accent */}
       <div
         className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-40 pointer-events-none"
