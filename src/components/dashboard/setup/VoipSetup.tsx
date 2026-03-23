@@ -122,7 +122,7 @@ export default function VoipSetup({
             {voipInstructions.note && (
               <div className="flex items-start gap-2.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 mt-1.5 shrink-0" />
-                <p className="text-[11px] text-amber-700 dark:text-amber-200/50 leading-relaxed">{voipInstructions.note}</p>
+                <p className="text-[11px] text-amber-400 leading-relaxed">{voipInstructions.note}</p>
               </div>
             )}
 

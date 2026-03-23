@@ -150,13 +150,13 @@ export default function CampaignCard({ campaign }: { campaign: CampaignStat }) {
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot</p>
-          <p className="text-xl font-bold font-mono text-red-600 dark:text-red-300">
+          <p className="text-xl font-bold font-mono text-red-400">
             <NumberTicker value={campaign.hot_leads} delay={0.2} />
           </p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--color-text-3)" }}>Hot %</p>
-          <p className={`text-xl font-bold font-mono ${hotRate >= 20 ? 'text-green-600 dark:text-green-300' : hotRate >= 10 ? 'text-amber-600 dark:text-amber-300' : 't3'}`}>
+          <p className={`text-xl font-bold font-mono ${hotRate >= 20 ? 'text-emerald-400' : hotRate >= 10 ? 'text-amber-400' : 't3'}`}>
             <NumberTicker value={hotRate} delay={0.3} format={(n) => `${n}%`} />
           </p>
         </div>
