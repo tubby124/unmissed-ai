@@ -120,6 +120,7 @@ export interface OnboardingData {
 
   // IVR pre-filter — voicemail menu before connecting to AI agent
   ivrEnabled: boolean;
+  ivrPrompt: string;  // custom menu message (blank = use default)
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -196,6 +197,7 @@ export const defaultOnboardingData: OnboardingData = {
   timezone: '',
   websiteScrapeResult: null,
   ivrEnabled: false,
+  ivrPrompt: '',
 };
 
 export const nicheLabels: Record<Niche, string> = {
