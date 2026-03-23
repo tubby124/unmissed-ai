@@ -502,7 +502,7 @@ interface DemoToolCapabilities {
 export function buildDemoTools(slug: string, caps: DemoToolCapabilities): UltravoxTool[] {
   const tools: UltravoxTool[] = []
   if (caps.calendarEnabled) tools.push(...buildCalendarTools(slug))
-  if (caps.hasPhoneMedium && caps.hasCallerPhone) tools.push(...buildSmsTools(slug))
+  if (caps.hasCallerPhone) tools.push(...buildSmsTools(slug))
   if (caps.hasPhoneMedium && caps.transferEnabled) tools.push(...buildTransferTools(slug))
   return tools
 }

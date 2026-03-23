@@ -1,11 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import DemoCall from "@/components/DemoCall"
 import { Phone } from "lucide-react"
+
+const STORAGE_KEY = "unmissed_demo_visitor"
+
+type VisitorInfo = { name: string; email: string; phone: string }
+
+function loadVisitor(): VisitorInfo | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed.name || parsed.email || parsed.phone) return parsed
+  } catch { /* ignore */ }
+  return null
+}
+
+function saveVisitor(info: VisitorInfo) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(info)) } catch { /* ignore */ }
+}
 
 const AGENTS = [
   {
@@ -37,11 +56,23 @@ const AGENTS = [
 type DemoState =
   | { step: "select" }
   | { step: "name"; agentId: string }
-  | { step: "call"; agentId: string; callerName: string }
+  | { step: "call"; agentId: string; callerName: string; callerPhone: string; callerEmail: string }
 
 export default function TryPage() {
   const [state, setState] = useState<DemoState>({ step: "select" })
   const [nameInput, setNameInput] = useState("")
+  const [emailInput, setEmailInput] = useState("")
+  const [phoneInput, setPhoneInput] = useState("")
+
+  // Load saved visitor info on mount
+  useEffect(() => {
+    const saved = loadVisitor()
+    if (saved) {
+      setNameInput(saved.name)
+      setEmailInput(saved.email)
+      setPhoneInput(saved.phone)
+    }
+  }, [])
 
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_TWILIO_NUMBER
 
@@ -168,7 +199,10 @@ export default function TryPage() {
                     onSubmit={e => {
                       e.preventDefault()
                       const name = nameInput.trim() || "Friend"
-                      setState({ step: "call", agentId: state.agentId, callerName: name })
+                      const phone = phoneInput.trim()
+                      const email = emailInput.trim()
+                      saveVisitor({ name: nameInput.trim(), email, phone })
+                      setState({ step: "call", agentId: state.agentId, callerName: name, callerPhone: phone, callerEmail: email })
                     }}
                   >
                     <input
@@ -176,13 +210,37 @@ export default function TryPage() {
                       value={nameInput}
                       onChange={e => setNameInput(e.target.value)}
                       placeholder="Your first name (optional)"
-                      className="w-full px-4 py-3 rounded-lg text-sm mb-4 outline-none focus:ring-2"
+                      className="w-full px-4 py-3 rounded-lg text-sm mb-3 outline-none focus:ring-2"
                       style={{
                         color: "var(--color-text-1)",
                         backgroundColor: "var(--color-surface)",
                         border: "1px solid var(--color-border)",
                       }}
                       autoFocus
+                    />
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                      placeholder="Email (optional — we'll send you details)"
+                      className="w-full px-4 py-3 rounded-lg text-sm mb-3 outline-none focus:ring-2"
+                      style={{
+                        color: "var(--color-text-1)",
+                        backgroundColor: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                      }}
+                    />
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      placeholder="Phone (optional — enables live SMS demo)"
+                      className="w-full px-4 py-3 rounded-lg text-sm mb-4 outline-none focus:ring-2"
+                      style={{
+                        color: "var(--color-text-1)",
+                        backgroundColor: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                      }}
                     />
                     <button
                       type="submit"
@@ -208,9 +266,12 @@ export default function TryPage() {
                 agentName={selectedAgent.agent}
                 companyName={selectedAgent.company}
                 agentColor={selectedAgent.color}
+                extraBody={{
+                  ...(state.callerPhone ? { callerPhone: state.callerPhone } : {}),
+                  ...(state.callerEmail ? { callerEmail: state.callerEmail } : {}),
+                }}
                 onEnd={() => {
                   setState({ step: "select" })
-                  setNameInput("")
                 }}
               />
             )}

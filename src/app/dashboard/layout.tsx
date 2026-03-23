@@ -11,6 +11,7 @@ import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
 import { CallProvider } from '@/contexts/CallContext'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
+import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
 import GuidedTour from '@/components/dashboard/GuidedTour'
 import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
 
@@ -108,6 +109,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </CallProvider>
       </Suspense>
       <DashboardToaster />
+      <RealtimeToasts clientId={clientId} isAdmin={isAdmin} />
       {!isAdmin && <GuidedTour />}
     </div>
   )

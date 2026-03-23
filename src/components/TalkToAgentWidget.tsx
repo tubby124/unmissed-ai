@@ -3,11 +3,30 @@
 import { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
-import { X, Mic } from "lucide-react"
+import { X } from "lucide-react"
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import DemoCall from "./DemoCall"
 
-type WidgetStep = "closed" | "call"
+const STORAGE_KEY = "unmissed_demo_visitor"
+
+type VisitorInfo = { name: string; email: string; phone: string }
+
+function loadVisitor(): VisitorInfo | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed.name || parsed.email || parsed.phone) return parsed
+  } catch { /* ignore */ }
+  return null
+}
+
+function saveVisitor(info: VisitorInfo) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(info)) } catch { /* ignore */ }
+}
+
+type WidgetStep = "closed" | "form" | "call"
 
 const EXCLUDED_PREFIXES = ["/dashboard", "/onboard", "/admin", "/api", "/login"]
 
@@ -15,6 +34,21 @@ export default function TalkToAgentWidget() {
   const pathname = usePathname()
   const [step, setStep] = useState<WidgetStep>("closed")
   const [showPulse, setShowPulse] = useState(true)
+  const [nameInput, setNameInput] = useState("")
+  const [emailInput, setEmailInput] = useState("")
+  const [phoneInput, setPhoneInput] = useState("")
+  const [visitorInfo, setVisitorInfo] = useState<VisitorInfo | null>(null)
+
+  // Load saved visitor info on mount
+  useEffect(() => {
+    const saved = loadVisitor()
+    if (saved) {
+      setNameInput(saved.name)
+      setEmailInput(saved.email)
+      setPhoneInput(saved.phone)
+      setVisitorInfo(saved)
+    }
+  }, [])
 
   // Stop pulse after 8s
   useEffect(() => {
@@ -26,7 +60,7 @@ export default function TalkToAgentWidget() {
 
   // Escape key to close
   useEffect(() => {
-    if (step !== "call") return
+    if (step === "closed") return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close()
     }
@@ -36,7 +70,7 @@ export default function TalkToAgentWidget() {
 
   // Lock body scroll when overlay is open
   useEffect(() => {
-    if (step === "call") {
+    if (step !== "closed") {
       document.body.style.overflow = "hidden"
     } else {
       document.body.style.overflow = ""
@@ -48,6 +82,22 @@ export default function TalkToAgentWidget() {
 
   function open() {
     setShowPulse(false)
+    // Skip form if we already have visitor info saved
+    if (visitorInfo) {
+      setStep("call")
+    } else {
+      setStep("form")
+    }
+  }
+
+  function submitForm() {
+    const info: VisitorInfo = {
+      name: nameInput.trim(),
+      email: emailInput.trim(),
+      phone: phoneInput.trim(),
+    }
+    saveVisitor(info)
+    setVisitorInfo(info)
     setStep("call")
   }
 
@@ -88,9 +138,9 @@ export default function TalkToAgentWidget() {
         )}
       </AnimatePresence>
 
-      {/* ── Full-screen call overlay ── */}
+      {/* ── Full-screen overlay (form or call) ── */}
       <AnimatePresence>
-        {step === "call" && (
+        {step !== "closed" && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -153,16 +203,72 @@ export default function TalkToAgentWidget() {
                 </button>
               </div>
 
+              {/* Quick info form — shown for first-time visitors */}
+              {step === "form" && (
+                <div className="px-4 pb-5 sm:px-5 pt-4">
+                  <p className="text-sm mb-4" style={{ color: "var(--color-text-2)" }}>
+                    Quick intro so Zara knows who she&apos;s talking to:
+                  </p>
+                  <form onSubmit={e => { e.preventDefault(); submitForm() }}>
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full px-3.5 py-2.5 rounded-lg text-sm mb-2.5 outline-none focus:ring-2"
+                      style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                      autoFocus
+                    />
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                      placeholder="Email (optional)"
+                      className="w-full px-3.5 py-2.5 rounded-lg text-sm mb-2.5 outline-none focus:ring-2"
+                      style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                    />
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      placeholder="Phone (optional — enables live SMS demo)"
+                      className="w-full px-3.5 py-2.5 rounded-lg text-sm mb-3.5 outline-none focus:ring-2"
+                      style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                    />
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer transition-colors"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                    >
+                      Talk to Zara
+                    </button>
+                  </form>
+                  <button
+                    onClick={() => { submitForm() }}
+                    className="w-full text-xs mt-2 py-1 cursor-pointer"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    Skip — just start the call
+                  </button>
+                </div>
+              )}
+
               {/* DemoCall — auto-starts on mount */}
-              <div className="px-3 pb-5 sm:px-4 pt-2">
-                <DemoCall
-                  demoId="unmissed_demo"
-                  callerName="Visitor"
-                  agentName="Zara"
-                  companyName="unmissed.ai"
-                  onEnd={close}
-                />
-              </div>
+              {step === "call" && (
+                <div className="px-3 pb-5 sm:px-4 pt-2">
+                  <DemoCall
+                    demoId="unmissed_demo"
+                    callerName={visitorInfo?.name || "Visitor"}
+                    agentName="Zara"
+                    companyName="unmissed.ai"
+                    extraBody={{
+                      ...(visitorInfo?.phone ? { callerPhone: visitorInfo.phone } : {}),
+                      ...(visitorInfo?.email ? { callerEmail: visitorInfo.email } : {}),
+                    }}
+                    onEnd={close}
+                  />
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
