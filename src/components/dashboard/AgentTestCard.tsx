@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell, X } from "lucide-react"
 import {
-  VoiceOrb,
   WaveformBars,
   StatusBadge,
   CallTimer,
@@ -173,12 +172,21 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
           >
             <div className="text-center py-6">
               <div className="flex justify-center mb-5">
-                <VoiceOrb
-                  status="idle"
-                  energy={0.3}
-                  size="sm"
-                  connecting={callState === "connecting"}
-                />
+                <div className="relative w-16 h-16" role="img" aria-label="Connecting to agent">
+                  <div className="w-full h-full rounded-full overflow-hidden">
+                    <VoicePoweredOrb externalEnergy={0.2} />
+                  </div>
+                  {callState === "connecting" && [0, 1, 2].map(i => (
+                    <motion.div
+                      key={i}
+                      className="absolute inset-0 rounded-full pointer-events-none"
+                      style={{ border: "1px solid rgba(99,102,241,0.3)" }}
+                      initial={{ scale: 1, opacity: 0.6 }}
+                      animate={{ scale: 1.6, opacity: 0 }}
+                      transition={{ repeat: Infinity, duration: 2, delay: i * 0.4, ease: "easeOut" }}
+                    />
+                  ))}
+                </div>
               </div>
               <motion.p
                 className="text-base font-semibold t1"
@@ -317,7 +325,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
                 className="mt-4 rounded-xl p-3 space-y-2"
                 style={{ backgroundColor: "var(--color-hover)", border: "1px solid var(--color-border)" }}
               >
-                <p className="text-[11px] font-semibold tracking-widest uppercase t3">
+                <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">
                   What&apos;s next
                 </p>
                 {!isStepComplete("train_agent") && (

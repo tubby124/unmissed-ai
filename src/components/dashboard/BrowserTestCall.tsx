@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "motion/react"
 import {
-  VoiceOrb, WaveformBars, StatusBadge as DemoStatusBadge,
+  WaveformBars, StatusBadge as DemoStatusBadge,
   CallTimer, TranscriptBubble,
   createSoundCues,
 } from "@/components/DemoCallVisuals"
@@ -97,7 +97,9 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
     return (
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
         <div className="flex flex-col items-center gap-3 py-2">
-          <VoiceOrb status="idle" energy={0.1} agentColor="#EF4444" size="sm" />
+          <div className="w-16 h-16 rounded-full overflow-hidden opacity-50" role="img" aria-label="Call failed">
+            <VoicePoweredOrb externalEnergy={0.1} hue={0} />
+          </div>
           <div className="text-center">
             <p className="text-sm font-semibold" style={{ color: "#fca5a5" }}>Call failed</p>
             <p className="text-xs mt-1" style={{ color: "#f87171" }}>{error}</p>
@@ -119,7 +121,21 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
     return (
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
         <div className="flex flex-col items-center gap-3 py-4">
-          <VoiceOrb status="idle" energy={0.2} size="sm" connecting={callState === "connecting"} />
+          <div className="relative w-16 h-16" role="img" aria-label="Connecting to agent">
+            <div className="w-full h-full rounded-full overflow-hidden">
+              <VoicePoweredOrb externalEnergy={0.15} />
+            </div>
+            {callState === "connecting" && [0, 1, 2].map(i => (
+              <motion.div
+                key={i}
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ border: "1px solid rgba(99,102,241,0.3)" }}
+                initial={{ scale: 1, opacity: 0.6 }}
+                animate={{ scale: 1.6, opacity: 0 }}
+                transition={{ repeat: Infinity, duration: 2, delay: i * 0.4, ease: "easeOut" }}
+              />
+            ))}
+          </div>
           <div className="text-center">
             <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>Connecting...</p>
             <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>Allow mic access if prompted</p>

@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "motion/react"
 import { PhoneOff, ArrowUpRight } from "lucide-react"
-import { VoiceOrb } from "@/components/DemoCallVisuals"
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import { useCallContext } from "@/contexts/CallContext"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 export default function FloatingCallOrb() {
-  const { callState, agentStatus, energy, secondsLeft, meta, isMinimized, endCall } = useCallContext()
+  const { callState, energy, secondsLeft, meta, isMinimized, endCall } = useCallContext()
   const router = useRouter()
   const wasShowingRef = useRef(false)
 
@@ -64,12 +64,14 @@ export default function FloatingCallOrb() {
         }}
         onClick={handleReturn}
       >
-        {/* Mini CSS orb */}
-        <div className="relative flex-shrink-0">
-          <VoiceOrb status={agentStatus} energy={energy} size="sm" />
-          {/* Pulse ring */}
+        {/* Mini WebGL orb + pulse ring */}
+        <div className="relative flex-shrink-0 w-12 h-12">
+          <div className="w-full h-full rounded-full overflow-hidden">
+            <VoicePoweredOrb externalEnergy={energy} />
+          </div>
+          {/* Pulse ring — outside overflow-hidden so scale animation isn't clipped */}
           <motion.div
-            className="absolute inset-0 rounded-full"
+            className="absolute inset-0 rounded-full pointer-events-none"
             style={{ border: "2px solid rgba(16,185,129,0.4)" }}
             animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
             transition={{ repeat: Infinity, duration: 2 }}

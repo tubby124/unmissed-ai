@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
 interface VoicePoweredOrbProps {
@@ -171,12 +171,22 @@ export function VoicePoweredOrb({
   onVoiceDetected,
 }: VoicePoweredOrbProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [reducedMotion, setReducedMotion] = useState(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const micRef = useRef<MediaStreamAudioSourceNode | null>(null)
   const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const externalEnergyRef = useRef(externalEnergy ?? 0)
+
+  // Respect prefers-reduced-motion (HIGH priority UX rule)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReducedMotion(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   // Keep external energy ref in sync
   useEffect(() => {
@@ -236,8 +246,9 @@ export function VoicePoweredOrb({
     }
   }
 
-  // Main WebGL effect
+  // Main WebGL effect — skip entirely when reduced motion is preferred
   useEffect(() => {
+    if (reducedMotion) return
     const container = containerRef.current
     if (!container) return
 
@@ -364,7 +375,16 @@ export function VoicePoweredOrb({
         stopMic()
       }
     }
-  }, [hue, enableVoiceControl, useExternalEnergy]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hue, enableVoiceControl, useExternalEnergy, reducedMotion]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reduced motion fallback: static gradient orb (no WebGL, no animation)
+  if (reducedMotion) {
+    return (
+      <div className={cn("w-full h-full relative rounded-full", className)} style={{
+        background: "radial-gradient(circle at 35% 35%, rgba(99,102,241,0.7), rgba(48,194,228,0.4), rgba(15,23,42,0.9))",
+      }} />
+    )
+  }
 
   return <div ref={containerRef} className={cn("w-full h-full relative", className)} />
 }

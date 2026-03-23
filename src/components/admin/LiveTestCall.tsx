@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { VoiceOrb, WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
+import { WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 
 // Lazy-load SDK to avoid SSR issues (WebRTC is browser-only)
 let UltravoxSession: typeof import("ultravox-client").UltravoxSession | null = null
@@ -231,9 +232,11 @@ export default function LiveTestCall({ joinUrl, onEnd }: LiveTestCallProps) {
         <span className="font-mono text-gray-400">{formatTime(secondsLeft)}</span>
       </div>
 
-      {/* VoiceOrb + WaveformBars visual centerpiece */}
+      {/* WebGL VoicePoweredOrb + WaveformBars visual centerpiece */}
       <div className="flex flex-col items-center gap-2 py-2">
-        <VoiceOrb status={agentStatus} energy={energy} size="sm" />
+        <div className="w-16 h-16 rounded-full overflow-hidden" role="img" aria-label="Active call orb">
+          <VoicePoweredOrb externalEnergy={energy} />
+        </div>
         <WaveformBars status={agentStatus} energy={energy} />
       </div>
 

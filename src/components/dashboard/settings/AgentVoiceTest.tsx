@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  VoiceOrb,
   WaveformBars,
   StatusBadge,
   CallTimer,
@@ -13,6 +12,7 @@ import {
   type AgentStatus,
   type TranscriptEntry,
 } from '@/components/DemoCallVisuals'
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import ImprovementHints from './ImprovementHints'
 import { analyzeTranscriptClient, type CallInsight } from '@/lib/transcript-analysis'
 
@@ -258,9 +258,12 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
           >
             <button
               onClick={startCall}
-              className="group relative cursor-pointer"
+              className="group relative cursor-pointer w-20 h-20 sm:w-28 sm:h-28"
+              aria-label="Start voice test"
             >
-              <VoiceOrb status="idle" energy={0.3} size="md" />
+              <div className="w-full h-full rounded-full overflow-hidden">
+                <VoicePoweredOrb externalEnergy={0.2} />
+              </div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-indigo-300 group-hover:text-white transition-colors">
                   <path d="M12 18.75a6.75 6.75 0 006.75-6.75V6a6.75 6.75 0 00-13.5 0v6A6.75 6.75 0 0012 18.75z" stroke="currentColor" strokeWidth="1.5"/>
@@ -287,7 +290,21 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
             exit={{ opacity: 0 }}
             className="flex flex-col items-center gap-4 py-6"
           >
-            <VoiceOrb status="idle" energy={0.3} size="md" connecting={callState === 'connecting'} />
+            <div className="relative w-20 h-20 sm:w-28 sm:h-28" role="img" aria-label="Connecting to agent">
+              <div className="w-full h-full rounded-full overflow-hidden">
+                <VoicePoweredOrb externalEnergy={0.2} />
+              </div>
+              {callState === 'connecting' && [0, 1, 2].map(i => (
+                <motion.div
+                  key={i}
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{ border: "1px solid rgba(99,102,241,0.3)" }}
+                  initial={{ scale: 1, opacity: 0.6 }}
+                  animate={{ scale: 1.6, opacity: 0 }}
+                  transition={{ repeat: Infinity, duration: 2, delay: i * 0.4, ease: "easeOut" }}
+                />
+              ))}
+            </div>
             <motion.p
               className="text-sm font-medium t1"
               animate={{ opacity: [0.6, 1, 0.6] }}
@@ -325,9 +342,11 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
                 </div>
               </div>
 
-              {/* Orb + Waveform */}
+              {/* WebGL Orb + Waveform */}
               <div className="flex flex-col items-center gap-3 mb-4">
-                <VoiceOrb status={agentStatus} energy={energy} size="md" />
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden" role="img" aria-label="Active call orb">
+                  <VoicePoweredOrb externalEnergy={energy} />
+                </div>
                 <WaveformBars status={agentStatus} energy={energy} />
               </div>
 
@@ -436,7 +455,9 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
             animate={{ opacity: 1 }}
             className="flex flex-col items-center gap-3 py-6"
           >
-            <VoiceOrb status="idle" energy={0.1} size="sm" />
+            <div className="w-16 h-16 rounded-full overflow-hidden opacity-50" role="img" aria-label="Call failed">
+              <VoicePoweredOrb externalEnergy={0.1} hue={0} />
+            </div>
             <p className="text-sm font-medium text-red-400">Could not connect</p>
             <p className="text-[11px] t3 text-center">{error}</p>
             <button

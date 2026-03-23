@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import BorderBeam from "@/components/ui/border-beam"
 import {
-  VoiceOrb,
   WaveformBars,
   StatusBadge,
   CallTimer,
@@ -18,6 +17,7 @@ import {
   type AgentStatus,
   type TranscriptEntry,
 } from "@/components/DemoCallVisuals"
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 
 // Lazy-load the SDK to avoid SSR issues (WebRTC is browser-only)
 let UltravoxSession: typeof import("ultravox-client").UltravoxSession | null = null
@@ -319,20 +319,24 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
             className="text-center py-12"
           >
             <div className="flex justify-center mb-6">
-              <div className="relative rounded-full overflow-hidden">
-                <VoiceOrb
-                  status="idle"
-                  energy={0.3}
-                  agentColor={agentColor}
-                  size="sm"
-                  connecting={callState === "connecting"}
-                />
+              <div className="relative w-16 h-16 rounded-full overflow-hidden" role="img" aria-label="Connecting to agent">
+                <VoicePoweredOrb externalEnergy={0.2} />
                 <BorderBeam
                   size={100}
                   duration={callState === "connecting" ? 4 : 8}
                   colorFrom={agentColor || "#6366f1"}
                   colorTo="#a855f7"
                 />
+                {callState === "connecting" && [0, 1, 2].map(i => (
+                  <motion.div
+                    key={i}
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{ border: `1px solid ${agentColor || "rgba(99,102,241,0.3)"}` }}
+                    initial={{ scale: 1, opacity: 0.6 }}
+                    animate={{ scale: 1.6, opacity: 0 }}
+                    transition={{ repeat: Infinity, duration: 2, delay: i * 0.4, ease: "easeOut" }}
+                  />
+                ))}
               </div>
             </div>
             <motion.p
@@ -381,14 +385,11 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
                 </div>
               </div>
 
-              {/* Orb + Waveform center */}
+              {/* WebGL Orb + Waveform center */}
               <div className="flex flex-col items-center gap-3 mb-5">
-                <VoiceOrb
-                  status={agentStatus}
-                  energy={energy}
-                  agentColor={agentColor}
-                  size="md"
-                />
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden" role="img" aria-label="Active call visualization">
+                  <VoicePoweredOrb externalEnergy={energy} />
+                </div>
                 <WaveformBars
                   status={agentStatus}
                   energy={energy}
@@ -468,7 +469,9 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
             className="text-center py-8"
           >
             <div className="flex justify-center mb-4">
-              <VoiceOrb status="idle" energy={0.1} size="sm" />
+              <div className="w-16 h-16 rounded-full overflow-hidden opacity-50" role="img" aria-label="Call error">
+                <VoicePoweredOrb externalEnergy={0.1} hue={0} />
+              </div>
             </div>
             <p className="text-lg font-semibold mb-2" style={{ color: "#EF4444" }}>
               Could not start demo

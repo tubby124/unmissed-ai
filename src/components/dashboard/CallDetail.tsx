@@ -10,7 +10,8 @@ import StatusBadge from './StatusBadge'
 import CallEventsPanel from './CallEventsPanel'
 import LiveCoachingPanel from './LiveCoachingPanel'
 import NumberTicker from '@/components/ui/number-ticker'
-import { VoiceOrb, WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
+import { WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import QuickAddFaq from './QuickAddFaq'
 
 interface TranscriptMessage {
@@ -59,7 +60,7 @@ function CallNotifications({ callId }: { callId: string }) {
 
   return (
     <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Notifications Sent</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Notifications Sent</p>
       <div className="space-y-2">
         {items.map(n => (
           <div key={n.id} className="flex items-center gap-3 text-xs">
@@ -103,7 +104,7 @@ function CallBookings({ callId }: { callId: string }) {
 
   return (
     <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
-      <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Bookings</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Bookings</p>
       <div className="space-y-2">
         {items.map(b => (
           <div key={b.id} className="flex items-center gap-3 text-xs">
@@ -470,11 +471,9 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(34,197,94,0.05) 0%, transparent 70%)' }}
           />
           <div className="relative flex flex-col items-center py-4 gap-3">
-            <VoiceOrb
-              status={lastRole === 'agent' ? 'speaking' : lastRole === 'user' ? 'listening' : 'idle'}
-              energy={lastRole ? 0.7 : 0.3}
-              size="md"
-            />
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden" role="img" aria-label="Live call visualization">
+              <VoicePoweredOrb externalEnergy={lastRole ? 0.7 : 0.3} />
+            </div>
             <WaveformBars
               status={lastRole === 'agent' ? 'speaking' : lastRole === 'user' ? 'listening' : 'idle'}
               energy={lastRole ? 0.7 : 0.3}
@@ -519,7 +518,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             className={`rounded-2xl border p-5 shadow-lg ${glowClass}`}
             style={{ backgroundColor: "var(--color-surface)" }}
           >
-            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>AI Summary</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: "var(--color-text-3)" }}>AI Summary</p>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>{displayCall.ai_summary}</p>
             {displayCall.service_type && displayCall.service_type !== 'other' && (
               <p className="text-xs mt-2 capitalize" style={{ color: "var(--color-text-3)" }}>
@@ -579,7 +578,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
             {/* Key topics */}
             {displayCall.key_topics && displayCall.key_topics.length > 0 && (
               <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
-                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Key Topics</p>
+                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Key Topics</p>
                 <div className="flex flex-wrap gap-2">
                   {displayCall.key_topics.map(topic => (
                     <span
@@ -672,7 +671,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
       {/* Metadata — post-call only */}
       {!isActuallyLive && (
         <div className="rounded-2xl border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
-          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Details</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: "var(--color-text-3)" }}>Details</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {displayCall.end_reason && (
               <>
