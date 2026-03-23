@@ -104,10 +104,10 @@ Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark
 | L51 | `StatsSection.tsx` | 4x `dark:` | DONE |
 | L52 | `DemoCallVisuals.tsx` | 4x `rgba` | SKIP — WebRTC orb color maps, dynamic status gradients |
 | L53 | `DemoCall.tsx` | 3x `rgba` | SKIP — glass card on dark-only marketing overlay |
-| L54 | `DemoAudioPlayer.tsx` | 9x `rgba` | SKIP — iOS hardware simulation, must stay literal |
+| L54 | `DemoAudioPlayer.tsx` | Rewritten Wave 2 — uses CSS vars | DONE (Wave 2 rewrite) |
 | L55 | `HeroCallMockup.tsx` | 4x `rgba` | SKIP — accent tints in animated shadow/badge |
-| L56 | `TalkToAgentWidget.tsx` | 1x `rgba` | SKIP — standard modal backdrop |
-| L57 | `TryItNowWidget.tsx` | 1x `rgba` | SKIP — standard modal backdrop |
+| L56 | `TalkToAgentWidget.tsx` | Rewritten Wave 2 — uses CSS vars | DONE (Wave 2 rewrite) |
+| L57 | `TryItNowWidget.tsx` | DELETED — dead code | DONE (Wave 3 cleanup) |
 | L58 | Advisor components (5 files) | Mixed `dark:` + `rgba` | DONE |
 | L59 | `ui/input.tsx` | 2x patterns | DONE |
 | L60 | `ui/textarea.tsx` | 1x pattern | DONE |
@@ -300,23 +300,23 @@ $1M MRR strategy: make the "hear it yourself" phone input the centerpiece. PLG c
 | V8c | `HeroContent.tsx` | Rewrote: pain stats in subtitle, phone CTA as primary action, trust line with pricing, removed competing CTAs. Left-aligned on desktop, centered on mobile. | DONE |
 | V6 | `TryItNowWidget.tsx` | Already dead code (0 imports). Confirmed for cleanup in Pass 4. | DEAD CODE |
 
-### Wave 2 — Engagement Deepeners (TODO)
+### Wave 2 — Engagement Deepeners (DONE)
 
-| # | Component | Rebuild Notes | Status |
-|---|-----------|---------------|--------|
-| V2 | `DemoAudioPlayer.tsx` | Kill iPhone/iMessage frame. Rebuild as call transcript player: waveform left, scrolling transcript right, outcome card below. Keep scripted data, present as phone call. | TODO |
-| V3 | `DemoCallVisuals.tsx` | Orb, waveform, transcript bubble elevation. Shared with dashboard — careful changes. | TODO |
-| V4 | `DemoCall.tsx` | Glass card slicker, consider split-panel for desktop. | TODO |
-| V5 | `TalkToAgentWidget.tsx` | Polish entry animation, better mobile bottom-sheet, branded header. | TODO |
+| # | Component | What Changed | Status |
+|---|-----------|-------------|--------|
+| V2 | `DemoAudioPlayer.tsx` | Componentized into 4 files: `demo-data.ts` (types/data), `DemoCallCard.tsx` (call transcript + VoicePoweredOrb avatar + waveform), `DemoOutcome.tsx` (lead card + telegram toast + pipeline steps), `DemoAudioPlayer.tsx` (orchestrator + tabs). VoicePoweredOrb replaces static letter avatar — energy reacts to call stage (ringing=0.15, speaking=0.75, idle=0.2, ended=0.05). Large centered orb during ringing state. Dynamic card shadow glows indigo during live calls. 3 demo niches (auto-glass, property-mgmt, real-estate). | DONE |
+| V5 | `TalkToAgentWidget.tsx` | AnimatePresence for open/close transitions. VoicePoweredOrb mini-orb replaces Mic icon in floating button. Overlay slide-up with spring animation. Branded header with orb + agent name. Escape key to close. Body scroll lock during overlay. | DONE |
+| V3 | `DemoCallVisuals.tsx` | Deferred — shared with dashboard WebRTC calls, changes need careful testing. | DEFERRED |
+| V4 | `DemoCall.tsx` | Deferred — functional infrastructure, not marketing presentation. | DEFERRED |
 
-### Wave 3 — Polish (TODO)
+### Wave 3 — Polish (IN PROGRESS)
 
 | # | Item | Status |
 |---|------|--------|
 | W3a | Full responsive audit — hero on mobile, trust bar, CTA | TODO |
 | W3b | Dark/light mode verification on all marketing sections | TODO |
 | W3c | Performance — lazy load DemoAudioPlayer, NicheSelectorGrid below fold | TODO |
-| W3d | Dead component cleanup — remove TryItNowWidget.tsx, StatsSection.tsx | TODO |
+| W3d | Dead component cleanup — remove TryItNowWidget.tsx, StatsSection.tsx | DONE |
 
 ---
 
