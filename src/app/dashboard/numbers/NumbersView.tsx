@@ -40,7 +40,7 @@ const STATUS_STYLES: Record<string, string> = {
   assigned:  "bg-blue-900/40 text-blue-300 border-blue-700/40",
 };
 
-export default function AdminNumbersPage() {
+export default function NumbersView() {
   const [numbers, setNumbers] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [addInput, setAddInput] = useState("");

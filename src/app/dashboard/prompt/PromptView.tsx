@@ -5,7 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/client'
 
 type Client = { id: string; slug: string; business_name: string }
 
-export default function PromptPage() {
+export default function PromptView() {
   const [clients, setClients] = useState<Client[]>([])
   const [selectedSlug, setSelectedSlug] = useState('')
   const [agentId, setAgentId] = useState('')

@@ -75,7 +75,7 @@ function fmtMin(n: number) {
   return `${n.toFixed(1)}m`
 }
 
-export default function CostsPage() {
+export default function CostsView() {
   const [range, setRange] = useState<Range>('month')
   const [data, setData] = useState<CostData | null>(null)
   const [loading, setLoading] = useState(true)

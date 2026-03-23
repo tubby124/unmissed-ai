@@ -187,7 +187,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     ),
   },
   {
-    href: '/admin/costs',
+    href: '/dashboard/costs',
     label: 'Cost Intel',
     adminOnly: true,
     group: 3,
@@ -199,7 +199,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     ),
   },
   {
-    href: '/admin/numbers',
+    href: '/dashboard/numbers',
     label: 'Numbers',
     adminOnly: true,
     group: 3,

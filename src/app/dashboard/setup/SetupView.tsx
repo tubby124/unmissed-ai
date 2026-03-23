@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { SetupClientConfig } from './page'
 import { stripToDigits, fmtPhone, SectionLabel, CopyButton } from '@/components/dashboard/setup/shared'
 import MobileSetup from '@/components/dashboard/setup/MobileSetup'
@@ -129,23 +129,13 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
         </div>
       )}
 
-      {/* ── Admin client selector ────────────────────────────────────── */}
+      {/* ── Admin client selector (dropdown) ──────────────────────────── */}
       {isAdmin && clients.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {clients.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedId(c.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                selectedId === c.id
-                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 't3 b-theme hover:t1 hover:bg-hover'
-              }`}
-            >
-              {c.business_name}
-            </button>
-          ))}
-        </div>
+        <ClientDropdown
+          clients={clients}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -360,5 +350,155 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
       )}
 
     </div>
+  )
+}
+
+// ── Admin client dropdown with search, grouping, niche badge, phone ──────────
+function ClientDropdown({
+  clients,
+  selectedId,
+  onSelect,
+}: {
+  clients: SetupClientConfig[]
+  selectedId: string
+  onSelect: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
+
+  const selected = clients.find(c => c.id === selectedId)
+  const q = search.toLowerCase()
+  const filtered = clients.filter(c =>
+    c.business_name.toLowerCase().includes(q) ||
+    (c.niche ?? '').toLowerCase().includes(q) ||
+    (c.twilio_number ?? '').includes(q)
+  )
+  const active = filtered.filter(c => c.status === 'active' || c.status === 'trial')
+  const unassigned = filtered.filter(c => c.status !== 'active' && c.status !== 'trial')
+
+  function handleSelect(id: string) {
+    onSelect(id)
+    setOpen(false)
+    setSearch('')
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border b-theme bg-input hover:bg-hover transition-colors text-left"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium t1 truncate">{selected?.business_name ?? 'Select client'}</span>
+            {selected?.niche && (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                {selected.niche}
+              </span>
+            )}
+          </div>
+          {selected?.twilio_number && (
+            <span className="text-[11px] t3 font-mono">{fmtPhone(selected.twilio_number)}</span>
+          )}
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`t3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border b-theme bg-surface shadow-xl overflow-hidden">
+          {/* Search */}
+          <div className="p-2 border-b b-theme">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search clients..."
+              className="w-full px-3 py-2 rounded-lg bg-hover border b-theme text-xs t1 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 && (
+              <div className="px-4 py-6 text-center text-xs t3">No clients match &ldquo;{search}&rdquo;</div>
+            )}
+
+            {active.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider t3 bg-hover">Active</div>
+                {active.map(c => (
+                  <ClientRow key={c.id} client={c} isSelected={c.id === selectedId} onSelect={handleSelect} />
+                ))}
+              </>
+            )}
+
+            {unassigned.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider t3 bg-hover">Unassigned</div>
+                {unassigned.map(c => (
+                  <ClientRow key={c.id} client={c} isSelected={c.id === selectedId} onSelect={handleSelect} />
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ClientRow({
+  client: c,
+  isSelected,
+  onSelect,
+}: {
+  client: SetupClientConfig
+  isSelected: boolean
+  onSelect: (id: string) => void
+}) {
+  return (
+    <button
+      onClick={() => onSelect(c.id)}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-hover transition-colors ${
+        isSelected ? 'bg-blue-500/10' : ''
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium truncate ${isSelected ? 'text-blue-400' : 't1'}`}>
+            {c.business_name}
+          </span>
+          {c.niche && (
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+              {c.niche}
+            </span>
+          )}
+        </div>
+        {c.twilio_number && (
+          <span className="text-[10px] t3 font-mono">{fmtPhone(c.twilio_number)}</span>
+        )}
+      </div>
+      {isSelected && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-blue-400 shrink-0">
+          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </button>
   )
 }
