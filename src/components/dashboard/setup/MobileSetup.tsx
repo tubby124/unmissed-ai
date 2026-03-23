@@ -102,7 +102,7 @@ export default function MobileSetup({
               <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <p className="text-[11px] text-amber-700 dark:text-amber-200/60 leading-relaxed">
+            <p className="text-[11px] text-amber-400 leading-relaxed">
               Open your <span className="font-medium">Phone app</span> → tap the keypad → dial each code and press the green Call button. Do <span className="font-medium">not</span> use Settings → Phone → Call Forwarding — those toggles don&apos;t support star codes.
             </p>
           </div>
