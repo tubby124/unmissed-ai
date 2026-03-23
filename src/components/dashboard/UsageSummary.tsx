@@ -70,10 +70,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
           backgroundColor: 'var(--color-bg-raised)',
         }}
       >
-        <p
-          className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1"
-          style={{ color: 'var(--color-text-3)' }}
-        >
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1 t3">
           {label}
         </p>
         <p
@@ -94,10 +91,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
         backgroundColor: 'var(--color-surface)',
       }}
     >
-      <p
-        className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
-        style={{ color: 'var(--color-text-3)' }}
-      >
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">
         Ultravox Account Usage
       </p>
 
@@ -162,10 +156,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
                 className="rounded-xl p-4"
                 style={{ backgroundColor: 'var(--color-bg-raised)' }}
               >
-                <p
-                  className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2"
-                  style={{ color: 'var(--color-text-3)' }}
-                >
+                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 t3">
                   Additional Details
                 </p>
                 <div className="space-y-1">

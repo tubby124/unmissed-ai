@@ -75,10 +75,7 @@ export default function LiveCoachingPanel({
         backgroundColor: 'var(--color-surface)',
       }}
     >
-      <p
-        className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
-        style={{ color: 'var(--color-text-3)' }}
-      >
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">
         Live Coaching
       </p>
 

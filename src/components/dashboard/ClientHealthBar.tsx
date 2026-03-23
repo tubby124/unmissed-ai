@@ -45,7 +45,7 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
   return (
     <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
       <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
           Client Health
         </p>
       </div>

@@ -108,7 +108,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
         className="rounded-2xl border p-5"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
       >
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 t3">
           Add to your agent&apos;s knowledge
         </p>
         <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
       className="rounded-2xl border p-5"
       style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
     >
-      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3" style={{ color: 'var(--color-text-3)' }}>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-3 t3">
         Add to your agent&apos;s knowledge
       </p>
       <p className="text-[11px] mb-3" style={{ color: 'var(--color-text-3)' }}>

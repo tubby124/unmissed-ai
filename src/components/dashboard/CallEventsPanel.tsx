@@ -88,10 +88,7 @@ export default function CallEventsPanel({ callId }: CallEventsPanelProps) {
       }}
     >
       <div className="flex items-center justify-between mb-4">
-        <p
-          className="text-[10px] font-semibold tracking-[0.15em] uppercase"
-          style={{ color: 'var(--color-text-3)' }}
-        >
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
           Call Events
         </p>
         <select

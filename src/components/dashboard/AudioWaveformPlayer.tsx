@@ -155,7 +155,7 @@ export default function AudioWaveformPlayer({ callId, recordingUrl, onTimeUpdate
   if (error) {
     return (
       <div className="rounded-2xl p-5 card-surface">
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4" style={{ color: "var(--color-text-3)" }}>Recording</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">Recording</p>
         <p className="text-sm" style={{ color: "var(--color-text-3)" }}>Recording unavailable or still processing.</p>
       </div>
     )
@@ -167,7 +167,7 @@ export default function AudioWaveformPlayer({ callId, recordingUrl, onTimeUpdate
     <div className="rounded-2xl p-5 card-surface">
       {/* Header row: label + time + download */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: "var(--color-text-3)" }}>Recording</p>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Recording</p>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>
             {fmtTime(currentTime)} / {fmtTime(duration)}

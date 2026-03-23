@@ -445,7 +445,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           {/* Header */}
           <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
                 Call Log
               </p>
               <ScopedClientLabel />

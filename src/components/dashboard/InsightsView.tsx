@@ -137,7 +137,7 @@ function KpiCard({ label, value, format, trend, accent, delay }: {
     >
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none"
         style={{ background: `radial-gradient(circle, ${accent}33 0%, transparent 70%)` }} />
-      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2" style={{ color: 'var(--color-text-3)' }}>{label}</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 t3">{label}</p>
       <p className="text-3xl font-bold font-mono tabular-nums leading-none" style={{ color: accent }}>
         <AnimatedNum value={value} format={format} delay={delay} />
       </p>
@@ -499,7 +499,7 @@ function Card({ title, delay, children, className = '' }: { title: string; delay
       className={`rounded-2xl border p-5 ${className}`}
       style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
     >
-      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4" style={{ color: 'var(--color-text-3)' }}>{title}</p>
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">{title}</p>
       {children}
     </motion.div>
   )
