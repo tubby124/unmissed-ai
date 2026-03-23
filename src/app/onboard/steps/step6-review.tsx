@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { OnboardingData, nicheLabels, Niche, defaultAgentNames, AfterHoursBehavior } from "@/types/onboarding";
+import { OnboardingData, WebsiteScrapeResult, nicheLabels, Niche, defaultAgentNames, AfterHoursBehavior } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
 import { BETA_PROMO, BASE_PLAN, SETUP, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
 
@@ -561,6 +561,236 @@ function InlineLocationEditor({
   );
 }
 
+// ── Agent Knowledge Review Card (Phase 5c) ────────────────────────────────────
+
+function AgentKnowledgeReviewCard({
+  data,
+  onUpdate,
+}: {
+  data: OnboardingData;
+  onUpdate: (updates: Partial<OnboardingData>) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const sr = data.websiteScrapeResult;
+
+  // Only render if there is actual scraped content
+  if (!sr || (sr.businessFacts.length === 0 && sr.extraQa.length === 0)) return null;
+
+  // Approved counts (undefined in sparse array = approved by default)
+  const approvedFactCount = sr.businessFacts.filter((_: string, i: number) => sr.approvedFacts[i] !== false).length;
+  const approvedQaCount = sr.extraQa.filter((_: { q: string; a: string }, i: number) => sr.approvedQa[i] !== false).length;
+  const totalFacts = sr.businessFacts.length;
+  const totalQa = sr.extraQa.length;
+  const allApproved = approvedFactCount === totalFacts && approvedQaCount === totalQa;
+
+  function toggleFact(i: number, approved: boolean) {
+    const next = [...(sr!.approvedFacts.length > 0 ? sr!.approvedFacts : new Array(sr!.businessFacts.length).fill(true))];
+    while (next.length <= i) next.push(true);
+    next[i] = approved;
+    onUpdate({ websiteScrapeResult: { ...sr!, approvedFacts: next } });
+  }
+
+  function toggleQa(i: number, approved: boolean) {
+    const next = [...(sr!.approvedQa.length > 0 ? sr!.approvedQa : new Array(sr!.extraQa.length).fill(true))];
+    while (next.length <= i) next.push(true);
+    next[i] = approved;
+    onUpdate({ websiteScrapeResult: { ...sr!, approvedQa: next } });
+  }
+
+  function approveAll() {
+    onUpdate({
+      websiteScrapeResult: {
+        ...sr!,
+        approvedFacts: new Array(sr!.businessFacts.length).fill(true),
+        approvedQa: new Array(sr!.extraQa.length).fill(true),
+      },
+    });
+  }
+
+  // Has Google Places data worth showing?
+  const hasPlacesData = !!(data.businessName || data.callbackPhone || data.city || data.businessHoursText);
+
+  const excludedCount = (totalFacts - approvedFactCount) + (totalQa - approvedQaCount);
+  const totalApproved = approvedFactCount + approvedQaCount;
+  const summaryText = allApproved
+    ? `${totalApproved} thing${totalApproved !== 1 ? "s" : ""} your agent knows`
+    : `${excludedCount} item${excludedCount !== 1 ? "s" : ""} excluded · tap to review`;
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Toggle header */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-muted/30 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-inset"
+      >
+        <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-medium text-foreground">What your agent knows</span>
+          <span className="ml-2 text-xs text-muted-foreground">{summaryText}</span>
+        </div>
+        {!allApproved && (
+          <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800 rounded-full px-2 py-0.5 shrink-0">
+            review
+          </span>
+        )}
+        <svg
+          className={`w-4 h-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-border divide-y divide-border">
+          {/* Google Places / business profile — read-only */}
+          {hasPlacesData && (
+            <div className="px-4 py-3 space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Business profile
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· confirmed · read-only</span>
+              </p>
+              {data.businessName && (
+                <div className="flex items-start gap-2">
+                  <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  <span className="text-xs text-foreground"><span className="text-muted-foreground">Name:</span> {data.businessName}</span>
+                </div>
+              )}
+              {data.callbackPhone && (
+                <div className="flex items-start gap-2">
+                  <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  <span className="text-xs text-foreground"><span className="text-muted-foreground">Phone:</span> {data.callbackPhone}</span>
+                </div>
+              )}
+              {(data.city || data.state) && (
+                <div className="flex items-start gap-2">
+                  <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  <span className="text-xs text-foreground"><span className="text-muted-foreground">Location:</span> {[data.city, data.state].filter(Boolean).join(", ")}</span>
+                </div>
+              )}
+              {data.businessHoursText && (
+                <div className="flex items-start gap-2">
+                  <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  <span className="text-xs text-foreground"><span className="text-muted-foreground">Hours:</span> {data.businessHoursText}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Website facts — toggleable */}
+          {sr.businessFacts.length > 0 && (
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Website facts
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude</span>
+              </p>
+              <ul className="space-y-2">
+                {sr.businessFacts.map((fact: string, i: number) => {
+                  const approved = sr.approvedFacts[i] !== false;
+                  return (
+                    <li key={i} className="flex items-start gap-1">
+                      {/* 44px tap target wrapping visual 16px checkbox */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={approved}
+                        aria-label={approved ? `Exclude from agent: ${fact}` : `Include in agent: ${fact}`}
+                        onClick={() => toggleFact(i, !approved)}
+                        className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group"
+                      >
+                        <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover:opacity-80 ${
+                          approved
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "bg-card border-border hover:border-muted-foreground"
+                        }`}>
+                          {approved && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
+                      <span className={`text-xs leading-relaxed pt-3 ${approved ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                        {fact}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {/* Scraped FAQs — toggleable */}
+          {sr.extraQa.length > 0 && (
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                FAQ answers
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude</span>
+              </p>
+              <ul className="space-y-3">
+                {sr.extraQa.map((qa: { q: string; a: string }, i: number) => {
+                  const approved = sr.approvedQa[i] !== false;
+                  return (
+                    <li key={i} className="flex items-start gap-1">
+                      {/* 44px tap target wrapping visual 16px checkbox */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={approved}
+                        aria-label={approved ? `Exclude from agent: ${qa.q}` : `Include in agent: ${qa.q}`}
+                        onClick={() => toggleQa(i, !approved)}
+                        className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group"
+                      >
+                        <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover:opacity-80 ${
+                          approved
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "bg-card border-border hover:border-muted-foreground"
+                        }`}>
+                          {approved && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
+                      <div className={`space-y-0.5 pt-3 transition-opacity ${approved ? "opacity-100" : "opacity-40"}`}>
+                        <p className={`text-xs font-medium ${approved ? "text-foreground" : "text-foreground line-through"}`}>{qa.q}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{qa.a}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {/* Footer actions */}
+          <div className="px-4 py-3 flex items-center justify-between gap-3 bg-muted/20">
+            <p className="text-xs text-muted-foreground">
+              {allApproved
+                ? "All content approved — your agent knows everything above."
+                : `${excludedCount} item${excludedCount !== 1 ? "s" : ""} excluded from your agent.`}
+            </p>
+            {!allApproved && (
+              <button
+                type="button"
+                onClick={approveAll}
+                className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 whitespace-nowrap cursor-pointer py-1 px-2 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+              >
+                Include all
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Step 6 — Review & Activate ──────────────────────────────────────────
 
 const effectivePrice = getEffectiveMonthly();
@@ -788,6 +1018,9 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
           </p>
         </div>
       )}
+
+      {/* What your agent knows — scraped data review gate (Phase 5c) */}
+      <AgentKnowledgeReviewCard data={data} onUpdate={onUpdate} />
 
       {/* No-FAQ warning */}
       {showNoFaqWarning && stepSequence.includes(4) && (
