@@ -398,7 +398,7 @@ export interface ServerClientConfig {
   booking_enabled?: boolean | null
   forwarding_number?: string | null
   sms_enabled?: boolean | null
-  office_hours?: unknown
+  business_hours_weekday?: string | null
   knowledge_backend?: string | null
   website_url?: string | null
   business_facts?: unknown
@@ -426,7 +426,7 @@ export function analyzeTranscriptServer(
     hasBooking: !!config.booking_enabled,
     hasTransfer: !!config.forwarding_number,
     hasSms: !!config.sms_enabled,
-    hasHours: !!config.office_hours && typeof config.office_hours === 'object',
+    hasHours: !!config.business_hours_weekday,
     hasKnowledge: config.knowledge_backend === 'pgvector',
     hasWebsite: !!config.website_url,
     hasFacts: Array.isArray(config.business_facts) && (config.business_facts as unknown[]).length > 0,
