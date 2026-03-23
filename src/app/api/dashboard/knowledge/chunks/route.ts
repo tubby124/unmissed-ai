@@ -159,8 +159,9 @@ export async function POST(req: NextRequest) {
   const chunkType = body.chunk_type ?? 'manual'
   const trustTier = body.trust_tier ?? 'medium'
   const source = body.source ?? 'dashboard_manual'
-  // Admins can auto-approve; owners add as pending
-  const status = body.auto_approve && cu.role === 'admin' ? 'approved' : 'pending'
+  // Admins and owners can auto-approve their own chunks (owners only for their own client)
+  const canAutoApprove = cu.role === 'admin' || cu.role === 'owner'
+  const status = body.auto_approve && canAutoApprove ? 'approved' : 'pending'
 
   // Generate embedding
   const embedding = await embedText(content)

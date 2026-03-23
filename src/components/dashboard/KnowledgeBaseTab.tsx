@@ -48,6 +48,7 @@ export default function KnowledgeBaseTab({
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
+  const [pendingGapQuery, setPendingGapQuery] = useState<string | null>(null)
 
   // Website scrape state
   const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl || '')
@@ -125,6 +126,8 @@ export default function KnowledgeBaseTab({
     setAddError('')
     setAddSuccess('')
     try {
+      // Auto-approve when answering a gap OR when admin — owner answering their own question is trusted
+      const shouldAutoApprove = isAdmin || !!pendingGapQuery
       const res = await fetch('/api/dashboard/knowledge/chunks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +136,7 @@ export default function KnowledgeBaseTab({
           content: addContent.trim(),
           chunk_type: addType,
           trust_tier: addTier,
-          auto_approve: isAdmin,
+          auto_approve: shouldAutoApprove,
         }),
       })
       if (!res.ok) {
@@ -141,8 +144,23 @@ export default function KnowledgeBaseTab({
         throw new Error(err.error ?? 'Failed to add chunk')
       }
       const data = await res.json()
+
+      // Auto-resolve the gap if this answer came from a knowledge gap
+      if (pendingGapQuery) {
+        fetch('/api/dashboard/knowledge/gaps', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: clientId,
+            query: pendingGapQuery,
+            resolution_type: 'faq',
+          }),
+        }).catch(() => {}) // non-fatal — gap will just stay visible until next refresh
+        setPendingGapQuery(null)
+      }
+
       setAddContent('')
-      setAddSuccess(data.chunk?.status === 'approved' ? 'Added and approved' : 'Added as pending — needs approval')
+      setAddSuccess(data.chunk?.status === 'approved' ? 'Added — your agent knows this now' : 'Added as pending — needs approval')
       setTimeout(() => setAddSuccess(''), 4000)
       setShowAddForm(false)
       triggerRefresh()
@@ -304,6 +322,7 @@ export default function KnowledgeBaseTab({
     setShowAddForm(true)
     setAddContent(`Q: ${query}\nA: `)
     setAddType('qa')
+    setPendingGapQuery(query)
     // Scroll to add form
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
