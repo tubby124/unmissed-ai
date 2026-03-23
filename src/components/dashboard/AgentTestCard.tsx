@@ -20,9 +20,10 @@ interface AgentTestCardProps {
   agentName: string
   businessName: string
   clientStatus: string | null
+  isTrial?: boolean
 }
 
-export default function AgentTestCard({ agentName, businessName, clientStatus }: AgentTestCardProps) {
+export default function AgentTestCard({ agentName, businessName, clientStatus, isTrial = false }: AgentTestCardProps) {
   const [isRequesting, setIsRequesting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [returnedCallId, setReturnedCallId] = useState<string | null>(null)
@@ -119,7 +120,6 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
     callState === "error" ? "error" :
     "idle"
 
-  const isTrial = clientStatus === "trial"
   const errorMsg = apiError || hookError
 
   return (

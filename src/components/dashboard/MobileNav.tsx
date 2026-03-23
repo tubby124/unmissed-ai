@@ -15,10 +15,12 @@ interface MobileNavProps {
   businessName?: string
   isAdmin?: boolean
   clientStatus?: string | null
+  subscriptionStatus?: string | null
   niche?: string | null
 }
 
-export default function MobileNav({ businessName, isAdmin = false, clientStatus, niche = null }: MobileNavProps) {
+export default function MobileNav({ businessName, isAdmin = false, clientStatus, subscriptionStatus, niche = null }: MobileNavProps) {
+  const isTrialing = !isAdmin && subscriptionStatus === 'trialing'
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -111,23 +113,35 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
                       {groupChanged && (
                         <hr className="my-2" style={{ borderColor: "var(--color-border)" }} />
                       )}
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                          active
-                            ? 'border-l-[3px]'
-                            : 'hover:bg-hover'
-                        }`}
-                        style={
-                          active
-                            ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
-                            : { color: "var(--color-text-2)" }
-                        }
-                      >
-                        <NavIcon name={item.iconName} />
-                        {item.adminLabel && isAdmin ? item.adminLabel : item.label}
-                      </Link>
+                      {(() => {
+                          const isLocked = isTrialing && item.trialLocked
+                          return (
+                            <Link
+                              href={isLocked ? '/dashboard/settings?tab=billing' : item.href}
+                              onClick={() => setOpen(false)}
+                              title={isLocked ? 'Available when you go live' : undefined}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                                active
+                                  ? 'border-l-[3px]'
+                                  : 'hover:bg-hover'
+                              } ${isLocked ? 'opacity-40' : ''}`}
+                              style={
+                                active
+                                  ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                                  : { color: "var(--color-text-2)" }
+                              }
+                            >
+                              <NavIcon name={item.iconName} />
+                              {item.adminLabel && isAdmin ? item.adminLabel : item.label}
+                              {isLocked && (
+                                <svg className="ml-auto w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none">
+                                  <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
+                                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                              )}
+                            </Link>
+                          )
+                        })()}
                     </div>
                   )
                 })}
@@ -144,7 +158,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
                 </Link>
               </nav>
 
-              {!isAdmin && clientStatus === 'trial' && (
+              {isTrialing && (
                 <div className="px-3 py-2">
                   <UpgradeCTA />
                 </div>

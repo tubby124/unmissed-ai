@@ -236,6 +236,7 @@ export default function ClientHome() {
           agentName={agent.name}
           businessName={onboarding.businessName}
           clientStatus={onboarding.clientStatus}
+          isTrial={isTrial}
         />
       )}
 
