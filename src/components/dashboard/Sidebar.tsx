@@ -113,7 +113,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       {/* Logo + identity */}
       <div className="flex items-center gap-2.5 px-4 py-5 border-b min-h-[64px]" style={{ borderColor: "var(--color-border)" }}>
         <Link href="/" className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-blue-500 flex items-center justify-center">
+          <div className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--color-primary)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

@@ -142,7 +142,7 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 | # | Item | Status |
 |---|------|--------|
 | C1 | Page template: `p-3 sm:p-6 space-y-6` on all pages. `PageHeader` component for titles. | DONE |
-| C2 | Sidebar — consistent active state, hover, group separators (CSS vars not Tailwind) | TODO |
+| C2 | Sidebar — consistent active state, hover, group separators (CSS vars not Tailwind) | DONE — `bg-blue-500` logo icon → `var(--color-primary)` in Sidebar.tsx; MobileNav.tsx already using CSS vars throughout; all active/hover/divider states confirmed on CSS vars in both files |
 | C3 | All cards use `card-surface` + `rounded-2xl`. Migrated: calendar, ClientHome, OperatorActivity, OutcomeCharts (3), AudioWaveformPlayer (2), TranscriptTimeline (2), MinuteUsage, OnboardingChecklist, CallsList processing bar. | DONE |
 | C4 | All section headers: unified `tracking-[0.15em]` across 54 files. Calendar `tracking-widest`, ClientHome `tracking-wide`, 72 instances of `tracking-[0.2em]` all normalized. | DONE |
 | C5 | All page titles: `text-lg font-semibold tracking-tight t1` via `PageHeader`. Calendar `text-2xl font-bold` fixed. Campaigns inline header → `PageHeader`. | DONE |
