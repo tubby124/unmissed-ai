@@ -104,14 +104,21 @@ function detectNicheFromTypes(types: string[]): Niche | null {
 }
 
 function parseAddressParts(address: string): { city: string; state: string; streetAddress: string } {
-  // Google formatted_address: "123 Main St, Saskatoon, SK S7L 0V5, Canada"
+  // Google formatted_address varies: "123 Main St, Saskatoon, SK S7L 0V5, Canada"
+  // but also: "Room 8, 400 5 Ave SW, Calgary, AB T2P 0L6, Canada"
+  // Strategy: find the part starting with a 2-letter province code — city is the part before it
   const parts = address.split(",").map((s) => s.trim());
-  const streetAddress = parts[0] || "";
-  const city = parts[1] || "";
-  // Province/state is usually the 3rd part before postal code: "SK S7L 0V5"
-  const stateChunk = parts[2] || "";
-  const state = stateChunk.split(" ")[0] || "";
-  return { city, state, streetAddress };
+  const provincePattern = /^([A-Z]{2})\b/;
+  const provinceIdx = parts.findIndex(p => provincePattern.test(p));
+  if (provinceIdx >= 1) {
+    const state = parts[provinceIdx].match(provincePattern)?.[1] || "";
+    const city = parts[provinceIdx - 1] || "";
+    const streetAddress = parts.slice(0, provinceIdx - 1).join(", ");
+    return { city, state, streetAddress };
+  }
+  // Fallback: original 3-part assumption
+  const state = (parts[2] || "").split(" ")[0] || "";
+  return { city: parts[1] || "", state, streetAddress: parts[0] || "" };
 }
 
 const NICHE_SUBTEXT: Partial<Record<Niche, string>> = {
