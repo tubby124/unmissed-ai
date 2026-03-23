@@ -96,7 +96,7 @@ HANG-UP RULES (mandatory — follow exactly):
 - NEVER re-engage or say "hello?" after invoking hangUp. The call is over.
 - NEVER generate any speech after your closing line and the hangUp tool call.`
 
-    const voiceId = NICHE_PREVIEW_VOICE[niche] || VOICE_JACQUELINE
+    const voiceId = onboardingData.voiceId || NICHE_PREVIEW_VOICE[niche] || VOICE_JACQUELINE
     const fallbackVoice = MALE_NICHES.has(niche) ? VOICE_MARK : VOICE_JACQUELINE
 
     try {
