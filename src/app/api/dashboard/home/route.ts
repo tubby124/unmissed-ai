@@ -35,7 +35,7 @@ export async function GET() {
     // Client config
     supabase
       .from('clients')
-      .select('id, business_name, agent_name, status, niche, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, website_url, calendar_auth_status')
+      .select('id, business_name, agent_name, status, niche, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id')
       .eq('id', clientId)
       .single(),
 
@@ -144,5 +144,12 @@ export async function GET() {
       sentiment: c.sentiment,
     })),
     capabilities,
+    onboarding: {
+      businessName: client.business_name,
+      clientStatus: client.status,
+      hasPhoneNumber: !!client.twilio_number,
+      hasAgent: !!client.ultravox_agent_id,
+      telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
+    },
   })
 }

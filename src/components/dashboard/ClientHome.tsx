@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 
 interface HomeData {
   admin: boolean
@@ -38,6 +40,13 @@ interface HomeData {
     hasSms: boolean
     hasTransfer: boolean
     hasWebsite: boolean
+  }
+  onboarding: {
+    businessName: string
+    clientStatus: string | null
+    hasPhoneNumber: boolean
+    hasAgent: boolean
+    telegramConnected: boolean
   }
 }
 
@@ -143,31 +152,54 @@ export default function ClientHome() {
 
   if (!data || data.admin) return null
 
-  const { agent, stats, usage, recentCalls, capabilities } = data
+  const { agent, stats, usage, recentCalls, capabilities, onboarding } = data
   const usagePct = usage.totalAvailable > 0 ? Math.min((usage.minutesUsed / usage.totalAvailable) * 100, 100) : 0
   const usageHigh = usagePct >= 80
 
-  // Build action items
+  const isTrial = onboarding.clientStatus === 'trial'
+  const showChecklist = onboarding.clientStatus === 'trial' || onboarding.clientStatus === 'active'
+  const hasRealCalls = stats.totalCalls > 0
+
+  // Build action items (suppressed when checklist is visible — they duplicate)
   const actions: { text: string; link: string; priority: 'high' | 'medium' | 'low' }[] = []
 
-  if (!capabilities.hasFacts && !capabilities.hasFaqs) {
-    actions.push({ text: 'Teach your agent about your business', link: '/dashboard/settings', priority: 'high' })
-  }
-  if (!capabilities.hasWebsite) {
-    actions.push({ text: 'Add your website to teach your agent more', link: '/dashboard/settings', priority: 'medium' })
-  }
-  if (!capabilities.hasHours) {
-    actions.push({ text: 'Set your business hours', link: '/dashboard/settings', priority: 'medium' })
-  }
-  if (stats.totalCalls === 0) {
-    actions.push({ text: 'Test your agent with a call', link: '/dashboard/settings', priority: 'high' })
-  }
-  if (usageHigh) {
-    actions.push({ text: `${usage.minutesUsed} of ${usage.totalAvailable} minutes used this month`, link: '/dashboard/settings', priority: 'high' })
+  if (!showChecklist) {
+    if (!capabilities.hasFacts && !capabilities.hasFaqs) {
+      actions.push({ text: 'Teach your agent about your business', link: '/dashboard/settings?tab=knowledge', priority: 'high' })
+    }
+    if (!capabilities.hasWebsite) {
+      actions.push({ text: 'Add your website to teach your agent more', link: '/dashboard/settings?tab=knowledge', priority: 'medium' })
+    }
+    if (!capabilities.hasHours) {
+      actions.push({ text: 'Set your business hours', link: '/dashboard/settings?tab=agent', priority: 'medium' })
+    }
+    if (usageHigh) {
+      actions.push({ text: `${usage.minutesUsed} of ${usage.totalAvailable} minutes used this month`, link: '/dashboard/settings?tab=billing', priority: 'high' })
+    }
   }
 
   return (
     <div className="p-3 sm:p-6 space-y-5">
+      {/* Test your agent — the aha moment */}
+      {onboarding.hasAgent && (
+        <AgentTestCard
+          agentName={agent.name}
+          businessName={onboarding.businessName}
+          clientStatus={onboarding.clientStatus}
+        />
+      )}
+
+      {/* Onboarding checklist */}
+      {showChecklist && (
+        <OnboardingChecklist
+          hasPhoneNumber={onboarding.hasPhoneNumber}
+          hasReceivedCall={hasRealCalls}
+          telegramConnected={onboarding.telegramConnected}
+          hasKnowledge={capabilities.hasKnowledge}
+          isTrial={isTrial}
+        />
+      )}
+
       {/* Hero card */}
       <div data-tour="agent-hero" className="rounded-2xl border bg-surface p-5 sm:p-6" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
         <div className="flex items-center gap-3 mb-4">
@@ -213,24 +245,26 @@ export default function ClientHome() {
         </div>
       </div>
 
-      {/* Quick stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
-            <TrendBadge value={stats.trends.hotChange} />
+      {/* Quick stats row — hidden until first real call */}
+      {hasRealCalls && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Hot Leads</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
+              <TrendBadge value={stats.trends.hotChange} />
+            </div>
+          </div>
+          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Bookings</p>
+            <p className="text-2xl font-bold t1">{stats.bookings}</p>
+          </div>
+          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Avg Quality</p>
+            <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
           </div>
         </div>
-        <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Bookings</p>
-          <p className="text-2xl font-bold t1">{stats.bookings}</p>
-        </div>
-        <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <p className="text-[10px] font-semibold tracking-wide uppercase t3 mb-1">Avg Quality</p>
-          <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
-        </div>
-      </div>
+      )}
 
       {/* Action items */}
       {actions.length > 0 && (
