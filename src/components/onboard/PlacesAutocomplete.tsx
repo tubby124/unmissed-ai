@@ -135,8 +135,8 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
           value={input}
           onChange={handleInputChange}
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
-          placeholder="Search your business name..."
-          className="w-full pl-9 pr-9 py-2.5 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          placeholder="Search for your business..."
+          className="w-full pl-9 pr-9 py-3 text-sm border-2 border-indigo-100 dark:border-indigo-900 rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 transition-all"
           autoComplete="off"
         />
 

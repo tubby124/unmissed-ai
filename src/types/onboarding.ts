@@ -179,7 +179,7 @@ export const defaultOnboardingData: OnboardingData = {
   notificationMethod: "telegram",
   notificationPhone: "",
   notificationEmail: "",
-  callerAutoText: true,
+  callerAutoText: false,
   callerAutoTextMessage: "",
   callerFAQ: "",
   agentRestrictions: "",

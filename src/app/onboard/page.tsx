@@ -10,12 +10,21 @@ import Step2Voice from "./steps/step2-voice";
 import Step4 from "./steps/step4";
 import Step6Review from "./steps/step6-review";
 import ThemeToggle from "@/components/ThemeToggle";
+import AgentBuildCard from "@/components/onboard/AgentBuildCard";
 import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { trackEvent } from "@/lib/analytics";
 import { loadVisitor } from "@/lib/demo-visitor";
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
+
+const NICHE_TRAINING_COLOR: Record<string, string> = {
+  auto_glass: "#3B82F6", hvac: "#F59E0B", plumbing: "#06B6D4",
+  dental: "#8B5CF6", legal: "#6B7280", salon: "#EC4899",
+  real_estate: "#10B981", property_management: "#8B5CF6",
+  outbound_isa_realtor: "#10B981", voicemail: "#6366F1",
+  restaurant: "#EF4444", print_shop: "#0EA5E9", other: "#6366F1",
+};
 
 function getStepSequence(niche: Niche | null): number[] {
   if (niche === "voicemail") return [1, 2, 6]; // skip Knowledge (4)
@@ -57,24 +66,40 @@ function canAdvance(step: number, data: OnboardingData): boolean {
   }
 }
 
-function StepIndicator({ current, total }: { current: number; total: number }) {
+function StepIndicator({
+  currentIndex,
+  steps,
+  titles,
+}: {
+  currentIndex: number;
+  steps: number[];
+  titles: Record<number, string>;
+}) {
   return (
-    <div className="flex items-center justify-center gap-2 py-4 px-4">
-      {Array.from({ length: total }, (_, i) => {
-        const n = i + 1;
-        const done = n < current;
-        const active = n === current;
+    <div className="flex items-center justify-center gap-1.5 py-3 px-4 overflow-x-auto scrollbar-none">
+      {steps.map((stepNum, i) => {
+        const done = i < currentIndex;
+        const active = i === currentIndex;
         return (
           <div
-            key={n}
-            className={`rounded-full transition-all duration-300 ${
+            key={stepNum}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap ${
               active
-                ? "w-6 h-2 bg-indigo-600"
+                ? "bg-indigo-600 text-white"
                 : done
-                ? "w-2 h-2 bg-indigo-400"
-                : "w-2 h-2 bg-muted-foreground/25"
+                ? "bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400"
+                : "bg-muted/60 text-muted-foreground/50"
             }`}
-          />
+          >
+            {done ? (
+              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <span className="w-3 h-3 flex items-center justify-center text-[10px] shrink-0 font-bold">{i + 1}</span>
+            )}
+            {titles[stepNum]}
+          </div>
         );
       })}
     </div>
@@ -222,6 +247,7 @@ export default function OnboardPage() {
 
   const canGoNext = canAdvance(step, data);
   const isLastStep = stepIndex === totalSteps - 1;
+  const trainingColor = NICHE_TRAINING_COLOR[data.niche || 'other'] || '#6366F1';
 
   return (
     <>
@@ -229,8 +255,11 @@ export default function OnboardPage() {
       {showTrainingAnimation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
           <div className="text-center space-y-4 px-8 max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center mx-auto"
+              style={{ background: `${trainingColor}18`, boxShadow: `0 0 0 2px ${trainingColor}40` }}
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: trainingColor }}>
                 <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
@@ -240,8 +269,8 @@ export default function OnboardPage() {
             {/* Progress bar */}
             <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-indigo-600 rounded-full transition-all"
-                style={{ width: '100%', transition: 'width 1.9s ease-out', transitionDelay: '0.05s' }}
+                className="h-full rounded-full transition-all"
+                style={{ width: '100%', background: trainingColor, transition: 'width 1.9s ease-out', transitionDelay: '0.05s' }}
               />
             </div>
           </div>
@@ -249,7 +278,7 @@ export default function OnboardPage() {
       )}
 
       {/* Main panel */}
-      <div className="min-h-screen flex flex-col bg-muted/30">
+      <div className="min-h-screen flex flex-col bg-background">
         {/* Header */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -265,17 +294,21 @@ export default function OnboardPage() {
           </div>
         </div>
 
-        {/* Step indicator */}
+        {/* Step indicator — labeled chips */}
         <div className="bg-background border-b">
-          <StepIndicator current={stepIndex + 1} total={totalSteps} />
-          <div className="text-center pb-3">
-            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">{STEP_TITLES[step]}</span>
-          </div>
+          <StepIndicator
+            currentIndex={stepIndex}
+            steps={stepSequence}
+            titles={STEP_TITLES}
+          />
         </div>
 
         {/* Step content — animated */}
         <div className="flex-1 flex justify-center px-4 py-8 overflow-hidden">
           <div className="w-full max-w-xl">
+            {/* Progressive agent build card — appears from step 2, hides on review */}
+            <AgentBuildCard data={data} currentStep={step} stepIndex={stepIndex} />
+
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -286,10 +319,14 @@ export default function OnboardPage() {
                 exit="exit"
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
-                {step === 1 && <Step1 data={data} onUpdate={update} />}
-                {step === 2 && <Step2Voice data={data} onUpdate={update} />}
-                {step === 4 && <Step4 data={data} onUpdate={update} />}
-                {step === 6 && (
+                {/* Steps 1–4: card-wrapped for dashboard-match visual language */}
+                {step !== 6 ? (
+                  <div className="rounded-xl border border-border bg-card p-6">
+                    {step === 1 && <Step1 data={data} onUpdate={update} />}
+                    {step === 2 && <Step2Voice data={data} onUpdate={update} />}
+                    {step === 4 && <Step4 data={data} onUpdate={update} />}
+                  </div>
+                ) : (
                   <Step6Review
                     data={data}
                     stepSequence={stepSequence}

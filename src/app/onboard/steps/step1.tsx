@@ -114,6 +114,22 @@ function parseAddressParts(address: string): { city: string; state: string; stre
   return { city, state, streetAddress };
 }
 
+const NICHE_SUBTEXT: Partial<Record<Niche, string>> = {
+  auto_glass: "Tell us about your auto glass shop.",
+  hvac: "Tell us about your HVAC company.",
+  plumbing: "Tell us about your plumbing business.",
+  dental: "Tell us about your dental clinic.",
+  legal: "Tell us about your law office.",
+  salon: "Tell us about your salon or spa.",
+  real_estate: "Tell us about your real estate business.",
+  property_management: "Tell us about your property management company.",
+  outbound_isa_realtor: "Tell us about your real estate team.",
+  restaurant: "Tell us about your restaurant.",
+  print_shop: "Tell us about your print shop.",
+  voicemail: "Tell us about your business.",
+  other: "Tell us about your business.",
+};
+
 const NICHE_INSIGHTS: Partial<Record<Niche, string[]>> = {
   auto_glass: [
     "Triage windshield chips vs. full replacements",
@@ -185,10 +201,26 @@ function resolveAgentName(currentName: string, newNiche: Niche): string | undefi
   return undefined
 }
 
+// Pending place data while user confirms "Is this your business?"
+interface PendingPlace {
+  name: string | null
+  address: string | null
+  phone: string | null
+  hours: string[] | null
+  photoUrl: string | null
+  rating: number | null
+  reviewCount: number | null
+  types: string[]
+  placeId: string
+}
+
 export default function Step1({ data, onUpdate }: Props) {
   const [autofilling, setAutofilling] = useState(false);
   const [googleFilled, setGoogleFilled] = useState(false);
   const [websiteFilled, setWebsiteFilled] = useState(false);
+  const [pendingPlace, setPendingPlace] = useState<PendingPlace | null>(null);
+  const [placesKey, setPlacesKey] = useState(0);
+  const [flashNiche, setFlashNiche] = useState<Niche | null>(null);
 
   const handleWebsiteBlur = useCallback(
     async (url: string) => {
@@ -279,59 +311,144 @@ export default function Step1({ data, onUpdate }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">What type of business are you?</h2>
+        <h2 className="text-2xl font-bold text-foreground">Let&apos;s build your AI receptionist.</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Your agent will be customized with industry-specific knowledge.
+          {data.niche && NICHE_SUBTEXT[data.niche]
+            ? NICHE_SUBTEXT[data.niche]
+            : "Find your business and we'll fill in the details."}
         </p>
       </div>
 
-      {/* Business search — Places autocomplete */}
+      {/* Business search — Places autocomplete (optional helper) */}
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-foreground">
-          Search your business to get started
+          Find your business <span className="text-xs font-normal text-muted-foreground">(optional — or fill in below)</span>
         </label>
         <PlacesAutocomplete
+          key={placesKey}
           initialValue={data.businessName}
           onSelect={(result) => {
-            const updates: Partial<OnboardingData> = {}
-            if (result.name) updates.businessName = result.name
-            if (result.address) {
-              const { city, state, streetAddress } = parseAddressParts(result.address)
-              if (city) updates.city = city
-              if (state) updates.state = state
-              if (streetAddress) updates.streetAddress = streetAddress
-            }
-            if (result.phone) updates.callbackPhone = result.phone
-            if (result.hours && Array.isArray(result.hours)) {
-              updates.businessHoursText = result.hours.join(', ')
-            }
-            if (result.photoUrl) updates.placesPhotoUrl = result.photoUrl
-            if (result.rating) updates.placesRating = result.rating
-            if (result.reviewCount) updates.placesReviewCount = result.reviewCount
-            if (result.placeId) updates.placeId = result.placeId
-            // Auto-detect niche from Places types[]
-            if (result.types && Array.isArray(result.types)) {
-              const detected = detectNicheFromTypes(result.types)
-              if (detected && NICHE_PRODUCTION_READY[detected]) {
-                updates.niche = detected
-                // Auto-fill agent name if not customized
-                const newName = resolveAgentName(data.agentName, detected)
-                if (newName) updates.agentName = newName
-              }
-              // Auto-fill servicesOffered if not already set
-              if (!data.servicesOffered) {
-                const services = detectServicesFromTypes(result.types)
-                if (services) updates.servicesOffered = services
-              }
-            }
-            if (Object.keys(updates).length > 0) {
-              onUpdate(updates)
-              setGoogleFilled(true)
-              setWebsiteFilled(false)
-            }
+            // Hold in pending state — user must confirm "Is this your business?"
+            setPendingPlace({
+              name: result.name,
+              address: result.address,
+              phone: result.phone,
+              hours: result.hours,
+              photoUrl: result.photoUrl,
+              rating: result.rating,
+              reviewCount: result.reviewCount,
+              types: result.types ?? [],
+              placeId: result.placeId,
+            })
           }}
         />
       </div>
+
+      {/* "Is this your business?" confirm card */}
+      <AnimatePresence>
+        {pendingPlace && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="rounded-xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-card overflow-hidden shadow-sm"
+          >
+            {pendingPlace.photoUrl && (
+              <div className="h-28 overflow-hidden bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pendingPlace.photoUrl}
+                  alt={pendingPlace.name ?? "Business"}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-base font-semibold text-foreground leading-snug">
+                  {pendingPlace.name}
+                </p>
+                {pendingPlace.rating && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <svg className="w-3.5 h-3.5 text-amber-400 fill-amber-400" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold text-foreground">{pendingPlace.rating.toFixed(1)}</span>
+                    {pendingPlace.reviewCount && (
+                      <span className="text-xs text-muted-foreground">({pendingPlace.reviewCount})</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {pendingPlace.address && (
+                <p className="text-sm text-muted-foreground mt-0.5">{pendingPlace.address}</p>
+              )}
+              <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mt-3 mb-2.5">
+                Is this your business?
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updates: Partial<OnboardingData> = {}
+                    if (pendingPlace.name) updates.businessName = pendingPlace.name
+                    if (pendingPlace.address) {
+                      const { city, state, streetAddress } = parseAddressParts(pendingPlace.address)
+                      if (city) updates.city = city
+                      if (state) updates.state = state
+                      if (streetAddress) updates.streetAddress = streetAddress
+                    }
+                    if (pendingPlace.phone) updates.callbackPhone = pendingPlace.phone
+                    if (pendingPlace.hours && Array.isArray(pendingPlace.hours)) {
+                      updates.businessHoursText = pendingPlace.hours.join(', ')
+                    }
+                    if (pendingPlace.photoUrl) updates.placesPhotoUrl = pendingPlace.photoUrl
+                    if (pendingPlace.rating) updates.placesRating = pendingPlace.rating
+                    if (pendingPlace.reviewCount) updates.placesReviewCount = pendingPlace.reviewCount
+                    updates.placeId = pendingPlace.placeId
+                    if (pendingPlace.types.length > 0) {
+                      const detected = detectNicheFromTypes(pendingPlace.types)
+                      if (detected && NICHE_PRODUCTION_READY[detected]) {
+                        updates.niche = detected
+                        const newName = resolveAgentName(data.agentName, detected)
+                        if (newName) updates.agentName = newName
+                        setFlashNiche(detected)
+                        setTimeout(() => setFlashNiche(null), 1500)
+                      }
+                      if (!data.servicesOffered) {
+                        const services = detectServicesFromTypes(pendingPlace.types)
+                        if (services) updates.servicesOffered = services
+                      }
+                    }
+                    onUpdate(updates)
+                    setGoogleFilled(true)
+                    setWebsiteFilled(false)
+                    setPendingPlace(null)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors cursor-pointer"
+                >
+                  Yes, that&apos;s us
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingPlace(null)
+                    setPlacesKey(k => k + 1) // remount search input
+                  }}
+                  className="px-3 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  Not the right one
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Autofill confirmed badge */}
       {(googleFilled || websiteFilled) && (
@@ -373,6 +490,7 @@ export default function Step1({ data, onUpdate }: Props) {
                       ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-sm shadow-indigo-100 dark:shadow-none"
                       : "border-border bg-card text-foreground hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20"
                     }
+                    ${flashNiche === niche ? "ring-2 ring-indigo-500 ring-offset-1" : ""}
                   `}
                 >
                   <NicheIcon
@@ -442,9 +560,13 @@ export default function Step1({ data, onUpdate }: Props) {
       {/* ── Business details — confirm or fill ─────────────────────────────── */}
       <div className="space-y-4 pt-4 border-t border-border">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Your details</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            {googleFilled ? "Confirm these details" : "Your details"}
+          </h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Confirm your info so your agent knows who it&apos;s representing.
+            {googleFilled
+              ? "Looks good? Edit anything that\u2019s off."
+              : "Your agent will use this to introduce itself to callers."}
           </p>
         </div>
 

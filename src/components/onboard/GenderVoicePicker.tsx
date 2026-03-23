@@ -71,7 +71,10 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
     return (
       <div
         key={voice.id}
-        onClick={() => onSelect(voice.id, voice.name)}
+        onClick={() => {
+          onSelect(voice.id, voice.name)
+          isPlaying ? stop() : play(voice.id)
+        }}
         className={`
           relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all
           ${isSelected
@@ -80,7 +83,7 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
           }
         `}
       >
-        {/* Voice name */}
+        {/* Voice name + personality */}
         <div className="text-center">
           <div className={`text-sm font-semibold ${isSelected ? 'text-indigo-900' : 'text-foreground'}`}>
             {voice.name}
@@ -88,48 +91,31 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
           <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{voice.personality}</div>
         </div>
 
-        {/* Preview button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            isPlaying ? stop() : play(voice.id)
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-            isPlaying
-              ? 'bg-indigo-600 text-white'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          }`}
-        >
+        {/* Play indicator: waveform when playing, muted play icon when idle */}
+        <div className="flex items-center justify-center h-5">
           {isPlaying ? (
-            <>
-              <div className="flex items-end gap-0.5" style={{ height: 12 }}>
-                {[0, 100, 200].map((delay, i) => (
-                  <div key={i} style={{
-                    width: 2,
-                    height: 10,
-                    borderRadius: 2,
-                    background: 'white',
-                    transformOrigin: 'bottom',
-                    animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
-                  }} />
-                ))}
-              </div>
-              Stop
-            </>
+            <div className="flex items-end gap-0.5">
+              {[0, 100, 200].map((delay, i) => (
+                <div key={i} style={{
+                  width: 2,
+                  height: 10,
+                  borderRadius: 2,
+                  background: '#4f46e5',
+                  transformOrigin: 'bottom',
+                  animation: `voiceBar 0.75s ease-in-out ${delay}ms infinite`,
+                }} />
+              ))}
+            </div>
           ) : (
-            <>
-              <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor">
-                <path d="M0 0L8 5L0 10V0Z"/>
-              </svg>
-              Preview
-            </>
+            <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" className="text-muted-foreground/30">
+              <path d="M0 0L8 5L0 10V0Z"/>
+            </svg>
           )}
-        </button>
+        </div>
 
-        {/* Error badge */}
+        {/* Error badge — top-left to avoid overlap with selected checkmark */}
         {hasError && (
-          <span className="absolute top-2 right-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+          <span className="absolute top-2 left-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
             Preview unavailable
           </span>
         )}
