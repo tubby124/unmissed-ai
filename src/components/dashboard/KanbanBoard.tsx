@@ -39,7 +39,7 @@ const COLUMNS: { status: string; label: string; dotClass: string; emptyLabel: st
   { status: 'HOT', label: 'Hot', dotClass: 'bg-red-500', emptyLabel: 'No hot leads' },
   { status: 'WARM', label: 'Warm', dotClass: 'bg-amber-500', emptyLabel: 'No warm leads' },
   { status: 'COLD', label: 'Cold', dotClass: 'bg-blue-500', emptyLabel: 'No cold leads' },
-  { status: 'JUNK', label: 'Junk', dotClass: 'bg-gray-400', emptyLabel: 'No junk calls' },
+  { status: 'JUNK', label: 'Junk', dotClass: 'bg-zinc-400', emptyLabel: 'No junk calls' },
   { status: 'MISSED', label: 'Missed', dotClass: 'bg-orange-500', emptyLabel: 'No missed calls' },
 ]
 
@@ -56,12 +56,12 @@ function KanbanCard({ call, isDragging }: { call: CallLog; isDragging?: boolean 
           {call.caller_phone || 'Unknown'}
         </span>
         {dur && (
-          <span className="text-[10px] font-mono tabular-nums text-gray-400 shrink-0">{dur}</span>
+          <span className="text-[10px] font-mono tabular-nums t3 shrink-0">{dur}</span>
         )}
-        <span className="text-[10px] font-mono tabular-nums text-gray-400 shrink-0">{timeAgo(call.started_at)}</span>
+        <span className="text-[10px] font-mono tabular-nums t3 shrink-0">{timeAgo(call.started_at)}</span>
       </div>
       {snippet && (
-        <p className="text-[11px] italic text-gray-400 leading-snug line-clamp-2">{snippet}</p>
+        <p className="text-[11px] italic t3 leading-snug line-clamp-2">{snippet}</p>
       )}
       {call.business_name && (
         <p className="text-[10px] t3 mt-1 truncate">{call.business_name}</p>

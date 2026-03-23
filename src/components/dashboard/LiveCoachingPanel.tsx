@@ -91,8 +91,8 @@ export default function LiveCoachingPanel({
                 <span
                   className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
                     msg.status === 'delivered'
-                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
-                      : 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                   }`}
                 >
                   {msg.status === 'delivered' ? 'Delivered' : 'Pending'}

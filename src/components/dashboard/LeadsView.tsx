@@ -236,8 +236,8 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                         )}
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
                           call.call_status === 'HOT'
-                            ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
-                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                         }`}>
                           {call.call_status}
                         </span>

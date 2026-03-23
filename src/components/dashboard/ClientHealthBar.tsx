@@ -32,9 +32,9 @@ function statusDot(status: string | null | undefined) {
 }
 
 function slaColor(ageHours: number) {
-  if (ageHours < 1) return 'text-green-600 dark:text-green-400'
-  if (ageHours < 3) return 'text-amber-600 dark:text-amber-400'
-  return 'text-red-600 dark:text-red-400'
+  if (ageHours < 1) return 'text-emerald-400'
+  if (ageHours < 3) return 'text-amber-400'
+  return 'text-red-400'
 }
 
 export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientHealthBarProps) {
@@ -43,8 +43,8 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
   const now = Date.now()
 
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
-      <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+    <div className="rounded-2xl border b-theme overflow-hidden bg-surface">
+      <div className="px-4 py-2.5 border-b b-theme bg-surface">
         <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
           Client Health
         </p>
@@ -67,19 +67,18 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
           return (
             <div
               key={client.id}
-              className={`flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--color-hover)] transition-colors${i < adminClients.length - 1 ? ' border-b' : ''}`}
-              style={i < adminClients.length - 1 ? { borderBottomColor: 'var(--color-border)' } : undefined}
+              className={`flex items-center gap-3 px-4 py-2.5 hover:bg-hover transition-colors${i < adminClients.length - 1 ? ' border-b b-theme' : ''}`}
             >
               {/* Status dot */}
               <div className={`w-2 h-2 rounded-full shrink-0 ${statusDot(client.status)}`} />
 
               {/* Name + niche */}
               <div className="min-w-0 w-32 shrink-0">
-                <p className="text-[12px] font-medium truncate" style={{ color: 'var(--color-text-1)' }}>
+                <p className="text-[12px] font-medium truncate t1">
                   {client.business_name}
                 </p>
                 {client.niche && (
-                  <p className="text-[10px] font-mono truncate" style={{ color: 'var(--color-text-3)' }}>
+                  <p className="text-[10px] font-mono truncate t3">
                     {client.niche.replace(/_/g, ' ')}
                   </p>
                 )}
@@ -88,14 +87,14 @@ export default function ClientHealthBar({ adminClients, hotLeads = [] }: ClientH
               {/* Minute usage bar */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-3)' }}>
+                  <span className="text-[10px] font-mono t3">
                     {minutesUsed}/{minuteLimit} min
                   </span>
-                  <span className="text-[10px] font-mono" style={{ color: usagePct > 80 ? 'var(--color-warm)' : 'var(--color-text-3)' }}>
+                  <span className={`text-[10px] font-mono ${usagePct > 80 ? 'text-amber-400' : 't3'}`}>
                     {Math.round(usagePct)}%
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
+                <div className="h-1.5 rounded-full overflow-hidden bg-hover">
                   <div
                     className={`h-full rounded-full ${barColor}`}
                     style={{ width: `${Math.min(usagePct, 100)}%` }}
