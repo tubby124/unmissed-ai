@@ -263,6 +263,19 @@ Current marketing components are functional prototypes, not polished. Full rebui
 
 ---
 
+## Reference Components (styles we like — adapt for implementation)
+
+| # | Component | Source | Notes | Status |
+|---|-----------|--------|-------|--------|
+| R1 | **Full-Screen Calendar** | originui/shadcn | Proper grid with events, clean month nav. Replace `calendar/page.tsx`. | TODO |
+| R2 | **Sign-In Page** | originui/shadcn | Glass morphism inputs, hero + testimonials, Google OAuth. **DONE** — rebuilt as split-layout login. | DONE |
+| R3 | **Dropdown Menu** | shadcn radix | Full dropdown-menu.tsx primitive. **DONE** — created. | DONE |
+| R4 | **Button variants** | originui | focus-visible outline offset pattern. Already in our button.tsx. | DONE |
+| R5 | **File Upload** | originui/shadcn | Drag-and-drop zone, file preview card with remove, progress. Dashed border, muted bg preview. Uses Button, Label. For knowledge doc uploads, scrape file imports, etc. | TODO |
+| R6 | **Separator** | shadcn radix | separator.tsx primitive. **DONE** — created. | DONE |
+
+---
+
 ## Architecture / Navigation (separate sessions)
 
 Items that need their own focused session — not CSS polish, but structural changes.
