@@ -19,6 +19,7 @@ import { createAgent, updateAgent, buildAgentTools, resolveVoiceId } from '@/lib
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -270,6 +271,33 @@ export async function POST(req: NextRequest) {
 
     clientId = newClient.id as string
     console.log(`[generate-prompt] Created new client ${clientSlug} (${clientId})`)
+  }
+
+  // ── Seed knowledge docs into pgvector ──────────────────────────────────────
+  if (kDocs && kDocs.length > 0 && clientId) {
+    try {
+      await deleteClientChunks(clientId, 'knowledge_doc')
+
+      const chunks: ChunkInput[] = kDocs.flatMap((d: { content_text: string }) => {
+        const paragraphs = (d.content_text)
+          .split(/\n\n+/)
+          .map(p => p.trim())
+          .filter(p => p.length > 20)
+        return paragraphs.map(p => ({
+          content: p,
+          chunkType: 'document' as const,
+          source: 'knowledge_doc',
+          status: 'approved',
+          trustTier: 'high',
+        }))
+      })
+      if (chunks.length > 0) {
+        await embedChunks(clientId, chunks, `knowledge-doc-provision-${Date.now()}`)
+        console.log(`[generate-prompt] Seeded ${chunks.length} knowledge doc chunks for ${clientSlug}`)
+      }
+    } catch (err) {
+      console.error('[generate-prompt] Knowledge doc seeding failed:', err)
+    }
   }
 
   // ── Create prompt_versions row with audit trail ────────────────────────────

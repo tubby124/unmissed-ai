@@ -66,12 +66,20 @@ export default function KnowledgeBaseTab({
   const [selectedFacts, setSelectedFacts] = useState<Set<number>>(new Set())
   const [selectedQa, setSelectedQa] = useState<Set<number>>(new Set())
 
+  // File upload state
+  const [fileUploadOpen, setFileUploadOpen] = useState(false)
+  const [fileUploading, setFileUploading] = useState(false)
+  const [fileUploadResult, setFileUploadResult] = useState<{ ok: boolean; filename: string; chunksCreated: number; charCount: number } | null>(null)
+  const [fileUploadError, setFileUploadError] = useState('')
+  const [fileDragging, setFileDragging] = useState(false)
+  const docFileInputRef = useRef<HTMLInputElement>(null)
+
   // Bulk import state
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const [bulkJson, setBulkJson] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<{ ok: boolean; succeeded: number; failed: number; errors?: { index: number; error: string }[] } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const bulkFileInputRef = useRef<HTMLInputElement>(null)
 
   // Export state
   const [exportLoading, setExportLoading] = useState(false)
@@ -228,7 +236,7 @@ export default function KnowledgeBaseTab({
     }
   }
 
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleBulkFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
@@ -237,6 +245,39 @@ export default function KnowledgeBaseTab({
     }
     reader.readAsText(file)
     e.target.value = ''
+  }
+
+  async function handleDocFileUpload(file: File) {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    const allowed = new Set(['pdf', 'txt', 'docx', 'csv'])
+    if (!allowed.has(ext)) {
+      setFileUploadError('Unsupported file type. Allowed: PDF, TXT, DOCX, CSV')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFileUploadError('File too large (max 5MB)')
+      return
+    }
+    setFileUploading(true)
+    setFileUploadError('')
+    setFileUploadResult(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('client_id', clientId)
+      const res = await fetch('/api/dashboard/knowledge/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+      setFileUploadResult({ ok: true, filename: data.filename, chunksCreated: data.chunksCreated, charCount: data.charCount })
+      triggerRefresh()
+    } catch (err) {
+      setFileUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setFileUploading(false)
+    }
   }
 
   async function handleExport() {
@@ -350,7 +391,7 @@ export default function KnowledgeBaseTab({
               <p className="text-xs font-semibold t2">Add Knowledge</p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { setShowAddForm(v => !v); setBulkImportOpen(false); setScrapeStatus('idle'); setScrapePreview(null) }}
+                  onClick={() => { setShowAddForm(v => !v); setBulkImportOpen(false); setFileUploadOpen(false); setScrapeStatus('idle'); setScrapePreview(null) }}
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     showAddForm
                       ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
@@ -360,7 +401,17 @@ export default function KnowledgeBaseTab({
                   Manual Entry
                 </button>
                 <button
-                  onClick={() => { setBulkImportOpen(v => !v); setShowAddForm(false); setScrapeStatus('idle'); setScrapePreview(null) }}
+                  onClick={() => { setFileUploadOpen(v => !v); setShowAddForm(false); setBulkImportOpen(false); setScrapeStatus('idle'); setScrapePreview(null); setFileUploadResult(null); setFileUploadError('') }}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                    fileUploadOpen
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                  }`}
+                >
+                  File Upload
+                </button>
+                <button
+                  onClick={() => { setBulkImportOpen(v => !v); setShowAddForm(false); setFileUploadOpen(false); setScrapeStatus('idle'); setScrapePreview(null) }}
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     bulkImportOpen
                       ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
@@ -436,6 +487,65 @@ export default function KnowledgeBaseTab({
                 </div>
               )}
 
+              {/* File upload form */}
+              {fileUploadOpen && (
+                <div className="space-y-3">
+                  <p className="text-xs t3">
+                    Upload a PDF, TXT, DOCX, or CSV file. Content is extracted, split into chunks, and embedded into the knowledge base.
+                  </p>
+                  <div
+                    onDragOver={e => { e.preventDefault(); setFileDragging(true) }}
+                    onDragLeave={e => { e.preventDefault(); setFileDragging(false) }}
+                    onDrop={e => {
+                      e.preventDefault()
+                      setFileDragging(false)
+                      const file = e.dataTransfer.files[0]
+                      if (file) handleDocFileUpload(file)
+                    }}
+                    onClick={() => docFileInputRef.current?.click()}
+                    className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-all ${
+                      fileDragging
+                        ? 'border-emerald-500 bg-emerald-500/5'
+                        : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900/30'
+                    } ${fileUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`mb-2 ${fileDragging ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <p className="text-xs font-medium t2">
+                      {fileUploading ? 'Uploading...' : 'Drop a file here or click to upload'}
+                    </p>
+                    <p className="text-[10px] t3 mt-1">PDF, TXT, DOCX, or CSV — max 5MB</p>
+                    <input
+                      ref={docFileInputRef}
+                      type="file"
+                      accept=".pdf,.txt,.docx,.csv"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleDocFileUpload(file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </div>
+                  {fileUploadError && (
+                    <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+                      {fileUploadError}
+                    </div>
+                  )}
+                  {fileUploadResult && (
+                    <div className="rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2 text-xs text-green-400 flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>
+                        <strong>{fileUploadResult.filename}</strong> — {fileUploadResult.charCount.toLocaleString()} chars extracted, {fileUploadResult.chunksCreated} chunk{fileUploadResult.chunksCreated !== 1 ? 's' : ''} added to knowledge base
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Bulk import form */}
               {bulkImportOpen && (
                 <div className="space-y-3">
@@ -445,16 +555,16 @@ export default function KnowledgeBaseTab({
                   </p>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => bulkFileInputRef.current?.click()}
                       className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 transition-colors"
                     >
                       Upload JSON File
                     </button>
                     <input
-                      ref={fileInputRef}
+                      ref={bulkFileInputRef}
                       type="file"
                       accept=".json"
-                      onChange={handleFileUpload}
+                      onChange={handleBulkFileUpload}
                       className="hidden"
                     />
                   </div>
@@ -489,7 +599,7 @@ export default function KnowledgeBaseTab({
               )}
 
               {/* Website scrape section */}
-              {!showAddForm && !bulkImportOpen && (
+              {!showAddForm && !bulkImportOpen && !fileUploadOpen && (
                 <div className="space-y-3">
                   <p className="text-xs t3">
                     Scrape a website to extract business facts and Q&A. Extracted content goes to pending review before your agent can use it.

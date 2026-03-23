@@ -13,7 +13,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 export type ChunkInput = {
   content: string
-  chunkType: 'fact' | 'qa' | 'page_content' | 'manual' | 'niche_template' | 'call_learning'
+  chunkType: 'fact' | 'qa' | 'page_content' | 'manual' | 'niche_template' | 'call_learning' | 'document'
   source: string
   metadata?: Record<string, unknown>
   /** Optional chunk status (e.g. 'pending', 'approved'). If omitted, DB default applies. */

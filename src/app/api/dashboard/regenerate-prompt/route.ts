@@ -13,9 +13,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { buildPromptFromIntake } from '@/lib/prompt-builder'
+import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
+import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, system_prompt')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -116,6 +117,38 @@ export async function POST(req: NextRequest) {
 
     newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
     regenSource = 'intake'
+
+    // ── Re-apply manual patches so regeneration preserves customizations ──────
+    // 1. Agent name: if the DB has a custom name different from the intake name, patch it
+    if (client.agent_name) {
+      const intakeAgentName = (intake.intake_json as Record<string, unknown>)?.agent_name as string | undefined
+      if (intakeAgentName && intakeAgentName !== client.agent_name) {
+        newPrompt = patchAgentName(newPrompt, intakeAgentName, client.agent_name as string)
+        console.log(`[regenerate-prompt] Re-applied agent name: "${intakeAgentName}" → "${client.agent_name}"`)
+      }
+    }
+
+    // 2. Calendar booking block: if booking is enabled, ensure the block is present
+    if (client.booking_enabled) {
+      const niche = (client.niche as string | null) || 'other'
+      newPrompt = patchCalendarBlock(
+        newPrompt,
+        true,
+        getServiceType(niche),
+        getClosePerson(newPrompt, client.agent_name as string | null),
+      )
+      console.log(`[regenerate-prompt] Re-applied calendar booking block`)
+    }
+
+    // 3. Voice style: if a preset was applied, re-patch the tone/style section
+    const voicePreset = client.voice_style_preset as string | null
+    if (voicePreset) {
+      const preset = VOICE_PRESETS[voicePreset]
+      if (preset) {
+        newPrompt = patchVoiceStyleSection(newPrompt, preset.toneStyleBlock, preset.fillerStyle)
+        console.log(`[regenerate-prompt] Re-applied voice style preset: "${voicePreset}"`)
+      }
+    }
   } else {
     // S6f fallback: no intake exists — refresh from current prompt + re-sync tools/voice
     if (!client.system_prompt) {

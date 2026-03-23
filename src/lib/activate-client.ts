@@ -17,6 +17,7 @@ import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRow
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { APP_URL } from '@/lib/app-url'
 import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
 
 async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
   if (!bot || !chat) return
@@ -567,6 +568,38 @@ export async function activateClient(params: {
       .is('client_id', null)
     console.log(`${logPrefix} Linked knowledge docs from intake=${intakeId} to client=${clientId}`)
     steps.push({ step: 'knowledge_docs', ok: true })
+
+    // Seed linked knowledge docs into pgvector
+    try {
+      const { data: linkedDocs } = await adminSupa
+        .from('client_knowledge_docs')
+        .select('content_text')
+        .eq('client_id', clientId)
+
+      if (linkedDocs && linkedDocs.length > 0) {
+        await deleteClientChunks(clientId, 'knowledge_doc')
+
+        const chunks: ChunkInput[] = linkedDocs.flatMap((d: { content_text: string }) => {
+          const paragraphs = (d.content_text)
+            .split(/\n\n+/)
+            .map(p => p.trim())
+            .filter(p => p.length > 20)
+          return paragraphs.map(p => ({
+            content: p,
+            chunkType: 'document' as const,
+            source: 'knowledge_doc',
+            status: 'approved',
+            trustTier: 'high',
+          }))
+        })
+        if (chunks.length > 0) {
+          await embedChunks(clientId, chunks, `knowledge-doc-activate-${Date.now()}`)
+          console.log(`${logPrefix} Seeded ${chunks.length} knowledge doc chunks for client=${clientId}`)
+        }
+      }
+    } catch (seedErr) {
+      console.error(`${logPrefix} Knowledge doc seeding failed:`, seedErr)
+    }
   } catch (err) {
     console.error(`${logPrefix} knowledge doc linking threw: ${err}`)
     steps.push({ step: 'knowledge_docs', ok: false, error: String(err).slice(0, 200) })

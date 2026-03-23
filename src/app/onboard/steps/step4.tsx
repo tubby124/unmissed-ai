@@ -24,9 +24,11 @@ const ACCEPTED_TYPES = [
   "application/pdf",
   "text/plain",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/csv",
+  "application/vnd.ms-excel",
 ];
 
-const ACCEPTED_EXTENSIONS = [".pdf", ".txt", ".docx"];
+const ACCEPTED_EXTENSIONS = [".pdf", ".txt", ".docx", ".csv"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES = 3;
 
@@ -81,6 +83,7 @@ const DEFAULT_FAQ: Record<string, { question: string; answer: string }[]> = {
 function getFileIcon(filename: string) {
   if (filename.endsWith(".pdf")) return <FileText className="h-4 w-4 text-red-500" />;
   if (filename.endsWith(".docx")) return <FileText className="h-4 w-4 text-blue-500" />;
+  if (filename.endsWith(".csv")) return <FileText className="h-4 w-4 text-green-500" />;
   return <File className="h-4 w-4 text-muted-foreground" />;
 }
 
@@ -134,7 +137,7 @@ export default function Step4({ data, onUpdate }: Props) {
     if (!ACCEPTED_TYPES.includes(file.type)) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (!ext || !ACCEPTED_EXTENSIONS.includes(`.${ext}`)) {
-        return `${file.name}: Only PDF, TXT, and DOCX files are accepted.`;
+        return `${file.name}: Only PDF, TXT, DOCX, and CSV files are accepted.`;
       }
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -301,12 +304,12 @@ export default function Step4({ data, onUpdate }: Props) {
             {uploading ? "Uploading..." : "Drop files here or click to upload"}
           </p>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            PDF, TXT, or DOCX — max 5MB per file, up to {MAX_FILES} files
+            PDF, TXT, DOCX, or CSV — max 5MB per file, up to {MAX_FILES} files
           </p>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt,.docx"
+            accept=".pdf,.txt,.docx,.csv"
             multiple
             className="hidden"
             onChange={(e) => {

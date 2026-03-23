@@ -2,7 +2,8 @@
  * POST /api/client/knowledge/upload
  *
  * Accepts multipart FormData with a file + intake_id.
- * Extracts text from PDF/TXT/DOCX, stores in client_knowledge_docs table.
+ * Extracts text from PDF/TXT/DOCX/CSV, stores in client_knowledge_docs table.
+ * Seeds extracted content into knowledge_chunks (pgvector) when client_id is available.
  * Max file size: 5MB. Text truncated to 4000 chars.
  *
  * Public — no auth (used during onboarding wizard).
@@ -22,8 +23,10 @@ const ALLOWED_TYPES = new Set([
   'application/pdf',
   'text/plain',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/csv',
+  'application/vnd.ms-excel', // some systems send CSV as this
 ])
-const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx'])
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx', 'csv'])
 
 async function extractText(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
@@ -37,6 +40,19 @@ async function extractText(buffer: Buffer, filename: string, mimeType: string): 
     const parser = new PDFParse({ data: new Uint8Array(buffer) })
     const result = await parser.getText()
     return result.text
+  }
+
+  if (ext === 'csv' || mimeType === 'text/csv' || mimeType === 'application/vnd.ms-excel') {
+    // Parse CSV: skip header row, join remaining rows as fact lines
+    const text = buffer.toString('utf-8')
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+    if (lines.length <= 1) return text // just header or single line
+    // Skip header, join cell values per row with " | "
+    const dataLines = lines.slice(1).map(line => {
+      // Simple CSV parse — handle quoted fields
+      return line.replace(/"/g, '').split(',').map(c => c.trim()).filter(c => c).join(' | ')
+    })
+    return dataLines.join('\n')
   }
 
   if (ext === 'docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -81,7 +97,7 @@ export async function POST(req: NextRequest) {
     // Validate file type by extension and MIME
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_EXTENSIONS.has(ext) && !ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX' }, { status: 400 })
+      return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV' }, { status: 400 })
     }
 
     // Validate intake exists
@@ -133,6 +149,41 @@ export async function POST(req: NextRequest) {
 
     perIpLimiter.record(ip)
     console.log(`[knowledge-upload] Stored ${file.name} (${charCount} chars) for intake=${intakeId}`)
+
+    // Seed into knowledge_chunks for pgvector retrieval
+    try {
+      const { data: intakeRow } = await adminSupa
+        .from('intake_submissions')
+        .select('client_id')
+        .eq('id', intakeId)
+        .single()
+
+      if (intakeRow?.client_id) {
+        const { embedChunks } = await import('@/lib/embeddings')
+        const paragraphs = contentText
+          .split(/\n\n+|\n/)
+          .map(p => p.trim())
+          .filter(p => p.length > 20)
+
+        const chunks = paragraphs.map(p => ({
+          content: p,
+          chunkType: 'page_content' as const,
+          source: 'knowledge_doc',
+          status: 'approved',
+          trustTier: 'high',
+        }))
+
+        if (chunks.length > 0) {
+          await embedChunks(intakeRow.client_id, chunks, `knowledge-doc-${doc.id}`)
+          console.log(`[knowledge-upload] Seeded ${chunks.length} chunks for client=${intakeRow.client_id}`)
+        }
+      }
+      // If no client_id yet (during initial onboarding), chunks will be seeded
+      // when generate-prompt runs and processes knowledge docs
+    } catch (seedErr) {
+      // Non-fatal — doc is saved, chunks can be seeded later during provisioning
+      console.error('[knowledge-upload] Chunk seeding failed (non-fatal):', seedErr)
+    }
 
     return NextResponse.json({
       id: doc.id,
