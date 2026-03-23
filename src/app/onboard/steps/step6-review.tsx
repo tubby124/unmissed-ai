@@ -76,7 +76,7 @@ const PROVINCE_AREA_CODES: Record<string, string> = {
 
 // ── Demo Call Section ────────────────────────────────────────────────────────
 
-function OnboardDemoSection({ data }: { data: OnboardingData }) {
+function OnboardDemoSection({ data, onUpdate }: { data: OnboardingData; onUpdate: (updates: Partial<OnboardingData>) => void }) {
   const [phase, setPhase] = useState<"prompt" | "calling" | "done">("prompt");
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -128,10 +128,8 @@ function OnboardDemoSection({ data }: { data: OnboardingData }) {
                   type="button"
                   onClick={() => {
                     setFeedback(key);
-                    // TODO: wire onUpdate once prop is added to Step6Review:
-                    // if (key === "friendly") onUpdate({ agentTone: "casual" });
-                    // if (key === "professional") onUpdate({ agentTone: "professional" });
-                    // "perfect" requires no data change
+                    if (key === "friendly") onUpdate({ agentTone: "casual" });
+                    if (key === "professional") onUpdate({ agentTone: "professional" });
                   }}
                   className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all hover:opacity-80 cursor-pointer ${
                     key === "perfect"
@@ -751,7 +749,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
   return (
     <div className="space-y-5">
       {/* Orb hero — idle phase is the hero reveal moment */}
-      <OnboardDemoSection data={data} />
+      <OnboardDemoSection data={data} onUpdate={onUpdate} />
 
       {/* Ready badge */}
       <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3">
