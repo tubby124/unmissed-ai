@@ -218,7 +218,13 @@ export default function OnboardPage() {
           body: JSON.stringify(data),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Trial signup failed");
+        if (!res.ok) {
+          // Surface specific validation errors when available
+          if (res.status === 422 && Array.isArray(json.errors) && json.errors.length > 0) {
+            throw new Error(`Setup failed: ${json.errors.join(' · ')}`);
+          }
+          throw new Error(json.error || "Trial signup failed");
+        }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
         router.push(`/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || '')}&setupUrl=${encodeURIComponent(json.setupUrl || '')}&telegramLink=${encodeURIComponent(json.telegramLink || '')}`);
       } else {
