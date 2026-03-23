@@ -139,7 +139,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
                 period === p.value
                   ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
                   : 'hover:bg-[var(--color-hover)]'
@@ -250,7 +250,7 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
                   </div>
                   <button
                     onClick={() => setDismissedIds(prev => new Set(prev).add(item.id))}
-                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:bg-emerald-500/20 hover:border-emerald-500/40 bg-raised border b-theme t2"
+                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:bg-emerald-500/20 hover:border-emerald-500/40 bg-raised border b-theme t2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

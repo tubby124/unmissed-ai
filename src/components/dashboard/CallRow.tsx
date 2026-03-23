@@ -174,7 +174,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
           {call.call_status === 'HOT' && call.caller_phone && onCallBack && (
             <button
               onClick={e => { e.stopPropagation(); onCallBack(call.caller_phone!) }}
-              className="shrink-0 border border-green-500/40 text-green-400 text-[10px] rounded-full px-2 py-0.5 hover:bg-green-500/10 transition-colors"
+              className="shrink-0 border border-green-500/40 text-green-400 text-[10px] rounded-full px-2 py-0.5 hover:bg-green-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
             >
               Call Back
             </button>
