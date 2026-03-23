@@ -7,6 +7,7 @@ import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { BRAND_NAME } from '@/lib/brand'
+import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 
 // S13o: 30 calls per 60s — same threshold as production inbound
 const demoCallRateLimiter = new SlidingWindowRateLimiter(30, 60_000)
@@ -68,7 +69,62 @@ export async function POST(req: NextRequest) {
   const demo = DEMO_AGENTS[demoId]
   console.log(`[demo-ivr] Digit ${digits} → ${demoId} (${demo.companyName}), caller=${callerPhone}`)
 
-  const promptWithContext = demo.systemPrompt + `\n\n[DEMO MODE — IVR PHONE. Tools: hangUp only. No SMS, transfer, or calendar on this call. CALLER PHONE: ${callerPhone}]`
+  // Fetch live prompt with full context if configured (same as demo/start and demo/call-me)
+  let basePrompt = demo.systemPrompt
+  if (demo.useLivePrompt && demo.clientSlug) {
+    try {
+      const svc = createServiceClient()
+      const { data: client } = await svc
+        .from('clients')
+        .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
+        .eq('slug', demo.clientSlug)
+        .single()
+
+      if (client?.system_prompt) {
+        const clientRow: ClientRow = {
+          id: client.id,
+          slug: client.slug as string,
+          niche: (client.niche as string | null) ?? undefined,
+          business_name: (client.business_name as string | null) ?? undefined,
+          timezone: (client.timezone as string | null) ?? undefined,
+          business_hours_weekday: (client.business_hours_weekday as string | null) ?? undefined,
+          business_hours_weekend: (client.business_hours_weekend as string | null) ?? undefined,
+          after_hours_behavior: (client.after_hours_behavior as string | null) ?? undefined,
+          after_hours_emergency_phone: (client.after_hours_emergency_phone as string | null) ?? undefined,
+          business_facts: (client.business_facts as string | null) ?? undefined,
+          extra_qa: (client.extra_qa as { q: string; a: string }[] | null) ?? undefined,
+          context_data: (client.context_data as string | null) ?? undefined,
+          context_data_label: (client.context_data_label as string | null) ?? undefined,
+          knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
+          injected_note: (client.injected_note as string | null) ?? undefined,
+        }
+        const knowledgeBackend = client.knowledge_backend as string | null
+        const corpusAvailable = knowledgeBackend === 'pgvector'
+        const ctx = buildAgentContext(clientRow, callerPhone, [], new Date(), corpusAvailable)
+
+        const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
+        let knowledgeBlockStr = ctx.knowledge.block
+        if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+          knowledgeBlockStr = knowledgeBlockStr
+            ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+            : ctx.retrieval.promptInstruction
+        }
+        const contextDataBlock = ctx.assembled.contextDataBlock
+
+        basePrompt = client.system_prompt
+          .replace(/\{\{callerContext\}\}/g, callerContextRaw)
+          .replace(/\{\{businessFacts\}\}/g, knowledgeBlockStr)
+          .replace(/\{\{extraQa\}\}/g, '')
+          .replace(/\{\{contextData\}\}/g, contextDataBlock)
+
+        console.log(`[demo-ivr] Using live prompt for slug=${demo.clientSlug} (${basePrompt.length} chars)`)
+      }
+    } catch (err) {
+      console.warn(`[demo-ivr] Live prompt fetch failed for slug=${demo.clientSlug}: ${err}`)
+    }
+  }
+
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — IVR PHONE. Tools: hangUp only. No SMS, transfer, or calendar on this call. CALLER PHONE: ${callerPhone}]`
 
   try {
     const call = await createDemoCall({
