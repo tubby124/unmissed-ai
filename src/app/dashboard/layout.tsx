@@ -85,7 +85,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div className="min-h-screen flex flex-col bg-page t1">
       {/* Mobile top bar */}
-      <MobileNav businessName={businessName} isAdmin={isAdmin} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} niche={clientNiche} />
+      <MobileNav businessName={businessName} isAdmin={isAdmin} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} niche={clientNiche} />
 
       {!isAdmin && !setupComplete && clientStatus === 'active' && subscriptionStatus !== 'trialing' && (
         <ForwardingBanner twilioNumber={twilioNumber} />

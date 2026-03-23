@@ -78,6 +78,39 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Trial-locked route protection — server-side redirect before page renders
+    const TRIAL_LOCKED_PATHS = [
+      '/dashboard/insights',
+      '/dashboard/live',
+      '/dashboard/leads',
+      '/dashboard/calendar',
+      '/dashboard/notifications',
+    ]
+
+    if (TRIAL_LOCKED_PATHS.some(p => pathname.startsWith(p))) {
+      const { data: cu } = await supabase
+        .from('client_users')
+        .select('role, client_id')
+        .eq('user_id', user.id)
+        .order('role').limit(1)
+        .maybeSingle()
+
+      if (cu && cu.role !== 'admin' && cu.client_id) {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('subscription_status')
+          .eq('id', cu.client_id)
+          .single()
+
+        if (client?.subscription_status === 'trialing') {
+          const url = request.nextUrl.clone()
+          url.pathname = '/dashboard/settings'
+          url.searchParams.set('tab', 'billing')
+          return NextResponse.redirect(url)
+        }
+      }
+    }
+
     response.headers.set('x-pathname', pathname)
     return response
   }

@@ -16,11 +16,13 @@ interface MobileNavProps {
   isAdmin?: boolean
   clientStatus?: string | null
   subscriptionStatus?: string | null
+  trialExpiresAt?: string | null
   niche?: string | null
 }
 
-export default function MobileNav({ businessName, isAdmin = false, clientStatus, subscriptionStatus, niche = null }: MobileNavProps) {
+export default function MobileNav({ businessName, isAdmin = false, clientStatus, subscriptionStatus, trialExpiresAt, niche = null }: MobileNavProps) {
   const isTrialing = !isAdmin && subscriptionStatus === 'trialing'
+  const daysRemaining = trialExpiresAt ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / 86400000)) : undefined
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -160,7 +162,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
 
               {isTrialing && (
                 <div className="px-3 py-2">
-                  <UpgradeCTA />
+                  <UpgradeCTA daysRemaining={daysRemaining} />
                 </div>
               )}
 
