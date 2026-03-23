@@ -139,7 +139,7 @@ export default function InsightsPage() {
             <select
               value={selectedClientId}
               onChange={e => { setSelectedClientId(e.target.value); setReports([]) }}
-              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40 cursor-pointer"
+              className="bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 cursor-pointer"
             >
               {clients.map(c => (
                 <option key={c.id} value={c.id}>{c.business_name}</option>
@@ -175,7 +175,7 @@ export default function InsightsPage() {
       )}
 
       {reports.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
+        <div className="rounded-xl border border-dashed b-theme py-16 text-center">
           <p className="text-zinc-600 text-sm">No analysis reports yet.</p>
           <p className="text-zinc-700 text-xs mt-1">Click &quot;Run Analysis&quot; or wait for the nightly CRON (2 AM UTC).</p>
         </div>
@@ -187,11 +187,11 @@ export default function InsightsPage() {
             const runResult = testResult[report.id]
 
             return (
-              <div key={report.id} className="rounded-xl border border-white/[0.06] bg-white/[0.01] overflow-hidden">
+              <div key={report.id} className="rounded-xl border b-theme bg-page overflow-hidden">
                 {/* Report header */}
                 <button
                   onClick={() => setExpanded(isExpanded ? null : report.id)}
-                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors text-left"
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-hover transition-colors text-left"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
@@ -216,17 +216,17 @@ export default function InsightsPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-white/[0.06] px-5 pb-5 space-y-5">
+                  <div className="border-t b-theme px-5 pb-5 space-y-5">
                     {/* Issues */}
                     {report.issues?.length > 0 && (
                       <div className="pt-4">
                         <h3 className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Issues</h3>
                         <div className="space-y-2">
                           {report.issues.map((issue, i) => (
-                            <div key={i} className="flex gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                            <div key={i} className="flex gap-3 p-3 rounded-lg bg-hover border b-theme">
                               <Badge label={issue.severity.toUpperCase()} className={SEVERITY_COLORS[issue.severity] ?? SEVERITY_COLORS.low} />
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm text-zinc-200">{issue.description}</div>
+                                <div className="text-sm t2">{issue.description}</div>
                                 {issue.frequency && <div className="text-xs text-zinc-600 mt-0.5">{issue.frequency}</div>}
                                 <div className="text-xs text-zinc-600">{issue.type}</div>
                               </div>
@@ -242,7 +242,7 @@ export default function InsightsPage() {
                         <h3 className="text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Recommendations</h3>
                         <div className="space-y-3">
                           {report.recommendations.map((rec, i) => (
-                            <div key={i} className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] space-y-2">
+                            <div key={i} className="p-4 rounded-xl border b-theme bg-hover space-y-2">
                               <div className="flex items-start gap-3">
                                 <Badge label={rec.priority.toUpperCase()} className={SEVERITY_COLORS[rec.priority] ?? SEVERITY_COLORS.low} />
                                 <div className="flex-1 min-w-0">
@@ -251,7 +251,7 @@ export default function InsightsPage() {
                                 </div>
                               </div>
                               {rec.suggested_value && (
-                                <div className="text-xs text-zinc-400 bg-black/30 rounded-lg p-3 border border-white/[0.04] font-mono whitespace-pre-wrap">
+                                <div className="text-xs t3 bg-black/30 rounded-lg p-3 border b-theme font-mono whitespace-pre-wrap">
                                   {rec.suggested_value}
                                 </div>
                               )}
@@ -299,7 +299,7 @@ export default function InsightsPage() {
       )}
 
       {/* CRON info */}
-      <div className="rounded-xl border border-white/[0.04] bg-white/[0.01] px-4 py-3 flex items-center gap-3">
+      <div className="rounded-xl border b-theme bg-page px-4 py-3 flex items-center gap-3">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-600 shrink-0"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
         <span className="text-xs text-zinc-600">Automatic analysis runs daily at 2 AM UTC via Railway CRON across all active clients.</span>
       </div>

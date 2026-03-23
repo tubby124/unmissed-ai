@@ -193,14 +193,14 @@ export function StarCard({ stepNum, label, desc, code, icon }: {
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">{label}</p>
+          <p className="text-sm font-semibold t1">{label}</p>
           <p className="text-[11px] t3 mt-0.5">{desc}</p>
         </div>
         <span className="text-[9px] font-black font-mono t1 tracking-[0.2em] shrink-0">{stepNum}</span>
       </div>
       {/* Code block */}
       <div className="px-5 py-5 flex items-center gap-3">
-        <div className="flex-1 font-mono text-2xl font-bold text-white tracking-wider text-center py-3.5 rounded-xl bg-black/80 border b-theme group-hover:border-blue-500/[0.08] transition-colors">
+        <div className="flex-1 font-mono text-2xl font-bold t1 tracking-wider text-center py-3.5 rounded-xl bg-black/80 border b-theme group-hover:border-blue-500/[0.08] transition-colors">
           {code}
         </div>
         <CopyButton value={code} />

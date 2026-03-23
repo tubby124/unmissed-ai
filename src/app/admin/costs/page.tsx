@@ -108,7 +108,7 @@ export default function CostsPage() {
         </div>
 
         {/* Range selector */}
-        <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-page border b-theme rounded-xl p-1">
           {(Object.keys(RANGE_LABELS) as Range[]).map(r => (
             <button
               key={r}
@@ -167,9 +167,9 @@ export default function CostsPage() {
 
           {/* ── Twilio actual vs computed callout ── */}
           {s.twilio_cost_actual !== null && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
-              <span className="text-zinc-400 font-medium">Twilio Actual Bill</span>
-              <span className="text-white font-semibold">{fmt(s.twilio_cost_actual)}</span>
+            <div className="rounded-xl border b-theme bg-page px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+              <span className="t3 font-medium">Twilio Actual Bill</span>
+              <span className="t1 font-semibold">{fmt(s.twilio_cost_actual)}</span>
               {s.twilio_minutes_actual != null && (
                 <span className="text-zinc-500">{fmtMin(s.twilio_minutes_actual)} billed</span>
               )}
@@ -191,14 +191,14 @@ export default function CostsPage() {
           )}
 
           {/* ── Per-client table ── */}
-          <div className="rounded-xl border border-white/[0.06] overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/[0.06]">
-              <h2 className="text-sm font-semibold text-zinc-300">Per Client Breakdown</h2>
+          <div className="rounded-xl border b-theme overflow-hidden">
+            <div className="px-5 py-3 border-b b-theme">
+              <h2 className="text-sm font-semibold t2">Per Client Breakdown</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.04]">
+                  <tr className="border-b b-theme">
                     {['Client', 'Direction', 'Calls', 'Minutes', 'Twilio', 'Ultravox', 'Number', 'Total', '$/call'].map(h => (
                       <th key={h} className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap">{h}</th>
                     ))}
@@ -206,8 +206,8 @@ export default function CostsPage() {
                 </thead>
                 <tbody>
                   {data.by_client.map(row => (
-                    <tr key={row.client_id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-3 text-white font-medium">{row.business_name}</td>
+                    <tr key={row.client_id} className="border-b border-[var(--color-border)] hover:bg-hover transition-colors">
+                      <td className="px-4 py-3 t1 font-medium">{row.business_name}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                           row.call_direction === 'outbound'
@@ -217,20 +217,20 @@ export default function CostsPage() {
                           {row.call_direction}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-zinc-300 tabular-nums">{row.calls}</td>
-                      <td className="px-4 py-3 text-zinc-300 tabular-nums">
+                      <td className="px-4 py-3 t2 tabular-nums">{row.calls}</td>
+                      <td className="px-4 py-3 t2 tabular-nums">
                         {fmtMin(row.minutes_computed)}
                         {row.minutes_billed_ultravox !== null && Math.abs(row.minutes_billed_ultravox - row.minutes_computed) > 0.5 && (
                           <span className="text-zinc-600 ml-1">({fmtMin(row.minutes_billed_ultravox)} billed)</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-zinc-300 tabular-nums">{fmt(row.twilio_cost)}</td>
-                      <td className="px-4 py-3 text-zinc-300 tabular-nums">
+                      <td className="px-4 py-3 t2 tabular-nums">{fmt(row.twilio_cost)}</td>
+                      <td className="px-4 py-3 t2 tabular-nums">
                         {fmt(row.ultravox_cost_live ?? row.ultravox_cost_computed)}
                       </td>
                       <td className="px-4 py-3 text-zinc-500 tabular-nums">{fmt(row.number_cost)}</td>
                       <td className="px-4 py-3 text-amber-400 font-semibold tabular-nums">{fmt(row.total_cost_live)}</td>
-                      <td className="px-4 py-3 text-zinc-400 tabular-nums">{row.cost_per_call > 0 ? fmt(row.cost_per_call) : '—'}</td>
+                      <td className="px-4 py-3 t3 tabular-nums">{row.cost_per_call > 0 ? fmt(row.cost_per_call) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -239,17 +239,17 @@ export default function CostsPage() {
           </div>
 
           {/* ── Pricing Playground ── */}
-          <div className="rounded-xl border border-white/[0.06] overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-300">Pricing Playground</h2>
-              <span className="text-[10px] text-zinc-600 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">
+          <div className="rounded-xl border b-theme overflow-hidden">
+            <div className="px-5 py-3 border-b b-theme flex items-center gap-2">
+              <h2 className="text-sm font-semibold t2">Pricing Playground</h2>
+              <span className="text-[10px] text-zinc-600 bg-hover border b-theme rounded-full px-2 py-0.5">
                 Monthly cost × markup
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.04]">
+                  <tr className="border-b b-theme">
                     <th className="px-4 py-2.5 text-left text-zinc-600 font-medium">Client</th>
                     <th className="px-4 py-2.5 text-left text-zinc-600 font-medium">Your Cost ({s.range_label})</th>
                     {MARKUPS.map(m => (
@@ -270,8 +270,8 @@ export default function CostsPage() {
                       monthlyCost = row.total_cost_live / (days / 30)
                     }
                     return (
-                      <tr key={row.client_id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-3 text-white font-medium">{row.business_name}</td>
+                      <tr key={row.client_id} className="border-b border-[var(--color-border)] hover:bg-hover transition-colors">
+                        <td className="px-4 py-3 t1 font-medium">{row.business_name}</td>
                         <td className="px-4 py-3 text-amber-400 font-semibold tabular-nums">{fmt(monthlyCost)}/mo</td>
                         {MARKUPS.map(m => (
                           <td key={m} className="px-4 py-3 text-green-400 font-semibold tabular-nums">
@@ -284,7 +284,7 @@ export default function CostsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 border-t border-white/[0.04]">
+            <div className="px-5 py-3 border-t b-theme">
               <p className="text-xs text-zinc-700">
                 Monthly figures. Cost includes Twilio voice minutes, phone number rental, and Ultravox AI processing. Multiply by your desired margin to set client pricing.
               </p>
@@ -292,9 +292,9 @@ export default function CostsPage() {
           </div>
 
           {/* ── Daily spend chart (last 30 days) ── */}
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-4">
-              <h2 className="text-sm font-semibold text-zinc-300">Daily Spend — Last 30 Days</h2>
+          <div className="rounded-xl border b-theme bg-page overflow-hidden">
+            <div className="px-5 py-3 border-b b-theme flex items-center gap-4">
+              <h2 className="text-sm font-semibold t2">Daily Spend — Last 30 Days</h2>
               <div className="flex items-center gap-3 ml-auto text-[10px] text-zinc-600">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500/60 inline-block" /> Twilio</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-violet-500/60 inline-block" /> Ultravox</span>
@@ -324,9 +324,9 @@ export default function CostsPage() {
                           className="bg-blue-500/50 group-hover:bg-blue-400/70 transition-colors min-h-px"
                         />
                         {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-zinc-900 border border-white/[0.08] rounded-lg px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          <div className="text-zinc-400">{dayLabel}</div>
-                          <div className="text-white font-semibold">{fmt(d.total)}</div>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-zinc-900 border b-theme rounded-lg px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          <div className="t3">{dayLabel}</div>
+                          <div className="t1 font-semibold">{fmt(d.total)}</div>
                         </div>
                       </div>
                     )
@@ -343,26 +343,26 @@ export default function CostsPage() {
           </div>
 
           {/* ── Pricing assumptions footer ── */}
-          <div className="rounded-xl border border-white/[0.04] bg-white/[0.01] px-5 py-4 space-y-1">
+          <div className="rounded-xl border b-theme bg-page px-5 py-4 space-y-1">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Rate Assumptions</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-zinc-600">
               <div>
-                <div className="text-zinc-400 font-medium">Twilio Inbound</div>
+                <div className="t3 font-medium">Twilio Inbound</div>
                 <div className="tabular-nums">${data.pricing.twilio_inbound_per_min.toFixed(4)}/min</div>
                 <div className="text-zinc-700 text-[10px]">CA local inbound</div>
               </div>
               <div>
-                <div className="text-zinc-400 font-medium">Twilio Outbound</div>
+                <div className="t3 font-medium">Twilio Outbound</div>
                 <div className="tabular-nums">${data.pricing.twilio_outbound_per_min.toFixed(4)}/min</div>
                 <div className="text-zinc-700 text-[10px]">Used for Manzil ISA</div>
               </div>
               <div>
-                <div className="text-zinc-400 font-medium">Phone Number</div>
+                <div className="t3 font-medium">Phone Number</div>
                 <div className="tabular-nums">${data.pricing.twilio_number_per_month.toFixed(2)}/month each</div>
                 <div className="text-zinc-700 text-[10px]">CA local number</div>
               </div>
               <div>
-                <div className="text-zinc-400 font-medium">Ultravox AI</div>
+                <div className="t3 font-medium">Ultravox AI</div>
                 <div className="tabular-nums">${data.pricing.ultravox_per_min.toFixed(2)}/min billed</div>
                 <div className="text-zinc-700 text-[10px]">Rounds up to 60s min</div>
               </div>

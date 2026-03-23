@@ -344,7 +344,7 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
                   key={i}
                   className={`rounded-lg border transition-colors ${
                     approved
-                      ? 'border-indigo-200 dark:border-indigo-800 bg-white dark:bg-white/5'
+                      ? 'border-indigo-200 dark:border-indigo-800 bg-card'
                       : 'border-border bg-muted/30'
                   }`}
                 >

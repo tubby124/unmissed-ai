@@ -26,17 +26,17 @@ Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark
 
 | # | File | Lines | Issues | Status |
 |---|------|-------|--------|--------|
-| L1 | `Sidebar.tsx` | 566 | 6x `dark:`, hardcoded `bg-indigo-50`, `hover:bg-gray-50` | TODO |
-| L2 | `MobileNav.tsx` | ~200 | Match to Sidebar after L1 | TODO |
-| L3 | `StatusBadge.tsx` | 47 | 6x `dark:`, hardcoded status colors | TODO |
-| L4 | `CallDetail.tsx` | 701 | inline `rgba(255,255,255,0.07)` in QualityGauge SVG, mixed patterns | TODO |
-| L5 | `CallRow.tsx` | 378 | 1x `dark:`, 3x `rgba`, 1x `bg-white/[` | TODO |
-| L6 | `CallsList.tsx` | ~300 | 5x `dark:` | TODO |
-| L7 | `CallEventsPanel.tsx` | 210 | 10x `dark:` — heaviest dark: usage | TODO |
-| L8 | `InsightsView.tsx` | 672 | 1x `dark:`, 9x `rgba`, 1x `bg-white/[` — big file | TODO |
-| L9 | `login/page.tsx` | 423 | 10x `bg-white/[`, 2x `rgba` — card invisible in light | TODO |
-| L10 | `notifications/page.tsx` | 401 | 8x `rgba`, 4x `bg-white/[` | TODO |
-| L11 | `calendar/page.tsx` | 481 | 5x `rgba`, 5x `bg-white/[` | TODO |
+| L1 | `Sidebar.tsx` | 566 | 6x `dark:`, hardcoded `bg-indigo-50`, `hover:bg-gray-50` | DONE |
+| L2 | `MobileNav.tsx` | ~200 | Match to Sidebar after L1 | DONE |
+| L3 | `StatusBadge.tsx` | 47 | 6x `dark:`, hardcoded status colors | DONE |
+| L4 | `CallDetail.tsx` | 701 | inline `rgba(255,255,255,0.07)` in QualityGauge SVG, mixed patterns | DONE |
+| L5 | `CallRow.tsx` | 378 | 1x `dark:`, 3x `rgba`, 1x `bg-white/[` | DONE |
+| L6 | `CallsList.tsx` | ~300 | 5x `dark:` | DONE |
+| L7 | `CallEventsPanel.tsx` | 210 | 10x `dark:` — heaviest dark: usage | DONE |
+| L8 | `InsightsView.tsx` | 672 | 1x `dark:`, 9x `rgba`, 1x `bg-white/[` — big file | DONE |
+| L9 | `login/page.tsx` | 423 | 10x `bg-white/[`, 2x `rgba` — card invisible in light | DONE |
+| L10 | `notifications/page.tsx` | 401 | 8x `rgba`, 4x `bg-white/[` | DONE |
+| L11 | `calendar/page.tsx` | 481 | 5x `rgba`, 5x `bg-white/[` | DONE |
 | L12 | `OnboardingChecklist.tsx` | 220 | Mostly done, verify text colors | DONE |
 | L13 | `ClientHome.tsx` | 346 | Mostly done | DONE |
 | L14 | `AgentTestCard.tsx` | 362 | Mostly done | DONE |
@@ -47,68 +47,75 @@ Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark
 
 | # | File | Issues | Status |
 |---|------|--------|--------|
-| L17 | `RuntimeCard.tsx` | 9x `bg-white/[` | TODO |
-| L18 | `AlertsTab.tsx` | 7x `bg-white/[`, 1x `rgba` | TODO |
-| L19 | `VoiceTab.tsx` | 6x `bg-white/[`, 1x `rgba` | TODO |
-| L20 | `VoicePicker.tsx` | 5x `bg-white/[` | TODO |
-| L21 | `VoiceStyleCard.tsx` | 1x `bg-white/[` | TODO |
-| L22 | `AgentVoiceTest.tsx` | 2x `bg-white/[`, 4x `rgba` | TODO |
-| L23 | `AgentOverviewCard.tsx` | 1x `bg-white/[`, 1x `rgba` | TODO |
-| L24 | `LearningLoopCard.tsx` | 2x `bg-white/[` | TODO |
-| L25 | `PromptVersionsCard.tsx` | 1x `bg-white/[` | TODO |
-| L26 | `ImprovementHints.tsx` | 1x `bg-white/[` | TODO |
-| L27 | `PromptEditorCard.tsx` | 2x `rgba` | TODO |
-| L28 | `TestCallCard.tsx` | 2x `rgba` | TODO |
-| L29 | `GodModeCard.tsx` | 1x `dark:` | TODO |
-| L30 | `ActivityLog.tsx` | 1x `bg-white/[` | TODO |
+| L17 | `RuntimeCard.tsx` | 9x `bg-white/[` | DONE |
+| L18 | `AlertsTab.tsx` | 7x `bg-white/[`, 1x `rgba` | DONE |
+| L19 | `VoiceTab.tsx` | 6x `bg-white/[`, 1x `rgba` | DONE |
+| L20 | `VoicePicker.tsx` | 5x `bg-white/[` | DONE |
+| L21 | `VoiceStyleCard.tsx` | 1x `bg-white/[` | DONE |
+| L22 | `AgentVoiceTest.tsx` | 2x `bg-white/[`, 4x `rgba` | DONE |
+| L23 | `AgentOverviewCard.tsx` | 1x `bg-white/[`, 1x `rgba` | DONE |
+| L24 | `LearningLoopCard.tsx` | 2x `bg-white/[` | DONE |
+| L25 | `PromptVersionsCard.tsx` | 1x `bg-white/[` | DONE |
+| L26 | `ImprovementHints.tsx` | 1x `bg-white/[` | DONE |
+| L27 | `PromptEditorCard.tsx` | 2x `rgba` | DONE |
+| L28 | `TestCallCard.tsx` | 2x `rgba` | DONE |
+| L29 | `GodModeCard.tsx` | 1x `dark:` | DONE |
+| L30 | `ActivityLog.tsx` | 1x `bg-white/[` | DONE |
 
 ### Priority 3 — Admin Pages
 
 | # | File | Issues | Status |
 |---|------|--------|--------|
-| L31 | `voices/page.tsx` | 17x `bg-white/[`, 2x `rgba` — worst file | TODO |
-| L32 | `admin/costs/page.tsx` | 16x `bg-white/[` | TODO |
-| L33 | `admin/test-lab/page.tsx` | 17x `bg-white/[` | TODO |
-| L34 | `admin/insights/page.tsx` | 9x `bg-white/[` | TODO |
-| L35 | `admin/clients/page.tsx` | 1x `bg-white/[` | TODO |
-| L36 | `admin/numbers/page.tsx` | 1x `bg-white/[` | TODO |
+| L31 | `voices/page.tsx` | 17x `bg-white/[`, 2x `rgba` — worst file | DONE |
+| L32 | `admin/costs/page.tsx` | 16x `bg-white/[` | DONE |
+| L33 | `admin/test-lab/page.tsx` | 17x `bg-white/[` | DONE |
+| L34 | `admin/insights/page.tsx` | 9x `bg-white/[` | DONE |
+| L35 | `admin/clients/page.tsx` | 1x `bg-white/[` | DONE |
+| L36 | `admin/numbers/page.tsx` | 1x `bg-white/[` | DONE |
 
 ### Priority 4 — Other Dashboard Components
 
 | # | File | Issues | Status |
 |---|------|--------|--------|
-| L37 | `StatsGrid.tsx` | 9x `dark:`, 15x `rgba` — heavy | TODO |
-| L38 | `KanbanBoard.tsx` | 8x `dark:`, 2x `rgba` | TODO |
-| L39 | `LiveCoachingPanel.tsx` | 3x `dark:` | TODO |
-| L40 | `LeadsView.tsx` | 3x `dark:` | TODO |
-| L41 | `RevenueAtRisk.tsx` | 3x `dark:` | TODO |
-| L42 | `ClientHealthBar.tsx` | 3x `dark:` | TODO |
-| L43 | `CampaignCard.tsx` | 2x `dark:`, 1x `rgba` | TODO |
-| L44 | `UsageSummary.tsx` | 1x `dark:` | TODO |
+| L37 | `StatsGrid.tsx` | 9x `dark:` — KEEP (dark: works with @custom-variant, provides correct light+dark values) | SKIP |
+| L38 | `KanbanBoard.tsx` | 8x `dark:`, 2x `rgba` | DONE |
+| L39 | `LiveCoachingPanel.tsx` | 3x `dark:` | DONE |
+| L40 | `LeadsView.tsx` | 3x `dark:` | DONE |
+| L41 | `RevenueAtRisk.tsx` | 3x `dark:` | DONE |
+| L42 | `ClientHealthBar.tsx` | 3x `dark:` | DONE |
+| L43 | `CampaignCard.tsx` | 2x `dark:`, 1x `rgba` | DONE |
+| L44 | `UsageSummary.tsx` | 1x `dark:` | DONE |
 
 ### Priority 5 — Onboarding Flow
 
 | # | File | Issues | Status |
 |---|------|--------|--------|
-| L45 | `step6-review.tsx` | 41x `dark:` — worst single file | TODO |
-| L46 | `step1.tsx` | 8x `dark:` | TODO |
-| L47 | `step4.tsx` | 5x `dark:` | TODO |
-| L48 | `step5-handling.tsx` | 5x `dark:` | TODO |
-| L49 | `WebsiteScrapePreview.tsx` | 26x `dark:` | TODO |
-| L50 | `TrialSuccessScreen.tsx` | 5x `dark:` | TODO |
+| L45 | `step6-review.tsx` | 41x `dark:` — worst single file | DONE |
+| L46 | `step1.tsx` | 8x `dark:` | DONE |
+| L47 | `step4.tsx` | 5x `dark:` | DONE |
+| L48 | `step5-handling.tsx` | 5x `dark:` | DONE |
+| L49 | `WebsiteScrapePreview.tsx` | 26x `dark:` | DONE |
+| L50 | `TrialSuccessScreen.tsx` | 5x `dark:` | DONE |
 
 ### Priority 6 — Shared/Marketing Components
 
 | # | File | Issues | Status |
 |---|------|--------|--------|
-| L51 | `StatsSection.tsx` | 4x `dark:` | TODO |
+| L51 | `StatsSection.tsx` | 4x `dark:` | DONE |
 | L52 | `DemoCallVisuals.tsx` | 4x `rgba` | TODO |
 | L53 | `DemoCall.tsx` | 3x `rgba` | TODO |
 | L54 | `DemoAudioPlayer.tsx` | 9x `rgba` | TODO |
 | L55 | `HeroCallMockup.tsx` | 4x `rgba` | TODO |
 | L56 | `TalkToAgentWidget.tsx` | 1x `rgba` | TODO |
 | L57 | `TryItNowWidget.tsx` | 1x `rgba` | TODO |
-| L58 | Advisor components (5 files) | Mixed `dark:` + `rgba` | TODO |
+| L58 | Advisor components (5 files) | Mixed `dark:` + `rgba` | DONE |
+| L59 | `ui/input.tsx` | 2x patterns | DONE |
+| L60 | `ui/textarea.tsx` | 1x pattern | DONE |
+| L61 | `ui/select.tsx` | 1x pattern | DONE |
+| L62 | `ui/button.tsx` | 4x patterns | DONE |
+| L63 | `ui/badge.tsx` | 2x patterns | DONE |
+| L64 | `ui/chart.tsx` | 1x pattern | DONE |
+| L65 | `auth/set-password/page.tsx` | 3x patterns | DONE |
 
 ---
 
@@ -239,6 +246,17 @@ Things top SaaS dashboards have that we're missing entirely. Prioritized by reve
 
 ---
 
+## Architecture / Navigation (separate sessions)
+
+Items that need their own focused session — not CSS polish, but structural changes.
+
+| # | Item | Why | Status |
+|---|------|-----|--------|
+| A1 | **Consolidate `/admin` into `/dashboard` with role gating** | 4 pages exist in both routes (calls, insights, calendar, clients). 3 admin pages already linked from dashboard sidebar (Cost Intel, Numbers, Lab). Users cross route boundaries without knowing. Need: merge into `/dashboard` with admin-only gating, remove `/admin` layout. ~15 files. | TODO |
+| A2 | **Agent/Setup page: replace pill grid with dropdown picker** | Current client selector is scattered pill chips in a grid. Replace with the dropdown picker that already exists elsewhere (search filter + Active/Unassigned grouping + niche badge + phone number per row). Much cleaner selection UX. | TODO |
+
+---
+
 ## Execution Rules
 
 1. **Every pass starts with Sonar Pro research** for that specific topic
@@ -253,10 +271,33 @@ Things top SaaS dashboards have that we're missing entirely. Prioritized by reve
 
 ## Stats
 
-- **Total files needing fixes**: ~58
-- **Total hardcoded instances**: ~326 (143 dark: + 50 rgba + 133 bg-white/[)
-- **Files already migrated**: 7 (globals.css + 6 home page components)
-- **Remaining**: 51 files
+- **Pass 1 COMPLETE** — all 5 target pattern categories at ZERO across `src/`
+  - `bg-white/[0.0X]`: 0
+  - `border-white/[0.0X]`: 0
+  - `hover:bg-white/[*]`: 0
+  - `divide-white/[*]`: 0
+  - `dark:(bg|border|text)-(zinc|gray|slate)-*`: 0
+- **Files fixed**: ~58 (P1-P6 all DONE, StatsGrid SKIP)
+- **Playwright verified**: login dark, dashboard dark + light, settings light — all look clean
+- **Pass 2 residue** (legitimate usage mixed with fixable): text-white (217), text-zinc (112), text-gray (108), bg-gray (7), border-zinc (56), rgba (216)
+
+### CSS Var Mapping Reference (for consistency across all files)
+```
+bg-white/[0.01-0.03]  →  bg-page
+bg-white/[0.04-0.08]  →  bg-hover
+bg-white/[0.1+]       →  bg-[var(--color-border)]
+hover:bg-white/[*]    →  hover:bg-hover
+border-white/[0.04-12] →  b-theme
+divide-white/[*]      →  divide-[var(--color-border)]
+dark:text-gray-200    →  t1
+dark:text-gray-400    →  t3
+dark:bg-zinc-800      →  bg-hover
+dark:border-zinc-700  →  b-theme
+text-white (primary)  →  t1
+text-zinc-300         →  t2
+text-zinc-400/500     →  t3
+```
+Note: `dark:` on COLORED elements (dark:text-red-400, dark:border-blue-500/20) is CORRECT and should be KEPT — provides explicit light+dark values.
 
 ---
 

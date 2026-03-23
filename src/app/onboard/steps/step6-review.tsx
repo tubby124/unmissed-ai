@@ -157,7 +157,7 @@ function OnboardDemoSection({ data }: { data: OnboardingData }) {
                   className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all hover:opacity-80 cursor-pointer ${
                     key === "perfect"
                       ? "text-white"
-                      : "bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                      : "bg-card t3 border-[var(--color-border)]"
                   }`}
                   style={
                     key === "perfect"

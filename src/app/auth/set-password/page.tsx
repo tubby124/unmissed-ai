@@ -71,18 +71,18 @@ export default function SetPasswordPage() {
 
   if (checking) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-zinc-950">
+      <div className="min-h-dvh flex items-center justify-center bg-page">
         <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center py-8 px-4 bg-zinc-950">
+    <div className="min-h-dvh flex items-center justify-center py-8 px-4 bg-page">
       <div className="w-full max-w-sm">
         <Link
           href="/"
-          className="block text-center text-zinc-600 text-xs mb-5 hover:text-zinc-400 transition-colors"
+          className="block text-center t3 text-xs mb-5 hover:opacity-80 transition-colors"
         >
           &larr; Back to {BRAND_NAME}
         </Link>
@@ -98,12 +98,12 @@ export default function SetPasswordPage() {
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-white font-semibold text-lg tracking-tight">{BRAND_NAME}</span>
+            <span className="t1 font-semibold text-lg tracking-tight">{BRAND_NAME}</span>
           </div>
         </motion.div>
 
         <motion.div
-          className="rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl shadow-2xl"
+          className="rounded-2xl b-theme bg-page backdrop-blur-xl shadow-2xl"
           style={{ padding: 'clamp(1.25rem, 5vw, 2rem)' }}
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -124,8 +124,8 @@ export default function SetPasswordPage() {
                     <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <p className="text-zinc-300 text-sm font-medium">Password set</p>
-                <p className="text-zinc-500 text-xs mt-1">Redirecting to dashboard&hellip;</p>
+                <p className="t2 text-sm font-medium">Password set</p>
+                <p className="t3 text-xs mt-1">Redirecting to dashboard&hellip;</p>
               </motion.div>
             ) : (
               <motion.div
@@ -135,12 +135,12 @@ export default function SetPasswordPage() {
                 exit={{ opacity: 0 }}
                 transition={spring}
               >
-                <h1 className="text-white font-semibold text-lg mb-1">Set your password</h1>
-                <p className="text-zinc-500 text-sm mb-5">Choose a password for your account</p>
+                <h1 className="t1 font-semibold text-lg mb-1">Set your password</h1>
+                <p className="t3 text-sm mb-5">Choose a password for your account</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-2">
                       New password
                     </label>
                     <input
@@ -152,13 +152,13 @@ export default function SetPasswordPage() {
                       autoComplete="new-password"
                       enterKeyHint="next"
                       minLength={8}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-white/[0.05] transition-all"
+                      className="w-full bg-page border b-theme rounded-xl px-4 py-3 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-hover transition-all"
                       placeholder="At least 8 characters"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+                    <label className="block text-[10px] font-semibold tracking-[0.2em] uppercase t3 mb-2">
                       Confirm password
                     </label>
                     <input
@@ -169,7 +169,7 @@ export default function SetPasswordPage() {
                       autoComplete="new-password"
                       enterKeyHint="go"
                       minLength={8}
-                      className="w-full bg-white/[0.08] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-white/[0.05] transition-all"
+                      className="w-full bg-hover border b-theme rounded-xl px-4 py-3 text-sm t1 placeholder:t3 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 focus:bg-hover transition-all"
                       placeholder="Re-enter password"
                     />
                   </div>
@@ -204,7 +204,7 @@ export default function SetPasswordPage() {
           </AnimatePresence>
         </motion.div>
 
-        <p className="text-center text-zinc-700 text-xs mt-5">
+        <p className="text-center t3 text-xs mt-5">
           Secured by Supabase Auth &middot; {BRAND_NAME}
         </p>
       </div>

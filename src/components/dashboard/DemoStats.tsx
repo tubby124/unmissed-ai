@@ -236,7 +236,7 @@ function DemoRow({ call, isExpanded, isLoading, transcript, audioTime, onAudioTi
   return (
     <>
       <tr
-        className="border-t cursor-pointer transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50"
+        className="border-t cursor-pointer transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50"
         style={{ borderColor: 'var(--color-border)', backgroundColor: isExpanded ? 'var(--color-bg-raised)' : undefined }}
         onClick={onToggle}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}

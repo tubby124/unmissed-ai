@@ -122,7 +122,7 @@ export default function LiveCoachingPanel({
           onKeyDown={handleKeyDown}
           placeholder="Type coaching message for the agent..."
           rows={2}
-          className="flex-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+          className="flex-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 bg-surface b-theme t1 placeholder:text-zinc-400"
         />
         <button
           type="button"

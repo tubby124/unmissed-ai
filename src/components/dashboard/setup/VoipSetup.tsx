@@ -61,7 +61,7 @@ export default function VoipSetup({
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-white">
+              <p className="text-xs font-semibold t1">
                 {VOIP_PLATFORMS.find(p => p.id === voipPlatform)?.name} — Setup Steps
               </p>
               <span className="text-[10px] font-mono t3 tabular-nums">
@@ -114,7 +114,7 @@ export default function VoipSetup({
             {rawNumber && (
               <div className="bg-input border b-theme rounded-xl px-4 py-3 flex items-center gap-3">
                 <span className="text-[11px] t3 shrink-0">Agent number</span>
-                <span className="font-mono text-sm text-white flex-1">{displayNumber}</span>
+                <span className="font-mono text-sm t1 flex-1">{displayNumber}</span>
                 <CopyButton value={rawNumber} />
               </div>
             )}

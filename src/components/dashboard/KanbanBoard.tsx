@@ -50,9 +50,9 @@ function KanbanCard({ call, isDragging }: { call: CallLog; isDragging?: boolean 
     : null
 
   return (
-    <div className={`block rounded-xl border border-gray-100 bg-white shadow-sm p-3 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] transition-all duration-150 ${isDragging ? 'opacity-50 scale-95' : 'hover:shadow-md'}`}>
+    <div className={`block rounded-xl border b-theme bg-surface shadow-sm p-3 transition-all duration-150 ${isDragging ? 'opacity-50 scale-95' : 'hover:shadow-md'}`}>
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="font-mono text-xs font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">
+        <span className="font-mono text-xs font-medium t1 flex-1 truncate">
           {call.caller_phone || 'Unknown'}
         </span>
         {dur && (
@@ -64,7 +64,7 @@ function KanbanCard({ call, isDragging }: { call: CallLog; isDragging?: boolean 
         <p className="text-[11px] italic text-gray-400 leading-snug line-clamp-2">{snippet}</p>
       )}
       {call.business_name && (
-        <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1 truncate">{call.business_name}</p>
+        <p className="text-[10px] t3 mt-1 truncate">{call.business_name}</p>
       )}
     </div>
   )
@@ -208,10 +208,10 @@ export default function KanbanBoard({
                   )}
                   <span className={`relative inline-flex rounded-full w-2 h-2 ${col.dotClass}`} />
                 </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider t3">
                   {col.label}
                 </span>
-                <span className="ml-auto text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-gray-400 rounded-full px-2 py-0.5 tabular-nums">
+                <span className="ml-auto text-[10px] font-bold bg-hover t3 rounded-full px-2 py-0.5 tabular-nums">
                   {colCalls.length}
                 </span>
               </div>
@@ -265,10 +265,10 @@ export default function KanbanBoard({
                   : (
                     <div className={`rounded-xl border-2 border-dashed p-4 text-center transition-colors duration-150 ${
                       isOver
-                        ? 'border-blue-400 dark:border-blue-500 bg-blue-500/[0.04]'
-                        : 'border-gray-200 dark:border-zinc-700'
+                        ? 'border-blue-500 bg-blue-500/[0.04]'
+                        : 'b-theme'
                     }`}>
-                      <p className="text-xs text-gray-400 dark:text-gray-600">
+                      <p className="text-xs t3">
                         {isOver ? 'Drop here' : col.emptyLabel}
                       </p>
                     </div>

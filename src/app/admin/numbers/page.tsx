@@ -115,15 +115,15 @@ export default function AdminNumbersPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-xl font-bold text-white">Number Inventory</h1>
-        <p className="text-sm text-gray-400 mt-1">
+        <h1 className="text-xl font-bold t1">Number Inventory</h1>
+        <p className="text-sm t3 mt-1">
           Twilio numbers offered at $20 CAD during onboarding (vs $25 for a fresh number). Includes 50 free minutes.
         </p>
       </div>
 
       {/* Add number form */}
-      <div className="bg-gray-900 rounded-xl p-5 border border-white/10">
-        <h2 className="text-sm font-semibold text-gray-200 mb-3">Add number to inventory</h2>
+      <div className="bg-surface rounded-xl p-5 border b-theme">
+        <h2 className="text-sm font-semibold t1 mb-3">Add number to inventory</h2>
         <form onSubmit={handleAdd} className="flex gap-3 items-start">
           <div className="flex-1 space-y-1">
             <input
@@ -131,7 +131,7 @@ export default function AdminNumbersPage() {
               value={addInput}
               onChange={(e) => setAddInput(e.target.value)}
               placeholder="+14031234567"
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 rounded-lg bg-hover border b-theme text-sm t1 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             {addError && <p className="text-xs text-red-400">{addError}</p>}
             {addSuccess && <p className="text-xs text-emerald-400">{addSuccess}</p>}
@@ -144,18 +144,18 @@ export default function AdminNumbersPage() {
             {adding ? "Adding…" : "Add to inventory"}
           </button>
         </form>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs t3 mt-2">
           Enter the E.164 number. SID and province are auto-detected from your Twilio account.
         </p>
       </div>
 
       {/* Inventory table */}
-      <div className="bg-gray-900 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-200">All inventory numbers</h2>
+      <div className="bg-surface rounded-xl border b-theme overflow-hidden">
+        <div className="px-5 py-3 border-b b-theme flex items-center justify-between">
+          <h2 className="text-sm font-semibold t1">All inventory numbers</h2>
           <button
             onClick={fetchNumbers}
-            className="text-xs text-gray-400 hover:text-white transition-colors"
+            className="text-xs t3 hover:t1 transition-colors"
           >
             Refresh
           </button>
@@ -170,7 +170,7 @@ export default function AdminNumbersPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-xs text-gray-400 uppercase tracking-wide">
+              <tr className="border-b b-theme text-xs t3 uppercase tracking-wide">
                 <th className="px-5 py-2.5 text-left font-medium">Number</th>
                 <th className="px-3 py-2.5 text-left font-medium">Province</th>
                 <th className="px-3 py-2.5 text-left font-medium">Status</th>
@@ -183,26 +183,26 @@ export default function AdminNumbersPage() {
               {numbers.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-white/5 last:border-b-0 ${i % 2 === 0 ? "" : "bg-white/[0.02]"}`}
+                  className={`border-b b-theme last:border-b-0 ${i % 2 === 0 ? "" : "bg-hover"}`}
                 >
-                  <td className="px-5 py-3 font-mono text-white text-xs">
+                  <td className="px-5 py-3 font-mono t1 text-xs">
                     {formatPhone(row.phone_number)}
-                    <span className="ml-2 text-gray-600 font-sans">{row.twilio_sid.slice(0, 8)}…</span>
+                    <span className="ml-2 t3 font-sans">{row.twilio_sid.slice(0, 8)}…</span>
                   </td>
-                  <td className="px-3 py-3 text-gray-300">{row.province ?? "—"}</td>
+                  <td className="px-3 py-3 t2">{row.province ?? "—"}</td>
                   <td className="px-3 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_STYLES[row.status]}`}>
                       {row.status}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-gray-300">
+                  <td className="px-3 py-3 t2">
                     {row.clients ? (
                       <span>{row.clients.business_name}</span>
                     ) : (
-                      <span className="text-gray-600">—</span>
+                      <span className="t3">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-gray-400 text-xs">
+                  <td className="px-3 py-3 t3 text-xs">
                     {row.reserved_at ? timeAgo(row.reserved_at) : "—"}
                   </td>
                   <td className="px-3 py-3 text-right">

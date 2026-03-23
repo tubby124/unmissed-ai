@@ -241,7 +241,7 @@ export default function TestLabPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">Test Lab</h1>
+          <h1 className="text-xl font-semibold t1">Test Lab</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Simulate calls and verify the full pipeline end-to-end</p>
         </div>
 
@@ -251,7 +251,7 @@ export default function TestLabPage() {
             <select
               value={selectedClientId}
               onChange={e => setSelectedClientId(e.target.value)}
-              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40 cursor-pointer"
+              className="bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 cursor-pointer"
             >
               {clients.map(c => (
                 <option key={c.id} value={c.id}>{c.business_name}</option>
@@ -286,7 +286,7 @@ export default function TestLabPage() {
             {lastRun.passed}/{lastRun.total}
           </span>
           <div>
-            <div className="text-sm font-medium text-white">{lastRun.failed === 0 ? 'All scenarios passed' : `${lastRun.failed} scenario${lastRun.failed > 1 ? 's' : ''} failed`}</div>
+            <div className="text-sm font-medium t1">{lastRun.failed === 0 ? 'All scenarios passed' : `${lastRun.failed} scenario${lastRun.failed > 1 ? 's' : ''} failed`}</div>
             <div className="text-xs text-zinc-500 mt-0.5">Just ran · {new Date().toLocaleTimeString()}</div>
           </div>
           {lastRun.results?.length > 0 && (
@@ -302,10 +302,10 @@ export default function TestLabPage() {
       )}
 
       {/* Learning Loop */}
-      <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
+      <section className="rounded-xl border b-theme bg-hover p-5 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-white">Learning Loop</h2>
+            <h2 className="text-sm font-semibold t1">Learning Loop</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
               Analyze real conversations and apply targeted prompt improvements. Auto-runs via cron + Telegram when 5+ new calls arrive.
             </p>
@@ -356,7 +356,7 @@ export default function TestLabPage() {
                   {loopResult.changes.length} suggested change{loopResult.changes.length > 1 ? 's' : ''}
                 </p>
                 {loopResult.changes.map((c, i) => (
-                  <div key={i} className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 space-y-1">
+                  <div key={i} className="rounded-lg border b-theme bg-hover px-4 py-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
                         c.confidence === 'high'
@@ -370,7 +370,7 @@ export default function TestLabPage() {
                       </span>
                       <span className="text-xs text-zinc-500">§ {c.section}</span>
                     </div>
-                    <p className="text-sm text-white">{c.what}</p>
+                    <p className="text-sm t1">{c.what}</p>
                     <p className="text-xs text-zinc-500 italic">{c.why}</p>
                   </div>
                 ))}
@@ -419,18 +419,18 @@ export default function TestLabPage() {
         </div>
 
         {showAddForm && (
-          <div className="mb-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+          <div className="mb-4 rounded-xl border b-theme bg-hover p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-zinc-500 block mb-1">Name *</label>
                 <input value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                   placeholder="HOT — Urgent callback" />
               </div>
               <div>
                 <label className="text-xs text-zinc-500 block mb-1">Expected Status *</label>
                 <select value={addForm.expected_status} onChange={e => setAddForm(p => ({ ...p, expected_status: e.target.value }))}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40">
+                  className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40">
                   {['HOT','WARM','COLD','JUNK','UNKNOWN'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -438,20 +438,20 @@ export default function TestLabPage() {
             <div>
               <label className="text-xs text-zinc-500 block mb-1">Description</label>
               <input value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 placeholder="What this scenario tests" />
             </div>
             <div>
               <label className="text-xs text-zinc-500 block mb-1">Transcript (JSON array) *</label>
               <textarea value={addForm.transcript} onChange={e => setAddForm(p => ({ ...p, transcript: e.target.value }))}
                 rows={4}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40 resize-none"
+                className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40 resize-none"
                 placeholder='[{"role":"agent","text":"..."},{"role":"user","text":"..."}]' />
             </div>
             <div>
               <label className="text-xs text-zinc-500 block mb-1">Tags (comma-separated)</label>
               <input value={addForm.tags} onChange={e => setAddForm(p => ({ ...p, tags: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 placeholder="regression, real-estate, edge-case" />
             </div>
             {addError && <p className="text-xs text-red-400">{addError}</p>}
@@ -468,14 +468,14 @@ export default function TestLabPage() {
         )}
 
         {scenarios.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/[0.08] py-10 text-center text-zinc-600 text-sm">
+          <div className="rounded-xl border border-dashed b-theme py-10 text-center text-zinc-600 text-sm">
             No scenarios yet. Add your first one above.
           </div>
         ) : (
-          <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+          <div className="rounded-xl border b-theme overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-left">
+                <tr className="border-b b-theme text-left">
                   <th className="px-4 py-3 text-xs font-medium text-zinc-500">Name</th>
                   <th className="px-4 py-3 text-xs font-medium text-zinc-500">Expected</th>
                   <th className="px-4 py-3 text-xs font-medium text-zinc-500">Tags</th>
@@ -487,8 +487,8 @@ export default function TestLabPage() {
                 {scenarios.map((s, i) => {
                   const runResult = lastRun?.results?.find(r => r.scenario_id === s.id)
                   return (
-                    <tr key={s.id} className={`border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
-                      <td className="px-4 py-3 text-white font-medium">
+                    <tr key={s.id} className={`border-b border-[var(--color-border)] last:border-0 hover:bg-hover ${i % 2 === 0 ? '' : 'bg-page'}`}>
+                      <td className="px-4 py-3 t1 font-medium">
                         {s.name}
                         {s.description && <div className="text-xs text-zinc-600 mt-0.5">{s.description}</div>}
                       </td>
@@ -496,7 +496,7 @@ export default function TestLabPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(s.tags || []).map(t => (
-                            <span key={t} className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5">{t}</span>
+                            <span key={t} className="text-[10px] text-zinc-500 bg-hover border b-theme rounded px-1.5 py-0.5">{t}</span>
                           ))}
                         </div>
                       </td>
@@ -533,10 +533,10 @@ export default function TestLabPage() {
         ) : (
           <div className="space-y-2">
             {runs.slice(0, 10).map(run => (
-              <div key={run.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+              <div key={run.id} className="rounded-xl border b-theme bg-hover overflow-hidden">
                 <button
                   onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
-                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-hover transition-colors text-left"
                 >
                   <span className={`text-sm font-semibold ${run.failed === 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {run.passed}/{run.total}
@@ -546,7 +546,7 @@ export default function TestLabPage() {
                   <span className="ml-auto text-zinc-600 text-xs">{expandedRun === run.id ? '▲' : '▼'}</span>
                 </button>
                 {expandedRun === run.id && run.results && (
-                  <div className="border-t border-white/[0.06] px-4 pb-3">
+                  <div className="border-t b-theme px-4 pb-3">
                     <div className="space-y-1.5 mt-3">
                       {run.results.map(r => (
                         <div key={r.scenario_id} className="flex items-center gap-3 text-sm">

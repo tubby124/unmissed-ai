@@ -205,7 +205,7 @@ export default function MobileSetup({
                 </svg>
               </div>
             </summary>
-            <div className="bg-input border b-theme rounded-xl p-4 mt-1 divide-y divide-white/[0.04]">
+            <div className="bg-input border b-theme rounded-xl p-4 mt-1 divide-y divide-[var(--color-border)]">
               <CodeRow label="Disable no-answer"     code={`${disablePrefix}61#`} />
               <CodeRow label="Disable busy"          code={`${disablePrefix}67#`} />
               <CodeRow label="Disable unreachable"   code={`${disablePrefix}62#`} />
@@ -227,7 +227,7 @@ export default function MobileSetup({
                 </svg>
               </div>
             </summary>
-            <div className="bg-input border b-theme rounded-xl p-4 mt-1 divide-y divide-white/[0.04]">
+            <div className="bg-input border b-theme rounded-xl p-4 mt-1 divide-y divide-[var(--color-border)]">
               <CodeRow label="Check no-answer status"   code="*#61#" />
               <CodeRow label="Check unreachable status" code="*#62#" />
               <CodeRow label="Check busy status"        code="*#67#" />

@@ -115,7 +115,7 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
       height="14"
       viewBox="0 0 24 24"
       fill="none"
-      className={`text-zinc-400 transition-transform duration-200 shrink-0 ${collapsed ? '' : 'rotate-180'}`}
+      className={`t3 transition-transform duration-200 shrink-0 ${collapsed ? '' : 'rotate-180'}`}
     >
       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
@@ -242,14 +242,14 @@ export default function GuidedPromptEditor({ value, onChange, placeholder }: Gui
                   key={section.id}
                   className={`rounded-xl border transition-colors overflow-hidden ${
                     isCollapsed
-                      ? 'border-zinc-700/50 bg-white/[0.01]'
-                      : 'border-zinc-600/40 bg-white/[0.02]'
+                      ? 'b-theme bg-page'
+                      : 'border-[var(--color-border)] bg-hover'
                   }`}
                 >
                   {/* Section header */}
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors group"
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-hover transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export default function GuidedPromptEditor({ value, onChange, placeholder }: Gui
                         transition={{ duration: 0.15, ease: 'easeInOut' }}
                         style={{ overflow: 'hidden' }}
                       >
-                        <div className="px-4 pb-3 border-t border-zinc-700/30">
+                        <div className="px-4 pb-3 border-t b-theme">
                           <textarea
                             value={section.content}
                             onChange={e => updateSection(section.id, e.target.value)}

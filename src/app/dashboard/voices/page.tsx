@@ -32,20 +32,20 @@ const PROVIDER_COLORS: Record<string, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3" style={{
+    <div className="rounded-2xl border b-theme bg-page p-5 space-y-3" style={{
       background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-hover) 50%, var(--color-surface) 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.5s infinite',
     }}>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-white/[0.06] shrink-0" />
+        <div className="w-9 h-9 rounded-full bg-hover shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-28 rounded bg-white/[0.06]" />
-          <div className="h-3 w-20 rounded bg-white/[0.04]" />
+          <div className="h-4 w-28 rounded bg-hover" />
+          <div className="h-3 w-20 rounded bg-hover" />
         </div>
       </div>
-      <div className="h-3 w-full rounded bg-white/[0.04]" />
-      <div className="h-3 w-3/4 rounded bg-white/[0.04]" />
+      <div className="h-3 w-full rounded bg-hover" />
+      <div className="h-3 w-3/4 rounded bg-hover" />
     </div>
   )
 }
@@ -128,8 +128,8 @@ function VoiceCard({
         isPlaying
           ? 'border-blue-500/40 bg-blue-500/[0.04]'
           : isMyActiveVoice
-          ? 'border-green-500/20 bg-white/[0.02] hover:border-green-500/30 hover:bg-white/[0.04]'
-          : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
+          ? 'border-green-500/20 bg-page hover:border-green-500/30 hover:bg-hover'
+          : 'b-theme bg-page hover:border-[var(--color-border)] hover:bg-hover'
       }`}
       style={isMyActiveVoice ? { borderBottomColor: 'rgba(34,197,94,0.4)', borderBottomWidth: 2 } : undefined}
     >
@@ -140,7 +140,7 @@ function VoiceCard({
           className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
             isPlaying
               ? 'bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]'
-              : 'bg-white/[0.06] text-zinc-400 hover:bg-white/[0.12] hover:text-white'
+              : 'bg-hover t3 hover:bg-[var(--color-border)] hover:t1'
           }`}
           title={isPlaying ? 'Stop preview' : 'Play preview'}
         >
@@ -180,7 +180,7 @@ function VoiceCard({
               </span>
             )}
             {isMyPreviousVoice && (
-              <span className="text-[10px] font-medium text-zinc-500 bg-white/[0.03] border border-white/[0.06] rounded-full px-1.5 py-0.5 leading-none shrink-0">
+              <span className="text-[10px] font-medium t3 bg-page border b-theme rounded-full px-1.5 py-0.5 leading-none shrink-0">
                 Previously used
               </span>
             )}
@@ -224,7 +224,7 @@ function VoiceCard({
           <div className="relative shrink-0" ref={dropdownRef}>
             <button
               onClick={() => setAssignOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] text-zinc-300 hover:bg-white/[0.1] hover:text-white transition-colors border border-white/[0.06]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-hover t2 hover:bg-[var(--color-border)] hover:t1 transition-colors border b-theme"
             >
               Assign
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -233,8 +233,8 @@ function VoiceCard({
             </button>
 
             {assignOpen && clients.length > 0 && (
-              <div className="absolute right-0 top-full mt-1.5 z-20 w-48 rounded-xl border border-white/[0.1] bg-zinc-950/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-                <div className="px-3 py-2 border-b border-white/[0.06]">
+              <div className="absolute right-0 top-full mt-1.5 z-20 w-48 rounded-xl border b-theme bg-zinc-950/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+                <div className="px-3 py-2 border-b b-theme">
                   <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Assign to agent</span>
                 </div>
                 {clients.map(client => (
@@ -242,7 +242,7 @@ function VoiceCard({
                     key={client.id}
                     onClick={() => assign(client.id)}
                     disabled={assigning === client.id}
-                    className="flex items-center justify-between w-full px-3 py-2.5 text-left text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-white transition-colors"
+                    className="flex items-center justify-between w-full px-3 py-2.5 text-left text-xs t2 hover:bg-hover hover:t1 transition-colors"
                   >
                     <span className="truncate">{client.business_name}</span>
                     {assignedMap[client.id] ? (
@@ -275,7 +275,7 @@ function VoiceCard({
       {assignedClients.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
           {assignedClients.map(c => (
-            <span key={c.id} className="text-[10px] text-zinc-400 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">
+            <span key={c.id} className="text-[10px] t3 bg-hover border b-theme rounded-full px-2 py-0.5">
               {c.business_name}
             </span>
           ))}
@@ -397,19 +397,19 @@ export default function VoicesPage() {
             placeholder="Search voices..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-colors"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-hover border b-theme text-sm t1 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:bg-hover transition-colors"
           />
         </div>
 
         {/* Provider filter tabs */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex gap-1 p-1 rounded-xl bg-hover border b-theme">
           {providers.map(p => (
             <button
               key={p}
               onClick={() => setProvider(p)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                 provider === p
-                  ? 'bg-white/[0.1] text-white shadow-sm'
+                  ? 'bg-[var(--color-border)] t1 shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
@@ -438,7 +438,7 @@ export default function VoicesPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-hover border b-theme flex items-center justify-center mb-4">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-zinc-600">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

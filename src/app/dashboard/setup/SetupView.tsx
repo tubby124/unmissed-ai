@@ -165,7 +165,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
 
             {rawNumber ? (
               <>
-                <p className="font-mono font-bold text-[2.75rem] sm:text-5xl text-white tracking-tight tabular-nums leading-none">
+                <p className="font-mono font-bold text-[2.75rem] sm:text-5xl t1 tracking-tight tabular-nums leading-none">
                   {displayNumber}
                 </p>
                 <div className="flex justify-center pt-1">

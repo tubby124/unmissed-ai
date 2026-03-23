@@ -104,21 +104,21 @@ export default function AdminClientsPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Clients</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-xl font-bold t1">Clients</h1>
+          <p className="text-sm t3 mt-1">
             {active.length} active · {other.length} other
           </p>
         </div>
         <button
           onClick={fetchClients}
-          className="text-xs text-gray-400 hover:text-white transition-colors"
+          className="text-xs t3 hover:t1 transition-colors"
         >
           Refresh
         </button>
       </div>
 
       {calConnected && (
-        <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300">
+        <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-400">
           Google Calendar connected successfully.
         </div>
       )}
@@ -133,7 +133,7 @@ export default function AdminClientsPage() {
 
       {other.length > 0 && !loading && (
         <div className="opacity-60">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-3">Other</p>
+          <p className="text-xs font-medium t3 uppercase tracking-widest mb-3">Other</p>
           <ClientTable
             clients={other}
             loading={false}
@@ -161,7 +161,7 @@ function ClientTable({
   onToggleBeta: (c: ClientRow) => void
 }) {
   return (
-    <div className="bg-gray-900 rounded-xl border border-white/10 overflow-hidden">
+    <div className="bg-surface rounded-xl border b-theme overflow-hidden">
       {loading ? (
         <div className="px-5 py-10 text-center text-sm text-gray-500">Loading…</div>
       ) : clients.length === 0 ? (
@@ -169,7 +169,7 @@ function ClientTable({
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs text-gray-400 uppercase tracking-wide bg-white/5">
+            <tr className="border-b b-theme text-xs t3 uppercase tracking-wide bg-hover">
               <th className="px-5 py-3 text-left font-medium">Client</th>
               <th className="px-3 py-3 text-left font-medium">Status</th>
               <th className="px-3 py-3 text-left font-medium">Number</th>
@@ -183,13 +183,13 @@ function ClientTable({
             {clients.map((c, i) => (
               <tr
                 key={c.id}
-                className={`border-b border-white/5 last:border-b-0 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
+                className={`border-b b-theme last:border-b-0 ${i % 2 === 0 ? '' : 'bg-page'}`}
               >
                 <td className="px-5 py-3">
-                  <div className="text-white font-medium">{c.business_name}</div>
-                  <div className="text-xs text-gray-500 font-mono mt-0.5">{c.slug}</div>
+                  <div className="t1 font-medium">{c.business_name}</div>
+                  <div className="text-xs t3 font-mono mt-0.5">{c.slug}</div>
                   {c.contact_email && (
-                    <div className="text-[11px] text-gray-600 mt-0.5">{c.contact_email}</div>
+                    <div className="text-[11px] t3 mt-0.5">{c.contact_email}</div>
                   )}
                 </td>
                 <td className="px-3 py-3">
@@ -197,8 +197,8 @@ function ClientTable({
                     {c.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 font-mono text-xs text-gray-300 whitespace-nowrap">
-                  {c.twilio_number ?? <span className="text-gray-600">—</span>}
+                <td className="px-3 py-3 font-mono text-xs t2 whitespace-nowrap">
+                  {c.twilio_number ?? <span className="t3">—</span>}
                 </td>
                 <td className="px-3 py-3 text-center">
                   <Toggle
