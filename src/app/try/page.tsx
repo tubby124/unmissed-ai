@@ -6,25 +6,7 @@ import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import DemoCall from "@/components/DemoCall"
 import { Phone } from "lucide-react"
-
-const STORAGE_KEY = "unmissed_demo_visitor"
-
-type VisitorInfo = { name: string; email: string; phone: string }
-
-function loadVisitor(): VisitorInfo | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (parsed.name || parsed.email || parsed.phone) return parsed
-  } catch { /* ignore */ }
-  return null
-}
-
-function saveVisitor(info: VisitorInfo) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(info)) } catch { /* ignore */ }
-}
+import { loadVisitor, saveVisitor, normalizePhoneNA } from "@/lib/demo-visitor"
 
 const AGENTS = [
   {
@@ -199,9 +181,10 @@ export default function TryPage() {
                     onSubmit={e => {
                       e.preventDefault()
                       const name = nameInput.trim() || "Friend"
-                      const phone = phoneInput.trim()
+                      const rawPhone = phoneInput.trim()
+                      const phone = normalizePhoneNA(rawPhone) || rawPhone
                       const email = emailInput.trim()
-                      saveVisitor({ name: nameInput.trim(), email, phone })
+                      saveVisitor({ name: nameInput.trim(), email, phone: rawPhone })
                       setState({ step: "call", agentId: state.agentId, callerName: name, callerPhone: phone, callerEmail: email })
                     }}
                   >
@@ -247,12 +230,12 @@ export default function TryPage() {
                       className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
                       style={{ backgroundColor: "var(--color-primary)" }}
                     >
-                      Start 2-Minute Demo Call
+                      Start 5-Minute Demo Call
                     </button>
                   </form>
 
                   <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
-                    Uses your microphone. 2-minute limit per demo.
+                    Uses your microphone. 5-minute limit per demo.
                   </p>
                 </div>
               </div>

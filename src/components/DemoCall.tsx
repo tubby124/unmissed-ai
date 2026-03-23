@@ -40,7 +40,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
   const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle")
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [secondsLeft, setSecondsLeft] = useState(120)
+  const [secondsLeft, setSecondsLeft] = useState(300)
   const [callId, setCallId] = useState<string | null>(null)
   const [energy, setEnergy] = useState(0.3)
   const [showNotification, setShowNotification] = useState(false)
@@ -381,7 +381,7 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
                 </div>
                 <div className="flex items-center gap-2.5">
                   <StatusBadge status={agentStatus} callState="active" />
-                  <CallTimer secondsLeft={secondsLeft} totalSeconds={120} />
+                  <CallTimer secondsLeft={secondsLeft} totalSeconds={300} />
                 </div>
               </div>
 

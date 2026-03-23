@@ -182,7 +182,7 @@ export default function DemoAudioPlayer() {
             <ArrowRight size={16} />
           </Link>
           <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
-            No sign-up needed · Uses your microphone · 2-minute demo
+            No sign-up needed · Uses your microphone · 5-minute demo
           </p>
         </motion.div>
       </div>

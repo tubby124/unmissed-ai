@@ -100,6 +100,11 @@
 | D36 | FEATURE | Weekly failure digest cron — recurring failure analysis + client notification | LOW | NOT STARTED |
 | D37 | FEATURE | Agent personality coherence check — warn after 5+ surgical patches without regen | LOW | NOT STARTED |
 | D38 | **BUG** | Guided tour breaks on mobile — Sidebar is `hidden lg:flex`, so `data-tour` nav elements invisible below 1024px. Fixed: tour suppressed below 1024px via `window.innerWidth` check. | MEDIUM | **DONE** 2026-03-22 |
+| D39 | FEATURE | Demo GA4 events — fire `demo_start`, `demo_complete`, `demo_agent_selected` via `lib/analytics.ts` for funnel tracking | MEDIUM | NOT STARTED |
+| D40 | FEATURE | Demo follow-up email — Brevo transactional email after demo with summary + signup link. Requires domain/Brevo setup (GATE-1) | MEDIUM | BLOCKED on domain |
+| D41 | FEATURE | Demo-to-Brevo sync — add demo visitors with email to Brevo contacts for nurture list | LOW | NOT STARTED |
+| D42 | UX | "Not {name}?" link for returning demo visitors — lets them edit saved localStorage info instead of auto-skipping form | LOW | NOT STARTED |
+| D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | NOT STARTED |
 
 ---
 

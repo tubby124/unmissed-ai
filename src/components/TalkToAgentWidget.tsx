@@ -6,25 +6,7 @@ import { motion, AnimatePresence } from "motion/react"
 import { X } from "lucide-react"
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import DemoCall from "./DemoCall"
-
-const STORAGE_KEY = "unmissed_demo_visitor"
-
-type VisitorInfo = { name: string; email: string; phone: string }
-
-function loadVisitor(): VisitorInfo | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (parsed.name || parsed.email || parsed.phone) return parsed
-  } catch { /* ignore */ }
-  return null
-}
-
-function saveVisitor(info: VisitorInfo) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(info)) } catch { /* ignore */ }
-}
+import { loadVisitor, saveVisitor, normalizePhoneNA, type VisitorInfo } from "@/lib/demo-visitor"
 
 type WidgetStep = "closed" | "form" | "call"
 
@@ -91,13 +73,14 @@ export default function TalkToAgentWidget() {
   }
 
   function submitForm() {
-    const info: VisitorInfo = {
+    const rawPhone = phoneInput.trim()
+    const info = {
       name: nameInput.trim(),
       email: emailInput.trim(),
-      phone: phoneInput.trim(),
+      phone: rawPhone,
     }
     saveVisitor(info)
-    setVisitorInfo(info)
+    setVisitorInfo({ ...info, phone: normalizePhoneNA(rawPhone) || rawPhone })
     setStep("call")
   }
 

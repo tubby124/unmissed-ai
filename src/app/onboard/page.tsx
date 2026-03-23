@@ -15,6 +15,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { trackEvent } from "@/lib/analytics";
+import { loadVisitor } from "@/lib/demo-visitor";
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
 
@@ -134,6 +135,17 @@ export default function OnboardPage() {
     if (!data.timezone) {
       update({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Prefill from demo visitor localStorage (name/email/phone collected on /try or widget)
+  useEffect(() => {
+    const visitor = loadVisitor();
+    if (!visitor) return;
+    const prefill: Partial<OnboardingData> = {};
+    if (visitor.name && !data.ownerName) prefill.ownerName = visitor.name;
+    if (visitor.email && !data.contactEmail) prefill.contactEmail = visitor.email;
+    if (visitor.phone && !data.callbackPhone) prefill.callbackPhone = visitor.phone;
+    if (Object.keys(prefill).length > 0) update(prefill);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist to localStorage

@@ -9,6 +9,7 @@ import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { normalizePhoneNA } from '@/lib/demo-visitor'
 
 // 3 calls per IP per hour (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)
@@ -42,8 +43,11 @@ export async function POST(req: NextRequest) {
 
   // Parse body
   const body = await req.json().catch(() => ({}))
-  const phone = (body.phone as string)?.trim() || ''
+  const rawPhone = (body.phone as string)?.trim() || ''
+  const phone = rawPhone ? (normalizePhoneNA(rawPhone) || rawPhone) : ''
   const niche = (body.niche as string)?.trim() || 'auto_glass'
+  const callerName = (body.callerName as string)?.trim() || 'Friend'
+  const callerEmail = (body.callerEmail as string)?.trim() || ''
 
   // Validate phone
   if (!phone || !isValidE164NA(phone)) {
@@ -116,7 +120,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE. Tools: hangUp, calendar, SMS, transfer. Outbound demo — visitor requested callback. CALLER PHONE: ${phone}]`
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE\nCALLER NAME: ${callerName}\nCALLER PHONE: ${phone}\n${callerEmail ? `CALLER EMAIL: ${callerEmail}\n` : ''}Outbound demo — visitor requested callback. Tools: hangUp, calendar, SMS, transfer.]`
 
   // Build tools from demo capabilities config (call-me = Twilio medium + known phone)
   let demoTools: object[] = []
@@ -182,7 +186,9 @@ export async function POST(req: NextRequest) {
     try {
       const { error } = await supabase.from('demo_calls').insert({
         demo_id: demo.id,
-        caller_name: phone,
+        caller_name: callerName,
+        caller_phone: phone || null,
+        caller_email: callerEmail || null,
         ultravox_call_id: uvCall.callId,
         source: 'call-me-widget',
         ip_hash: ipHash,

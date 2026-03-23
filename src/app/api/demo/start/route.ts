@@ -10,6 +10,7 @@ import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { normalizePhoneNA } from '@/lib/demo-visitor'
 
 // 10 demos per IP per hour (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(10, 60 * 60 * 1000)
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const callerName = (body.callerName as string)?.trim() || 'Friend'
-  const callerPhone = (body.callerPhone as string)?.trim() || ''
+  const rawPhone = (body.callerPhone as string)?.trim() || ''
+  const callerPhone = rawPhone ? (normalizePhoneNA(rawPhone) || rawPhone) : ''
   const callerEmail = (body.callerEmail as string)?.trim() || ''
 
   // ── Preview mode: generate prompt live from onboarding data ─────────────────
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Prompt generation failed: ${err}` }, { status: 500 })
     }
 
-    const promptWithContext = prompt + `\n\n[PREVIEW MODE — The business owner is testing their own agent before going live. Caller name: "${callerName}". 2-minute preview. Be concise.]
+    const promptWithContext = prompt + `\n\n[PREVIEW MODE — The business owner is testing their own agent before going live.\nCALLER NAME: ${callerName}\n5-minute preview. Be concise.]
 
 HANG-UP RULES (mandatory — follow exactly):
 - When the caller says "bye", "goodbye", "thanks", "thank you", "okay thanks", "that's all", "I'm good", "I'm done", or any other signal they are finished — say a brief farewell (max 5 words) and invoke hangUp in the SAME response.
@@ -114,6 +116,8 @@ HANG-UP RULES (mandatory — follow exactly):
         const { error } = await supabaseLog.from('demo_calls').insert({
           demo_id: `preview:${niche}`,
           caller_name: callerName,
+          caller_phone: callerPhone || null,
+          caller_email: callerEmail || null,
           ultravox_call_id: call.callId,
           source: 'onboard-preview',
           ip_hash: ipHash,
@@ -202,12 +206,13 @@ HANG-UP RULES (mandatory — follow exactly):
     }
   }
 
-  // Build context line based on what info the visitor provided
-  const contextParts = [`DEMO MODE — BROWSER`, `Caller name: "${callerName}"`]
+  // Build context block — same UPPERCASE format as buildAgentContext()
+  const contextParts = [`DEMO MODE — BROWSER`]
+  contextParts.push(`CALLER NAME: ${callerName}`)
   if (callerPhone) contextParts.push(`CALLER PHONE: ${callerPhone}`)
   if (callerEmail) contextParts.push(`CALLER EMAIL: ${callerEmail}`)
   if (!callerPhone) contextParts.push('No SMS or transfer — browser has no phone number')
-  const promptWithContext = basePrompt + `\n\n[${contextParts.join('. ')}.]`
+  const promptWithContext = basePrompt + `\n\n[${contextParts.join('\n')}]`
 
   const voiceId = liveVoiceId || demo.voiceId
   const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
@@ -246,6 +251,8 @@ HANG-UP RULES (mandatory — follow exactly):
       const { error } = await supabaseLog.from('demo_calls').insert({
         demo_id: demoId,
         caller_name: callerName,
+        caller_phone: callerPhone || null,
+        caller_email: callerEmail || null,
         ultravox_call_id: call.callId,
         source: 'browser',
         ip_hash: ipHash,
