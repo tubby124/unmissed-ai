@@ -561,7 +561,66 @@ function InlineLocationEditor({
   );
 }
 
-// ── Agent Knowledge Review Card (Phase 5c) ────────────────────────────────────
+// ── Inline FAQ Editor ────────────────────────────────────────────────────────
+
+function InlineFaqEditor({
+  q, a, onSave, onCancel,
+}: {
+  q: string;
+  a: string;
+  onSave: (q: string, a: string) => void;
+  onCancel: () => void;
+}) {
+  const [draftQ, setDraftQ] = useState(q);
+  const [draftA, setDraftA] = useState(a);
+  const qRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { qRef.current?.focus(); qRef.current?.select(); }, []);
+
+  return (
+    <div className="flex-1 min-w-0 space-y-1.5 py-1">
+      <input
+        ref={qRef}
+        type="text"
+        value={draftQ}
+        onChange={(e) => setDraftQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); onSave(draftQ, draftA); }
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder="Question"
+        aria-label="Edit question"
+        className="w-full bg-background border border-input rounded-lg px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+      />
+      <textarea
+        value={draftA}
+        onChange={(e) => setDraftA(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
+        placeholder="Answer"
+        aria-label="Edit answer"
+        rows={2}
+        className="w-full bg-background border border-input rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 resize-none"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onSave(draftQ, draftA)}
+          className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 min-h-[44px] px-3 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-muted-foreground hover:text-foreground min-h-[44px] px-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Agent Knowledge Review Card (Phase 5c + 5d) ───────────────────────────────
 
 function AgentKnowledgeReviewCard({
   data,
@@ -571,6 +630,8 @@ function AgentKnowledgeReviewCard({
   onUpdate: (updates: Partial<OnboardingData>) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingFactIndex, setEditingFactIndex] = useState<number | null>(null);
+  const [editingQaIndex, setEditingQaIndex] = useState<number | null>(null);
   const sr = data.websiteScrapeResult;
 
   // Only render if there is actual scraped content
@@ -605,6 +666,20 @@ function AgentKnowledgeReviewCard({
         approvedQa: new Array(sr!.extraQa.length).fill(true),
       },
     });
+  }
+
+  function editFact(i: number, newValue: string) {
+    const newFacts = [...sr!.businessFacts];
+    newFacts[i] = newValue;
+    onUpdate({ websiteScrapeResult: { ...sr!, businessFacts: newFacts } });
+    setEditingFactIndex(null);
+  }
+
+  function editQa(i: number, q: string, a: string) {
+    const newQa = [...sr!.extraQa];
+    newQa[i] = { q, a };
+    onUpdate({ websiteScrapeResult: { ...sr!, extraQa: newQa } });
+    setEditingQaIndex(null);
   }
 
   // Has Google Places data worth showing?
@@ -681,42 +756,69 @@ function AgentKnowledgeReviewCard({
             </div>
           )}
 
-          {/* Website facts — toggleable */}
+          {/* Website facts — toggleable + editable */}
           {sr.businessFacts.length > 0 && (
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Website facts
-                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude</span>
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude · pencil to edit</span>
               </p>
               <ul className="space-y-2">
                 {sr.businessFacts.map((fact: string, i: number) => {
                   const approved = sr.approvedFacts[i] !== false;
+                  const isEditing = editingFactIndex === i;
                   return (
-                    <li key={i} className="flex items-start gap-1">
-                      {/* 44px tap target wrapping visual 16px checkbox */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={approved}
-                        aria-label={approved ? `Exclude from agent: ${fact}` : `Include in agent: ${fact}`}
-                        onClick={() => toggleFact(i, !approved)}
-                        className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group"
-                      >
-                        <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover:opacity-80 ${
-                          approved
-                            ? "bg-indigo-600 border-indigo-600"
-                            : "bg-card border-border hover:border-muted-foreground"
-                        }`}>
+                    <li key={i} className="flex items-start gap-1 group/fact">
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={approved}
+                          aria-label={approved ? `Exclude from agent: ${fact}` : `Include in agent: ${fact}`}
+                          onClick={() => toggleFact(i, !approved)}
+                          className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group/cb"
+                        >
+                          <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover/cb:opacity-80 ${
+                            approved
+                              ? "bg-indigo-600 border-indigo-600"
+                              : "bg-card border-border hover:border-muted-foreground"
+                          }`}>
+                            {approved && (
+                              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </span>
+                        </button>
+                      )}
+                      {isEditing ? (
+                        <div className="flex-1 min-w-0 pt-2 pb-1">
+                          <InlineTextEditor
+                            value={fact}
+                            onSave={(v) => editFact(i, v)}
+                            onCancel={() => setEditingFactIndex(null)}
+                            label={`Edit fact ${i + 1}`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-1 flex-1 min-w-0">
+                          <span className={`text-xs leading-relaxed pt-3 flex-1 min-w-0 ${approved ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                            {fact}
+                          </span>
                           {approved && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                            <button
+                              type="button"
+                              onClick={() => setEditingFactIndex(i)}
+                              aria-label={`Edit fact: ${fact}`}
+                              className="opacity-0 group-hover/fact:opacity-100 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer rounded-md hover:bg-muted/60 transition-all text-muted-foreground hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                           )}
-                        </span>
-                      </button>
-                      <span className={`text-xs leading-relaxed pt-3 ${approved ? "text-foreground" : "text-muted-foreground line-through"}`}>
-                        {fact}
-                      </span>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -724,43 +826,68 @@ function AgentKnowledgeReviewCard({
             </div>
           )}
 
-          {/* Scraped FAQs — toggleable */}
+          {/* Scraped FAQs — toggleable + editable */}
           {sr.extraQa.length > 0 && (
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 FAQ answers
-                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude</span>
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· uncheck to exclude · pencil to edit</span>
               </p>
               <ul className="space-y-3">
                 {sr.extraQa.map((qa: { q: string; a: string }, i: number) => {
                   const approved = sr.approvedQa[i] !== false;
+                  const isEditing = editingQaIndex === i;
                   return (
-                    <li key={i} className="flex items-start gap-1">
-                      {/* 44px tap target wrapping visual 16px checkbox */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={approved}
-                        aria-label={approved ? `Exclude from agent: ${qa.q}` : `Include in agent: ${qa.q}`}
-                        onClick={() => toggleQa(i, !approved)}
-                        className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group"
-                      >
-                        <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover:opacity-80 ${
-                          approved
-                            ? "bg-indigo-600 border-indigo-600"
-                            : "bg-card border-border hover:border-muted-foreground"
-                        }`}>
+                    <li key={i} className="flex items-start gap-1 group/qa">
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={approved}
+                          aria-label={approved ? `Exclude from agent: ${qa.q}` : `Include in agent: ${qa.q}`}
+                          onClick={() => toggleQa(i, !approved)}
+                          className="shrink-0 -ml-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-md group/cb"
+                        >
+                          <span className={`w-4 h-4 rounded border transition-colors flex items-center justify-center group-hover/cb:opacity-80 ${
+                            approved
+                              ? "bg-indigo-600 border-indigo-600"
+                              : "bg-card border-border hover:border-muted-foreground"
+                          }`}>
+                            {approved && (
+                              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </span>
+                        </button>
+                      )}
+                      {isEditing ? (
+                        <InlineFaqEditor
+                          q={qa.q}
+                          a={qa.a}
+                          onSave={(q, a) => editQa(i, q, a)}
+                          onCancel={() => setEditingQaIndex(null)}
+                        />
+                      ) : (
+                        <div className="flex items-start gap-1 flex-1 min-w-0">
+                          <div className={`space-y-0.5 pt-3 transition-opacity flex-1 min-w-0 ${approved ? "opacity-100" : "opacity-40"}`}>
+                            <p className={`text-xs font-medium ${approved ? "text-foreground" : "text-foreground line-through"}`}>{qa.q}</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{qa.a}</p>
+                          </div>
                           {approved && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                            <button
+                              type="button"
+                              onClick={() => setEditingQaIndex(i)}
+                              aria-label={`Edit FAQ: ${qa.q}`}
+                              className="opacity-0 group-hover/qa:opacity-100 shrink-0 mt-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer rounded-md hover:bg-muted/60 transition-all text-muted-foreground hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                           )}
-                        </span>
-                      </button>
-                      <div className={`space-y-0.5 pt-3 transition-opacity ${approved ? "opacity-100" : "opacity-40"}`}>
-                        <p className={`text-xs font-medium ${approved ? "text-foreground" : "text-foreground line-through"}`}>{qa.q}</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{qa.a}</p>
-                      </div>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
