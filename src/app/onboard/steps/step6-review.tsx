@@ -215,9 +215,11 @@ function OnboardDemoSection({ data, onUpdate }: { data: OnboardingData; onUpdate
         className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all hover:opacity-90 cursor-pointer shadow-md"
         style={{ backgroundColor: agentColor }}
       >
-        Talk to {agentName} — Free 2-min preview
+        Talk to your {agentName} — free preview
       </button>
-      <p className="text-xs text-muted-foreground/70">Uses your mic · No credit card needed</p>
+      <p className="text-xs text-muted-foreground/70">
+        Trained on {companyName} · Uses your mic · No credit card
+      </p>
     </motion.div>
   );
 }
