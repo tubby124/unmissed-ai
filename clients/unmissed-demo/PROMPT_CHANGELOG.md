@@ -39,3 +39,15 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 8648 | **Hash:** e9775fe5a41d7363
 **Supabase version_id:** 4ff52351-57fa-4403-beb1-20de3736db34
 **Ultravox revision:** 8ba04f14-1a19-47d2-83a3-e0c92119385d
+
+## v8 — 2026-03-23 08:27 UTC
+**Change:** v8: repetition guard, 2Q max qualification, SMS feature demo, email capture, tighter forbidden rules, calendar error softening, queryKnowledge reference
+**Chars:** 9263 | **Hash:** 038ae90d30ee40c0
+**Supabase version_id:** ad17c377-4351-45f3-969e-f6d475e47dc1
+**Ultravox revision:** 3c2344d2-d811-4040-ada1-d64fb9841183
+
+## v9 — 2026-03-23 08:46 UTC
+**Change:** v9: queryKnowledge summarize rule, returning caller handling, industry-specific pivot, 'this IS the demo' moment, browser SMS redirect to call-me flow
+**Chars:** 10339 | **Hash:** 49dc9d5f0174690e
+**Supabase version_id:** 67dcbdf4-dd58-476a-a96e-4a6cd951923f
+**Ultravox revision:** 81537f51-6efe-46a2-b7dd-b0ecac29df36

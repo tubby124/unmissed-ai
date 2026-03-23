@@ -288,3 +288,86 @@ tests:
         value: "let me check the calendar"
       - type: not-icontains
         value: "let me pull that up"
+
+  # ── Test 16: Returning caller — warm welcome back ────────────────────────
+  - description: "Returning caller gets warm welcome, not cold opener"
+    vars:
+      caller_message: "Hey, I called yesterday and talked to someone about your service."
+    assert:
+      - type: llm-rubric
+        value: "The response acknowledges the caller has been here before — uses warm language like 'welcome back' or 'good to hear from you again'. It does NOT give the cold first-time opener."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "Thanks for calling unmissed"
+
+  # ── Test 17: Industry pivot — niche-specific pain point ──────────────────
+  - description: "After niche reveal, references industry-specific pain — not generic pitch"
+    vars:
+      caller_message: "I run a barbershop and I'm always in the middle of a cut when the phone rings."
+    assert:
+      - type: llm-rubric
+        value: "The response acknowledges the barber-specific problem (busy with clients, can't answer phone) and relates it to missed revenue or lost appointments. It does NOT give a generic product pitch."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 18: 'This IS the demo' — owns AI identity proactively ──────────
+  - description: "Proactively drops 'this is what your callers hear' without being asked"
+    vars:
+      caller_message: "Wow, you actually sound pretty natural. This is cool."
+    assert:
+      - type: llm-rubric
+        value: "The response leans into the compliment and reinforces that THIS call is exactly what their customers would experience. Something like 'this is what your callers would hear' or 'this IS the demo'. It does NOT downplay being AI or deflect."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 19: Browser SMS redirect — offers call-me instead ──────────────
+  - description: "Browser demo without phone — offers to call instead of faking SMS"
+    vars:
+      caller_message: "Can you show me the texting feature?"
+      context_data: "[DEMO MODE — BROWSER. Caller name: \"Alex\". No SMS or transfer — browser has no phone number.]"
+    assert:
+      - type: llm-rubric
+        value: "Agent acknowledges SMS can't work on the browser and offers an alternative — like calling them directly, or asking for their phone number. It does NOT pretend to send a text."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "I'll text you right now"
+      - type: not-icontains
+        value: "let me send you a text"
+
+  # ── Test 20: Knowledge summarization — short response, not recitation ────
+  - description: "When answering a knowledge-heavy question, keeps response under 2 sentences"
+    vars:
+      caller_message: "How is this different from hiring a receptionist?"
+    assert:
+      - type: llm-rubric
+        value: "The response is short (1-2 sentences max) and pulls ONE key differentiator. It does NOT give a long list of features or a 5-point comparison. Spoken naturally, not like reading from a FAQ."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: javascript
+        value: "output.split(/[.!?]+/).filter(s => s.trim().length > 0).length <= 3"
+        threshold: 1
+
+  # ── Test 21: Email capture — asks naturally before close ─────────────────
+  - description: "Asks for email before wrapping up"
+    vars:
+      caller_message: "Alright, I think I'm interested. What are the next steps?"
+    assert:
+      - type: llm-rubric
+        value: "The response moves toward close — mentions the setup link, offers to text or transfer. It may also ask for their email to send details. It does NOT keep qualifying."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: icontains-any
+        value:
+          - "onboard"
+          - "text"
+          - "email"
+          - "sign up"
+          - "link"
+          - "Hasan"
+
+  # ── Test 22: Repetition guard — does not re-pitch after already explaining
+  - description: "Does not repeat the product pitch when already explained"
+    vars:
+      caller_message: "So tell me again, what exactly does it do?"
+    assert:
+      - type: llm-rubric
+        value: "The response references the earlier explanation briefly ('like I mentioned' or 'like I said') rather than giving the full pitch again. It may add ONE new detail but does NOT recite the whole product description."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "You forward your business number"

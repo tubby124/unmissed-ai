@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const callerName = (body.callerName as string)?.trim() || 'Friend'
+  const callerPhone = (body.callerPhone as string)?.trim() || ''
+  const callerEmail = (body.callerEmail as string)?.trim() || ''
 
   // ── Preview mode: generate prompt live from onboarding data ─────────────────
   if (body.mode === 'preview' && body.onboardingData) {
@@ -200,7 +202,12 @@ HANG-UP RULES (mandatory — follow exactly):
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — BROWSER. Tools: hangUp, calendar. No SMS or transfer — browser has no phone number. Caller introduced themselves as "${callerName}".]`
+  // Build context line based on what info the visitor provided
+  const contextParts = [`DEMO MODE — BROWSER`, `Caller name: "${callerName}"`]
+  if (callerPhone) contextParts.push(`CALLER PHONE: ${callerPhone}`)
+  if (callerEmail) contextParts.push(`CALLER EMAIL: ${callerEmail}`)
+  if (!callerPhone) contextParts.push('No SMS or transfer — browser has no phone number')
+  const promptWithContext = basePrompt + `\n\n[${contextParts.join('. ')}.]`
 
   const voiceId = liveVoiceId || demo.voiceId
   const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
@@ -213,7 +220,7 @@ HANG-UP RULES (mandatory — follow exactly):
   if (demo.capabilities && demo.clientSlug) {
     demoTools = buildDemoTools(demo.clientSlug, {
       hasPhoneMedium: false,    // WebRTC — no Twilio SID
-      hasCallerPhone: false,    // Browser visitor — no phone number
+      hasCallerPhone: !!callerPhone,  // SMS enabled when visitor provides phone
       calendarEnabled: !!demo.capabilities.calendarEnabled,
       transferEnabled: false,   // Transfer requires Twilio SID — always false for browser
     })
@@ -248,7 +255,7 @@ HANG-UP RULES (mandatory — follow exactly):
       console.error('[demo] Demo call log threw:', e)
     }
 
-    console.log(`[demo:browser] callId=${call.callId} tools=${demoTools.length} medium=webrtc demoId=${demoId} callerName=${callerName}`)
+    console.log(`[demo:browser] callId=${call.callId} tools=${demoTools.length} medium=webrtc demoId=${demoId} callerName=${callerName} hasPhone=${!!callerPhone}`)
 
     return NextResponse.json({
       joinUrl: call.joinUrl,
