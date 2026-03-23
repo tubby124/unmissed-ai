@@ -13,6 +13,7 @@ interface KnowledgeBaseTabProps {
   knowledgeEnabled: boolean
   onToggleEnabled?: (enabled: boolean) => Promise<void>
   websiteUrl?: string
+  onGapCountChange?: (count: number) => void
 }
 
 interface TestResult {
@@ -32,6 +33,7 @@ export default function KnowledgeBaseTab({
   knowledgeEnabled,
   onToggleEnabled,
   websiteUrl: initialWebsiteUrl,
+  onGapCountChange,
 }: KnowledgeBaseTabProps) {
   // Test query state
   const [testQuery, setTestQuery] = useState('')
@@ -155,7 +157,14 @@ export default function KnowledgeBaseTab({
             query: pendingGapQuery,
             resolution_type: 'faq',
           }),
-        }).catch(() => {}) // non-fatal — gap will just stay visible until next refresh
+        }).then(() => {
+          // Refresh gap count for the tab badge
+          const params = new URLSearchParams({ client_id: clientId, days: '30' })
+          fetch(`/api/dashboard/knowledge/gaps?${params}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) onGapCountChange?.(d.total ?? 0) })
+            .catch(() => {})
+        }).catch(() => {})
         setPendingGapQuery(null)
       }
 

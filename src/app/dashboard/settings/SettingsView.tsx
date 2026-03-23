@@ -116,6 +116,17 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   // ─── Tab & UI state ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
+  const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
+
+  // Fetch knowledge gap count for badge
+  useEffect(() => {
+    if (!selectedId) return
+    const params = new URLSearchParams({ client_id: selectedId, days: '30' })
+    fetch(`/api/dashboard/knowledge/gaps?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setKnowledgeGapCount(d.total ?? 0) })
+      .catch(() => {})
+  }, [selectedId])
 
   // ─── Voice state (shared with VoiceTab) ──────────────────────────────────────
   const [voices, setVoices] = useState<VoiceTabVoice[]>([])
@@ -244,6 +255,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 <path d={icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               {label}
+              {id === 'knowledge' && knowledgeGapCount > 0 && (
+                <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                  {knowledgeGapCount}
+                </span>
+              )}
               {activeTab === id && (
                 <motion.div
                   layoutId="settings-tab-indicator"
@@ -392,6 +408,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             previewMode={previewMode}
             knowledgeEnabled={knowledgeEnabled[client.id] ?? false}
             websiteUrl={client.website_url ?? ''}
+            onGapCountChange={setKnowledgeGapCount}
             onToggleEnabled={async (enabled) => {
               if (previewMode) return
               const res = await patchKnowledge({ knowledge_backend: enabled ? 'pgvector' : null })
