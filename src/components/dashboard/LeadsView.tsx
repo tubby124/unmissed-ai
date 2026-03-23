@@ -323,7 +323,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                             <div className="flex justify-end">
                               <Link
                                 href={`/dashboard/calls/${call.ultravox_call_id}`}
-                                className="text-xs font-medium text-blue-500 dark:text-blue-400 hover:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
+                                className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 flex items-center gap-1"
                               >
                                 View full call
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none">

@@ -201,7 +201,7 @@ export default function OnboardingChecklist({
                       {' — '}
                       <button
                         onClick={step.onClick}
-                        className="text-blue-500 hover:text-blue-400 underline cursor-pointer"
+                        className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 cursor-pointer"
                       >
                         {step.linkLabel}
                       </button>

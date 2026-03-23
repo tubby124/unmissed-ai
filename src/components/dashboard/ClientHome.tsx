@@ -289,7 +289,7 @@ export default function ClientHome() {
       <div className="rounded-2xl p-4 card-surface">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
-          <Link href="/dashboard/calls" className="text-[12px] transition-colors" style={{ color: 'var(--color-primary)' }}>
+          <Link href="/dashboard/calls" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200">
             View all
           </Link>
         </div>
