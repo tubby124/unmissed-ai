@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
@@ -171,6 +172,7 @@ export default function RootLayout({
           <main id="main">
             {children}
           </main>
+          <TalkToAgentWidget />
         </ThemeProvider>
       </body>
     </html>

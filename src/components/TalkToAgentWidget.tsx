@@ -1,45 +1,112 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
+import { X, Mic } from "lucide-react"
+import DemoCall from "./DemoCall"
+
+type WidgetStep = "closed" | "call"
+
+// Pages where the widget should NOT appear
+const EXCLUDED_PREFIXES = ["/dashboard", "/onboard", "/admin", "/api", "/login"]
 
 export default function TalkToAgentWidget() {
-  const [hovered, setHovered] = useState(false);
+  const pathname = usePathname()
+  const [step, setStep] = useState<WidgetStep>("closed")
+  const [showPulse, setShowPulse] = useState(true)
+
+  // Stop pulse after 8 seconds
+  useEffect(() => {
+    const t = setTimeout(() => setShowPulse(false), 8000)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Hide on dashboard/admin/onboard pages
+  if (EXCLUDED_PREFIXES.some(p => pathname.startsWith(p))) return null
+
+  function open() {
+    setShowPulse(false)
+    setStep("call")
+  }
+
+  function close() {
+    setStep("closed")
+  }
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
-      <Link
-        href="/try"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className="flex items-center gap-2.5 rounded-full shadow-lg transition-all duration-200 cursor-pointer text-white text-sm font-semibold"
-        style={{
-          backgroundColor: "var(--color-primary)",
-          padding: hovered ? "10px 18px 10px 14px" : "10px 14px",
-          boxShadow: "0 4px 20px rgba(79,70,229,0.4)",
-        }}
-        aria-label="Talk to an AI agent demo"
-      >
-        {/* Phone icon */}
-        <span
-          className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20 shrink-0"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.01 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z" />
-          </svg>
-        </span>
-
-        {/* Label — expands on hover */}
-        <span
-          className="overflow-hidden whitespace-nowrap transition-all duration-200"
+    <>
+      {/* ── Floating button ── */}
+      {step === "closed" && (
+        <button
+          onClick={open}
+          aria-label="Talk to Zara, our AI agent"
+          className="fixed bottom-20 left-5 md:bottom-5 z-50 flex items-center gap-2 rounded-full shadow-lg text-white text-sm font-semibold transition-transform active:scale-95 hover:scale-105"
           style={{
-            maxWidth: hovered ? "140px" : "0px",
-            opacity: hovered ? 1 : 0,
+            backgroundColor: "var(--color-primary)",
+            padding: "14px 18px",
+            boxShadow: "0 4px 24px rgba(79,70,229,0.45)",
           }}
         >
-          Talk to an Agent
-        </span>
-      </Link>
-    </div>
-  );
+          {/* Pulse ring — attention grabber on first load */}
+          {showPulse && (
+            <span
+              className="absolute inset-0 rounded-full animate-ping pointer-events-none"
+              style={{ backgroundColor: "var(--color-primary)", opacity: 0.25 }}
+            />
+          )}
+          <Mic size={18} className="relative shrink-0" />
+          <span className="relative hidden sm:inline whitespace-nowrap">Talk to Zara</span>
+        </button>
+      )}
+
+      {/* ── Full-screen call overlay ── */}
+      {step === "call" && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+          onClick={e => { if (e.target === e.currentTarget) close() }}
+        >
+          {/* Mobile: full-width bottom sheet | Desktop: centered card */}
+          <div
+            className="w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden max-h-[95vh] overflow-y-auto"
+            style={{
+              backgroundColor: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            {/* Drag handle on mobile */}
+            <div className="sm:hidden flex justify-center pt-2">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: "var(--color-border)" }} />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-2 sm:px-5 sm:pt-4">
+              <p className="text-xs font-medium" style={{ color: "var(--color-text-3)" }}>
+                Live Demo — unmissed.ai
+              </p>
+              <button
+                onClick={close}
+                className="p-1.5 rounded-full transition-colors"
+                style={{ color: "var(--color-text-3)" }}
+                aria-label="Close demo"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* DemoCall orb — auto-starts on mount */}
+            <div className="px-3 pb-5 sm:px-4">
+              <DemoCall
+                demoId="unmissed_demo"
+                callerName="Visitor"
+                agentName="Zara"
+                companyName="unmissed.ai"
+                onEnd={close}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
