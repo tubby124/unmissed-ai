@@ -62,12 +62,12 @@ const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }
   COLD:    { color: '#60a5fa', label: 'Cold',         bg: 'bg-blue-400' },
   JUNK:    { color: '#52525b', label: 'Junk/Spam',    bg: 'bg-zinc-600' },
   MISSED:  { color: '#a855f7', label: 'Missed',       bg: 'bg-purple-500' },
-  UNKNOWN: { color: '#6b7280', label: 'Unclassified', bg: 'bg-gray-500' },
+  UNKNOWN: { color: '#71717a', label: 'Unclassified', bg: 'bg-zinc-500' },
 }
 
 const SENTIMENT_CONFIG: Record<string, { color: string; label: string }> = {
   positive: { color: '#22c55e', label: 'Positive' },
-  neutral:  { color: '#6b7280', label: 'Neutral' },
+  neutral:  { color: '#71717a', label: 'Neutral' },
   negative: { color: '#ef4444', label: 'Negative' },
 }
 
