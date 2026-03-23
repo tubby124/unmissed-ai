@@ -9,8 +9,8 @@ const TOUR_KEY = STORAGE_KEYS.TOUR_COMPLETED
 
 /**
  * GuidedTour — 4-step driver.js tour for first-time dashboard users.
- * Renders on the client home page (/dashboard) for non-admin users only.
- * Checks localStorage for completion flag. Runs once, then never again.
+ * Mounted in dashboard layout for all non-admin users.
+ * Auto-starts on first visit; re-triggered via 'retake-tour' custom event.
  *
  * Tour steps target elements with data-tour attributes:
  *   1. data-tour="agent-hero"   — hero card on ClientHome
@@ -18,6 +18,64 @@ const TOUR_KEY = STORAGE_KEYS.TOUR_COMPLETED
  *   3. data-tour="nav-agent"    — Agent setup link in sidebar
  *   4. data-tour="nav-calls"    — Overview (calls) link in sidebar
  */
+
+function launchTour() {
+  const d = driver({
+    showProgress: true,
+    animate: true,
+    overlayColor: 'rgba(0, 0, 0, 0.75)',
+    stagePadding: 8,
+    stageRadius: 12,
+    popoverClass: 'unmissed-tour-popover',
+    nextBtnText: 'Next',
+    prevBtnText: 'Back',
+    doneBtnText: 'Got it',
+    steps: [
+      {
+        element: '[data-tour="agent-hero"]',
+        popover: {
+          title: 'Your AI Agent',
+          description: "This is your AI agent. It answers calls for your business 24/7 — even when you can't.",
+          side: 'bottom',
+          align: 'center',
+        },
+      },
+      {
+        element: '[data-tour="nav-settings"]',
+        popover: {
+          title: 'Customize Your Agent',
+          description: 'Teach your agent about your business, set hours, add FAQs, and pick a voice.',
+          side: 'right',
+          align: 'start',
+        },
+      },
+      {
+        element: '[data-tour="nav-agent"]',
+        popover: {
+          title: 'Test Your Agent',
+          description: "Talk to your agent in the browser to hear how it sounds. Fine-tune until it's perfect.",
+          side: 'right',
+          align: 'start',
+        },
+      },
+      {
+        element: '[data-tour="nav-calls"]',
+        popover: {
+          title: 'Call History',
+          description: 'Every call, transcript, and lead appears here. See how your agent is performing.',
+          side: 'right',
+          align: 'start',
+        },
+      },
+    ],
+    onDestroyStarted: () => {
+      localStorage.setItem(TOUR_KEY, '1')
+      d.destroy()
+    },
+  })
+  d.drive()
+}
+
 export default function GuidedTour() {
   const ran = useRef(false)
 
@@ -25,75 +83,28 @@ export default function GuidedTour() {
     if (ran.current) return
     ran.current = true
 
-    // Already completed
-    if (localStorage.getItem(TOUR_KEY)) return
+    let timer: ReturnType<typeof setTimeout> | undefined
 
-    // Tour targets sidebar nav links which are hidden below lg (1024px)
-    if (window.innerWidth < 1024) return
+    // Auto-start on first visit (no completion flag set yet)
+    if (!localStorage.getItem(TOUR_KEY) && window.innerWidth >= 1024) {
+      timer = setTimeout(() => {
+        const heroEl = document.querySelector('[data-tour="agent-hero"]')
+        if (heroEl) launchTour()
+      }, 800)
+    }
 
-    // Wait for elements to render
-    const timer = setTimeout(() => {
-      const heroEl = document.querySelector('[data-tour="agent-hero"]')
-      if (!heroEl) return // not on home page or still loading
+    // Listen for manual retake trigger (dispatched by Sidebar "Take tour" button)
+    function handleRetake() {
+      if (window.innerWidth < 1024) return
+      localStorage.removeItem(TOUR_KEY)
+      launchTour()
+    }
+    window.addEventListener('retake-tour', handleRetake)
 
-      const d = driver({
-        showProgress: true,
-        animate: true,
-        overlayColor: 'rgba(0, 0, 0, 0.75)',
-        stagePadding: 8,
-        stageRadius: 12,
-        popoverClass: 'unmissed-tour-popover',
-        nextBtnText: 'Next',
-        prevBtnText: 'Back',
-        doneBtnText: 'Got it',
-        steps: [
-          {
-            element: '[data-tour="agent-hero"]',
-            popover: {
-              title: 'Your AI Agent',
-              description: 'This is your AI agent. It answers calls for your business 24/7 — even when you can\'t.',
-              side: 'bottom',
-              align: 'center',
-            },
-          },
-          {
-            element: '[data-tour="nav-settings"]',
-            popover: {
-              title: 'Customize Your Agent',
-              description: 'Teach your agent about your business, set hours, add FAQs, and pick a voice.',
-              side: 'right',
-              align: 'start',
-            },
-          },
-          {
-            element: '[data-tour="nav-agent"]',
-            popover: {
-              title: 'Test Your Agent',
-              description: 'Talk to your agent in the browser to hear how it sounds. Fine-tune until it\'s perfect.',
-              side: 'right',
-              align: 'start',
-            },
-          },
-          {
-            element: '[data-tour="nav-calls"]',
-            popover: {
-              title: 'Call History',
-              description: 'Every call, transcript, and lead appears here. See how your agent is performing.',
-              side: 'right',
-              align: 'start',
-            },
-          },
-        ],
-        onDestroyStarted: () => {
-          localStorage.setItem(TOUR_KEY, '1')
-          d.destroy()
-        },
-      })
-
-      d.drive()
-    }, 800)
-
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('retake-tour', handleRetake)
+    }
   }, [])
 
   return (

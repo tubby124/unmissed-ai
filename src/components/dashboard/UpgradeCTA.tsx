@@ -15,7 +15,7 @@ export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }
     return (
       <a
         href="/dashboard/settings?tab=billing"
-        title="Go live with Pro"
+        title="Go live — your setup carries over"
         className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors"
         style={{ backgroundColor: "var(--color-accent-tint)" }}
       >
@@ -48,7 +48,7 @@ export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-3)" }}>
             {daysRemaining !== undefined && daysRemaining > 0
-              ? `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left in trial`
+              ? `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left — your setup carries over`
               : "Your own number + unlimited calls"}
           </p>
         </div>

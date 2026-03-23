@@ -19,7 +19,7 @@ import { analyzeTranscriptClient, type CallInsight } from '@/lib/transcript-anal
 let UltravoxSession: typeof import('ultravox-client').UltravoxSession | null = null
 let UltravoxSessionStatus: typeof import('ultravox-client').UltravoxSessionStatus | null = null
 
-type CallState = 'idle' | 'requesting' | 'connecting' | 'active' | 'ended' | 'error'
+type CallState = 'idle' | 'mic-gate' | 'requesting' | 'connecting' | 'active' | 'ended' | 'error'
 
 export interface AgentKnowledge {
   agentName?: string
@@ -37,11 +37,12 @@ interface AgentVoiceTestProps {
   clientId: string
   isAdmin: boolean
   knowledge?: AgentKnowledge
+  isTrial?: boolean
   onEnd?: () => void
   onScrollTo?: (section: string) => void
 }
 
-export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, onScrollTo }: AgentVoiceTestProps) {
+export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, onEnd, onScrollTo }: AgentVoiceTestProps) {
   const [callState, setCallState] = useState<CallState>('idle')
   const [agentStatus, setAgentStatus] = useState<AgentStatus>('idle')
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
@@ -58,6 +59,8 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
   const energyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const soundRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
   const agentStatusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // mic-gate: shown once per component mount; subsequent calls skip the gate
+  const micGateShownRef = useRef(false)
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -105,6 +108,13 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
   }, [])
 
   const startCall = useCallback(async () => {
+    // Show mic gate on first call attempt — subsequent attempts bypass it
+    if (!micGateShownRef.current) {
+      micGateShownRef.current = true
+      setCallState('mic-gate')
+      return
+    }
+
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -281,6 +291,48 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
           </motion.div>
         )}
 
+        {/* ── Mic Gate — explain before browser dialog fires ── */}
+        {callState === 'mic-gate' && (
+          <motion.div
+            key="mic-gate"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center gap-4 py-6"
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+                <path d="M12 18.75a6.75 6.75 0 006.75-6.75V6a6.75 6.75 0 00-13.5 0v6A6.75 6.75 0 0012 18.75z" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M12 22.5v-3.75M8.25 22.5h7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-semibold t1">Microphone access needed</p>
+              <p className="text-[11px] t3 leading-relaxed max-w-[220px]">
+                To talk to your agent, allow mic access when your browser asks.
+              </p>
+            </div>
+            <button
+              onClick={startCall}
+              className="px-6 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ backgroundColor: 'var(--color-primary)', minHeight: '44px', padding: '0 24px' }}
+              aria-label="Allow microphone access and start call"
+            >
+              Allow &amp; Start Call
+            </button>
+            <button
+              onClick={() => { micGateShownRef.current = false; setCallState('idle') }}
+              className="text-[11px] t3 hover:t2 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </motion.div>
+        )}
+
         {/* ── Requesting / Connecting ── */}
         {(callState === 'requesting' || callState === 'connecting') && (
           <motion.div
@@ -426,6 +478,34 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, onEnd, on
             {/* Post-call improvement hints (L5: transcript-aware + config-aware) */}
             {knowledge && (
               <ImprovementHints knowledge={knowledge} callInsight={callInsight} onScrollTo={onScrollTo} />
+            )}
+
+            {/* Trial upgrade CTA — appears only for trial users after first call */}
+            {isTrial && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.35 }}
+                className="w-full rounded-2xl p-4 space-y-3"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(16,185,129,0.06))',
+                  border: '1px solid rgba(99,102,241,0.25)',
+                }}
+              >
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold t1">Ready to take real calls?</p>
+                  <p className="text-[11px] t3 leading-relaxed">
+                    All your setup is saved — you&apos;re just adding a phone number.
+                  </p>
+                </div>
+                <a
+                  href="/dashboard/settings?tab=billing"
+                  className="block w-full py-2.5 rounded-xl text-[13px] font-semibold text-white text-center transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: 'var(--color-primary)', minHeight: '44px', lineHeight: '44px', padding: 0 }}
+                >
+                  Get Your Phone Number →
+                </a>
+              </motion.div>
             )}
 
             <div className="flex gap-2 w-full">

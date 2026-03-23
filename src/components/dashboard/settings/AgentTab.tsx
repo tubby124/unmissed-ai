@@ -303,6 +303,7 @@ export default function AgentTab({
         clientId={client.id}
         isAdmin={isAdmin}
         previewMode={previewMode}
+        isTrial={client.status === 'trial'}
         knowledge={{
           agentName: client.agent_name || undefined,
           hasFacts: !!(client.business_facts),
