@@ -141,7 +141,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
           {filtered.length > 0 && (
             <button
               onClick={() => exportLeadsCsv(filtered)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
               style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -162,7 +162,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
               key={f.value}
               onClick={() => setFilter(f.value)}
               style={{ touchAction: 'manipulation' }}
-              className="relative flex-1 min-h-[44px] px-4 py-3 text-xs font-medium transition-colors"
+              className="relative flex-1 min-h-[44px] px-4 py-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
             >
               {filter === f.value && (
                 <motion.div

@@ -150,7 +150,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
                 </p>
                 <button
                   onClick={handleStartTest}
-                  className="mt-4 px-5 py-2.5 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90"
+                  className="mt-4 px-5 py-2.5 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                   style={{ backgroundColor: "var(--color-primary)" }}
                 >
                   <Phone className="w-4 h-4" />
@@ -271,7 +271,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
             {/* Dismiss button */}
             <button
               onClick={handleDismiss}
-              className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+              className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
               style={{ backgroundColor: "var(--color-hover)" }}
               title="Dismiss"
             >
@@ -300,7 +300,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <button
                 onClick={handleRetry}
-                className="flex-1 py-2.5 rounded-xl font-medium text-sm cursor-pointer inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                className="flex-1 py-2.5 rounded-xl font-medium text-sm cursor-pointer inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                 style={{ backgroundColor: "var(--color-hover)", color: "var(--color-text-2)" }}
               >
                 <RotateCcw className="w-4 h-4" />
@@ -383,7 +383,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
                 </p>
                 <button
                   onClick={handleRetry}
-                  className="mt-3 px-4 py-2 rounded-xl font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90"
+                  className="mt-3 px-4 py-2 rounded-xl font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                   style={{ backgroundColor: "var(--color-primary)", color: "white" }}
                 >
                   <RotateCcw className="w-4 h-4" />

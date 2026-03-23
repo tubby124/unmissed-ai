@@ -217,7 +217,7 @@ Goal: Add subtle, purposeful micro-interactions. Not decorative — functional.
 | # | Item | Priority | Status |
 |---|------|----------|--------|
 | M1 | Page transitions — smooth fade between dashboard pages | Medium | TODO |
-| M2 | Card hover elevation — subtle shadow lift on hover | Medium | TODO |
+| M2 | Card hover elevation — subtle shadow lift on hover | Medium | DONE — KanbanCard/CampaignCard already had hover:shadow-md/lg; focus-visible rings added to all user-facing buttons in CallRow, LeadsView, AgentTestCard, OperatorActivity |
 | M3 | Data refresh indicator — subtle pulse when realtime data updates | Low | TODO |
 | M4 | Loading skeletons — unified shimmer animation across all pages | Medium | DONE (Pass 3 C9) |
 | M5 | Voice orb improvements — smoother energy visualization | Low | TODO |
