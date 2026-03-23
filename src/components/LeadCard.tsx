@@ -120,7 +120,7 @@ export default function LeadCard({ niche = "auto-glass", className = "" }: LeadC
           >
             U
           </div>
-          <span className="text-gray-400">{BRAND_NAME}</span>
+          <span style={{ color: "var(--color-text-3)" }}>{BRAND_NAME}</span>
         </div>
         <span
           className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
@@ -131,22 +131,22 @@ export default function LeadCard({ niche = "auto-glass", className = "" }: LeadC
       </div>
 
       {/* Title */}
-      <p className="text-white font-bold mb-3">{data.title}</p>
+      <p className="font-bold mb-3" style={{ color: "var(--color-text-1)" }}>{data.title}</p>
 
       {/* Fields */}
       <div className="space-y-1.5">
         {data.fields.map((field, i) => (
           <div key={i} className="flex gap-2">
-            <span className="text-gray-600 w-28 flex-shrink-0">{field.label}:</span>
-            <span className="text-gray-300">{field.value}</span>
+            <span className="w-28 flex-shrink-0" style={{ color: "var(--color-text-3)" }}>{field.label}:</span>
+            <span style={{ color: "var(--color-text-2)" }}>{field.value}</span>
           </div>
         ))}
       </div>
 
       {/* Footer */}
       <div
-        className="mt-3 pt-3 flex items-center gap-2 text-gray-600"
-        style={{ borderTop: "1px solid var(--color-border)" }}
+        className="mt-3 pt-3 flex items-center gap-2"
+        style={{ borderTop: "1px solid var(--color-border)", color: "var(--color-text-3)" }}
       >
         <span
           className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0"

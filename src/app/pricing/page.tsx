@@ -9,7 +9,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
-import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 import {
   BETA_PROMO,
   BASE_PLAN,
@@ -276,7 +275,6 @@ export default function PricingPage() {
       </main>
 
       <Footer />
-      <TalkToAgentWidget />
     </>
   );
 }

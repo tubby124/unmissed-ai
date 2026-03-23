@@ -197,19 +197,21 @@ export default function LiveTestCall({ joinUrl, onEnd }: LiveTestCallProps) {
           <span className="text-emerald-600 font-medium">Call ended</span>
           <button
             onClick={onEnd}
-            className="text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
+            className="font-medium cursor-pointer transition-colors"
+            style={{ color: "var(--color-text-3)" }}
           >
             Dismiss
           </button>
         </div>
         {finalTranscripts.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1">
+          <div className="rounded-lg p-3 max-h-40 overflow-y-auto space-y-1" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
             {finalTranscripts.map((t, i) => (
               <p
                 key={i}
-                className={`text-xs ${t.speaker === "agent" ? "text-indigo-600" : "text-gray-600"}`}
+                className="text-xs"
+                style={{ color: t.speaker === "agent" ? "var(--color-primary)" : "var(--color-text-2)" }}
               >
-                <span className="text-gray-400 mr-1 font-medium">
+                <span className="mr-1 font-medium" style={{ color: "var(--color-text-3)" }}>
                   {t.speaker === "agent" ? "Agent:" : "You:"}
                 </span>
                 {t.text}
@@ -229,7 +231,7 @@ export default function LiveTestCall({ joinUrl, onEnd }: LiveTestCallProps) {
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
           <span className="font-medium text-emerald-700">Live — speak into your mic</span>
         </div>
-        <span className="font-mono text-gray-400">{formatTime(secondsLeft)}</span>
+        <span className="font-mono" style={{ color: "var(--color-text-3)" }}>{formatTime(secondsLeft)}</span>
       </div>
 
       {/* WebGL VoicePoweredOrb + WaveformBars visual centerpiece */}
@@ -242,17 +244,19 @@ export default function LiveTestCall({ joinUrl, onEnd }: LiveTestCallProps) {
 
       <div
         ref={containerRef}
-        className="bg-white border border-gray-200 rounded-lg p-3 h-32 overflow-y-auto space-y-1"
+        className="rounded-lg p-3 h-32 overflow-y-auto space-y-1"
+        style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
       >
         {transcripts.length === 0 && (
-          <p className="text-xs text-gray-400 italic">Waiting for agent to speak...</p>
+          <p className="text-xs italic" style={{ color: "var(--color-text-3)" }}>Waiting for agent to speak...</p>
         )}
         {transcripts.map((t, i) => (
           <p
             key={i}
-            className={`text-xs ${t.speaker === "agent" ? "text-indigo-600" : "text-gray-600"} ${!t.isFinal ? "opacity-50" : ""}`}
+            className={`text-xs ${!t.isFinal ? "opacity-50" : ""}`}
+            style={{ color: t.speaker === "agent" ? "var(--color-primary)" : "var(--color-text-2)" }}
           >
-            <span className="text-gray-400 mr-1 font-medium">
+            <span className="mr-1 font-medium" style={{ color: "var(--color-text-3)" }}>
               {t.speaker === "agent" ? "Agent:" : "You:"}
             </span>
             {t.text}

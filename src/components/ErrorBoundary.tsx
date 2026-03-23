@@ -25,7 +25,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <div className="py-8 text-center text-gray-600 text-sm">
+          <div className="py-8 text-center text-sm" style={{ color: "var(--color-text-2)" }}>
             This section failed to load. Refresh the page to try again.
           </div>
         )

@@ -32,10 +32,10 @@ export default function DemoPage() {
             >
               Live Demo
             </p>
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "var(--color-text-1)" }}>
               Hear it before you buy.
             </h1>
-            <p className="text-gray-400 text-xl">
+            <p className="text-xl" style={{ color: "var(--color-text-2)" }}>
               Real calls. Real agents. Real leads captured.
               Pick your industry below.
             </p>
@@ -51,10 +51,10 @@ export default function DemoPage() {
         <section className="py-20 px-4" style={{ backgroundColor: "var(--color-bg)" }}>
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--color-text-1)" }}>
                 After every call, you receive this.
               </h2>
-              <p className="text-gray-500">
+              <p style={{ color: "var(--color-text-2)" }}>
                 Instant Telegram or SMS notification with a structured lead card.
               </p>
             </div>
@@ -70,10 +70,10 @@ export default function DemoPage() {
           style={{ backgroundColor: "var(--color-bg)", borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
               Want to talk to an agent yourself?
             </h2>
-            <p className="text-gray-500 text-lg mb-6">
+            <p className="text-lg mb-6" style={{ color: "var(--color-text-2)" }}>
               Talk to a live AI agent right in your browser — no phone needed.
               Pick from auto glass, property management, or real estate.
             </p>
@@ -87,7 +87,8 @@ export default function DemoPage() {
               </Link>
               <Link
                 href="/onboard"
-                className="text-gray-500 text-sm hover:text-white transition-colors"
+                className="text-sm transition-colors"
+                style={{ color: "var(--color-text-3)" }}
               >
                 Or skip ahead &mdash; Get My Agent Set Up
               </Link>
