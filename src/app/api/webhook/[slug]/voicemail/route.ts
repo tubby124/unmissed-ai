@@ -58,7 +58,7 @@ export async function POST(
   // Find the call_log row created when voicemail TwiML was returned
   const { data: callLog, error: logErr } = await supabase
     .from('call_logs')
-    .select('id, client_id, caller_phone')
+    .select('id, client_id, caller_phone, ai_summary')
     .eq('twilio_call_sid', callSid)
     .eq('call_status', 'VOICEMAIL')
     .single()
@@ -97,6 +97,9 @@ export async function POST(
     console.error(`[voicemail] Recording download/upload error:`, dlErr)
   }
 
+  // Determine if caller chose voicemail via IVR or if it was a fallback
+  const wasIvrChoice = (callLog.ai_summary || '').includes('IVR')
+
   // Update call_log with recording + duration
   const { error: updateErr } = await supabase
     .from('call_logs')
@@ -104,7 +107,9 @@ export async function POST(
       recording_url: storagePath,
       duration_seconds: recordingDuration,
       ended_at: new Date().toISOString(),
-      ai_summary: `Voicemail (${recordingDuration}s) — AI agent was unavailable`,
+      ai_summary: wasIvrChoice
+        ? `Caller chose voicemail via IVR menu (${recordingDuration}s)`
+        : `Voicemail (${recordingDuration}s) — AI agent was unavailable`,
     })
     .eq('id', callLog.id)
 
@@ -121,14 +126,22 @@ export async function POST(
 
   if (client?.telegram_bot_token && client?.telegram_chat_id) {
     const callerDisplay = callLog.caller_phone || 'Unknown'
-    const msg = [
-      `<b>VOICEMAIL</b> [${slug}]`,
-      `Caller: ${callerDisplay}`,
-      `Duration: ${recordingDuration}s`,
-      ``,
-      `Your AI agent was temporarily unavailable. The caller left a voicemail.`,
-      `Check your dashboard to listen to the recording.`,
-    ].join('\n')
+    const msg = wasIvrChoice
+      ? [
+          `<b>VOICEMAIL</b> [${slug}]`,
+          `Caller: ${callerDisplay}`,
+          `Duration: ${recordingDuration}s`,
+          ``,
+          `Caller chose to leave a voicemail. Check your dashboard to listen.`,
+        ].join('\n')
+      : [
+          `<b>VOICEMAIL</b> [${slug}]`,
+          `Caller: ${callerDisplay}`,
+          `Duration: ${recordingDuration}s`,
+          ``,
+          `Your AI agent was temporarily unavailable. The caller left a voicemail.`,
+          `Check your dashboard to listen to the recording.`,
+        ].join('\n')
 
     sendAlert(
       client.telegram_bot_token,
