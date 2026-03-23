@@ -636,9 +636,11 @@ function AgentKnowledgeReviewCard({
   const hasDocs = data.knowledgeDocs.length > 0;
   const hasScrapedContent = !!(sr && (sr.businessFacts.length > 0 || sr.extraQa.length > 0 || (sr.serviceTags?.length ?? 0) > 0));
   const scrapeEmpty = !!(sr && sr.scrapedUrl && !hasScrapedContent);
+  const validFaqPairs = data.faqPairs.filter((p: { question: string; answer: string }) => p.question.trim() && p.answer.trim());
+  const hasFaqPairs = validFaqPairs.length > 0;
 
-  // Render if there's scraped content, docs uploaded, or a scrape was attempted (to show empty state)
-  if (!hasScrapedContent && !hasDocs && !scrapeEmpty) return null;
+  // Render if there's scraped content, docs uploaded, manual FAQs, or a scrape was attempted (to show empty state)
+  if (!hasScrapedContent && !hasDocs && !scrapeEmpty && !hasFaqPairs) return null;
 
   // Approved counts — sr may be null when only hasDocs is true
   const approvedFactCount = sr ? sr.businessFacts.filter((_: string, i: number) => sr!.approvedFacts[i] !== false).length : 0;
@@ -692,8 +694,8 @@ function AgentKnowledgeReviewCard({
   const totalApproved = approvedFactCount + approvedQaCount;
   const docCount = data.knowledgeDocs.length;
   const tagCount = sr?.serviceTags?.length ?? 0;
-  const totalItems = totalApproved + tagCount + docCount;
-  const summaryText = scrapeEmpty && !hasDocs
+  const totalItems = totalApproved + tagCount + docCount + validFaqPairs.length;
+  const summaryText = scrapeEmpty && !hasDocs && !hasFaqPairs
     ? "Website scanned · nothing extracted · tap to see"
     : allApproved
     ? `${totalItems} item${totalItems !== 1 ? "s" : ""} your agent knows`
@@ -903,6 +905,24 @@ function AgentKnowledgeReviewCard({
             </div>
           )}
 
+          {/* Manual FAQs (D53) — read-only, user explicitly typed these */}
+          {hasFaqPairs && (
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Manual FAQs
+                <span className="ml-2 font-normal normal-case text-muted-foreground">· from your setup</span>
+              </p>
+              <ul className="space-y-3">
+                {validFaqPairs.map((qa: { question: string; answer: string }, i: number) => (
+                  <li key={i} className="space-y-0.5">
+                    <p className="text-xs font-medium text-foreground">{qa.question}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{qa.answer}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Empty scrape state (D49) */}
           {scrapeEmpty && (
             <div className="px-4 py-3">
@@ -956,7 +976,7 @@ function AgentKnowledgeReviewCard({
           {/* Footer actions */}
           <div className="px-4 py-3 flex items-center justify-between gap-3 bg-muted/20">
             <p className="text-xs text-muted-foreground">
-              {scrapeEmpty && !hasDocs
+              {scrapeEmpty && !hasDocs && !hasFaqPairs
                 ? "No website content found. You can add knowledge in Settings after activation."
                 : allApproved
                 ? `All content approved${hasDocs ? " · docs will be processed on activation" : ""}.`
@@ -989,6 +1009,11 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
   const agentNameCustomized = data.agentName.trim() !== "" && data.agentName.trim() !== defaultAgentName;
   const faqHasPair = data.faqPairs.some(p => p.question.trim() && p.answer.trim());
 
+  // ── Scrape empty flag (D56) ─────────────────────────────────────────────────
+  const _sr = data.websiteScrapeResult;
+  const _hasScrapedContent = !!(_sr && (_sr.businessFacts.length > 0 || _sr.extraQa.length > 0 || (_sr.serviceTags?.length ?? 0) > 0));
+  const scrapeEmpty = !!(_sr && _sr.scrapedUrl && !_hasScrapedContent);
+
   let completeness = 20; // base
   if (data.servicesOffered.trim()) completeness += 10;
   if (data.businessHoursText.trim()) completeness += 10;
@@ -1016,6 +1041,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
     { label: "SMS follow-up", value: data.callerAutoText ? "On" : "Off", editStep: 2, fieldKey: "smsFollowUp", inline: true },
     { label: "Voicemail menu", value: data.ivrEnabled ? "On" : "Off", editStep: 2, fieldKey: "ivrMenu", inline: true },
     { label: "Call handling", value: HANDLING_LABELS[data.callHandlingMode] || data.callHandlingMode, editStep: 2, fieldKey: "callHandling", inline: true },
+    { label: "Notification email", value: data.contactEmail || "---", editStep: 2, fieldKey: "contactEmail", inline: true },
     { label: "Knowledge docs", value: data.knowledgeDocs.length > 0 ? `${data.knowledgeDocs.length} file${data.knowledgeDocs.length !== 1 ? "s" : ""}` : "None", editStep: 4, fieldKey: "knowledgeDocs", inline: false },
     { label: "FAQ pairs", value: data.faqPairs.length > 0 ? `${data.faqPairs.length} pair${data.faqPairs.length !== 1 ? "s" : ""}` : "None", editStep: 4, fieldKey: "faqPairs", inline: false },
   ];
@@ -1153,6 +1179,17 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
             label={label}
           />
         );
+      case "contactEmail":
+        return (
+          <InlineTextEditor
+            value={data.contactEmail}
+            onSave={(v) => { onUpdate({ contactEmail: v }); setEditingField(null); }}
+            onCancel={cancel}
+            type="email"
+            placeholder="you@example.com"
+            label={label}
+          />
+        );
       default:
         return null;
     }
@@ -1192,15 +1229,19 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
           </svg>
           <p className="text-sm text-foreground flex-1">
-            Website scanned{" "}
-            {stepSequence.includes(4) && (
-              <button
-                type="button"
-                onClick={() => onEdit(4)}
-                className="text-indigo-600 dark:text-indigo-400 font-medium underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
-              >
-                review in Knowledge
-              </button>
+            {scrapeEmpty ? "Website scanned · nothing found" : (
+              <>
+                Website scanned{" "}
+                {stepSequence.includes(4) && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(4)}
+                    className="text-indigo-600 dark:text-indigo-400 font-medium underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
+                  >
+                    review in Knowledge
+                  </button>
+                )}
+              </>
             )}
           </p>
         </div>
@@ -1348,7 +1389,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
               { text: "Dedicated phone number for your business", show: true },
               { text: `AI agent trained on your industry (${data.niche ? nicheLabels[data.niche as Niche] : "your niche"})`, show: true },
               { text: "SMS follow-up to every caller", show: !!data.callerAutoText },
-              { text: "Telegram/email notifications for every call", show: true },
+              { text: `Notifications → ${data.contactEmail || "Telegram/email"}`, show: true },
               { text: "Voicemail-to-email transcripts", show: data.niche === "voicemail" },
               { text: `${data.faqPairs.filter(p => p.question.trim() && p.answer.trim()).length} FAQ answers loaded`, show: data.faqPairs.some(p => p.question.trim() && p.answer.trim()) },
               { text: `${data.knowledgeDocs.length} knowledge document${data.knowledgeDocs.length !== 1 ? "s" : ""} uploaded`, show: data.knowledgeDocs.length > 0 },
