@@ -21,7 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/calls', label: 'Overview', adminOnly: false, group: 1, iconName: 'phone' },
   { href: '/dashboard/insights', label: 'Insights', adminOnly: false, group: 1, iconName: 'bar-chart' },
   { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 1, iconName: 'broadcast' },
-  { href: '/dashboard/setup', label: 'Agent', adminOnly: false, group: 1, iconName: 'wrench' },
+  { href: '/dashboard/setup', label: 'Setup', adminOnly: false, group: 1, iconName: 'wrench' },
   { href: '/dashboard/advisor', label: 'Advisor', adminOnly: false, group: 1, iconName: 'message-dots' },
   // ── Group 2 — CLIENTS (admin) ───────────────────────────────────────────
   { href: '/dashboard/clients', label: 'Clients', adminOnly: true, group: 2, iconName: 'users' },

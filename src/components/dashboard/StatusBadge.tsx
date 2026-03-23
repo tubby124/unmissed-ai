@@ -83,6 +83,14 @@ const STATUS_STYLES: Record<string, {
     },
     label: 'Unclassified',
   },
+  trial: {
+    style: {
+      backgroundColor: 'color-mix(in srgb, #f59e0b 10%, transparent)',
+      color: '#f59e0b',
+      borderColor: 'color-mix(in srgb, #f59e0b 30%, transparent)',
+    },
+    label: 'Trial',
+  },
   live: {
     style: {
       backgroundColor: 'var(--color-success-tint)',
