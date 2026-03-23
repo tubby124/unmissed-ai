@@ -238,13 +238,13 @@ export default function CalendarPage() {
                                   : b.appointment_date === today
                                   ? 'border-emerald-500/50 bg-emerald-500/20'
                                   : b.appointment_date && b.appointment_date < today
-                                  ? 'border-gray-500/30 bg-gray-500/10'
+                                  ? 'border-zinc-500/30 bg-zinc-500/10'
                                   : 'border-indigo-500/50 bg-indigo-500/20'
                               }`}
                             >
                               {b.status !== 'cancelled' && b.appointment_date && b.appointment_date <= today && (
                                 <div className={`absolute inset-[3px] rounded-full ${
-                                  b.appointment_date === today ? 'bg-emerald-400' : 'bg-gray-400'
+                                  b.appointment_date === today ? 'bg-emerald-400' : 'bg-zinc-400'
                                 }`} />
                               )}
                             </div>

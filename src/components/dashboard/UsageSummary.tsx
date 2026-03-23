@@ -108,7 +108,7 @@ export default function UsageSummary({ isAdmin }: UsageSummaryProps) {
           ))}
         </div>
       ) : error ? (
-        <div className="text-sm text-red-500 dark:text-red-400 py-4 text-center">
+        <div className="text-sm text-red-400 py-4 text-center">
           {error}
         </div>
       ) : !usage ? (
