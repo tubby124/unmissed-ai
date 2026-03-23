@@ -44,7 +44,7 @@ const NICHE_COLOR: Record<string, string> = {
   dental: "#8B5CF6", legal: "#6B7280", salon: "#EC4899",
   real_estate: "#10B981", property_management: "#8B5CF6",
   outbound_isa_realtor: "#10B981", voicemail: "#6366F1",
-  restaurant: "#EF4444", other: "#6366F1",
+  restaurant: "#EF4444", print_shop: "#0EA5E9", other: "#6366F1",
 };
 
 const HANDLING_LABELS: Record<string, string> = {
