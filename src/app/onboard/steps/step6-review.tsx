@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { OnboardingData, nicheLabels, Niche, defaultAgentNames, AfterHoursBehavior } from "@/types/onboarding";
 import DemoCall from "@/components/DemoCall";
 import { BETA_PROMO, BASE_PLAN, SETUP, TRIAL, getEffectiveMonthly } from "@/lib/pricing";
@@ -66,6 +67,12 @@ const VOICE_OPTIONS = [
   { id: "d766b9e3-69df-4727-b62f-cd0b6772c2ad", name: "Nour" },
   { id: "7d0bcff3-77ec-48ea-83d6-40ca0095e80c", name: "Terrence" },
 ];
+
+const PROVINCE_AREA_CODES: Record<string, string> = {
+  AB: "403/587/825", BC: "604/778/236", SK: "306/639",
+  ON: "416/647/905", QC: "514/438/418", MB: "204/431",
+  NS: "902", NB: "506", NL: "709", PE: "902",
+};
 
 // ── Demo Call Section ────────────────────────────────────────────────────────
 
@@ -169,32 +176,51 @@ function OnboardDemoSection({ data }: { data: OnboardingData }) {
   }
 
   return (
-    <div
-      className="rounded-xl p-5 border"
-      style={{ borderColor: agentColor + "40", backgroundColor: agentColor + "08" }}
+    <motion.div
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+      className="py-8 text-center space-y-5"
     >
-      <div className="flex items-center gap-4 mb-4">
+      {/* Animated CSS orb */}
+      <div className="relative mx-auto" style={{ width: 96, height: 96 }}>
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
+          className="absolute inset-0 rounded-full motion-safe:animate-ping"
+          style={{ backgroundColor: agentColor, opacity: 0.2 }}
+        />
+        <div
+          className="absolute inset-0 rounded-full motion-safe:animate-ping"
+          style={{ backgroundColor: agentColor, opacity: 0.12, animationDelay: "0.75s" }}
+        />
+        <div
+          className="relative w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-3xl shadow-lg"
           style={{ backgroundColor: agentColor }}
         >
           {agentName[0]}
         </div>
-        <div>
-          <p className="font-semibold text-foreground">{agentName} is ready for {companyName}</p>
-          <p className="text-sm text-muted-foreground">Hear exactly what your callers will hear</p>
-        </div>
       </div>
+
+      {/* Hero text */}
+      <div className="space-y-1.5">
+        <h2 className="text-2xl font-bold text-foreground">
+          {agentName} is ready for {companyName}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Talk to {agentName} and hear exactly what your callers will hear
+        </p>
+      </div>
+
+      {/* Primary CTA */}
       <button
         type="button"
         onClick={() => setPhase("calling")}
-        className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 cursor-pointer"
+        className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-all hover:opacity-90 cursor-pointer shadow-md"
         style={{ backgroundColor: agentColor }}
       >
-        Talk to {agentName} — Free 2-min demo
+        Talk to {agentName} — Free 2-min preview
       </button>
-      <p className="text-xs text-center mt-2 text-muted-foreground/70">Uses your mic · No sign-up needed</p>
-    </div>
+      <p className="text-xs text-muted-foreground/70">Uses your mic · No credit card needed</p>
+    </motion.div>
   );
 }
 
@@ -557,6 +583,7 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
 
   // ── Inline edit state ────────────────────────────────────────────────────────
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // ── Summary rows ────────────────────────────────────────────────────────────
   const rows: Array<{ label: string; value: string; editStep: number; fieldKey: string; inline: boolean }> = [
@@ -717,16 +744,13 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
   // ── No-FAQ warning ──────────────────────────────────────────────────────────
   const showNoFaqWarning = data.faqPairs.length === 0 && data.knowledgeDocs.length === 0;
 
+  // ── Area code hint ──────────────────────────────────────────────────────────
+  const province = (data.state || "").toUpperCase().trim();
+  const areaCodeHint = PROVINCE_AREA_CODES[province] || null;
+
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Review your setup</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Everything looks right? Activate to go live, or start a free trial.
-        </p>
-      </div>
-
-      {/* Demo call section — TOP position for aha moment */}
+      {/* Orb hero — idle phase is the hero reveal moment */}
       <OnboardDemoSection data={data} />
 
       {/* Ready badge */}
@@ -785,68 +809,90 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
         </div>
       )}
 
-      {/* Summary card — inline editing */}
-      <div className="overflow-x-auto rounded-xl">
-      <div className="border rounded-xl overflow-hidden min-w-[320px]">
-        {visibleRows.map((row, i) => {
-          const isEditing = editingField === row.fieldKey;
-          return (
-            <div
-              key={row.fieldKey}
-              className={`flex items-center px-4 py-3 transition-colors ${
-                i < visibleRows.length - 1 ? "border-b" : ""
-              } ${isEditing ? "bg-indigo-50/50 dark:bg-indigo-950/20" : ""}`}
-            >
-              <span className="text-sm text-muted-foreground w-32 shrink-0">{row.label}</span>
-              {isEditing ? (
-                renderEditor(row.fieldKey, row.label)
-              ) : (
-                <>
-                  <span className="text-sm text-foreground flex-1 truncate">{row.value}</span>
+      {/* Collapsible configuration — hidden by default so the CTA is the focus */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          aria-expanded={isSettingsOpen}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
+        >
+          <svg
+            className={`w-4 h-4 transition-transform duration-200 ${isSettingsOpen ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+          {isSettingsOpen ? "Hide configuration" : "Show configuration"}
+        </button>
+
+        {isSettingsOpen && (
+          <div className="mt-3 space-y-4">
+            {/* Summary card — inline editing */}
+            <div className="overflow-x-auto rounded-xl">
+            <div className="border rounded-xl overflow-hidden min-w-[320px]">
+              {visibleRows.map((row, i) => {
+                const isEditing = editingField === row.fieldKey;
+                return (
+                  <div
+                    key={row.fieldKey}
+                    className={`flex items-center px-4 py-3 transition-colors ${
+                      i < visibleRows.length - 1 ? "border-b" : ""
+                    } ${isEditing ? "bg-indigo-50/50 dark:bg-indigo-950/20" : ""}`}
+                  >
+                    <span className="text-sm text-muted-foreground w-32 shrink-0">{row.label}</span>
+                    {isEditing ? (
+                      renderEditor(row.fieldKey, row.label)
+                    ) : (
+                      <>
+                        <span className="text-sm text-foreground flex-1 truncate">{row.value}</span>
+                        <button
+                          type="button"
+                          onClick={() => row.inline ? setEditingField(row.fieldKey) : onEdit(row.editStep)}
+                          aria-label={`Edit ${row.label}`}
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            </div>
+
+            {/* Niche-specific answers (if step 4 was part of the flow) */}
+            {Object.keys(data.nicheAnswers).length > 0 && stepSequence.includes(4) && (
+              <div className="border rounded-xl overflow-hidden">
+                <div className="px-4 py-2 bg-muted/30 border-b">
+                  <span className="text-sm font-medium text-foreground">Industry Details</span>
                   <button
                     type="button"
-                    onClick={() => row.inline ? setEditingField(row.fieldKey) : onEdit(row.editStep)}
-                    aria-label={`Edit ${row.label}`}
-                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                    onClick={() => onEdit(4)}
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer py-1.5 px-2 -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                   >
                     Edit
                   </button>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      </div>
+                </div>
+                {Object.entries(data.nicheAnswers).map(([key, value]) => (
+                  <div key={key} className="flex items-start px-4 py-2.5 border-b last:border-b-0">
+                    <span className="text-sm text-muted-foreground w-40 shrink-0">
+                      {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim()}
+                    </span>
+                    <span className="text-sm text-foreground flex-1">
+                      {typeof value === "boolean" ? (value ? "Yes" : "No") : Array.isArray(value) ? value.join(", ") : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-      {/* Niche-specific answers (if step 4 was part of the flow) */}
-      {Object.keys(data.nicheAnswers).length > 0 && stepSequence.includes(4) && (
-        <div className="border rounded-xl overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30 border-b">
-            <span className="text-sm font-medium text-foreground">Industry Details</span>
-            <button
-              type="button"
-              onClick={() => onEdit(4)}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-3 shrink-0 cursor-pointer py-1.5 px-2 -my-1.5 -mr-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-            >
-              Edit
-            </button>
+            {/* Admin-only prompt preview */}
+            <PromptPreview data={data} />
           </div>
-          {Object.entries(data.nicheAnswers).map(([key, value]) => (
-            <div key={key} className="flex items-start px-4 py-2.5 border-b last:border-b-0">
-              <span className="text-sm text-muted-foreground w-40 shrink-0">
-                {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim()}
-              </span>
-              <span className="text-sm text-foreground flex-1">
-                {typeof value === "boolean" ? (value ? "Yes" : "No") : Array.isArray(value) ? value.join(", ") : String(value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Admin-only prompt preview */}
-      <PromptPreview data={data} />
+        )}
+      </div>
 
       {/* Pricing */}
       <div className="rounded-xl border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 p-4">
@@ -865,6 +911,11 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
         <p className="text-xs text-muted-foreground mt-0.5">
           + ${SETUP.price} one-time setup ({SETUP.includes})
         </p>
+        {areaCodeHint && (
+          <p className="text-xs text-muted-foreground/70 mt-2">
+            Your dedicated number will be a local Canadian number ({areaCodeHint} area)
+          </p>
+        )}
       </div>
 
       {/* What you're getting — preview before payment */}
@@ -955,13 +1006,6 @@ export default function Step6Review({ data, stepSequence, onEdit, onActivate, on
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
       )}
-
-      {/* Post-activation notes */}
-      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 space-y-1">
-        <p className="font-medium">After activation — 2 quick manual steps:</p>
-        <p>1. Set up Telegram notifications (we&apos;ll send instructions)</p>
-        <p>2. Forward your business phone to your new AI number (2-min guide included)</p>
-      </div>
     </div>
   );
 }

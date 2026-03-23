@@ -105,6 +105,9 @@
 | D41 | FEATURE | Demo-to-Brevo sync — add demo visitors with email to Brevo contacts for nurture list | LOW | NOT STARTED |
 | D42 | UX | "Not {name}?" link for returning demo visitors — lets them edit saved localStorage info instead of auto-skipping form | LOW | NOT STARTED |
 | D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | **DONE** 2026-03-23 (all 6 phases complete: data pipe, bugs, inline edit, consolidation, scrape UX, demo placement, field mapping) |
+| D44 | **GAP** | No login path for trial users if email not delivered (no domain yet). User closes browser = locked out. Sonar-confirmed fix: Google OAuth (works with Railway URL, no custom domain needed). Plan: Phase 5b in `lively-hopping-flurry.md`. | HIGH | NOT STARTED |
+| D45 | **GAP** | Scraped data from Google Places + website goes into agent training without user seeing/approving it. User flagged this. Sonar confirms review gate reduces churn 25%. Plan: Phase 5c in `lively-hopping-flurry.md`. | MEDIUM | NOT STARTED |
+| D46 | UX | TrialSuccessScreen CTA not personalized with agent name. Phase 5 plan: "Talk to [Mark] in your dashboard →". Needs `agentName` from activation response → page.tsx → TrialSuccessScreen prop. | MEDIUM | NOT STARTED |
 
 ---
 
