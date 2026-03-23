@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildStreamTwiml } from '@/lib/twilio'
 import { APP_URL } from '@/lib/app-url'
+import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 15
@@ -24,10 +25,10 @@ export async function POST(req: NextRequest) {
   // Sanitize phone — ensure E.164 format
   const dialPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`
 
-  // Fetch client config
+  // Fetch client config — same columns buildAgentContext() needs + Twilio fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, system_prompt, agent_voice_id, twilio_number, business_name')
+    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, twilio_number, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -36,14 +37,50 @@ export async function POST(req: NextRequest) {
   if (!client.system_prompt) return NextResponse.json({ error: 'Client has no system prompt' }, { status: 400 })
   if (!client.twilio_number) return NextResponse.json({ error: 'Client has no Twilio number' }, { status: 400 })
 
+  // Build full context via shared buildAgentContext() — same as inbound webhook
+  const clientRow: ClientRow = {
+    id: client.id,
+    slug: client.slug as string,
+    niche: client.niche as string | null,
+    business_name: client.business_name as string | null,
+    timezone: client.timezone as string | null,
+    business_hours_weekday: client.business_hours_weekday as string | null,
+    business_hours_weekend: client.business_hours_weekend as string | null,
+    after_hours_behavior: client.after_hours_behavior as string | null,
+    after_hours_emergency_phone: client.after_hours_emergency_phone as string | null,
+    business_facts: client.business_facts as string | null,
+    extra_qa: client.extra_qa as { q: string; a: string }[] | null,
+    context_data: client.context_data as string | null,
+    context_data_label: client.context_data_label as string | null,
+    knowledge_backend: client.knowledge_backend as string | null,
+    injected_note: client.injected_note as string | null,
+  }
+  const knowledgeBackend = client.knowledge_backend as string | null
+  const corpusAvailable = knowledgeBackend === 'pgvector'
+  const ctx = buildAgentContext(clientRow, dialPhone, [], new Date(), corpusAvailable)
+
+  // Assemble full prompt with context blocks — same pattern as inbound fallback
+  const callerContextBlock = ctx.assembled.callerContextBlock
+  let knowledgeBlockStr = ctx.knowledge.block
+  if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+    knowledgeBlockStr = knowledgeBlockStr
+      ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+      : ctx.retrieval.promptInstruction
+  }
+  const contextDataBlock = ctx.assembled.contextDataBlock
+
+  let promptFull = client.system_prompt + `\n\n${callerContextBlock}`
+  if (knowledgeBlockStr) promptFull += `\n\n${knowledgeBlockStr}`
+  if (contextDataBlock) promptFull += `\n\n${contextDataBlock}`
+
   // S13b-T1d: sign callback URL so completed route can reject forged webhooks
   const completedUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 
-  // Create Ultravox call
+  // Create Ultravox call with full context
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     ultravoxCall = await createCall({
-      systemPrompt: client.system_prompt,
+      systemPrompt: promptFull,
       voice: client.agent_voice_id,
       callbackUrl: completedUrl,
       metadata: {

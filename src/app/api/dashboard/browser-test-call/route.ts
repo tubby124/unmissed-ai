@@ -11,9 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createDemoCall } from '@/lib/ultravox'
-import { buildContextBlock } from '@/lib/context-data'
-import { buildKnowledgeSummary } from '@/lib/knowledge-summary'
-import type { BusinessConfig } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 
 // In-memory rate limiter: 10 browser test calls per client per day
 const rateLimitMap = new Map<string, number[]>()
@@ -85,10 +83,10 @@ export async function POST(req: NextRequest) {
   let systemPrompt: string
   let voiceId: string | null = null
 
-  // Fetch client config (needed by both slots)
+  // Fetch client config — same columns buildAgentContext() needs
   const { data: client } = await svc
     .from('clients')
-    .select('system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa')
+    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
     .eq('id', targetClientId)
     .single()
 
@@ -111,39 +109,42 @@ export async function POST(req: NextRequest) {
   voiceId = (client?.agent_voice_id as string | null) ?? null
 
   // ── Resolve templateContext placeholders ──────────────────────────────────
-  // Production (Agents API) resolves {{callerContext}}, {{businessFacts}}, {{contextData}}
-  // at call time via templateContext. Lab tests must do the same — otherwise placeholders
-  // appear as literal text and raw data gets double-injected.
-
-  // Build KnowledgeSummary — same condensed layer production uses (Phase 3)
-  const extraQaRaw = (client?.extra_qa as { q: string; a: string }[] | null) ?? []
-  const filteredQa = extraQaRaw.filter(p => p.q?.trim() && p.a?.trim())
-  const businessConfig: BusinessConfig = {
-    clientId: targetClientId,
-    slug: '',
-    niche: 'other',
-    businessName: '',
-    timezone: 'America/Regina',
-    hoursWeekday: null,
-    hoursWeekend: null,
-    afterHoursBehavior: 'take_message',
-    afterHoursEmergencyPhone: null,
-    businessFacts: (client?.business_facts as string | null) ?? null,
-    extraQa: filteredQa,
-    contextData: null,
-    contextDataLabel: 'Reference Data',
+  // Use the SAME buildAgentContext() that production inbound uses — single source of truth
+  // for callerContext (injected_note, hours, after-hours), knowledge summary, and contextData.
+  const clientRow: ClientRow = {
+    id: client?.id ?? targetClientId,
+    slug: (client?.slug as string) ?? 'lab-test',
+    niche: (client?.niche as string | null) ?? undefined,
+    business_name: (client?.business_name as string | null) ?? undefined,
+    timezone: (client?.timezone as string | null) ?? undefined,
+    business_hours_weekday: (client?.business_hours_weekday as string | null) ?? undefined,
+    business_hours_weekend: (client?.business_hours_weekend as string | null) ?? undefined,
+    after_hours_behavior: (client?.after_hours_behavior as string | null) ?? undefined,
+    after_hours_emergency_phone: (client?.after_hours_emergency_phone as string | null) ?? undefined,
+    business_facts: (client?.business_facts as string | null) ?? undefined,
+    extra_qa: (client?.extra_qa as { q: string; a: string }[] | null) ?? undefined,
+    context_data: (client?.context_data as string | null) ?? undefined,
+    context_data_label: (client?.context_data_label as string | null) ?? undefined,
+    knowledge_backend: (client?.knowledge_backend as string | null) ?? undefined,
+    injected_note: (client?.injected_note as string | null) ?? undefined,
   }
-  const knowledge = buildKnowledgeSummary(businessConfig)
+  const knowledgeBackend = (client?.knowledge_backend as string | null)
+  const corpusAvailable = knowledgeBackend === 'pgvector'
+  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
 
-  // Context data block (NOT knowledge — structured reference data, stays full)
-  const contextData = client?.context_data as string | null
-  const contextDataLabel = (client?.context_data_label as string | null) || 'Reference Data'
-  const contextDataBlock = contextData ? buildContextBlock(contextDataLabel, contextData) : ''
+  // Strip brackets from callerContextBlock — production inbound does the same for Agents API
+  const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
+  let knowledgeBlockStr = ctx.knowledge.block
+  if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+    knowledgeBlockStr = knowledgeBlockStr
+      ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+      : ctx.retrieval.promptInstruction
+  }
+  const contextDataBlock = ctx.assembled.contextDataBlock
 
-  // Resolve all 4 templateContext placeholders — matches what Agents API does at call time
   systemPrompt = systemPrompt
-    .replace(/\{\{callerContext\}\}/g, 'CALLER PHONE: +15555550100 [LAB TEST]')
-    .replace(/\{\{businessFacts\}\}/g, knowledge.block)
+    .replace(/\{\{callerContext\}\}/g, callerContextRaw)
+    .replace(/\{\{businessFacts\}\}/g, knowledgeBlockStr)
     .replace(/\{\{extraQa\}\}/g, '')
     .replace(/\{\{contextData\}\}/g, contextDataBlock)
 

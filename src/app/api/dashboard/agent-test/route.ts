@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent } from '@/lib/ultravox'
+import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
 // 5 test calls per client per 30 minutes
@@ -32,11 +33,11 @@ export async function POST(req: NextRequest) {
     targetClientId = body.client_id
   }
 
-  // Fetch client data
+  // Fetch client data — same columns buildAgentContext() needs + agent/tools fields
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('id, ultravox_agent_id, tools, business_name, agent_name, status, slug')
+    .select('id, slug, niche, business_name, agent_name, status, ultravox_agent_id, tools, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
     .eq('id', targetClientId)
     .single()
 
@@ -64,14 +65,48 @@ export async function POST(req: NextRequest) {
   }
   rateLimiter.record(rlKey)
 
+  // Build full context via shared buildAgentContext() — same as inbound webhook
+  const clientRow: ClientRow = {
+    id: client.id,
+    slug: (client.slug as string) ?? 'test',
+    niche: (client.niche as string | null) ?? undefined,
+    business_name: (client.business_name as string | null) ?? undefined,
+    timezone: (client.timezone as string | null) ?? undefined,
+    business_hours_weekday: (client.business_hours_weekday as string | null) ?? undefined,
+    business_hours_weekend: (client.business_hours_weekend as string | null) ?? undefined,
+    after_hours_behavior: (client.after_hours_behavior as string | null) ?? undefined,
+    after_hours_emergency_phone: (client.after_hours_emergency_phone as string | null) ?? undefined,
+    business_facts: (client.business_facts as string | null) ?? undefined,
+    extra_qa: (client.extra_qa as { q: string; a: string }[] | null) ?? undefined,
+    context_data: (client.context_data as string | null) ?? undefined,
+    context_data_label: (client.context_data_label as string | null) ?? undefined,
+    knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
+    injected_note: (client.injected_note as string | null) ?? undefined,
+  }
+  const knowledgeBackend = client.knowledge_backend as string | null
+  const corpusAvailable = knowledgeBackend === 'pgvector'
+  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
+
+  const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
+  let knowledgeBlockStr = ctx.knowledge.block
+  if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+    knowledgeBlockStr = knowledgeBlockStr
+      ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+      : ctx.retrieval.promptInstruction
+  }
+  const contextDataBlock = ctx.assembled.contextDataBlock
+
   // Build tool overrides from clients.tools (runtime X-Tool-Secret injection)
   const overrideTools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
 
   try {
-    const { joinUrl, callId } = await callViaAgent(client.ultravox_agent_id, {
+    const { joinUrl, callId } = await callViaAgent(client.ultravox_agent_id as string, {
       medium: 'webrtc',
       maxDuration: '300s',
-      metadata: { slug: client.slug ?? '', source: 'dashboard-agent-test', userId: user.id },
+      callerContext: callerContextRaw,
+      businessFacts: knowledgeBlockStr,
+      contextData: contextDataBlock,
+      metadata: { slug: (client.slug as string) ?? '', source: 'dashboard-agent-test', userId: user.id },
       overrideTools,
     })
 
@@ -94,7 +129,7 @@ export async function POST(req: NextRequest) {
       joinUrl,
       callId,
       agentName: client.agent_name || client.business_name || 'Your Agent',
-      businessName: client.business_name || '',
+      businessName: (client.business_name as string) || '',
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
