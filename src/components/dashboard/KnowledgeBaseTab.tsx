@@ -649,7 +649,7 @@ export default function KnowledgeBaseTab({
                                   setSelectedFacts(new Set(scrapePreview.businessFacts!.map((_, i) => i)))
                                 }
                               }}
-                              className="text-[10px] text-blue-400 hover:text-blue-300"
+                              className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 cursor-pointer"
                             >
                               {selectedFacts.size === scrapePreview.businessFacts.length ? 'Deselect all' : 'Select all'}
                             </button>
@@ -690,7 +690,7 @@ export default function KnowledgeBaseTab({
                                   setSelectedQa(new Set(scrapePreview.extraQa!.map((_, i) => i)))
                                 }
                               }}
-                              className="text-[10px] text-blue-400 hover:text-blue-300"
+                              className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 cursor-pointer"
                             >
                               {selectedQa.size === scrapePreview.extraQa.length ? 'Deselect all' : 'Select all'}
                             </button>

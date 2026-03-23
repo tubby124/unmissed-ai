@@ -260,7 +260,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             </svg>
             <p className="text-sm">No {STATUS_LABEL[tab].toLowerCase()} leads</p>
             {tab === 'queued' && (
-              <button onClick={() => setShowAdd(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              <button onClick={() => setShowAdd(true)} className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 cursor-pointer">
                 Add your first lead
               </button>
             )}

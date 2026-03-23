@@ -146,7 +146,7 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 | C3 | All cards use `card-surface` + `rounded-2xl`. Migrated: calendar, ClientHome, OperatorActivity, OutcomeCharts (3), AudioWaveformPlayer (2), TranscriptTimeline (2), MinuteUsage, OnboardingChecklist, CallsList processing bar. | DONE |
 | C4 | All section headers: unified `tracking-[0.15em]` across 54 files. Calendar `tracking-widest`, ClientHome `tracking-wide`, 72 instances of `tracking-[0.2em]` all normalized. | DONE |
 | C5 | All page titles: `text-lg font-semibold tracking-tight t1` via `PageHeader`. Calendar `text-2xl font-bold` fixed. Campaigns inline header → `PageHeader`. | DONE |
-| C6 | All "View all" / action links: `text-[12px]` + `var(--color-primary)` | TODO |
+| C6 | All "View all" / action links: `text-[12px]` + `var(--color-primary)` | DONE |
 | C7 | Consistent hover: rows use `hover:bg-hover transition-colors`, cards use `hover:shadow-sm`. Calendar `hover:border-indigo-500/20` fixed. ClientHome JS `onMouseEnter/Leave` → CSS `hover:bg-hover`. | DONE |
 | C8 | StatusBadge used everywhere. ClientHome inline `STATUS_COLORS` map removed → `StatusBadge` component. | DONE |
 | C9 | Loading: all page/component skeletons use shimmer `SkeletonBox`. Fixed: calendar, ClientHome, OperatorActivity, InsightsView, CallsList, CallEventsPanel, ActionItems, UsageSummary. | DONE |
@@ -183,6 +183,13 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 - `UsageSummary.tsx` — SkeletonBox shimmer, tracking
 - `AgentTestCard.tsx` — tracking
 - 47 files total: `tracking-[0.2em]` → `tracking-[0.15em]` bulk normalization
+- `ClientHome.tsx` — "View all" link: inline style → Tailwind `text-[var(--color-primary)]` + `font-medium hover:opacity-75`
+- `settings/AgentConfigCard.tsx` — "Change voice →": `text-blue-400 hover:text-blue-300` → action link standard
+- `settings/AgentTab.tsx` — "Carrier instructions": `text-blue-500 hover:text-blue-400` → action link standard
+- `LeadQueue.tsx` — "Add your first lead": `text-blue-400 hover:text-blue-300` → action link standard + `cursor-pointer`
+- `LeadsView.tsx` — "View full call": `text-blue-500 dark:text-blue-400 hover:*` → action link standard
+- `KnowledgeBaseTab.tsx` — "Select/Deselect all" (×2): `text-[10px] text-blue-400 hover:text-blue-300` → action link standard + `cursor-pointer`
+- `OnboardingChecklist.tsx` — step action button: `text-blue-500 hover:text-blue-400 underline` → action link standard
 
 ---
 
