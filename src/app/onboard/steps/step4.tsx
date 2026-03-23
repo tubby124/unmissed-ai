@@ -449,6 +449,19 @@ export default function Step4({ data, onUpdate }: Props) {
         </div>
       ) : null}
 
+      {/* No-knowledge warning — show when agent has nothing to work with */}
+      {niche !== 'voicemail' && !data.websiteUrl && !data.knowledgeDocs?.length && !data.faqPairs?.some((p: { question: string; answer: string }) => p.question?.trim() && p.answer?.trim()) && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+          <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Your agent can take messages but won&apos;t answer questions</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Add your website URL, answer a few FAQs, or upload a document so your agent can help callers with real information.</p>
+          </div>
+        </div>
+      )}
+
       {/* Demo teaser — nudge to continue */}
       <div className="flex items-center gap-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-4">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950/40 shrink-0">
