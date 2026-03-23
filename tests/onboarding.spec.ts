@@ -35,7 +35,7 @@ test.describe('Onboarding flow (/onboard)', () => {
 
     // Navigate forward
     const continueBtn = page.getByRole('button', { name: /continue/i });
-    await expect(continueBtn).toBeEnabled();
+    await expect(continueBtn).toBeEnabled({ timeout: 5_000 });
     await continueBtn.click();
     await page.waitForTimeout(500);
 

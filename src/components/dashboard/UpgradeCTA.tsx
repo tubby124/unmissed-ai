@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react"
 import { ArrowRight, Sparkles } from "lucide-react"
+import { trackEvent } from "@/lib/analytics"
 
 interface UpgradeCTAProps {
   collapsed?: boolean
@@ -55,6 +56,7 @@ export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }
       </div>
       <a
         href="/dashboard/settings?tab=billing"
+        onClick={() => trackEvent('upgrade_cta_click')}
         className="mt-2.5 w-full py-1.5 rounded-lg text-[11px] font-medium text-white flex items-center justify-center gap-1 transition-opacity hover:opacity-90"
         style={{ backgroundColor: "var(--color-primary)" }}
       >

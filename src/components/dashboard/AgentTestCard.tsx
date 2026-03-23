@@ -15,6 +15,7 @@ import {
 } from "@/components/DemoCallVisuals"
 import { useUltravoxCall, type CallState } from "@/hooks/useUltravoxCall"
 import { useOnboarding } from "@/hooks/useOnboarding"
+import { trackEvent } from "@/lib/analytics"
 
 interface AgentTestCardProps {
   agentName: string
@@ -44,6 +45,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
   const handleStartTest = useCallback(async () => {
     setIsRequesting(true)
     setApiError(null)
+    trackEvent('agent_test_start')
 
     try {
       const res = await fetch("/api/dashboard/agent-test", {

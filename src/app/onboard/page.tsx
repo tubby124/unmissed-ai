@@ -14,6 +14,7 @@ import Step6Review from "./steps/step6-review";
 import ThemeToggle from "@/components/ThemeToggle";
 import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { trackEvent } from "@/lib/analytics";
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
 
@@ -150,6 +151,7 @@ export default function OnboardPage() {
   const goNext = () => {
     if (stepIndex < stepSequence.length - 1) {
       setDirection(1);
+      trackEvent('onboard_step_complete', { step, niche: data.niche || 'none' });
       // Training animation: only once, only when step 1→2 with a business name
       if (step === 1 && data.businessName && !trainingShownRef.current) {
         trainingShownRef.current = true;
@@ -174,6 +176,7 @@ export default function OnboardPage() {
   const handleActivate = async (mode: "trial" | "paid") => {
     setIsSubmitting(true);
     setError(null);
+    trackEvent('onboard_submit', { mode, niche: data.niche || 'none' });
     try {
       if (mode === "trial") {
         const res = await fetch("/api/provision/trial", {
