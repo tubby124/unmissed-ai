@@ -128,7 +128,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('unmissed-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light')})()`,
+            __html: `(function(){var t=localStorage.getItem('unmissed-ai-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light')})()`,
           }}
         />
         <script

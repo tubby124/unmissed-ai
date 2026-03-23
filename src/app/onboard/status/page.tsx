@@ -8,6 +8,7 @@ import { AdminTestPanel } from "@/components/onboard/AdminTestPanel";
 import { AgentPreviewCard, type IntakePreview } from "@/components/onboard/AgentPreviewCard";
 import { TrialSuccessScreen } from "@/components/onboard/TrialSuccessScreen";
 import { SuccessView } from "@/components/onboard/SuccessView";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { SUPPORT_EMAIL } from "@/lib/brand";
 
 interface InventoryNumber {
@@ -60,7 +61,7 @@ function StatusContent() {
   // Clear localStorage draft and start polling for Twilio number on success
   useEffect(() => {
     if (success) {
-      try { localStorage.removeItem("unmissed-onboard-draft"); } catch { /* ignore */ }
+      try { localStorage.removeItem(STORAGE_KEYS.ONBOARD_DRAFT); } catch { /* ignore */ }
       if (intakeId) {
         setPolling(true);
         fetchActivationStatus();

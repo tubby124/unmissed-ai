@@ -4,6 +4,7 @@ import { sendAlert } from "@/lib/telegram";
 import { createServiceClient } from "@/lib/supabase/server";
 import { toIntakePayload, slugify } from "@/lib/intake-transform";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
+import { APP_URL } from "@/lib/app-url";
 
 // 10 provisions per IP per hour (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(10, 60 * 60 * 1000)
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
 🌐 ${data.websiteUrl || "no website"}
 🎯 Goal: ${goalLabels[data.primaryGoal || ""] || "not specified"}
 
-→ <a href="https://unmissed-ai-production.up.railway.app/dashboard/clients">Review in admin panel</a>`;
+→ <a href="${APP_URL}/dashboard/clients">Review in admin panel</a>`;
 
         await sendAlert(adminClient.telegram_bot_token, adminClient.telegram_chat_id, msg);
       }

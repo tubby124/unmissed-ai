@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
 
-const TOUR_KEY = 'unmissed_tour_completed'
+const TOUR_KEY = STORAGE_KEYS.TOUR_COMPLETED
 
 /**
  * GuidedTour — 4-step driver.js tour for first-time dashboard users.

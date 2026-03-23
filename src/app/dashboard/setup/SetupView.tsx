@@ -6,6 +6,7 @@ import { stripToDigits, fmtPhone, SectionLabel, CopyButton } from '@/components/
 import MobileSetup from '@/components/dashboard/setup/MobileSetup'
 import LandlineSetup from '@/components/dashboard/setup/LandlineSetup'
 import VoipSetup from '@/components/dashboard/setup/VoipSetup'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
 
   // Restore last-used selections from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('unmissed-setup-v1')
+    const saved = localStorage.getItem(STORAGE_KEYS.SETUP)
     if (!saved) return
     try {
       const { lt, d, c } = JSON.parse(saved) as { lt?: string; d?: string; c?: string }
@@ -208,7 +209,7 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
           {lineTypeTabs.map(t => (
             <button
               key={t.id}
-              onClick={() => { setLineType(t.id); setIsActive(false); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: t.id, d: device, c: carrier })) }}
+              onClick={() => { setLineType(t.id); setIsActive(false); localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: t.id, d: device, c: carrier })) }}
               className={`flex flex-1 items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all duration-150 cursor-pointer ${
                 lineType === t.id
                   ? 'bg-blue-500/15 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.22)]'
@@ -234,9 +235,9 @@ export default function SetupView({ clients, isAdmin }: SetupViewProps) {
             rawNumber={rawNumber}
             displayNumber={displayNumber}
             carrier={carrier}
-            onCarrierChange={(id) => { setCarrier(id); setIsActive(false); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: lineType, d: device, c: id })) }}
+            onCarrierChange={(id) => { setCarrier(id); setIsActive(false); localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: lineType, d: device, c: id })) }}
             device={device}
-            onDeviceChange={(d) => { setDevice(d); localStorage.setItem('unmissed-setup-v1', JSON.stringify({ lt: lineType, d, c: carrier })) }}
+            onDeviceChange={(d) => { setDevice(d); localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: lineType, d, c: carrier })) }}
             isActive={isActive}
             onActivated={() => setIsActive(true)}
           />

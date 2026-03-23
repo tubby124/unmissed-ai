@@ -7,6 +7,7 @@ import { Upload, FileText, File, X, Plus, CheckCircle2 } from "lucide-react";
 import RealEstateNiche from "./niches/real-estate";
 import VoicemailNiche from "./niches/voicemail";
 import RestaurantNiche from "./niches/restaurant";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 interface Props {
   data: OnboardingData;
@@ -84,11 +85,10 @@ function getFileIcon(filename: string) {
 }
 
 function getIntakeId(): string {
-  const storageKey = "unmissed_onboard_intake_id";
-  const existing = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
+  const existing = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.ONBOARD_INTAKE_ID) : null;
   if (existing) return existing;
   const id = crypto.randomUUID();
-  if (typeof window !== "undefined") localStorage.setItem(storageKey, id);
+  if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEYS.ONBOARD_INTAKE_ID, id);
   return id;
 }
 
