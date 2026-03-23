@@ -4,7 +4,7 @@
  * Accepts multipart FormData with a file + intake_id.
  * Extracts text from PDF/TXT/DOCX/CSV, stores in client_knowledge_docs table.
  * Seeds extracted content into knowledge_chunks (pgvector) when client_id is available.
- * Max file size: 5MB. Text truncated to 4000 chars.
+ * Max file size: 5MB. Text capped at 50K chars.
  *
  * Public — no auth (used during onboarding wizard).
  * Rate limit: 5 uploads/min/IP.
@@ -13,12 +13,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+import {
+  extractText,
+  splitIntoChunks,
+  truncateText,
+  MAX_FILE_SIZE,
+  ALLOWED_EXTENSIONS,
+} from '@/lib/knowledge-upload'
 
 // 5 uploads per IP per minute (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(5, 60 * 1000)
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const MAX_TEXT_LENGTH = 4000
 const ALLOWED_TYPES = new Set([
   'application/pdf',
   'text/plain',
@@ -26,43 +31,6 @@ const ALLOWED_TYPES = new Set([
   'text/csv',
   'application/vnd.ms-excel', // some systems send CSV as this
 ])
-const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx', 'csv'])
-
-async function extractText(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-
-  if (ext === 'txt' || mimeType === 'text/plain') {
-    return buffer.toString('utf-8')
-  }
-
-  if (ext === 'pdf' || mimeType === 'application/pdf') {
-    const { PDFParse } = await import('pdf-parse')
-    const parser = new PDFParse({ data: new Uint8Array(buffer) })
-    const result = await parser.getText()
-    return result.text
-  }
-
-  if (ext === 'csv' || mimeType === 'text/csv' || mimeType === 'application/vnd.ms-excel') {
-    // Parse CSV: skip header row, join remaining rows as fact lines
-    const text = buffer.toString('utf-8')
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-    if (lines.length <= 1) return text // just header or single line
-    // Skip header, join cell values per row with " | "
-    const dataLines = lines.slice(1).map(line => {
-      // Simple CSV parse — handle quoted fields
-      return line.replace(/"/g, '').split(',').map(c => c.trim()).filter(c => c).join(' | ')
-    })
-    return dataLines.join('\n')
-  }
-
-  if (ext === 'docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const mammoth = await import('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
-    return result.value
-  }
-
-  throw new Error(`Unsupported file type: ${ext}`)
-}
 
 export async function POST(req: NextRequest) {
   const adminSupa = createServiceClient()
@@ -117,15 +85,15 @@ export async function POST(req: NextRequest) {
 
     let contentText: string
     try {
-      contentText = await extractText(buffer, file.name, file.type)
+      const raw = await extractText(buffer, file.name, file.type)
+      const result = truncateText(raw)
+      contentText = result.text
+      if (result.truncated) {
+        console.warn(`[knowledge-upload] ${file.name} truncated: ${result.originalLength} → ${contentText.length} chars`)
+      }
     } catch (err) {
       console.error(`[knowledge-upload] Text extraction failed for ${file.name}:`, err)
       return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 422 })
-    }
-
-    // Truncate to max length
-    if (contentText.length > MAX_TEXT_LENGTH) {
-      contentText = contentText.slice(0, MAX_TEXT_LENGTH)
     }
 
     const charCount = contentText.length
@@ -160,14 +128,11 @@ export async function POST(req: NextRequest) {
 
       if (intakeRow?.client_id) {
         const { embedChunks } = await import('@/lib/embeddings')
-        const paragraphs = contentText
-          .split(/\n\n+|\n/)
-          .map(p => p.trim())
-          .filter(p => p.length > 20)
+        const segments = splitIntoChunks(contentText)
 
-        const chunks = paragraphs.map(p => ({
+        const chunks = segments.map(p => ({
           content: p,
-          chunkType: 'page_content' as const,
+          chunkType: 'document' as const,
           source: 'knowledge_doc',
           status: 'approved',
           trustTier: 'high',

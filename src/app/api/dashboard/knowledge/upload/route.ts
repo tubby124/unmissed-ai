@@ -3,53 +3,23 @@
  *
  * Authenticated file upload for dashboard Knowledge Base tab.
  * Accepts multipart FormData with a file + client_id.
- * Extracts text from PDF/TXT/DOCX/CSV, splits into chunks, embeds + stores
- * directly into knowledge_chunks (pgvector).
+ * Extracts text from PDF/TXT/DOCX/CSV, stores audit record in
+ * client_knowledge_docs, splits into chunks, embeds into knowledge_chunks.
  *
  * Auth: admin or owner. Owners can only upload to their own client.
- * Max file size: 5MB. Text truncated to 4000 chars.
+ * Max file size: 5MB. Text capped at 50K chars.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedChunks, type ChunkInput } from '@/lib/embeddings'
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const MAX_TEXT_LENGTH = 4000
-const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx', 'csv'])
-
-async function extractText(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-
-  if (ext === 'txt' || mimeType === 'text/plain') {
-    return buffer.toString('utf-8')
-  }
-
-  if (ext === 'pdf' || mimeType === 'application/pdf') {
-    const { PDFParse } = await import('pdf-parse')
-    const parser = new PDFParse({ data: new Uint8Array(buffer) })
-    const result = await parser.getText()
-    return result.text
-  }
-
-  if (ext === 'csv' || mimeType === 'text/csv' || mimeType === 'application/vnd.ms-excel') {
-    const text = buffer.toString('utf-8')
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-    if (lines.length <= 1) return text
-    const dataLines = lines.slice(1).map(line => {
-      return line.replace(/"/g, '').split(',').map(c => c.trim()).filter(c => c).join(' | ')
-    })
-    return dataLines.join('\n')
-  }
-
-  if (ext === 'docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const mammoth = await import('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
-    return result.value
-  }
-
-  throw new Error(`Unsupported file type: ${ext}`)
-}
+import {
+  extractText,
+  splitIntoChunks,
+  truncateText,
+  MAX_FILE_SIZE,
+  ALLOWED_EXTENSIONS,
+} from '@/lib/knowledge-upload'
 
 export async function POST(req: NextRequest) {
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -96,26 +66,19 @@ export async function POST(req: NextRequest) {
 
   let contentText: string
   try {
-    contentText = await extractText(buffer, file.name, file.type)
+    const raw = await extractText(buffer, file.name, file.type)
+    const result = truncateText(raw)
+    contentText = result.text
+    if (result.truncated) {
+      console.warn(`[knowledge-upload-dashboard] ${file.name} truncated: ${result.originalLength} → ${contentText.length} chars`)
+    }
   } catch (err) {
     console.error(`[knowledge-upload-dashboard] Text extraction failed for ${file.name}:`, err)
     return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 422 })
   }
 
-  if (contentText.length > MAX_TEXT_LENGTH) {
-    contentText = contentText.slice(0, MAX_TEXT_LENGTH)
-  }
-
-  // ── Split into chunks and embed ─────────────────────────────────────────────
-  const paragraphs = contentText
-    .split(/\n\n+/)
-    .map(p => p.trim())
-    .filter(p => p.length > 20)
-
-  // If no paragraph breaks, split by single newlines
-  const segments = paragraphs.length > 0
-    ? paragraphs
-    : contentText.split('\n').map(l => l.trim()).filter(l => l.length > 20)
+  // ── Split into chunks ─────────────────────────────────────────────────────
+  const segments = splitIntoChunks(contentText)
 
   if (segments.length === 0) {
     return NextResponse.json({ error: 'No usable content found in file' }, { status: 422 })
@@ -143,6 +106,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
+    // ── Save audit record to client_knowledge_docs ──────────────────────────
+    const { error: docInsertErr } = await svc
+      .from('client_knowledge_docs')
+      .insert({
+        client_id: clientId,
+        filename: file.name,
+        content_text: contentText,
+        char_count: contentText.length,
+      })
+
+    if (docInsertErr) {
+      console.error('[knowledge-upload-dashboard] Doc record insert failed:', docInsertErr)
+      // Non-fatal — continue with embedding even if audit record fails
+    }
+
+    // ── Embed chunks ──────────────────────────────────────────────────────────
     await embedChunks(clientId, chunks, `knowledge-doc-upload-${Date.now()}`)
     console.log(`[knowledge-upload-dashboard] ${file.name}: ${chunks.length} chunks embedded for client=${client.slug}`)
 
