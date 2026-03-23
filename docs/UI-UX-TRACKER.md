@@ -143,13 +143,13 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 |---|------|--------|
 | C1 | Page template: `p-3 sm:p-6 space-y-6` on all pages. `PageHeader` component for titles. | DONE |
 | C2 | Sidebar — consistent active state, hover, group separators (CSS vars not Tailwind) | TODO |
-| C3 | All cards use `card-surface` + `rounded-2xl` + consistent padding. Calendar inline styles → `card-surface`. ClientHome `rounded-xl` → `rounded-2xl`. | DONE |
-| C4 | All section headers: `text-[11px] font-semibold tracking-[0.15em] uppercase t3` via `SectionLabel`. Calendar `tracking-widest` fixed. ClientHome `tracking-wide` fixed. | DONE |
+| C3 | All cards use `card-surface` + `rounded-2xl`. Migrated: calendar, ClientHome, OperatorActivity, OutcomeCharts (3), AudioWaveformPlayer (2), TranscriptTimeline (2), MinuteUsage, OnboardingChecklist, CallsList processing bar. | DONE |
+| C4 | All section headers: unified `tracking-[0.15em]` across 54 files. Calendar `tracking-widest`, ClientHome `tracking-wide`, 72 instances of `tracking-[0.2em]` all normalized. | DONE |
 | C5 | All page titles: `text-lg font-semibold tracking-tight t1` via `PageHeader`. Calendar `text-2xl font-bold` fixed. Campaigns inline header → `PageHeader`. | DONE |
 | C6 | All "View all" / action links: `text-[12px]` + `var(--color-primary)` | TODO |
 | C7 | Consistent hover: rows use `hover:bg-hover transition-colors`, cards use `hover:shadow-sm`. Calendar `hover:border-indigo-500/20` fixed. ClientHome JS `onMouseEnter/Leave` → CSS `hover:bg-hover`. | DONE |
 | C8 | StatusBadge used everywhere. ClientHome inline `STATUS_COLORS` map removed → `StatusBadge` component. | DONE |
-| C9 | Loading: calendar custom spinner → `CalendarSkeleton` shimmer. ClientHome `animate-pulse` → `SkeletonBox` shimmer. | DONE |
+| C9 | Loading: all page/component skeletons use shimmer `SkeletonBox`. Fixed: calendar, ClientHome, OperatorActivity, InsightsView, CallsList, CallEventsPanel, ActionItems, UsageSummary. | DONE |
 | C10 | Empty states: old `EmptyState.tsx` already unused (0 imports). All pages use `EmptyStateBase` variants. | DONE |
 | C11 | Error states: `ErrorCard` component created. ClientHome inline error → `ErrorCard`. | DONE |
 | C12 | Mobile: all pages `p-3 sm:p-6`. Calendar `p-6 max-w-5xl mx-auto` → `p-3 sm:p-6`. Leads admin `p-6` → `p-3 sm:p-6`. Campaigns `p-6` → `p-3 sm:p-6`. | DONE |
@@ -161,13 +161,28 @@ Goal: Every page follows the same visual template. No page looks "different" fro
 - `CalendarSkeleton` added to `src/components/dashboard/SkeletonLoader.tsx`
 - `SkeletonBox` exported from `SkeletonLoader.tsx` for reuse
 
-### Pass 3 Files Modified
+### Pass 3 Files Modified (pages)
 - `calendar/page.tsx` — padding, PageHeader, CalendarSkeleton, card-surface, tracking, hover, rounded-2xl
 - `calls/page.tsx` — added space-y-6
 - `leads/page.tsx` — admin path p-6 → p-3 sm:p-6
 - `campaigns/page.tsx` — p-6 → p-3 sm:p-6, inline header → PageHeader
 - `dashboard/page.tsx` — PageHeader + SectionLabel (done in earlier session)
-- `ClientHome.tsx` — padding, SkeletonBox shimmer, ErrorCard, StatusBadge, rounded-2xl, tracking, hover:bg-hover
+
+### Pass 3 Files Modified (components — inner)
+- `ClientHome.tsx` — padding, SkeletonBox, ErrorCard, StatusBadge, rounded-2xl, tracking, hover:bg-hover
+- `OperatorActivity.tsx` — SkeletonBox shimmer, SummaryCard card-surface + rounded-2xl, tracking
+- `InsightsView.tsx` — SkeletonBox shimmer, tracking
+- `CallsList.tsx` — SkeletonBox shimmer, processing bar card-surface + rounded-2xl, tracking
+- `OutcomeCharts.tsx` — 3 cards inline styles → card-surface, tracking
+- `AudioWaveformPlayer.tsx` — 2 cards inline styles → card-surface, tracking
+- `TranscriptTimeline.tsx` — 2 cards inline styles → card-surface, tracking
+- `MinuteUsage.tsx` — card-surface, tracking
+- `OnboardingChecklist.tsx` — card-surface
+- `CallEventsPanel.tsx` — SkeletonBox shimmer, tracking
+- `ActionItems.tsx` — SkeletonBox shimmer
+- `UsageSummary.tsx` — SkeletonBox shimmer, tracking
+- `AgentTestCard.tsx` — tracking
+- 47 files total: `tracking-[0.2em]` → `tracking-[0.15em]` bulk normalization
 
 ---
 
@@ -197,7 +212,7 @@ Goal: Add subtle, purposeful micro-interactions. Not decorative — functional.
 | M1 | Page transitions — smooth fade between dashboard pages | Medium | TODO |
 | M2 | Card hover elevation — subtle shadow lift on hover | Medium | TODO |
 | M3 | Data refresh indicator — subtle pulse when realtime data updates | Low | TODO |
-| M4 | Loading skeletons — unified shimmer animation across all pages | Medium | TODO |
+| M4 | Loading skeletons — unified shimmer animation across all pages | Medium | DONE (Pass 3 C9) |
 | M5 | Voice orb improvements — smoother energy visualization | Low | TODO |
 | M6 | Number counters — animate stat changes (NumberTicker already exists) | Low | TODO |
 | M7 | Sidebar collapse/expand — already has spring animation, verify smoothness | Low | TODO |
