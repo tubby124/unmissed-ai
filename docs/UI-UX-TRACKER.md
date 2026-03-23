@@ -102,12 +102,12 @@ Goal: Make light mode look as polished as dark mode. Replace all hardcoded `dark
 | # | File | Issues | Status |
 |---|------|--------|--------|
 | L51 | `StatsSection.tsx` | 4x `dark:` | DONE |
-| L52 | `DemoCallVisuals.tsx` | 4x `rgba` | TODO |
-| L53 | `DemoCall.tsx` | 3x `rgba` | TODO |
-| L54 | `DemoAudioPlayer.tsx` | 9x `rgba` | TODO |
-| L55 | `HeroCallMockup.tsx` | 4x `rgba` | TODO |
-| L56 | `TalkToAgentWidget.tsx` | 1x `rgba` | TODO |
-| L57 | `TryItNowWidget.tsx` | 1x `rgba` | TODO |
+| L52 | `DemoCallVisuals.tsx` | 4x `rgba` | SKIP — WebRTC orb color maps, dynamic status gradients |
+| L53 | `DemoCall.tsx` | 3x `rgba` | SKIP — glass card on dark-only marketing overlay |
+| L54 | `DemoAudioPlayer.tsx` | 9x `rgba` | SKIP — iOS hardware simulation, must stay literal |
+| L55 | `HeroCallMockup.tsx` | 4x `rgba` | SKIP — accent tints in animated shadow/badge |
+| L56 | `TalkToAgentWidget.tsx` | 1x `rgba` | SKIP — standard modal backdrop |
+| L57 | `TryItNowWidget.tsx` | 1x `rgba` | SKIP — standard modal backdrop |
 | L58 | Advisor components (5 files) | Mixed `dark:` + `rgba` | DONE |
 | L59 | `ui/input.tsx` | 2x patterns | DONE |
 | L60 | `ui/textarea.tsx` | 1x pattern | DONE |
@@ -246,6 +246,23 @@ Things top SaaS dashboards have that we're missing entirely. Prioritized by reve
 
 ---
 
+## Marketing Visual Overhaul (separate session)
+
+Current marketing components are functional prototypes, not polished. Full rebuild scope:
+
+| # | Component | Current State | Rebuild Notes | Status |
+|---|-----------|--------------|---------------|--------|
+| V1 | `HeroCallMockup.tsx` | Basic card with animated bars, cycling through ringing→live→hot→summary. Gets the idea across but looks generic. | Needs to feel premium — think Linear/Vercel hero quality. 3D orb, real call playback, or cinematic visual. | TODO |
+| V2 | `DemoAudioPlayer.tsx` | Fake iMessage UI inside iPhone 15 frame. Scripted chat bubbles play out. Outcome card appears at end. | iPhone mockup concept is clever but execution is dated. Could be a purpose-built call transcript visual instead. Consider actual voice waveform or video. | TODO |
+| V3 | `DemoCallVisuals.tsx` | VoiceOrb, WaveformBars, StatusBadge, TranscriptBubble, PostCallSummary, EndCallButton — shared by demo + dashboard. | Orb is decent but bars/bubbles could be elevated. PostCallSummary needs better layout. Note: shared with AgentTestCard — changes affect dashboard too. | TODO |
+| V4 | `DemoCall.tsx` | WebRTC call flow: requesting→connecting→active→ended. Glass card container with orb + transcript + timer. | Glass card container could be much slicker. Timer ring is good. Consider split-panel layout for desktop. | TODO |
+| V5 | `TalkToAgentWidget.tsx` | Floating "Talk to Zara" button + full-screen overlay with DemoCall. Basic bottom-sheet on mobile. | Needs polished entry animation, better mobile sheet, branding in header. | TODO |
+| V6 | `TryItNowWidget.tsx` | Floating "Try It Free" button → agent picker → mode picker → name → call. Multi-step modal flow. | Agent picker cards are plain. Mode selection (mic vs phone) could be more visual. Consider single-step with smart defaults. | TODO |
+| V7 | `StatsSection.tsx` | "8,400+ calls handled" hero stats bar on marketing page. | Numbers may be stale/hardcoded. Could be real-time or at least refreshed. Visual treatment is basic. | TODO |
+| V8 | Marketing page overall | `/page.tsx` landing, `/try`, `/pricing` if exists | Full visual audit needed — hero, features, social proof, CTA flow. Separate from component-level work. | TODO |
+
+---
+
 ## Architecture / Navigation (separate sessions)
 
 Items that need their own focused session — not CSS polish, but structural changes.
@@ -277,7 +294,7 @@ Items that need their own focused session — not CSS polish, but structural cha
   - `hover:bg-white/[*]`: 0
   - `divide-white/[*]`: 0
   - `dark:(bg|border|text)-(zinc|gray|slate)-*`: 0
-- **Files fixed**: ~58 (P1-P6 all DONE, StatsGrid SKIP)
+- **Files fixed**: ~58 (P1-P6 all DONE, StatsGrid SKIP, L52-L57 SKIP — marketing components)
 - **Playwright verified**: login dark, dashboard dark + light, settings light — all look clean
 - **Pass 2 residue** (legitimate usage mixed with fixable): text-white (217), text-zinc (112), text-gray (108), bg-gray (7), border-zinc (56), rgba (216)
 
