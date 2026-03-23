@@ -135,6 +135,7 @@ const SCROLL_TO_SECTION: Record<string, string> = {
   'voice-style': 'identity',
   'hours': 'capabilities',
   'booking': 'capabilities',
+  'ivr': 'capabilities',
   'knowledge': 'knowledge',
   'advanced-context': 'knowledge',
   'agent-config': 'config',
@@ -487,15 +488,17 @@ export default function AgentTab({
           />
         </div>
       )}
-      <IvrMenuCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialEnabled={client.ivr_enabled ?? false}
-        initialPrompt={client.ivr_prompt ?? ''}
-        businessName={client.business_name}
-        agentName={client.agent_name}
-        previewMode={previewMode}
-      />
+      <div id="section-ivr">
+        <IvrMenuCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialEnabled={client.ivr_enabled ?? false}
+          initialPrompt={client.ivr_prompt ?? ''}
+          businessName={client.business_name}
+          agentName={client.agent_name}
+          previewMode={previewMode}
+        />
+      </div>
     </SettingsSection>
 
     {/* ── 5. AGENT SCRIPT (admin only) ─────────────────────────────── */}

@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
       services_offered: intakePayload.services_offered || null,
       callback_phone: intakePayload.callback_phone || null,
       ivr_enabled: data.ivrEnabled ?? false,
+      ivr_prompt: data.ivrPrompt || null,
     })
     .select("id")
     .single();

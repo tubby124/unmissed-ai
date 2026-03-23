@@ -98,6 +98,16 @@ export default function CapabilitiesCard({ client, isAdmin, onScrollTo }: Capabi
       active: true,
       detail: client.voicemail_greeting_text ? 'Custom greeting set' : 'Default greeting',
     },
+    {
+      label: 'Voicemail menu (IVR)',
+      available: true,
+      active: !!client.ivr_enabled,
+      detail: client.ivr_enabled
+        ? (client.ivr_prompt ? 'Custom menu set' : 'Press 1 for voicemail')
+        : undefined,
+      actionHint: 'Let callers press 1 for voicemail before connecting',
+      section: 'ivr',
+    },
   ]
 
   const visible = capabilities.filter(c => c.available)

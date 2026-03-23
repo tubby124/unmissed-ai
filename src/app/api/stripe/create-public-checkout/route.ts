@@ -297,6 +297,7 @@ export async function POST(req: NextRequest) {
         services_offered: (intakeData.services_offered as string) || null,
         callback_phone: (intakeData.callback_phone as string) || (intakeData.callbackPhone as string) || null,
         ivr_enabled: (intakeData.ivrEnabled as boolean) ?? false,
+        ivr_prompt: (intakeData.ivrPrompt as string) || null,
       })
       .select('id')
       .single()

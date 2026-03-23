@@ -336,13 +336,17 @@ export default function Step2Voice({ data, onUpdate }: Props) {
           </div>
 
           {data.ivrEnabled && (
-            <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-1">
-              <p className="text-xs font-medium text-foreground">What callers will hear:</p>
-              <p className="text-xs text-muted-foreground italic">
-                &quot;Hi, you&apos;ve reached {data.businessName || "[your business]"}. Press 1 to leave a voicemail, or stay on the line and {data.agentName || "our assistant"} will be with you.&quot;
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-2">
-                Callers who press 1 leave a voicemail recording. Callers who wait are connected to {data.agentName || "your agent"}.
+            <div className="space-y-1.5 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800 ml-2">
+              <p className="text-xs font-medium text-foreground">Menu message</p>
+              <textarea
+                rows={3}
+                value={data.ivrPrompt}
+                onChange={(e) => onUpdate({ ivrPrompt: e.target.value })}
+                className="w-full bg-muted/20 border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-indigo-500/40 transition-colors resize-y"
+                placeholder={`Hi, you've reached ${data.businessName || 'your business'}. Press 1 to leave a voicemail, or stay on the line and ${data.agentName || 'our assistant'} will be with you.`}
+              />
+              <p className="text-xs text-muted-foreground/70">
+                Leave blank for the default. Callers who press 1 leave a voicemail; callers who wait connect to {data.agentName || "your agent"}.
               </p>
             </div>
           )}
