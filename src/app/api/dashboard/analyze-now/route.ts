@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
   if (client.telegram_bot_token && client.telegram_chat_id) {
     await sendAlert(client.telegram_bot_token, client.telegram_chat_id,
-      `🔬 <b>New Analysis Ready — ${client.business_name || client.slug}</b>\n📊 ${calls.length} calls · 🐛 ${issuesCount} issues · 💡 ${recsCount} recs\n⭐ Quality: ${parsed.overall_quality_score ?? '?'}/100\n💬 ${(parsed.summary || '').slice(0, 200)}\n\n📋 Review → /admin/insights`)
+      `🔬 <b>New Analysis Ready — ${client.business_name || client.slug}</b>\n📊 ${calls.length} calls · 🐛 ${issuesCount} issues · 💡 ${recsCount} recs\n⭐ Quality: ${parsed.overall_quality_score ?? '?'}/100\n💬 ${(parsed.summary || '').slice(0, 200)}\n\n📋 Review → /dashboard/insights`)
   }
 
   return NextResponse.json({ ok: true, report_id: reportRow?.id, issues_count: issuesCount, recommendations_count: recsCount, calls_analyzed: calls.length })

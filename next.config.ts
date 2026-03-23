@@ -11,6 +11,19 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['twilio'],
+  async redirects() {
+    return [
+      // /admin/* consolidated into /dashboard/* (Mar 2026)
+      { source: '/admin/costs', destination: '/dashboard/costs', permanent: true },
+      { source: '/admin/numbers', destination: '/dashboard/numbers', permanent: true },
+      { source: '/admin/prompt', destination: '/dashboard/prompt', permanent: true },
+      { source: '/admin/calls', destination: '/dashboard/calls', permanent: true },
+      { source: '/admin/clients', destination: '/dashboard/clients', permanent: true },
+      { source: '/admin/insights', destination: '/dashboard/insights', permanent: true },
+      { source: '/admin/calendar', destination: '/dashboard/calendar', permanent: true },
+      { source: '/admin/test-lab', destination: '/dashboard/lab', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

@@ -380,6 +380,14 @@ function ClientDropdown({
     if (open) inputRef.current?.focus()
   }, [open])
 
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open])
+
   const selected = clients.find(c => c.id === selectedId)
   const q = search.toLowerCase()
   const filtered = clients.filter(c =>

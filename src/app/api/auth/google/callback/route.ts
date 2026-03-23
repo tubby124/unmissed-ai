@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
   }
 
   const successUrl = isAdmin
-    ? `${APP_URL}/admin/clients?calendar_connected=1`
+    ? `${APP_URL}/dashboard/clients?calendar_connected=1`
     : `${APP_URL}/dashboard/settings?calendar_connected=1`
 
   const response = NextResponse.redirect(successUrl)

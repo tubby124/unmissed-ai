@@ -33,31 +33,6 @@ async function getSupabaseUser(request: NextRequest) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // ── /admin/* — Supabase session + admin role check ─────────────────────────
-  if (pathname.startsWith('/admin')) {
-    const { supabase, user, response } = await getSupabaseUser(request)
-
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
-    const { data: cu } = await supabase
-      .from('client_users')
-      .select('role')
-      .eq('user_id', user.id)
-      .order('role').limit(1).maybeSingle()
-
-    if (cu?.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-
-    return response
-  }
-
   // ── /dashboard/* — Supabase session auth ───────────────────────────────────
   if (pathname.startsWith('/dashboard')) {
     const { supabase, user, response } = await getSupabaseUser(request)
@@ -111,5 +86,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/dashboard/:path*'],
+  matcher: ['/dashboard/:path*'],
 }

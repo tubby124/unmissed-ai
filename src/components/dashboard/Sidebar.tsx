@@ -11,7 +11,7 @@ import { hasCapability } from '@/lib/niche-capabilities'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { BRAND_NAME } from '@/lib/brand'
 
-const GROUP_LABELS: Record<number, string | null> = { 1: 'OPS', 2: 'CLIENTS', 3: 'TOOLS', 4: null }
+const GROUP_LABELS: Record<number, string | null> = { 1: null, 2: 'CLIENTS', 3: 'MANAGE', 4: 'TOOLS', 5: null }
 
 const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolean; group: number; icon: React.ReactNode }[] = [
   // ── Group 1 ──────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/campaigns',
     label: 'Performance',
     adminOnly: true,
-    group: 1,
+    group: 2,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -118,7 +118,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     label: 'Leads',
     adminLabel: 'Outbound Queue',
     adminOnly: false,
-    group: 2,
+    group: 3,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -129,7 +129,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/intake',
     label: 'Intake',
     adminOnly: true,
-    group: 2,
+    group: 3,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M22 12h-6l-2 3h-4l-2-3H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -141,7 +141,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/calendar',
     label: 'Calendar',
     adminOnly: false,
-    group: 2,
+    group: 3,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
