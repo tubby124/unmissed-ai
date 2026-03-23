@@ -331,6 +331,7 @@ export async function POST(req: NextRequest) {
     success: true,
     clientId,
     trialExpiresAt,
+    agentName: data.agentName ?? null,
     setupUrl: result.setupUrl ?? null,
     telegramLink: result.telegramLink ?? null,
   }, { status: 201 });

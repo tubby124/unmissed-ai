@@ -25,6 +25,7 @@ function StatusContent() {
   const success = searchParams.get("success");
   const isTrial = searchParams.get("trial") === "true";
   const trialClientId = searchParams.get("clientId");
+  const trialAgentName = searchParams.get("agentName") ? decodeURIComponent(searchParams.get("agentName")!) : null;
   const rawSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
   // Sanitize: if the stored URL has localhost (from a dev-environment test), fall back to /dashboard
   const trialSetupUrl = rawSetupUrl && !rawSetupUrl.includes("localhost") ? rawSetupUrl : "/dashboard";
@@ -120,7 +121,7 @@ function StatusContent() {
 
   // ── Trial success screen ────────────────────────────────────────────────────
   if (isTrial) {
-    return <TrialSuccessScreen clientId={trialClientId} setupUrl={trialSetupUrl} telegramLink={trialTelegramLink} />;
+    return <TrialSuccessScreen clientId={trialClientId} agentName={trialAgentName} setupUrl={trialSetupUrl} telegramLink={trialTelegramLink} />;
   }
 
   // ── Success state ──────────────────────────────────────────────────────────

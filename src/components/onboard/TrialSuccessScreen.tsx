@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { SUPPORT_EMAIL } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
-export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clientId: string | null; setupUrl: string | null; telegramLink: string | null }) {
+export function TrialSuccessScreen({ clientId, agentName, setupUrl, telegramLink }: { clientId: string | null; agentName: string | null; setupUrl: string | null; telegramLink: string | null }) {
   useEffect(() => {
     try { localStorage.removeItem(STORAGE_KEYS.ONBOARD_DRAFT); } catch { /* ignore */ }
   }, []);
@@ -49,7 +49,7 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
           href={setupUrl || "/dashboard"}
           className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors text-base text-center"
         >
-          Talk to your agent →
+          {agentName ? `Talk to ${agentName} in your dashboard →` : "Talk to your agent →"}
         </a>
 
         {clientId && (
@@ -74,12 +74,21 @@ export function TrialSuccessScreen({ clientId, setupUrl, telegramLink }: { clien
       </div>
 
       {/* Footer */}
-      <p className="text-xs text-muted-foreground/70 text-center">
-        Questions?{" "}
-        <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
-          {SUPPORT_EMAIL}
-        </a>
-      </p>
+      <div className="space-y-1.5 text-center">
+        <p className="text-xs text-muted-foreground/70">
+          Closing this tab?{" "}
+          <a href="/login" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
+            Log back in with Google
+          </a>
+          {" "}any time.
+        </p>
+        <p className="text-xs text-muted-foreground/70">
+          Questions?{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-muted-foreground transition-colors">
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

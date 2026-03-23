@@ -220,7 +220,7 @@ export default function OnboardPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Trial signup failed");
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-        router.push(`/onboard/status?trial=true&clientId=${json.clientId}&setupUrl=${encodeURIComponent(json.setupUrl || '')}&telegramLink=${encodeURIComponent(json.telegramLink || '')}`);
+        router.push(`/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || '')}&setupUrl=${encodeURIComponent(json.setupUrl || '')}&telegramLink=${encodeURIComponent(json.telegramLink || '')}`);
       } else {
         // Existing paid path
         const res = await fetch("/api/provision", {
