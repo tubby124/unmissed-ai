@@ -1,174 +1,99 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { useState, useEffect, useRef } from "react"
+import { motion } from "motion/react"
 import {
   VoiceOrb, WaveformBars, StatusBadge as DemoStatusBadge,
-  CallTimer, TranscriptBubble, EndCallButton,
-  createSoundCues, type AgentStatus
+  CallTimer, TranscriptBubble,
+  createSoundCues,
 } from "@/components/DemoCallVisuals"
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
+import { useCallContext } from "@/contexts/CallContext"
+import { usePathname } from "next/navigation"
 
-// Lazy-load SDK to avoid SSR issues (WebRTC is browser-only)
-let UltravoxSession: typeof import("ultravox-client").UltravoxSession | null = null
-let UltravoxSessionStatus: typeof import("ultravox-client").UltravoxSessionStatus | null = null
-
-export interface TranscriptEntry {
-  speaker: "user" | "agent"
-  text: string
-  isFinal: boolean
-}
+// Re-export TranscriptEntry so existing consumers (Lab, etc.) don't break
+export type { TranscriptEntry } from "@/components/DemoCallVisuals"
 
 interface BrowserTestCallProps {
   joinUrl: string
-  onEnd: (transcripts: TranscriptEntry[]) => void
+  onEnd: (transcripts: import("@/components/DemoCallVisuals").TranscriptEntry[]) => void
 }
 
+const LAB_MAX_SECONDS = 180
+
 export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps) {
-  const [status, setStatus] = useState<"connecting" | "active" | "ended" | "error">("connecting")
-  const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
-  const [secondsLeft, setSecondsLeft] = useState(180)
-  const [error, setError] = useState<string | null>(null)
-  const [agentStatus, setAgentStatus] = useState<AgentStatus>('idle')
-  const [energy, setEnergy] = useState(0.15)
-  const sessionRef = useRef<InstanceType<typeof import("ultravox-client").UltravoxSession> | null>(null)
+  const pathname = usePathname()
+  const {
+    callState,
+    agentStatus,
+    transcripts,
+    energy,
+    error,
+    startCall,
+    endCall,
+    setMeta,
+  } = useCallContext()
+
+  const [localSecondsLeft, setLocalSecondsLeft] = useState(LAB_MAX_SECONDS)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const transcriptsRef = useRef<TranscriptEntry[]>([])
-  const containerRef = useRef<HTMLDivElement>(null)
   const soundCuesRef = useRef<ReturnType<typeof createSoundCues> | null>(null)
   const hasChimedRef = useRef(false)
-
-  // Keep ref in sync for use in endCall callback
-  useEffect(() => { transcriptsRef.current = transcripts }, [transcripts])
-
-  // Auto-scroll transcript
-  useEffect(() => {
-    if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight
-  }, [transcripts])
+  const hasEndedRef = useRef(false)
+  // Own scroll ref — avoids collision with AgentTestCard's shared transcriptContainerRef
+  const localTranscriptRef = useRef<HTMLDivElement | null>(null)
+  // Keep a ref to transcripts so onEnd always gets the latest snapshot
+  const transcriptsRef = useRef(transcripts)
+  transcriptsRef.current = transcripts
 
   // Initialize sound cues
   useEffect(() => {
     soundCuesRef.current = createSoundCues()
   }, [])
 
-  // Energy simulation
+  // Connect via CallContext on mount
   useEffect(() => {
-    const id = setInterval(() => {
-      setEnergy(() => {
-        switch (agentStatus) {
-          case 'speaking': return Math.random() * 0.4 + 0.6
-          case 'listening': return Math.random() * 0.3 + 0.1
-          case 'thinking': return 0.3
-          default: return 0.15
-        }
-      })
-    }, 120)
-    return () => clearInterval(id)
-  }, [agentStatus])
+    setMeta({ agentName: "Agent", businessName: "", sourceRoute: pathname })
+    startCall(joinUrl)
+  }, [joinUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const endCall = useCallback(async () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    try { await sessionRef.current?.leaveCall() } catch { /* cleanup */ }
-    sessionRef.current = null
-    setStatus("ended")
-    soundCuesRef.current?.endTone()
-    onEnd(transcriptsRef.current)
-  }, [onEnd])
-
-  // Countdown timer
+  // Play connect chime when call becomes active
   useEffect(() => {
-    if (status === "active") {
+    if (callState === "active" && !hasChimedRef.current) {
+      hasChimedRef.current = true
+      soundCuesRef.current?.connectChime()
+    }
+  }, [callState])
+
+  // Local 180-second timer (Lab calls are shorter than dashboard's 300s)
+  useEffect(() => {
+    if (callState === "active") {
       timerRef.current = setInterval(() => {
-        setSecondsLeft(prev => {
+        setLocalSecondsLeft(prev => {
           if (prev <= 1) { endCall(); return 0 }
           return prev - 1
         })
       }, 1000)
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [status, endCall])
+  }, [callState, endCall])
 
-  // Connect on mount
+  // Auto-scroll local transcript container
   useEffect(() => {
-    let cancelled = false
+    if (localTranscriptRef.current) localTranscriptRef.current.scrollTop = localTranscriptRef.current.scrollHeight
+  }, [transcripts])
 
-    async function connect() {
-      try {
-        if (!UltravoxSession) {
-          const mod = await import("ultravox-client")
-          UltravoxSession = mod.UltravoxSession
-          UltravoxSessionStatus = mod.UltravoxSessionStatus
-        }
-
-        if (cancelled) return
-
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        stream.getTracks().forEach(t => t.stop())
-
-        if (cancelled) return
-
-        const session = new UltravoxSession!()
-        sessionRef.current = session
-
-        session.addEventListener("status", () => {
-          const s = session.status
-          if (
-            s === UltravoxSessionStatus!.IDLE ||
-            s === UltravoxSessionStatus!.LISTENING ||
-            s === UltravoxSessionStatus!.SPEAKING
-          ) {
-            setStatus("active")
-            if (!hasChimedRef.current) {
-              hasChimedRef.current = true
-              soundCuesRef.current?.connectChime()
-            }
-          } else if (s === UltravoxSessionStatus!.DISCONNECTED) {
-            setStatus("ended")
-            if (timerRef.current) clearInterval(timerRef.current)
-            onEnd(transcriptsRef.current)
-          }
-
-          // Map SDK status → agentStatus
-          if (s === UltravoxSessionStatus!.SPEAKING) setAgentStatus('speaking')
-          else if (s === UltravoxSessionStatus!.LISTENING) setAgentStatus('listening')
-          else if (s === UltravoxSessionStatus!.THINKING) setAgentStatus('thinking')
-          else setAgentStatus('idle')
-        })
-
-        session.addEventListener("transcripts", () => {
-          const entries: TranscriptEntry[] = session.transcripts.map(t => ({
-            speaker: t.speaker === "user" ? "user" as const : "agent" as const,
-            text: t.text,
-            isFinal: t.isFinal,
-          }))
-          setTranscripts(entries)
-        })
-
-        session.joinCall(joinUrl)
-      } catch (err) {
-        if (cancelled) return
-        const msg = err instanceof Error ? err.message : String(err)
-        setError(
-          msg.includes("Permission denied") || msg.includes("NotAllowedError")
-            ? "Microphone access required. Allow mic access and try again."
-            : msg
-        )
-        setStatus("error")
-      }
-    }
-
-    connect()
-
-    return () => {
-      cancelled = true
-      sessionRef.current?.leaveCall().catch(() => {})
+  // Fire onEnd callback when call ends — read latest transcripts via ref
+  useEffect(() => {
+    if ((callState === "ended" || callState === "error") && !hasEndedRef.current) {
+      hasEndedRef.current = true
       if (timerRef.current) clearInterval(timerRef.current)
+      soundCuesRef.current?.endTone()
+      onEnd(transcriptsRef.current)
     }
-  }, [joinUrl]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+  }, [callState, onEnd])
 
   // ── Error ─────────────────────────────────────────────────────────────────
-  if (status === "error") {
+  if (callState === "error") {
     return (
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
         <div className="flex flex-col items-center gap-3 py-2">
@@ -179,7 +104,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
           </div>
         </div>
         <button
-          onClick={() => onEnd([])}
+          onClick={() => { if (!hasEndedRef.current) onEnd([]) }}
           className="w-full min-h-[44px] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
           style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.25)" }}
         >
@@ -190,11 +115,11 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
   }
 
   // ── Connecting ────────────────────────────────────────────────────────────
-  if (status === "connecting") {
+  if (callState === "idle" || callState === "requesting" || callState === "connecting") {
     return (
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
         <div className="flex flex-col items-center gap-3 py-4">
-          <VoiceOrb status="idle" energy={0.2} size="sm" connecting={true} />
+          <VoiceOrb status="idle" energy={0.2} size="sm" connecting={callState === "connecting"} />
           <div className="text-center">
             <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>Connecting...</p>
             <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>Allow mic access if prompted</p>
@@ -210,7 +135,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
   }
 
   // ── Ended ─────────────────────────────────────────────────────────────────
-  if (status === "ended") {
+  if (callState === "ended") {
     return (
       <motion.div
         initial={{ opacity: 0, y: 6 }}
@@ -234,7 +159,7 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
     )
   }
 
-  // ── Active ────────────────────────────────────────────────────────────────
+  // ── Active — WebGL VoicePoweredOrb ────────────────────────────────────────
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -249,18 +174,20 @@ export default function BrowserTestCall({ joinUrl, onEnd }: BrowserTestCallProps
       {/* Header: status badge + timer */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <DemoStatusBadge status={agentStatus} callState="active" />
-        <CallTimer secondsLeft={secondsLeft} totalSeconds={180} />
+        <CallTimer secondsLeft={localSecondsLeft} totalSeconds={LAB_MAX_SECONDS} />
       </div>
 
-      {/* Center: VoiceOrb + WaveformBars */}
+      {/* Center: WebGL VoicePoweredOrb + WaveformBars */}
       <div className="flex flex-col items-center gap-3 py-3 px-4">
-        <VoiceOrb status={agentStatus} energy={energy} size="md" />
+        <div className="w-24 h-24 sm:w-28 sm:h-28">
+          <VoicePoweredOrb externalEnergy={energy} />
+        </div>
         <WaveformBars status={agentStatus} energy={energy} />
       </div>
 
       {/* Transcript bubbles */}
       <div
-        ref={containerRef}
+        ref={localTranscriptRef}
         className="h-40 overflow-y-auto space-y-2 px-4 py-2"
         aria-live="polite"
         aria-label="Call transcript"

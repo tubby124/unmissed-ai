@@ -4,7 +4,10 @@ import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const adminClientId = searchParams.get('client_id')
+
   const supabase = await createServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
@@ -20,12 +23,13 @@ export async function GET() {
     return NextResponse.json({ error: 'No client found' }, { status: 404 })
   }
 
-  // Admin uses Command Center — this endpoint is for non-admin clients
-  if (cu.role === 'admin') {
+  // Admin without specific client → Command Center (no client home)
+  if (cu.role === 'admin' && !adminClientId) {
     return NextResponse.json({ admin: true })
   }
 
-  const clientId = cu.client_id
+  // Admin viewing a specific client → use that client's ID
+  const clientId = cu.role === 'admin' ? adminClientId! : cu.client_id
 
   // Parallel fetch: client info, this month's calls, bookings, last call
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()

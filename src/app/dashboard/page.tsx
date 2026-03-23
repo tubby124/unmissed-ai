@@ -8,7 +8,8 @@ import ClientHome from '@/components/dashboard/ClientHome'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -24,6 +25,10 @@ export default async function DashboardPage() {
 
   // Non-admin: show client home dashboard
   if (!isAdmin) return <ClientHome />
+
+  // Admin in preview mode: show client's dashboard
+  const isPreview = params.preview === 'true' && typeof params.client_id === 'string'
+  if (isPreview) return <ClientHome />
 
   // Fetch admin data for Command Center
   const { data: allClients } = await supabase

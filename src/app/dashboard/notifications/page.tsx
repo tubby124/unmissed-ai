@@ -322,7 +322,7 @@ export default function NotificationsPage() {
                                   <p className="text-xs mt-1 truncate" style={{ color: 'var(--color-text-2)' }}>{n.recipient}</p>
                                 )}
                                 {n.content && (
-                                  <p className="text-xs mt-1.5 line-clamp-2" style={{ color: 'var(--color-text-3)' }}>{n.content}</p>
+                                  <p className="text-xs mt-1.5 line-clamp-2" style={{ color: 'var(--color-text-3)' }}>{n.content.replace(/<[^>]*>/g, '')}</p>
                                 )}
                                 {n.error && (
                                   <p className="text-xs mt-1.5 text-red-400 truncate flex items-center gap-1">

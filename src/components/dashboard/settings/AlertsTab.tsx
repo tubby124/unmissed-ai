@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { usePatchSettings } from './usePatchSettings'
+import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 
 interface AlertsTabProps {
   client: ClientConfig
@@ -227,17 +228,11 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
             </p>
             <p className="text-[10px] t3 mt-1">Sent to {client.contact_email}</p>
           </div>
-          <button
-            onClick={toggleWeeklyDigest}
+          <PremiumToggle
+            checked={weeklyDigest}
+            onChange={() => toggleWeeklyDigest()}
             disabled={saving || previewMode}
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-              weeklyDigest ? 'bg-blue-500' : 'bg-zinc-700'
-            } ${saving ? 'opacity-50' : ''}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-              weeklyDigest ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
+          />
         </div>
       </div>
     )}

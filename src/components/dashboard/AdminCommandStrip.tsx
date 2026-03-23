@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAdminClient } from '@/contexts/AdminClientContext'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { NICHE_CONFIG } from '@/lib/niche-config'
 
 function formatPhone(raw: string): string {
@@ -18,8 +19,18 @@ function formatPhone(raw: string): string {
 export default function AdminCommandStrip() {
   const { selectedClient, isAdmin, previewMode, exitPreview } = useAdminClient()
   const [copied, setCopied] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   if (!isAdmin || !selectedClient) return null
+
+  function enterPreview() {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('preview', 'true')
+    params.set('client_id', selectedClient!.id)
+    router.push(`/dashboard?${params.toString()}`)
+  }
 
   // Preview mode: full-width amber banner replaces normal strip
   if (previewMode) {
@@ -111,6 +122,18 @@ export default function AdminCommandStrip() {
             {a.label}
           </a>
         ))}
+        <button
+          onClick={enterPreview}
+          className="px-2 py-1 rounded-md transition-colors font-medium flex items-center gap-1"
+          style={{ color: 'var(--color-primary)' }}
+          title="View dashboard as this client sees it"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          Cloak
+        </button>
       </div>
     </div>
   )

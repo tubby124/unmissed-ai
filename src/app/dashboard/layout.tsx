@@ -9,8 +9,10 @@ import ForwardingBanner from '@/components/dashboard/ForwardingBanner'
 import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
+import { CallProvider } from '@/contexts/CallContext'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 import GuidedTour from '@/components/dashboard/GuidedTour'
+import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -85,22 +87,25 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       )}
 
       <Suspense>
-        <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
-          <div className="flex flex-1 relative overflow-hidden">
-            {/* Desktop sidebar */}
-            <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} />
+        <CallProvider>
+          <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
+            <div className="flex flex-1 relative overflow-hidden">
+              {/* Desktop sidebar */}
+              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} />
 
-            {/* Main content */}
-            <main className="flex-1 min-w-0 overflow-y-auto">
-              <AdminCommandStrip />
-              {children}
-              <FloatingAdvisorBubble isAdmin={isAdmin} />
-            </main>
+              {/* Main content */}
+              <main className="flex-1 min-w-0 overflow-y-auto">
+                <AdminCommandStrip />
+                {children}
+                <FloatingAdvisorBubble isAdmin={isAdmin} />
+              </main>
 
-            {/* Activity feed — XL+ right panel */}
-            <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
-          </div>
-        </AdminClientProvider>
+              {/* Activity feed — XL+ right panel */}
+              <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
+            </div>
+          </AdminClientProvider>
+          <FloatingCallOrb />
+        </CallProvider>
       </Suspense>
       <DashboardToaster />
       {!isAdmin && <GuidedTour />}

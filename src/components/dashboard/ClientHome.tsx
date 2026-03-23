@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 
@@ -99,9 +100,14 @@ export default function ClientHome() {
   const [data, setData] = useState<HomeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
+  const searchParams = useSearchParams()
+  const clientId = searchParams.get('client_id')
 
   useEffect(() => {
-    fetch('/api/dashboard/home', { signal: AbortSignal.timeout(10000) })
+    const url = clientId
+      ? `/api/dashboard/home?client_id=${clientId}`
+      : '/api/dashboard/home'
+    fetch(url, { signal: AbortSignal.timeout(10000) })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -109,7 +115,7 @@ export default function ClientHome() {
       .then(setData)
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }, [clientId])
 
   if (loading) {
     return (
@@ -150,7 +156,8 @@ export default function ClientHome() {
     )
   }
 
-  if (!data || data.admin) return null
+  if (!data) return null
+  if (data.admin) return null // No client selected — should not reach here in preview mode
 
   const { agent, stats, usage, recentCalls, capabilities, onboarding } = data
   const usagePct = usage.totalAvailable > 0 ? Math.min((usage.minutesUsed / usage.totalAvailable) * 100, 100) : 0

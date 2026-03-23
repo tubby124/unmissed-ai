@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
+import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 
 interface SmsTabProps {
   client: ClientConfig
@@ -115,13 +116,11 @@ export default function SmsTab({
 
       {/* Toggle */}
       <div className="flex items-center gap-3 py-3 border-b b-theme">
-        <button
-          onClick={() => setSmsEnabled(!smsEnabled)}
+        <PremiumToggle
+          checked={smsEnabled}
+          onChange={() => setSmsEnabled(!smsEnabled)}
           disabled={!client.twilio_number || previewMode}
-          className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${smsEnabled ? 'bg-blue-500' : 'bg-zinc-700'} disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${smsEnabled ? 'left-4' : 'left-0.5'}`} />
-        </button>
+        />
         <span className="text-xs t2">
           {!client.twilio_number
             ? 'SMS unavailable — no phone number assigned'

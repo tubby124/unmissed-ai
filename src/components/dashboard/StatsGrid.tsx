@@ -228,7 +228,7 @@ export default function StatsGrid({ totalCalls, hotLeads, missedCalls, calls }: 
     {
       label: 'Hot leads', value: hotLeads, sub: 'need callback now', theme: 'red',
       sparkValues: hotSpark, delta: delta(hotSpark, hotPrior), index: 1,
-      footerLink: hotLeads > 0 ? { label: 'View queue →', href: '/dashboard/leads' } : undefined,
+      footerLink: hotLeads > 0 ? { label: 'View queue', href: '/dashboard/leads' } : undefined,
     },
     {
       label: 'Answer rate', value: answerRate, sub: `${answeredCount} of ${callableTotal} real calls`,

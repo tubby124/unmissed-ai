@@ -155,7 +155,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/notifications',
     label: 'Notifications',
     adminOnly: false,
-    group: 2,
+    group: 3,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -163,12 +163,12 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
       </svg>
     ),
   },
-  // ── Group 3 — TOOLS (admin) ───────────────────────────────────────────────
+  // ── Group 4 — TOOLS (admin) ───────────────────────────────────────────────
   {
     href: '/dashboard/demos',
     label: 'Demos',
     adminOnly: true,
-    group: 3,
+    group: 4,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M12 20V10M18 20V4M6 20v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -179,7 +179,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/lab',
     label: 'Lab',
     adminOnly: true,
-    group: 3,
+    group: 4,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -190,7 +190,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/costs',
     label: 'Cost Intel',
     adminOnly: true,
-    group: 3,
+    group: 4,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -202,7 +202,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/numbers',
     label: 'Numbers',
     adminOnly: true,
-    group: 3,
+    group: 4,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -214,7 +214,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/dashboard/voices',
     label: 'Voices',
     adminOnly: true,
-    group: 3,
+    group: 4,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -222,12 +222,12 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
       </svg>
     ),
   },
-  // ── Group 4 — bottom ──────────────────────────────────────────────────────
+  // ── Group 5 — bottom ──────────────────────────────────────────────────────
   {
     href: '/dashboard/settings',
     label: 'Settings',
     adminOnly: false,
-    group: 4,
+    group: 5,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
@@ -239,7 +239,7 @@ const NAV: { href: string; label: string; adminLabel?: string; adminOnly: boolea
     href: '/',
     label: 'Back to Site',
     adminOnly: false,
-    group: 4,
+    group: 5,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -268,6 +268,9 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const router = useRouter()
   const supabase = createBrowserClient()
   const { previewMode, selectedClient: previewClient } = useAdminClient()
+
+  // In Cloak mode, preserve ?preview=true&client_id=X on all nav links
+  const cloakSuffix = previewMode && previewClient ? `?preview=true&client_id=${previewClient.id}` : ''
 
   useEffect(() => {
     async function loadCounts() {
@@ -423,7 +426,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 </>
               )}
             <Link
-              href={item.href}
+              href={`${item.href}${cloakSuffix}`}
               title={collapsed ? item.label : undefined}
               {...(item.href === '/dashboard/calls' ? { 'data-tour': 'nav-calls' } : {})}
               {...(item.href === '/dashboard/setup' ? { 'data-tour': 'nav-agent' } : {})}

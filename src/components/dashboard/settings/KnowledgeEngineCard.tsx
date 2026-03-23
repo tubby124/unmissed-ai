@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
+import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 
 interface KnowledgeEngineCardProps {
   client: ClientConfig
@@ -286,20 +287,11 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
         <div className="flex items-center gap-3">
           {/* Admin toggle */}
           {isAdmin && (
-            <button
-              onClick={async (e) => {
-                e.stopPropagation()
-                await handleToggle()
-              }}
+            <PremiumToggle
+              checked={localEnabled}
+              onChange={async () => { await handleToggle() }}
               disabled={toggling || previewMode}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                localEnabled ? 'bg-blue-500' : 'bg-zinc-700'
-              } ${toggling ? 'opacity-50' : ''}`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                localEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`} />
-            </button>
+            />
           )}
 
           {/* Collapse chevron */}

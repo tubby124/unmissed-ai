@@ -25,6 +25,8 @@ interface UseUltravoxCallReturn {
   startCall: (joinUrl: string) => Promise<void>
   /** Gracefully end the call. */
   endCall: () => Promise<void>
+  /** Reset all state back to idle. */
+  resetToIdle: () => void
   /** Ref for the transcript scroll container. */
   transcriptContainerRef: React.RefObject<HTMLDivElement | null>
 }
@@ -102,6 +104,15 @@ export function useUltravoxCall(opts?: UseUltravoxCallOptions): UseUltravoxCallR
     setCallState("ended")
   }, [])
 
+  const resetToIdle = useCallback(() => {
+    setCallState("idle")
+    setAgentStatus("idle")
+    setTranscripts([])
+    setError(null)
+    setEnergy(0.3)
+    setSecondsLeft(maxSeconds)
+  }, [maxSeconds])
+
   // Keep endCallRef in sync for timer callback
   useEffect(() => {
     endCallRef.current = endCall
@@ -112,6 +123,13 @@ export function useUltravoxCall(opts?: UseUltravoxCallOptions): UseUltravoxCallR
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+
+    // Disconnect any existing session before starting a new one
+    if (sessionRef.current) {
+      try { await sessionRef.current.leaveCall() } catch { /* cleanup */ }
+      sessionRef.current = null
+    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
 
     setCallState("requesting")
     setError(null)
@@ -206,6 +224,7 @@ export function useUltravoxCall(opts?: UseUltravoxCallOptions): UseUltravoxCallR
     error,
     startCall,
     endCall,
+    resetToIdle,
     transcriptContainerRef,
   }
 }

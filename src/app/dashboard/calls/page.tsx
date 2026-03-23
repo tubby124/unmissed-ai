@@ -22,7 +22,10 @@ interface ClientInfo {
   ultravox_agent_id?: string | null
 }
 
-export default async function CallsPage() {
+export default async function CallsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams
+  const adminSelectedClientId = typeof params.client_id === 'string' ? params.client_id : null
+
   const supabase = await createServerClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -51,9 +54,22 @@ export default async function CallsPage() {
       isAdmin = true
       const { data: allClients } = await supabase
         .from('clients')
-        .select('id, slug, business_name, niche, status, twilio_number, seconds_used_this_month, monthly_minute_limit, bonus_minutes')
+        .select('id, slug, business_name, niche, status, twilio_number, seconds_used_this_month, monthly_minute_limit, bonus_minutes, agent_name, ultravox_agent_id')
         .order('business_name')
       adminClients = (allClients ?? []) as ClientInfo[]
+
+      // If admin has a client selected, load that client's agent info for test card
+      if (adminSelectedClientId) {
+        const selected = (allClients ?? []).find(c => c.id === adminSelectedClientId) as Record<string, unknown> | undefined
+        if (selected) {
+          clientId = adminSelectedClientId
+          clientBusinessName = (selected.business_name as string) ?? null
+          clientAgentName = (selected.agent_name as string) ?? null
+          clientHasAgent = !!(selected.ultravox_agent_id)
+          clientStatus = (selected.status as string) ?? null
+          clientPhone = (selected.twilio_number as string) ?? null
+        }
+      }
     } else {
       const clientData = cu?.clients as { twilio_number?: string; slug?: string; business_name?: string; status?: string; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null; agent_name?: string | null; ultravox_agent_id?: string | null } | null
       clientPhone = clientData?.twilio_number ?? null
@@ -134,7 +150,7 @@ export default async function CallsPage() {
 
   return (
     <div className="p-3 sm:p-6">
-      {!isAdmin && clientHasAgent && (
+      {((!isAdmin && clientHasAgent) || (isAdmin && adminSelectedClientId && clientHasAgent)) && (
         <AgentTestCard
           agentName={clientAgentName || clientBusinessName || 'Your Agent'}
           businessName={clientBusinessName || ''}

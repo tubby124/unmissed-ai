@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell } from "lucide-react"
+import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell, X } from "lucide-react"
 import {
   VoiceOrb,
   WaveformBars,
@@ -10,11 +10,11 @@ import {
   CallTimer,
   TranscriptBubble,
   EndCallButton,
-  type AgentStatus,
-  type TranscriptEntry,
 } from "@/components/DemoCallVisuals"
-import { useUltravoxCall, type CallState } from "@/hooks/useUltravoxCall"
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
+import { useCallContext } from "@/contexts/CallContext"
 import { useOnboarding } from "@/hooks/useOnboarding"
+import { usePathname } from "next/navigation"
 import { trackEvent } from "@/lib/analytics"
 
 interface AgentTestCardProps {
@@ -29,6 +29,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
   const [returnedCallId, setReturnedCallId] = useState<string | null>(null)
   const { incrementTestCalls, isStepComplete } = useOnboarding()
   const hasRecordedCallEnd = useRef(false)
+  const pathname = usePathname()
 
   const {
     callState,
@@ -39,10 +40,21 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
     error: hookError,
     startCall,
     endCall,
+    resetCall,
     transcriptContainerRef,
-  } = useUltravoxCall({ maxSeconds: 300 })
+    setMeta,
+    meta,
+  } = useCallContext()
+
+  // Whether a call is in-flight (prevents double-call)
+  const callBusy = callState === "requesting" || callState === "connecting" || callState === "active"
+
+  // Use meta names for active/loading states (correct even if admin switched client context)
+  const activeAgentName = meta?.agentName ?? agentName
+  const activeBusinessName = meta?.businessName ?? businessName
 
   const handleStartTest = useCallback(async () => {
+    if (callBusy) return // guard: no double-calls
     setIsRequesting(true)
     setApiError(null)
     trackEvent('agent_test_start')
@@ -66,19 +78,26 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
 
       const { joinUrl, callId } = await res.json()
       setReturnedCallId(callId)
+      setMeta({ agentName, businessName, sourceRoute: pathname })
       await startCall(joinUrl)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Network error")
     } finally {
       setIsRequesting(false)
     }
-  }, [startCall])
+  }, [callBusy, startCall, setMeta, agentName, businessName, pathname])
 
   const handleRetry = useCallback(() => {
     setApiError(null)
     setReturnedCallId(null)
     handleStartTest()
   }, [handleStartTest])
+
+  const handleDismiss = useCallback(() => {
+    resetCall()
+    setApiError(null)
+    setReturnedCallId(null)
+  }, [resetCall])
 
   // Auto-complete "meet_agent" checklist step when test call ends
   useEffect(() => {
@@ -166,7 +185,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
                 animate={{ opacity: [0.6, 1, 0.6] }}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
-                {callState === "connecting" ? `Connecting to ${agentName}...` : "Setting up your test call..."}
+                {callState === "connecting" ? `Connecting to ${activeAgentName}...` : "Setting up your test call..."}
               </motion.p>
               <p className="text-sm mt-2 t3">
                 Make sure your microphone is enabled
@@ -175,13 +194,13 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
           </motion.div>
         )}
 
-        {/* ─── Active Call ─── */}
+        {/* ─── Active Call — WebGL VoicePoweredOrb ─── */}
         {displayState === "active" && (
           <motion.div
             key="active"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-5 card-surface"
+            className="rounded-2xl p-5 card-surface overflow-hidden"
             style={{
               backdropFilter: "blur(24px)",
               boxShadow: "var(--shadow-lg)",
@@ -191,9 +210,9 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="font-semibold text-sm t1">
-                  Talking to {agentName}
+                  Talking to {activeAgentName}
                 </p>
-                <p className="text-xs t3">{businessName}</p>
+                <p className="text-xs t3">{activeBusinessName}</p>
               </div>
               <div className="flex items-center gap-2.5">
                 <StatusBadge status={agentStatus} callState="active" />
@@ -201,9 +220,11 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
               </div>
             </div>
 
-            {/* Orb + Waveform */}
+            {/* WebGL Orb + Waveform */}
             <div className="flex flex-col items-center gap-3 mb-5">
-              <VoiceOrb status={agentStatus} energy={energy} size="md" />
+              <div className="w-28 h-28 sm:w-36 sm:h-36">
+                <VoicePoweredOrb externalEnergy={energy} />
+              </div>
               <WaveformBars status={agentStatus} energy={energy} />
             </div>
 
@@ -214,14 +235,14 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
             >
               {transcripts.length === 0 && (
                 <p className="text-sm italic text-center pt-4 t3">
-                  Waiting for {agentName} to speak...
+                  Waiting for {activeAgentName} to speak...
                 </p>
               )}
               {transcripts.map((t, i) => (
                 <TranscriptBubble
                   key={i}
                   entry={t}
-                  agentName={agentName}
+                  agentName={activeAgentName}
                   showLabel={i === 0 || transcripts[i - 1].speaker !== t.speaker}
                 />
               ))}
@@ -237,9 +258,18 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
             key="ended"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-5 sm:p-6 card-surface"
+            className="rounded-2xl p-5 sm:p-6 card-surface relative"
           >
-            {/* Transcript review */}
+            {/* Dismiss button */}
+            <button
+              onClick={handleDismiss}
+              className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+              style={{ backgroundColor: "var(--color-hover)" }}
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5 t3" />
+            </button>
+
             <h3 className="font-semibold text-base mb-3 t1">
               Test Call Complete
             </h3>
@@ -252,7 +282,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus }:
                   <TranscriptBubble
                     key={i}
                     entry={t}
-                    agentName={agentName}
+                    agentName={activeAgentName}
                     showLabel={i === 0 || transcripts.filter(x => x.isFinal)[i - 1]?.speaker !== t.speaker}
                   />
                 ))}

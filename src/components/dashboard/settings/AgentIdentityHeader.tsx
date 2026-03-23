@@ -3,6 +3,7 @@
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { NICHE_CONFIG, DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { fmtPhone, getPlanName } from '@/lib/settings-utils'
+import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 
 interface AgentIdentityHeaderProps {
   client: ClientConfig
@@ -68,12 +69,7 @@ export default function AgentIdentityHeader({ client, isActive, onToggleStatus }
 
       {/* Status toggle */}
       <div className="flex flex-col items-end gap-2 shrink-0">
-        <button
-          onClick={onToggleStatus}
-          className={`relative w-11 h-6 rounded-full transition-colors ${isActive ? 'bg-blue-500' : 'bg-zinc-700'}`}
-        >
-          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
-        </button>
+        <PremiumToggle checked={isActive} onChange={() => onToggleStatus()} />
         <div className="flex items-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
           <span className={`text-[11px] font-medium ${isActive ? 'text-green-400' : 't3'}`}>

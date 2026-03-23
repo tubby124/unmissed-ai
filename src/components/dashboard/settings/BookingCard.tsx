@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
 import { useDirtyGuard } from './useDirtyGuard'
+import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 
 interface BookingCardProps {
   clientId: string
@@ -68,18 +69,11 @@ export default function BookingCard({
       {/* Booking toggle */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs t2">Booking enabled</span>
-        <button
-          onClick={toggleBooking}
+        <PremiumToggle
+          checked={enabled && isConnected}
+          onChange={() => toggleBooking()}
           disabled={saving || previewMode || !isConnected}
-          title={!isConnected ? 'Connect Google Calendar first' : undefined}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-            enabled && isConnected ? 'bg-emerald-500' : 'bg-zinc-600'
-          } ${(!isConnected || previewMode) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-            enabled && isConnected ? 'translate-x-[18px]' : 'translate-x-[3px]'
-          }`} />
-        </button>
+        />
       </div>
 
       {/* Connection status */}
