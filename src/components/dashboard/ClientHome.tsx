@@ -198,17 +198,24 @@ export default function ClientHome() {
       {/* Hero card */}
       <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
+          <div className={`w-2.5 h-2.5 rounded-full ${isTrial ? 'bg-amber-400' : agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
           <h1 className="text-lg font-semibold t1">{agent.name}</h1>
-          <span
-            className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
-            style={{
-              backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
-              color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
-            }}
-          >
-            {agent.status === 'active' ? 'Live' : agent.status}
-          </span>
+          {isTrial ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              Trial
+            </span>
+          ) : (
+            <span
+              className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+              style={{
+                backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
+                color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
+              }}
+            >
+              {agent.status === 'active' ? 'Live' : agent.status}
+            </span>
+          )}
         </div>
 
         {/* Big stat */}

@@ -199,9 +199,9 @@ Goal: Remove buttons, links, and components that don't go anywhere or don't make
 
 | # | Item | Status |
 |---|------|--------|
-| X1 | Audit all sidebar nav items — which ones actually work for clients? | TODO |
-| X2 | "Agent" sidebar label — rename to "Setup" or "Go Live" (conflicts with Settings > Agent tab) | TODO |
-| X3 | Remove/hide nav items that link to empty/broken pages for non-admin users | TODO |
+| X1 | Audit all sidebar nav items — which ones actually work for clients? | DONE — all 8 client-visible routes (calls, insights, live, setup, advisor, leads, calendar, notifications, settings) have page.tsx. No broken routes for clients. |
+| X2 | "Agent" sidebar label — rename to "Setup" or "Go Live" (conflicts with Settings > Agent tab) | DONE — renamed to "Setup" in `dashboardNav.ts`. MobileNav uses same NAV_ITEMS constant. |
+| X3 | Remove/hide nav items that link to empty/broken pages for non-admin users | DONE — all client-visible routes confirmed working. Admin-only routes already gated with `adminOnly: true`. No changes needed. |
 | X4 | Audit all action buttons — do they all have working onClick/href? | TODO |
 | X5 | Remove "Secured by Supabase Auth" from login page | TODO |
 | X6 | Check all Settings tab links (`?tab=knowledge`, `?tab=agent`, etc.) resolve correctly | TODO |
@@ -235,7 +235,7 @@ Goal: Features that help convert trial users or retain active clients. Do after 
 
 | # | Item | Priority | Status |
 |---|------|----------|--------|
-| F1 | Trial hero badge — amber "Trial" not green "Live" for trial users | High | TODO |
+| F1 | Trial hero badge — amber "Trial" not green "Live" for trial users | High | DONE — `StatusBadge.tsx` gets `trial` entry (amber); `ClientHome.tsx` hero renders amber pill when `isTrial`. |
 | F2 | Inline mini-editors — quick FAQ add, hours toggle without settings nav | Medium | TODO |
 | F3 | Website scrape hint — "Add your website to teach your agent more" | Medium | TODO |
 | F4 | Post-call quality signal — color-coded call quality on call list | Medium | TODO |
