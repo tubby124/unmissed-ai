@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/client'
@@ -24,6 +24,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
   const isTrialing = !isAdmin && subscriptionStatus === 'trialing'
   const daysRemaining = trialExpiresAt ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / 86400000)) : undefined
   const [open, setOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -110,40 +111,93 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
                   const prevGroup = idx > 0 ? filteredNav[idx - 1].group : null
                   const groupChanged = prevGroup !== null && item.group !== prevGroup
                   const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
+                  const isLocked = isTrialing && item.trialLocked
+
+                  // Agent accordion with subsections
+                  if (item.href === '/dashboard/agent') {
+                    const agentSection = pathname.startsWith('/dashboard/agent') || pathname.startsWith('/dashboard/knowledge') || pathname.startsWith('/dashboard/actions') || pathname.startsWith('/dashboard/voices')
+                    return (
+                      <Fragment key={item.href}>
+                        {groupChanged && <hr className="my-2" style={{ borderColor: "var(--color-border)" }} />}
+                        <button
+                          onClick={() => setAgentOpen(v => !v)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors w-full"
+                          style={{ color: agentSection ? 'var(--color-primary)' : 'var(--color-text-2)' }}
+                        >
+                          <NavIcon name="agent" />
+                          <span className="flex-1 text-left">Agent</span>
+                          <motion.svg
+                            width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            animate={{ rotate: agentOpen ? 180 : 0 }}
+                            transition={{ duration: 0.15 }}
+                            style={{ color: 'var(--color-text-3)', opacity: 0.7 }}
+                          >
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </motion.svg>
+                        </button>
+                        <AnimatePresence>
+                          {agentOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="ml-4 pl-3 border-l pb-1" style={{ borderColor: 'var(--color-border)' }}>
+                                {[
+                                  { href: '/dashboard/agent', label: 'Overview' },
+                                  { href: '/dashboard/knowledge', label: 'Knowledge' },
+                                  { href: '/dashboard/actions', label: 'Actions' },
+                                  { href: '/dashboard/voices', label: 'Voice Library' },
+                                ].map(sub => (
+                                  <Link
+                                    key={sub.href}
+                                    href={sub.href}
+                                    onClick={() => setOpen(false)}
+                                    className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                                    style={{ color: (sub.href === '/dashboard/agent' ? pathname === sub.href : pathname.startsWith(sub.href)) ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: (sub.href === '/dashboard/agent' ? pathname === sub.href : pathname.startsWith(sub.href)) ? 600 : undefined }}
+                                  >
+                                    {sub.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Fragment>
+                    )
+                  }
+
                   return (
                     <div key={item.href}>
                       {groupChanged && (
                         <hr className="my-2" style={{ borderColor: "var(--color-border)" }} />
                       )}
-                      {(() => {
-                          const isLocked = isTrialing && item.trialLocked
-                          return (
-                            <Link
-                              href={isLocked ? '/dashboard/settings?tab=billing' : item.href}
-                              onClick={() => setOpen(false)}
-                              title={isLocked ? 'Available when you go live' : undefined}
-                              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                                active
-                                  ? 'border-l-[3px]'
-                                  : 'hover:bg-hover'
-                              } ${isLocked ? 'opacity-40' : ''}`}
-                              style={
-                                active
-                                  ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
-                                  : { color: "var(--color-text-2)" }
-                              }
-                            >
-                              <NavIcon name={item.iconName} />
-                              {item.adminLabel && isAdmin ? item.adminLabel : item.label}
-                              {isLocked && (
-                                <svg className="ml-auto w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none">
-                                  <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
-                                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                </svg>
-                              )}
-                            </Link>
-                          )
-                        })()}
+                      <Link
+                        href={isLocked ? '/dashboard/settings?tab=billing' : item.href}
+                        onClick={() => setOpen(false)}
+                        title={isLocked ? 'Available when you go live' : undefined}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                          active
+                            ? 'border-l-[3px]'
+                            : 'hover:bg-hover'
+                        } ${isLocked ? 'opacity-40' : ''}`}
+                        style={
+                          active
+                            ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                            : { color: "var(--color-text-2)" }
+                        }
+                      >
+                        <NavIcon name={item.iconName} />
+                        {item.adminLabel && isAdmin ? item.adminLabel : item.label}
+                        {isLocked && (
+                          <svg className="ml-auto w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </Link>
                     </div>
                   )
                 })}

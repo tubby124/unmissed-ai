@@ -32,7 +32,6 @@ export const TRIAL = {
 };
 
 // ─── Plans (3-tier) ─────────────────────────────────────────────────
-// TODO: create new Stripe prices for $49/$119/$229 and update these IDs
 export const PLANS = [
   {
     id: "lite" as const,
@@ -40,12 +39,12 @@ export const PLANS = [
     tagline: "Never miss the message",
     monthly: 49,
     foundingMonthly: 29,
-    annual: 24, // TODO: update annual prices when confirmed
-    annualBilledTotal: 288, // TODO: update annual prices when confirmed
+    annual: 24, // annual pricing TBD
+    annualBilledTotal: 288, // annual pricing TBD
     minutes: 100,
     description: "For missed calls and after-hours coverage.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // TODO: create new Stripe price for $49
+    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // $49/mo CAD (FOUNDING29 promo = $29/mo)
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
     stripeProductId: "prod_UCl8SbXQTqNhT6",
     foundingStripeMonthlyPriceId: "", // Not needed — founding rate uses promo code FOUNDING29 ($20/mo off coupon)
@@ -66,12 +65,12 @@ export const PLANS = [
     name: "Core",
     tagline: "Never miss the customer",
     monthly: 119,
-    annual: 79, // TODO: update annual prices when confirmed
-    annualBilledTotal: 948, // TODO: update annual prices when confirmed
+    annual: 79, // annual pricing TBD
+    annualBilledTotal: 948, // annual pricing TBD
     minutes: 400,
     description: "For busy businesses that can't afford missed leads.",
     isPopular: true,
-    stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR", // TODO: create new Stripe price for $119
+    stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR", // $119/mo CAD
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
@@ -92,12 +91,12 @@ export const PLANS = [
     name: "Pro",
     tagline: "Turn calls into booked jobs",
     monthly: 229,
-    annual: 149, // TODO: update annual prices when confirmed
-    annualBilledTotal: 1788, // TODO: update annual prices when confirmed
+    annual: 149, // annual pricing TBD
+    annualBilledTotal: 1788, // annual pricing TBD
     minutes: 1000,
     description: "For businesses that want calls turned into bookings and handoffs.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // TODO: create new Stripe price for $229
+    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // $229/mo CAD
     stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
     stripeProductId: "prod_UCl8d1JTMthpf7",
     features: [
@@ -218,14 +217,14 @@ export const MINUTE_RELOAD_PACKS = [MINUTE_RELOAD, MINUTE_RELOAD_LARGE];
 // ─── Stripe IDs (LIVE MODE) ──────────────────────────────────────────
 // Keep this section updated whenever you create/change Stripe objects.
 // Dashboard: https://dashboard.stripe.com/products
-// STALE: These IDs reference old $29/$99/$189 prices. New Stripe products needed for $49/$119/$229.
+// Tier prices are in PLANS[].stripeMonthlyPriceId above. Legacy IDs below are for setup/reload/subscription30.
 export const STRIPE_IDS = {
   // Products (LIVE)
   monthlyPlanProduct: "prod_UAAaWOiJh2h9lQ",   // "unmissed.ai Monthly Plan"
   setupFeeProduct: "prod_UAAaWQ57Tje9ui",       // "Voice Agent Setup Fee"
   minuteReloadProduct: "prod_UBCwssI4xxHSkH",   // "Minute Reload Pack"
 
-  // Prices (LIVE) — TODO: create new prices for $49/$119/$229 tiers
+  // Prices (LIVE) — legacy flat-rate + add-ons (tier prices are in PLANS[] above)
   subscription30: "price_1TCqWD0tFbm4ZBYUCY6ZPT8B",  // $30/mo CAD recurring (legacy)
   setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
   setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)

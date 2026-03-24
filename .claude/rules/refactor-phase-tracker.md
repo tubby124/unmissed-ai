@@ -110,6 +110,8 @@
 | D46 | UX | TrialSuccessScreen CTA not personalized with agent name. Phase 5 plan: "Talk to [Mark] in your dashboard →". Needs `agentName` from activation response → page.tsx → TrialSuccessScreen prop. | MEDIUM | **DONE** (already implemented — provision/trial/route.ts → page.tsx → status/page.tsx → TrialSuccessScreen prop chain fully wired) |
 | D47 | FEATURE | Plan selection in onboarding — 7-step flow with plan picker at step 4. `selectedPlan` type added to OnboardingData. Capabilities (booking/forwarding) gated to Pro plan. Summary card in step 7 shows plan name + price. DB: `selected_plan` column added to `clients` via migration. | HIGH | **DONE** 2026-03-24 |
 | D48 | FEATURE | Stripe 3-tier products created (LIVE). Lite: prod_UCl8SbXQTqNhT6, Core: prod_UCl8nni05Nk9lB, Pro: prod_UCl8d1JTMthpf7. All 6 price IDs (monthly+annual) now in PLANS[]. Upgrade route: `/api/billing/upgrade`. | HIGH | **DONE** 2026-03-24 |
+| D49 | UX | VoiceStyleCard is admin-only — client owners can't see voice/style controls in settings. Need to expose voice & personality settings to all users (simplified version or full card). Currently gated behind admin check in AgentTab.tsx ~line 405. | HIGH | NOT STARTED |
+| D50 | **BUG** | Mobile sidebar nav broken — Sidebar uses `hidden lg:flex`, no hamburger/bottom nav alternative. Mobile users cannot access Agent subsections (Overview, Knowledge, Actions, Voice Library). D38 only suppressed tour, didn't fix actual navigation. | HIGH | NOT STARTED |
 
 ---
 
@@ -143,12 +145,16 @@
 DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          GATE-2 partial, GATE-3 PASS, GATE-4 PASS, GATE-5 PASS,
          D1-D18/D25-D29, FND, L5 (transcript→gap pipeline),
-         Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h
+         Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h,
+         BILLING Ph1-6 (pricing model, entitlements, tool gating, minute enforcement,
+           plan-aware UI, billing mgmt, Stripe webhook, cancel_at migration)
 
 NEXT:
-  UPGRADE-CTA -> Dashboard upgrade CTA when trial_expires_at < now (show plan picker + /api/billing/upgrade call)
+  D49     -> Voice/Style controls visible to client owners (HIGH)
+  D50     -> Mobile sidebar navigation (HIGH — hamburger or bottom nav)
   DB-MIG  -> weekly_digest_enabled migration (30s)
   S16a    -> Call recording consent disclosure (GATE-2)
+  STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
   SLICE-2e -> Inline Mini-Editors
   SLICE-2f -> Website Scrape Hint
   SLICE-8m -> Failure-to-Refine Pipeline (MEDIUM)

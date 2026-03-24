@@ -398,7 +398,7 @@ export default function AgentTab({
       onToggle={() => toggleSection('identity')}
       accentColor="zinc"
     >
-      {isAdmin ? (
+      {isAdmin && (
         <>
           <AgentOverviewCard
             client={client}
@@ -420,49 +420,25 @@ export default function AgentTab({
               </button>
             </div>
           )}
-          <div id="section-voice-style">
-            <VoiceStyleCard
-              clientId={client.id}
-              isAdmin={isAdmin}
-              initialPreset={voiceStylePreset[client.id] ?? 'casual_friendly'}
-              previewMode={previewMode}
-              onPromptChange={handlePromptChange}
-            />
-          </div>
-          <VoicemailGreetingCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialText={client.voicemail_greeting_text ?? ''}
-            businessName={client.business_name}
-            hasAudioGreeting={!!client.voicemail_greeting_audio_url}
-            previewMode={previewMode}
-          />
         </>
-      ) : (
-        <div className="space-y-2">
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Agent identity &amp; name</p>
-              <p className="text-[11px] t3">Manage your agent&apos;s name and personality</p>
-            </div>
-            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Agent →</a>
-          </div>
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Tone &amp; voice style</p>
-              <p className="text-[11px] t3">Adjust how your agent sounds to callers</p>
-            </div>
-            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Agent →</a>
-          </div>
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Voicemail greeting</p>
-              <p className="text-[11px] t3">Customise what callers hear when unavailable</p>
-            </div>
-            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Agent →</a>
-          </div>
-        </div>
       )}
+      <div id="section-voice-style">
+        <VoiceStyleCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialPreset={voiceStylePreset[client.id] ?? 'casual_friendly'}
+          previewMode={previewMode}
+          onPromptChange={handlePromptChange}
+        />
+      </div>
+      <VoicemailGreetingCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialText={client.voicemail_greeting_text ?? ''}
+        businessName={client.business_name}
+        hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+        previewMode={previewMode}
+      />
       {isAdmin && (
         <SectionEditorCard
           clientId={client.id}
