@@ -85,6 +85,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'This setup has already been activated' }, { status: 409 })
   }
 
+  // Resolve plan from intake — needed for both the clients INSERT and Stripe session metadata
+  const intakeJson = (intake.intake_json as Record<string, unknown>) || {}
+  const selectedPlanId = (intakeJson.selectedPlan as string) || 'core'
+
   // ── Phase 6: Release stale reservations before attempting new one ──────────
   // Expired reservations (>30 min) are auto-reclaimed by the atomic OR clause below,
   // but this explicit cleanup prevents inventory from looking full in the UI.
@@ -298,6 +302,7 @@ export async function POST(req: NextRequest) {
         callback_phone: (intakeData.callback_phone as string) || (intakeData.callbackPhone as string) || null,
         ivr_enabled: (intakeData.ivrEnabled as boolean) ?? false,
         ivr_prompt: (intakeData.ivrPrompt as string) || null,
+        selected_plan: selectedPlanId,
       })
       .select('id')
       .single()
@@ -428,6 +433,7 @@ export async function POST(req: NextRequest) {
         client_id: clientId,
         client_slug: clientSlug,
         reserved_number: selectedNumber ?? '',
+        planId: selectedPlanId,
       },
       success_url: `${APP_URL}/onboard/status?success=true&id=${intakeId}`,
       cancel_url: `${APP_URL}/onboard/status?id=${intakeId}`,

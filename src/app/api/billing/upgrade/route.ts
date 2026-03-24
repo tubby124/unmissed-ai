@@ -68,11 +68,5 @@ export async function POST(req: NextRequest) {
     cancel_url: `${APP_URL}/dashboard?upgrade_cancelled=true`,
   });
 
-  // Update selected_plan in DB immediately (confirmed on webhook)
-  await supa
-    .from("clients")
-    .update({ selected_plan: planId })
-    .eq("id", clientId);
-
   return NextResponse.json({ url: session.url });
 }
