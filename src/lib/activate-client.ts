@@ -197,15 +197,17 @@ export async function activateClient(params: {
           .update({ supabase_user_id: newUserId })
           .eq('id', intakeId)
 
-        // Generate recovery link for SMS setup URL
+        // Generate recovery link — use Supabase's own verify endpoint so we don't
+        // have to reproduce verifyOtp server-side. Supabase verifies the token and
+        // redirects to our /auth/callback which exchanges the code and goes to /auth/set-password.
         try {
           const { data: smsLinkData } = await adminSupa.auth.admin.generateLink({
             type: 'recovery',
             email: contactEmail,
+            options: { redirectTo: `${appUrl}/auth/callback?next=/auth/set-password` },
           })
-          const tokenHash = smsLinkData?.properties?.hashed_token ?? ''
-          if (tokenHash) {
-            setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+          if (smsLinkData?.properties?.action_link) {
+            setupUrl = smsLinkData.properties.action_link
           }
         } catch (linkErr2) {
           console.warn(`${logPrefix} SMS recovery link generation failed: ${linkErr2} — using fallback login URL`)
