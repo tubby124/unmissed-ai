@@ -581,7 +581,21 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug
     && (opts.knowledge_chunk_count !== undefined && opts.knowledge_chunk_count > 0)
   const knowledgeTools: object[] = (hasKnowledge && plan.knowledgeEnabled) ? buildKnowledgeTools(opts.slug!) : []
-  const coachingTools: object[] = opts.slug ? [buildCoachingTool(opts.slug)] : []
+  const coachingTools: object[] = (opts.slug && plan.learningLoopEnabled) ? [buildCoachingTool(opts.slug)] : []
+
+  // Phase 4.5 GAP-I: Log plan-gated tools for observability
+  if (opts.slug) {
+    const gated: string[] = []
+    if (opts.booking_enabled && !plan.bookingEnabled) gated.push('booking')
+    if (opts.forwarding_number && !plan.transferEnabled) gated.push('transfer')
+    if (opts.sms_enabled && !plan.smsEnabled) gated.push('sms')
+    if (hasKnowledge && !plan.knowledgeEnabled) gated.push('knowledge')
+    if (!plan.learningLoopEnabled) gated.push('coaching')
+    if (gated.length > 0) {
+      console.log(`[plan-gate] Tools stripped for slug=${opts.slug} plan=${opts.selectedPlan ?? 'unknown'}: ${gated.join(', ')}`)
+    }
+  }
+
   return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 }
 

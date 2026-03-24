@@ -513,6 +513,13 @@ export async function POST(req: NextRequest) {
 
   console.log(`[stripe-webhook] Activation mode=${mode} for slug=${client_slug}`)
 
+  // Phase 4.5 GAP-J: Write selected_plan BEFORE activation so syncClientTools reads correct plan
+  const sessionPlan = session.metadata?.planId ?? session.metadata?.tier ?? null
+  if (sessionPlan) {
+    await adminSupa.from('clients').update({ selected_plan: sessionPlan }).eq('id', client_id)
+    console.log(`[stripe-webhook] Pre-activation: set selected_plan=${sessionPlan} for client=${client_id}`)
+  }
+
   // ── Run activation chain ───────────────────────────────────────────────────
   const result = await activateClient({
     mode,
@@ -540,6 +547,7 @@ export async function POST(req: NextRequest) {
     const tierMinutes = getEffectiveMinuteLimit(sessionTier, 'active', existingClient?.niche ?? null)
     await adminSupa.from('clients').update({
       monthly_minute_limit: tierMinutes,
+      selected_plan: sessionTier,
     }).eq('id', client_id)
     console.log(`[stripe-webhook] Set tier=${sessionTier} minute_limit=${tierMinutes} for slug=${client_slug}`)
   }

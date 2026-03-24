@@ -20,6 +20,7 @@ import {
   MAX_FILE_SIZE,
   ALLOWED_EXTENSIONS,
 } from '@/lib/knowledge-upload'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 export async function POST(req: NextRequest) {
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -95,15 +96,33 @@ export async function POST(req: NextRequest) {
   try {
     const svc = createServiceClient()
 
-    // Verify client exists
+    // Verify client exists + fetch plan for source limits
     const { data: client } = await svc
       .from('clients')
-      .select('slug')
+      .select('slug, selected_plan, subscription_status')
       .eq('id', clientId)
       .single()
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    // Phase 4.5 GAP-B: Enforce plan-based knowledge source limits
+    const uploadPlan = getPlanEntitlements(
+      (client.subscription_status as string | null) === 'trialing' ? 'trial' : (client.selected_plan as string | null)
+    )
+    if (!uploadPlan.fileUploadEnabled) {
+      return NextResponse.json({ error: 'File upload is not available on your current plan.' }, { status: 403 })
+    }
+    const { count: sourceCount } = await svc
+      .from('client_knowledge_docs')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+    if ((sourceCount ?? 0) >= uploadPlan.maxKnowledgeSources) {
+      return NextResponse.json(
+        { error: `Source limit reached for your plan (${sourceCount}/${uploadPlan.maxKnowledgeSources}). Upgrade to add more.` },
+        { status: 403 },
+      )
     }
 
     // ── Save audit record to client_knowledge_docs ──────────────────────────

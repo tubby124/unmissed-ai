@@ -6,7 +6,7 @@ import { validateSignature, buildStreamTwiml, buildVoicemailTwiml, buildIvrGathe
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { measurePromptLength } from '@/lib/knowledge-summary'
-import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
@@ -85,26 +85,32 @@ export async function POST(
 
   console.log(`[inbound] Client found: slug=${slug} clientId=${client.id} promptLen=${client.system_prompt.length} agentId=${client.ultravox_agent_id || 'none'}`)
 
-  // ── Overage detection (soft enforcement — seconds-based) ─────────────────────
+  // ── Minute enforcement (Phase 4.5 GAP-C — hard block when over limit) ──────
+  const minuteLimit = client.monthly_minute_limit as number | null
+  const bonusMinutes = (client.bonus_minutes as number | null) ?? 0
   const secondsUsed = (client.seconds_used_this_month as number | null) ?? 0
-  const secondLimit = (((client.monthly_minute_limit as number | null) ?? DEFAULT_MINUTE_LIMIT) + ((client.bonus_minutes as number | null) ?? 0)) * 60
-  const isOverLimit = secondsUsed >= secondLimit
+  const minutesUsed = Math.ceil(secondsUsed / 60)
+  const effectiveMinuteLimit = (minuteLimit ?? 0) + bonusMinutes
+  const graceEnd = client.grace_period_end as string | null
+  const inGracePeriod = graceEnd && new Date(graceEnd) > new Date()
 
-  if (isOverLimit) {
-    const minsUsed = Math.ceil(secondsUsed / 60)
-    const minsLimit = Math.ceil(secondLimit / 60)
-    console.warn(`[inbound] OVERAGE: slug=${slug} used=${minsUsed} limit=${minsLimit} min — call proceeding (soft enforcement)`)
-    const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
-    const operatorChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
-    if (operatorToken && operatorChat) {
-      sendAlert(operatorToken, operatorChat,
-        `⚠️ <b>OVERAGE CALL</b> [${slug}]\nUsed: ${minsUsed}/${minsLimit} min\nCaller: ${callerPhone}\nCall proceeding (soft enforcement)`
-      ).catch((e) => console.error(`[inbound] Overage alert failed for slug=${slug}:`, e))
+  // Hard block: when limit is set, usage exceeds it, and not in grace period
+  if (minuteLimit && minuteLimit > 0 && minutesUsed >= effectiveMinuteLimit && !inGracePeriod) {
+    console.warn(`[inbound] MINUTE LIMIT: slug=${slug} used=${minutesUsed}/${effectiveMinuteLimit}min — call blocked`)
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">We're sorry, this line has reached its monthly call limit. Please contact the business directly or try again next month.</Say></Response>`
+    if (client.telegram_bot_token && client.telegram_chat_id) {
+      sendAlert(
+        client.telegram_bot_token as string,
+        client.telegram_chat_id as string,
+        `⚠️ Call blocked — minute limit reached (${minutesUsed}/${effectiveMinuteLimit} min)\nCaller: ${callerPhone}\nReload minutes in your dashboard to resume calls.`
+      ).catch((e) => console.error(`[inbound] Minute limit alert failed for slug=${slug}:`, e))
     }
+    return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   }
+  // Track overage for call_logs (grace-period callers over limit are flagged but allowed)
+  const isOverLimit = !!(minuteLimit && minuteLimit > 0 && minutesUsed >= effectiveMinuteLimit)
 
   // ── Grace period enforcement ──────────────────────────────────────────────
-  const graceEnd = client.grace_period_end as string | null
   if (graceEnd && new Date(graceEnd) < new Date()) {
     console.warn(`[inbound] GRACE EXPIRED: slug=${slug}, grace_period_end=${graceEnd}`)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -194,6 +200,19 @@ export async function POST(
       : ctx.retrieval.promptInstruction
   }
   const contextDataStr     = ctx.assembled.contextDataBlock
+
+  // Phase 4.5 GAP-A: Plan capability disclaimer — prevent agent from promising gated features
+  const callPlan = getPlanEntitlements(
+    (client.subscription_status as string | null) === 'trialing' ? 'trial' : (client.selected_plan as string | null)
+  )
+  const gatedCapabilities: string[] = []
+  if (!callPlan.bookingEnabled) gatedCapabilities.push('appointment booking')
+  if (!callPlan.transferEnabled) gatedCapabilities.push('live call transfer')
+  if (!callPlan.knowledgeEnabled) gatedCapabilities.push('knowledge base lookup')
+  if (gatedCapabilities.length > 0) {
+    const disclaimer = `IMPORTANT: Your current plan does not include: ${gatedCapabilities.join(', ')}. Do NOT offer or promise these services. If asked, say the business can upgrade their plan to enable this feature.`
+    knowledgeBlockStr = knowledgeBlockStr ? `${knowledgeBlockStr}\n\n${disclaimer}` : disclaimer
+  }
 
   // ── Prompt length measurement (Phase 3) ────────────────────────────────────
   const promptReport = measurePromptLength(
