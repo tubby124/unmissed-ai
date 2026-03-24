@@ -203,15 +203,9 @@ export async function activateClient(params: {
             type: 'recovery',
             email: contactEmail,
           })
-          const smsActionLink = smsLinkData?.properties?.action_link ?? ''
-          if (smsActionLink) {
-            try {
-              const parsed = new URL(smsActionLink)
-              const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-              if (tokenHash) {
-                setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
-              }
-            } catch { /* use fallback login URL */ }
+          const tokenHash = smsLinkData?.properties?.hashed_token ?? ''
+          if (tokenHash) {
+            setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
           }
         } catch (linkErr2) {
           console.warn(`${logPrefix} SMS recovery link generation failed: ${linkErr2} — using fallback login URL`)
