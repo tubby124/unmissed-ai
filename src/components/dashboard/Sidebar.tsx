@@ -31,6 +31,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const [processingCount, setProcessingCount] = useState(0)
   const [failedNotifCount, setFailedNotifCount] = useState(0)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -278,7 +279,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                       </span>
                     )}
                     {/* Amber knowledge gap count pill */}
-                    {item.href === '/dashboard/settings' && knowledgeGapCount > 0 && (
+                    {item.href === '/dashboard/knowledge' && knowledgeGapCount > 0 && (
                       <span className="ml-auto text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
                         {knowledgeGapCount}
                       </span>
@@ -291,6 +292,65 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           )
         })
         })()}
+        {/* Advanced submenu — Billing + Alerts */}
+        {!collapsed ? (
+          <div>
+            <button
+              onClick={() => setAdvancedOpen(v => !v)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors w-full"
+              style={{ color: "var(--color-text-2)" }}
+            >
+              <span className="shrink-0"><NavIcon name="settings" /></span>
+              <span className="flex-1 whitespace-nowrap text-left">Advanced</span>
+              <motion.svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                animate={{ rotate: advancedOpen ? 180 : 0 }}
+                transition={{ duration: 0.15 }}
+                style={{ color: "var(--color-text-3)" }}
+              >
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </motion.svg>
+            </button>
+            <AnimatePresence>
+              {advancedOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  <div className="ml-4 pl-3 border-l pb-1" style={{ borderColor: "var(--color-border)" }}>
+                    <Link
+                      href={`/dashboard/settings?tab=billing${previewMode && previewClient ? `&preview=true&client_id=${previewClient.id}` : ''}`}
+                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                      style={{ color: "var(--color-text-2)" }}
+                    >
+                      Billing
+                    </Link>
+                    <Link
+                      href={`/dashboard/settings?tab=notifications${previewMode && previewClient ? `&preview=true&client_id=${previewClient.id}` : ''}`}
+                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                      style={{ color: "var(--color-text-2)" }}
+                    >
+                      Alerts
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <Link
+            href={`/dashboard/settings${cloakSuffix}`}
+            title="Advanced"
+            className="flex items-center justify-center px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+          >
+            <NavIcon name="settings" />
+          </Link>
+        )}
+
         {/* Back to Site — inline, not part of shared NAV_ITEMS */}
         <Link
           href={`/${cloakSuffix ? cloakSuffix : ''}`}
