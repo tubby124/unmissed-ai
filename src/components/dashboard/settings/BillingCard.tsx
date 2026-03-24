@@ -1,0 +1,247 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { MINUTE_RELOAD_PACKS, PLANS } from '@/lib/pricing'
+
+interface Invoice {
+  id: string
+  date: string | null
+  amount: number
+  currency: string
+  status: string | null
+  pdfUrl: string | null
+  description: string
+}
+
+interface BillingCardProps {
+  clientId: string
+  selectedPlan: string | null
+  subscriptionStatus: string | null
+  subscriptionCurrentPeriodEnd: string | null
+  stripeCustomerId: string | null
+  stripeDiscountName: string | null
+  effectiveMonthlyRate: number | null
+}
+
+export default function BillingCard({
+  clientId,
+  selectedPlan,
+  subscriptionStatus,
+  subscriptionCurrentPeriodEnd,
+  stripeCustomerId,
+  stripeDiscountName,
+  effectiveMonthlyRate,
+}: BillingCardProps) {
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loadingInvoices, setLoadingInvoices] = useState(false)
+  const [showInvoices, setShowInvoices] = useState(false)
+  const [buyingMinutes, setBuyingMinutes] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  const plan = PLANS.find(p => p.id === selectedPlan)
+  const isActive = subscriptionStatus === 'active'
+  const isPastDue = subscriptionStatus === 'past_due'
+  const isCanceled = subscriptionStatus === 'canceled'
+
+  const periodEnd = subscriptionCurrentPeriodEnd
+    ? new Date(subscriptionCurrentPeriodEnd).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null
+
+  const fetchInvoices = useCallback(async () => {
+    if (!stripeCustomerId || loadingInvoices) return
+    setLoadingInvoices(true)
+    try {
+      const res = await fetch(`/api/billing/invoices?clientId=${clientId}`)
+      const data = await res.json()
+      setInvoices(data.invoices ?? [])
+    } finally {
+      setLoadingInvoices(false)
+    }
+  }, [clientId, stripeCustomerId, loadingInvoices])
+
+  useEffect(() => {
+    if (showInvoices && invoices.length === 0 && stripeCustomerId) {
+      fetchInvoices()
+    }
+  }, [showInvoices, invoices.length, stripeCustomerId, fetchInvoices])
+
+  const handlePortal = useCallback(async () => {
+    if (!stripeCustomerId || portalLoading) return
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setPortalLoading(false)
+    }
+  }, [clientId, stripeCustomerId, portalLoading])
+
+  const handleBuyMinutes = useCallback(async (packIndex: number) => {
+    if (buyingMinutes) return
+    setBuyingMinutes(true)
+    try {
+      const res = await fetch('/api/billing/buy-minutes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, packIndex }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setBuyingMinutes(false)
+    }
+  }, [clientId, buyingMinutes])
+
+  // Don't render for trial users with no Stripe customer
+  if (!stripeCustomerId && subscriptionStatus === 'trialing') return null
+
+  return (
+    <div className="rounded-2xl border b-theme bg-surface p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[13px] font-semibold t1">Billing</h3>
+        {stripeCustomerId && (
+          <button
+            onClick={handlePortal}
+            disabled={portalLoading}
+            className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg border b-theme t3 hover:t2 transition-colors disabled:opacity-50"
+          >
+            {portalLoading ? 'Opening...' : 'Manage in Stripe'}
+          </button>
+        )}
+      </div>
+
+      {/* Subscription status */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] t3">Status</span>
+          <span className={`text-[11px] font-medium ${
+            isActive ? 'text-emerald-400' : isPastDue ? 'text-amber-400' : isCanceled ? 'text-red-400' : 't2'
+          }`}>
+            {isActive ? 'Active' : isPastDue ? 'Past due' : isCanceled ? 'Canceled' : subscriptionStatus ?? 'Unknown'}
+          </span>
+        </div>
+
+        {plan && (
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] t3">Plan</span>
+            <span className="text-[11px] font-medium t2">
+              {plan.name} — ${effectiveMonthlyRate ?? plan.monthly}/mo
+              {stripeDiscountName && (
+                <span className="ml-1 text-emerald-400">({stripeDiscountName})</span>
+              )}
+            </span>
+          </div>
+        )}
+
+        {periodEnd && (
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] t3">
+              {isCanceled ? 'Ended' : 'Renews'}
+            </span>
+            <span className="text-[11px] font-medium t2">{periodEnd}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Past due warning */}
+      {isPastDue && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5">
+          <p className="text-[11px] text-amber-300">
+            Your payment failed. Update your payment method to avoid service interruption.
+          </p>
+          {stripeCustomerId && (
+            <button
+              onClick={handlePortal}
+              className="mt-2 text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+            >
+              Update payment method
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Minute packs */}
+      {(isActive || isPastDue) && (
+        <div>
+          <p className="text-[11px] t3 mb-2">Extra minutes</p>
+          <div className="flex gap-2">
+            {MINUTE_RELOAD_PACKS.map((pack, i) => (
+              <button
+                key={pack.minutes}
+                onClick={() => handleBuyMinutes(i)}
+                disabled={buyingMinutes}
+                className="flex-1 text-center text-[10px] font-medium px-2.5 py-2 rounded-lg border b-theme bg-surface hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                <span className="block t1 text-[12px] font-semibold">+{pack.minutes} min</span>
+                <span className="t3">${pack.price} CAD</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invoice history toggle */}
+      {stripeCustomerId && (
+        <div>
+          <button
+            onClick={() => setShowInvoices(!showInvoices)}
+            className="text-[11px] t3 hover:t2 transition-colors flex items-center gap-1"
+          >
+            <svg
+              width="10" height="10" viewBox="0 0 24 24" fill="none"
+              className={`transition-transform ${showInvoices ? 'rotate-90' : ''}`}
+            >
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Recent invoices
+          </button>
+
+          {showInvoices && (
+            <div className="mt-2 space-y-1.5">
+              {loadingInvoices && <p className="text-[10px] t3">Loading...</p>}
+              {!loadingInvoices && invoices.length === 0 && (
+                <p className="text-[10px] t3">No invoices yet</p>
+              )}
+              {invoices.map(inv => (
+                <div key={inv.id} className="flex items-center justify-between py-1 border-b border-zinc-800/50 last:border-0">
+                  <div>
+                    <span className="text-[10px] t2 block">{inv.description}</span>
+                    <span className="text-[10px] t3">
+                      {inv.date ? new Date(inv.date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-medium ${
+                      inv.status === 'paid' ? 'text-emerald-400' : inv.status === 'open' ? 'text-amber-400' : 't3'
+                    }`}>
+                      ${inv.amount.toFixed(2)} {inv.currency}
+                    </span>
+                    {inv.pdfUrl && (
+                      <a
+                        href={inv.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-blue-400 hover:text-blue-300"
+                      >
+                        PDF
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -8,6 +8,7 @@ import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngine
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
+import PlanGate from '@/components/dashboard/PlanGate'
 
 // ─── Inner card group — keyed on client.id so state resets on client switch ──
 
@@ -46,19 +47,23 @@ function KnowledgeCards({
       />
 
       {/* Website knowledge */}
-      <WebsiteKnowledgeCard
-        client={client}
-        isAdmin={isAdmin}
-        previewMode={previewMode}
-      />
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+        <WebsiteKnowledgeCard
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+        />
+      </PlanGate>
 
       {/* Knowledge engine (pgvector) */}
-      <KnowledgeEngineCard
-        client={client}
-        isAdmin={isAdmin}
-        previewMode={previewMode}
-        onClientUpdate={() => {}}
-      />
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+        <KnowledgeEngineCard
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+          onClientUpdate={() => {}}
+        />
+      </PlanGate>
     </div>
   )
 }

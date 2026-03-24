@@ -1,9 +1,10 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import { usePlanGate, type PlanFeature } from '@/hooks/usePlanGate'
 
 interface PlanGateProps {
+  clientId: string
   selectedPlan: string | null | undefined
   subscriptionStatus: string | null | undefined
   feature: PlanFeature
@@ -13,15 +14,36 @@ interface PlanGateProps {
 /**
  * Wraps a settings card or section. When the feature is not available
  * on the current plan, renders a semi-transparent overlay with an
- * upgrade prompt. During trial, everything is unlocked.
+ * upgrade prompt that calls the billing API directly. During trial,
+ * everything is unlocked.
  */
 export default function PlanGate({
+  clientId,
   selectedPlan,
   subscriptionStatus,
   feature,
   children,
 }: PlanGateProps) {
   const { locked, requiredPlan } = usePlanGate(selectedPlan, subscriptionStatus, feature)
+  const [upgrading, setUpgrading] = useState(false)
+
+  const handleUpgrade = useCallback(async () => {
+    if (upgrading) return
+    setUpgrading(true)
+    try {
+      const res = await fetch('/api/billing/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, planId: requiredPlan, billing: 'monthly' }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setUpgrading(false)
+    }
+  }, [clientId, requiredPlan, upgrading])
 
   if (!locked) return <>{children}</>
 
@@ -41,12 +63,13 @@ export default function PlanGate({
           <span className="text-xs font-medium text-zinc-200">
             Available on {planLabel}
           </span>
-          <a
-            href="/pricing"
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+          <button
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors disabled:opacity-50"
           >
-            Upgrade
-          </a>
+            {upgrading ? '...' : 'Upgrade'}
+          </button>
         </div>
       </div>
     </div>

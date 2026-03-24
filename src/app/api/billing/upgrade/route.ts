@@ -13,6 +13,7 @@ import Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/pricing";
 import { APP_URL } from "@/lib/app-url";
+import { verifyBillingAuth } from "@/lib/billing-auth";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
 
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
   if (!planId || !billing || !clientId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+
+  const auth = await verifyBillingAuth(clientId);
+  if (!auth.ok) return auth.response;
 
   const plan = PLANS.find((p) => p.id === planId);
   if (!plan) {
@@ -57,6 +61,7 @@ export async function POST(req: NextRequest) {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
     customer_email: client.contact_email ?? undefined,
     metadata: { clientId, planId, billing },
     success_url: successDest,

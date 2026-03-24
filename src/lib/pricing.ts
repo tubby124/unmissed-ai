@@ -48,7 +48,7 @@ export const PLANS = [
     stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // TODO: create new Stripe price for $49
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
     stripeProductId: "prod_UCl8SbXQTqNhT6",
-    foundingStripeMonthlyPriceId: "", // TODO: create Stripe price for founding $29/mo lock
+    foundingStripeMonthlyPriceId: "", // Not needed — founding rate uses promo code FOUNDING29 ($20/mo off coupon)
     features: [
       "Live AI voicemail (24/7)",
       "Captures name, number & reason for call",
@@ -232,8 +232,11 @@ export const STRIPE_IDS = {
   minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
 
   // Coupons & Promo Codes (LIVE)
-  betaCoupon: "WFO1Xm9V",                        // $10 off/mo forever → $20/mo
-  betaPromoCode: "BETA20",                       // Customer-facing code
+  betaCoupon: "WFO1Xm9V",                        // $10 off/mo forever → $20/mo (legacy)
+  betaPromoCode: "BETA20",                       // Customer-facing code (legacy)
+  foundingCoupon: "i0s7bCCd",                    // $20 off/mo forever → Lite $29/mo
+  foundingPromoCode: "FOUNDING29",               // Customer-facing code
+  foundingPromoId: "promo_1TEXP20tFbm4ZBYUSUAOBUjs", // Stripe promo code object ID
 
   // Env var mapping (what Railway needs):
   // STRIPE_SUBSCRIPTION_PRICE_ID = subscription30

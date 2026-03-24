@@ -90,6 +90,32 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // ── invoice.paid (clears past_due after successful retry) ────────────────
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice
+    const parentSub = invoice.parent?.subscription_details?.subscription
+    const subId = typeof parentSub === 'string' ? parentSub : (parentSub as Stripe.Subscription | undefined)?.id ?? null
+
+    // Only clear past_due — subscription_cycle renewals handled in payment_succeeded
+    if (subId && invoice.billing_reason !== 'subscription_cycle') {
+      const { data: cl } = await adminSupa
+        .from('clients')
+        .select('id, slug, subscription_status')
+        .eq('stripe_subscription_id', subId)
+        .single()
+
+      if (cl?.subscription_status === 'past_due') {
+        await adminSupa.from('clients').update({
+          subscription_status: 'active',
+          grace_period_end: null,
+        }).eq('id', cl.id)
+        console.log(`[stripe-webhook] Past-due cleared for ${cl.slug} — invoice paid`)
+      }
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
   // ── invoice.payment_succeeded (subscription renewal) ──────────────────────
   if (event.type === 'invoice.payment_succeeded') {
     const invoice = event.data.object as Stripe.Invoice
@@ -284,23 +310,62 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
-  // ── customer.subscription.updated (discount changes, plan changes) ─────
+  // ── customer.subscription.updated (discount changes, plan changes, downgrades) ─────
   if (event.type === 'customer.subscription.updated') {
     const sub = event.data.object as Stripe.Subscription
     const { data: cl } = await adminSupa
       .from('clients')
-      .select('id, slug')
+      .select('id, slug, selected_plan, niche')
       .eq('stripe_subscription_id', sub.id)
       .single()
 
     if (cl) {
       const { discountName, effectiveRate } = extractDiscountInfo(sub)
-      await adminSupa.from('clients').update({
+      const updatePayload: Record<string, unknown> = {
         subscription_status: sub.status,
         stripe_discount_name: discountName,
         effective_monthly_rate: effectiveRate,
-      }).eq('id', cl.id)
-      console.log(`[stripe-webhook] Subscription updated: ${cl.slug} discount=${discountName} rate=$${effectiveRate}`)
+        subscription_current_period_end: sub.items.data[0]?.current_period_end
+          ? new Date(sub.items.data[0].current_period_end * 1000).toISOString()
+          : null,
+      }
+
+      // Detect plan change via price → product mapping
+      const currentPriceId = sub.items.data[0]?.price?.id
+      if (currentPriceId) {
+        const matchedPlan = PLANS.find(
+          p => p.stripeMonthlyPriceId === currentPriceId || p.stripeAnnualPriceId === currentPriceId
+        )
+        if (matchedPlan && matchedPlan.id !== cl.selected_plan) {
+          updatePayload.selected_plan = matchedPlan.id
+          updatePayload.monthly_minute_limit = getEffectiveMinuteLimit(matchedPlan.id, sub.status, cl.niche ?? null)
+          console.log(`[stripe-webhook] Plan changed: ${cl.slug} ${cl.selected_plan} → ${matchedPlan.id}`)
+
+          // Rebuild tools for new plan entitlements
+          try {
+            await syncClientTools(adminSupa, cl.id)
+            console.log(`[stripe-webhook] Tools rebuilt for ${cl.slug} after plan change to ${matchedPlan.id}`)
+          } catch (toolErr) {
+            console.error(`[stripe-webhook] syncClientTools failed after plan change for ${cl.slug}:`, toolErr)
+          }
+        }
+      }
+
+      await adminSupa.from('clients').update(updatePayload).eq('id', cl.id)
+
+      // Track scheduled cancellation (cancel_at column — added in Phase 6 migration)
+      try {
+        const cancelAt = sub.cancel_at_period_end && sub.cancel_at
+          ? new Date(sub.cancel_at * 1000).toISOString()
+          : null
+        await adminSupa.from('clients').update({ cancel_at: cancelAt }).eq('id', cl.id)
+        if (cancelAt) {
+          console.log(`[stripe-webhook] Subscription scheduled to cancel: ${cl.slug} on ${cancelAt}`)
+        }
+      } catch {
+        // cancel_at column may not exist yet — non-fatal
+      }
+      console.log(`[stripe-webhook] Subscription updated: ${cl.slug} status=${sub.status} discount=${discountName} rate=$${effectiveRate}`)
     }
 
     return new NextResponse('OK', { status: 200 })

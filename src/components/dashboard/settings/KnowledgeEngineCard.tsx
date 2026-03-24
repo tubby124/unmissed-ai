@@ -366,12 +366,23 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                 <span className="t3"> / {stats.maxSources}</span>
               </span>
               {stats.sourceCount >= stats.maxSources && (
-                <a
-                  href="/pricing"
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    try {
+                      const res = await fetch('/api/billing/upgrade', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId: client.id, planId: 'pro', billing: 'monthly' }),
+                      })
+                      const data = await res.json()
+                      if (data.url) window.location.href = data.url
+                    } catch { /* silent */ }
+                  }}
                   className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
                 >
                   Upgrade for more
-                </a>
+                </button>
               )}
             </div>
           )}

@@ -33,6 +33,7 @@ import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import SettingsPanel from '@/components/dashboard/settings/SettingsPanel'
 import PlanInfoCard from '@/components/dashboard/settings/PlanInfoCard'
 import PlanGate from '@/components/dashboard/PlanGate'
+import BillingCard from '@/components/dashboard/settings/BillingCard'
 import { useDirtyGuardEffect } from './useDirtyGuard'
 import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
@@ -316,6 +317,7 @@ export default function AgentTab({
 
     {/* ── Plan Info ─────────────────────────────────────────────────── */}
     <PlanInfoCard
+      clientId={client.id}
       selectedPlan={client.selected_plan}
       subscriptionStatus={client.subscription_status}
       secondsUsedThisMonth={client.seconds_used_this_month}
@@ -323,6 +325,18 @@ export default function AgentTab({
       bonusMinutes={client.bonus_minutes ?? 0}
       trialExpiresAt={client.trial_expires_at ?? null}
       trialConverted={client.trial_converted ?? null}
+      stripeCustomerId={client.stripe_customer_id ?? null}
+    />
+
+    {/* ── Billing Management ──────────────────────────────────────── */}
+    <BillingCard
+      clientId={client.id}
+      selectedPlan={client.selected_plan}
+      subscriptionStatus={client.subscription_status}
+      subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
+      stripeCustomerId={client.stripe_customer_id ?? null}
+      stripeDiscountName={client.stripe_discount_name ?? null}
+      effectiveMonthlyRate={client.effective_monthly_rate ?? null}
     />
 
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
@@ -364,7 +378,7 @@ export default function AgentTab({
           <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
         </div>
       )}
-      <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
         <LearningLoopCard
           clientId={client.id}
           isAdmin={isAdmin}
@@ -492,14 +506,14 @@ export default function AgentTab({
               previewMode={previewMode}
             />
           </div>
-          <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+          <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
             <WebsiteKnowledgeCard
               client={client}
               isAdmin={isAdmin}
               previewMode={previewMode}
             />
           </PlanGate>
-          <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+          <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
             <div id="section-knowledge">
               <KnowledgeEngineCard
                 client={client}
@@ -593,7 +607,7 @@ export default function AgentTab({
         </div>
       )}
       {hasCapability(niche, 'bookAppointments') && (
-        <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
+        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
           <div id="section-booking">
             {isAdmin ? (
               <BookingCard

@@ -1,10 +1,12 @@
 'use client'
 
-import { useMemo } from 'react'
-import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import { useMemo, useState, useCallback } from 'react'
+import { getPlanEntitlements, getUpgradePlan } from '@/lib/plan-entitlements'
 import type { PlanIdOrTrial } from '@/lib/plan-entitlements'
+import { MINUTE_RELOAD_PACKS } from '@/lib/pricing'
 
 interface PlanInfoCardProps {
+  clientId: string
   selectedPlan: string | null
   subscriptionStatus: string | null
   secondsUsedThisMonth: number | null
@@ -12,6 +14,7 @@ interface PlanInfoCardProps {
   bonusMinutes: number
   trialExpiresAt: string | null
   trialConverted: boolean | null
+  stripeCustomerId: string | null
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -22,6 +25,7 @@ const PLAN_COLORS: Record<string, string> = {
 }
 
 export default function PlanInfoCard({
+  clientId,
   selectedPlan,
   subscriptionStatus,
   secondsUsedThisMonth,
@@ -29,10 +33,16 @@ export default function PlanInfoCard({
   bonusMinutes,
   trialExpiresAt,
   trialConverted,
+  stripeCustomerId,
 }: PlanInfoCardProps) {
+  const [upgrading, setUpgrading] = useState(false)
+  const [buyingMinutes, setBuyingMinutes] = useState(false)
+  const [showMinutePacks, setShowMinutePacks] = useState(false)
+
   const isTrialing = subscriptionStatus === 'trialing'
   const effectivePlanId: PlanIdOrTrial = isTrialing ? 'trial' : (selectedPlan as PlanIdOrTrial) ?? 'lite'
   const entitlements = getPlanEntitlements(effectivePlanId)
+  const upgradePlan = getUpgradePlan(effectivePlanId)
 
   const minutesUsed = Math.ceil((secondsUsedThisMonth ?? 0) / 60)
   const minuteLimit = (monthlyMinuteLimit ?? entitlements.minutes) + (bonusMinutes ?? 0)
@@ -58,6 +68,55 @@ export default function PlanInfoCard({
     { label: 'Live transfer', enabled: entitlements.transferEnabled },
   ]
 
+  const handleUpgrade = useCallback(async () => {
+    if (!upgradePlan || upgrading) return
+    setUpgrading(true)
+    try {
+      const res = await fetch('/api/billing/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, planId: upgradePlan.id, billing: 'monthly' }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setUpgrading(false)
+    }
+  }, [clientId, upgradePlan, upgrading])
+
+  const handleBuyMinutes = useCallback(async (packIndex: number) => {
+    if (buyingMinutes) return
+    setBuyingMinutes(true)
+    try {
+      const res = await fetch('/api/billing/buy-minutes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, packIndex }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setBuyingMinutes(false)
+    }
+  }, [clientId, buyingMinutes])
+
+  const handlePortal = useCallback(async () => {
+    if (!stripeCustomerId) return
+    const res = await fetch('/api/billing/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId }),
+    })
+    const data = await res.json()
+    if (data.url) {
+      window.location.href = data.url
+    }
+  }, [clientId, stripeCustomerId])
+
   return (
     <div className="rounded-2xl border b-theme bg-surface p-5 space-y-4">
       {/* Header */}
@@ -72,14 +131,25 @@ export default function PlanInfoCard({
             </span>
           )}
         </div>
-        {(isTrialing || effectivePlanId === 'lite') && (
-          <a
-            href="/pricing"
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity"
-          >
-            Upgrade
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {upgradePlan && (
+            <button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {upgrading ? 'Redirecting...' : `Upgrade to ${upgradePlan.name}`}
+            </button>
+          )}
+          {stripeCustomerId && (
+            <button
+              onClick={handlePortal}
+              className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg border b-theme t3 hover:t2 transition-colors"
+            >
+              Manage billing
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Minutes usage */}
@@ -98,6 +168,32 @@ export default function PlanInfoCard({
             style={{ width: `${minutePercent}%` }}
           />
         </div>
+        {/* Minute pack purchase */}
+        {minutePercent >= 75 && (
+          <div className="mt-2">
+            {!showMinutePacks ? (
+              <button
+                onClick={() => setShowMinutePacks(true)}
+                className="text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                Need more minutes?
+              </button>
+            ) : (
+              <div className="flex gap-2 mt-1">
+                {MINUTE_RELOAD_PACKS.map((pack, i) => (
+                  <button
+                    key={pack.minutes}
+                    onClick={() => handleBuyMinutes(i)}
+                    disabled={buyingMinutes}
+                    className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+                  >
+                    +{pack.minutes} min — ${pack.price}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Capabilities grid */}
@@ -126,12 +222,13 @@ export default function PlanInfoCard({
           <p className="text-xs font-medium text-red-300 mb-2">
             Your trial has ended. Choose a plan to keep your agent active.
           </p>
-          <a
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+          <button
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            Choose a Plan
-          </a>
+            {upgrading ? 'Redirecting...' : 'Choose a Plan'}
+          </button>
         </div>
       )}
 
@@ -141,12 +238,13 @@ export default function PlanInfoCard({
           <p className="text-[11px] text-amber-300">
             Trial ends in {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} — choose a plan to keep all features.
           </p>
-          <a
-            href="/pricing"
-            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors shrink-0 ml-3"
+          <button
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors shrink-0 ml-3 disabled:opacity-50"
           >
-            View Plans
-          </a>
+            {upgrading ? '...' : 'View Plans'}
+          </button>
         </div>
       )}
     </div>
