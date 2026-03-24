@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { MINUTE_RELOAD_PACKS, PLANS } from '@/lib/pricing'
+import { MINUTE_RELOAD_PACKS, PLANS, STRIPE_IDS } from '@/lib/pricing'
 
 interface Invoice {
   id: string
@@ -21,6 +21,7 @@ interface BillingCardProps {
   stripeCustomerId: string | null
   stripeDiscountName: string | null
   effectiveMonthlyRate: number | null
+  isAdmin?: boolean
 }
 
 export default function BillingCard({
@@ -31,6 +32,7 @@ export default function BillingCard({
   stripeCustomerId,
   stripeDiscountName,
   effectiveMonthlyRate,
+  isAdmin,
 }: BillingCardProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
@@ -186,6 +188,30 @@ export default function BillingCard({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Admin: Active promo codes */}
+      {isAdmin && (
+        <div className="rounded-xl border b-theme bg-hover p-3 space-y-2">
+          <p className="text-[10px] font-semibold tracking-[0.1em] uppercase t3">Promo Codes (admin)</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <code className="text-[11px] font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">{STRIPE_IDS.foundingPromoCode}</code>
+                <span className="text-[10px] t3">$20/mo off forever</span>
+              </div>
+              <span className="text-[10px] t2">Lite $49 → $29/mo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <code className="text-[11px] font-mono font-semibold t2 bg-hover px-2 py-0.5 rounded">{STRIPE_IDS.betaPromoCode}</code>
+                <span className="text-[10px] t3">$10/mo off forever (legacy)</span>
+              </div>
+              <span className="text-[10px] t3">Legacy beta</span>
+            </div>
+          </div>
+          <p className="text-[9px] t3">Customers enter these at Stripe Checkout. Manage in Stripe Dashboard → Promotion codes.</p>
         </div>
       )}
 
