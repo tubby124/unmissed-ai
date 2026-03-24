@@ -337,6 +337,7 @@ export default function AgentTab({
       stripeCustomerId={client.stripe_customer_id ?? null}
       stripeDiscountName={client.stripe_discount_name ?? null}
       effectiveMonthlyRate={client.effective_monthly_rate ?? null}
+      cancelAt={client.cancel_at ?? null}
       isAdmin={isAdmin}
     />
 

@@ -21,6 +21,7 @@ interface BillingCardProps {
   stripeCustomerId: string | null
   stripeDiscountName: string | null
   effectiveMonthlyRate: number | null
+  cancelAt: string | null
   isAdmin?: boolean
 }
 
@@ -32,6 +33,7 @@ export default function BillingCard({
   stripeCustomerId,
   stripeDiscountName,
   effectiveMonthlyRate,
+  cancelAt,
   isAdmin,
 }: BillingCardProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -44,6 +46,11 @@ export default function BillingCard({
   const isActive = subscriptionStatus === 'active'
   const isPastDue = subscriptionStatus === 'past_due'
   const isCanceled = subscriptionStatus === 'canceled'
+  const isCanceling = isActive && !!cancelAt
+
+  const cancelDate = cancelAt
+    ? new Date(cancelAt).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null
 
   const periodEnd = subscriptionCurrentPeriodEnd
     ? new Date(subscriptionCurrentPeriodEnd).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -126,9 +133,9 @@ export default function BillingCard({
         <div className="flex items-center justify-between">
           <span className="text-[11px] t3">Status</span>
           <span className={`text-[11px] font-medium ${
-            isActive ? 'text-emerald-400' : isPastDue ? 'text-amber-400' : isCanceled ? 'text-red-400' : 't2'
+            isCanceling ? 'text-amber-400' : isActive ? 'text-emerald-400' : isPastDue ? 'text-amber-400' : isCanceled ? 'text-red-400' : 't2'
           }`}>
-            {isActive ? 'Active' : isPastDue ? 'Past due' : isCanceled ? 'Canceled' : subscriptionStatus ?? 'Unknown'}
+            {isCanceling ? 'Canceling' : isActive ? 'Active' : isPastDue ? 'Past due' : isCanceled ? 'Canceled' : subscriptionStatus ?? 'Unknown'}
           </span>
         </div>
 
@@ -153,6 +160,23 @@ export default function BillingCard({
           </div>
         )}
       </div>
+
+      {/* Scheduled cancellation notice */}
+      {isCanceling && cancelDate && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5">
+          <p className="text-[11px] text-amber-300">
+            Your plan ends on <span className="font-semibold">{cancelDate}</span>. You&apos;ll keep access until then.
+          </p>
+          {stripeCustomerId && (
+            <button
+              onClick={handlePortal}
+              className="mt-2 text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+            >
+              Undo cancellation
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Past due warning */}
       {isPastDue && (
