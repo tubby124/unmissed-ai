@@ -17,6 +17,7 @@ import CallMeNowWidget from "@/components/CallMeNowWidget";
 // TalkToAgentWidget moved to root layout — available site-wide
 import { FOUNDING_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
+import AuthHashRedirect from "@/components/AuthHashRedirect";
 
 export const metadata: Metadata = {
   title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
@@ -35,6 +36,7 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   return (
     <>
+      <AuthHashRedirect />
       {/* FAQ JSON-LD */}
       <script
         type="application/ld+json"
