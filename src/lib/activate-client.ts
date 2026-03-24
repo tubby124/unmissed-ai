@@ -161,24 +161,39 @@ export async function activateClient(params: {
     try {
       let resolvedUserId: string | null = null
 
-      // Use generateLink(type='invite') instead of createUser + generateLink(type='recovery').
-      // Reason: createUser({ email_confirm: true }) without a password causes generateLink(recovery)
-      // to NOT write the token to auth.one_time_tokens — Supabase returns the URL but the token
-      // is never persisted, so verifying it always returns otp_expired. The invite type correctly
-      // persists the token regardless of whether the user has a password set. It also creates the
-      // user if they don't exist, or updates the invite token if they do.
-      const { data: inviteData, error: inviteErr } = await adminSupa.auth.admin.generateLink({
-        type: 'invite',
+      // Two-step auth setup:
+      // Step 1: Create user with email_confirm: false (unconfirmed). This is critical —
+      // if the user is auto-confirmed before generateLink(invite) runs, Supabase won't
+      // store the invite token (tokens are only stored for unconfirmed users), causing
+      // otp_expired on every visit.
+      // Step 2: generateLink(type='invite') on the unconfirmed user stores the token in
+      // auth.one_time_tokens. When the user visits the action_link, Supabase confirms
+      // the email, creates the session (implicit flow → #access_token in hash), and
+      // redirects to /auth/set-password where the Supabase browser client picks up the session.
+      const { data: newUserData, error: createErr } = await adminSupa.auth.admin.createUser({
         email: contactEmail,
-        options: { redirectTo: `${appUrl}/auth/set-password` },
+        email_confirm: false,
       })
 
-      if (inviteErr || !inviteData?.user) {
-        console.error(`${logPrefix} generateLink(invite) failed for ${contactEmail}: ${inviteErr?.message}`)
-        emailFailReason = `generateLink invite failed: ${inviteErr?.message}`
+      if (createErr) {
+        console.warn(`${logPrefix} createUser failed for ${contactEmail}: ${createErr.message} — attempting lookup`)
+        const { data: existingUsers } = await adminSupa.auth.admin.listUsers({ perPage: 1000 })
+        const found = existingUsers?.users?.find((u) => u.email === contactEmail)
+        if (found) resolvedUserId = found.id
+        else emailFailReason = `createUser failed and lookup found no user: ${createErr.message}`
       } else {
-        resolvedUserId = inviteData.user.id
-        if (inviteData.properties?.action_link) {
+        resolvedUserId = newUserData?.user?.id ?? null
+      }
+
+      if (resolvedUserId) {
+        const { data: inviteData, error: inviteErr } = await adminSupa.auth.admin.generateLink({
+          type: 'invite',
+          email: contactEmail,
+          options: { redirectTo: `${appUrl}/auth/set-password` },
+        })
+        if (inviteErr) {
+          console.error(`${logPrefix} generateLink(invite) failed: ${inviteErr.message}`)
+        } else if (inviteData?.properties?.action_link) {
           setupUrl = inviteData.properties.action_link
         }
       }
