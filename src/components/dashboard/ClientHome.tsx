@@ -181,7 +181,7 @@ export default function ClientHome() {
       actions.push({ text: 'Add your website to teach your agent more', link: '/dashboard/settings?tab=knowledge', priority: 'medium' })
     }
     if (!capabilities.hasHours) {
-      actions.push({ text: 'Set your business hours', link: '/dashboard/settings?tab=agent', priority: 'medium' })
+      actions.push({ text: 'Set your business hours', link: '/dashboard/setup', priority: 'medium' })
     }
     if (usageHigh) {
       actions.push({ text: `${usage.minutesUsed} of ${usage.totalAvailable} minutes used this month`, link: '/dashboard/settings?tab=billing', priority: 'high' })
