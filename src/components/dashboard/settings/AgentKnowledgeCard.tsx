@@ -101,7 +101,7 @@ export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) 
             className={`flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border transition-colors ${
               stat.active
                 ? 'border-green-500/20 bg-green-500/[0.04]'
-                : 'border-zinc-500/15 bg-zinc-500/[0.02]'
+                : 'b-theme bg-hover'
             }`}
           >
             <span className={stat.active ? 'text-green-400' : 't3'}>{stat.icon}</span>

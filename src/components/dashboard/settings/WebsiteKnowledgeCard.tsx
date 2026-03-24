@@ -22,7 +22,7 @@ function resolveStatus(client: ClientConfig): ScrapeStatus {
 }
 
 const STATUS_BADGE: Record<ScrapeStatus, { label: string; cls: string }> = {
-  idle:      { label: 'Not scraped',  cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20' },
+  idle:      { label: 'Not scraped',  cls: 'bg-hover t3 b-theme' },
   scraping:  { label: 'Scraping...',  cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
   extracted: { label: 'Ready to approve', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
   approved:  { label: 'Live',         cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
@@ -218,9 +218,9 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border mb-3 ${
           knowledgeLive
             ? 'bg-purple-500/[0.04] border-purple-500/15'
-            : 'bg-zinc-500/[0.04] border-zinc-500/15'
+            : 'bg-hover b-theme'
         }`}>
-          <span className={`w-2 h-2 rounded-full shrink-0 ${knowledgeLive ? 'bg-purple-400/80' : 'bg-zinc-400/80'}`} />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${knowledgeLive ? 'bg-purple-400/80' : 'bg-hover'}`} style={knowledgeLive ? undefined : { backgroundColor: 'var(--color-text-3)' }} />
           <p className="text-[10px] t2 leading-relaxed">
             {knowledgeLive ? (
               <>
@@ -288,7 +288,7 @@ function StatCell({ label, value, active, sublabel }: { label: string; value: nu
     <div className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl border transition-colors ${
       active
         ? 'border-green-500/20 bg-green-500/[0.04]'
-        : 'border-zinc-500/15 bg-zinc-500/[0.02]'
+        : 'b-theme bg-hover'
     }`}>
       <span className={`text-sm font-semibold ${active ? 't1' : 't3'}`}>{value}</span>
       <span className="text-[9px] t3 text-center leading-tight">{sublabel ?? label}</span>

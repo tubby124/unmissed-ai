@@ -251,7 +251,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
             localEnabled
               ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-              : 'bg-zinc-500/10 t3 border border-zinc-500/20'
+              : 'bg-hover t3 border b-theme'
           }`}>
             {localEnabled ? 'active' : 'off'}
           </span>
