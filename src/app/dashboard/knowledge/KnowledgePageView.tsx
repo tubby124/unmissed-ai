@@ -26,7 +26,7 @@ function KnowledgeCards({
   return (
     <div className="space-y-6">
       {/* Summary card — what the agent currently knows */}
-      <AgentKnowledgeCard client={client} />
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
 
       {/* Questions from calls the agent couldn't answer */}
       <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />

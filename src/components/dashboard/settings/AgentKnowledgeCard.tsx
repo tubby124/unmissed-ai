@@ -1,18 +1,47 @@
 'use client'
 
+import { useState } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
+import { usePatchSettings } from './usePatchSettings'
 
 interface AgentKnowledgeCardProps {
   client: ClientConfig
+  clientId?: string
+  isAdmin?: boolean
 }
 
-export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) {
+export default function AgentKnowledgeCard({ client, clientId, isAdmin = false }: AgentKnowledgeCardProps) {
+  const id = clientId ?? client.id
+  const [qa, setQa] = useState<{ q: string; a: string }[]>(client.extra_qa ?? [])
+  const [adding, setAdding] = useState(false)
+  const [newQ, setNewQ] = useState('')
+  const [newA, setNewA] = useState('')
+  const { saving, patch } = usePatchSettings(id, isAdmin)
+
   const factCount = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
-  const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
+  const faqCount = qa.filter(p => p.q?.trim() && p.a?.trim()).length
   const hoursSet = !!client.business_hours_weekday
   const bookingConnected = !!(client.booking_enabled && client.calendar_auth_status === 'connected')
   const voiceStyle = client.voice_style_preset ?? 'default'
   const knowledgeActive = client.knowledge_backend === 'pgvector'
+
+  async function saveNewQa() {
+    const trimQ = newQ.trim()
+    const trimA = newA.trim()
+    if (!trimQ || !trimA) return
+    const updated = [...qa, { q: trimQ, a: trimA }]
+    await patch({ extra_qa: updated })
+    setQa(updated)
+    setNewQ('')
+    setNewA('')
+    setAdding(false)
+  }
+
+  function cancelAdd() {
+    setNewQ('')
+    setNewA('')
+    setAdding(false)
+  }
 
   const stats = [
     {
@@ -28,7 +57,7 @@ export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) 
     },
     {
       label: 'Q&A Pairs',
-      value: faqCount > 0 ? `${faqCount}` : '0',
+      value: `${faqCount}`,
       active: faqCount > 0,
       icon: (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -119,6 +148,53 @@ export default function AgentKnowledgeCard({ client }: AgentKnowledgeCardProps) 
           {' '}&mdash; business facts and Q&A are available on every call.
         </p>
       </div>
+
+      {/* Quick add Q&A */}
+      {adding ? (
+        <div className="mt-3 space-y-2">
+          <input
+            type="text"
+            value={newQ}
+            onChange={e => setNewQ(e.target.value)}
+            placeholder="Question your agent should know..."
+            autoFocus
+            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+          />
+          <textarea
+            value={newA}
+            onChange={e => setNewA(e.target.value)}
+            placeholder="Answer..."
+            rows={2}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNewQa() }}
+            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors resize-none"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveNewQa}
+              disabled={saving || !newQ.trim() || !newA.trim()}
+              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-all disabled:opacity-40"
+            >
+              {saving ? 'Saving…' : 'Add Q&A'}
+            </button>
+            <button
+              onClick={cancelAdd}
+              className="px-3 py-1.5 rounded-xl text-xs t3 hover:t2 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-hover hover:bg-surface text-xs t3 hover:t2 transition-colors"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          Quick add Q&A
+        </button>
+      )}
     </div>
   )
 }

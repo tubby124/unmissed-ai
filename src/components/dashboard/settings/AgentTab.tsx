@@ -370,7 +370,7 @@ export default function AgentTab({
         onScrollTo={handleScrollTo}
       />
       {isAdmin ? (
-        <AgentKnowledgeCard client={client} />
+        <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
       ) : (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
           <div>
