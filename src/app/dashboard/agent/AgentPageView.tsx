@@ -12,6 +12,7 @@ import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import AgentCurrentVoiceCard from '@/components/dashboard/settings/AgentCurrentVoiceCard'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
+import AgentTestCard from '@/components/dashboard/AgentTestCard'
 
 // ─── Voice style label map ────────────────────────────────────────────────────
 
@@ -47,6 +48,14 @@ function AgentCards({
 
   return (
     <div className="space-y-6">
+      {/* ── Test Your Agent (orb) ─────────────────────────── */}
+      <AgentTestCard
+        agentName={client.agent_name ?? client.business_name ?? 'your agent'}
+        businessName={client.business_name}
+        clientStatus={client.status ?? null}
+        isTrial={!isAdmin && client.subscription_status === 'trialing'}
+      />
+
       {/* ── Identity & Status ─────────────────────────────── */}
       <div>
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Identity &amp; Status</p>

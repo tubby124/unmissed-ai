@@ -33,10 +33,44 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
   const status = resolveStatus(client)
   const badge = STATUS_BADGE[status]
   const [rescrapeBusy, setRescrapeBusy] = useState(false)
+  const [urlInput, setUrlInput] = useState(client.website_url ?? '')
+  const [urlSaving, setUrlSaving] = useState(false)
+  const [editingUrl, setEditingUrl] = useState(false)
 
   const preview = client.website_knowledge_preview
   const approved = client.website_knowledge_approved
   const knowledgeLive = client.knowledge_backend === 'pgvector' && status === 'approved'
+
+  const handleScrapeUrl = async (url: string) => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    setUrlSaving(true)
+    try {
+      // Save URL to settings first
+      const saveRes = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: trimmed, ...(isAdmin ? { client_id: client.id } : {}) }),
+      })
+      if (!saveRes.ok) throw new Error('Failed to save URL')
+      // Then trigger scrape
+      const scrapeRes = await fetch('/api/dashboard/scrape-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, url: trimmed }),
+      })
+      if (!scrapeRes.ok) {
+        const data = await scrapeRes.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Scrape failed')
+      }
+      toast.success('Website scrape started — refresh in a minute to see results')
+      setEditingUrl(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setUrlSaving(false)
+    }
+  }
 
   const handleRescrape = async () => {
     if (!client.website_url) return
@@ -63,13 +97,32 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
   if (!client.website_url && status === 'idle') {
     return (
       <div className="rounded-2xl border b-theme bg-surface p-5">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-3">
           <GlobeIcon />
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Website Knowledge</p>
         </div>
-        <p className="text-xs t3 leading-relaxed">
-          No website URL configured. Add one in the setup section to let your agent learn from your site.
+        <p className="text-xs t3 leading-relaxed mb-3">
+          Add your website so your agent can learn your services, FAQs, and business info.
         </p>
+        {!previewMode && (
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              placeholder="https://yourbusiness.com"
+              className="flex-1 text-xs t1 bg-hover px-3 py-2 rounded-lg border b-theme focus:outline-none focus:border-blue-500/50"
+            />
+            <button
+              onClick={() => handleScrapeUrl(urlInput)}
+              disabled={urlSaving || !urlInput.trim()}
+              className="px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {urlSaving ? 'Saving...' : 'Scrape'}
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -97,12 +150,46 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
       </div>
 
       {/* URL + meta row */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs t2 font-mono truncate flex-1">{client.website_url}</span>
-        {client.website_last_scraped_at && (
-          <span className="text-[10px] t3 shrink-0">{fmtDate(client.website_last_scraped_at)}</span>
-        )}
-      </div>
+      {editingUrl ? (
+        <div className="flex gap-2 mb-3">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            className="flex-1 text-xs t1 bg-hover px-3 py-2 rounded-lg border b-theme focus:outline-none focus:border-blue-500/50 font-mono"
+            autoFocus
+          />
+          <button
+            onClick={() => handleScrapeUrl(urlInput)}
+            disabled={urlSaving || !urlInput.trim()}
+            className="px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-40 hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            {urlSaving ? 'Saving...' : 'Scrape'}
+          </button>
+          <button
+            onClick={() => { setEditingUrl(false); setUrlInput(client.website_url ?? '') }}
+            className="px-3 py-2 rounded-lg text-xs t3 hover:t1 border b-theme"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs t2 font-mono truncate flex-1">{client.website_url}</span>
+          {client.website_last_scraped_at && (
+            <span className="text-[10px] t3 shrink-0">{fmtDate(client.website_last_scraped_at)}</span>
+          )}
+          {!previewMode && (
+            <button
+              onClick={() => setEditingUrl(true)}
+              className="text-[10px] t3 hover:t1 underline underline-offset-2 shrink-0"
+            >
+              Change
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats grid */}
       {(status === 'extracted' || status === 'approved') && (
