@@ -575,17 +575,27 @@ export default function AgentTab({
       </div>
       {hasCapability(niche, 'bookAppointments') && (
         <div id="section-booking">
-          <BookingCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            calendarAuthStatus={client.calendar_auth_status}
-            googleCalendarId={client.google_calendar_id}
-            initialDuration={bookingDuration[client.id] ?? 60}
-            initialBuffer={bookingBuffer[client.id] ?? 15}
-            initialBookingEnabled={client.booking_enabled ?? false}
-            previewMode={previewMode}
-            onPromptChange={handlePromptChange}
-          />
+          {isAdmin ? (
+            <BookingCard
+              clientId={client.id}
+              isAdmin={isAdmin}
+              calendarAuthStatus={client.calendar_auth_status}
+              googleCalendarId={client.google_calendar_id}
+              initialDuration={bookingDuration[client.id] ?? 60}
+              initialBuffer={bookingBuffer[client.id] ?? 15}
+              initialBookingEnabled={client.booking_enabled ?? false}
+              previewMode={previewMode}
+              onPromptChange={handlePromptChange}
+            />
+          ) : (
+            <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium t1">Calendar Booking</p>
+                <p className="text-[11px] t3">Configure booking settings on the Actions page.</p>
+              </div>
+              <a href="/dashboard/actions" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Actions →</a>
+            </div>
+          )}
         </div>
       )}
       <div id="section-ivr">

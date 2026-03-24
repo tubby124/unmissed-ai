@@ -347,15 +347,23 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── SMS Tab ────────────────────────────────────────────────── */}
       {activeTab === 'sms' && (
-        <SmsTab
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          smsEnabled={smsEnabled[client.id] ?? false}
-          setSmsEnabled={(val) => setSmsEnabled(prev => ({ ...prev, [client.id]: val }))}
-          smsTemplate={smsTemplate[client.id] ?? ''}
-          setSmsTemplate={(val) => setSmsTemplate(prev => ({ ...prev, [client.id]: val }))}
-        />
+        isAdmin ? (
+          <SmsTab
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+            smsEnabled={smsEnabled[client.id] ?? false}
+            setSmsEnabled={(val) => setSmsEnabled(prev => ({ ...prev, [client.id]: val }))}
+            smsTemplate={smsTemplate[client.id] ?? ''}
+            setSmsTemplate={(val) => setSmsTemplate(prev => ({ ...prev, [client.id]: val }))}
+          />
+        ) : (
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium t1">SMS has moved</p>
+            <p className="text-[12px] t3 max-w-xs">Configure SMS follow-up messages and call transfer settings in one place.</p>
+            <a href="/dashboard/actions" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Actions →</a>
+          </div>
+        )
       )}
 
       {/* ─── Voice Tab ──────────────────────────────────────────────── */}
