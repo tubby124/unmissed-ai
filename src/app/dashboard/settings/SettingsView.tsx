@@ -401,22 +401,30 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.2 }}
         >
-          <KnowledgeBaseTab
-            clientId={client.id}
-            clientSlug={client.slug}
-            isAdmin={isAdmin}
-            previewMode={previewMode}
-            knowledgeEnabled={knowledgeEnabled[client.id] ?? false}
-            websiteUrl={client.website_url ?? ''}
-            onGapCountChange={setKnowledgeGapCount}
-            onToggleEnabled={async (enabled) => {
-              if (previewMode) return
-              const res = await patchKnowledge({ knowledge_backend: enabled ? 'pgvector' : null })
-              if (res.ok) {
-                setKnowledgeEnabled(prev => ({ ...prev, [client.id]: enabled }))
-              }
-            }}
-          />
+          {isAdmin ? (
+            <KnowledgeBaseTab
+              clientId={client.id}
+              clientSlug={client.slug}
+              isAdmin={isAdmin}
+              previewMode={previewMode}
+              knowledgeEnabled={knowledgeEnabled[client.id] ?? false}
+              websiteUrl={client.website_url ?? ''}
+              onGapCountChange={setKnowledgeGapCount}
+              onToggleEnabled={async (enabled) => {
+                if (previewMode) return
+                const res = await patchKnowledge({ knowledge_backend: enabled ? 'pgvector' : null })
+                if (res.ok) {
+                  setKnowledgeEnabled(prev => ({ ...prev, [client.id]: enabled }))
+                }
+              }}
+            />
+          ) : (
+            <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-medium t1">Knowledge has moved</p>
+              <p className="text-[12px] t3 max-w-xs">Manage what your agent knows — business facts, FAQs, website knowledge, and more.</p>
+              <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Knowledge →</a>
+            </div>
+          )}
         </motion.div>
       )}
 

@@ -328,7 +328,17 @@ export default function AgentTab({
         }}
         onScrollTo={handleScrollTo}
       />
-      <AgentKnowledgeCard client={client} />
+      {isAdmin ? (
+        <AgentKnowledgeCard client={client} />
+      ) : (
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium t1">Agent knowledge summary</p>
+            <p className="text-[11px] t3">Facts, FAQs and knowledge base status</p>
+          </div>
+          <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
+        </div>
+      )}
       <LearningLoopCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -438,38 +448,66 @@ export default function AgentTab({
       onToggle={() => toggleSection('knowledge')}
       accentColor="blue"
     >
-      <div id="section-advanced-context">
-        <AdvancedContextCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialFacts={businessFacts[client.id] ?? ''}
-          initialQA={extraQA[client.id] ?? []}
-          initialContextData={contextData[client.id] ?? ''}
-          initialContextDataLabel={contextDataLabel[client.id] ?? ''}
-          prompt={prompt[client.id] ?? ''}
-          injectedNote={client.injected_note ?? ''}
-          knowledgeEnabled={client.knowledge_backend === 'pgvector'}
-          timezone={client.timezone ?? 'America/Regina'}
-          previewMode={previewMode}
-        />
-      </div>
-      <WebsiteKnowledgeCard
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-        />
-      <div id="section-knowledge">
-        <KnowledgeEngineCard
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          onClientUpdate={(updates) => {
-            if (updates.extra_qa) {
-              extraQA[client.id] = updates.extra_qa
-            }
-          }}
-        />
-      </div>
+      {isAdmin ? (
+        <>
+          <div id="section-advanced-context">
+            <AdvancedContextCard
+              clientId={client.id}
+              isAdmin={isAdmin}
+              initialFacts={businessFacts[client.id] ?? ''}
+              initialQA={extraQA[client.id] ?? []}
+              initialContextData={contextData[client.id] ?? ''}
+              initialContextDataLabel={contextDataLabel[client.id] ?? ''}
+              prompt={prompt[client.id] ?? ''}
+              injectedNote={client.injected_note ?? ''}
+              knowledgeEnabled={client.knowledge_backend === 'pgvector'}
+              timezone={client.timezone ?? 'America/Regina'}
+              previewMode={previewMode}
+            />
+          </div>
+          <WebsiteKnowledgeCard
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+          />
+          <div id="section-knowledge">
+            <KnowledgeEngineCard
+              client={client}
+              isAdmin={isAdmin}
+              previewMode={previewMode}
+              onClientUpdate={(updates) => {
+                if (updates.extra_qa) {
+                  extraQA[client.id] = updates.extra_qa
+                }
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-2">
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Business facts &amp; FAQs</p>
+              <p className="text-[11px] t3">Teach your agent about your business</p>
+            </div>
+            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
+          </div>
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Website knowledge</p>
+              <p className="text-[11px] t3">Manage your website knowledge source</p>
+            </div>
+            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
+          </div>
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Knowledge base</p>
+              <p className="text-[11px] t3">pgvector search and retrieval settings</p>
+            </div>
+            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
+          </div>
+        </div>
+      )}
       {isAdmin && (
         <SectionEditorCard
           clientId={client.id}
