@@ -585,6 +585,7 @@ export type Database = {
           pending_loop_suggestion: Json | null
           previous_agent_voice_id: string | null
           seconds_used_this_month: number | null
+          selected_plan: string | null
           services_offered: string | null
           setup_complete: boolean | null
           slug: string
@@ -663,6 +664,7 @@ export type Database = {
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
           seconds_used_this_month?: number | null
+          selected_plan?: string | null
           services_offered?: string | null
           setup_complete?: boolean | null
           slug: string
@@ -741,6 +743,7 @@ export type Database = {
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
           seconds_used_this_month?: number | null
+          selected_plan?: string | null
           services_offered?: string | null
           setup_complete?: boolean | null
           slug?: string

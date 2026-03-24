@@ -59,7 +59,7 @@ export default function AgentIdentityHeader({ client, isActive, onToggleStatus }
               </span>
             )}
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
-              {getPlanName(client.monthly_minute_limit)} · {minuteLimit} min/mo
+              {getPlanName(client.monthly_minute_limit, client.selected_plan)} · {minuteLimit} min/mo
               {(client.bonus_minutes ?? 0) > 0 && ` + ${client.bonus_minutes} bonus`}
             </span>
           </div>

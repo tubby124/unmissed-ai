@@ -2,7 +2,7 @@
  * POST /api/stripe/create-public-checkout
  *
  * Public (no auth required). Creates a Stripe Checkout session for the setup fee + subscription.
- * Single plan: $30/mo CAD (100 min). Discount code BETA20 = $20/mo.
+ * 3-tier pricing: Lite $49/Core $119/Pro $229 per mo CAD. Promo codes available at checkout.
  * Fresh number: $25 CAD setup. Inventory number: $20 CAD setup.
  * 7-day free trial included.
  * Auto-provisions the clients row + Ultravox agent if not already done by admin.
@@ -25,7 +25,7 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 }
 
-/** Single subscription price — $30/mo CAD. Discount codes (BETA20) reduce this at checkout. */
+/** Subscription price from STRIPE_SUBSCRIPTION_PRICE_ID env var. Legacy single-price route — see billing/upgrade for 3-tier flow. */
 function getSubscriptionPriceId(): string {
   const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
   if (!priceId) throw new Error('Missing env var STRIPE_SUBSCRIPTION_PRICE_ID')

@@ -20,7 +20,7 @@ import {
 import { createAgent, updateAgent, resolveVoiceId, buildAgentTools } from '@/lib/ultravox'
 import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
-import { getNicheMinuteLimit } from '@/lib/niche-config'
+import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { randomUUID } from 'crypto'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existingClient } = await svc
     .from('clients')
-    .select('id, ultravox_agent_id, twilio_number, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions')
+    .select('id, ultravox_agent_id, twilio_number, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, selected_plan')
     .eq('slug', clientSlug)
     .maybeSingle()
 
@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
         sms_template: smsTemplate,
         status: 'active',
         bonus_minutes: 50,
-        monthly_minute_limit: getNicheMinuteLimit(niche),
+        monthly_minute_limit: getEffectiveMinuteLimit((existingClient?.selected_plan as string | null) ?? null, 'active', niche),
         contact_email: contactEmail,
         updated_at: new Date().toISOString(),
       })
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
         sms_template: smsTemplate,
         timezone,
         bonus_minutes: 50,
-        monthly_minute_limit: getNicheMinuteLimit(niche),
+        monthly_minute_limit: getEffectiveMinuteLimit(null, 'active', niche),
         contact_email: contactEmail,
       })
       .select('id')

@@ -3,6 +3,7 @@
 import { motion } from "motion/react"
 import { ArrowRight, Sparkles } from "lucide-react"
 import { trackEvent } from "@/lib/analytics"
+import { PLANS } from "@/lib/pricing"
 
 interface UpgradeCTAProps {
   collapsed?: boolean
@@ -44,12 +45,12 @@ export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: "var(--color-text-1)" }}>
-            Go live for $97/mo
+            Go live for {`$${PLANS[1].monthly}/mo`}
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-3)" }}>
             {daysRemaining !== undefined && daysRemaining > 0
               ? `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left — your setup carries over`
-              : "Your own number + unlimited calls"}
+              : "Your own number + dedicated AI agent"}
           </p>
         </div>
       </div>

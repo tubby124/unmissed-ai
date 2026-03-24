@@ -81,7 +81,8 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
       label: 'SMS follow-up',
       available: true,
       active: !!client.sms_enabled,
-      actionHint: 'Enable in SMS tab',
+      actionHint: 'Configure SMS templates',
+      section: 'sms',
     },
     {
       label: 'Look up reference data',
@@ -97,6 +98,7 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
       available: true,
       active: true,
       detail: client.voicemail_greeting_text ? 'Custom greeting set' : 'Default greeting',
+      section: 'voicemail',
     },
     {
       label: 'Voicemail menu (IVR)',

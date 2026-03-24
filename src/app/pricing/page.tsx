@@ -106,9 +106,9 @@ export default function PricingPage() {
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>{BRAND_NAME}</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${PLANS[0].monthly}/mo</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Flat rate</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Same price</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No catch</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Flat rate per plan</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Predictable</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No per-minute billing</td>
                   </tr>
                 </tbody>
               </table>
@@ -119,7 +119,7 @@ export default function PricingPage() {
               style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)" }}
             >
               <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
-                {BRAND_NAME} is flat-rate. Your bill stays the same no matter how many calls come in.
+                {BRAND_NAME} is flat-rate per plan with generous included minutes.
                 Every competitor charges more the busier you get — sometimes 5x more.
               </p>
             </div>

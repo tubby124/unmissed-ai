@@ -19,16 +19,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { sendAlert } from '@/lib/telegram'
 import { activateClient } from '@/lib/activate-client'
-import { getNicheMinuteLimit } from '@/lib/niche-config'
+import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notifySystemFailure } from '@/lib/admin-alerts'
+import { PLANS } from '@/lib/pricing'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 }
 
-function getTierLabel(): string {
-  return 'Starter ($30)'
+function getTierLabel(selectedPlan: string | null): string {
+  if (!selectedPlan) return 'Unknown Plan'
+  const plan = PLANS.find(p => p.id === selectedPlan)
+  if (!plan) return 'Unknown Plan'
+  return `${plan.name} ($${plan.monthly})`
 }
 
 /** Extract discount/coupon info from a Stripe subscription for Supabase sync. */
@@ -95,15 +99,14 @@ export async function POST(req: NextRequest) {
     if (subId && invoice.billing_reason === 'subscription_cycle') {
       const { data: cl } = await adminSupa
         .from('clients')
-        .select('id, slug, business_name, niche')
+        .select('id, slug, business_name, niche, selected_plan')
         .eq('stripe_subscription_id', subId)
         .single()
 
       if (cl) {
         const sub = await getStripe().subscriptions.retrieve(subId)
-        const tier = sub.metadata?.tier ?? null
-        const minuteLimit = getNicheMinuteLimit(cl.niche)
-        const tierLabel = getTierLabel()
+        const minuteLimit = getEffectiveMinuteLimit(cl.selected_plan, 'active', cl.niche)
+        const tierLabel = getTierLabel(cl.selected_plan ?? null)
         const { discountName, effectiveRate } = extractDiscountInfo(sub)
 
         await adminSupa.from('clients').update({
@@ -442,9 +445,8 @@ export async function POST(req: NextRequest) {
         ).toISOString()
         updatePayload.stripe_discount_name = discountName
         updatePayload.effective_monthly_rate = effectiveRate
-        // Minute limit from niche (keep existing behaviour — per-niche override)
-        const tierMinutes = getNicheMinuteLimit(cl.niche ?? null)
-        updatePayload.monthly_minute_limit = tierMinutes
+        // Minute limit from plan (canonical) with niche fallback
+        updatePayload.monthly_minute_limit = getEffectiveMinuteLimit(upgradePlanId, 'active', cl.niche ?? null)
       } catch (subErr) {
         console.error('[stripe-webhook] Upgrade: failed to retrieve subscription:', subErr)
       }
@@ -522,12 +524,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── Set tier-based minute limit ───────────────────────────────────────────────
-  // Uses niche-aware limit so voicemail (50 min) and other niche tiers are respected.
-  // Future: replace with getTierMinuteLimit(sessionTier, niche) when Growth/Pro tiers launch.
+  // ── Set plan-based minute limit ──────────────────────────────────────────────
   const sessionTier = session.metadata?.tier ?? null
   if (sessionTier) {
-    const tierMinutes = getNicheMinuteLimit(existingClient?.niche ?? null)
+    const tierMinutes = getEffectiveMinuteLimit(sessionTier, 'active', existingClient?.niche ?? null)
     await adminSupa.from('clients').update({
       monthly_minute_limit: tierMinutes,
     }).eq('id', client_id)

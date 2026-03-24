@@ -92,7 +92,7 @@ export default function TermsPage() {
                   <li>Subscription fees are billed monthly in advance at the rate corresponding to your selected service tier</li>
                   <li>All prices are in Canadian Dollars (CAD) unless otherwise stated</li>
                   <li>There are no per-minute or per-call charges — pricing is flat-rate for each tier</li>
-                  <li>We do not charge setup fees for standard onboarding</li>
+                  <li>A one-time setup fee may apply for new accounts</li>
                   <li>You are responsible for providing accurate billing information and keeping it current</li>
                   <li>Failed payments may result in temporary suspension of your agent until payment is resolved</li>
                 </ul>

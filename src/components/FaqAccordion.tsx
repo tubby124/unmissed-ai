@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { SETUP, TRIAL, BASE_PLAN, BETA_PROMO, POLICIES, getEffectiveMonthly } from "@/lib/pricing";
+import { SETUP, TRIAL, PLANS, MINUTE_RELOAD, POLICIES } from "@/lib/pricing";
 import { BRAND_NAME } from "@/lib/brand";
-
-const price = getEffectiveMonthly();
 
 const faqs = [
   {
@@ -14,14 +12,14 @@ const faqs = [
       "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (required by law and good practice), but most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
   },
   {
-    question: `Why is ${BRAND_NAME} only $${price}/mo when others charge $49–$99?`,
+    question: `What makes ${BRAND_NAME} worth it?`,
     answer:
-      `We're in beta and want early adopters to lock in our best rate. The regular price will be $${BASE_PLAN.monthly}/mo — still cheaper than every competitor once you factor in their per-minute overages. At $${price}/mo you get every feature included: Telegram alerts, SMS follow-up, calendar booking, live transfer, and the Learning Loop. No tiers, no paywalls.`,
+      `Every plan includes generous minutes, niche-specific AI prompts, instant notifications, and our Learning Loop that improves your agent from real calls every week. There's no per-minute billing — you pay a flat rate starting at $${PLANS[0].monthly}/mo and know exactly what your bill will be. Need more minutes? Reload packs are just $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} minutes.`,
   },
   {
     question: "How are you different from Dialzara, Rosie, or My AI Front Desk?",
     answer:
-      `Three ways. First, pricing: they all charge per minute or per caller. We charge a flat $${price}/mo. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, features: they gate booking, live transfer, and SMS behind higher tiers. We include everything on every plan.`,
+      `Three ways. First, pricing: they all charge per minute or per caller — your bill spikes when you're busy. We charge a flat rate per plan starting at $${PLANS[0].monthly}/mo. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, depth: each plan includes generous minutes and core AI features. Booking, live transfer, and advanced features are available on Core ($${PLANS[1].monthly}/mo) and Pro ($${PLANS[2].monthly}/mo) plans.`,
   },
   {
     question: "What does the $25 setup fee cover?",

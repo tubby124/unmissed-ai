@@ -1,5 +1,7 @@
 // ── Settings page utilities — shared between SettingsView and AgentOverviewCard ─
 
+import { PLANS } from '@/lib/pricing'
+
 export function fmtPhone(p: string | null): string {
   if (!p) return '—'
   const d = p.replace(/\D/g, '')
@@ -23,9 +25,23 @@ export function timeAgo(iso: string | null): string {
   return 'Just now'
 }
 
-export function getPlanName(limit: number | null): string {
-  if (!limit) return 'Trial'
-  return 'Starter'
+export function getPlanName(limit: number | null, selectedPlan?: string | null): string {
+  if (!limit && !selectedPlan) return 'Trial'
+
+  // Primary: look up by plan slug from DB
+  if (selectedPlan) {
+    const plan = PLANS.find(p => p.id === selectedPlan)
+    if (plan) return plan.name
+  }
+
+  // Fallback: heuristic from minute limit
+  if (limit) {
+    if (limit <= 100) return 'Lite'
+    if (limit <= 400) return 'Core'
+    if (limit <= 1000) return 'Pro'
+  }
+
+  return 'Trial'
 }
 
 // ── CSV utilities ──────────────────────────────────────────────────────────────

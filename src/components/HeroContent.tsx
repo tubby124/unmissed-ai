@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react'
 import CallMeNowWidget from './CallMeNowWidget'
-import { TRIAL, BETA_PROMO, BASE_PLAN } from '@/lib/pricing'
+import { TRIAL, FOUNDING_PROMO, BASE_PLAN } from '@/lib/pricing'
 
 export default function HeroContent() {
   return (
@@ -71,7 +71,7 @@ export default function HeroContent() {
         className="mt-5"
       >
         <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-          {TRIAL.label} · {BETA_PROMO.enabled ? `$${BETA_PROMO.monthly}/mo` : `$${BASE_PLAN.monthly}/mo`} after · No contracts · Cancel anytime
+          {TRIAL.label} · {FOUNDING_PROMO.enabled ? `$${FOUNDING_PROMO.foundingMonthly}/mo` : `$${BASE_PLAN.monthly}/mo`} after · No contracts · Cancel anytime
         </p>
       </motion.div>
     </div>

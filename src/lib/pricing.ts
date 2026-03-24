@@ -25,25 +25,30 @@ export const SETUP = {
 // ─── Free Trial ─────────────────────────────────────────────────────
 export const TRIAL = {
   days: 7,
+  minutes: 50,
   allFeaturesIncluded: true,
   label: "7-day free trial",
   description: "Full access to your plan. No credit card required to start.",
 };
 
 // ─── Plans (3-tier) ─────────────────────────────────────────────────
+// TODO: create new Stripe prices for $49/$119/$229 and update these IDs
 export const PLANS = [
   {
     id: "lite" as const,
     name: "Lite",
     tagline: "Never miss the message",
-    monthly: 29,
-    annual: 24,
-    annualBilledTotal: 288,
+    monthly: 49,
+    foundingMonthly: 29,
+    annual: 24, // TODO: update annual prices when confirmed
+    annualBilledTotal: 288, // TODO: update annual prices when confirmed
+    minutes: 100,
     description: "For missed calls and after-hours coverage.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA",
+    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // TODO: create new Stripe price for $49
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
     stripeProductId: "prod_UCl8SbXQTqNhT6",
+    foundingStripeMonthlyPriceId: "", // TODO: create Stripe price for founding $29/mo lock
     features: [
       "Live AI voicemail (24/7)",
       "Captures name, number & reason for call",
@@ -60,12 +65,13 @@ export const PLANS = [
     id: "core" as const,
     name: "Core",
     tagline: "Never miss the customer",
-    monthly: 99,
-    annual: 79,
-    annualBilledTotal: 948,
+    monthly: 119,
+    annual: 79, // TODO: update annual prices when confirmed
+    annualBilledTotal: 948, // TODO: update annual prices when confirmed
+    minutes: 400,
     description: "For busy businesses that can't afford missed leads.",
     isPopular: true,
-    stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR",
+    stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR", // TODO: create new Stripe price for $119
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
@@ -85,12 +91,13 @@ export const PLANS = [
     id: "pro" as const,
     name: "Pro",
     tagline: "Turn calls into booked jobs",
-    monthly: 189,
-    annual: 149,
-    annualBilledTotal: 1788,
+    monthly: 229,
+    annual: 149, // TODO: update annual prices when confirmed
+    annualBilledTotal: 1788, // TODO: update annual prices when confirmed
+    minutes: 1000,
     description: "For businesses that want calls turned into bookings and handoffs.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT",
+    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // TODO: create new Stripe price for $229
     stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
     stripeProductId: "prod_UCl8d1JTMthpf7",
     features: [
@@ -171,7 +178,7 @@ export const COMPETITORS = [
 
 // ─── Feature Comparison (for detailed table) ────────────────────────
 export const FEATURE_COMPARISON = [
-  { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate" },
+  { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate per plan" },
   { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].monthly}/mo CAD` },
   { feature: "No per-minute overages", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
   { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you (48hr)" },
@@ -191,7 +198,7 @@ export const NICHES = {
   comingSoon: ["HVAC", "Plumbing", "Roofing", "Dental", "Legal"],
 };
 
-// ─── Minute Reload Pack ─────────────────────────────────────────────
+// ─── Minute Reload Packs ────────────────────────────────────────────
 export const MINUTE_RELOAD = {
   price: 10,
   minutes: 50,
@@ -199,17 +206,27 @@ export const MINUTE_RELOAD = {
   perMinuteRate: 0.20,
 };
 
+export const MINUTE_RELOAD_LARGE = {
+  price: 30,
+  minutes: 200,
+  label: "$30 for 200 extra minutes",
+  perMinuteRate: 0.15,
+};
+
+export const MINUTE_RELOAD_PACKS = [MINUTE_RELOAD, MINUTE_RELOAD_LARGE];
+
 // ─── Stripe IDs (LIVE MODE) ──────────────────────────────────────────
 // Keep this section updated whenever you create/change Stripe objects.
 // Dashboard: https://dashboard.stripe.com/products
+// STALE: These IDs reference old $29/$99/$189 prices. New Stripe products needed for $49/$119/$229.
 export const STRIPE_IDS = {
   // Products (LIVE)
   monthlyPlanProduct: "prod_UAAaWOiJh2h9lQ",   // "unmissed.ai Monthly Plan"
   setupFeeProduct: "prod_UAAaWQ57Tje9ui",       // "Voice Agent Setup Fee"
   minuteReloadProduct: "prod_UBCwssI4xxHSkH",   // "Minute Reload Pack"
 
-  // Prices (LIVE)
-  subscription30: "price_1TCqWD0tFbm4ZBYUCY6ZPT8B",  // $30/mo CAD recurring
+  // Prices (LIVE) — TODO: create new prices for $49/$119/$229 tiers
+  subscription30: "price_1TCqWD0tFbm4ZBYUCY6ZPT8B",  // $30/mo CAD recurring (legacy)
   setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
   setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)
   minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
@@ -237,20 +254,24 @@ export const STRIPE_IDS = {
 export const BASE_PLAN = {
   name: PLANS[1].name,
   monthly: PLANS[1].monthly,
-  dailyFraming: "~$3.30/day",
-  minutes: 500,
+  dailyFraming: "~$3.97/day",
+  minutes: PLANS[1].minutes,
   description: PLANS[1].description,
 };
 
-export const BETA_PROMO = {
-  enabled: false,
+export const FOUNDING_PROMO = {
+  enabled: true,
   monthly: PLANS[0].monthly,
-  minutes: 500,
-  badge: "",
-  label: "",
-  description: "",
-  regularPrice: PLANS[1].monthly,
+  foundingMonthly: 29,
+  minutes: PLANS[0].minutes,
+  badge: "Founding Rate",
+  label: "$29/mo locked for founding members",
+  description: "Lock in $29/mo Lite forever. Standard price: $49/mo.",
+  regularPrice: PLANS[0].monthly,
 };
+
+/** @deprecated Use FOUNDING_PROMO instead */
+export const BETA_PROMO = FOUNDING_PROMO;
 
 export const FUTURE_TIERS: Array<{ name: string; price: number; status: "coming-soon" }> = [];
 
@@ -258,7 +279,7 @@ export const ALL_FEATURES = [...PLANS[1].features];
 
 // ─── Helpers ────────────────────────────────────────────────────────
 export function getEffectiveMonthly(): number {
-  return PLANS[1].monthly; // Core plan
+  return PLANS[0].monthly; // Lite plan — "starting at" price
 }
 
 export function getPricingSummary(): string {

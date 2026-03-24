@@ -52,7 +52,7 @@ export default function PricingHero() {
           transition={{ ...spring, delay: 0.2 }}
         >
           Other AI receptionists charge per minute — the more your phone
-          rings, the more you pay. We charge a flat rate. No overages, ever.
+          rings, the more you pay. We charge a flat rate per plan. Generous minutes included.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"

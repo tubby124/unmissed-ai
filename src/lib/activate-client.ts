@@ -12,7 +12,7 @@ import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
-import { getNicheMinuteLimit } from '@/lib/niche-config'
+import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { APP_URL } from '@/lib/app-url'
@@ -42,7 +42,7 @@ export async function activateClient(params: {
   // ── Fetch client row for business_name + niche + guard fields ───────────────
   const { data: existingClient } = await adminSupa
     .from('clients')
-    .select('business_name, niche, status, activation_log, stripe_subscription_id, trial_expires_at, trial_converted')
+    .select('business_name, niche, selected_plan, subscription_status, status, activation_log, stripe_subscription_id, trial_expires_at, trial_converted')
     .eq('id', clientId)
     .single()
 
@@ -502,7 +502,11 @@ export async function activateClient(params: {
       telegram_registration_token: telegramRegToken,
       sms_enabled: callerAutoText,
       bonus_minutes: mode === 'trial' ? 0 : 50,
-      monthly_minute_limit: getNicheMinuteLimit((existingClient?.niche as string) || null),
+      monthly_minute_limit: getEffectiveMinuteLimit(
+        (existingClient?.selected_plan as string | null) ?? null,
+        mode === 'trial' ? 'trialing' : (existingClient?.subscription_status as string | null),
+        (existingClient?.niche as string | null) ?? null,
+      ),
       contact_email: contactEmail,
     }
     if (twilioNumber) updatePayload.twilio_number = twilioNumber

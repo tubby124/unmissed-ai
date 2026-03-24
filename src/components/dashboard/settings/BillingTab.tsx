@@ -180,7 +180,7 @@ export default function BillingTab({
   const now = new Date()
   const cycleStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  const planName = getPlanName(client.monthly_minute_limit)
+  const planName = getPlanName(client.monthly_minute_limit, client.selected_plan)
   const effectiveRate = client.effective_monthly_rate ?? getEffectiveMonthly()
   const hasDiscount = !!client.stripe_discount_name
 

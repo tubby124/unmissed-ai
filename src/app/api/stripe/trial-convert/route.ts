@@ -3,7 +3,7 @@
  *
  * Creates a Stripe Checkout session for trial-to-paid conversion.
  * Redirects the user to Stripe Checkout.
- * Single plan: $30/mo CAD. Promo codes (BETA20) available at checkout.
+ * Legacy single-price route — uses STRIPE_SUBSCRIPTION_PRICE_ID env var. See billing/upgrade for 3-tier flow.
  *
  * Public — linked from trial expiry emails. No auth required.
  * The clientId maps to a client with trial_expires_at set.

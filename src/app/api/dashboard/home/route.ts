@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     // Client config
     supabase
       .from('clients')
-      .select('id, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, services_offered, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id')
+      .select('id, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, services_offered, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan')
       .eq('id', clientId)
       .single(),
 

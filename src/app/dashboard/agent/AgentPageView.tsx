@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
@@ -8,8 +9,12 @@ import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGree
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
 import HoursCard from '@/components/dashboard/settings/HoursCard'
 import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
+import BookingCard from '@/components/dashboard/settings/BookingCard'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import AgentCurrentVoiceCard from '@/components/dashboard/settings/AgentCurrentVoiceCard'
+import SettingsPanel from '@/components/dashboard/settings/SettingsPanel'
+import TransferSettingsSection from '@/components/dashboard/actions/TransferSettingsSection'
+import MessagingSettingsSection from '@/components/dashboard/actions/MessagingSettingsSection'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
@@ -20,6 +25,16 @@ const VOICE_STYLE_LABELS: Record<string, string> = {
   casual_friendly: 'casual, friendly',
   professional_warm: 'professional, warm',
   direct_efficient: 'direct, efficient',
+}
+
+// ─── Panel title map ──────────────────────────────────────────────────────────
+
+const PANEL_TITLES: Record<string, string> = {
+  hours: 'Answering Schedule',
+  ivr: 'Voicemail Menu (IVR)',
+  booking: 'Appointment Booking',
+  'agent-config': 'Live Transfer',
+  sms: 'SMS Follow-up',
 }
 
 // ─── Inner card group — keyed on client.id so state resets on client switch ──
@@ -34,7 +49,9 @@ function AgentCards({
   previewMode?: boolean
 }) {
   const [statusLocal, setStatusLocal] = useState(client.status ?? 'active')
+  const [activePanel, setActivePanel] = useState<string | null>(null)
   const { patch } = usePatchSettings(client.id, isAdmin)
+  const router = useRouter()
 
   const isActive = statusLocal === 'active'
 
@@ -43,6 +60,21 @@ function AgentCards({
     setStatusLocal(newStatus)
     patch({ status: newStatus })
   }
+
+  const handleConfigure = useCallback((section: string) => {
+    // Navigate to dedicated pages for knowledge-related sections
+    if (section === 'knowledge' || section === 'advanced-context') {
+      router.push('/dashboard/knowledge')
+      return
+    }
+    // Voicemail: scroll to it on this page
+    if (section === 'voicemail') {
+      document.getElementById('voicemail-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    // Everything else opens in the panel
+    setActivePanel(section)
+  }, [router])
 
   const voiceStyleLabel = VOICE_STYLE_LABELS[client.voice_style_preset ?? 'casual_friendly'] ?? 'casual, friendly'
 
@@ -78,14 +110,16 @@ function AgentCards({
             initialPreset={client.voice_style_preset ?? 'casual_friendly'}
             previewMode={previewMode}
           />
-          <VoicemailGreetingCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialText={client.voicemail_greeting_text ?? ''}
-            businessName={client.business_name}
-            hasAudioGreeting={!!client.voicemail_greeting_audio_url}
-            previewMode={previewMode}
-          />
+          <div id="voicemail-section">
+            <VoicemailGreetingCard
+              clientId={client.id}
+              isAdmin={isAdmin}
+              initialText={client.voicemail_greeting_text ?? ''}
+              businessName={client.business_name}
+              hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+              previewMode={previewMode}
+            />
+          </div>
           <AgentCurrentVoiceCard
             agentVoiceId={client.agent_voice_id ?? ''}
             isAdmin={isAdmin}
@@ -93,38 +127,14 @@ function AgentCards({
         </div>
       </div>
 
-      {/* ── Capabilities ──────────────────────────────────── */}
+      {/* ── Capabilities (clickable → opens panel) ──────── */}
       <div>
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Capabilities</p>
         <CapabilitiesCard
           client={client}
           isAdmin={isAdmin}
+          onConfigure={handleConfigure}
         />
-      </div>
-
-      {/* ── Availability ──────────────────────────────────── */}
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Availability</p>
-        <div className="space-y-4">
-          <HoursCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialWeekday={client.business_hours_weekday ?? ''}
-            initialWeekend={client.business_hours_weekend ?? ''}
-            initialBehavior={client.after_hours_behavior ?? 'take_message'}
-            initialPhone={client.after_hours_emergency_phone ?? ''}
-            previewMode={previewMode}
-          />
-          <IvrMenuCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialEnabled={client.ivr_enabled ?? false}
-            initialPrompt={client.ivr_prompt ?? ''}
-            businessName={client.business_name}
-            agentName={client.agent_name}
-            previewMode={previewMode}
-          />
-        </div>
       </div>
 
       {/* Behavior summary */}
@@ -147,6 +157,62 @@ function AgentCards({
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Activity</p>
         <ActivityLog clientId={client.id} isAdmin={isAdmin} />
       </div>
+
+      {/* ── Settings Panel (right-side drawer) ────────────── */}
+      <SettingsPanel
+        open={activePanel !== null}
+        onClose={() => setActivePanel(null)}
+        title={activePanel ? (PANEL_TITLES[activePanel] ?? '') : ''}
+      >
+        {activePanel === 'hours' && (
+          <HoursCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialWeekday={client.business_hours_weekday ?? ''}
+            initialWeekend={client.business_hours_weekend ?? ''}
+            initialBehavior={client.after_hours_behavior ?? 'take_message'}
+            initialPhone={client.after_hours_emergency_phone ?? ''}
+            previewMode={previewMode}
+          />
+        )}
+        {activePanel === 'ivr' && (
+          <IvrMenuCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialEnabled={client.ivr_enabled ?? false}
+            initialPrompt={client.ivr_prompt ?? ''}
+            businessName={client.business_name}
+            agentName={client.agent_name}
+            previewMode={previewMode}
+          />
+        )}
+        {activePanel === 'booking' && (
+          <BookingCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            calendarAuthStatus={client.calendar_auth_status}
+            googleCalendarId={client.google_calendar_id}
+            initialDuration={client.booking_service_duration_minutes ?? 30}
+            initialBuffer={client.booking_buffer_minutes ?? 0}
+            initialBookingEnabled={client.booking_enabled ?? false}
+            previewMode={previewMode}
+          />
+        )}
+        {activePanel === 'agent-config' && (
+          <TransferSettingsSection
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+          />
+        )}
+        {activePanel === 'sms' && (
+          <MessagingSettingsSection
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+          />
+        )}
+      </SettingsPanel>
     </div>
   )
 }

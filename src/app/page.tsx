@@ -15,7 +15,7 @@ import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 // TalkToAgentWidget moved to root layout — available site-wide
-import { BETA_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
+import { FOUNDING_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -116,7 +116,7 @@ export default async function HomePage() {
                 className="text-lg"
                 style={{ color: "var(--color-text-2)" }}
               >
-                No per-minute charges. No overage fees. No surprises.
+                No per-minute charges. Simple, predictable pricing.
               </p>
             </div>
             <ErrorBoundary>
@@ -173,8 +173,8 @@ export default async function HomePage() {
                 style={{ backgroundColor: "var(--color-border)" }}
               />
               <span>
-                {BETA_PROMO.enabled
-                  ? `$${BETA_PROMO.monthly}/mo`
+                {FOUNDING_PROMO.enabled
+                  ? `$${FOUNDING_PROMO.foundingMonthly}/mo`
                   : `$${BASE_PLAN.monthly}/mo`}
               </span>
               <span
