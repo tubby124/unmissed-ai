@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { Phone, Mic, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell, X } from "lucide-react"
+import { Phone, AlertCircle, RotateCcw, ArrowRight, BookOpen, Bell, X } from "lucide-react"
 import {
   WaveformBars,
   StatusBadge,
@@ -125,38 +125,38 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
   return (
     <div id="agent-test-card" className="mb-6">
       <AnimatePresence mode="wait">
-        {/* ─── Idle: CTA Card ─── */}
+        {/* ─── Idle: Orb CTA ─── */}
         {displayState === "idle" && (
           <motion.div
             key="idle"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="rounded-2xl p-5 sm:p-6 card-surface"
+            className="rounded-2xl p-6 sm:p-8 card-surface"
           >
-            <div className="flex items-start gap-4">
-              <div
-                className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: "var(--color-accent-tint)" }}
+            <div className="flex flex-col items-center text-center">
+              {/* Orb — ambient idle glow */}
+              <motion.div
+                className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden mb-5"
+                animate={{ scale: [1, 1.035, 1] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
               >
-                <Mic className="w-5 h-5" style={{ color: "var(--color-primary)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base t1">
-                  Test Your Agent
-                </h3>
-                <p className="text-sm mt-1 t3">
-                  Talk to {agentName} right from your browser. Hear how it greets callers and handles conversations with your business context.
-                </p>
-                <button
-                  onClick={handleStartTest}
-                  className="mt-4 px-5 py-2.5 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  <Phone className="w-4 h-4" />
-                  Start Test Call
-                </button>
-              </div>
+                <VoicePoweredOrb externalEnergy={0.08} />
+              </motion.div>
+
+              <h3 className="font-semibold text-base t1 mb-1">{agentName}</h3>
+              <p className="text-sm t3 mb-5 max-w-xs">
+                Talk to your agent right from your browser — hear exactly how callers experience it.
+              </p>
+
+              <button
+                onClick={handleStartTest}
+                className="px-6 py-2.5 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+                style={{ backgroundColor: "var(--color-primary)" }}
+              >
+                <Phone className="w-4 h-4" />
+                Start Test Call
+              </button>
             </div>
           </motion.div>
         )}
