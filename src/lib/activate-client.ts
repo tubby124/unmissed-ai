@@ -161,24 +161,26 @@ export async function activateClient(params: {
     try {
       let resolvedUserId: string | null = null
 
-      const { data: newUser, error: createErr } = await adminSupa.auth.admin.createUser({
+      // Use generateLink(type='invite') instead of createUser + generateLink(type='recovery').
+      // Reason: createUser({ email_confirm: true }) without a password causes generateLink(recovery)
+      // to NOT write the token to auth.one_time_tokens — Supabase returns the URL but the token
+      // is never persisted, so verifying it always returns otp_expired. The invite type correctly
+      // persists the token regardless of whether the user has a password set. It also creates the
+      // user if they don't exist, or updates the invite token if they do.
+      const { data: inviteData, error: inviteErr } = await adminSupa.auth.admin.generateLink({
+        type: 'invite',
         email: contactEmail,
-        email_confirm: true,
+        options: { redirectTo: `${appUrl}/auth/callback?next=/auth/set-password` },
       })
 
-      if (createErr) {
-        console.warn(`${logPrefix} createUser failed for ${contactEmail}: ${createErr.message} — attempting lookup`)
-        const { data: existingUsers } = await adminSupa.auth.admin.listUsers({ perPage: 1000 })
-        const found = existingUsers?.users?.find((u) => u.email === contactEmail)
-        if (found) {
-          resolvedUserId = found.id
-          console.log(`${logPrefix} Found existing auth user ${resolvedUserId} for ${contactEmail}`)
-        } else {
-          console.error(`${logPrefix} Could not resolve user for ${contactEmail}`)
-          emailFailReason = `createUser failed and lookup found no user: ${createErr.message}`
+      if (inviteErr || !inviteData?.user) {
+        console.error(`${logPrefix} generateLink(invite) failed for ${contactEmail}: ${inviteErr?.message}`)
+        emailFailReason = `generateLink invite failed: ${inviteErr?.message}`
+      } else {
+        resolvedUserId = inviteData.user.id
+        if (inviteData.properties?.action_link) {
+          setupUrl = inviteData.properties.action_link
         }
-      } else if (newUser.user) {
-        resolvedUserId = newUser.user.id
       }
 
       if (resolvedUserId) {
@@ -196,22 +198,6 @@ export async function activateClient(params: {
           .from('intake_submissions')
           .update({ supabase_user_id: newUserId })
           .eq('id', intakeId)
-
-        // Generate recovery link — use Supabase's own verify endpoint so we don't
-        // have to reproduce verifyOtp server-side. Supabase verifies the token and
-        // redirects to our /auth/callback which exchanges the code and goes to /auth/set-password.
-        try {
-          const { data: smsLinkData } = await adminSupa.auth.admin.generateLink({
-            type: 'recovery',
-            email: contactEmail,
-            options: { redirectTo: `${appUrl}/auth/callback?next=/auth/set-password` },
-          })
-          if (smsLinkData?.properties?.action_link) {
-            setupUrl = smsLinkData.properties.action_link
-          }
-        } catch (linkErr2) {
-          console.warn(`${logPrefix} SMS recovery link generation failed: ${linkErr2} — using fallback login URL`)
-        }
 
         // Send welcome + password setup email via Resend (if key is configured)
         const resendKey = process.env.RESEND_API_KEY
