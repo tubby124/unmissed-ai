@@ -61,8 +61,8 @@
 |-------|------|------|--------|
 | 2c | Agent Knowledge Card | "What your agent knows" summary: facts, FAQs, hours, booking, voice, knowledge docs | **DONE** 2026-03-22 |
 | 2d | Try-Asking Prompts | Pre-call suggestions generated from client config | **DONE** 2026-03-22 |
-| 2e | Inline Mini-Editors | Quick FAQ add, hours toggle, voice preview — inline, no settings nav | NOT STARTED |
-| 2f | Website Scrape Hint | "Add your website to teach your agent more" — triggers SCRAPE1-3 flow | NOT STARTED |
+| 2e | Inline Mini-Editors | Quick FAQ add, hours toggle, voice preview — inline, no settings nav | **DONE** 2026-03-24 (voice preview: AgentCurrentVoiceCard; hours: SettingsPanel; FAQ add: AgentKnowledgeCard inline form) |
+| 2f | Website Scrape Hint | "Add your website to teach your agent more" — triggers SCRAPE1-3 flow | **DONE** 2026-03-24 (amber nudge + inline URL input in AgentKnowledgeCard when no website set) |
 
 ### Slice 8 — Agent Intelligence Deep (remaining)
 
@@ -155,18 +155,17 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          PHASE0-P2b (empty-tools wipe guard in inbound — 2026-03-24),
          PHASE0-P1a (GodModeCard serialization — 2026-03-24),
          PHASE0-P1b (SmsTab serialization — 2026-03-24),
-         DB-MIG (weekly_digest_enabled migration — applied 2026-03-24)
+         DB-MIG (weekly_digest_enabled migration — applied 2026-03-24),
+         SLICE-2e (inline mini-editors: voice preview + hours panel + quick FAQ add — 2026-03-24),
+         SLICE-2f (website scrape nudge in AgentKnowledgeCard — 2026-03-24)
 
 NEXT:
-  S16a    -> Call recording consent disclosure (GATE-2)
   STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
-  SLICE-2e -> Inline Mini-Editors
-  SLICE-2f -> Website Scrape Hint
   SLICE-8m -> Failure-to-Refine Pipeline (MEDIUM)
   SLICE-8o -> Frustration/Interruption Metrics (MEDIUM)
   GATE-1   -> Domain migration (BLOCKED on domain purchase)
 
-DEFERRED -> S11, S12 advanced, S13 LOW, S16b-d, S17-S20
+DEFERRED -> S11, S12 advanced, S13 LOW, S16a-d (recording consent + SMS consent + PIPEDA — not a priority), S17-S20
 ```
 
 ---

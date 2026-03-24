@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { usePatchSettings } from './usePatchSettings'
 
@@ -24,6 +25,39 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false }
   const bookingConnected = !!(client.booking_enabled && client.calendar_auth_status === 'connected')
   const voiceStyle = client.voice_style_preset ?? 'default'
   const knowledgeActive = client.knowledge_backend === 'pgvector'
+  const hasWebsite = !!client.website_url
+
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [scrapeSaving, setScrapeSaving] = useState(false)
+
+  async function handleAddWebsite() {
+    const trimmed = websiteUrl.trim()
+    if (!trimmed) return
+    setScrapeSaving(true)
+    try {
+      const saveRes = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: trimmed, ...(isAdmin ? { client_id: id } : {}) }),
+      })
+      if (!saveRes.ok) throw new Error('Failed to save URL')
+      const scrapeRes = await fetch('/api/dashboard/scrape-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: id, url: trimmed }),
+      })
+      if (!scrapeRes.ok) {
+        const data = await scrapeRes.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Scrape failed')
+      }
+      toast.success('Website added — scraping started, check back in a minute')
+      setWebsiteUrl('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setScrapeSaving(false)
+    }
+  }
 
   async function saveNewQa() {
     const trimQ = newQ.trim()
@@ -194,6 +228,39 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false }
           </svg>
           Quick add Q&A
         </button>
+      )}
+
+      {/* Website scrape hint — only when no website URL configured */}
+      {!hasWebsite && !adding && (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="text-amber-400/80 shrink-0">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-[10px] leading-relaxed">
+              <span className="font-semibold text-amber-400/90">Teach your agent more</span>
+              <span className="t3"> — add your website URL</span>
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={e => setWebsiteUrl(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddWebsite() }}
+              placeholder="https://yourbusiness.com"
+              className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-xs t1 focus:outline-none focus:border-amber-500/30 transition-colors"
+            />
+            <button
+              onClick={handleAddWebsite}
+              disabled={scrapeSaving || !websiteUrl.trim()}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 disabled:opacity-40 transition-colors"
+            >
+              {scrapeSaving ? '…' : 'Add'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
