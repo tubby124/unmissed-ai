@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { stripPromptMarkers } from '@/lib/prompt-sections'
 import { getNicheVoice } from '@/lib/niche-config'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 import { APP_URL } from '@/lib/app-url'
 import { BRAND_NAME } from '@/lib/brand'
 
@@ -354,6 +355,10 @@ interface AgentConfig {
   transfer_conditions?: string | null
   /** Max call duration (e.g. '180s' for trial, defaults to '600s'). */
   maxDuration?: string
+  /** Plan selected by client — used for plan-based tool gating (Phase 4). */
+  selectedPlan?: string | null
+  /** Subscription status — 'trialing' bypasses plan gating (all features). */
+  subscriptionStatus?: string | null
 }
 
 /**
@@ -562,14 +567,20 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
  * settings save, sync-agent, and any route that writes clients.tools.
  */
 export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
+  // Phase 4: Plan-based tool gating — intersect DB flags with plan entitlements
+  // Trial bypass: trialing clients get all features regardless of selected_plan
+  const plan = getPlanEntitlements(
+    opts.subscriptionStatus === 'trialing' ? 'trial' : opts.selectedPlan
+  )
+
   const baseTools: object[] = opts.tools !== undefined ? opts.tools : [HANGUP_TOOL]
-  const calendarTools: object[] = (opts.booking_enabled && opts.slug) ? buildCalendarTools(opts.slug) : []
-  const transferTools: object[] = (opts.forwarding_number && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
-  const smsTools: object[] = (opts.sms_enabled && opts.slug) ? buildSmsTools(opts.slug) : []
+  const calendarTools: object[] = (opts.booking_enabled && plan.bookingEnabled && opts.slug) ? buildCalendarTools(opts.slug) : []
+  const transferTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
+  const smsTools: object[] = (opts.sms_enabled && plan.smsEnabled && opts.slug) ? buildSmsTools(opts.slug) : []
   // S5: only register knowledge tool when client has approved chunks (safe default = exclude)
   const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug
     && (opts.knowledge_chunk_count !== undefined && opts.knowledge_chunk_count > 0)
-  const knowledgeTools: object[] = hasKnowledge ? buildKnowledgeTools(opts.slug!) : []
+  const knowledgeTools: object[] = (hasKnowledge && plan.knowledgeEnabled) ? buildKnowledgeTools(opts.slug!) : []
   const coachingTools: object[] = opts.slug ? [buildCoachingTool(opts.slug)] : []
   return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
 }

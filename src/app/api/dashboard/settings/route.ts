@@ -410,7 +410,7 @@ export async function PATCH(req: NextRequest) {
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend, selected_plan, subscription_status')
       .eq('id', targetClientId)
       .single()
 
@@ -462,6 +462,8 @@ export async function PATCH(req: NextRequest) {
           knowledge_backend: knowledgeBackend,
           knowledge_chunk_count: knowledgeChunkCount,
           transfer_conditions: transferConditions,
+          selectedPlan: (clientRow.selected_plan as string | null) || undefined,
+          subscriptionStatus: (clientRow.subscription_status as string | null) || undefined,
         }
 
         await updateAgent(clientRow.ultravox_agent_id, agentFlags)

@@ -22,6 +22,7 @@ import { activateClient } from '@/lib/activate-client'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notifySystemFailure } from '@/lib/admin-alerts'
+import { syncClientTools } from '@/lib/sync-client-tools'
 import { PLANS } from '@/lib/pricing'
 
 function getStripe() {
@@ -454,6 +455,15 @@ export async function POST(req: NextRequest) {
 
     await adminSupa.from('clients').update(updatePayload).eq('id', upgradeClientId)
     console.log(`[stripe-webhook] Trial upgrade complete: ${cl.slug} plan=${upgradePlanId}`)
+
+    // Phase 4: Rebuild tools with new plan entitlements (e.g. Lite→Pro unlocks booking/transfer)
+    try {
+      await syncClientTools(adminSupa, upgradeClientId)
+      console.log(`[stripe-webhook] Tools rebuilt for ${cl.slug} after plan upgrade to ${upgradePlanId}`)
+    } catch (toolErr) {
+      console.error(`[stripe-webhook] syncClientTools failed after upgrade for ${cl.slug}:`, toolErr)
+      // Non-fatal — tools will be rebuilt on next settings save or sync-agent call
+    }
 
     // Telegram alert
     try {
