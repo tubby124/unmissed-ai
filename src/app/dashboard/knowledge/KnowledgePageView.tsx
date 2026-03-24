@@ -25,7 +25,7 @@ function KnowledgeCards({
   const websiteSet = !!client.website_url
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Summary card — what the agent currently knows */}
       <AgentKnowledgeCard client={client} />
 
@@ -108,7 +108,7 @@ export default function KnowledgePageView({ clients, isAdmin, previewMode, initi
   if (!client) return null
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 max-w-2xl">
+    <div className="p-3 sm:p-6 space-y-6 max-w-3xl">
       {isAdmin && clients.length > 1 && (
         <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
       )}

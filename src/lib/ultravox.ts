@@ -352,6 +352,8 @@ interface AgentConfig {
   knowledge_chunk_count?: number
   /** Text describing when the agent should transfer (used in transferCall tool description). */
   transfer_conditions?: string | null
+  /** Max call duration (e.g. '180s' for trial, defaults to '600s'). */
+  maxDuration?: string
 }
 
 /**
@@ -508,13 +510,13 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, knowledge_chunk_count, transfer_conditions }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, knowledge_chunk_count, transfer_conditions, maxDuration }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
     model: 'ultravox-v0.7',
     voice: voice || DEFAULT_VOICE,
-    maxDuration: '600s',
+    maxDuration: maxDuration || '600s',
     medium: { twilio: {} },
     recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,

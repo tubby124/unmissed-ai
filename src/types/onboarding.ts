@@ -121,6 +121,14 @@ export interface OnboardingData {
   // IVR pre-filter — voicemail menu before connecting to AI agent
   ivrEnabled: boolean;
   ivrPrompt: string;  // custom menu message (blank = use default)
+
+  // New 6-step onboarding flow fields
+  scheduleMode: '24_7' | 'business_hours' | 'custom';
+  callForwardingEnabled: boolean;
+  agentJob?: 'message_taker' | 'receptionist' | 'booking_agent';
+
+  // Plan selection (step 4)
+  selectedPlan: 'lite' | 'core' | 'pro' | null;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -198,6 +206,9 @@ export const defaultOnboardingData: OnboardingData = {
   websiteScrapeResult: null,
   ivrEnabled: false,
   ivrPrompt: '',
+  scheduleMode: 'business_hours',
+  callForwardingEnabled: false,
+  selectedPlan: null,
 };
 
 export const nicheLabels: Record<Niche, string> = {

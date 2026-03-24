@@ -114,7 +114,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   )
 
   // ─── Tab & UI state ──────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [activeTab, setActiveTab] = useState<SettingsTab>(isAdmin ? 'general' : 'billing')
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
 
@@ -233,12 +233,12 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       <div className="border-b b-theme">
         <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
           {([
-            { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
-            { id: 'sms',           label: 'SMS',      adminOnly: false, icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
-            { id: 'voice',         label: 'Voice',    adminOnly: false, icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
-            { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
+            { id: 'general',       label: 'Agent',    adminOnly: true,  icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+            { id: 'sms',           label: 'SMS',      adminOnly: true,  icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
+            { id: 'voice',         label: 'Voice',    adminOnly: true,  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
+            { id: 'notifications', label: 'Alerts',   adminOnly: true,  icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
             { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
-            { id: 'knowledge',     label: 'Knowledge', adminOnly: false, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
+            { id: 'knowledge',     label: 'Knowledge', adminOnly: true, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
           ] as { id: SettingsTab; label: string; adminOnly: boolean; icon: string }[])
             .filter(t => !t.adminOnly || isAdmin)
             .map(({ id, label, icon }) => (
@@ -301,48 +301,56 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── Agent Tab ──────────────────────────────────────────────── */}
       {activeTab === 'general' && (
-        <AgentTab
-          client={client}
-          isAdmin={isAdmin}
-          appUrl={appUrl}
-          previewMode={previewMode}
-          prompt={prompt}
-          setPrompt={setPrompt}
-          status={status}
-          setStatus={setStatus}
-          godConfig={godConfig}
-          setGodConfig={setGodConfig}
-          telegramTest={telegramTest}
-          setTelegramTest={setTelegramTest}
-          hoursWeekday={hoursWeekday}
-          setHoursWeekday={setHoursWeekday}
-          hoursWeekend={hoursWeekend}
-          setHoursWeekend={setHoursWeekend}
-          afterHoursBehavior={afterHoursBehavior}
-          setAfterHoursBehavior={setAfterHoursBehavior}
-          afterHoursPhone={afterHoursPhone}
-          setAfterHoursPhone={setAfterHoursPhone}
-          sectionContent={sectionContent}
-          setSectionContent={setSectionContent}
-          businessFacts={businessFacts}
-          setBusinessFacts={setBusinessFacts}
-          extraQA={extraQA}
-          setExtraQA={setExtraQA}
-          contextData={contextData}
-          contextDataLabel={contextDataLabel}
-          bookingDuration={bookingDuration}
-          setBookingDuration={setBookingDuration}
-          bookingBuffer={bookingBuffer}
-          setBookingBuffer={setBookingBuffer}
-          forwardingNumber={forwardingNumber}
-          setForwardingNumber={setForwardingNumber}
-          transferConditions={transferConditions}
-          setTransferConditions={setTransferConditions}
-          setupComplete={setupComplete}
-          setSetupComplete={setSetupComplete}
-          voiceStylePreset={voiceStylePreset}
-          setVoiceStylePreset={setVoiceStylePreset}
-        />
+        isAdmin ? (
+          <AgentTab
+            client={client}
+            isAdmin={isAdmin}
+            appUrl={appUrl}
+            previewMode={previewMode}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            status={status}
+            setStatus={setStatus}
+            godConfig={godConfig}
+            setGodConfig={setGodConfig}
+            telegramTest={telegramTest}
+            setTelegramTest={setTelegramTest}
+            hoursWeekday={hoursWeekday}
+            setHoursWeekday={setHoursWeekday}
+            hoursWeekend={hoursWeekend}
+            setHoursWeekend={setHoursWeekend}
+            afterHoursBehavior={afterHoursBehavior}
+            setAfterHoursBehavior={setAfterHoursBehavior}
+            afterHoursPhone={afterHoursPhone}
+            setAfterHoursPhone={setAfterHoursPhone}
+            sectionContent={sectionContent}
+            setSectionContent={setSectionContent}
+            businessFacts={businessFacts}
+            setBusinessFacts={setBusinessFacts}
+            extraQA={extraQA}
+            setExtraQA={setExtraQA}
+            contextData={contextData}
+            contextDataLabel={contextDataLabel}
+            bookingDuration={bookingDuration}
+            setBookingDuration={setBookingDuration}
+            bookingBuffer={bookingBuffer}
+            setBookingBuffer={setBookingBuffer}
+            forwardingNumber={forwardingNumber}
+            setForwardingNumber={setForwardingNumber}
+            transferConditions={transferConditions}
+            setTransferConditions={setTransferConditions}
+            setupComplete={setupComplete}
+            setSetupComplete={setSetupComplete}
+            voiceStylePreset={voiceStylePreset}
+            setVoiceStylePreset={setVoiceStylePreset}
+          />
+        ) : (
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium t1">Agent settings have moved</p>
+            <p className="text-[12px] t3 max-w-xs">Manage your agent&apos;s identity, voice, capabilities, availability, and activity from your Agent page.</p>
+            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Agent →</a>
+          </div>
+        )
       )}
 
       {/* ─── SMS Tab ────────────────────────────────────────────────── */}
@@ -368,23 +376,39 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── Voice Tab ──────────────────────────────────────────────── */}
       {activeTab === 'voice' && (
-        <VoiceTab
-          client={client}
-          voices={voices}
-          voicesLoading={voicesLoading}
-          isAdmin={isAdmin}
-        />
+        isAdmin ? (
+          <VoiceTab
+            client={client}
+            voices={voices}
+            voicesLoading={voicesLoading}
+            isAdmin={isAdmin}
+          />
+        ) : (
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium t1">Voice settings have moved</p>
+            <p className="text-[12px] t3 max-w-xs">Preview your current voice and browse the Voice Library from your Agent page.</p>
+            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Agent →</a>
+          </div>
+        )
       )}
 
       {/* ─── Alerts Tab ─────────────────────────────────────────────── */}
       {activeTab === 'notifications' && (
-        <AlertsTab
-          client={client}
-          previewMode={previewMode}
-          isAdmin={isAdmin}
-          tgStyle={tgStyle[client.id] ?? 'standard'}
-          setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
-        />
+        isAdmin ? (
+          <AlertsTab
+            client={client}
+            previewMode={previewMode}
+            isAdmin={isAdmin}
+            tgStyle={tgStyle[client.id] ?? 'standard'}
+            setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
+          />
+        ) : (
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium t1">Alerts settings have moved</p>
+            <p className="text-[12px] t3 max-w-xs">Configure Telegram notifications, message style, and alert preferences from your Notifications page.</p>
+            <a href="/dashboard/notifications" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Notifications →</a>
+          </div>
+        )
       )}
 
       {/* ─── Billing Tab ────────────────────────────────────────────── */}

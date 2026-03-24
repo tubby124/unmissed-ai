@@ -144,6 +144,8 @@ export function toIntakePayload(data: OnboardingData) {
         ? (data.nicheAnswers.services as string[]).join(', ')
         : (data.nicheAnswers?.services as string) || ''),
     call_handling_mode: data.callHandlingMode || 'triage',
+    booking_enabled: data.callHandlingMode === 'full_service',
+    owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,
 
     pricing_policy: data.pricingPolicy || "",

@@ -53,10 +53,19 @@ function ActionCards({
   const summary = buildSummary(client)
 
   return (
-    <div className="space-y-4">
-      <BookingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
-      <TransferSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
-      <MessagingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
+    <div className="space-y-6">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Scheduling</p>
+        <BookingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Call Handoff</p>
+        <TransferSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>After-Call Follow-up</p>
+        <MessagingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
 
       {/* Behavior summary */}
       <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
@@ -93,7 +102,7 @@ export default function ActionsPageView({ clients, isAdmin, previewMode, initial
   if (!client) return null
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 max-w-2xl">
+    <div className="p-3 sm:p-6 space-y-4 max-w-3xl">
       {isAdmin && clients.length > 1 && (
         <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
       )}

@@ -165,6 +165,7 @@ export default function ClientHome() {
   const isTrial = onboarding.subscriptionStatus === 'trialing'
   const showChecklist = onboarding.clientStatus === 'active'
   const hasRealCalls = stats.totalCalls > 0
+  const justUpgraded = searchParams.get('upgraded') === 'true'
 
   function dismissWelcome() {
     localStorage.setItem(WELCOME_DISMISSED_KEY, 'true')
@@ -190,6 +191,25 @@ export default function ClientHome() {
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
+
+      {/* Upgrade success — shown when Stripe redirects back with ?upgraded=true */}
+      {justUpgraded && (
+        <div
+          className="rounded-2xl p-4 sm:p-5 flex items-start gap-3"
+          style={{ background: 'var(--color-success-tint)', border: '1px solid color-mix(in srgb, var(--color-success) 25%, transparent)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-success)' }}>
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <div>
+            <p className="text-sm font-semibold t1">You&apos;re upgraded — welcome to the team</p>
+            <p className="text-xs t3 mt-0.5 leading-relaxed">Your account is now active. Complete your phone setup to start receiving real calls.</p>
+            <a href="/dashboard/setup" className="text-xs font-semibold mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
+              Finish setup →
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Trial welcome banner — dismissable */}
       {isTrial && !welcomeDismissed && (
@@ -349,41 +369,6 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* How it works — trial users with no real calls */}
-      {isTrial && !hasRealCalls && (
-        <div className="rounded-2xl p-4 card-surface">
-          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-4">How it works when you go live</p>
-          <div className="flex items-start gap-0">
-            {[
-              { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', label: 'Caller dials your number' },
-              { icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label: 'Agent answers & helps them' },
-              { icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', label: 'You get notified instantly' },
-            ].map((step, i) => (
-              <div key={i} className="flex items-start flex-1 min-w-0">
-                <div className="flex flex-col items-center flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 shrink-0" style={{ backgroundColor: 'var(--color-accent-tint)', border: '1px solid var(--color-border)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="t2">
-                      <path d={step.icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <p className="text-[11px] t2 text-center font-medium leading-snug px-1">{step.label}</p>
-                </div>
-                {i < 2 && (
-                  <div className="flex items-center mt-4 mx-1 shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
-                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-[11px] t3 mt-4 pt-3 leading-relaxed" style={{ borderTop: '1px solid var(--color-border)' }}>
-            Right now: test your agent from your browser above. After upgrading: real callers reach your agent automatically on your own phone number.
-          </p>
-        </div>
-      )}
-
       {/* Locked features preview — trial only */}
       {isTrial && (
         <div className="rounded-2xl p-4 card-surface">
@@ -409,7 +394,7 @@ export default function ClientHome() {
             className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
-            Get your phone number — from $97/mo
+            Get a real phone number — upgrade to go live
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

@@ -10,27 +10,23 @@ import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
 import {
-  BETA_PROMO,
-  BASE_PLAN,
+  PLANS,
   TRIAL,
   COMPETITORS,
   FEATURE_COMPARISON,
   POLICIES,
-  getEffectiveMonthly,
 } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
-const effectivePrice = getEffectiveMonthly();
-
 export const metadata: Metadata = {
   title: `Pricing — ${BRAND_NAME} AI Receptionist`,
-  description: `Simple monthly pricing, no contracts. AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. Cancel anytime.`,
+  description: `Simple flat-rate pricing, no contracts. AI receptionist from $${PLANS[0].monthly}/mo CAD. ${TRIAL.label}. Cancel anytime.`,
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/pricing`,
   },
   openGraph: {
     title: `Pricing — ${BRAND_NAME}`,
-    description: `AI receptionist from $${effectivePrice}/mo CAD. ${TRIAL.label}. No contracts, no per-minute charges.`,
+    description: `AI receptionist from $${PLANS[0].monthly}/mo CAD. ${TRIAL.label}. No contracts, no per-minute charges.`,
   },
 };
 
@@ -109,9 +105,9 @@ export default function PricingPage() {
                   ))}
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>{BRAND_NAME}</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}/mo</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>{BETA_PROMO.enabled ? BETA_PROMO.minutes : BASE_PLAN.minutes} min</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>${effectivePrice}</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${PLANS[0].monthly}/mo</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Flat rate</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Same price</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No catch</td>
                   </tr>
                 </tbody>
@@ -123,8 +119,8 @@ export default function PricingPage() {
               style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)" }}
             >
               <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
-                At ${effectivePrice}/mo, {BRAND_NAME} costs less than every competitor — and includes every feature.
-                No per-minute overages. No tier restrictions.
+                {BRAND_NAME} is flat-rate. Your bill stays the same no matter how many calls come in.
+                Every competitor charges more the busier you get — sometimes 5x more.
               </p>
             </div>
           </div>

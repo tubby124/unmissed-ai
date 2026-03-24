@@ -19,7 +19,10 @@ export interface SetupClientConfig {
   after_hours_emergency_phone: string | null
 }
 
-export default async function SetupPage() {
+export default async function SetupPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams
+  const isNewUpgrade = params.upgraded === 'true'
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -46,6 +49,7 @@ export default async function SetupPage() {
       <SetupView
         clients={(clients ?? []) as SetupClientConfig[]}
         isAdmin={true}
+        isNewUpgrade={isNewUpgrade}
       />
     )
   }
@@ -65,6 +69,7 @@ export default async function SetupPage() {
       clients={[client as SetupClientConfig]}
       isAdmin={false}
       isTrialing={isTrialing}
+      isNewUpgrade={isNewUpgrade}
     />
   )
 }

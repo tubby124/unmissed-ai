@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import NoNotifications from '@/components/dashboard/empty-states/NoNotifications'
+import NotificationsConfigSection from './NotificationsConfigSection'
 
 interface Notification {
   id: string
@@ -162,6 +163,9 @@ export default function NotificationsPage() {
           Alerts sent by your AI agent — Telegram, email, and SMS.
         </p>
       </div>
+
+      {/* Alert configuration — channels, message style, preferences, weekly email */}
+      <NotificationsConfigSection />
 
       {loading && (
         <div className="flex items-center justify-center py-32">

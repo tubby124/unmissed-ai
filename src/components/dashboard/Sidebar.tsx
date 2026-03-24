@@ -32,6 +32,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const [failedNotifCount, setFailedNotifCount] = useState(0)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -104,6 +105,15 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (
+      pathname.startsWith('/dashboard/agent') ||
+      pathname.startsWith('/dashboard/knowledge') ||
+      pathname.startsWith('/dashboard/actions') ||
+      pathname.startsWith('/dashboard/voices')
+    ) setAgentOpen(true)
+  }, [pathname])
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -195,6 +205,108 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           const isLive = item.href === '/dashboard/live'
           const isSetup = item.href === '/dashboard/setup'
           const isLocked = isTrialing && !!item.trialLocked
+
+          // ── Agent accordion ───────────────────────────────────────────────
+          if (item.href === '/dashboard/agent') {
+            const agentSection =
+              pathname.startsWith('/dashboard/agent') ||
+              pathname.startsWith('/dashboard/knowledge') ||
+              pathname.startsWith('/dashboard/actions') ||
+              pathname.startsWith('/dashboard/voices')
+            return (
+              <Fragment key={item.href}>
+                {groupChanged && isAdmin && !collapsed && (
+                  <>
+                    <div style={{ borderTop: '1px solid var(--color-border)', margin: '8px 12px' }} />
+                    {GROUP_LABELS[item.group] && (
+                      <p className="px-3 mt-4 mb-1 text-[10px] font-medium tracking-widest" style={{ color: 'var(--color-text-3)' }}>
+                        {GROUP_LABELS[item.group]}
+                      </p>
+                    )}
+                  </>
+                )}
+                {collapsed ? (
+                  <Link
+                    href={`/dashboard/agent${cloakSuffix}`}
+                    title="Agent"
+                    className={`flex items-center justify-center px-3 py-2.5 rounded-xl text-sm transition-colors ${agentSection ? 'border-l-[3px]' : 'hover:bg-hover'}`}
+                    style={agentSection
+                      ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                      : { color: 'var(--color-text-2)' }}
+                  >
+                    <NavIcon name="agent" />
+                  </Link>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => setAgentOpen(v => !v)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors w-full"
+                      style={{ color: agentSection ? 'var(--color-primary)' : 'var(--color-text-2)' }}
+                    >
+                      <span className="shrink-0"><NavIcon name="agent" /></span>
+                      <span className="flex-1 whitespace-nowrap text-left">Agent</span>
+                      <motion.svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        animate={{ rotate: agentOpen ? 180 : 0 }}
+                        transition={{ duration: 0.15 }}
+                        style={{ color: agentSection ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: 0.7 }}
+                      >
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </motion.svg>
+                    </button>
+                    <AnimatePresence>
+                      {agentOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="ml-4 pl-3 border-l pb-1" style={{ borderColor: 'var(--color-border)' }}>
+                            <Link
+                              href={`/dashboard/agent${cloakSuffix}`}
+                              className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                              style={{ color: pathname === '/dashboard/agent' ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: pathname === '/dashboard/agent' ? 600 : undefined }}
+                            >
+                              Overview
+                            </Link>
+                            <Link
+                              href={`/dashboard/knowledge${cloakSuffix}`}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                              style={{ color: pathname.startsWith('/dashboard/knowledge') ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: pathname.startsWith('/dashboard/knowledge') ? 600 : undefined }}
+                            >
+                              <span className="flex-1">Knowledge</span>
+                              {knowledgeGapCount > 0 && (
+                                <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                                  {knowledgeGapCount}
+                                </span>
+                              )}
+                            </Link>
+                            <Link
+                              href={`/dashboard/actions${cloakSuffix}`}
+                              className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                              style={{ color: pathname.startsWith('/dashboard/actions') ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: pathname.startsWith('/dashboard/actions') ? 600 : undefined }}
+                            >
+                              Actions
+                            </Link>
+                            <Link
+                              href={`/dashboard/voices${cloakSuffix}`}
+                              className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                              style={{ color: pathname.startsWith('/dashboard/voices') ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: pathname.startsWith('/dashboard/voices') ? 600 : undefined }}
+                            >
+                              Voice Library
+                            </Link>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </Fragment>
+            )
+          }
+
           return (
             <Fragment key={item.href}>
               {groupChanged && isAdmin && !collapsed && (
@@ -292,7 +404,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           )
         })
         })()}
-        {/* Advanced submenu — Billing + Alerts */}
+        {/* Settings submenu — Billing + Voices */}
         {!collapsed ? (
           <div>
             <button
@@ -301,7 +413,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
               style={{ color: "var(--color-text-2)" }}
             >
               <span className="shrink-0"><NavIcon name="settings" /></span>
-              <span className="flex-1 whitespace-nowrap text-left">Advanced</span>
+              <span className="flex-1 whitespace-nowrap text-left">Settings</span>
               <motion.svg
                 width="14" height="14" viewBox="0 0 24 24" fill="none"
                 animate={{ rotate: advancedOpen ? 180 : 0 }}
@@ -328,13 +440,6 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                     >
                       Billing
                     </Link>
-                    <Link
-                      href={`/dashboard/settings?tab=notifications${previewMode && previewClient ? `&preview=true&client_id=${previewClient.id}` : ''}`}
-                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
-                      style={{ color: "var(--color-text-2)" }}
-                    >
-                      Alerts
-                    </Link>
                   </div>
                 </motion.div>
               )}
@@ -343,7 +448,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
         ) : (
           <Link
             href={`/dashboard/settings${cloakSuffix}`}
-            title="Advanced"
+            title="Settings"
             className="flex items-center justify-center px-3 py-2.5 rounded-xl text-sm hover:bg-hover transition-colors"
             style={{ color: "var(--color-text-2)" }}
           >

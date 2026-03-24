@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 interface VoiceOption {
   id: string
@@ -73,19 +74,20 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
         key={voice.id}
         onClick={() => {
           onSelect(voice.id, voice.name)
+          trackEvent('voice_selected', { voiceId: voice.id, gender: voice.gender, niche: 'onboard' })
           isPlaying ? stop() : play(voice.id)
         }}
         className={`
           relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all
           ${isSelected
-            ? 'border-indigo-600 bg-indigo-50/50 shadow-md'
+            ? 'border-indigo-500 bg-indigo-500/15 ring-1 ring-indigo-500/30 shadow-md'
             : 'border-border bg-card hover:border-border hover:bg-muted/30'
           }
         `}
       >
         {/* Voice name + personality */}
         <div className="text-center">
-          <div className={`text-sm font-semibold ${isSelected ? 'text-indigo-900' : 'text-foreground'}`}>
+          <div className={`text-sm font-semibold ${isSelected ? 'text-indigo-400' : 'text-foreground'}`}>
             {voice.name}
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{voice.personality}</div>

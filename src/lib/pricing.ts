@@ -27,47 +27,85 @@ export const TRIAL = {
   days: 7,
   allFeaturesIncluded: true,
   label: "7-day free trial",
-  description: "Full access to every feature. No credit card required to start.",
+  description: "Full access to your plan. No credit card required to start.",
 };
 
-// ─── Base Plan (what they pay after trial) ──────────────────────────
-export const BASE_PLAN = {
-  name: "Starter",
-  monthly: 30,
-  dailyFraming: "~$1/day",
-  minutes: 100,
-  description: "Everything you need to stop missing calls.",
-};
-
-// ─── Beta Launch Promo ──────────────────────────────────────────────
-export const BETA_PROMO = {
-  enabled: true,
-  monthly: 20,
-  minutes: 100,
-  badge: "Beta Pricing",
-  label: "$20/mo — limited time",
-  description: "Lock in our lowest rate. Price goes to $30/mo after beta.",
-  regularPrice: BASE_PLAN.monthly,
-};
-
-// ─── Future Tiers (teased, not purchasable yet) ─────────────────────
-export const FUTURE_TIERS = [
-  { name: "Growth", price: 75, status: "coming-soon" as const },
-  { name: "Pro", price: 140, status: "coming-soon" as const },
-];
-
-// ─── All Features (included on every plan, including trial) ─────────
-export const ALL_FEATURES = [
-  "AI agent answers every call 24/7",
-  "Lead scoring (HOT / WARM / COLD)",
-  "Instant Telegram + SMS alerts",
-  "Automatic caller follow-up text",
-  "Live call transfer to your phone",
-  "Calendar booking (Google Calendar)",
-  "Daily 8AM call digest",
-  "Niche-specific AI prompt",
-  "Dashboard with full call log",
-  "The Learning Loop (weekly AI review)",
+// ─── Plans (3-tier) ─────────────────────────────────────────────────
+export const PLANS = [
+  {
+    id: "lite" as const,
+    name: "Lite",
+    tagline: "Never miss the message",
+    monthly: 29,
+    annual: 24,
+    annualBilledTotal: 288,
+    description: "For missed calls and after-hours coverage.",
+    isPopular: false,
+    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA",
+    stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
+    stripeProductId: "prod_UCl8SbXQTqNhT6",
+    features: [
+      "Live AI voicemail (24/7)",
+      "Captures name, number & reason for call",
+      "Call summary texted to owner",
+      "SMS notification on every call",
+      "Niche-specific AI prompt",
+      "Dashboard with full call log",
+    ],
+    notIncluded: ["Booking", "Call transfer", "Website knowledge", "Lead scoring"],
+    cta: "Start 7-Day Free Trial",
+    href: "/onboard",
+  },
+  {
+    id: "core" as const,
+    name: "Core",
+    tagline: "Never miss the customer",
+    monthly: 99,
+    annual: 79,
+    annualBilledTotal: 948,
+    description: "For busy businesses that can't afford missed leads.",
+    isPopular: true,
+    stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR",
+    stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
+    stripeProductId: "prod_UCl8nni05Nk9lB",
+    features: [
+      "Everything in Lite",
+      "Full AI receptionist (answers 24/7)",
+      "Website + Google Business knowledge",
+      "Lead capture & scoring (HOT / WARM / COLD)",
+      "Automatic caller follow-up text",
+      "Daily 8AM call digest",
+      "The Learning Loop (weekly AI review)",
+    ],
+    notIncluded: ["Booking", "Call transfer"],
+    cta: "Start 7-Day Free Trial",
+    href: "/onboard",
+  },
+  {
+    id: "pro" as const,
+    name: "Pro",
+    tagline: "Turn calls into booked jobs",
+    monthly: 189,
+    annual: 149,
+    annualBilledTotal: 1788,
+    description: "For businesses that want calls turned into bookings and handoffs.",
+    isPopular: false,
+    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT",
+    stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
+    stripeProductId: "prod_UCl8d1JTMthpf7",
+    features: [
+      "Everything in Core",
+      "Calendar booking (Google Calendar)",
+      "Live call transfer to your phone",
+      "Structured intake & qualification",
+      "Smarter call routing logic",
+      "Priority support",
+      "Advanced follow-up controls",
+    ],
+    notIncluded: [],
+    cta: "Start 7-Day Free Trial",
+    href: "/onboard",
+  },
 ];
 
 // ─── Guarantee & Policies ───────────────────────────────────────────
@@ -134,12 +172,12 @@ export const COMPETITORS = [
 // ─── Feature Comparison (for detailed table) ────────────────────────
 export const FEATURE_COMPARISON = [
   { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate" },
-  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly}/mo CAD` },
-  { feature: "All features included", myai: "No — tiered", goodcall: "No — tiered", rosie: "No — tiered", smithai: "No — tiered", askbenny: "No — tiered", unmissed: "Yes" },
+  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].monthly}/mo CAD` },
+  { feature: "No per-minute overages", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
   { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you (48hr)" },
   { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Booking included", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: "Yes" },
-  { feature: "Live call transfer", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: "Yes" },
+  { feature: "Booking included", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (Pro — $${PLANS[2].monthly}/mo)` },
+  { feature: "Live call transfer", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (Pro — $${PLANS[2].monthly}/mo)` },
   { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", askbenny: "EN/FR", unmissed: "English (more coming)" },
   { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (Learning Loop)" },
   { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", askbenny: "Vendor-locked", unmissed: "Dashboard (yours)" },
@@ -193,15 +231,36 @@ export const STRIPE_IDS = {
   // betaCoupon_test: "l5jvNI95"
 };
 
-// ─── Helper: effective monthly price ────────────────────────────────
+// ─── Backward-compat exports ─────────────────────────────────────────
+// These keep existing components working without changes.
+// Migrate them to PLANS[] over time.
+export const BASE_PLAN = {
+  name: PLANS[1].name,
+  monthly: PLANS[1].monthly,
+  dailyFraming: "~$3.30/day",
+  minutes: 500,
+  description: PLANS[1].description,
+};
+
+export const BETA_PROMO = {
+  enabled: false,
+  monthly: PLANS[0].monthly,
+  minutes: 500,
+  badge: "",
+  label: "",
+  description: "",
+  regularPrice: PLANS[1].monthly,
+};
+
+export const FUTURE_TIERS: Array<{ name: string; price: number; status: "coming-soon" }> = [];
+
+export const ALL_FEATURES = [...PLANS[1].features];
+
+// ─── Helpers ────────────────────────────────────────────────────────
 export function getEffectiveMonthly(): number {
-  return BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly;
+  return PLANS[1].monthly; // Core plan
 }
 
-// ─── Helper: format for prompt/copy ─────────────────────────────────
 export function getPricingSummary(): string {
-  const price = getEffectiveMonthly();
-  return BETA_PROMO.enabled
-    ? `$${price}/mo CAD (beta pricing — regular $${BASE_PLAN.monthly}/mo)`
-    : `$${price}/mo CAD`;
+  return `from $${PLANS[0].monthly}/mo CAD`;
 }

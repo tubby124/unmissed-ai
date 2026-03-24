@@ -107,7 +107,9 @@
 | D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | **DONE** 2026-03-23 (all 6 phases complete: data pipe, bugs, inline edit, consolidation, scrape UX, demo placement, field mapping) |
 | D44 | **GAP** | No login path for trial users if email not delivered (no domain yet). User closes browser = locked out. Sonar-confirmed fix: Google OAuth (works with Railway URL, no custom domain needed). Plan: Phase 5b in `lively-hopping-flurry.md`. | HIGH | NOT STARTED |
 | D45 | **GAP** | Scraped data from Google Places + website goes into agent training without user seeing/approving it. User flagged this. Sonar confirms review gate reduces churn 25%. Plan: Phase 5c in `lively-hopping-flurry.md`. | MEDIUM | NOT STARTED |
-| D46 | UX | TrialSuccessScreen CTA not personalized with agent name. Phase 5 plan: "Talk to [Mark] in your dashboard →". Needs `agentName` from activation response → page.tsx → TrialSuccessScreen prop. | MEDIUM | NOT STARTED |
+| D46 | UX | TrialSuccessScreen CTA not personalized with agent name. Phase 5 plan: "Talk to [Mark] in your dashboard →". Needs `agentName` from activation response → page.tsx → TrialSuccessScreen prop. | MEDIUM | **DONE** (already implemented — provision/trial/route.ts → page.tsx → status/page.tsx → TrialSuccessScreen prop chain fully wired) |
+| D47 | FEATURE | Plan selection in onboarding — 7-step flow with plan picker at step 4. `selectedPlan` type added to OnboardingData. Capabilities (booking/forwarding) gated to Pro plan. Summary card in step 7 shows plan name + price. DB: `selected_plan` column added to `clients` via migration. | HIGH | **DONE** 2026-03-24 |
+| D48 | FEATURE | Stripe 3-tier products created (LIVE). Lite: prod_UCl8SbXQTqNhT6, Core: prod_UCl8nni05Nk9lB, Pro: prod_UCl8d1JTMthpf7. All 6 price IDs (monthly+annual) now in PLANS[]. Upgrade route: `/api/billing/upgrade`. | HIGH | **DONE** 2026-03-24 |
 
 ---
 
@@ -144,6 +146,7 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h
 
 NEXT:
+  UPGRADE-CTA -> Dashboard upgrade CTA when trial_expires_at < now (show plan picker + /api/billing/upgrade call)
   DB-MIG  -> weekly_digest_enabled migration (30s)
   S16a    -> Call recording consent disclosure (GATE-2)
   SLICE-2e -> Inline Mini-Editors

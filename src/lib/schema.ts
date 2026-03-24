@@ -1,11 +1,9 @@
-import { BETA_PROMO, BASE_PLAN, FUTURE_TIERS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
+import { PLANS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
 
 import { SITE_URL } from "@/lib/app-url";
 import { BRAND_NAME, BRAND_PRODUCT } from "@/lib/brand";
 
 const siteUrl = SITE_URL;
-
-const effectivePrice = BETA_PROMO.enabled ? BETA_PROMO.monthly : BASE_PLAN.monthly;
 
 export const faqSchema = {
   "@context": "https://schema.org",
@@ -67,10 +65,10 @@ export const pricingSchema = {
   },
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: String(effectivePrice),
-    highPrice: String(FUTURE_TIERS.length > 0 ? FUTURE_TIERS[FUTURE_TIERS.length - 1].price : effectivePrice),
+    lowPrice: String(PLANS[0].monthly),
+    highPrice: String(PLANS[PLANS.length - 1].monthly),
     priceCurrency: CURRENCY === "CAD" ? "CAD" : "USD",
-    offerCount: 1 + FUTURE_TIERS.length,
+    offerCount: PLANS.length,
   },
 };
 

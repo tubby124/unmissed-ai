@@ -2,9 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import CallsList from '@/components/dashboard/CallsList'
-import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import OperatorActivity from '@/components/dashboard/OperatorActivity'
-import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +40,6 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   let minutesUsed = 0
   let minuteLimit = DEFAULT_MINUTE_LIMIT
   let bonusMinutes = 0
-  let telegramConnected = false
 
   if (user) {
     const { data: cu } = await supabase
@@ -83,7 +80,6 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       minutesUsed = Math.ceil((clientData?.seconds_used_this_month ?? 0) / 60)
       minuteLimit = clientData?.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
       bonusMinutes = clientData?.bonus_minutes ?? 0
-      telegramConnected = !!(clientData?.telegram_bot_token && clientData?.telegram_chat_id)
 
       // Redirect setup clients to setup page
       if (clientStatus === 'setup') {
@@ -133,40 +129,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     }
   }
 
-  const hasReceivedCall = allCalls.length > 0
-
-  // Check if knowledge base has content for onboarding checklist
-  let hasKnowledge = false
-  if (!isAdmin && clientId) {
-    const { count } = await supabase
-      .from('knowledge_chunks')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .limit(1)
-    hasKnowledge = (count ?? 0) > 0
-  }
-
-  const isTrial = clientStatus === 'trial'
-  const showChecklist = !isAdmin && (clientStatus === 'trial' || clientStatus === 'active')
-
   return (
     <div className="p-3 sm:p-6 space-y-6">
-      {((!isAdmin && clientHasAgent) || (isAdmin && adminSelectedClientId && clientHasAgent)) && (
-        <AgentTestCard
-          agentName={clientAgentName || clientBusinessName || 'Your Agent'}
-          businessName={clientBusinessName || ''}
-          clientStatus={clientStatus}
-        />
-      )}
-      {showChecklist && (
-        <OnboardingChecklist
-          hasPhoneNumber={!!clientPhone}
-          hasReceivedCall={hasReceivedCall}
-          telegramConnected={telegramConnected}
-          hasKnowledge={hasKnowledge}
-          isTrial={isTrial}
-        />
-      )}
       <OperatorActivity clientId={clientId} />
       <CallsList
         initialCalls={allCalls}

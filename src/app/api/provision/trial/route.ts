@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
       callback_phone: intakePayload.callback_phone || null,
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
+      selected_plan: data.selectedPlan || 'core',
     })
     .select("id")
     .single();
@@ -212,6 +213,7 @@ export async function POST(req: NextRequest) {
       name: clientSlug.slice(0, 64),
       voice: voiceId,
       slug: clientSlug,
+      maxDuration: '180s',
     });
   } catch (err) {
     console.error("[provision/trial] createAgent failed:", err);
@@ -279,8 +281,9 @@ export async function POST(req: NextRequest) {
   // Telegram alert handled by activateClient() — no duplicate needed
 
   // SCRAPE2/K2: Seed knowledge chunks from website scrape data
+  let knowledgeCount = 0;
   try {
-    await seedKnowledgeFromScrape(supa, {
+    const seedResult = await seedKnowledgeFromScrape(supa, {
       clientId,
       clientSlug,
       scrapeData: data.websiteScrapeResult ?? null,
@@ -288,6 +291,7 @@ export async function POST(req: NextRequest) {
       runId: `trial-${intakeId}`,
       routeLabel: 'provision/trial',
     });
+    knowledgeCount = seedResult?.chunkCount ?? 0;
   } catch (seedErr) {
     // Chunk seeding failure should NOT block activation
     console.error(`[provision/trial] Knowledge seeding failed for ${clientSlug}:`, seedErr);
@@ -335,5 +339,6 @@ export async function POST(req: NextRequest) {
     agentName: data.agentName ?? null,
     setupUrl: result.setupUrl ?? null,
     telegramLink: result.telegramLink ?? null,
+    knowledgeCount: knowledgeCount ?? 0,
   }, { status: 201 });
 }

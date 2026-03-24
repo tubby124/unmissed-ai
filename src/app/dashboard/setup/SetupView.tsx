@@ -15,9 +15,10 @@ interface SetupViewProps {
   clients: SetupClientConfig[]
   isAdmin: boolean
   isTrialing?: boolean
+  isNewUpgrade?: boolean
 }
 
-export default function SetupView({ clients, isAdmin, isTrialing = false }: SetupViewProps) {
+export default function SetupView({ clients, isAdmin, isTrialing = false, isNewUpgrade = false }: SetupViewProps) {
   const [selectedId, setSelectedId] = useState(clients[0]?.id ?? '')
   const [lineType, setLineType] = useState<'mobile' | 'landline' | 'voip'>('mobile')
   const [carrier, setCarrier] = useState('')
@@ -52,62 +53,86 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
 
-  // Trial users see a locked preview — the forwarding wizard requires a live account
-  if (isTrialing && !isAdmin) {
+  // Trial users see a locked preview — the forwarding wizard requires a live account.
+  // isNewUpgrade overrides this: the user just paid and we route them here before the
+  // Stripe webhook fires (subscription_status may still read 'trialing' briefly).
+  if (isTrialing && !isAdmin && !isNewUpgrade) {
     return (
-      <div className="max-w-xl mx-auto px-5 py-8 space-y-6">
-        {/* Top upgrade banner */}
-        <div className="flex items-start gap-3 py-4 px-5 rounded-xl border" style={{ backgroundColor: 'var(--color-accent-tint)', borderColor: 'color-mix(in srgb, var(--color-primary) 25%, transparent)' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }}>
-            <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-1)' }}>Call Forwarding Setup</p>
-            <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>This is where you&apos;ll set up call forwarding after upgrading. Here&apos;s what to expect:</p>
-          </div>
-        </div>
-
-        {/* Preview steps */}
-        <div className="space-y-3">
-          {[
-            { num: '01', title: 'Get your dedicated phone number', desc: 'We provision a local number in your area code that your agent answers on.' },
-            { num: '02', title: 'Configure forwarding from your business line', desc: 'Dial a short code on your existing phone to send missed calls to your agent.' },
-            { num: '03', title: 'Test that calls reach your agent', desc: 'Call your existing number, let it ring, and confirm your agent picks up.' },
-          ].map(step => (
-            <div key={step.num} className="flex items-start gap-4 rounded-2xl p-4 relative overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', opacity: 0.55 }}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold font-mono" style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-3)' }}>
-                {step.num}
-              </div>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>{step.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>{step.desc}</p>
-              </div>
-              {/* Lock overlay */}
-              <div className="absolute top-3 right-3">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-                  <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
+      <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-5 py-12">
+        <div className="w-full max-w-xl space-y-6">
+          {/* Top upgrade banner */}
+          <div className="flex items-start gap-3 py-4 px-5 rounded-xl border" style={{ backgroundColor: 'var(--color-accent-tint)', borderColor: 'color-mix(in srgb, var(--color-primary) 25%, transparent)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }}>
+              <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-1)' }}>Call Forwarding Setup</p>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>This is where you&apos;ll set up call forwarding after upgrading. Here&apos;s what to expect:</p>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Bottom CTA */}
-        <a
-          href="/dashboard/settings?tab=billing"
-          className="w-full py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--color-primary)' }}
-        >
-          Upgrade to unlock call forwarding setup
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </a>
-        <p className="text-[11px] text-center" style={{ color: 'var(--color-text-3)' }}>
-          Once you go live, your existing business phone number keeps working — callers just reach your agent when you&apos;re unavailable.
-        </p>
+          {/* Preview steps */}
+          <div className="space-y-3">
+            {[
+              { num: '01', title: 'Get your dedicated phone number', desc: 'We provision a local number in your area code that your agent answers on.' },
+              { num: '02', title: 'Configure forwarding from your business line', desc: 'Dial a short code on your existing phone to send missed calls to your agent.' },
+              { num: '03', title: 'Test that calls reach your agent', desc: 'Call your existing number, let it ring, and confirm your agent picks up.' },
+            ].map(step => (
+              <div key={step.num} className="flex items-start gap-4 rounded-2xl p-4 relative overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', opacity: 0.65 }}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold font-mono" style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-3)' }}>
+                  {step.num}
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-1)' }}>{step.title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>{step.desc}</p>
+                </div>
+                {/* Lock overlay */}
+                <div className="absolute top-3 right-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+                    <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom CTA */}
+          <a
+            href="/dashboard/settings?tab=billing"
+            className="w-full py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            Upgrade to unlock call forwarding setup
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+
+          {/* What you'll need */}
+          <div className="rounded-2xl border px-5 py-4 space-y-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: 'var(--color-text-3)' }}>What you&apos;ll need to go live</p>
+            <div className="space-y-2.5">
+              {[
+                'Your existing business phone number (mobile, landline, or VoIP)',
+                'About 3 minutes to dial the forwarding activation codes',
+                'Your agent is already trained — no extra setup needed',
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5 text-green-400">
+                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="text-xs" style={{ color: 'var(--color-text-2)' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[11px] text-center" style={{ color: 'var(--color-text-3)' }}>
+            Once you go live, your existing business phone number keeps working — callers just reach your agent when you&apos;re unavailable.
+          </p>
+        </div>
       </div>
     )
   }
@@ -149,6 +174,24 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
 
   return (
     <div className="max-w-xl mx-auto px-5 py-8 space-y-8">
+
+      {/* Go Live banner — shown after Stripe checkout completes */}
+      {isNewUpgrade && (
+        <div
+          className="flex items-start gap-3 py-4 px-5 rounded-xl border"
+          style={{ backgroundColor: 'var(--color-accent-tint)', borderColor: 'color-mix(in srgb, var(--color-primary) 25%, transparent)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }}>
+            <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-1)' }}>One step from go live</p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>
+              Your upgrade is confirmed. Set up call forwarding below to start receiving real calls on your business number.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── 3-step wizard progress indicator ───────────────────────── */}
       <div className="flex items-center gap-2">

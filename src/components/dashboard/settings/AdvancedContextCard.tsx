@@ -157,7 +157,7 @@ export default function AdvancedContextCard({
             value={facts}
             onChange={e => { setFacts(e.target.value); markDirty() }}
             rows={4}
-            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
+            className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 resize-y min-h-[96px] focus:outline-none focus:border-blue-500/40 transition-colors"
             placeholder="e.g. Parking is free out front. We're near the Walmart on 22nd St. Our lead tech is Ryan. Closed Christmas Day and Boxing Day."
           />
         </div>

@@ -405,6 +405,73 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // ── Trial-to-paid upgrade path ─────────────────────────────────────
+  // Upgrade route sends { clientId, planId, billing } — no intake_id or client_slug
+  if (session.metadata?.clientId && session.metadata?.planId && !session.metadata?.intake_id) {
+    const upgradeClientId = session.metadata.clientId
+    const upgradePlanId = session.metadata.planId
+
+    const { data: cl } = await adminSupa
+      .from('clients')
+      .select('id, slug, business_name, niche')
+      .eq('id', upgradeClientId)
+      .maybeSingle()
+
+    if (!cl) {
+      console.error(`[stripe-webhook] Upgrade: client not found clientId=${upgradeClientId}`)
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      subscription_status: 'active',
+      trial_converted: true,
+      selected_plan: upgradePlanId,
+      stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+    }
+
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription : (session.subscription as { id: string } | null)?.id
+
+    if (subscriptionId) {
+      try {
+        const sub = await getStripe().subscriptions.retrieve(subscriptionId)
+        const { discountName, effectiveRate } = extractDiscountInfo(sub)
+        updatePayload.stripe_subscription_id = subscriptionId
+        updatePayload.subscription_current_period_end = new Date(
+          (sub.items.data[0]?.current_period_end ?? sub.trial_end ?? 0) * 1000
+        ).toISOString()
+        updatePayload.stripe_discount_name = discountName
+        updatePayload.effective_monthly_rate = effectiveRate
+        // Minute limit from niche (keep existing behaviour — per-niche override)
+        const tierMinutes = getNicheMinuteLimit(cl.niche ?? null)
+        updatePayload.monthly_minute_limit = tierMinutes
+      } catch (subErr) {
+        console.error('[stripe-webhook] Upgrade: failed to retrieve subscription:', subErr)
+      }
+    }
+
+    await adminSupa.from('clients').update(updatePayload).eq('id', upgradeClientId)
+    console.log(`[stripe-webhook] Trial upgrade complete: ${cl.slug} plan=${upgradePlanId}`)
+
+    // Telegram alert
+    try {
+      const { data: adminCl } = await adminSupa
+        .from('clients')
+        .select('telegram_bot_token, telegram_chat_id')
+        .eq('slug', 'hasan-sharif')
+        .single()
+      if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+        await sendAlert(
+          adminCl.telegram_bot_token as string,
+          adminCl.telegram_chat_id as string,
+          `🎉 Trial converted: ${cl.business_name} (${cl.slug})\nPlan: ${upgradePlanId}\nStatus: active`
+        )
+      }
+    } catch { /* non-fatal */ }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
   // ── Activation path ────────────────────────────────────────────────
   const { intake_id, client_id, client_slug, reserved_number: reservedNumberMeta } = session.metadata ?? {}
   const reservedNumber = reservedNumberMeta || null

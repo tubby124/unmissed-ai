@@ -21,16 +21,14 @@ export const NAV_ITEMS: NavItem[] = [
   // ── Group 1 — CLIENT MAIN ─────────────────────────────────────────────────
   { href: '/dashboard', label: 'Overview', adminLabel: 'Command Center', adminOnly: false, group: 1, iconName: 'command-center' },
   { href: '/dashboard/agent', label: 'Agent', adminOnly: false, group: 1, iconName: 'agent' },
-  { href: '/dashboard/knowledge', label: 'Knowledge', adminOnly: false, group: 1, iconName: 'book' },
-  { href: '/dashboard/actions', label: 'Actions', adminOnly: false, group: 1, iconName: 'bolt' },
   { href: '/dashboard/calls', label: 'Calls', adminOnly: false, group: 1, iconName: 'phone' },
+  { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 1, iconName: 'bell' },
   // ── Group 2 — OPS ─────────────────────────────────────────────────────────
   { href: '/dashboard/setup', label: 'Go Live', adminOnly: false, group: 2, iconName: 'wrench' },
   // ── Group 3 — SECONDARY (trialLocked) ────────────────────────────────────
   { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 3, iconName: 'broadcast', trialLocked: true },
   { href: '/dashboard/leads', label: 'Leads', adminLabel: 'Outbound Queue', adminOnly: false, group: 3, iconName: 'list', trialLocked: true },
   { href: '/dashboard/calendar', label: 'Calendar', adminOnly: false, group: 3, iconName: 'calendar', trialLocked: true },
-  { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 3, iconName: 'bell', trialLocked: true },
   // ── Group 4 — ADMIN ONLY ──────────────────────────────────────────────────
   { href: '/dashboard/clients', label: 'Clients', adminOnly: true, group: 4, iconName: 'users' },
   { href: '/dashboard/campaigns', label: 'Performance', adminOnly: true, group: 4, iconName: 'chart-columns' },

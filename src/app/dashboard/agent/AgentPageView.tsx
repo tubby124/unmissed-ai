@@ -6,6 +6,10 @@ import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
+import HoursCard from '@/components/dashboard/settings/HoursCard'
+import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
+import ActivityLog from '@/components/dashboard/settings/ActivityLog'
+import AgentCurrentVoiceCard from '@/components/dashboard/settings/AgentCurrentVoiceCard'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 
@@ -42,32 +46,77 @@ function AgentCards({
   const voiceStyleLabel = VOICE_STYLE_LABELS[client.voice_style_preset ?? 'casual_friendly'] ?? 'casual, friendly'
 
   return (
-    <div className="space-y-4">
-      <AgentOverviewCard
-        client={client}
-        isAdmin={isAdmin}
-        isActive={isActive}
-        onToggleStatus={toggleStatus}
-        previewMode={previewMode}
-      />
-      <VoiceStyleCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialPreset={client.voice_style_preset ?? 'casual_friendly'}
-        previewMode={previewMode}
-      />
-      <VoicemailGreetingCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialText={client.voicemail_greeting_text ?? ''}
-        businessName={client.business_name}
-        hasAudioGreeting={!!client.voicemail_greeting_audio_url}
-        previewMode={previewMode}
-      />
-      <CapabilitiesCard
-        client={client}
-        isAdmin={isAdmin}
-      />
+    <div className="space-y-6">
+      {/* ── Identity & Status ─────────────────────────────── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Identity &amp; Status</p>
+        <AgentOverviewCard
+          client={client}
+          isAdmin={isAdmin}
+          isActive={isActive}
+          onToggleStatus={toggleStatus}
+          previewMode={previewMode}
+        />
+      </div>
+
+      {/* ── Voice & Style ─────────────────────────────────── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Voice &amp; Style</p>
+        <div className="space-y-4">
+          <VoiceStyleCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialPreset={client.voice_style_preset ?? 'casual_friendly'}
+            previewMode={previewMode}
+          />
+          <VoicemailGreetingCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialText={client.voicemail_greeting_text ?? ''}
+            businessName={client.business_name}
+            hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+            previewMode={previewMode}
+          />
+          <AgentCurrentVoiceCard
+            agentVoiceId={client.agent_voice_id ?? ''}
+            isAdmin={isAdmin}
+          />
+        </div>
+      </div>
+
+      {/* ── Capabilities ──────────────────────────────────── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Capabilities</p>
+        <CapabilitiesCard
+          client={client}
+          isAdmin={isAdmin}
+        />
+      </div>
+
+      {/* ── Availability ──────────────────────────────────── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Availability</p>
+        <div className="space-y-4">
+          <HoursCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialWeekday={client.business_hours_weekday ?? ''}
+            initialWeekend={client.business_hours_weekend ?? ''}
+            initialBehavior={client.after_hours_behavior ?? 'take_message'}
+            initialPhone={client.after_hours_emergency_phone ?? ''}
+            previewMode={previewMode}
+          />
+          <IvrMenuCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialEnabled={client.ivr_enabled ?? false}
+            initialPrompt={client.ivr_prompt ?? ''}
+            businessName={client.business_name}
+            agentName={client.agent_name}
+            previewMode={previewMode}
+          />
+        </div>
+      </div>
 
       {/* Behavior summary */}
       <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
@@ -82,6 +131,12 @@ function AgentCards({
             <> Represents <span className="font-medium t1">{client.business_name}</span>.</>
           ) : null}
         </p>
+      </div>
+
+      {/* ── Activity ──────────────────────────────────────── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Activity</p>
+        <ActivityLog clientId={client.id} isAdmin={isAdmin} />
       </div>
     </div>
   )
@@ -113,7 +168,7 @@ export default function AgentPageView({ clients, isAdmin, previewMode, initialCl
   if (!client) return null
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 max-w-2xl">
+    <div className="p-3 sm:p-6 space-y-6 max-w-3xl">
       {isAdmin && clients.length > 1 && (
         <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
       )}

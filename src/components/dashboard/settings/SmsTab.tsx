@@ -136,7 +136,7 @@ export default function SmsTab({
           onChange={e => setSmsTemplate(e.target.value)}
           disabled={!smsEnabled || !client.twilio_number}
           rows={3}
-          className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full bg-black/20 border b-theme rounded-xl p-3 text-sm t1 font-mono resize-y min-h-[72px] focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           placeholder="Thanks for calling {{business}}! We'll follow up shortly."
         />
         <p className="text-[10px] t3 mt-1">

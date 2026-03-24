@@ -30,6 +30,8 @@ function StatusContent() {
   // Sanitize: if the stored URL has localhost (from a dev-environment test), fall back to /dashboard
   const trialSetupUrl = rawSetupUrl && !rawSetupUrl.includes("localhost") ? rawSetupUrl : "/dashboard";
   const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
+  const trialEmail = searchParams.get("email") ? decodeURIComponent(searchParams.get("email")!) : null;
+  const trialKnowledgeCount = searchParams.get("knowledgeCount") ? parseInt(searchParams.get("knowledgeCount")!, 10) : 0;
   // tier param deprecated — single plan now. Kept for backward compat with old URLs.
 
   const [loading, setLoading] = useState(false);
@@ -121,7 +123,18 @@ function StatusContent() {
 
   // ── Trial success screen ────────────────────────────────────────────────────
   if (isTrial) {
-    return <TrialSuccessScreen clientId={trialClientId} agentName={trialAgentName} setupUrl={trialSetupUrl} telegramLink={trialTelegramLink} />;
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" data-theme="dark" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #0f172a 60%, #1e1b4b 100%)' }}>
+        <TrialSuccessScreen
+          clientId={trialClientId}
+          agentName={trialAgentName}
+          setupUrl={trialSetupUrl}
+          telegramLink={trialTelegramLink}
+          email={trialEmail}
+          knowledgeCount={trialKnowledgeCount}
+        />
+      </div>
+    );
   }
 
   // ── Success state ──────────────────────────────────────────────────────────

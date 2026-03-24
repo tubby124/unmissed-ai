@@ -105,8 +105,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 <FloatingAdvisorBubble isAdmin={isAdmin} />
               </main>
 
-              {/* Activity feed — XL+ right panel */}
-              <ActivityFeed isAdmin={isAdmin} clientId={clientId} />
+              {/* Activity feed — XL+ right panel — admin only */}
+              {isAdmin && <ActivityFeed isAdmin={isAdmin} clientId={clientId} />}
             </div>
           </AdminClientProvider>
           <FloatingCallOrb />
