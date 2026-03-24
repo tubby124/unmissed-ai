@@ -11,10 +11,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
-import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
+import { ensureTwilioProvisioned } from '@/lib/ensure-twilio-provisioned'
 import { APP_URL } from '@/lib/app-url'
 import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
@@ -113,158 +113,20 @@ export async function activateClient(params: {
 
   // ── Step 1: Assign Twilio number (skip entirely for trial mode) ─────────────
   if (mode !== 'trial') {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID!
-    const authToken = process.env.TWILIO_AUTH_TOKEN!
-    const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-
-    const voiceUrl   = `${appUrl}/api/webhook/${clientSlug}/inbound`
-    const fallbackUrl = `${appUrl}/api/webhook/${clientSlug}/fallback`
-    const smsUrl     = `${appUrl}/api/webhook/${clientSlug}/sms-inbound`
-
-    if (reservedNumber) {
-      // ── Inventory path: configure existing number's webhooks ─────────────────
-      try {
-        const { data: invRow } = await adminSupa
-          .from('number_inventory')
-          .select('twilio_sid')
-          .eq('phone_number', reservedNumber)
-          .single()
-
-        if (!invRow) {
-          console.error(`${logPrefix} Inventory number ${reservedNumber} not found in DB for slug=${clientSlug}`)
-          await notifyAdmin(adminBot, adminChat, `⚠️ Inventory number ${reservedNumber} missing from DB — manual fix needed`)
-        } else {
-          const patchUrl  = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/${invRow.twilio_sid}.json`
-          const patchBody = new URLSearchParams({
-            VoiceUrl:            voiceUrl,
-            VoiceMethod:         'POST',
-            VoiceFallbackUrl:    fallbackUrl,
-            VoiceFallbackMethod: 'POST',
-            SmsUrl:              smsUrl,
-            SmsMethod:           'POST',
-          })
-          const patchRes = await fetch(patchUrl, {
-            method:  'POST',
-            headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    patchBody.toString(),
-          })
-          if (patchRes.ok) {
-            console.log(`${logPrefix} Inventory number ${reservedNumber} reconfigured for slug=${clientSlug}`)
-            await notifyAdmin(adminBot, adminChat, `📞 Inventory number configured: <b>${reservedNumber}</b> for ${businessName}`)
-          } else {
-            const errText = await patchRes.text()
-            console.error(`${logPrefix} Twilio PATCH failed for ${reservedNumber}: ${errText}`)
-            await notifyAdmin(adminBot, adminChat, `⚠️ Twilio PATCH failed for ${reservedNumber} — fix VoiceUrl manually`)
-          }
-        }
-
-        // Mark number as assigned regardless of PATCH result (client paid)
-        await adminSupa
-          .from('number_inventory')
-          .update({
-            status: 'assigned',
-            assigned_client_id: clientId,
-            reserved_intake_id: null,
-            reserved_at: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('phone_number', reservedNumber)
-
-        twilioNumber = reservedNumber
-        steps.push({ step: 'twilio_assign', ok: true })
-      } catch (err) {
-        console.error(`${logPrefix} Inventory path threw for ${reservedNumber}: ${err}`)
-        await notifyAdmin(adminBot, adminChat, `⚠️ Inventory path threw: ${String(err).slice(0, 100)}`)
-        twilioNumber = reservedNumber // still assign — client paid
-        steps.push({ step: 'twilio_assign', ok: true }) // number assigned despite PATCH issue
-      }
-    } else {
-      // ── Fresh path: search + buy a new Twilio number ──────────────────────────
-      try {
-        const buyUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers.json`
-
-        const province = (intakeJson.province as string | null) || null
-        const isCanadian = !!(province && province in PROVINCE_AREA_CODES)
-        const searchCountry = isCanadian ? 'CA' : 'US'
-        const searchBase = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/AvailablePhoneNumbers/${searchCountry}/Local.json`
-
-        let availableNumber: string | null = null
-
-        if (isCanadian && province) {
-          const areaCodes = PROVINCE_AREA_CODES[province] || []
-          for (const code of areaCodes) {
-            const searchRes = await fetch(`${searchBase}?AreaCode=${code}&Limit=1`, {
-              headers: { Authorization: `Basic ${twilioAuth}` },
-            })
-            if (searchRes.ok) {
-              const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
-              availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
-              if (availableNumber) { console.log(`${logPrefix} Found CA number with area code ${code}`); break }
-            }
-          }
-          if (!availableNumber) {
-            console.warn(`${logPrefix} No number found for province=${province}, trying any CA number`)
-            const retryRes = await fetch(`${searchBase}?Limit=1`, { headers: { Authorization: `Basic ${twilioAuth}` } })
-            if (retryRes.ok) {
-              const retryData = await retryRes.json() as { available_phone_numbers: { phone_number: string }[] }
-              availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
-            }
-          }
-        } else {
-          const searchUrl = areaCode ? `${searchBase}?AreaCode=${areaCode}&Limit=1` : `${searchBase}?Limit=1`
-          const searchRes = await fetch(searchUrl, { headers: { Authorization: `Basic ${twilioAuth}` } })
-          if (searchRes.ok) {
-            const searchData = await searchRes.json() as { available_phone_numbers: { phone_number: string }[] }
-            availableNumber = searchData.available_phone_numbers?.[0]?.phone_number ?? null
-          }
-          if (!availableNumber && areaCode) {
-            console.warn(`${logPrefix} Area code ${areaCode} unavailable, searching without area code`)
-            const retryRes = await fetch(`${searchBase}?Limit=1`, { headers: { Authorization: `Basic ${twilioAuth}` } })
-            if (retryRes.ok) {
-              const retryData = await retryRes.json() as { available_phone_numbers: { phone_number: string }[] }
-              availableNumber = retryData.available_phone_numbers?.[0]?.phone_number ?? null
-            }
-          }
-        }
-
-        if (availableNumber) {
-          const buyBody = new URLSearchParams({
-            PhoneNumber: availableNumber,
-            VoiceUrl: voiceUrl,
-            VoiceMethod: 'POST',
-            VoiceFallbackUrl: fallbackUrl,
-            VoiceFallbackMethod: 'POST',
-            SmsUrl: smsUrl,
-            SmsMethod: 'POST',
-          })
-          const buyRes = await fetch(buyUrl, {
-            method: 'POST',
-            headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: buyBody.toString(),
-          })
-          if (buyRes.ok) {
-            const buyData = await buyRes.json() as { phone_number: string }
-            twilioNumber = buyData.phone_number
-            console.log(`${logPrefix} Twilio number purchased: ${twilioNumber} for slug=${clientSlug}`)
-            await notifyAdmin(adminBot, adminChat, `📞 Twilio number purchased: <b>${twilioNumber}</b> for ${businessName}`)
-            steps.push({ step: 'twilio_purchase', ok: true })
-          } else {
-            const errText = await buyRes.text()
-            console.error(`${logPrefix} Twilio number purchase failed for slug=${clientSlug}: ${errText}`)
-            await notifyAdmin(adminBot, adminChat, `⚠️ Twilio number purchase FAILED for ${businessName}`)
-            steps.push({ step: 'twilio_purchase', ok: false, error: `purchase failed: ${errText.slice(0, 200)}` })
-          }
-        } else {
-          console.error(`${logPrefix} No available Twilio numbers found for slug=${clientSlug}`)
-          await notifyAdmin(adminBot, adminChat, `⚠️ No Twilio numbers available for ${businessName}`)
-          steps.push({ step: 'twilio_purchase', ok: false, error: 'no numbers available' })
-        }
-      } catch (err) {
-        console.error(`${logPrefix} Twilio step threw: ${err}`)
-        await notifyAdmin(adminBot, adminChat, `⚠️ Twilio step threw: ${String(err).slice(0, 100)}`)
-        steps.push({ step: 'twilio_purchase', ok: false, error: String(err).slice(0, 200) })
-      }
-    }
+    const provision = await ensureTwilioProvisioned(adminSupa, {
+      clientId,
+      clientSlug,
+      reservedNumber,
+      businessName,
+    })
+    twilioNumber = provision.twilioNumber
+    steps.push({
+      step: provision.stepName,
+      ok: provision.ok,
+      ...(provision.skipped ? { skipped: true, skipReason: provision.skipReason } : {}),
+      ...(provision.error ? { error: provision.error } : {}),
+    })
+    await notifyAdmin(adminBot, adminChat, provision.notifyMsg)
   } else {
     steps.push({ step: 'twilio_purchase', ok: false, skipped: true, skipReason: 'trial mode' })
   }

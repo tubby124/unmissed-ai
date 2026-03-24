@@ -23,6 +23,7 @@ import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notifySystemFailure } from '@/lib/admin-alerts'
 import { syncClientTools } from '@/lib/sync-client-tools'
+import { ensureTwilioProvisioned } from '@/lib/ensure-twilio-provisioned'
 import { PLANS } from '@/lib/pricing'
 
 function getStripe() {
@@ -530,6 +531,28 @@ export async function POST(req: NextRequest) {
       // Non-fatal — tools will be rebuilt on next settings save or sync-agent call
     }
 
+    // ── Provision Twilio number if not yet assigned ─────────────────────────────
+    // Trial users have no number. Dashboard upgrades skip activateClient(), so
+    // we provision here. ensureTwilioProvisioned() is idempotent — safe to replay.
+    const provision = await ensureTwilioProvisioned(adminSupa, {
+      clientId: upgradeClientId,
+      clientSlug: cl.slug,
+      businessName: cl.business_name ?? cl.slug,
+    })
+    if (!provision.skipped) {
+      if (provision.ok) {
+        console.log(`[stripe-webhook] Twilio provisioned after upgrade: ${provision.twilioNumber} for ${cl.slug}`)
+      } else {
+        console.error(`[stripe-webhook] Twilio provisioning failed after upgrade for ${cl.slug}: ${provision.error}`)
+        await notifySystemFailure(
+          `Twilio provisioning failed after upgrade for ${cl.slug}`,
+          provision.error ?? 'unknown',
+          adminSupa,
+          upgradeClientId,
+        )
+      }
+    }
+
     // Telegram alert
     try {
       const { data: adminCl } = await adminSupa
@@ -538,10 +561,13 @@ export async function POST(req: NextRequest) {
         .eq('slug', 'hasan-sharif')
         .single()
       if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+        const twilioLine = provision.ok
+          ? `\n${provision.notifyMsg}`
+          : provision.skipped ? '' : `\n⚠️ Twilio provisioning failed: ${provision.error}`
         await sendAlert(
           adminCl.telegram_bot_token as string,
           adminCl.telegram_chat_id as string,
-          `🎉 Trial converted: ${cl.business_name} (${cl.slug})\nPlan: ${upgradePlanId}\nStatus: active`
+          `🎉 Trial converted: ${cl.business_name} (${cl.slug})\nPlan: ${upgradePlanId}\nStatus: active${twilioLine}`
         )
       }
     } catch { /* non-fatal */ }
