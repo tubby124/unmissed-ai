@@ -163,26 +163,26 @@ export async function POST(req: NextRequest) {
   const canAutoApprove = cu.role === 'admin' || cu.role === 'owner'
   const status = body.auto_approve && canAutoApprove ? 'approved' : 'pending'
 
-  // Generate embedding
+  // Generate embedding — if unavailable (no API key or outage), save without it
   const embedding = await embedText(content)
-  if (!embedding) {
-    return NextResponse.json({ error: 'Failed to generate embedding — try again' }, { status: 502 })
-  }
+  const effectiveStatus = embedding ? status : 'pending_embed'
 
   const svc = createServiceClient()
+  const insertRow: Record<string, unknown> = {
+    client_id: clientId,
+    content,
+    chunk_type: chunkType,
+    trust_tier: trustTier,
+    source,
+    status: effectiveStatus,
+    metadata: { added_by: user.id },
+    source_run_id: `manual-${Date.now()}`,
+  }
+  if (embedding) insertRow.embedding = JSON.stringify(embedding)
+
   const { data: chunk, error } = await svc
     .from('knowledge_chunks')
-    .insert({
-      client_id: clientId,
-      content,
-      chunk_type: chunkType,
-      trust_tier: trustTier,
-      source,
-      status,
-      embedding: JSON.stringify(embedding),
-      metadata: { added_by: user.id },
-      source_run_id: `manual-${Date.now()}`,
-    })
+    .insert(insertRow)
     .select('id, content, status, trust_tier, source, chunk_type, created_at')
     .single()
 
@@ -193,12 +193,12 @@ export async function POST(req: NextRequest) {
 
   // S5: if auto-approved, rebuild clients.tools to include queryKnowledge
   // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
-  if (status === 'approved') {
+  if (effectiveStatus === 'approved') {
     try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[knowledge/chunks POST] tools sync failed: ${err}`)
     }
   }
 
-  return NextResponse.json({ ok: true, chunk })
+  return NextResponse.json({ ok: true, chunk, embedding_pending: !embedding })
 }
 

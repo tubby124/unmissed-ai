@@ -134,7 +134,10 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
           auto_approve: true,
         }),
       })
-      if (!res.ok) throw new Error('Failed to save')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to save')
+      }
 
       const resolveRes = await fetch('/api/dashboard/knowledge/gaps', {
         method: 'PATCH',
