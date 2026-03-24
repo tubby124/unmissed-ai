@@ -21,9 +21,6 @@ function KnowledgeCards({
   previewMode?: boolean
 }) {
   const knowledgeActive = client.knowledge_backend === 'pgvector'
-  const factCount = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
-  const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
-  const websiteSet = !!client.website_url
 
   return (
     <div className="space-y-6">
@@ -62,26 +59,6 @@ function KnowledgeCards({
         previewMode={previewMode}
         onClientUpdate={() => {}}
       />
-
-      {/* Behavior summary */}
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
-        <p className="text-[10px] uppercase tracking-[0.15em] t3 font-semibold">What your agent knows</p>
-        <p className="text-xs t2 leading-relaxed">
-          {factCount > 0 ? (
-            <><span className="font-medium t1">{factCount} business fact{factCount !== 1 ? 's' : ''}</span> loaded. </>
-          ) : 'No business facts added yet. '}
-          {faqCount > 0 ? (
-            <><span className="font-medium t1">{faqCount} FAQ{faqCount !== 1 ? 's' : ''}</span> configured. </>
-          ) : null}
-          Knowledge base:{' '}
-          <span className="font-medium t1">
-            {knowledgeActive ? 'pgvector search active' : 'standard only'}
-          </span>.
-          {websiteSet ? (
-            <> Website: <span className="font-medium t1">connected</span>.</>
-          ) : <> Website: <span className="font-medium t1">not connected</span>.</>}
-        </p>
-      </div>
     </div>
   )
 }

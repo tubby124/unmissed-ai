@@ -42,7 +42,7 @@ function ChunkStatusBadge({ status }: { status: string }) {
     pending: { bg: 'bg-yellow-400/10', text: 'text-yellow-400' },
     rejected: { bg: 'bg-red-400/10', text: 'text-red-400' },
   }
-  const c = config[status] ?? { bg: 'bg-zinc-400/10', text: 'text-zinc-400' }
+  const c = config[status] ?? { bg: 'bg-hover', text: 't3' }
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.bg} ${c.text}`}>
       {status}
@@ -172,14 +172,14 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
   const hasMore = chunks.length < total
 
   return (
-    <div className="rounded-xl border border-zinc-700/50 overflow-hidden">
-      <div className="px-4 py-3 border-b border-zinc-700/50 flex items-center justify-between gap-3 flex-wrap">
+    <div className="rounded-xl border b-theme overflow-hidden">
+      <div className="px-4 py-3 border-b b-theme flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-semibold text-zinc-200">
+          <p className="text-xs font-semibold t1">
             Knowledge Chunks
           </p>
           {!loading && (
-            <span className="text-[10px] font-mono text-zinc-500">
+            <span className="text-[10px] font-mono t3">
               {total}
             </span>
           )}
@@ -189,7 +189,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-[11px] text-zinc-300 focus:outline-none focus:border-blue-500/50"
+            className="bg-hover border b-theme rounded-lg px-2 py-1 text-[11px] t2 focus:outline-none focus:border-blue-500/50"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -199,7 +199,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
           <select
             value={trustTierFilter}
             onChange={e => setTrustTierFilter(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-[11px] text-zinc-300 focus:outline-none focus:border-blue-500/50"
+            className="bg-hover border b-theme rounded-lg px-2 py-1 text-[11px] t2 focus:outline-none focus:border-blue-500/50"
           >
             <option value="all">All Tiers</option>
             <option value="high">High</option>
@@ -211,30 +211,30 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
 
       {loading ? (
         <div className="p-8 text-center">
-          <svg className="animate-spin h-5 w-5 mx-auto text-zinc-500" viewBox="0 0 24 24" fill="none">
+          <svg className="animate-spin h-5 w-5 mx-auto t3" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <p className="text-xs text-zinc-500 mt-2">Loading chunks...</p>
+          <p className="text-xs t3 mt-2">Loading chunks...</p>
         </div>
       ) : chunks.length === 0 ? (
         <div className="p-8 text-center">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs t3">
             No knowledge chunks found{statusFilter !== 'all' || trustTierFilter !== 'all' ? ' for these filters' : ''}.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
           {chunks.map(chunk => (
             <div key={chunk.id}>
               <button
                 type="button"
                 onClick={() => handleExpand(chunk)}
-                className="w-full text-left px-4 py-3 hover:bg-zinc-800/30 transition-colors"
+                className="w-full text-left px-4 py-3 hover:bg-hover transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-zinc-200 leading-relaxed">
+                    <p className="text-xs t1 leading-relaxed">
                       {expandedId === chunk.id
                         ? chunk.content
                         : chunk.content.length > 200
@@ -242,11 +242,11 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
                           : chunk.content}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <span className="text-[10px] text-zinc-500 font-mono">{chunk.source}</span>
+                      <span className="text-[10px] t3 font-mono">{chunk.source}</span>
                       {chunk.chunk_type && (
-                        <span className="text-[10px] text-zinc-600">{chunk.chunk_type}</span>
+                        <span className="text-[10px] t3">{chunk.chunk_type}</span>
                       )}
-                      <span className="text-[10px] text-zinc-600">
+                      <span className="text-[10px] t3">
                         {new Date(chunk.created_at).toLocaleDateString()}
                       </span>
                       {chunk.hit_count > 0 && (
@@ -264,22 +264,22 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
               </button>
 
               {expandedId === chunk.id && (
-                <div className="px-4 pb-4 space-y-3 bg-zinc-800/20">
+                <div className="px-4 pb-4 space-y-3 bg-hover">
                   {(isAdmin || chunk.status === 'pending') && (
                     <>
                       <textarea
                         value={editContent}
                         onChange={e => setEditContent(e.target.value)}
                         rows={5}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-200 leading-relaxed focus:outline-none focus:border-blue-500/50 resize-y"
+                        className="w-full bg-surface border b-theme rounded-lg px-3 py-2 text-xs t1 leading-relaxed focus:outline-none focus:border-blue-500/50 resize-y"
                       />
                       <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex items-center gap-1.5">
-                          <label className="text-[10px] text-zinc-500 font-medium">Trust:</label>
+                          <label className="text-[10px] t3 font-medium">Trust:</label>
                           <select
                             value={editTier}
                             onChange={e => setEditTier(e.target.value as 'high' | 'medium' | 'low')}
-                            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+                            className="bg-hover border b-theme rounded px-2 py-1 text-[11px] t2 focus:outline-none"
                           >
                             <option value="high">High</option>
                             <option value="medium">Medium</option>
@@ -290,7 +290,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
                           <button
                             onClick={() => handleDelete(chunk.id)}
                             disabled={actionLoading === chunk.id}
-                            className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 disabled:opacity-50 transition-colors"
+                            className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-hover t3 border b-theme hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 disabled:opacity-50 transition-colors"
                           >
                             {actionLoading === chunk.id ? '...' : 'Delete'}
                           </button>
@@ -320,11 +320,11 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
       )}
 
       {hasMore && !loading && (
-        <div className="px-4 py-3 border-t border-zinc-800 text-center">
+        <div className="px-4 py-3 border-t b-theme text-center">
           <button
             onClick={() => fetchChunks(false)}
             disabled={loadingMore}
-            className="px-4 py-1.5 rounded-lg text-[11px] font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 rounded-lg text-[11px] font-medium bg-hover t2 hover:bg-hover disabled:opacity-50 transition-colors"
           >
             {loadingMore ? 'Loading...' : `Load more (${chunks.length} of ${total})`}
           </button>

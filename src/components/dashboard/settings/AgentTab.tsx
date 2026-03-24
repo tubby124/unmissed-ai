@@ -30,6 +30,7 @@ import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowled
 import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
+import SettingsPanel from '@/components/dashboard/settings/SettingsPanel'
 import { useDirtyGuardEffect } from './useDirtyGuard'
 import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
@@ -183,6 +184,8 @@ export default function AgentTab({
     config: false,
   })
 
+  const [activePanel, setActivePanel] = useState<string | null>(null)
+
   const toggleSection = useCallback((id: string) => {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
   }, [])
@@ -228,6 +231,15 @@ export default function AgentTab({
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [openSections])
+
+  // Open right-side panel for panel sections, scroll for others
+  const handleConfigure = useCallback((section: string) => {
+    if (section === 'hours' || section === 'ivr') {
+      setActivePanel(section)
+    } else {
+      handleScrollTo(section)
+    }
+  }, [handleScrollTo])
 
   // For LearningLoopCard → scroll to ImprovePromptCard
   const handleRequestImprovement = useCallback(() => {
@@ -539,7 +551,7 @@ export default function AgentTab({
         <CapabilitiesCard
           client={client}
           isAdmin={isAdmin}
-          onScrollTo={handleScrollTo}
+          onConfigure={handleConfigure}
         />
       ) : (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
@@ -550,29 +562,17 @@ export default function AgentTab({
           <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Agent →</a>
         </div>
       )}
-      <div id="section-hours">
-        {isAdmin ? (
-          <HoursCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialWeekday={hoursWeekday[client.id] ?? ''}
-            initialWeekend={hoursWeekend[client.id] ?? ''}
-            initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
-            initialPhone={afterHoursPhone[client.id] ?? ''}
-            previewMode={previewMode}
-          />
-        ) : (
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Answering schedule</p>
-              <p className="text-[11px] t3">Configure when your agent answers calls</p>
-            </div>
-            <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
-              Go Live →
-            </a>
+      {!isAdmin && (
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium t1">Answering schedule</p>
+            <p className="text-[11px] t3">Configure when your agent answers calls</p>
           </div>
-        )}
-      </div>
+          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
+            Go Live →
+          </a>
+        </div>
+      )}
       {hasCapability(niche, 'bookAppointments') && (
         <div id="section-booking">
           {isAdmin ? (
@@ -598,17 +598,7 @@ export default function AgentTab({
           )}
         </div>
       )}
-      <div id="section-ivr">
-        <IvrMenuCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialEnabled={client.ivr_enabled ?? false}
-          initialPrompt={client.ivr_prompt ?? ''}
-          businessName={client.business_name}
-          agentName={client.agent_name}
-          previewMode={previewMode}
-        />
-      </div>
+      {/* IVR card lives in the right-side panel — opened via CapabilitiesCard */}
     </SettingsSection>
 
     {/* ── 5. AGENT SCRIPT (admin only) ─────────────────────────────── */}
@@ -691,6 +681,40 @@ export default function AgentTab({
 
     {/* ── ACTIVITY LOG ──────────────────────────────────────────── */}
     <ActivityLog clientId={client.id} isAdmin={isAdmin} />
+
+    {/* ── SETTINGS PANEL (right-side drawer) ───────────────────── */}
+    <SettingsPanel
+      open={activePanel !== null}
+      onClose={() => setActivePanel(null)}
+      title={
+        activePanel === 'hours' ? 'Answering Schedule'
+        : activePanel === 'ivr' ? 'Voicemail Menu (IVR)'
+        : ''
+      }
+    >
+      {activePanel === 'hours' && (
+        <HoursCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialWeekday={hoursWeekday[client.id] ?? ''}
+          initialWeekend={hoursWeekend[client.id] ?? ''}
+          initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
+          initialPhone={afterHoursPhone[client.id] ?? ''}
+          previewMode={previewMode}
+        />
+      )}
+      {activePanel === 'ivr' && (
+        <IvrMenuCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialEnabled={client.ivr_enabled ?? false}
+          initialPrompt={client.ivr_prompt ?? ''}
+          businessName={client.business_name}
+          agentName={client.agent_name}
+          previewMode={previewMode}
+        />
+      )}
+    </SettingsPanel>
 
   </div>)
 }

@@ -152,16 +152,9 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
         </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
-        <SummaryCard label="Total" value={summary.total} />
-        <SummaryCard label="HOT" value={summary.hot} color="text-red-400" />
-        <SummaryCard label="WARM" value={summary.warm} color="text-amber-400" />
-        <SummaryCard label="COLD" value={summary.cold} color="text-blue-400" />
-        <SummaryCard label="JUNK" value={summary.junk} color="text-zinc-400" />
-        <SummaryCard label="Missed" value={summary.missed} color="text-orange-400" />
-        <SummaryCard label="Avg Dur" value={formatDuration(summary.avgDuration)} />
-      </div>
+      {/* Lead quality bar + KPI row */}
+      <LeadPipelineBar summary={summary} />
+      <KpiRow summary={summary} />
 
       {/* Missed calls table */}
       <div className="rounded-2xl overflow-hidden border b-theme">
@@ -267,14 +260,84 @@ export default function OperatorActivity({ clientId }: { clientId?: string | nul
   )
 }
 
-function SummaryCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+const LEAD_SEGMENTS = [
+  { key: 'hot',  label: 'HOT',  color: '#ef4444' },
+  { key: 'warm', label: 'WARM', color: '#f59e0b' },
+  { key: 'cold', label: 'COLD', color: '#60a5fa' },
+  { key: 'junk', label: 'JUNK', color: '#52525b' },
+] as const
+
+function LeadPipelineBar({ summary }: { summary: ActivitySummary }) {
+  const qualified = summary.hot + summary.warm + summary.cold + summary.junk
+  const segments = LEAD_SEGMENTS.map(s => ({ ...s, count: summary[s.key] })).filter(s => s.count > 0)
+
+  if (qualified === 0) {
+    return (
+      <div className="rounded-2xl card-surface px-4 py-3 flex items-center gap-3">
+        <div className="w-full h-4 rounded-full bg-[var(--color-hover)]" />
+        <span className="text-[10px] t3 whitespace-nowrap shrink-0">No calls yet</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-2xl px-3 py-2.5 text-center card-surface">
-      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1 t3">
-        {label}
-      </p>
+    <div className="rounded-2xl card-surface p-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Lead Quality</p>
+        <span className="text-[11px] font-mono t2">{qualified} total</span>
+      </div>
+      {/* Proportional bar */}
+      <div className="flex h-5 rounded-full overflow-hidden gap-[1px]">
+        {segments.map(s => (
+          <div
+            key={s.label}
+            style={{ width: `${(s.count / qualified) * 100}%`, backgroundColor: s.color }}
+            title={`${s.label}: ${s.count}`}
+            className="flex items-center justify-center transition-all duration-500"
+          >
+            {(s.count / qualified) >= 0.1 && (
+              <span className="text-[9px] font-bold text-white/90 leading-none">{s.count}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="flex gap-3 mt-2 flex-wrap">
+        {segments.map(s => (
+          <div key={s.label} className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.color }} />
+            <span className="text-[10px] t3">{s.label}</span>
+            <span className="text-[10px] font-mono font-medium t2">{s.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function KpiRow({ summary }: { summary: ActivitySummary }) {
+  const answerRate = summary.total > 0
+    ? Math.round(((summary.total - summary.missed) / summary.total) * 100)
+    : 0
+  const rateColor = answerRate >= 90 ? 'text-green-400' : answerRate >= 70 ? 'text-amber-400' : 'text-red-400'
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <KpiCard label="Missed" value={summary.missed} color="text-orange-400" />
+      <KpiCard label="Avg Duration" value={formatDuration(summary.avgDuration)} />
+      <KpiCard label="Answer Rate" value={`${answerRate}%`} color={rateColor} />
+    </div>
+  )
+}
+
+function KpiCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2.5 text-center card-surface">
       <p className={`text-lg font-bold tabular-nums ${color ?? ''}`} style={color ? undefined : { color: 'var(--color-text-1)' }}>
         {value}
+      </p>
+      <p className="text-[10px] font-medium uppercase tracking-wide t3 mt-0.5">
+        {label}
       </p>
     </div>
   )

@@ -352,7 +352,7 @@ export default function KnowledgeBaseTab({
             className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               knowledgeEnabled
                 ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
-                : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20'
+                : 'bg-hover t3 border b-theme hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20'
             } disabled:opacity-40`}
           >
             {togglingEnabled ? '...' : knowledgeEnabled ? 'Enabled' : 'Enable'}
@@ -362,8 +362,8 @@ export default function KnowledgeBaseTab({
 
       {/* Disabled state */}
       {!knowledgeEnabled && (
-        <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-6 text-center space-y-3">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto text-zinc-600">
+        <div className="rounded-xl border b-theme bg-hover p-6 text-center space-y-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto t3">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <div>
@@ -395,7 +395,7 @@ export default function KnowledgeBaseTab({
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     showAddForm
                       ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                      : 'bg-hover t2 border b-theme hover:opacity-80'
                   }`}
                 >
                   Manual Entry
@@ -405,7 +405,7 @@ export default function KnowledgeBaseTab({
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     fileUploadOpen
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                      : 'bg-hover t2 border b-theme hover:opacity-80'
                   }`}
                 >
                   File Upload
@@ -415,7 +415,7 @@ export default function KnowledgeBaseTab({
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     bulkImportOpen
                       ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                      : 'bg-hover t2 border b-theme hover:opacity-80'
                   }`}
                 >
                   Bulk Import
@@ -423,7 +423,7 @@ export default function KnowledgeBaseTab({
                 <button
                   onClick={handleExport}
                   disabled={exportLoading || previewMode}
-                  className="px-3 py-1 rounded-lg text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 rounded-lg text-[11px] font-medium bg-hover t2 border b-theme hover:opacity-80 disabled:opacity-50 transition-colors"
                 >
                   {exportLoading ? '...' : 'Export'}
                 </button>
@@ -448,7 +448,7 @@ export default function KnowledgeBaseTab({
                       <select
                         value={addType}
                         onChange={e => setAddType(e.target.value as 'fact' | 'qa' | 'manual')}
-                        className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+                        className="bg-hover border b-theme rounded px-2 py-1 text-[11px] t2 focus:outline-none"
                       >
                         <option value="manual">General</option>
                         <option value="fact">Fact</option>
@@ -460,7 +460,7 @@ export default function KnowledgeBaseTab({
                       <select
                         value={addTier}
                         onChange={e => setAddTier(e.target.value as 'high' | 'medium' | 'low')}
-                        className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+                        className="bg-hover border b-theme rounded px-2 py-1 text-[11px] t2 focus:outline-none"
                       >
                         <option value="high">High</option>
                         <option value="medium">Medium</option>
@@ -506,10 +506,10 @@ export default function KnowledgeBaseTab({
                     className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-all ${
                       fileDragging
                         ? 'border-emerald-500 bg-emerald-500/5'
-                        : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900/30'
+                        : 'b-theme bg-surface'
                     } ${fileUploading ? 'opacity-50 pointer-events-none' : ''}`}
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`mb-2 ${fileDragging ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`mb-2 ${fileDragging ? 'text-emerald-400' : 't3'}`}>
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     <p className="text-xs font-medium t2">
@@ -550,8 +550,8 @@ export default function KnowledgeBaseTab({
               {bulkImportOpen && (
                 <div className="space-y-3">
                   <p className="text-xs t3">
-                    Paste a JSON array of chunks or upload a JSON file. Each chunk needs a <code className="text-[10px] bg-zinc-800 px-1 rounded">content</code> field.
-                    Optional: <code className="text-[10px] bg-zinc-800 px-1 rounded">chunk_type</code>, <code className="text-[10px] bg-zinc-800 px-1 rounded">trust_tier</code>.
+                    Paste a JSON array of chunks or upload a JSON file. Each chunk needs a <code className="text-[10px] bg-hover px-1 rounded">content</code> field.
+                    Optional: <code className="text-[10px] bg-hover px-1 rounded">chunk_type</code>, <code className="text-[10px] bg-hover px-1 rounded">trust_tier</code>.
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -661,8 +661,8 @@ export default function KnowledgeBaseTab({
                                 onClick={() => toggleFact(i)}
                                 className={`text-[11px] leading-relaxed flex items-start gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${
                                   selectedFacts.has(i)
-                                    ? 't2 hover:bg-zinc-800/50'
-                                    : 'text-zinc-600 line-through hover:bg-zinc-800/30'
+                                    ? 't2 hover:bg-hover'
+                                    : 't3 line-through hover:bg-hover'
                                 }`}
                               >
                                 <input
@@ -703,7 +703,7 @@ export default function KnowledgeBaseTab({
                                 className={`rounded-lg border p-2 cursor-pointer transition-colors ${
                                   selectedQa.has(i)
                                     ? 'bg-black/10 b-theme'
-                                    : 'bg-transparent border-zinc-800 opacity-40'
+                                    : 'bg-transparent b-theme opacity-40'
                                 }`}
                               >
                                 <div className="flex items-start gap-2">
@@ -714,8 +714,8 @@ export default function KnowledgeBaseTab({
                                     className="mt-0.5 shrink-0 accent-blue-500"
                                   />
                                   <div>
-                                    <p className={`text-[11px] font-medium ${selectedQa.has(i) ? 't1' : 'text-zinc-600'}`}>Q: {qa.q}</p>
-                                    <p className={`text-[11px] mt-0.5 ${selectedQa.has(i) ? 't2' : 'text-zinc-600'}`}>A: {qa.a}</p>
+                                    <p className={`text-[11px] font-medium ${selectedQa.has(i) ? 't1' : 't3'}`}>Q: {qa.q}</p>
+                                    <p className={`text-[11px] mt-0.5 ${selectedQa.has(i) ? 't2' : 't3'}`}>A: {qa.a}</p>
                                   </div>
                                 </div>
                               </div>
@@ -823,7 +823,7 @@ export default function KnowledgeBaseTab({
                               <span className="text-[10px] font-medium t3 truncate">{result.source}</span>
                             </div>
                             <span className={`text-[10px] font-mono shrink-0 ${
-                              result.similarity >= 0.7 ? 'text-green-400' : result.similarity >= 0.4 ? 'text-amber-400' : 'text-zinc-500'
+                              result.similarity >= 0.7 ? 'text-green-400' : result.similarity >= 0.4 ? 'text-amber-400' : 't3'
                             }`}>
                               {(result.similarity * 100).toFixed(0)}%
                             </span>

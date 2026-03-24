@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { buildCalendarUrl } from '@/lib/calendar-url'
 import StatusBadge from './StatusBadge'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
 import LiveDuration from './LiveDuration'
@@ -89,7 +90,15 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
   const [loading, setLoading] = useState(false)
   const [recordingAvailable, setRecordingAvailable] = useState<boolean | null>(null)
   const [recordingLoading, setRecordingLoading] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
   const supabase = createBrowserClient()
+
+  function copyText(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied(null), 2000)
+    }).catch(() => {})
+  }
 
   const dur = fmtDur(call.duration_seconds)
   const stripeColor = STATUS_STRIPE[call.call_status ?? ''] ?? '#3f3f46'
@@ -278,6 +287,42 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
               {!loading && (
                 <div className="pt-3 space-y-3">
+                  {/* Full AI Summary */}
+                  {call.ai_summary && call.ai_summary !== 'Call transcript unavailable or too short to classify.' && (
+                    <div className="px-3 py-2.5 rounded-xl bg-[var(--color-hover)] border b-theme">
+                      <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-3)" }}>AI Summary</p>
+                      <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-1)" }}>{call.ai_summary}</p>
+                    </div>
+                  )}
+
+                  {/* Metadata: confidence · quality · timestamp */}
+                  {((call.confidence ?? expandData?.confidence) != null || call.quality_score != null) && (
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {(call.confidence ?? expandData?.confidence) != null && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Confidence</span>
+                          <span className="text-[11px] font-mono font-semibold" style={{ color: "var(--color-text-1)" }}>
+                            {Math.round((call.confidence ?? expandData?.confidence ?? 0) * 100)}%
+                          </span>
+                        </div>
+                      )}
+                      {call.quality_score != null && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Quality</span>
+                          <span className={`text-[11px] font-mono font-semibold ${
+                            call.quality_score >= 8 ? 'text-green-400' :
+                            call.quality_score >= 5 ? 'text-amber-400' : 'text-red-400'
+                          }`}>
+                            {call.quality_score}/10
+                          </span>
+                        </div>
+                      )}
+                      <span className="ml-auto text-[10px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>
+                        {new Date(call.started_at).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Next steps */}
                   {nextSteps && (
                     <div className="flex items-start gap-2.5 pl-3 py-2 rounded-lg bg-amber-500/[0.05] border border-amber-500/15">
@@ -355,18 +400,68 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                     </div>
                   )}
 
-                  {/* Full call link */}
-                  <Link
-                    href={`/dashboard/calls/${call.ultravox_call_id}`}
-                    onClick={e => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    View full call
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </Link>
+                  {/* Quick actions */}
+                  <div className="flex items-center gap-2 flex-wrap pt-0.5 border-t b-theme">
+                    <div className="flex items-center gap-2 flex-wrap pt-2">
+                      {call.caller_phone && (
+                        <button
+                          onClick={e => { e.stopPropagation(); copyText(call.caller_phone!, 'phone') }}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border b-theme bg-[var(--color-hover)] hover:border-[var(--color-primary)]/40 transition-colors cursor-pointer t2"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          {copied === 'phone' ? 'Copied!' : 'Copy Phone'}
+                        </button>
+                      )}
+                      {call.caller_phone && (
+                        <a
+                          href={buildCalendarUrl({
+                            callerPhone: call.caller_phone,
+                            serviceType: call.service_type,
+                            aiSummary: call.ai_summary,
+                            nextSteps: nextSteps ?? undefined,
+                            callId: call.ultravox_call_id,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border b-theme bg-[var(--color-hover)] hover:border-blue-500/40 hover:text-blue-400 transition-colors cursor-pointer t2"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          + Calendar
+                        </a>
+                      )}
+                      {call.ai_summary && call.ai_summary !== 'Call transcript unavailable or too short to classify.' && (
+                        <button
+                          onClick={e => { e.stopPropagation(); copyText(call.ai_summary!, 'summary') }}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border b-theme bg-[var(--color-hover)] hover:border-[var(--color-primary)]/40 transition-colors cursor-pointer t2"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          {copied === 'summary' ? 'Copied!' : 'Copy Summary'}
+                        </button>
+                      )}
+                      <Link
+                        href={`/dashboard/calls/${call.ultravox_call_id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="ml-auto flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        View full call
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

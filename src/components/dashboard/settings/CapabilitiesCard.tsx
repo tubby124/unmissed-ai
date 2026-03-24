@@ -6,7 +6,7 @@ import { hasCapability } from '@/lib/niche-capabilities'
 interface CapabilitiesCardProps {
   client: ClientConfig
   isAdmin?: boolean
-  onScrollTo?: (section: string) => void
+  onConfigure?: (section: string) => void
 }
 
 type CapabilityItem = {
@@ -19,7 +19,7 @@ type CapabilityItem = {
   layer?: 'always' | 'lookup'
 }
 
-export default function CapabilitiesCard({ client, isAdmin, onScrollTo }: CapabilitiesCardProps) {
+export default function CapabilitiesCard({ client, isAdmin, onConfigure }: CapabilitiesCardProps) {
   const niche = client.niche ?? ''
 
   const factLines = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
@@ -160,26 +160,26 @@ export default function CapabilitiesCard({ client, isAdmin, onScrollTo }: Capabi
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {visible.map(cap => {
-          const isClickable = !!cap.section && !!onScrollTo
+          const isClickable = !!cap.section && !!onConfigure
           const Wrapper = isClickable ? 'button' : 'div'
 
           return (
             <Wrapper
               key={cap.label}
               {...(isClickable ? {
-                onClick: () => onScrollTo!(cap.section!),
+                onClick: () => onConfigure!(cap.section!),
                 type: 'button' as const,
               } : {})}
               className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-colors text-left ${
                 cap.active
                   ? 'border-green-500/20 bg-green-500/[0.04]'
-                  : 'border-zinc-500/15 bg-zinc-500/[0.02]'
+                  : 'b-theme bg-surface'
               } ${isClickable ? 'hover:border-blue-500/30 hover:bg-blue-500/[0.03] cursor-pointer' : ''}`}
             >
               {cap.active ? (
                 <span className="text-green-400 mt-0.5 shrink-0 text-xs">&#10003;</span>
               ) : (
-                <span className="w-2 h-2 rounded-full bg-zinc-500/40 mt-1.5 shrink-0" />
+                <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: 'var(--color-border)' }} />
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
@@ -198,7 +198,7 @@ export default function CapabilitiesCard({ client, isAdmin, onScrollTo }: Capabi
                 )}
               </div>
               {isClickable && (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="text-zinc-500 mt-1 shrink-0">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="t3 mt-1 shrink-0">
                   <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               )}
