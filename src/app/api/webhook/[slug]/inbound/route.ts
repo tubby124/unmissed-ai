@@ -230,7 +230,7 @@ export async function POST(
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed
   const rawCallbackUrl = `${APP_URL}/api/webhook/${slug}/completed`
   const signedCallbackUrl = signCallbackUrl(rawCallbackUrl, slug)
-  const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+  const tools = Array.isArray(client.tools) && client.tools.length > 0 ? (client.tools as object[]) : undefined
 
   // ── Create Ultravox call ───────────────────────────────────────────────────
   const callMeta = { caller_phone: callerPhone, client_slug: slug, client_id: client.id }

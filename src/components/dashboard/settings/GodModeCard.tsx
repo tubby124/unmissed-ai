@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { GodConfigEntry } from './constants'
 import { TIMEZONES } from './constants'
+import { usePatchSettings } from './usePatchSettings'
 
 interface GodModeCardProps {
   clientId: string
@@ -12,8 +13,7 @@ interface GodModeCardProps {
 
 export default function GodModeCard({ clientId, initialConfig, previewMode }: GodModeCardProps) {
   const [config, setConfig] = useState<GodConfigEntry>(initialConfig)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const { saving, saved, patch } = usePatchSettings(clientId, true)
   const [telegramTest, setTelegramTest] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
 
   const update = useCallback((field: keyof GodConfigEntry, value: string | number) => {
@@ -21,25 +21,16 @@ export default function GodModeCard({ clientId, initialConfig, previewMode }: Go
   }, [])
 
   async function saveConfig() {
-    setSaving(true)
-    setSaved(false)
-    const body: Record<string, unknown> = { client_id: clientId }
+    const body: Record<string, unknown> = {}
     if (config.telegram_bot_token) body.telegram_bot_token = config.telegram_bot_token
     if (config.telegram_chat_id) body.telegram_chat_id = config.telegram_chat_id
     if (config.timezone) body.timezone = config.timezone
     if (config.twilio_number) body.twilio_number = config.twilio_number
     if (config.monthly_minute_limit) body.monthly_minute_limit = config.monthly_minute_limit
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (res.ok) {
-      setSaved(true)
+    const res = await patch(body)
+    if (res?.ok) {
       setConfig(prev => ({ ...prev, telegram_bot_token: '' }))
-      setTimeout(() => setSaved(false), 3000)
     }
-    setSaving(false)
   }
 
   async function handleTestTelegram() {

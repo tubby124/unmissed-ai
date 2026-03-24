@@ -2,6 +2,7 @@
 
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { hasCapability } from '@/lib/niche-capabilities'
+import { getPlanEntitlements, resolveEffectivePlanId } from '@/lib/plan-entitlements'
 
 interface CapabilitiesCardProps {
   client: ClientConfig
@@ -21,6 +22,7 @@ type CapabilityItem = {
 
 export default function CapabilitiesCard({ client, isAdmin, onConfigure }: CapabilitiesCardProps) {
   const niche = client.niche ?? ''
+  const entitlements = getPlanEntitlements(resolveEffectivePlanId(client.selected_plan, client.subscription_status))
 
   const factLines = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
   const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
@@ -56,16 +58,16 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
     {
       label: 'Book appointments',
       available: hasCapability(niche, 'bookAppointments'),
-      active: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
-      detail: client.booking_enabled && client.calendar_auth_status === 'connected' ? 'Google Calendar connected' : undefined,
+      active: !!(entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected'),
+      detail: entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected' ? 'Google Calendar connected' : undefined,
       actionHint: 'Connect Google Calendar to enable',
       section: 'booking',
     },
     {
       label: 'Transfer calls',
       available: hasCapability(niche, 'transferCalls'),
-      active: !!client.forwarding_number,
-      detail: client.forwarding_number ? `Transfers to ${formatPhone(client.forwarding_number)}` : undefined,
+      active: !!(entitlements.transferEnabled && client.forwarding_number),
+      detail: entitlements.transferEnabled && client.forwarding_number ? `Transfers to ${formatPhone(client.forwarding_number)}` : undefined,
       actionHint: 'Set a forwarding number to enable',
       section: 'agent-config',
     },

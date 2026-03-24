@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
+import { usePatchSettings } from './usePatchSettings'
 
 interface SmsTabProps {
   client: ClientConfig
@@ -24,30 +25,16 @@ export default function SmsTab({
   smsTemplate,
   setSmsTemplate,
 }: SmsTabProps) {
-  const [smsSaving, setSmsSaving] = useState(false)
-  const [smsSaved, setSmsSaved] = useState(false)
+  const { saving: smsSaving, saved: smsSaved, patch } = usePatchSettings(client.id, isAdmin)
   const [testSmsPhone, setTestSmsPhone] = useState('')
   const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [testSmsError, setTestSmsError] = useState('')
 
   async function saveSms() {
-    setSmsSaving(true)
-    setSmsSaved(false)
-    const body: Record<string, unknown> = {
+    await patch({
       sms_enabled: smsEnabled,
       sms_template: smsTemplate,
-    }
-    if (isAdmin) body.client_id = client.id
-    const res = await fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
     })
-    setSmsSaving(false)
-    if (res.ok) {
-      setSmsSaved(true)
-      setTimeout(() => setSmsSaved(false), 3000)
-    }
   }
 
   async function fireTestSms() {
