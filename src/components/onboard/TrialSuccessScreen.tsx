@@ -23,7 +23,6 @@ export function TrialSuccessScreen({
   agentName,
   setupUrl,
   telegramLink: _telegramLink,
-  email,
   knowledgeCount: initialKnowledgeCount = 0,
 }: {
   clientId: string | null;
@@ -38,9 +37,6 @@ export function TrialSuccessScreen({
   const supabase = supabaseRef.current;
 
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [magicLoading, setMagicLoading] = useState(false);
-  const [magicSent, setMagicSent] = useState(false);
-  const [magicError, setMagicError] = useState<string | null>(null);
   const [liveCount, setLiveCount] = useState(initialKnowledgeCount);
   const [showCall, setShowCall] = useState(false);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
@@ -75,22 +71,6 @@ export function TrialSuccessScreen({
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     setGoogleLoading(false);
-  }
-
-  async function handleMagicLink() {
-    if (!email) return;
-    setMagicLoading(true);
-    setMagicError(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setMagicLoading(false);
-    if (error) {
-      setMagicError(error.message);
-    } else {
-      setMagicSent(true);
-    }
   }
 
   async function handleStartCall() {
@@ -174,60 +154,24 @@ export function TrialSuccessScreen({
         ) : null}
       </div>
 
-      {/* Login — magic link primary, Google secondary */}
+      {/* Dashboard access */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="space-y-0.5">
-          <p className="text-sm font-semibold text-foreground">Log in to your dashboard</p>
-          <p className="text-xs text-muted-foreground">No password — we&apos;ll email you a one-click login link.</p>
-        </div>
-
-        {!magicSent ? (
-          <>
-            {email && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
-                <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-xs font-medium text-foreground truncate">{email}</span>
-              </div>
-            )}
-            {magicError && <p className="text-xs text-red-500">{magicError}</p>}
-            <button
-              type="button"
-              onClick={handleMagicLink}
-              disabled={magicLoading || !email}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 min-h-[44px]"
-            >
-              {magicLoading ? "Sending…" : "Send me a login link →"}
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-[11px] text-muted-foreground/60 shrink-0">or</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-border bg-background hover:bg-muted/50 text-sm font-medium text-foreground transition-colors cursor-pointer disabled:opacity-60 min-h-[44px]"
-            >
-              <GoogleIcon />
-              {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
-            </button>
-          </>
-        ) : (
-          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-3.5">
-            <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            <div className="space-y-0.5">
-              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Check your inbox</p>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                Login link sent to <span className="font-medium">{email}</span>. Click it to open your dashboard — no password needed.
-              </p>
-            </div>
-          </div>
-        )}
+        <p className="text-sm font-semibold text-foreground">Access your dashboard</p>
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-border bg-background hover:bg-muted/50 text-sm font-medium text-foreground transition-colors cursor-pointer disabled:opacity-60 min-h-[44px]"
+        >
+          <GoogleIcon />
+          {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
+        </button>
+        <a
+          href="/login"
+          className="block w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+        >
+          Sign in with email →
+        </a>
       </div>
 
       {/* Footer */}

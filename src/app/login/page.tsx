@@ -216,9 +216,6 @@ function LoginContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [forgotMode, setForgotMode] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
@@ -230,7 +227,7 @@ function LoginContent() {
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError === 'invalid_link') {
-      setError('Your login link has expired or was already used. Use "Forgot password" below or sign in with Google.')
+      setError('Your login link has expired or was already used. Please sign in with Google or your email and password.')
     }
   }, [searchParams])
 
@@ -263,42 +260,6 @@ function LoginContent() {
     if (oauthError) {
       setError(oauthError.message)
       setLoading(false)
-    }
-  }
-
-  async function handleForgot(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/set-password`,
-    })
-
-    setLoading(false)
-    if (resetError) {
-      setError(resetError.message)
-    } else {
-      setResetSent(true)
-    }
-  }
-
-  async function handleMagicLink() {
-    setError('')
-    setLoading(true)
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
-    })
-
-    setLoading(false)
-    if (otpError) {
-      setError(otpError.message)
-    } else {
-      setMagicLinkSent(true)
     }
   }
 
@@ -341,230 +302,80 @@ function LoginContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...spring, delay: 0.05 }}
           >
-            <AnimatePresence mode="wait">
-              {forgotMode ? (
-                /* ── Reset Password View ── */
-                <motion.div
-                  key="reset"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={spring}
-                >
-                  <h1 className="text-2xl font-bold t1 mb-1">Reset password</h1>
-                  <p className="text-sm t3 mb-6">Enter your email and we&apos;ll send a reset link</p>
+            <h1 className="text-2xl font-bold t1 mb-1">Welcome back</h1>
+            <p className="text-sm t3 mb-8">Sign in to your {BRAND_PRODUCT} dashboard</p>
 
-                  <AnimatePresence mode="wait">
-                    {resetSent ? (
-                      <motion.div
-                        key="reset-sent"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={spring}
-                        className="text-center py-6"
-                      >
-                        <div className="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-green-400">
-                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                        <p className="text-sm font-medium t1">Reset link sent</p>
-                        <p className="text-xs mt-1 t3">Check your inbox at {email}</p>
-                        <p className="text-xs mt-3 t3">
-                          Not seeing it? Check spam, or{' '}
-                          <button type="button" onClick={handleGoogleSignIn} className="text-[var(--color-primary)] hover:underline underline-offset-2">
-                            sign in with Google
-                          </button>{' '}instead.
-                        </p>
-                        <button
-                          onClick={() => { setForgotMode(false); setResetSent(false) }}
-                          className="mt-5 text-xs text-[var(--color-primary)] hover:underline transition-colors"
-                        >
-                          Back to sign in
-                        </button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="reset-form"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={spring}
-                      >
-                        <form onSubmit={handleForgot} className="space-y-4">
-                          <GlassInput
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                            inputMode="email"
-                            enterKeyHint="go"
-                            placeholder="you@company.com"
-                          />
+            {/* Google OAuth — primary CTA */}
+            <motion.button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 font-semibold text-sm rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6 t1"
+              style={{
+                backgroundColor: 'var(--color-bg-raised)',
+                border: '1px solid var(--color-border-strong)',
+                boxShadow: 'var(--shadow-sm)',
+                touchAction: 'manipulation',
+              }}
+              whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <GoogleIcon />
+              Continue with Google
+            </motion.button>
 
-                          <ErrorMessage error={error} />
+            {/* Divider */}
+            <div className="relative flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+              <span className="text-xs font-medium t3">or continue with email</span>
+              <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+            </div>
 
-                          <motion.button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full font-semibold text-sm rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white"
-                            style={{
-                              background: 'linear-gradient(135deg, var(--color-primary), #7c3aed)',
-                              boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent)',
-                              touchAction: 'manipulation',
-                            }}
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            {loading ? 'Sending...' : 'Send reset link'}
-                          </motion.button>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <GlassInput
+                label="Email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoFocus
+                autoComplete="email"
+                inputMode="email"
+                enterKeyHint="next"
+                placeholder="you@company.com"
+              />
 
-                          <button
-                            type="button"
-                            onClick={() => setForgotMode(false)}
-                            className="w-full text-xs t3 hover:t1 transition-colors py-1"
-                          >
-                            Back to sign in
-                          </button>
-                        </form>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ) : (
-                /* ── Main Sign-in View ── */
-                <motion.div
-                  key="login"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={spring}
-                >
-                  <h1 className="text-2xl font-bold t1 mb-1">Welcome back</h1>
-                  <p className="text-sm t3 mb-8">Sign in to your {BRAND_PRODUCT} dashboard</p>
+              <div>
+                <label className="block text-xs font-medium mb-2 t3">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  enterKeyHint="go"
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl px-4 py-3 text-sm bg-input b-input border transition-all placeholder:t3 t1 focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]/25 focus:border-[var(--color-border-focus)]"
+                />
+              </div>
 
-                  {/* Google OAuth — primary CTA */}
-                  <motion.button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 font-semibold text-sm rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6 t1"
-                    style={{
-                      backgroundColor: 'var(--color-bg-raised)',
-                      border: '1px solid var(--color-border-strong)',
-                      boxShadow: 'var(--shadow-sm)',
-                      touchAction: 'manipulation',
-                    }}
-                    whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <GoogleIcon />
-                    Continue with Google
-                  </motion.button>
+              <ErrorMessage error={error} />
 
-                  {/* Divider */}
-                  <div className="relative flex items-center gap-4 mb-6">
-                    <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
-                    <span className="text-xs font-medium t3">or continue with email</span>
-                    <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <GlassInput
-                      label="Email"
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      autoFocus
-                      autoComplete="email"
-                      inputMode="email"
-                      enterKeyHint="next"
-                      placeholder="you@company.com"
-                    />
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-medium t3">Password</label>
-                        <button
-                          type="button"
-                          onClick={() => setForgotMode(true)}
-                          className="text-xs text-[var(--color-primary)] hover:underline underline-offset-2 transition-colors"
-                        >
-                          Forgot password?
-                        </button>
-                      </div>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
-                        enterKeyHint="go"
-                        placeholder="Enter your password"
-                        className="w-full rounded-xl px-4 py-3 text-sm bg-input b-input border transition-all placeholder:t3 t1 focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]/25 focus:border-[var(--color-border-focus)]"
-                      />
-                    </div>
-
-                    <ErrorMessage error={error} />
-
-                    <motion.button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full font-semibold text-sm rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white"
-                      style={{
-                        background: 'linear-gradient(135deg, var(--color-primary), #7c3aed)',
-                        boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent)',
-                        touchAction: 'manipulation',
-                      }}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {loading ? 'Signing in...' : 'Sign in'}
-                    </motion.button>
-                  </form>
-
-                  {/* Magic link */}
-                  <div className="mt-4">
-                    <motion.button
-                      type="button"
-                      onClick={handleMagicLink}
-                      disabled={loading || !email || magicLinkSent}
-                      className="w-full text-sm font-medium rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed t2 hover:t1"
-                      style={{
-                        backgroundColor: 'var(--color-hover)',
-                        border: '1px solid var(--color-border)',
-                        touchAction: 'manipulation',
-                      }}
-                      whileHover={{ scale: 1.005 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {magicLinkSent ? 'Link sent — check your inbox' : 'Email me a sign-in link'}
-                    </motion.button>
-
-                    <AnimatePresence>
-                      {magicLinkSent && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-xs text-center mt-2 t3"
-                        >
-                          Check your inbox and spam folder. If it doesn&apos;t arrive, use{' '}
-                          <button type="button" onClick={handleGoogleSignIn} className="text-[var(--color-primary)] hover:underline underline-offset-2">
-                            Google sign-in
-                          </button>{' '}instead.
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <motion.button
+                type="submit"
+                disabled={loading}
+                className="w-full font-semibold text-sm rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                style={{
+                  background: 'linear-gradient(135deg, var(--color-primary), #7c3aed)',
+                  boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent)',
+                  touchAction: 'manipulation',
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {loading ? 'Signing in...' : 'Sign in'}
+              </motion.button>
+            </form>
           </motion.div>
 
           {/* Footer */}

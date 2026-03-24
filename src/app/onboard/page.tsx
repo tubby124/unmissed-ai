@@ -167,9 +167,15 @@ export default function OnboardPage() {
           throw new Error(json.error || "Trial signup failed");
         }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-        router.push(
-          `/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || "")}&setupUrl=${encodeURIComponent(json.setupUrl || "")}&telegramLink=${encodeURIComponent(json.telegramLink || "")}&email=${encodeURIComponent(data.contactEmail || "")}&knowledgeCount=${json.knowledgeCount ?? 0}`
-        );
+        // If we have a recovery setup URL, send the user directly into password setup.
+        // This avoids depending on email delivery for first-time access.
+        if (json.setupUrl) {
+          window.location.href = json.setupUrl;
+        } else {
+          router.push(
+            `/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || "")}&telegramLink=${encodeURIComponent(json.telegramLink || "")}&email=${encodeURIComponent(data.contactEmail || "")}&knowledgeCount=${json.knowledgeCount ?? 0}`
+          );
+        }
       } else {
         const res = await fetch("/api/provision", {
           method: "POST",
