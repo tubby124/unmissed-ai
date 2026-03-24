@@ -255,8 +255,8 @@ export default function AgentTab({
       <p className="text-[11px] t3 pb-1">Configure what your agent knows and how it handles calls.</p>
     )}
 
-    {/* ── 0. Setup (non-admin, outside sections) ──────────────────── */}
-    {!isAdmin && (
+    {/* ── 0. Setup (admin only — clients manage this on Go Live) ──── */}
+    {isAdmin && (
       <SetupCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -269,6 +269,17 @@ export default function AgentTab({
           setSetupComplete(prev => ({ ...prev, [client.id]: complete }))
         }
       />
+    )}
+    {!isAdmin && (
+      <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium t1">Phone &amp; call forwarding</p>
+          <p className="text-[11px] t3">Manage forwarding codes and call routing</p>
+        </div>
+        <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
+          Go Live →
+        </a>
+      </div>
     )}
 
     {/* Call forwarding quick link */}
@@ -464,15 +475,27 @@ export default function AgentTab({
         onScrollTo={handleScrollTo}
       />
       <div id="section-hours">
-        <HoursCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialWeekday={hoursWeekday[client.id] ?? ''}
-          initialWeekend={hoursWeekend[client.id] ?? ''}
-          initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
-          initialPhone={afterHoursPhone[client.id] ?? ''}
-          previewMode={previewMode}
-        />
+        {isAdmin ? (
+          <HoursCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialWeekday={hoursWeekday[client.id] ?? ''}
+            initialWeekend={hoursWeekend[client.id] ?? ''}
+            initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
+            initialPhone={afterHoursPhone[client.id] ?? ''}
+            previewMode={previewMode}
+          />
+        ) : (
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Answering schedule</p>
+              <p className="text-[11px] t3">Configure when your agent answers calls</p>
+            </div>
+            <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
+              Go Live →
+            </a>
+          </div>
+        )}
       </div>
       {hasCapability(niche, 'bookAppointments') && (
         <div id="section-booking">

@@ -13,6 +13,10 @@ export interface SetupClientConfig {
   status: string | null
   subscription_status: string | null
   setup_complete: boolean | null
+  business_hours_weekday: string | null
+  business_hours_weekend: string | null
+  after_hours_behavior: string | null
+  after_hours_emergency_phone: string | null
 }
 
 export default async function SetupPage() {
@@ -30,7 +34,7 @@ export default async function SetupPage() {
 
   const isAdmin = cu.role === 'admin'
 
-  const SELECT = 'id, slug, business_name, niche, twilio_number, status, subscription_status, setup_complete'
+  const SELECT = 'id, slug, business_name, niche, twilio_number, status, subscription_status, setup_complete, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone'
 
   if (isAdmin) {
     const { data: clients } = await supabase

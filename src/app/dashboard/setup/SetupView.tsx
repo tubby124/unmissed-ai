@@ -7,6 +7,7 @@ import MobileSetup from '@/components/dashboard/setup/MobileSetup'
 import LandlineSetup from '@/components/dashboard/setup/LandlineSetup'
 import VoipSetup from '@/components/dashboard/setup/VoipSetup'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
+import HoursCard from '@/components/dashboard/settings/HoursCard'
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
   const [isActive, setIsActive] = useState(false)
   const [step, setStep] = useState(1)
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
+  // Forwarding section collapsed by default when already set up
+  const [forwardingExpanded, setForwardingExpanded] = useState(!(clients[0]?.setup_complete ?? false))
 
   // Restore last-used selections from localStorage
   useEffect(() => {
@@ -39,6 +42,12 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
       if (c) setCarrier(c)
     } catch { /* ignore corrupt data */ }
   }, [])
+
+  // Reset forwarding expansion when admin switches clients
+  useEffect(() => {
+    const c = clients.find(cl => cl.id === selectedId) ?? clients[0]
+    if (c) setForwardingExpanded(!c.setup_complete)
+  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null
@@ -176,20 +185,6 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
       {/* ── Step 1: Phone Setup ──────────────────────────────────────── */}
       {step === 1 && <>
 
-      {/* ── Setup complete banner ────────────────────────────────────── */}
-      {client.setup_complete && (
-        <div className="flex items-center gap-3 py-4 px-5 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20">
-          <span className="relative flex h-2.5 w-2.5 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-          </span>
-          <div>
-            <p className="text-emerald-400 font-semibold text-sm">Forwarding active — agent is live</p>
-            <p className="text-[11px] t3 mt-0.5">You can update your forwarding codes below if needed.</p>
-          </div>
-        </div>
-      )}
-
       {/* ── Admin client selector (dropdown) ──────────────────────────── */}
       {isAdmin && clients.length > 1 && (
         <ClientDropdown
@@ -198,6 +193,43 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
           onSelect={setSelectedId}
         />
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          Forwarding setup — collapsible when already active
+      ═══════════════════════════════════════════════════════════════ */}
+      <div>
+        {/* Collapsible header */}
+        <button
+          onClick={() => setForwardingExpanded(v => !v)}
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border b-theme bg-surface hover:bg-hover transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            {client.setup_complete ? (
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+              </span>
+            ) : (
+              <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-amber-400/70" />
+            )}
+            <div>
+              <p className="text-sm font-semibold t1">Call forwarding</p>
+              <p className="text-[11px] t3 mt-0.5">
+                {client.setup_complete ? 'Active — agent is live' : 'Not yet configured'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[11px] t3">{forwardingExpanded ? 'Hide codes' : 'Update codes'}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`t3 transition-transform duration-200 ${forwardingExpanded ? 'rotate-180' : ''}`}>
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </button>
+
+        {/* Expanded wizard */}
+        {forwardingExpanded && (
+          <div className="mt-4 space-y-8">
 
       {/* ═══════════════════════════════════════════════════════════════
           01 — Agent Number
@@ -323,10 +355,49 @@ export default function SetupView({ clients, isAdmin, isTrialing = false }: Setu
         )}
       </div>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <p className="text-[11px] t3 text-center pb-4">
+      <p className="text-[11px] t3 text-center">
         Need help? Contact us and we&apos;ll walk you through it.
       </p>
+
+          </div>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          04 — Answering Schedule
+      ═══════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionLabel num="04" label="Answering Schedule" />
+        <HoursCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialWeekday={client.business_hours_weekday ?? ''}
+          initialWeekend={client.business_hours_weekend ?? ''}
+          initialBehavior={client.after_hours_behavior ?? 'take_message'}
+          initialPhone={client.after_hours_emergency_phone ?? ''}
+        />
+      </div>
+
+      {/* ── Behavior summary ─────────────────────────────────────────── */}
+      <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
+        <p className="text-[10px] uppercase tracking-[0.15em] t3 font-semibold">How your agent handles calls</p>
+        <p className="text-xs t2 leading-relaxed">
+          {client.business_hours_weekday
+            ? <>Answers weekdays: <span className="font-medium t1">{client.business_hours_weekday}</span>.</>
+            : 'Business hours not yet configured.'}
+          {client.business_hours_weekend
+            ? <> Weekends: <span className="font-medium t1">{client.business_hours_weekend}</span>.</>
+            : ''}
+          {' '}After-hours:{' '}
+          <span className="font-medium t1">
+            {client.after_hours_behavior === 'emergency_transfer'
+              ? `transfers to ${client.after_hours_emergency_phone || 'emergency line'}`
+              : client.after_hours_behavior === 'always_answer'
+              ? 'always answers (24/7)'
+              : 'takes a message'}
+          </span>.
+        </p>
+      </div>
 
       {/* Step 1 next button */}
       <div className="flex justify-end">
