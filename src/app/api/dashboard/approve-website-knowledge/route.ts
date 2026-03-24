@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 import { validateApprovedPackage } from '@/lib/scrape-validation'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 type ApprovedPackage = {
   businessFacts: string[]
@@ -51,12 +52,30 @@ export async function POST(req: NextRequest) {
   // ── Load client row ───────────────────────────────────────────────────────
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('business_facts, extra_qa, website_url, website_scrape_pages, website_knowledge_preview, slug')
+    .select('business_facts, extra_qa, website_url, website_scrape_pages, website_knowledge_preview, slug, selected_plan, subscription_status')
     .eq('id', clientId)
     .single()
 
   if (clientErr || !client) {
     return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+  }
+
+  // ── Phase 5: Enforce plan-based knowledge source limits ─────────────────
+  const approvePlan = getPlanEntitlements(
+    (client.subscription_status as string | null) === 'trialing' ? 'trial' : (client.selected_plan as string | null)
+  )
+  if (!approvePlan.knowledgeEnabled) {
+    return NextResponse.json({ error: 'Knowledge base is not available on your current plan.' }, { status: 403 })
+  }
+  const { count: existingSourceCount } = await svc
+    .from('client_knowledge_docs')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+  if ((existingSourceCount ?? 0) >= approvePlan.maxKnowledgeSources) {
+    return NextResponse.json(
+      { error: `Source limit reached for your plan (${existingSourceCount}/${approvePlan.maxKnowledgeSources}). Upgrade to add more.` },
+      { status: 403 },
+    )
   }
 
   // ── Resolve approved package ──────────────────────────────────────────────

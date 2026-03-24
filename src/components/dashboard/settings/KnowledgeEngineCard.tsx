@@ -18,6 +18,8 @@ interface ChunkStats {
   pending: number
   rejected: number
   byType: Record<string, number>
+  sourceCount: number
+  maxSources: number
 }
 
 interface TestResult {
@@ -80,6 +82,8 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           pending: data.pending ?? 0,
           rejected: data.rejected ?? 0,
           byType: data.byType ?? {},
+          sourceCount: data.sourceCount ?? 0,
+          maxSources: data.maxSources ?? 3,
         })
       }
 
@@ -266,6 +270,15 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             </span>
           )}
 
+          {/* Source count badge */}
+          {localEnabled && stats && !statsLoading && (
+            <span className={`text-[9px] font-mono ${
+              stats.sourceCount >= stats.maxSources ? 'text-amber-400' : 't3'
+            }`}>
+              {stats.sourceCount}/{stats.maxSources} source{stats.maxSources !== 1 ? 's' : ''}
+            </span>
+          )}
+
           {/* Gaps badge */}
           {localEnabled && gapsCount > 0 && !statsLoading && (
             <span className="text-[9px] font-mono text-amber-400/70">
@@ -341,6 +354,28 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       {/* Expanded content */}
       {!collapsed && localEnabled && (
         <div className="mt-4 space-y-4">
+          {/* Source count + at-limit warning */}
+          {stats && (
+            <div className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
+              stats.sourceCount >= stats.maxSources
+                ? 'border-amber-500/25 bg-amber-500/[0.06]'
+                : 'b-theme bg-hover'
+            }`}>
+              <span className="text-[11px] t2">
+                Knowledge sources: <span className="font-semibold t1">{stats.sourceCount}</span>
+                <span className="t3"> / {stats.maxSources}</span>
+              </span>
+              {stats.sourceCount >= stats.maxSources && (
+                <a
+                  href="/pricing"
+                  className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+                >
+                  Upgrade for more
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Stats grid */}
           {stats && (
             <div className="grid grid-cols-3 gap-2">

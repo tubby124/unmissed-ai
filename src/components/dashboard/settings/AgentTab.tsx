@@ -31,6 +31,8 @@ import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import SettingsPanel from '@/components/dashboard/settings/SettingsPanel'
+import PlanInfoCard from '@/components/dashboard/settings/PlanInfoCard'
+import PlanGate from '@/components/dashboard/PlanGate'
 import { useDirtyGuardEffect } from './useDirtyGuard'
 import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
@@ -312,6 +314,17 @@ export default function AgentTab({
       <SetupProgressRing client={client} isAdmin={isAdmin} />
     )}
 
+    {/* ── Plan Info ─────────────────────────────────────────────────── */}
+    <PlanInfoCard
+      selectedPlan={client.selected_plan}
+      subscriptionStatus={client.subscription_status}
+      secondsUsedThisMonth={client.seconds_used_this_month}
+      monthlyMinuteLimit={client.monthly_minute_limit}
+      bonusMinutes={client.bonus_minutes ?? 0}
+      trialExpiresAt={client.trial_expires_at ?? null}
+      trialConverted={client.trial_converted ?? null}
+    />
+
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
     <SettingsSection
       id="talk"
@@ -351,11 +364,13 @@ export default function AgentTab({
           <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
         </div>
       )}
-      <LearningLoopCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        onRequestImprovement={isAdmin ? handleRequestImprovement : undefined}
-      />
+      <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
+        <LearningLoopCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          onRequestImprovement={isAdmin ? handleRequestImprovement : undefined}
+        />
+      </PlanGate>
     </SettingsSection>
 
     {/* ── 2. IDENTITY & VOICE ──────────────────────────────────────── */}
@@ -477,23 +492,27 @@ export default function AgentTab({
               previewMode={previewMode}
             />
           </div>
-          <WebsiteKnowledgeCard
-            client={client}
-            isAdmin={isAdmin}
-            previewMode={previewMode}
-          />
-          <div id="section-knowledge">
-            <KnowledgeEngineCard
+          <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+            <WebsiteKnowledgeCard
               client={client}
               isAdmin={isAdmin}
               previewMode={previewMode}
-              onClientUpdate={(updates) => {
-                if (updates.extra_qa) {
-                  extraQA[client.id] = updates.extra_qa
-                }
-              }}
             />
-          </div>
+          </PlanGate>
+          <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+            <div id="section-knowledge">
+              <KnowledgeEngineCard
+                client={client}
+                isAdmin={isAdmin}
+                previewMode={previewMode}
+                onClientUpdate={(updates) => {
+                  if (updates.extra_qa) {
+                    extraQA[client.id] = updates.extra_qa
+                  }
+                }}
+              />
+            </div>
+          </PlanGate>
         </>
       ) : (
         <div className="space-y-2">
@@ -574,29 +593,31 @@ export default function AgentTab({
         </div>
       )}
       {hasCapability(niche, 'bookAppointments') && (
-        <div id="section-booking">
-          {isAdmin ? (
-            <BookingCard
-              clientId={client.id}
-              isAdmin={isAdmin}
-              calendarAuthStatus={client.calendar_auth_status}
-              googleCalendarId={client.google_calendar_id}
-              initialDuration={bookingDuration[client.id] ?? 60}
-              initialBuffer={bookingBuffer[client.id] ?? 15}
-              initialBookingEnabled={client.booking_enabled ?? false}
-              previewMode={previewMode}
-              onPromptChange={handlePromptChange}
-            />
-          ) : (
-            <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium t1">Calendar Booking</p>
-                <p className="text-[11px] t3">Configure booking settings on the Actions page.</p>
+        <PlanGate selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
+          <div id="section-booking">
+            {isAdmin ? (
+              <BookingCard
+                clientId={client.id}
+                isAdmin={isAdmin}
+                calendarAuthStatus={client.calendar_auth_status}
+                googleCalendarId={client.google_calendar_id}
+                initialDuration={bookingDuration[client.id] ?? 60}
+                initialBuffer={bookingBuffer[client.id] ?? 15}
+                initialBookingEnabled={client.booking_enabled ?? false}
+                previewMode={previewMode}
+                onPromptChange={handlePromptChange}
+              />
+            ) : (
+              <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium t1">Calendar Booking</p>
+                  <p className="text-[11px] t3">Configure booking settings on the Actions page.</p>
+                </div>
+                <a href="/dashboard/actions" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Actions →</a>
               </div>
-              <a href="/dashboard/actions" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Actions →</a>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </PlanGate>
       )}
       {/* IVR card lives in the right-side panel — opened via CapabilitiesCard */}
     </SettingsSection>

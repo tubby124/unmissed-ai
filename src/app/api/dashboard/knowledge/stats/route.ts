@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 /**
  * GET /api/dashboard/knowledge/stats?client_id=xxx
- * Returns chunk counts by status + type breakdown in a single query.
- * Replaces the 4 sequential fetches KnowledgeEngineCard was making.
+ * Returns chunk counts by status + type breakdown + source count vs plan limit.
  */
 export async function GET(req: NextRequest) {
   const supabase = await createServerClient()
@@ -26,15 +26,16 @@ export async function GET(req: NextRequest) {
 
   const svc = createServiceClient()
 
-  // Single query: get all chunks with just the fields needed for counting
-  const { data: chunks, error } = await svc
-    .from('knowledge_chunks')
-    .select('status, chunk_type')
-    .eq('client_id', clientId)
+  // Parallel: chunks + source count + client plan
+  const [chunksResult, sourceCountResult, clientResult] = await Promise.all([
+    svc.from('knowledge_chunks').select('status, chunk_type').eq('client_id', clientId),
+    svc.from('client_knowledge_docs').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+    svc.from('clients').select('selected_plan, subscription_status').eq('id', clientId).single(),
+  ])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (chunksResult.error) return NextResponse.json({ error: chunksResult.error.message }, { status: 500 })
 
-  const rows = chunks ?? []
+  const rows = chunksResult.data ?? []
   let approved = 0, pending = 0, rejected = 0
   const byType: Record<string, number> = {}
 
@@ -47,11 +48,22 @@ export async function GET(req: NextRequest) {
     byType[t] = (byType[t] ?? 0) + 1
   }
 
+  // Derive plan source limits
+  const sourceCount = sourceCountResult.count ?? 0
+  let maxSources = 3
+  if (clientResult.data) {
+    const isTrialing = clientResult.data.subscription_status === 'trialing'
+    const plan = getPlanEntitlements(isTrialing ? 'trial' : clientResult.data.selected_plan)
+    maxSources = plan.maxKnowledgeSources
+  }
+
   return NextResponse.json({
     total: rows.length,
     approved,
     pending,
     rejected,
     byType,
+    sourceCount,
+    maxSources,
   })
 }
