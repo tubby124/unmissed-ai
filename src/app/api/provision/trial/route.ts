@@ -131,6 +131,9 @@ export async function POST(req: NextRequest) {
       forwarding_number: (data.callForwardingEnabled && data.emergencyPhone?.trim())
         ? data.emergencyPhone.trim()
         : null,
+      // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
+      telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
+      email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,
     })
     .select("id")
     .single();
