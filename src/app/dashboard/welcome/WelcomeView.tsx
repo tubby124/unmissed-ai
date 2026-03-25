@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import type { TrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
@@ -34,6 +35,11 @@ export default function WelcomeView({
   hasBooking,
 }: WelcomeViewProps) {
   const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber } = trialWelcome
+
+  // Mark welcome as seen so /dashboard doesn't redirect here again
+  useEffect(() => {
+    document.cookie = 'welcome_seen=1; path=/; max-age=31536000; SameSite=Lax'
+  }, [])
 
   return (
     <div className="p-3 sm:p-6 max-w-xl mx-auto space-y-5">

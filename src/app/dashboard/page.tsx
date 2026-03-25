@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServerClient } from '@/lib/supabase/server'
 import SystemPulse from '@/components/dashboard/SystemPulse'
 import ActionItems from '@/components/dashboard/ActionItems'
@@ -19,14 +20,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const { data: cu } = await supabase
     .from('client_users')
-    .select('role')
+    .select('role, client_id')
     .eq('user_id', user.id)
     .order('role').limit(1).maybeSingle()
 
   const isAdmin = cu?.role === 'admin'
 
-  // Non-admin: show client home dashboard
-  if (!isAdmin) return <ClientHome />
+  // Non-admin: check for trial first-visit and redirect to /dashboard/welcome
+  if (!isAdmin) {
+    if (cu?.client_id) {
+      const cookieStore = await cookies()
+      if (!cookieStore.get('welcome_seen')) {
+        const { data: clientRow } = await supabase
+          .from('clients')
+          .select('subscription_status, setup_complete')
+          .eq('id', cu.client_id)
+          .single()
+        const c = clientRow as Record<string, unknown> | null
+        if (c?.subscription_status === 'trialing' && !c?.setup_complete) {
+          redirect('/dashboard/welcome')
+        }
+      }
+    }
+    return <ClientHome />
+  }
 
   // Admin in preview mode: show client's dashboard
   const isPreview = params.preview === 'true' && typeof params.client_id === 'string'
