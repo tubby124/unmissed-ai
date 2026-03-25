@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend, selected_plan, subscription_status')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, ultravox_agent_id, booking_enabled, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
     .eq('id', targetClientId)
     .single()
 
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       forwarding_number: (client.forwarding_number as string | null) || undefined,
       transfer_conditions: (client.transfer_conditions as string | null) || undefined,
       sms_enabled: client.sms_enabled ?? false,
+      twilio_number: (client.twilio_number as string | null) || undefined,
       knowledge_backend: knowledgeBackend,
       knowledge_chunk_count: knowledgeChunkCount,
       selectedPlan: (client.selected_plan as string | null) || undefined,
