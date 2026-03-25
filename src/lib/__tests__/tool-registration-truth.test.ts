@@ -105,6 +105,7 @@ describe('Tool composition: all flags ON', () => {
     booking_enabled: true,
     forwarding_number: '+15551234567',
     sms_enabled: true,
+    twilio_number: '+15551234567',
     knowledge_backend: 'pgvector',
     knowledge_chunk_count: 10,
     transfer_conditions: 'caller asks for manager',
@@ -185,8 +186,19 @@ describe('Flag isolation: booking_enabled only', () => {
   })
 })
 
-describe('Flag isolation: sms_enabled only', () => {
+describe('Flag isolation: sms_enabled without twilio_number (trial client pattern)', () => {
+  // Trial clients have sms_enabled=true but no twilio_number — SMS tool must NOT be injected
   const tools = buildAgentTools({ slug: 'test', sms_enabled: true })
+  const names = toolNames(tools)
+
+  test('does NOT add SMS tool without twilio_number', () => {
+    assert.ok(!names.includes('sendTextMessage'),
+      `sendTextMessage must NOT appear without twilio_number, got: ${names.join(', ')}`)
+  })
+})
+
+describe('Flag isolation: sms_enabled + twilio_number', () => {
+  const tools = buildAgentTools({ slug: 'test', sms_enabled: true, twilio_number: '+15551234567' })
   const names = toolNames(tools)
 
   test('adds SMS tool but not calendar/transfer/knowledge', () => {

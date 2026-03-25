@@ -347,6 +347,8 @@ interface AgentConfig {
   forwarding_number?: string
   /** When true, inject sendTextMessage HTTP tool so the agent can SMS the caller mid-call. */
   sms_enabled?: boolean
+  /** E.164 Twilio number — required for SMS tool injection (trial clients have sms_enabled=true but no number). */
+  twilio_number?: string | null
   /** Knowledge retrieval backend: 'pgvector' = queryKnowledge, null = none. */
   knowledge_backend?: string | null
   /** Approved chunk count — when 0 or undefined, skip knowledge tool injection (S5). */
@@ -515,7 +517,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, knowledge_backend, knowledge_chunk_count, transfer_conditions, maxDuration }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, knowledge_chunk_count, transfer_conditions, maxDuration }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -543,7 +545,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   callTemplate.selectedTools = buildAgentTools({
     tools: tools?.length ? tools : [HANGUP_TOOL],
     booking_enabled, slug, forwarding_number, transfer_conditions,
-    sms_enabled, knowledge_backend, knowledge_chunk_count,
+    sms_enabled, twilio_number, knowledge_backend, knowledge_chunk_count,
   })
 
   const res = await fetch(`${ULTRAVOX_BASE}/agents`, {
@@ -576,7 +578,7 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   const baseTools: object[] = opts.tools !== undefined ? opts.tools : [HANGUP_TOOL]
   const calendarTools: object[] = (opts.booking_enabled && plan.bookingEnabled && opts.slug) ? buildCalendarTools(opts.slug) : []
   const transferTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
-  const smsTools: object[] = (opts.sms_enabled && plan.smsEnabled && opts.slug) ? buildSmsTools(opts.slug) : []
+  const smsTools: object[] = (opts.sms_enabled && opts.twilio_number && plan.smsEnabled && opts.slug) ? buildSmsTools(opts.slug) : []
   // S5: only register knowledge tool when client has approved chunks (safe default = exclude)
   const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug
     && (opts.knowledge_chunk_count !== undefined && opts.knowledge_chunk_count > 0)

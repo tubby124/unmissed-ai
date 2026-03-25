@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -207,6 +207,7 @@ export async function POST(req: NextRequest) {
         forwarding_number: (client.forwarding_number as string | null) || undefined,
         transfer_conditions: (client.transfer_conditions as string | null) || undefined,
         sms_enabled: client.sms_enabled ?? false,
+        twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
       }

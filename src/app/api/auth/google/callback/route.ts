@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: client } = await supabase
       .from('clients')
-      .select('ultravox_agent_id, system_prompt, agent_voice_id, forwarding_number, transfer_conditions, sms_enabled, knowledge_backend, niche, agent_name')
+      .select('ultravox_agent_id, system_prompt, agent_voice_id, forwarding_number, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, niche, agent_name')
       .eq('id', clientId)
       .single()
 
@@ -137,6 +137,7 @@ export async function GET(req: NextRequest) {
         forwarding_number: (client.forwarding_number as string | null) ?? undefined,
         transfer_conditions: (client.transfer_conditions as string | null) || undefined,
         sms_enabled: client.sms_enabled ?? false,
+        twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
       }

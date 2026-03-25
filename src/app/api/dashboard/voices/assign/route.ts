@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   // Fetch full client row — need all fields to send complete updateAgent payload
   const { data: client } = await supabase
     .from('clients')
-    .select('id, ultravox_agent_id, system_prompt, forwarding_number, booking_enabled, slug, sms_enabled, knowledge_backend, transfer_conditions, selected_plan, subscription_status')
+    .select('id, ultravox_agent_id, system_prompt, forwarding_number, booking_enabled, slug, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status')
     .eq('id', targetClientId)
     .single()
 
@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
         forwarding_number: (client.forwarding_number as string | null) || undefined,
         transfer_conditions: (client.transfer_conditions as string | null) || undefined,
         sms_enabled: client.sms_enabled ?? false,
+        twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
         selectedPlan: (client.selected_plan as string | null) || undefined,
