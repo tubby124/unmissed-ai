@@ -11,6 +11,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['twilio'],
+  // Turbopack config: pin root to project dir to avoid workspace-root misdetection.
+  // The _ssgManifest.js ENOENT error on clean builds is caused by Turbopack writing
+  // to the wrong path when it misidentifies the workspace root (multiple lockfiles).
+  turbopack: {
+    root: __dirname,
+  },
   async redirects() {
     return [
       // /admin/* consolidated into /dashboard/* (Mar 2026)
