@@ -127,6 +127,10 @@ export async function POST(req: NextRequest) {
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
       selected_plan: data.selectedPlan || 'core',
+      // Gate-11: Write forwarding_number so buildAgentTools() deploys transfer tool at activation
+      forwarding_number: (data.callForwardingEnabled && data.emergencyPhone?.trim())
+        ? data.emergencyPhone.trim()
+        : null,
     })
     .select("id")
     .single();
