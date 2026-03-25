@@ -244,10 +244,27 @@ export default function ClientHome() {
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div>
-              <p className="text-sm font-semibold t1">Welcome — {agent.name} is ready for you</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold t1">
+                  {data.trialWelcome.provisioningState === 'ready'
+                    ? `${data.trialWelcome.agentName} is ready to test`
+                    : data.trialWelcome.provisioningState === 'pending'
+                    ? `${data.trialWelcome.agentName} is being set up`
+                    : 'Your agent is being provisioned'}
+                </p>
+                {data.trialWelcome.daysLeft !== null && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
+                    {data.trialWelcome.daysLeft} day{data.trialWelcome.daysLeft !== 1 ? 's' : ''} left
+                  </span>
+                )}
+              </div>
               <p className="text-xs t3 mt-1 leading-relaxed">
-                Call your agent from your browser and hear exactly how it handles real calls. When you&apos;re ready, upgrade to get your own phone number so customers can reach you directly.
+                {data.trialWelcome.provisioningState === 'ready'
+                  ? "Everything's ready. Start a test call to hear how it handles real callers."
+                  : data.trialWelcome.provisioningState === 'pending'
+                  ? "We're still setting up part of your account. You can start testing now."
+                  : 'Your agent is still being provisioned. Check back shortly.'}
               </p>
             </div>
           </div>
@@ -257,7 +274,7 @@ export default function ClientHome() {
       {/* Trial label above the orb */}
       {isTrial && onboarding.hasAgent && (
         <p className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-2" style={{ color: 'var(--color-primary)' }}>
-          Your agent is ready — call it now
+          Your AI receptionist is ready — call it now
         </p>
       )}
 
