@@ -19,7 +19,7 @@ export async function GET() {
     if (error) throw error
     checks.supabase = 'ok'
 
-    // ── Ultravox agent liveness ─────────────────────────────────────────────
+    // ── Ultravox agent liveness (informational only — does not affect allOk) ─
     const agentClients = (data ?? []).filter(c => c.ultravox_agent_id)
     let agentsHealthy = 0
 
@@ -27,19 +27,13 @@ export async function GET() {
       try {
         const res = await fetch(`https://api.ultravox.ai/api/agents/${c.ultravox_agent_id}`, {
           headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! },
+          signal: AbortSignal.timeout(5000),
         })
-        if (!res.ok) {
-          allOk = false
-          return
-        }
+        if (!res.ok) return
         const body = await res.json()
-        if (body.publishedRevisionId) {
-          agentsHealthy++
-        } else {
-          allOk = false
-        }
+        if (body.publishedRevisionId) agentsHealthy++
       } catch {
-        allOk = false
+        // Ultravox degraded — informational only, never fail the healthcheck
       }
     }))
 
