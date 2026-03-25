@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — same columns buildAgentContext() needs + Twilio fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
+    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
     .eq('id', clientId)
     .single()
 
@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
   }
   const contextDataBlock = ctx.assembled.contextDataBlock
 
+  // Build tool overrides from clients.tools (runtime-authoritative source, same as inbound path)
+  const overrideTools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+
   // Create Ultravox call with full context
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
@@ -83,6 +86,7 @@ export async function POST(req: NextRequest) {
         businessFacts: knowledgeBlockStr,
         contextData: contextDataBlock,
         metadata: { caller_phone: toPhone, client_slug: client.slug as string, client_id: client.id, test_call: 'true' },
+        overrideTools,
       })
     } else {
       // Fallback: assemble full prompt with context blocks appended

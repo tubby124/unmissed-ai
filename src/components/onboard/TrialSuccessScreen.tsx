@@ -7,6 +7,19 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { CallProvider } from "@/contexts/CallContext";
 import BrowserTestCall from "@/components/dashboard/BrowserTestCall";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface AgentSnapshot {
+  servicesNote: string | null;
+  hoursNote: string | null;
+  topFacts: string[];
+  faqCount: number;
+  scrapeStatus: "approved" | "extracted" | "none";
+  hasWebsite: boolean;
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -17,6 +30,161 @@ function GoogleIcon() {
     </svg>
   );
 }
+
+/** Single row in the "What [agent] knows" card */
+function KnowledgeFact({
+  icon,
+  label,
+  value,
+}: {
+  icon?: React.ReactNode;
+  label?: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 shrink-0 text-emerald-400">
+        {icon ?? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
+          </svg>
+        )}
+      </span>
+      <p className="text-sm text-white/70 leading-snug">
+        {label && (
+          <span className="text-white/90 font-medium">{label}:{" "}</span>
+        )}
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/** Label chip for a category row */
+function CategoryChip({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/60 border border-white/10">
+      {label}
+    </span>
+  );
+}
+
+/**
+ * "What [AgentName] knows" card.
+ *
+ * States:
+ *   loading   — skeleton shimmer
+ *   no data   — hidden (nothing to show)
+ *   sparse    — services + hours only (no website facts)
+ *   approved  — services + hours + actual scraped facts
+ *   extracted — services + hours + count, note about pending review
+ *   failed    — services + hours only, website note omitted
+ */
+function AgentKnowledgeCard({
+  agentName,
+  snapshot,
+  liveCount,
+  loading,
+}: {
+  agentName: string | null;
+  snapshot: AgentSnapshot | null;
+  liveCount: number;
+  loading: boolean;
+}) {
+  const name = agentName ?? "Your agent";
+
+  // Loading state — skeleton
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 animate-pulse">
+        <div className="h-3.5 w-36 rounded bg-white/10" />
+        <div className="space-y-2.5">
+          <div className="h-3 w-full rounded bg-white/10" />
+          <div className="h-3 w-4/5 rounded bg-white/10" />
+          <div className="h-3 w-3/5 rounded bg-white/10" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!snapshot) return null;
+
+  const { servicesNote, hoursNote, topFacts, faqCount, scrapeStatus, hasWebsite } = snapshot;
+
+  // Nothing to show at all
+  const hasAnything = servicesNote || hoursNote || topFacts.length > 0 || liveCount > 0;
+  if (!hasAnything) return null;
+
+  // Show approved facts (user reviewed) or just a count for extracted
+  const showFacts = scrapeStatus === "approved" && topFacts.length > 0;
+  const showExtractedNote = scrapeStatus === "extracted" && hasWebsite;
+  const showKnowledgeCount =
+    liveCount > 0 && !showFacts;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+          What {name} knows
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {servicesNote && <CategoryChip label="Services" />}
+          {hoursNote && <CategoryChip label="Hours" />}
+          {showFacts && <CategoryChip label="Website" />}
+          {faqCount > 0 && <CategoryChip label="Q&A" />}
+        </div>
+      </div>
+
+      {/* Facts */}
+      <div className="space-y-2">
+        {/* Services — direct from user input, always safe */}
+        {servicesNote && (
+          <KnowledgeFact label="Services" value={servicesNote} />
+        )}
+
+        {/* Hours — direct from user input, always safe */}
+        {hoursNote && (
+          <KnowledgeFact label="Hours" value={hoursNote} />
+        )}
+
+        {/* Approved scraped facts — user reviewed, show the actual strings */}
+        {showFacts && topFacts.map((fact, i) => (
+          <KnowledgeFact key={i} value={fact} />
+        ))}
+
+        {/* FAQ count note */}
+        {faqCount > 0 && (
+          <KnowledgeFact
+            label="Q&A"
+            value={`${faqCount} question${faqCount === 1 ? "" : "s"} your agent can answer`}
+          />
+        )}
+
+        {/* Extracted (not user-reviewed) — show count, not content */}
+        {showKnowledgeCount && (
+          <KnowledgeFact
+            value={`${liveCount} fact${liveCount === 1 ? "" : "s"} loaded from your business`}
+          />
+        )}
+      </div>
+
+      {/* Footer notes for partial/pending states */}
+      {showExtractedNote && (
+        <p className="text-[11px] text-white/35 leading-relaxed pt-0.5 border-t border-white/10">
+          Website content detected — open your dashboard to review and approve specific facts.
+        </p>
+      )}
+      {!hasWebsite && !showFacts && (
+        <p className="text-[11px] text-white/35 leading-relaxed pt-0.5 border-t border-white/10">
+          Add your website in the dashboard to teach {name} more about your business.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export function TrialSuccessScreen({
   clientId,
@@ -43,9 +211,29 @@ export function TrialSuccessScreen({
   const [callLoading, setCallLoading] = useState(false);
   const [callError, setCallError] = useState<string | null>(null);
 
+  // Agent knowledge snapshot — fetched once after mount
+  const [snapshot, setSnapshot] = useState<AgentSnapshot | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(true);
+
+  // Clear draft on mount
   useEffect(() => {
     try { localStorage.removeItem(STORAGE_KEYS.ONBOARD_DRAFT); } catch { /* ignore */ }
   }, []);
+
+  // Fetch agent snapshot (what was actually learned during provisioning)
+  useEffect(() => {
+    if (!clientId) {
+      setSnapshotLoading(false);
+      return;
+    }
+    fetch(`/api/public/agent-snapshot?clientId=${clientId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((json: AgentSnapshot | null) => {
+        if (json && !('error' in (json as object))) setSnapshot(json);
+      })
+      .catch(() => { /* silent fail — card simply won't render */ })
+      .finally(() => setSnapshotLoading(false));
+  }, [clientId]);
 
   // Realtime subscription: increment liveCount as knowledge chunks finish seeding
   useEffect(() => {
@@ -112,6 +300,14 @@ export function TrialSuccessScreen({
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
       </div>
+
+      {/* What the agent knows — the trust surface */}
+      <AgentKnowledgeCard
+        agentName={agentName}
+        snapshot={snapshot}
+        liveCount={liveCount}
+        loading={snapshotLoading}
+      />
 
       {/* Primary CTAs */}
       <div className="space-y-3">

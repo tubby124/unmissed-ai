@@ -3,7 +3,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
-import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, patchBusinessName, patchServicesOffered, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { VOICE_PRESETS } from '@/lib/prompt-builder'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { reseedKnowledgeFromSettings } from '@/lib/embeddings'
@@ -126,6 +126,12 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.agent_name === 'string' && body.agent_name.trim()) {
     updates.agent_name = body.agent_name.trim()
+  }
+  if (typeof body.business_name === 'string' && body.business_name.trim()) {
+    updates.business_name = body.business_name.trim()
+  }
+  if (typeof body.services_offered === 'string') {
+    updates.services_offered = body.services_offered.trim() || null
   }
   if (typeof body.agent_voice_id === 'string' && body.agent_voice_id.trim()) {
     updates.agent_voice_id = body.agent_voice_id.trim()
@@ -362,6 +368,70 @@ export async function PATCH(req: NextRequest) {
           updates.updated_at = new Date().toISOString()
           console.log(`[settings] Agent name patched '${oldName}' → '${newName}' in prompt for client=${targetClientId}`)
         }
+      }
+    }
+  }
+
+  // ── Auto-patch prompt when business_name changes ──────────────────────────
+  // Replace all occurrences of the old business name with the new name in the
+  // stored system_prompt so the agent refers to the business by its correct name.
+  // The prompt change triggers needsAgentSync → updateAgent() automatically.
+  if (typeof body.business_name === 'string' && body.business_name.trim()) {
+    const { data: bnRow } = await supabase
+      .from('clients')
+      .select('business_name, system_prompt')
+      .eq('id', targetClientId)
+      .single()
+
+    const oldName = (bnRow?.business_name as string) ?? null
+    const newName = body.business_name.trim()
+
+    if (oldName && oldName !== newName) {
+      const promptToPatch: string | null = typeof updates.system_prompt === 'string'
+        ? updates.system_prompt as string
+        : (bnRow?.system_prompt as string) ?? null
+
+      if (promptToPatch) {
+        const patched = patchBusinessName(promptToPatch, oldName, newName)
+        if (patched !== promptToPatch) {
+          const bnV = validatePrompt(patched)
+          if (!bnV.valid) return NextResponse.json({ error: bnV.error }, { status: 400 })
+          if (bnV.warnings.length) promptWarnings = [...promptWarnings, ...bnV.warnings]
+          updates.system_prompt = patched
+          updates.updated_at = new Date().toISOString()
+          console.log(`[settings] Business name patched '${oldName}' → '${newName}' in prompt for client=${targetClientId}`)
+        }
+      }
+    }
+  }
+
+  // ── Auto-patch prompt when services_offered changes ──────────────────────
+  // Replaces only the "What services do you offer?" answer in the PRODUCT
+  // KNOWLEDGE BASE Q&A line. No global regex — targets that one structured slot.
+  if (typeof body.services_offered === 'string' && body.services_offered.trim()) {
+    const newServices = body.services_offered.trim()
+    let promptToPatch: string | null = typeof updates.system_prompt === 'string'
+      ? updates.system_prompt as string
+      : null
+
+    if (!promptToPatch) {
+      const { data: row } = await supabase
+        .from('clients')
+        .select('system_prompt')
+        .eq('id', targetClientId)
+        .single()
+      promptToPatch = (row?.system_prompt as string) ?? null
+    }
+
+    if (promptToPatch) {
+      const patched = patchServicesOffered(promptToPatch, newServices)
+      if (patched !== promptToPatch) {
+        const soV = validatePrompt(patched)
+        if (!soV.valid) return NextResponse.json({ error: soV.error }, { status: 400 })
+        if (soV.warnings.length) promptWarnings = [...promptWarnings, ...soV.warnings]
+        updates.system_prompt = patched
+        updates.updated_at = new Date().toISOString()
+        console.log(`[settings] Services offered patched in prompt for client=${targetClientId}`)
       }
     }
   }

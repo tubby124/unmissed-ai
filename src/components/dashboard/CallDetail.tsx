@@ -13,6 +13,7 @@ import NumberTicker from '@/components/ui/number-ticker'
 import { WaveformBars, createSoundCues, type AgentStatus } from '@/components/DemoCallVisuals'
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import QuickAddFaq from './QuickAddFaq'
+import CallGapReview from './CallGapReview'
 
 interface TranscriptMessage {
   role: 'agent' | 'user'
@@ -599,6 +600,14 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                 clientId={displayCall.client_id}
                 topics={displayCall.key_topics}
                 transcript={displayCall.transcript}
+              />
+            )}
+
+            {/* Agent didn't know — per-call gap review from call_insights.unanswered_questions */}
+            {displayCall.client_id && (
+              <CallGapReview
+                callId={displayCall.id}
+                clientId={displayCall.client_id}
               />
             )}
 

@@ -26,6 +26,7 @@ import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import ServicesOfferedCard from '@/components/dashboard/settings/ServicesOfferedCard'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
@@ -467,6 +468,7 @@ export default function AgentTab({
       onToggle={() => toggleSection('knowledge')}
       accentColor="blue"
     >
+      <ServicesOfferedCard client={client} clientId={client.id} isAdmin={isAdmin} />
       {isAdmin ? (
         <>
           <div id="section-advanced-context">

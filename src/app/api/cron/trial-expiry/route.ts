@@ -20,6 +20,12 @@ interface ExpiredClient {
   contact_email: string | null
 }
 
+interface ChurnedWithNumber {
+  id: string
+  slug: string
+  twilio_number: string
+}
+
 export async function POST(req: NextRequest) {
   const adminSupa = createServiceClient()
   // ── Auth: same pattern as daily-digest ────────────────────────────────────
@@ -46,17 +52,10 @@ export async function POST(req: NextRequest) {
 
     const clients = (expiredClients ?? []) as ExpiredClient[]
 
-    if (clients.length === 0) {
-      console.log('[trial-expiry] No expired trials found')
-      return NextResponse.json({ expired: 0, details: [] })
-    }
-
-    console.log(`[trial-expiry] Found ${clients.length} expired trial(s)`)
-
     const resendKey = process.env.RESEND_API_KEY
     const details: { slug: string; paused: boolean; emailSent: boolean }[] = []
 
-    // ── Fetch admin Telegram credentials ────────────────────────────────────
+    // ── Fetch admin Telegram credentials (needed by both loops) ──────────────
     const { data: adminClient } = await adminSupa
       .from('clients')
       .select('telegram_bot_token, telegram_chat_id')
@@ -65,6 +64,12 @@ export async function POST(req: NextRequest) {
 
     const adminBot = adminClient?.telegram_bot_token as string | null
     const adminChat = adminClient?.telegram_chat_id as string | null
+
+    if (clients.length === 0) {
+      console.log('[trial-expiry] No expired trials found')
+    } else {
+      console.log(`[trial-expiry] Found ${clients.length} expired trial(s)`)
+    }
 
     for (const client of clients) {
       let paused = false
@@ -142,7 +147,91 @@ export async function POST(req: NextRequest) {
 
     console.log(`[trial-expiry] Processed ${details.length} expired trial(s)`)
 
-    return NextResponse.json({ expired: details.length, details })
+    // ── S20a: Release Twilio numbers for clients paused > 7 days ─────────────
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: numbersToRelease, error: releaseQueryErr } = await adminSupa
+      .from('clients')
+      .select('id, slug, twilio_number')
+      .lt('trial_expires_at', sevenDaysAgo)
+      .eq('trial_converted', false)
+      .eq('status', 'paused')
+      .not('twilio_number', 'is', null)
+
+    const numbersReleased: string[] = []
+
+    if (!releaseQueryErr && numbersToRelease && numbersToRelease.length > 0) {
+      const churned = numbersToRelease as ChurnedWithNumber[]
+      console.log(`[trial-expiry] Found ${churned.length} number(s) to release (7-day grace elapsed)`)
+
+      const accountSid = process.env.TWILIO_ACCOUNT_SID!
+      const authToken  = process.env.TWILIO_AUTH_TOKEN!
+      const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+
+      for (const c of churned) {
+        const { data: invRow } = await adminSupa
+          .from('number_inventory')
+          .select('id, twilio_sid')
+          .eq('phone_number', c.twilio_number)
+          .maybeSingle()
+
+        if (invRow) {
+          // Reconfigure VoiceUrl → idle
+          const patchUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/${invRow.twilio_sid}.json`
+          const patchRes = await fetch(patchUrl, {
+            method: 'POST',
+            headers: { Authorization: `Basic ${twilioAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              VoiceUrl:            `${APP_URL}/api/webhook/inventory-idle`,
+              VoiceMethod:         'POST',
+              VoiceFallbackUrl:    `${APP_URL}/api/webhook/inventory-idle`,
+              VoiceFallbackMethod: 'POST',
+            }).toString(),
+            signal: AbortSignal.timeout(30_000),
+          })
+          if (!patchRes.ok) {
+            console.error(`[trial-expiry] Twilio PATCH failed for ${c.twilio_number} (${c.slug})`)
+            // Continue — still clear DB so cost stops recurring
+          } else {
+            await adminSupa
+              .from('number_inventory')
+              .update({ status: 'available', assigned_client_id: null, reserved_intake_id: null, reserved_at: null })
+              .eq('id', invRow.id)
+            console.log(`[trial-expiry] ${c.twilio_number} (${c.slug}) returned to inventory`)
+          }
+        } else {
+          console.log(`[trial-expiry] ${c.twilio_number} (${c.slug}) not in inventory — clearing DB only`)
+        }
+
+        // Always clear the client's number reference
+        await adminSupa
+          .from('clients')
+          .update({ twilio_number: null, updated_at: new Date().toISOString() })
+          .eq('id', c.id)
+
+        numbersReleased.push(`${c.slug}: ${c.twilio_number}`)
+      }
+
+      if (numbersReleased.length > 0 && adminBot && adminChat) {
+        try {
+          await sendAlert(
+            adminBot,
+            adminChat,
+            `<b>S20a: Released ${numbersReleased.length} Twilio number(s)</b>\n` +
+            numbersReleased.map(n => `• ${n}`).join('\n')
+          )
+        } catch {
+          console.error('[trial-expiry] Telegram alert for number releases failed')
+        }
+      }
+    } else if (releaseQueryErr) {
+      console.error('[trial-expiry] S20a query failed:', releaseQueryErr)
+    }
+
+    if (details.length === 0 && numbersReleased.length === 0) {
+      console.log('[trial-expiry] Nothing to do')
+    }
+
+    return NextResponse.json({ expired: details.length, details, numbers_released: numbersReleased })
   } catch (err) {
     console.error('[trial-expiry] Unexpected error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

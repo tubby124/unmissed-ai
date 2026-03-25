@@ -45,3 +45,5 @@ Read these before making architecture or control-plane changes:
 - Stop after each phase and summarize files changed, tests run, risks, and next step.
 - Keep diffs narrow and reviewable.
 - **Never use `.single()` on `client_users` queries** — admins have multiple rows. Use `.limit(1).maybeSingle()` instead.
+- **Services/business-summary edits patch only their owned prompt block** — never rewrite arbitrary full-prompt prose. Use `lib/prompt-patcher.ts` section patching, not a full prompt replacement.
+- **Knowledge changes must follow ingest → review → approve → searchable truth**; `buildKnowledgeSummary()` / `business_facts` are downstream prompt surfaces, not the knowledge source of truth — `knowledge_chunks` with `status='approved'` is.

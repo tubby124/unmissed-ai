@@ -278,7 +278,7 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         </p>
       )}
 
-      {/* Extracted but not yet approved hint + approve button */}
+      {/* Extracted but not yet approved hint + review + approve button */}
       {status === 'extracted' && (
         <>
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.04] border border-blue-500/15 mb-2">
@@ -288,6 +288,9 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
               {' '}&mdash; {previewFacts} fact{previewFacts !== 1 ? 's' : ''}{previewQa > 0 ? ` and ${previewQa} Q&A${previewQa !== 1 ? 's' : ''}` : ''} extracted from your website.
             </p>
           </div>
+          {preview && (previewFacts > 0 || previewQa > 0) && (
+            <ReviewPreview preview={preview} />
+          )}
           {!previewMode && preview && (
             <button
               onClick={handleApprove}
@@ -328,6 +331,70 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
 }
 
 // ── Sub-components ────────────────────────────────────────────────
+
+type KnowledgePreview = {
+  businessFacts: string[]
+  extraQa: { q: string; a: string }[]
+  serviceTags: string[]
+}
+
+function ReviewPreview({ preview }: { preview: KnowledgePreview }) {
+  const [expanded, setExpanded] = useState(false)
+  const facts = preview.businessFacts.filter(f => f?.trim())
+  const qa = preview.extraQa.filter(q => q.q?.trim())
+
+  return (
+    <div className="mb-2 rounded-xl border b-theme overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[10px] t3 hover:t1 text-left transition-colors"
+        type="button"
+      >
+        <span className="font-medium">Review extracted content</span>
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" fill="none"
+          className={`transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {expanded && (
+        <div className="px-3 pb-3 border-t b-theme space-y-2">
+          {facts.length > 0 && (
+            <div className="pt-2">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3 mb-1.5">
+                Facts ({facts.length})
+              </p>
+              <ul className="space-y-1">
+                {facts.map((f, i) => (
+                  <li key={i} className="text-[10px] t2 leading-relaxed flex gap-1.5 items-start">
+                    <span className="shrink-0 mt-[5px] w-1 h-1 rounded-full bg-current opacity-40" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {qa.length > 0 && (
+            <div className={facts.length > 0 ? 'pt-1' : 'pt-2'}>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3 mb-1.5">
+                Q&amp;A ({qa.length})
+              </p>
+              <ul className="space-y-2">
+                {qa.map((item, i) => (
+                  <li key={i} className="text-[10px] leading-relaxed">
+                    <p className="t1 font-medium">{item.q}</p>
+                    <p className="t3 mt-0.5">{item.a}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function StatCell({ label, value, active, sublabel }: { label: string; value: number; active: boolean; sublabel?: string }) {
   return (
