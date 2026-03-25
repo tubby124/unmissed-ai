@@ -397,35 +397,14 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* Locked features preview — trial only */}
+      {/* Subtle upgrade nudge — trial only */}
       {isTrial && (
-        <div className="rounded-2xl p-4 card-surface">
-          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Unlocks when you go live</p>
-          <div className="space-y-2 mb-4">
-            {[
-              'Your own business phone number',
-              'Real call forwarding from your existing line',
-              'Live call dashboard + hot lead tracking',
-              'Instant Telegram, email & SMS alerts',
-              'Full leads & notifications hub',
-            ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
-                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="text-xs t2">{feature}</span>
-              </div>
-            ))}
-          </div>
+        <div className="text-center pb-1">
           <a
             href="/dashboard/settings?tab=billing"
-            className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--color-primary)' }}
+            className="text-xs t3 hover:opacity-75 transition-opacity"
           >
-            Get a real phone number — upgrade to go live
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            Ready to take real calls? Get a phone number →
           </a>
         </div>
       )}

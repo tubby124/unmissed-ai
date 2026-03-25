@@ -23,10 +23,11 @@ interface SidebarProps {
   clientStatus?: string | null
   subscriptionStatus?: string | null
   trialExpiresAt?: string | null
+  initialCollapsed?: boolean
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null, subscriptionStatus = null, trialExpiresAt = null }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null, subscriptionStatus = null, trialExpiresAt = null, initialCollapsed = false }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
   const [failedNotifCount, setFailedNotifCount] = useState(0)
