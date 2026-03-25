@@ -9,6 +9,7 @@ import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
+import { deriveTrialPhase } from '@/lib/trial-display-state'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import ErrorCard from '@/components/dashboard/ErrorCard'
 import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
@@ -65,6 +66,7 @@ interface HomeData {
     businessName: string
     agentName: string
     daysLeft: number | null
+    isTrialExpired: boolean
     isFirstVisit: boolean
     hasHours: boolean
     hasFaqs: boolean
@@ -140,6 +142,19 @@ export default function ClientHome() {
     }
   }, [callState])
 
+  // Track urgency/expiry events once per load (data-driven)
+  useEffect(() => {
+    if (!data) return
+    const phase = deriveTrialPhase({
+      subscriptionStatus: data.onboarding.subscriptionStatus,
+      daysLeft: data.trialWelcome.daysLeft,
+      isTrialExpired: data.trialWelcome.isTrialExpired,
+    })
+    if (phase === 'expired') trackEvent('trial_expired_viewed')
+    else if (phase === 'active_final') trackEvent('final_day_trial_seen')
+    else if (phase === 'active_urgent') trackEvent('urgent_trial_banner_seen')
+  }, [data])
+
   useEffect(() => {
     const url = adminClientId
       ? `/api/dashboard/home?client_id=${adminClientId}`
@@ -194,10 +209,18 @@ export default function ClientHome() {
   const usagePct = usage.totalAvailable > 0 ? Math.min((usage.minutesUsed / usage.totalAvailable) * 100, 100) : 0
   const usageHigh = usagePct >= 80
 
-  const isTrial = onboarding.subscriptionStatus === 'trialing'
   const homeClientId = data.clientId
   const daysRemaining = data.trialWelcome.daysLeft ?? undefined
-  const showChecklist = onboarding.clientStatus === 'active'
+  const trialPhase = deriveTrialPhase({
+    subscriptionStatus: onboarding.subscriptionStatus,
+    daysLeft: data.trialWelcome.daysLeft,
+    isTrialExpired: data.trialWelcome.isTrialExpired,
+  })
+  const isTrial = trialPhase !== 'paid_or_non_trial'
+  const isTrialActive = trialPhase !== 'expired' && trialPhase !== 'paid_or_non_trial'
+  const isExpired = trialPhase === 'expired'
+  const isUrgent = trialPhase === 'active_urgent' || trialPhase === 'active_final'
+  const showChecklist = onboarding.clientStatus === 'active' && !isExpired
   const hasRealCalls = stats.totalCalls > 0
   const justUpgraded = searchParams.get('upgraded') === 'true'
 
@@ -245,11 +268,45 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* Trial welcome banner — dismissable */}
-      {isTrial && !welcomeDismissed && (
+      {/* Trial expired hero — full-width, non-dismissable */}
+      {isExpired && (
+        <div
+          className="rounded-2xl p-5 sm:p-6 text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, var(--color-surface) 100%)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(239,68,68,0.12)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)' }}>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h2 className="text-base font-semibold t1 mb-1">Your free trial has ended</h2>
+          <p className="text-sm t3 mb-4 leading-relaxed max-w-sm mx-auto">
+            Get a real phone number and start taking calls from actual customers.
+          </p>
+          <button
+            onClick={() => { trackEvent('expired_upgrade_clicked'); openUpgradeModal('trial_expired_hero', homeClientId) }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            Get Your Phone Number
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Trial welcome banner — dismissable, active trials only */}
+      {isTrialActive && !welcomeDismissed && (
         <div
           className="rounded-2xl p-4 sm:p-5 relative"
-          style={{ background: 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-surface) 100%)', border: '1px solid var(--color-border)' }}
+          style={{
+            background: isUrgent
+              ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, var(--color-surface) 100%)'
+              : 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-surface) 100%)',
+            border: isUrgent ? '1px solid rgba(245,158,11,0.25)' : '1px solid var(--color-border)',
+          }}
         >
           <button
             onClick={dismissWelcome}
@@ -262,9 +319,12 @@ export default function ClientHome() {
             </svg>
           </button>
           <div className="flex items-start gap-3 pr-8">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary)' }}>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: isUrgent ? 'rgba(245,158,11,0.15)' : 'var(--color-primary)' }}
+            >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke={isUrgent ? 'rgb(245,158,11)' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <div className="flex-1">
@@ -277,14 +337,24 @@ export default function ClientHome() {
                     : 'Your agent is being provisioned'}
                 </p>
                 {data.trialWelcome.daysLeft !== null && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
-                    {data.trialWelcome.daysLeft} day{data.trialWelcome.daysLeft !== 1 ? 's' : ''} left
+                  <span
+                    className="text-[11px] px-2 py-0.5 rounded-full font-semibold leading-none whitespace-nowrap"
+                    style={{
+                      backgroundColor: trialPhase === 'active_final' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.10)',
+                      color: trialPhase === 'active_final' ? 'rgb(239,68,68)' : 'rgb(245,158,11)',
+                    }}
+                  >
+                    {trialPhase === 'active_final'
+                      ? 'Last day'
+                      : `${data.trialWelcome.daysLeft} day${data.trialWelcome.daysLeft !== 1 ? 's' : ''} left`}
                   </span>
                 )}
               </div>
               <p className="text-xs t3 mt-1 leading-relaxed">
                 {data.trialWelcome.provisioningState === 'ready'
-                  ? "Everything's ready. Start a test call to hear how it handles real callers."
+                  ? isUrgent
+                    ? "Time's running out — upgrade now to keep your agent taking real calls."
+                    : "Everything's ready. Start a test call to hear how it handles real callers."
                   : data.trialWelcome.provisioningState === 'pending'
                   ? "We're still setting up part of your account. You can start testing now."
                   : 'Your agent is still being provisioned. Check back shortly.'}
@@ -294,15 +364,15 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* Trial label above the orb */}
-      {isTrial && onboarding.hasAgent && (
-        <p className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-2" style={{ color: 'var(--color-primary)' }}>
-          Your AI receptionist is ready — call it now
+      {/* Trial label above the orb — active trials only */}
+      {isTrialActive && onboarding.hasAgent && (
+        <p className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-2" style={{ color: isUrgent ? 'rgb(245,158,11)' : 'var(--color-primary)' }}>
+          {isUrgent ? 'Test before your trial ends' : 'Your AI receptionist is ready — call it now'}
         </p>
       )}
 
-      {/* Test your agent — the aha moment */}
-      {onboarding.hasAgent && (
+      {/* Test your agent — the aha moment (suppressed when trial expired) */}
+      {onboarding.hasAgent && !isExpired && (
         <AgentTestCard
           agentName={agent.name}
           businessName={onboarding.businessName}
@@ -313,8 +383,8 @@ export default function ClientHome() {
         />
       )}
 
-      {/* Post-call improvement loop — trial users only, shown after each completed test call */}
-      {isTrial && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
+      {/* Post-call improvement loop — active trial users only, shown after each completed test call */}
+      {isTrialActive && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
         <PostCallImprovementPanel
           hasHours={data.trialWelcome.hasHours}
           hasFaqs={data.trialWelcome.hasFaqs}
@@ -337,16 +407,20 @@ export default function ClientHome() {
         />
       )}
 
-      {/* Hero stats card — hidden for trial users with no calls (avoid sad "0 calls" state) */}
-      {(!isTrial || hasRealCalls) && (
+      {/* Hero stats card — hidden for active trial users with no calls; always shown for expired/paid */}
+      {(!isTrialActive || hasRealCalls) && (
         <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
           <div className="flex items-center gap-3 mb-4">
             <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
             <h1 className="text-lg font-semibold t1">{agent.name}</h1>
             {isTrial ? (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                Trial
+              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                isExpired
+                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-red-400' : 'bg-amber-400'}`} />
+                {isExpired ? 'Trial ended' : 'Trial'}
               </span>
             ) : (
               <span
@@ -391,8 +465,8 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* What Your Agent Knows — trial users */}
-      {isTrial && (
+      {/* What Your Agent Knows — active trial users only */}
+      {isTrialActive && (
         <div className="rounded-2xl p-4 card-surface">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">What callers experience</p>
@@ -435,8 +509,8 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* Subtle upgrade nudge — trial only */}
-      {isTrial && (
+      {/* Subtle upgrade nudge — active trial only (expired has dedicated hero above) */}
+      {isTrialActive && (
         <div className="text-center pb-1">
           <button
             onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}

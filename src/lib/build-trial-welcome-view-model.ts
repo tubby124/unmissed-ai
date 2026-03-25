@@ -14,6 +14,8 @@ export type TrialWelcomeViewModel = {
   agentName: string
   /** Days left in trial, or null if no active trial */
   daysLeft: number | null
+  /** True when trial period has passed and user has NOT converted — disambiguates daysLeft=null */
+  isTrialExpired: boolean
   /** True when setup_complete is false — first-login proxy */
   isFirstVisit: boolean
   hasHours: boolean
@@ -45,6 +47,12 @@ export function buildTrialWelcomeViewModel(
         )
       : null
 
+  // Expired: had a trial, it ended, and they haven't converted — disambiguates daysLeft=null
+  const isTrialExpired =
+    config.trial.trialExpiresAt !== null &&
+    !config.trial.isTrialActive &&
+    !config.trial.trialConverted
+
   const provisioningState: TrialWelcomeViewModel['provisioningState'] =
     hasAgent && config.auth.setupComplete
       ? 'ready'
@@ -56,6 +64,7 @@ export function buildTrialWelcomeViewModel(
     businessName: config.business.businessName,
     agentName: config.persona.agentName,
     daysLeft,
+    isTrialExpired,
     isFirstVisit: config.auth.isFirstVisit,
     hasHours: !!config.hours.hoursWeekday,
     hasFaqs: config.knowledge.extraQa.length > 0,
