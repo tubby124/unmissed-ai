@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import PlacesAutocomplete from "@/components/onboard/PlacesAutocomplete";
 import { trackEvent } from "@/lib/analytics";
 import { NICHE_PRODUCTION_READY } from "@/lib/niche-config";
+import { agentNameIsAutoSet } from "@/lib/intake-transform";
 
 const FEMALE_DEFAULT = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
 
@@ -100,9 +101,11 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     }
     updates.niche = detectedNiche;
 
-    // Set agent name from niche if not customized
-    const currentIsDefault = !data.agentName || Object.values(defaultAgentNames).includes(data.agentName);
-    if (currentIsDefault) updates.agentName = defaultAgentNames[detectedNiche];
+    // Set agent name from niche only if the current name is empty or was auto-set by the system.
+    // Preserves explicitly user-typed names even if they happen to match another niche's default.
+    if (agentNameIsAutoSet(data.agentName, data.niche)) {
+      updates.agentName = defaultAgentNames[detectedNiche];
+    }
 
     // Set default voice
     if (!data.voiceId) { updates.voiceId = FEMALE_DEFAULT.id; updates.voiceName = FEMALE_DEFAULT.name; }
@@ -302,7 +305,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Agent name + voice gender — stagger in after business confirmed */}
+      {/* Agent name — shown after business is confirmed (GBP or manual) */}
       <AnimatePresence>
         {(gbpConfirmed || (showManual && data.businessName)) && (
           <motion.div
@@ -311,6 +314,25 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
             transition={{ duration: 0.28, ease: "easeOut", delay: 0.08 }}
             className="space-y-4 pt-4 border-t border-border"
           >
+            {/* Business name — editable after GBP import so user isn't locked to listing name */}
+            {gbpConfirmed && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="space-y-1.5"
+              >
+                <Label htmlFor="businessName">Business name</Label>
+                <Input
+                  id="businessName"
+                  value={data.businessName}
+                  onChange={(e) => onUpdate({ businessName: e.target.value })}
+                  placeholder="Acme Services"
+                />
+                <p className="text-xs text-muted-foreground">Imported from Google — edit freely.</p>
+              </motion.div>
+            )}
+
             {/* Agent name */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}

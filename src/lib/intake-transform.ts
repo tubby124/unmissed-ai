@@ -43,6 +43,22 @@ export function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+/**
+ * Returns true if the current agentName was auto-set by the system (not user-typed),
+ * meaning it's safe to overwrite it with a new niche default.
+ *
+ * Rule: only overwrite if name is empty OR exactly matches the current niche's default.
+ * This prevents clobbering user-typed names that happen to match a different niche's default.
+ */
+export function agentNameIsAutoSet(
+  currentName: string,
+  currentNiche: string | null,
+): boolean {
+  if (!currentName) return true;
+  const currentNicheDefault = currentNiche ? defaultAgentNames[currentNiche as Niche] : null;
+  return currentName === currentNicheDefault;
+}
+
 export function mapInsuranceToPreset(nicheInsurance: string): string {
   const mapping: Record<string, string> = {
     all_major: "all_insurance",

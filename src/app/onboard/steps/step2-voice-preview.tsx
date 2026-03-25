@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "motion/react";
 import { OnboardingData, defaultAgentNames, Niche } from "@/types/onboarding";
 import GenderVoicePicker from "@/components/onboard/GenderVoicePicker";
+import { agentNameIsAutoSet } from "@/lib/intake-transform";
 
 const FEMALE_VOICE = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
 
@@ -35,12 +36,11 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-fill agent name from niche
+  // Auto-fill agent name from niche — only if the current name is empty or was system-set
   useEffect(() => {
     if (data.niche) {
       const nicheDefault = defaultAgentNames[data.niche as Niche];
-      const isDefaultName = !data.agentName || Object.values(defaultAgentNames).includes(data.agentName);
-      if (isDefaultName && nicheDefault && data.agentName !== nicheDefault) {
+      if (agentNameIsAutoSet(data.agentName, data.niche) && nicheDefault && data.agentName !== nicheDefault) {
         onUpdate({ agentName: nicheDefault });
       }
     }
