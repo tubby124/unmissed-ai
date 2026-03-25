@@ -20,6 +20,7 @@ import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -188,6 +189,21 @@ export async function POST(req: NextRequest) {
     const intakeData = (intake.intake_json as Record<string, unknown>) || {}
     if (!intakeData.niche && intake.niche) intakeData.niche = intake.niche
 
+    // Gate-13 parity: enforce plan entitlements before using capability fields
+    const checkoutEntitlements = getPlanEntitlements(selectedPlanId)
+    const checkoutCallHandlingMode = checkoutEntitlements.bookingEnabled
+      ? ((intakeData.call_handling_mode as string) || (intakeData.callHandlingMode as string) || 'triage')
+      : 'triage'
+    const checkoutForwardingEnabled = checkoutEntitlements.transferEnabled
+      ? !!(intakeData.callForwardingEnabled)
+      : false
+    const checkoutForwardingNumber = checkoutForwardingEnabled
+      ? ((intakeData.owner_phone as string) || (intakeData.emergencyPhone as string) || null)
+      : null
+    const checkoutNotificationMethod = (intakeData.notificationMethod as string) || (intakeData.notification_method as string) || 'telegram'
+    // Apply effective call_handling_mode to intakeData before prompt build
+    intakeData.call_handling_mode = checkoutCallHandlingMode
+
     // ── Website scraping enrichment ────────────────────────────────────────────
     // H: Skip duplicate scrape when user already previewed their website during onboarding
     let websiteContent = ''
@@ -303,6 +319,10 @@ export async function POST(req: NextRequest) {
         ivr_enabled: (intakeData.ivrEnabled as boolean) ?? false,
         ivr_prompt: (intakeData.ivrPrompt as string) || null,
         selected_plan: selectedPlanId,
+        // Gate-11/12/13 parity: same fixes as provision/trial
+        forwarding_number: checkoutForwardingNumber,
+        telegram_notifications_enabled: checkoutNotificationMethod === 'email' ? false : null,
+        email_notifications_enabled: checkoutNotificationMethod === 'telegram' ? false : null,
       })
       .select('id')
       .single()
