@@ -192,5 +192,11 @@ export async function GET(request: Request) {
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
     },
     trialWelcome,
+    editableFields: {
+      hoursWeekday: (c.business_hours_weekday as string | null) ?? null,
+      hoursWeekend: (c.business_hours_weekend as string | null) ?? null,
+      faqs: Array.isArray(client.extra_qa) ? (client.extra_qa as { q: string; a: string }[]) : [],
+      forwardingNumber: (c.forwarding_number as string | null) ?? null,
+    },
   })
 }

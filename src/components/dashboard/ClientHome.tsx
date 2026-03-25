@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import TrialKnowledgeCards from '@/components/dashboard/TrialKnowledgeCards'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
@@ -73,6 +74,12 @@ interface HomeData {
     hasWebsite: boolean
     hasForwardingNumber: boolean
     provisioningState: 'ready' | 'pending' | 'incomplete'
+  }
+  editableFields: {
+    hoursWeekday: string | null
+    hoursWeekend: string | null
+    faqs: { q: string; a: string }[]
+    forwardingNumber: string | null
   }
 }
 
@@ -465,48 +472,19 @@ export default function ClientHome() {
         </div>
       )}
 
-      {/* What Your Agent Knows — active trial users only */}
-      {isTrialActive && (
-        <div className="rounded-2xl p-4 card-surface">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">What callers experience</p>
-            <Link href="/dashboard/settings?tab=knowledge" className="text-[12px] font-medium hover:opacity-75 transition-opacity" style={{ color: 'var(--color-primary)' }}>
-              Improve →
-            </Link>
-          </div>
-          <div className="space-y-2.5">
-            {onboarding.servicesOffered && (
-              <div className="flex items-start gap-3">
-                <span className="text-[11px] font-medium t3 w-20 shrink-0 pt-0.5">Services</span>
-                <span className="text-[11px] t2 flex-1 leading-relaxed">{onboarding.servicesOffered}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium t3 w-20 shrink-0">Hours</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${data.trialWelcome.hasHours ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                {data.trialWelcome.hasHours ? 'Configured' : 'Not set'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium t3 w-20 shrink-0">FAQs</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${data.trialWelcome.hasFaqs ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                {data.trialWelcome.hasFaqs ? 'Configured' : 'None added yet'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium t3 w-20 shrink-0">Knowledge</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasKnowledge ? 'bg-green-500/10 text-green-400' : capabilities.hasFacts ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                {capabilities.hasKnowledge ? 'Website loaded' : capabilities.hasFacts ? 'Facts added' : 'Basic only'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium t3 w-20 shrink-0">Booking</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasBooking ? 'bg-green-500/10 text-green-400' : 'bg-zinc-500/10 text-zinc-400'}`}>
-                {capabilities.hasBooking ? 'Calendar connected' : 'Not connected'}
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Inline-editable knowledge cards — active trial users only */}
+      {isTrialActive && homeClientId && (
+        <TrialKnowledgeCards
+          clientId={homeClientId}
+          isAdmin={false}
+          initialHoursWeekday={data.editableFields.hoursWeekday}
+          initialHoursWeekend={data.editableFields.hoursWeekend}
+          initialFaqs={data.editableFields.faqs}
+          initialForwardingNumber={data.editableFields.forwardingNumber}
+          isExpired={isExpired}
+          trialPhase={trialPhase}
+          onRetest={resetCall}
+        />
       )}
 
       {/* Subtle upgrade nudge — active trial only (expired has dedicated hero above) */}
