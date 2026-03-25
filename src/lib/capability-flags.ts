@@ -18,6 +18,9 @@ export interface ClientCapabilityInput {
   twilio_number: string | null | undefined
   forwarding_number: string | null | undefined
   website_url: string | null | undefined
+  // 'approved' = scrape ran + user approved → corpus is live
+  // null / any other value = URL set but not yet approved into knowledge base
+  website_scrape_status: string | null | undefined
 }
 
 export interface CapabilityFlags {
@@ -42,6 +45,7 @@ export function buildCapabilityFlags(client: ClientCapabilityInput): CapabilityF
     // SMS requires a Twilio number to send FROM — trial users have sms_enabled=true but no number
     hasSms: !!(client.sms_enabled && client.twilio_number),
     hasTransfer: !!client.forwarding_number,
-    hasWebsite: !!client.website_url,
+    // URL set ≠ corpus ready. Requires approved scrape — 'extracted' = preview only, not live.
+    hasWebsite: client.website_scrape_status === 'approved',
   }
 }

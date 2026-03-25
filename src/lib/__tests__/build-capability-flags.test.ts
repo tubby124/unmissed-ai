@@ -27,6 +27,7 @@ function base() {
     twilio_number: null,
     forwarding_number: null,
     website_url: null,
+    website_scrape_status: null,
   }
 }
 
@@ -130,6 +131,42 @@ describe('hasFaqs — extra_qa must be non-empty array', () => {
   test('one FAQ entry → true', () => {
     const f = buildCapabilityFlags({ ...base(), extra_qa: [{ q: 'Hours?', a: '9-5' }] })
     assert.equal(f.hasFaqs, true)
+  })
+})
+
+
+// ── hasWebsite — requires website_scrape_status === 'approved' ───────────────
+// URL set ≠ corpus ready. 'extracted' = preview only, not approved into knowledge base.
+
+describe('hasWebsite — website_scrape_status must be approved', () => {
+  test('url set but no scrape_status (null) → false', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: 'https://example.com', website_scrape_status: null })
+    assert.equal(f.hasWebsite, false)
+  })
+
+  test('url set, scrape_status=scraping → false', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: 'https://example.com', website_scrape_status: 'scraping' })
+    assert.equal(f.hasWebsite, false)
+  })
+
+  test('url set, scrape_status=extracted (preview only) → false', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: 'https://example.com', website_scrape_status: 'extracted' })
+    assert.equal(f.hasWebsite, false)
+  })
+
+  test('url set, scrape_status=failed → false', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: 'https://example.com', website_scrape_status: 'failed' })
+    assert.equal(f.hasWebsite, false)
+  })
+
+  test('url set, scrape_status=approved → true', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: 'https://example.com', website_scrape_status: 'approved' })
+    assert.equal(f.hasWebsite, true)
+  })
+
+  test('no url, scrape_status=approved (corrupted state) → true (status is authoritative)', () => {
+    const f = buildCapabilityFlags({ ...base(), website_url: null, website_scrape_status: 'approved' })
+    assert.equal(f.hasWebsite, true)
   })
 })
 

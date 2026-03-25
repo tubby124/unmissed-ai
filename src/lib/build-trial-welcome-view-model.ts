@@ -68,7 +68,8 @@ export function buildTrialWelcomeViewModel(
     isFirstVisit: config.auth.isFirstVisit,
     hasHours: !!config.hours.hoursWeekday,
     hasFaqs: config.knowledge.extraQa.length > 0,
-    hasWebsite: !!config.business.websiteUrl,
+    // scrapeStatus='complete' means scrape ran AND user approved it — corpus is actually live
+    hasWebsite: config.knowledge.scrapeStatus === 'complete',
     hasForwardingNumber: config.routing.callForwardingEnabled,
     provisioningState,
   }

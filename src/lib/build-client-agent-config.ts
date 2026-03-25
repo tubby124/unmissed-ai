@@ -80,9 +80,11 @@ function deriveScheduleMode(hoursWeekday: string | null): ScheduleMode {
 
 function deriveScrapeStatus(status: string | null | undefined): ScrapeStatus {
   if (!status) return 'none'
-  if (status === 'complete') return 'complete'
-  if (status === 'pending' || status === 'in_progress') return 'pending'
-  if (status === 'error' || status === 'failed') return 'error'
+  // DB values: 'scraping' | 'extracted' | 'failed' | 'approved'
+  // Legacy values: 'complete' | 'pending' | 'in_progress' | 'error'
+  if (status === 'approved' || status === 'complete') return 'complete'
+  if (status === 'scraping' || status === 'extracted' || status === 'pending' || status === 'in_progress') return 'pending'
+  if (status === 'failed' || status === 'error') return 'error'
   return 'none'
 }
 
