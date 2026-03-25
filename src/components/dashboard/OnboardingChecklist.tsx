@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { useOnboarding, type OnboardingState } from '@/hooks/useOnboarding'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 
 interface OnboardingChecklistProps {
   hasPhoneNumber: boolean
@@ -36,6 +37,7 @@ export default function OnboardingChecklist({
   initialOnboardingState,
 }: OnboardingChecklistProps) {
   const { state, dismissChecklist, isStepComplete, recordFirstLogin } = useOnboarding(initialOnboardingState)
+  const { openUpgradeModal } = useUpgradeModal()
 
   // Record first dashboard visit
   useEffect(() => {
@@ -85,8 +87,9 @@ export default function OnboardingChecklist({
         : 'Forward your business line so calls reach your agent.',
       doneDescription: isTrial ? 'Upgrade to go live' : 'Your agent is live',
       done: liveDone,
-      link: isTrial ? '/dashboard/settings?tab=billing' : '/dashboard/setup',
+      link: isTrial ? undefined : '/dashboard/setup',
       linkLabel: isTrial ? 'Upgrade to go live' : 'Setup instructions',
+      onClick: isTrial ? () => openUpgradeModal('checklist_go_live', null, undefined) : undefined,
     },
   ]
 

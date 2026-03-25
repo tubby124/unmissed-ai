@@ -12,6 +12,7 @@ interface PostCallImprovementPanelProps {
   hasHours: boolean
   hasFaqs: boolean
   hasForwardingNumber: boolean
+  existingFaqs?: { q: string; a: string }[]
   onDismiss: () => void
   onRetest: () => void
   clientId?: string | null
@@ -36,6 +37,7 @@ export default function PostCallImprovementPanel({
   hasHours,
   hasFaqs,
   hasForwardingNumber,
+  existingFaqs = [],
   onDismiss,
   onRetest,
   clientId,
@@ -112,7 +114,7 @@ export default function PostCallImprovementPanel({
     if (!faqQ.trim() || !faqA.trim()) return
     setSaving(true)
     setSaveError(null)
-    const ok = await patchSettings({ extra_qa: [{ q: faqQ.trim(), a: faqA.trim() }] })
+    const ok = await patchSettings({ extra_qa: [...existingFaqs, { q: faqQ.trim(), a: faqA.trim() }] })
     setSaving(false)
     if (ok) {
       setSavedAction('faq')

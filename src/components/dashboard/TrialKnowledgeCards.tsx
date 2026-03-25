@@ -220,6 +220,140 @@ function FaqCard({
   )
 }
 
+// ── Website card ──────────────────────────────────────────────────────────────
+
+type WebsiteStatus = 'idle' | 'saving' | 'scraping' | 'done' | 'error'
+
+function WebsiteCard({
+  clientId, isAdmin, initialUrl, isExpired, trialPhase,
+}: CommonProps & { initialUrl: string | null }) {
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState(initialUrl ?? '')
+  const [current, setCurrent] = useState(initialUrl)
+  const [status, setStatus] = useState<WebsiteStatus>('idle')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const { saving } = usePatchSettings(clientId, isAdmin)
+
+  function openEdit() {
+    setOpen(true); setErrorMsg(null)
+    trackEvent('knowledge_card_edit_opened', { field_type: 'website', trial_phase: trialPhase })
+  }
+  function cancelEdit() {
+    setOpen(false); setUrl(current ?? '')
+    trackEvent('knowledge_card_edit_cancelled', { field_type: 'website' })
+  }
+
+  async function save() {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    // Basic URL validation
+    try { new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`) } catch {
+      setErrorMsg('Enter a valid website URL'); return
+    }
+    const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+
+    setStatus('saving'); setErrorMsg(null)
+    try {
+      const saveRes = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: normalized, ...(isAdmin ? { client_id: clientId } : {}) }),
+        signal: AbortSignal.timeout(15000),
+      })
+      if (!saveRes.ok) {
+        const d = await saveRes.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Could not save website')
+      }
+      setCurrent(normalized)
+      setUrl(normalized)
+      setOpen(false)
+      setStatus('scraping')
+      trackEvent('website_url_saved_from_dashboard', { trial_phase: trialPhase })
+
+      // Fire scrape — runs in background (~45s). Show status but don't block UX.
+      fetch('/api/dashboard/scrape-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, url: normalized }),
+      }).then(r => {
+        if (r.ok) {
+          setStatus('done')
+          trackEvent('website_scraped_from_dashboard', { trial_phase: trialPhase })
+        } else {
+          setStatus('error')
+          setErrorMsg('Website saved — scraping failed. Your agent will still know your URL.')
+        }
+      }).catch(() => {
+        setStatus('error')
+        setErrorMsg('Website saved — scraping failed. Your agent will still know your URL.')
+      })
+    } catch (err) {
+      setStatus('error')
+      setErrorMsg(err instanceof Error ? err.message : 'Could not save website')
+    }
+  }
+
+  const statusPill =
+    status === 'done' ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400">Synced</span> :
+    status === 'scraping' ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400">Importing…</span> :
+    null
+
+  const displayUrl = current
+    ? current.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
+    : null
+
+  return (
+    <div className="rounded-2xl p-4 card-surface">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-[10px] font-semibold tracking-[0.14em] uppercase t3">Website</p>
+            {statusPill}
+          </div>
+          {displayUrl
+            ? <p className="text-xs t2 truncate">{displayUrl}</p>
+            : <p className="text-xs t3 italic">Not added — your agent can't answer website questions</p>
+          }
+          {status === 'error' && errorMsg && !open && (
+            <p className="text-[10px] text-amber-400 mt-0.5">{errorMsg}</p>
+          )}
+        </div>
+        {!isExpired && !open && (
+          <EditButton label={current ? 'Update' : 'Add'} onClick={openEdit} />
+        )}
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          <input
+            type="url" value={url}
+            onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') save() }}
+            placeholder="https://yourbusiness.com"
+            autoFocus className={INPUT_CLS} style={INPUT_STYLE}
+          />
+          <p className="text-[10px] t3">
+            We'll scan your site so your agent can answer questions about your services, pricing, and more.
+          </p>
+          {errorMsg && <p className="text-[11px] text-red-400">{errorMsg}</p>}
+          <SaveRow saving={saving || status === 'saving'} onSave={save} onCancel={cancelEdit} disabled={!url.trim()} />
+        </div>
+      )}
+
+      {status === 'done' && !open && (
+        <div className="mt-2">
+          <span className="text-[11px] text-green-400">✓ Website imported — your agent now knows your site</span>
+        </div>
+      )}
+      {status === 'scraping' && !open && (
+        <div className="mt-2">
+          <span className="text-[11px] text-blue-400">Scanning your website… takes about 30 seconds</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Forwarding card ───────────────────────────────────────────────────────────
 
 function ForwardingCard({
@@ -296,6 +430,7 @@ interface TrialKnowledgeCardsProps {
   initialHoursWeekend: string | null
   initialFaqs: { q: string; a: string }[]
   initialForwardingNumber: string | null
+  initialWebsiteUrl: string | null
   isExpired: boolean
   trialPhase: TrialPhase
   onRetest: () => void
@@ -305,6 +440,7 @@ export default function TrialKnowledgeCards({
   clientId, isAdmin,
   initialHoursWeekday, initialHoursWeekend,
   initialFaqs, initialForwardingNumber,
+  initialWebsiteUrl,
   isExpired, trialPhase, onRetest,
 }: TrialKnowledgeCardsProps) {
   const common: CommonProps = { clientId, isAdmin, isExpired, trialPhase, onRetest }
@@ -322,6 +458,7 @@ export default function TrialKnowledgeCards({
         </Link>
       </div>
       <div className="space-y-2">
+        <WebsiteCard {...common} initialUrl={initialWebsiteUrl} />
         <HoursCard {...common} initialWeekday={initialHoursWeekday} initialWeekend={initialHoursWeekend} />
         <FaqCard {...common} initialFaqs={initialFaqs} />
         <ForwardingCard {...common} initialNumber={initialForwardingNumber} />

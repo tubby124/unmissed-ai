@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import TrialKnowledgeCards from '@/components/dashboard/TrialKnowledgeCards'
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
@@ -18,7 +20,7 @@ import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 interface HomeData {
   admin: boolean
   clientId: string | null
-  agent: { name: string; status: string; niche: string | null }
+  agent: { name: string; status: string; niche: string | null; voiceStylePreset: string | null }
   stats: {
     totalCalls: number
     hotLeads: number
@@ -80,6 +82,8 @@ interface HomeData {
     hoursWeekend: string | null
     faqs: { q: string; a: string }[]
     forwardingNumber: string | null
+    websiteUrl: string | null
+    businessFacts: string | null
   }
 }
 
@@ -128,6 +132,7 @@ export default function ClientHome() {
   const [welcomeDismissed, setWelcomeDismissed] = useState(true) // start dismissed to avoid flash
   const [postCallDismissed, setPostCallDismissed] = useState(false)
   const hasTrackedCallEnd = useRef(false)
+  const hasAutoOpenedUpgrade = useRef(false)
   const searchParams = useSearchParams()
   const adminClientId = searchParams.get('client_id') // admin cloak param
   const { callState, resetCall } = useCallContext()
@@ -161,6 +166,18 @@ export default function ClientHome() {
     else if (phase === 'active_final') trackEvent('final_day_trial_seen')
     else if (phase === 'active_urgent') trackEvent('urgent_trial_banner_seen')
   }, [data])
+
+  // Auto-open upgrade modal when redirected from a trial-locked route (?upgrade=1)
+  useEffect(() => {
+    if (hasAutoOpenedUpgrade.current) return
+    if (searchParams.get('upgrade') !== '1') return
+    if (!data) return // wait for data to get clientId + daysLeft
+    hasAutoOpenedUpgrade.current = true
+    openUpgradeModal('locked_route', data.clientId, data.trialWelcome.daysLeft ?? undefined)
+    const cleaned = new URL(window.location.href)
+    cleaned.searchParams.delete('upgrade')
+    window.history.replaceState({}, '', cleaned.toString())
+  }, [data, searchParams, openUpgradeModal])
 
   useEffect(() => {
     const url = adminClientId
@@ -234,6 +251,7 @@ export default function ClientHome() {
   function dismissWelcome() {
     localStorage.setItem(WELCOME_DISMISSED_KEY, 'true')
     setWelcomeDismissed(true)
+    trackEvent('trial_welcome_banner_dismissed', { trial_phase: trialPhase })
   }
 
   // Action items (non-trial only — trial has focused guidance cards)
@@ -396,6 +414,7 @@ export default function ClientHome() {
           hasHours={data.trialWelcome.hasHours}
           hasFaqs={data.trialWelcome.hasFaqs}
           hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
+          existingFaqs={data.editableFields.faqs}
           onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
           onRetest={resetCall}
           clientId={homeClientId}
@@ -481,9 +500,39 @@ export default function ClientHome() {
           initialHoursWeekend={data.editableFields.hoursWeekend}
           initialFaqs={data.editableFields.faqs}
           initialForwardingNumber={data.editableFields.forwardingNumber}
+          initialWebsiteUrl={data.editableFields.websiteUrl}
           isExpired={isExpired}
           trialPhase={trialPhase}
           onRetest={resetCall}
+        />
+      )}
+
+      {/* Agent Intelligence Section — what the agent knows + unlock previews */}
+      {onboarding.hasAgent && (
+        <AgentIntelligenceSection
+          agentName={agent.name}
+          businessName={onboarding.businessName}
+          hoursWeekday={data.editableFields.hoursWeekday}
+          faqs={data.editableFields.faqs}
+          businessFacts={data.editableFields.businessFacts}
+          websiteUrl={data.editableFields.websiteUrl}
+          hasKnowledge={capabilities.hasKnowledge}
+          hasSms={capabilities.hasSms}
+          hasBooking={capabilities.hasBooking}
+          hasTransfer={capabilities.hasTransfer}
+          isTrial={isTrial}
+          clientId={homeClientId}
+        />
+      )}
+
+      {/* Capabilities + voice summary — always shown once agent exists */}
+      {onboarding.hasAgent && (
+        <CapabilitiesCard
+          capabilities={capabilities}
+          agentName={agent.name}
+          voiceStylePreset={agent.voiceStylePreset}
+          isTrial={isTrial}
+          clientId={homeClientId}
         />
       )}
 
@@ -555,29 +604,44 @@ export default function ClientHome() {
           <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent above to get started.</p>
         ) : (
           <div className="space-y-1">
-            {recentCalls.map(call => (
-              <Link
-                key={call.id}
-                href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-hover"
-              >
-                <span className="shrink-0">
-                  <StatusBadge status={call.call_status} showDot={false} />
-                </span>
+            {recentCalls.map(call => {
+              const isTestCall = call.call_status === 'test'
+              const row = (
+                <div
+                  key={call.id}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-hover"
+                >
+                  <span className="shrink-0">
+                    {isTestCall ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-400">Test</span>
+                    ) : (
+                      <StatusBadge status={call.call_status} showDot={false} />
+                    )}
+                  </span>
 
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium t1 truncate">{formatPhone(call.caller_phone)}</p>
-                  {call.ai_summary && (
-                    <p className="text-[11px] t3 truncate">{call.ai_summary}</p>
-                  )}
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium t1 truncate">
+                      {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
+                    </p>
+                    {!isTestCall && call.ai_summary && (
+                      <p className="text-[11px] t3 truncate">{call.ai_summary}</p>
+                    )}
+                  </div>
 
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
-                  <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                    <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
+                  </div>
                 </div>
-              </Link>
-            ))}
+              )
+
+              // Link to call detail only for real calls with a valid ultravox_call_id
+              return isTestCall ? row : (
+                <Link key={call.id} href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`} className="block cursor-pointer">
+                  {row}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

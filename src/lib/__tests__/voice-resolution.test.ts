@@ -9,6 +9,8 @@
 
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
+import { resolveVoiceId } from '../ultravox.js'
+import { toIntakePayload } from '../intake-transform.js'
 
 // ── Constants (mirrors ultravox.ts / niche-config.ts) ─────────────────────────
 
@@ -16,9 +18,6 @@ const JACQUELINE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a' // DEFAULT_VOICE (fema
 const MARK       = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae' // VOICE_MALE
 
 // ── resolveVoiceId ─────────────────────────────────────────────────────────────
-
-// Lazy import so the test runner can resolve the .js extension at runtime
-const { resolveVoiceId } = await import('../ultravox.js')
 
 describe('resolveVoiceId', () => {
   describe('directVoiceId — highest priority', () => {
@@ -79,8 +78,6 @@ describe('resolveVoiceId', () => {
 })
 
 // ── toIntakePayload voice_id passthrough ──────────────────────────────────────
-
-const { toIntakePayload } = await import('../intake-transform.js')
 
 // Minimal OnboardingData-compatible object for testing
 function makeData(overrides: Record<string, unknown> = {}): Parameters<typeof toIntakePayload>[0] {

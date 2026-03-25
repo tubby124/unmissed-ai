@@ -14,6 +14,7 @@ import HoursCard from '@/components/dashboard/settings/HoursCard'
 import { trackEvent } from '@/lib/analytics'
 import { deriveActivationState, type ActivationState } from '@/lib/derive-activation-state'
 import { useRef } from 'react'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 
 // ── Shared icons ──────────────────────────────────────────────────────────────
 
@@ -137,6 +138,8 @@ export default function SetupView({
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
   const [codesExpanded, setCodesExpanded] = useState(false)
   const hasTrackedView = useRef(false)
+  const hasTrackedPreviewView = useRef(false)
+  const { openUpgradeModal } = useUpgradeModal()
 
   // Restore last-used selections from localStorage
   useEffect(() => {
@@ -175,6 +178,14 @@ export default function SetupView({
       assigned_number_present: !!client.twilio_number,
     })
   }) // intentionally no dep array — runs each render but guarded by ref + state
+
+  // Track setup preview view once for trial users seeing the locked preview
+  useEffect(() => {
+    if (!isTrialing || isAdmin || isNewUpgrade) return
+    if (hasTrackedPreviewView.current) return
+    hasTrackedPreviewView.current = true
+    trackEvent('setup_preview_viewed', { client_id: clients[0]?.id ?? null })
+  }) // intentionally no dep array — guarded by ref
 
   if (!client) return null
 
@@ -221,16 +232,16 @@ export default function SetupView({
             ))}
           </div>
 
-          <a
-            href="/dashboard/settings?tab=billing"
-            className="w-full py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+          <button
+            onClick={() => openUpgradeModal('setup_preview_upgrade_cta', clients[0]?.id)}
+            className="w-full py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             Upgrade to unlock call forwarding setup
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </a>
+          </button>
 
           <div className="rounded-2xl border px-5 py-4 space-y-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
             <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: 'var(--color-text-3)' }}>What you&apos;ll need to go live</p>

@@ -185,6 +185,11 @@ export async function PATCH(req: NextRequest) {
     updates.ivr_prompt = body.ivr_prompt.trim() || null
   }
 
+  // Website URL — saved here; caller is responsible for triggering /api/dashboard/scrape-website separately
+  if (typeof body.website_url === 'string') {
+    updates.website_url = body.website_url.trim() || null
+  }
+
   // B1 — Section editor: replace a named section in the stored prompt
   // section_id must be a client-editable section; admins can also edit locked sections
   if (typeof body.section_id === 'string' && typeof body.section_content === 'string') {

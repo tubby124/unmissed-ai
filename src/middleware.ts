@@ -104,8 +104,8 @@ export async function middleware(request: NextRequest) {
 
         if (client?.subscription_status === 'trialing') {
           const url = request.nextUrl.clone()
-          url.pathname = '/dashboard/settings'
-          url.searchParams.set('tab', 'billing')
+          url.pathname = '/dashboard'
+          url.searchParams.set('upgrade', '1')
           return NextResponse.redirect(url)
         }
       }

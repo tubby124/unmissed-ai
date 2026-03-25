@@ -175,7 +175,7 @@ export default function MobileNav({ businessName, isAdmin = false, clientStatus,
                         <hr className="my-2" style={{ borderColor: "var(--color-border)" }} />
                       )}
                       <Link
-                        href={isLocked ? '/dashboard/settings?tab=billing' : item.href}
+                        href={isLocked ? '/dashboard?upgrade=1' : item.href}
                         onClick={() => setOpen(false)}
                         title={isLocked ? 'Available when you go live' : undefined}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${

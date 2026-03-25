@@ -215,6 +215,7 @@ function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [showRecoveryHint, setShowRecoveryHint] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -227,7 +228,10 @@ function LoginContent() {
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError === 'invalid_link') {
-      setError('Your login link has expired or was already used. Please sign in with Google or your email and password.')
+      setError('This link has expired or was already used.')
+      setShowRecoveryHint(true)
+    } else if (urlError === 'auth_callback_failed') {
+      setError('Sign-in failed. Please try again or use a different method.')
     }
   }, [searchParams])
 
@@ -346,7 +350,15 @@ function LoginContent() {
               />
 
               <div>
-                <label className="block text-xs font-medium mb-2 t3">Password</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-medium t3">Password</label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs t3 hover:t1 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <input
                   type="password"
                   value={password}
@@ -360,6 +372,18 @@ function LoginContent() {
               </div>
 
               <ErrorMessage error={error} />
+
+              {showRecoveryHint && (
+                <div className="text-center -mt-1">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm font-medium"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    Send me a new reset link &rarr;
+                  </Link>
+                </div>
+              )}
 
               <motion.button
                 type="submit"

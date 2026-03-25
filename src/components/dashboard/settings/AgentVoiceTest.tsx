@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   WaveformBars,
@@ -43,6 +44,7 @@ interface AgentVoiceTestProps {
 }
 
 export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, onEnd, onScrollTo }: AgentVoiceTestProps) {
+  const { openUpgradeModal } = useUpgradeModal()
   const [callState, setCallState] = useState<CallState>('idle')
   const [agentStatus, setAgentStatus] = useState<AgentStatus>('idle')
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
@@ -498,13 +500,13 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, 
                     All your setup is saved — you&apos;re just adding a phone number.
                   </p>
                 </div>
-                <a
-                  href="/dashboard/settings?tab=billing"
+                <button
+                  onClick={() => openUpgradeModal('voice_test_upgrade_cta', clientId)}
                   className="block w-full py-2.5 rounded-xl text-[13px] font-semibold text-white text-center transition-opacity hover:opacity-90 cursor-pointer"
-                  style={{ backgroundColor: 'var(--color-primary)', minHeight: '44px', lineHeight: '44px', padding: 0 }}
+                  style={{ backgroundColor: 'var(--color-primary)', minHeight: '44px' }}
                 >
                   Get Your Phone Number →
-                </a>
+                </button>
               </motion.div>
             )}
 
