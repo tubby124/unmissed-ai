@@ -18,9 +18,8 @@ import { MINUTE_RELOAD_PACKS, STRIPE_IDS } from "@/lib/pricing";
 import { APP_URL } from "@/lib/app-url";
 import { verifyBillingAuth } from "@/lib/billing-auth";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
-
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
   const { clientId, packIndex } = await req.json();
 
   const auth = await verifyBillingAuth(clientId);

@@ -14,9 +14,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { APP_URL } from "@/lib/app-url";
 import { verifyBillingAuth } from "@/lib/billing-auth";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
-
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" });
   const { clientId } = await req.json();
 
   const auth = await verifyBillingAuth(clientId);
