@@ -28,6 +28,7 @@ import { trackEvent } from "@/lib/analytics";
 import { loadVisitor } from "@/lib/demo-visitor";
 import ThemeToggle from "@/components/ThemeToggle";
 import { STEP_DEFS, TOTAL_STEPS, type ActivationContext } from "./config/steps";
+import { ProvisioningOverlay } from "@/components/onboard/ProvisioningOverlay";
 
 // ── Sidebar content — edit these to change the left-panel marketing copy ──────
 const SIDEBAR_BENEFITS: { icon: string; text: string }[] = [
@@ -312,6 +313,7 @@ export default function OnboardPage() {
           </div>
         </div>
       </div>
+      <ProvisioningOverlay data={data} visible={isSubmitting} />
     </div>
   );
 }
