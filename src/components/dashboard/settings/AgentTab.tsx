@@ -365,7 +365,7 @@ export default function AgentTab({
           hasTransfer: !!(client.forwarding_number),
           hasSms: !!(client.sms_enabled),
           hasKnowledge: client.knowledge_backend === 'pgvector',
-          hasWebsite: !!(client.website_url),
+          hasWebsite: client.website_scrape_status === 'approved',
         }}
         onScrollTo={handleScrollTo}
       />

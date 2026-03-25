@@ -28,7 +28,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
   const bookingConnected = !!(client.booking_enabled && client.calendar_auth_status === 'connected')
   const voiceStyle = config?.persona.voicePreset ?? client.voice_style_preset ?? 'default'
   const knowledgeActive = config ? config.capabilities.knowledgeEnabled : client.knowledge_backend === 'pgvector'
-  const hasWebsite = !!(config?.business.websiteUrl ?? client.website_url)
+  const hasWebsite = config ? config.knowledge.scrapeStatus === 'complete' : client.website_scrape_status === 'approved'
 
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [scrapeSaving, setScrapeSaving] = useState(false)

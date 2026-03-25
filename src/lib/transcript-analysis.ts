@@ -398,9 +398,11 @@ export interface ServerClientConfig {
   booking_enabled?: boolean | null
   forwarding_number?: string | null
   sms_enabled?: boolean | null
+  twilio_number?: string | null
   business_hours_weekday?: string | null
   knowledge_backend?: string | null
   website_url?: string | null
+  website_scrape_status?: string | null
   business_facts?: unknown
   extra_qa?: unknown
 }
@@ -425,10 +427,10 @@ export function analyzeTranscriptServer(
   const caps: ClientCapabilities = {
     hasBooking: !!config.booking_enabled,
     hasTransfer: !!config.forwarding_number,
-    hasSms: !!config.sms_enabled,
+    hasSms: !!(config.sms_enabled && config.twilio_number),
     hasHours: !!config.business_hours_weekday,
     hasKnowledge: config.knowledge_backend === 'pgvector',
-    hasWebsite: !!config.website_url,
+    hasWebsite: config.website_scrape_status === 'approved',
     hasFacts: Array.isArray(config.business_facts) && (config.business_facts as unknown[]).length > 0,
     hasFaqs: Array.isArray(config.extra_qa) && (config.extra_qa as unknown[]).length > 0,
   }
