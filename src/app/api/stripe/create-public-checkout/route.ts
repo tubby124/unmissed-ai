@@ -305,9 +305,10 @@ export async function POST(req: NextRequest) {
         timezone,
         stripe_customer_id: stripeCustomerId ?? null,
         agent_name: (intakeData.agent_name as string) || (intakeData.agentName as string) || null,
+        contact_email: (intakeData.contact_email as string) || (intakeData.contactEmail as string) || null,
         // Phase 0d: Write onboarding fields so settings dashboard shows them
         business_hours_weekday: (intakeData.hours_weekday as string) || null,
-        business_hours_weekend: null,
+        business_hours_weekend: (intakeData.hours_weekend as string) || null,
         after_hours_behavior: (intakeData.after_hours_behavior as string) || 'take_message',
         after_hours_emergency_phone: (intakeData.emergency_phone as string) || null,
         website_url: (intakeData.website_url as string) || (intakeData.websiteUrl as string) || null,
