@@ -353,6 +353,14 @@ export async function POST(req: NextRequest) {
     console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
   }
 
+  // Gate-17: Set website_scrape_status to reflect actual scrape data.
+  // Without this, hasWebsite (Gate-4) returns false for users who approved scrape during onboarding.
+  if (data.websiteScrapeResult) {
+    await supa.from('clients').update({ website_scrape_status: 'approved' }).eq('id', clientId)
+  } else if (rawScrapeResult?.rawContent) {
+    await supa.from('clients').update({ website_scrape_status: 'extracted' }).eq('id', clientId)
+  }
+
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   return NextResponse.json({

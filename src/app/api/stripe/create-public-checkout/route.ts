@@ -410,6 +410,14 @@ export async function POST(req: NextRequest) {
       }).eq('id', clientId);
       console.log(`[create-public-checkout] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
     }
+
+    // Gate-17: Set website_scrape_status to reflect actual scrape data.
+    // Without this, hasWebsite (Gate-4) returns false for users who scraped during onboarding.
+    if (scrapePreview) {
+      await svc.from('clients').update({ website_scrape_status: 'approved' }).eq('id', clientId)
+    } else if (rawScrapeResult?.rawContent) {
+      await svc.from('clients').update({ website_scrape_status: 'extracted' }).eq('id', clientId)
+    }
   }
 
   // ── Create Stripe Checkout session ─────────────────────────────────────────
