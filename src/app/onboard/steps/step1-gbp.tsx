@@ -10,7 +10,6 @@ import { trackEvent } from "@/lib/analytics";
 import { NICHE_PRODUCTION_READY } from "@/lib/niche-config";
 
 const FEMALE_DEFAULT = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
-const MALE_DEFAULT = { id: "b0e6b5c1-3100-44d5-8578-9015aa3023ae", name: "Mark" };
 
 const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
   auto_glass_shop: "auto_glass", car_repair: "auto_glass", car_wash: "auto_glass",
@@ -68,16 +67,6 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [placesKey, setPlacesKey] = useState(0);
   const [gbpConfirmed, setGbpConfirmed] = useState(!!(data.placeId || data.businessName));
   const [showManual, setShowManual] = useState(!!(data.businessName && !data.placeId));
-
-  const selectedGender = data.voiceId === MALE_DEFAULT.id ? "Male" : "Female";
-
-  const handleGenderToggle = (gender: "Female" | "Male") => {
-    if (gender === "Female") {
-      onUpdate({ voiceId: FEMALE_DEFAULT.id, voiceName: FEMALE_DEFAULT.name });
-    } else {
-      onUpdate({ voiceId: MALE_DEFAULT.id, voiceName: MALE_DEFAULT.name });
-    }
-  };
 
   // Derive predicted agent name from pending place for the CTA button
   const getPendingAgentName = (): string => {
@@ -339,32 +328,6 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               <p className="text-xs text-muted-foreground">What your agent introduces itself as on calls.</p>
             </motion.div>
 
-            {/* Voice gender toggle */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
-              className="space-y-2"
-            >
-              <p className="text-sm font-medium text-foreground">Agent voice</p>
-              <div className="flex gap-2">
-                {(["Female", "Male"] as const).map((gender) => (
-                  <button
-                    key={gender}
-                    type="button"
-                    onClick={() => handleGenderToggle(gender)}
-                    className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
-                      selectedGender === gender
-                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200"
-                        : "border-border text-muted-foreground hover:border-indigo-300"
-                    }`}
-                  >
-                    {gender === "Female" ? "Female voice" : "Male voice"}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">Preview and fine-tune the exact voice on the next step.</p>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

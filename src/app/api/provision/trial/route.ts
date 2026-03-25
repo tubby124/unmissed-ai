@@ -200,6 +200,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Voice ID: direct picker selection > gender fallback > niche default
+  console.debug('[provision/trial] Voice resolution: direct=%s niche=%s', data.voiceId, data.niche)
   const voiceId = resolveVoiceId(
     data.voiceId ?? null,
     null,

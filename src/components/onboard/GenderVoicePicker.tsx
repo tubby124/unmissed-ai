@@ -18,7 +18,7 @@ const VOICES: VoiceOption[] = [
   // Male voices
   { id: 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', name: 'Mark', gender: 'Male', personality: 'Clear, direct, professional' },
   { id: 'd766b9e3-69df-4727-b62f-cd0b6772c2ad', name: 'Nour', gender: 'Male', personality: 'Warm, patient, trustworthy' },
-  { id: '7d0bcff3-77ec-48ea-83d6-40ca0095e80c', name: 'Terrence', gender: 'Male', personality: 'Confident, authoritative, steady' },
+  { id: '5f8e97b1-cd48-431a-b6a1-3b94306d8914', name: 'Grant', gender: 'Male', personality: 'Confident, authoritative, steady' },
 ]
 
 const FEMALE_VOICES = VOICES.filter(v => v.gender === 'Female')
@@ -27,9 +27,11 @@ const MALE_VOICES = VOICES.filter(v => v.gender === 'Male')
 interface Props {
   selectedVoiceId: string | null
   onSelect: (voiceId: string, voiceName: string) => void
+  /** Set false to suppress GenderVoicePicker's own audio — caller handles playback. Default: true */
+  playOnSelect?: boolean
 }
 
-export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) {
+export default function GenderVoicePicker({ selectedVoiceId, onSelect, playOnSelect = true }: Props) {
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [errorId, setErrorId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -75,7 +77,7 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect }: Props) 
         onClick={() => {
           onSelect(voice.id, voice.name)
           trackEvent('voice_selected', { voiceId: voice.id, gender: voice.gender, niche: 'onboard' })
-          isPlaying ? stop() : play(voice.id)
+          if (playOnSelect) { isPlaying ? stop() : play(voice.id) }
         }}
         className={`
           relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all

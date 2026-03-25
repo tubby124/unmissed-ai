@@ -18,8 +18,21 @@ export async function GET(
 
   if (!res.ok) return new NextResponse('Not found', { status: 404 })
 
-  const contentType = res.headers.get('content-type') || 'audio/wav'
   const buffer = await res.arrayBuffer()
+
+  // Ultravox returns 'text/plain' for some voices even though the bytes are MP3.
+  // Detect from magic bytes so the browser actually plays it.
+  let contentType = res.headers.get('content-type') || 'audio/wav'
+  if (!contentType.startsWith('audio/')) {
+    const bytes = new Uint8Array(buffer, 0, 3)
+    // MP3 sync word (0xFF 0xEx or 0xFF 0xFx) or ID3 tag (0x49 0x44 0x33 = "ID3")
+    if ((bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) ||
+        (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)) {
+      contentType = 'audio/mpeg'
+    } else {
+      contentType = 'audio/wav'
+    }
+  }
 
   return new NextResponse(buffer, {
     headers: {

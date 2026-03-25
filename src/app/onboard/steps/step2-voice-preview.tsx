@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "motion/react";
 import { OnboardingData, defaultAgentNames, Niche } from "@/types/onboarding";
+import GenderVoicePicker from "@/components/onboard/GenderVoicePicker";
 
 const FEMALE_VOICE = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
-const MALE_VOICE = { id: "b0e6b5c1-3100-44d5-8578-9015aa3023ae", name: "Mark" };
 
 interface Props {
   data: OnboardingData;
@@ -111,6 +111,15 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
     [data.businessName, data.agentName, data.ownerName, stopAudio, animateWords]
   );
 
+  // Replay greeting when user picks a different voice
+  const prevVoiceRef = useRef(data.voiceId);
+  useEffect(() => {
+    if (data.voiceId && data.voiceId !== prevVoiceRef.current) {
+      prevVoiceRef.current = data.voiceId;
+      playCard("greeting", data.voiceId);
+    }
+  }, [data.voiceId, playCard]);
+
   // Auto-play greeting card on mount
   useEffect(() => {
     if (!hasAutoPlayed.current && data.voiceId) {
@@ -120,14 +129,6 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
     }
   }, [data.voiceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Replay greeting when voice changes (user picks a different voice)
-  const prevVoiceRef = useRef(data.voiceId);
-  useEffect(() => {
-    if (data.voiceId && data.voiceId !== prevVoiceRef.current) {
-      prevVoiceRef.current = data.voiceId;
-      playCard("greeting", data.voiceId);
-    }
-  }, [data.voiceId, playCard]);
 
   const businessName = data.businessName || "your business";
   const agentName = data.agentName || "your agent";
@@ -228,44 +229,15 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
         })}
       </div>
 
-      {/* Male / Female toggle */}
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-foreground">Voice gender</p>
-        <div className="grid grid-cols-2 gap-3">
-          {[FEMALE_VOICE, MALE_VOICE].map((voice) => {
-            const isSelected = data.voiceId === voice.id;
-            return (
-              <button
-                key={voice.id}
-                type="button"
-                onClick={() => onUpdate({ voiceId: voice.id, voiceName: voice.name })}
-                className={`flex flex-col items-center gap-1.5 py-4 rounded-xl border-2 transition-all cursor-pointer ${
-                  isSelected
-                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"
-                    : "border-border hover:border-indigo-300 dark:hover:border-indigo-700"
-                }`}
-              >
-                <span className="text-2xl">{voice.id === FEMALE_VOICE.id ? "👩" : "👨"}</span>
-                <span className={`text-sm font-semibold ${isSelected ? "text-indigo-700 dark:text-indigo-300" : "text-foreground"}`}>
-                  {voice.id === FEMALE_VOICE.id ? "Female" : "Male"}
-                </span>
-                {isSelected && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center"
-                  >
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </motion.div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-xs text-muted-foreground">More voice options available in your dashboard after setup.</p>
-      </div>
+      {/* Voice selection */}
+      <GenderVoicePicker
+        selectedVoiceId={data.voiceId}
+        playOnSelect={false}
+        onSelect={(voiceId, voiceName) => {
+          console.debug('[voice-select] Selected:', voiceId, voiceName)
+          onUpdate({ voiceId, voiceName })
+        }}
+      />
     </div>
   );
 }
