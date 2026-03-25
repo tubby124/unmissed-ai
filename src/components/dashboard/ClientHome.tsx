@@ -56,6 +56,17 @@ interface HomeData {
     hasAgent: boolean
     telegramConnected: boolean
   }
+  trialWelcome: {
+    businessName: string
+    agentName: string
+    daysLeft: number | null
+    isFirstVisit: boolean
+    hasHours: boolean
+    hasFaqs: boolean
+    hasWebsite: boolean
+    hasForwardingNumber: boolean
+    provisioningState: 'ready' | 'pending' | 'incomplete'
+  }
 }
 
 function formatPhone(phone: string | null): string {
@@ -343,14 +354,14 @@ export default function ClientHome() {
             )}
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-medium t3 w-20 shrink-0">Hours</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasHours ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                {capabilities.hasHours ? 'Configured' : 'Not set'}
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${data.trialWelcome.hasHours ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                {data.trialWelcome.hasHours ? 'Configured' : 'Not set'}
               </span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-medium t3 w-20 shrink-0">FAQs</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${capabilities.hasFaqs ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                {capabilities.hasFaqs ? 'Configured' : 'None added yet'}
+              <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${data.trialWelcome.hasFaqs ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                {data.trialWelcome.hasFaqs ? 'Configured' : 'None added yet'}
               </span>
             </div>
             <div className="flex items-center gap-3">

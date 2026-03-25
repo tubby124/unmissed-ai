@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
+import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,10 +38,10 @@ export async function GET(request: Request) {
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
 
   const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes] = await Promise.all([
-    // Client config
+    // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, knowledge_backend, business_facts, extra_qa, business_hours_weekday, services_offered, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, services_offered, website_url, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete')
       .eq('id', clientId)
       .single(),
 
@@ -102,7 +104,7 @@ export async function GET(request: Request) {
   const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const bonusMinutes = client.bonus_minutes ?? 0
 
-  // Capability flags for action items
+  // Capability flags for action items (kept for backward compat — non-trial sections use these)
   const capabilities = {
     hasKnowledge: client.knowledge_backend === 'pgvector',
     hasFacts: !!client.business_facts,
@@ -113,6 +115,35 @@ export async function GET(request: Request) {
     hasTransfer: !!client.forwarding_number,
     hasWebsite: !!client.website_url,
   }
+
+  // Build normalized config → trial welcome view model
+  const c = client as Record<string, unknown>
+  const config = buildClientAgentConfig({
+    id: client.id,
+    slug: c.slug as string ?? client.id,
+    business_name: client.business_name,
+    niche: client.niche,
+    website_url: client.website_url,
+    booking_enabled: client.booking_enabled,
+    sms_enabled: client.sms_enabled,
+    forwarding_number: client.forwarding_number,
+    transfer_conditions: c.transfer_conditions as string | null,
+    knowledge_backend: client.knowledge_backend,
+    business_facts: client.business_facts,
+    extra_qa: client.extra_qa as { q: string; a: string }[] | null,
+    business_hours_weekday: client.business_hours_weekday,
+    business_hours_weekend: c.business_hours_weekend as string | null,
+    after_hours_behavior: c.after_hours_behavior as string | null,
+    voice_style_preset: c.voice_style_preset as string | null,
+    agent_voice_id: client.agent_voice_id,
+    agent_name: client.agent_name,
+    subscription_status: c.subscription_status as string | null,
+    trial_expires_at: c.trial_expires_at as string | null,
+    setup_complete: c.setup_complete as boolean | null,
+    monthly_minute_limit: client.monthly_minute_limit,
+    selected_plan: c.selected_plan as string | null,
+  })
+  const trialWelcome = buildTrialWelcomeViewModel(config, !!client.ultravox_agent_id)
 
   return NextResponse.json({
     admin: false,
@@ -137,27 +168,28 @@ export async function GET(request: Request) {
       bonusMinutes,
       totalAvailable: minuteLimit + bonusMinutes,
     },
-    recentCalls: recentCalls.map(c => ({
-      id: c.id,
-      ultravox_call_id: c.ultravox_call_id,
-      caller_phone: c.caller_phone,
-      call_status: c.call_status,
-      duration_seconds: c.duration_seconds,
-      started_at: c.started_at,
-      ai_summary: c.ai_summary,
-      sentiment: c.sentiment,
+    recentCalls: recentCalls.map(call => ({
+      id: call.id,
+      ultravox_call_id: call.ultravox_call_id,
+      caller_phone: call.caller_phone,
+      call_status: call.call_status,
+      duration_seconds: call.duration_seconds,
+      started_at: call.started_at,
+      ai_summary: call.ai_summary,
+      sentiment: call.sentiment,
     })),
     capabilities,
     onboarding: {
       businessName: client.business_name,
       clientStatus: client.status,
-      subscriptionStatus: (client as Record<string, unknown>).subscription_status as string | null ?? null,
-      trialExpiresAt: (client as Record<string, unknown>).trial_expires_at as string | null ?? null,
-      servicesOffered: (client as Record<string, unknown>).services_offered as string | null ?? null,
-      agentVoiceId: (client as Record<string, unknown>).agent_voice_id as string | null ?? null,
+      subscriptionStatus: c.subscription_status as string | null ?? null,
+      trialExpiresAt: c.trial_expires_at as string | null ?? null,
+      servicesOffered: c.services_offered as string | null ?? null,
+      agentVoiceId: c.agent_voice_id as string | null ?? null,
       hasPhoneNumber: !!client.twilio_number,
       hasAgent: !!client.ultravox_agent_id,
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
     },
+    trialWelcome,
   })
 }
