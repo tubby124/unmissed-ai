@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
+import { buildCapabilityFlags } from '@/lib/capability-flags'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,12 +70,11 @@ export async function GET(request: Request) {
       .eq('client_id', clientId)
       .gte('created_at', monthStart),
 
-    // Recent 5 calls
+    // Recent 5 calls — test calls included so trial users see evidence of activity
     supabase
       .from('call_logs')
       .select('id, ultravox_call_id, caller_phone, call_status, duration_seconds, started_at, ai_summary, sentiment')
       .eq('client_id', clientId)
-      .neq('call_status', 'test')
       .order('started_at', { ascending: false })
       .limit(5),
   ])
@@ -104,17 +104,8 @@ export async function GET(request: Request) {
   const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const bonusMinutes = client.bonus_minutes ?? 0
 
-  // Capability flags for action items (kept for backward compat — non-trial sections use these)
-  const capabilities = {
-    hasKnowledge: client.knowledge_backend === 'pgvector',
-    hasFacts: !!client.business_facts,
-    hasFaqs: Array.isArray(client.extra_qa) && client.extra_qa.length > 0,
-    hasHours: !!client.business_hours_weekday,
-    hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
-    hasSms: !!client.sms_enabled,
-    hasTransfer: !!client.forwarding_number,
-    hasWebsite: !!client.website_url,
-  }
+  // Capability flags — truthful runtime readiness, not just DB flag state
+  const capabilities = buildCapabilityFlags(client)
 
   // Build normalized config → trial welcome view model
   const c = client as Record<string, unknown>
@@ -152,6 +143,7 @@ export async function GET(request: Request) {
       name: client.agent_name ?? client.business_name,
       status: client.status,
       niche: client.niche,
+      voiceStylePreset: (c.voice_style_preset as string | null) ?? null,
     },
     stats: {
       totalCalls,
@@ -197,6 +189,8 @@ export async function GET(request: Request) {
       hoursWeekend: (c.business_hours_weekend as string | null) ?? null,
       faqs: Array.isArray(client.extra_qa) ? (client.extra_qa as { q: string; a: string }[]) : [],
       forwardingNumber: (c.forwarding_number as string | null) ?? null,
+      websiteUrl: (client.website_url as string | null) ?? null,
+      businessFacts: (client.business_facts as string | null) ?? null,
     },
   })
 }
