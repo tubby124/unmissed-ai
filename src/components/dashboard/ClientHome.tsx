@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
+import { useCallContext } from '@/contexts/CallContext'
+import { trackEvent } from '@/lib/analytics'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import ErrorCard from '@/components/dashboard/ErrorCard'
 import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
@@ -112,12 +115,27 @@ export default function ClientHome() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [welcomeDismissed, setWelcomeDismissed] = useState(true) // start dismissed to avoid flash
+  const [postCallDismissed, setPostCallDismissed] = useState(false)
+  const hasTrackedCallEnd = useRef(false)
   const searchParams = useSearchParams()
   const clientId = searchParams.get('client_id')
+  const { callState, resetCall } = useCallContext()
 
   useEffect(() => {
     setWelcomeDismissed(localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true')
   }, [])
+
+  // Track test_call_completed once per call cycle; reset dismissed state on next call
+  useEffect(() => {
+    if (callState === 'ended' && !hasTrackedCallEnd.current) {
+      hasTrackedCallEnd.current = true
+      trackEvent('test_call_completed')
+    }
+    if (callState === 'idle') {
+      hasTrackedCallEnd.current = false
+      setPostCallDismissed(false)
+    }
+  }, [callState])
 
   useEffect(() => {
     const url = clientId
@@ -285,6 +303,17 @@ export default function ClientHome() {
           businessName={onboarding.businessName}
           clientStatus={onboarding.clientStatus}
           isTrial={isTrial}
+        />
+      )}
+
+      {/* Post-call improvement loop — trial users only, shown after each completed test call */}
+      {isTrial && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
+        <PostCallImprovementPanel
+          hasHours={data.trialWelcome.hasHours}
+          hasFaqs={data.trialWelcome.hasFaqs}
+          hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
+          onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
+          onRetest={resetCall}
         />
       )}
 
