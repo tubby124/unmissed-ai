@@ -363,7 +363,7 @@ export default function AgentTab({
           hasHours: !!(client.business_hours_weekday),
           hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
           hasTransfer: !!(client.forwarding_number),
-          hasSms: !!(client.sms_enabled),
+          hasSms: !!(client.sms_enabled && client.twilio_number),
           hasKnowledge: client.knowledge_backend === 'pgvector',
           hasWebsite: client.website_scrape_status === 'approved',
         }}

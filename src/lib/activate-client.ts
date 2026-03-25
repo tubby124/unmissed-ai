@@ -189,7 +189,7 @@ export async function activateClient(params: {
         const { data: inviteData, error: inviteErr } = await adminSupa.auth.admin.generateLink({
           type: 'invite',
           email: contactEmail,
-          options: { redirectTo: `${appUrl}/auth/set-password` },
+          options: { redirectTo: `${appUrl}/auth/callback?next=/auth/set-password` },
         })
         if (inviteErr) {
           console.error(`${logPrefix} generateLink(invite) failed: ${inviteErr.message}`)

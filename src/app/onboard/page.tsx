@@ -150,13 +150,9 @@ export default function OnboardPage() {
           throw new Error(json.error || "Trial signup failed");
         }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-        if (json.setupUrl) {
-          window.location.href = json.setupUrl;
-        } else {
-          router.push(
-            `/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || "")}&telegramLink=${encodeURIComponent(json.telegramLink || "")}&email=${encodeURIComponent(data.contactEmail || "")}&knowledgeCount=${json.knowledgeCount ?? 0}`
-          );
-        }
+        router.push(
+          `/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || "")}&telegramLink=${encodeURIComponent(json.telegramLink || "")}&email=${encodeURIComponent(data.contactEmail || "")}&knowledgeCount=${json.knowledgeCount ?? 0}${json.setupUrl ? `&setupUrl=${encodeURIComponent(json.setupUrl)}` : ""}`
+        );
       } else {
         const res = await fetch("/api/provision", {
           method: "POST",
