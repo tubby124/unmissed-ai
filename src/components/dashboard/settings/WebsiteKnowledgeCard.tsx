@@ -30,9 +30,11 @@ const STATUS_BADGE: Record<ScrapeStatus, { label: string; cls: string }> = {
 }
 
 export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: WebsiteKnowledgeCardProps) {
-  const status = resolveStatus(client)
+  const [localStatus, setLocalStatus] = useState<ScrapeStatus | null>(null)
+  const status = localStatus ?? resolveStatus(client)
   const badge = STATUS_BADGE[status]
   const [rescrapeBusy, setRescrapeBusy] = useState(false)
+  const [approveBusy, setApproveBusy] = useState(false)
   const [urlInput, setUrlInput] = useState(client.website_url ?? '')
   const [urlSaving, setUrlSaving] = useState(false)
   const [editingUrl, setEditingUrl] = useState(false)
@@ -59,11 +61,14 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id, url: trimmed }),
       })
+      const scrapeData = await scrapeRes.json().catch(() => ({}))
       if (!scrapeRes.ok) {
-        const data = await scrapeRes.json().catch(() => ({}))
-        throw new Error(data.error ?? 'Scrape failed')
+        throw new Error(scrapeData.error ?? 'Scrape failed')
       }
-      toast.success('Website scrape started — refresh in a minute to see results')
+      if (scrapeData.status === 'failed') {
+        throw new Error('Could not extract content from that URL — try a different page or check the URL')
+      }
+      toast.success('Website scraped — refresh to review and add to your agent')
       setEditingUrl(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed')
@@ -81,15 +86,47 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: client.id, url: client.website_url }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Scrape failed')
       }
-      toast.success('Website scrape started — refresh in a minute to see results')
+      if (data.status === 'failed') {
+        throw new Error('Could not extract content from that URL — try a different page or check the URL')
+      }
+      toast.success('Website scraped — refresh to review and add to your agent')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Scrape failed')
     } finally {
       setRescrapeBusy(false)
+    }
+  }
+
+  const handleApprove = async () => {
+    if (!preview) return
+    setApproveBusy(true)
+    try {
+      const res = await fetch('/api/dashboard/approve-website-knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          approved: {
+            businessFacts: preview.businessFacts,
+            extraQa: preview.extraQa,
+            serviceTags: preview.serviceTags,
+          },
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Approval failed')
+      }
+      setLocalStatus('approved')
+      toast.success('Website knowledge added to your agent')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Approval failed')
+    } finally {
+      setApproveBusy(false)
     }
   }
 
@@ -135,6 +172,11 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
   const approvedQa = approved?.extraQa?.filter(q => q.q?.trim()).length ?? 0
   const approvedTags = approved?.serviceTags?.length ?? 0
   const pages = client.website_scrape_pages?.length ?? 0
+  // When we just approved in this session, show preview counts (not yet written back to approved column)
+  const justApproved = localStatus === 'approved'
+  const displayFacts = (status === 'approved' && !justApproved) ? approvedFacts : previewFacts
+  const displayQa = (status === 'approved' && !justApproved) ? approvedQa : previewQa
+  const displayTags = (status === 'approved' && !justApproved) ? approvedTags : previewTags
 
   return (
     <div className="rounded-2xl border b-theme bg-surface p-5">
@@ -194,20 +236,12 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
       {/* Stats grid */}
       {(status === 'extracted' || status === 'approved') && (
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <StatCell
-            label="Facts"
-            value={status === 'approved' ? approvedFacts : previewFacts}
-            active={status === 'approved' ? approvedFacts > 0 : previewFacts > 0}
-          />
-          <StatCell
-            label="Q&A"
-            value={status === 'approved' ? approvedQa : previewQa}
-            active={status === 'approved' ? approvedQa > 0 : previewQa > 0}
-          />
+          <StatCell label="Facts" value={displayFacts} active={displayFacts > 0} />
+          <StatCell label="Q&A" value={displayQa} active={displayQa > 0} />
           <StatCell
             label={pages > 0 ? `${pages} page${pages !== 1 ? 's' : ''}` : 'Tags'}
-            value={pages > 0 ? (status === 'approved' ? approvedTags : previewTags) : (status === 'approved' ? approvedTags : previewTags)}
-            active={(status === 'approved' ? approvedTags : previewTags) > 0}
+            value={displayTags}
+            active={displayTags > 0}
             sublabel={pages > 0 ? 'Service Tags' : undefined}
           />
         </div>
@@ -244,15 +278,27 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         </p>
       )}
 
-      {/* Extracted but not yet approved hint */}
+      {/* Extracted but not yet approved hint + approve button */}
       {status === 'extracted' && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.04] border border-blue-500/15 mb-3">
-          <span className="w-2 h-2 rounded-full bg-blue-400/80 shrink-0" />
-          <p className="text-[10px] t2 leading-relaxed">
-            <span className="font-semibold text-blue-400/90">Review needed</span>
-            {' '}&mdash; scraped data is ready for approval before going live.
-          </p>
-        </div>
+        <>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/[0.04] border border-blue-500/15 mb-2">
+            <span className="w-2 h-2 rounded-full bg-blue-400/80 shrink-0" />
+            <p className="text-[10px] t2 leading-relaxed">
+              <span className="font-semibold text-blue-400/90">Ready to add</span>
+              {' '}&mdash; {previewFacts} fact{previewFacts !== 1 ? 's' : ''}{previewQa > 0 ? ` and ${previewQa} Q&A${previewQa !== 1 ? 's' : ''}` : ''} extracted from your website.
+            </p>
+          </div>
+          {!previewMode && preview && (
+            <button
+              onClick={handleApprove}
+              disabled={approveBusy}
+              className="w-full mb-3 text-[11px] font-semibold text-white rounded-xl px-3 py-2.5 transition-opacity disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {approveBusy ? 'Adding to agent…' : 'Add to Agent'}
+            </button>
+          )}
+        </>
       )}
 
       {/* Scraping spinner */}

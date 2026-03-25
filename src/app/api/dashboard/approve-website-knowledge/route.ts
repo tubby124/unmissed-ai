@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Determine chunk status based on role ──────────────────────────────────
-  const chunkStatus = body.auto_approve && cu.role === 'admin' ? 'approved' : 'pending'
+  // Admin and owner users approve their own website data — chunks go live immediately.
+  // Other roles (viewer, etc.) would require admin review, but owner is self-service.
+  const chunkStatus = cu.role === 'admin' || cu.role === 'owner' ? 'approved' : 'pending'
   const runId = `website-scrape-${Date.now()}`
 
   // ── Seed knowledge chunks via shared utility ──────────────────────────────
