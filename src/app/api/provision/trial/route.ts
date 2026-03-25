@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       niche: data.niche || "other",
       status: 'setup',
       contact_email: data.contactEmail || null,
-      agent_name: data.agentName || null,
+      agent_name: intakePayload.agent_name || null,  // Gate-14: use niche default when blank
       // Phase 0b: Write onboarding fields so settings dashboard shows them
       business_hours_weekday: intakePayload.hours_weekday || null,
       business_hours_weekend: intakePayload.hours_weekend || null,
@@ -359,7 +359,7 @@ export async function POST(req: NextRequest) {
     success: true,
     clientId,
     trialExpiresAt,
-    agentName: data.agentName ?? null,
+    agentName: intakePayload.agent_name ?? null,  // Gate-14: use niche default when blank
     setupUrl: result.setupUrl ?? null,
     telegramLink: result.telegramLink ?? null,
     knowledgeCount: knowledgeCount ?? 0,
