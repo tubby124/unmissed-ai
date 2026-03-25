@@ -15,15 +15,19 @@ import { useCallContext } from "@/contexts/CallContext"
 import { useOnboarding } from "@/hooks/useOnboarding"
 import { usePathname } from "next/navigation"
 import { trackEvent } from "@/lib/analytics"
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext"
 
 interface AgentTestCardProps {
   agentName: string
   businessName: string
   clientStatus: string | null
   isTrial?: boolean
+  clientId?: string | null
+  daysRemaining?: number
 }
 
-export default function AgentTestCard({ agentName, businessName, clientStatus, isTrial = false }: AgentTestCardProps) {
+export default function AgentTestCard({ agentName, businessName, clientStatus, isTrial = false, clientId, daysRemaining }: AgentTestCardProps) {
+  const { openUpgradeModal } = useUpgradeModal()
   const [isRequesting, setIsRequesting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [returnedCallId, setReturnedCallId] = useState<string | null>(null)
@@ -308,14 +312,14 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
               </button>
 
               {isTrial && (
-                <a
-                  href="/dashboard/settings?tab=billing"
-                  className="flex-1 py-2.5 rounded-xl text-white font-medium text-sm inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                <button
+                  onClick={() => openUpgradeModal('agent_test_card_ended', clientId, daysRemaining)}
+                  className="flex-1 py-2.5 rounded-xl text-white font-medium text-sm inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
                   style={{ backgroundColor: "var(--color-primary)" }}
                 >
                   Get a Phone Number
                   <ArrowRight className="w-4 h-4" />
-                </a>
+                </button>
               )}
             </div>
 
@@ -347,13 +351,13 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                   </a>
                 )}
                 {isTrial && (
-                  <a
-                    href="/dashboard/settings?tab=billing"
-                    className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity t2"
+                  <button
+                    onClick={() => openUpgradeModal('agent_test_card_quiet', clientId, daysRemaining)}
+                    className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity t2 cursor-pointer"
                   >
                     <ArrowRight className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-primary)" }} />
                     Get a phone number so real callers reach your agent
-                  </a>
+                  </button>
                 )}
               </div>
             )}

@@ -12,6 +12,8 @@ import { useAdminClient } from '@/contexts/AdminClientContext'
 import { BRAND_NAME } from '@/lib/brand'
 import { NAV_ITEMS, GROUP_LABELS } from './dashboardNav'
 import { NavIcon } from './navIcons'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
+import { trackEvent } from '@/lib/analytics'
 
 interface SidebarProps {
   businessName?: string
@@ -38,6 +40,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
   const router = useRouter()
   const supabase = createBrowserClient()
   const { previewMode, selectedClient: previewClient } = useAdminClient()
+  const { openUpgradeModal } = useUpgradeModal()
 
   const isTrialing = !isAdmin && subscriptionStatus === 'trialing'
   const daysRemaining = isTrialing && trialExpiresAt
@@ -321,14 +324,19 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 </>
               )}
             <Link
-              href={isLocked ? '/dashboard/settings?tab=billing' : `${item.href}${cloakSuffix}`}
+              href={isLocked ? '#' : `${item.href}${cloakSuffix}`}
               title={isLocked ? 'Available when you go live' : (collapsed ? item.label : undefined)}
+              onClick={isLocked ? (e) => {
+                e.preventDefault()
+                trackEvent('locked_feature_clicked', { feature: item.href })
+                openUpgradeModal('locked_nav', clientId, daysRemaining)
+              } : undefined}
               {...(item.href === '/dashboard/calls' ? { 'data-tour': 'nav-calls' } : {})}
               {...(item.href === '/dashboard/setup' ? { 'data-tour': 'nav-agent' } : {})}
               {...(item.href === '/dashboard/settings' ? { 'data-tour': 'nav-settings' } : {})}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 isLocked
-                  ? 'opacity-40'
+                  ? 'opacity-40 cursor-pointer'
                   : active
                   ? 'border-l-[3px]'
                   : 'hover:bg-hover'
@@ -486,7 +494,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
       {/* Upgrade CTA for trial users */}
       {!isAdmin && isTrialing && (
         <div className="px-2 pb-2">
-          <UpgradeCTA collapsed={collapsed} daysRemaining={daysRemaining} />
+          <UpgradeCTA collapsed={collapsed} daysRemaining={daysRemaining} clientId={clientId} />
         </div>
       )}
 

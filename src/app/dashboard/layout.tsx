@@ -10,6 +10,8 @@ import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
 import { CallProvider } from '@/contexts/CallContext'
+import { UpgradeModalProvider } from '@/contexts/UpgradeModalContext'
+import UpgradeModal from '@/components/dashboard/UpgradeModal'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
 import GuidedTour from '@/components/dashboard/GuidedTour'
@@ -92,6 +94,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       )}
 
       <Suspense>
+        <UpgradeModalProvider>
         <CallProvider>
           <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
             <div className="flex flex-1 relative overflow-hidden">
@@ -110,7 +113,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             </div>
           </AdminClientProvider>
           <FloatingCallOrb />
+          <UpgradeModal />
         </CallProvider>
+        </UpgradeModalProvider>
       </Suspense>
       <DashboardToaster />
       <RealtimeToasts clientId={clientId} isAdmin={isAdmin} />

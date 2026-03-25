@@ -4,24 +4,33 @@ import { motion } from "motion/react"
 import { ArrowRight, Sparkles } from "lucide-react"
 import { trackEvent } from "@/lib/analytics"
 import { PLANS } from "@/lib/pricing"
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext"
 
 interface UpgradeCTAProps {
   collapsed?: boolean
   minutesUsed?: number
   daysRemaining?: number
+  clientId?: string | null
 }
 
-export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }: UpgradeCTAProps) {
+export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining, clientId }: UpgradeCTAProps) {
+  const { openUpgradeModal } = useUpgradeModal()
+
+  function handleOpen() {
+    trackEvent('upgrade_cta_click')
+    openUpgradeModal('sidebar_cta', clientId, daysRemaining)
+  }
+
   if (collapsed) {
     return (
-      <a
-        href="/dashboard/settings?tab=billing"
+      <button
+        onClick={handleOpen}
         title="Go live — your setup carries over"
-        className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors"
+        className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors cursor-pointer"
         style={{ backgroundColor: "var(--color-accent-tint)" }}
       >
         <Sparkles className="w-4 h-4" style={{ color: "var(--color-primary)" }} />
-      </a>
+      </button>
     )
   }
 
@@ -54,15 +63,14 @@ export default function UpgradeCTA({ collapsed, minutesUsed = 0, daysRemaining }
           </p>
         </div>
       </div>
-      <a
-        href="/dashboard/settings?tab=billing"
-        onClick={() => trackEvent('upgrade_cta_click')}
+      <button
+        onClick={handleOpen}
         className="mt-2.5 w-full py-2 rounded-lg text-[12px] font-medium text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
         style={{ backgroundColor: "var(--color-primary)" }}
       >
         Get Your Phone Number
         <ArrowRight className="w-3.5 h-3.5" />
-      </a>
+      </button>
     </motion.div>
   )
 }

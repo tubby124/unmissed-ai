@@ -147,6 +147,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     admin: false,
+    clientId,
     agent: {
       name: client.agent_name ?? client.business_name,
       status: client.status,

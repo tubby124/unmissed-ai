@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { trackEvent } from '@/lib/analytics'
-import { RotateCcw, Check, X } from 'lucide-react'
+import { RotateCcw, Check, X, ArrowRight } from 'lucide-react'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 
 type Action = 'hours' | 'faq' | 'forwarding'
 
@@ -13,6 +14,8 @@ interface PostCallImprovementPanelProps {
   hasForwardingNumber: boolean
   onDismiss: () => void
   onRetest: () => void
+  clientId?: string | null
+  daysRemaining?: number
 }
 
 async function patchSettings(body: Record<string, unknown>): Promise<boolean> {
@@ -35,7 +38,10 @@ export default function PostCallImprovementPanel({
   hasForwardingNumber,
   onDismiss,
   onRetest,
+  clientId,
+  daysRemaining,
 }: PostCallImprovementPanelProps) {
+  const { openUpgradeModal } = useUpgradeModal()
   const [activeAction, setActiveAction] = useState<Action | null>(null)
   const [savedAction, setSavedAction] = useState<Action | null>(null)
   const [saving, setSaving] = useState(false)
@@ -311,6 +317,18 @@ export default function PostCallImprovementPanel({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Go Live CTA — shown when all configured */}
+      {allConfigured && (
+        <button
+          onClick={() => openUpgradeModal('post_call_all_configured', clientId, daysRemaining)}
+          className="w-full py-2.5 rounded-xl font-medium text-sm cursor-pointer inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 text-white mb-2"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          Get Your Phone Number
+          <ArrowRight className="w-4 h-4" />
+        </button>
       )}
 
       {/* Retest CTA */}

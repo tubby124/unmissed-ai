@@ -7,6 +7,7 @@ import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import ErrorCard from '@/components/dashboard/ErrorCard'
@@ -14,6 +15,7 @@ import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 
 interface HomeData {
   admin: boolean
+  clientId: string | null
   agent: { name: string; status: string; niche: string | null }
   stats: {
     totalCalls: number
@@ -118,8 +120,9 @@ export default function ClientHome() {
   const [postCallDismissed, setPostCallDismissed] = useState(false)
   const hasTrackedCallEnd = useRef(false)
   const searchParams = useSearchParams()
-  const clientId = searchParams.get('client_id')
+  const adminClientId = searchParams.get('client_id') // admin cloak param
   const { callState, resetCall } = useCallContext()
+  const { openUpgradeModal } = useUpgradeModal()
 
   useEffect(() => {
     setWelcomeDismissed(localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true')
@@ -138,8 +141,8 @@ export default function ClientHome() {
   }, [callState])
 
   useEffect(() => {
-    const url = clientId
-      ? `/api/dashboard/home?client_id=${clientId}`
+    const url = adminClientId
+      ? `/api/dashboard/home?client_id=${adminClientId}`
       : '/api/dashboard/home'
     fetch(url, { signal: AbortSignal.timeout(10000) })
       .then(r => {
@@ -149,7 +152,7 @@ export default function ClientHome() {
       .then(setData)
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false))
-  }, [clientId])
+  }, [adminClientId])
 
   if (loading) {
     return (
@@ -192,6 +195,8 @@ export default function ClientHome() {
   const usageHigh = usagePct >= 80
 
   const isTrial = onboarding.subscriptionStatus === 'trialing'
+  const homeClientId = data.clientId
+  const daysRemaining = data.trialWelcome.daysLeft ?? undefined
   const showChecklist = onboarding.clientStatus === 'active'
   const hasRealCalls = stats.totalCalls > 0
   const justUpgraded = searchParams.get('upgraded') === 'true'
@@ -303,6 +308,8 @@ export default function ClientHome() {
           businessName={onboarding.businessName}
           clientStatus={onboarding.clientStatus}
           isTrial={isTrial}
+          clientId={homeClientId}
+          daysRemaining={daysRemaining}
         />
       )}
 
@@ -314,6 +321,8 @@ export default function ClientHome() {
           hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
           onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
           onRetest={resetCall}
+          clientId={homeClientId}
+          daysRemaining={daysRemaining}
         />
       )}
 
@@ -429,12 +438,12 @@ export default function ClientHome() {
       {/* Subtle upgrade nudge — trial only */}
       {isTrial && (
         <div className="text-center pb-1">
-          <a
-            href="/dashboard/settings?tab=billing"
-            className="text-xs t3 hover:opacity-75 transition-opacity"
+          <button
+            onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
+            className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
           >
             Ready to take real calls? Get a phone number →
-          </a>
+          </button>
         </div>
       )}
 
