@@ -3,15 +3,17 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
+import type { ClientAgentConfig } from '@/types/client-agent-config'
 import { usePatchSettings } from './usePatchSettings'
 
 interface AgentKnowledgeCardProps {
   client: ClientConfig
   clientId?: string
   isAdmin?: boolean
+  config?: ClientAgentConfig
 }
 
-export default function AgentKnowledgeCard({ client, clientId, isAdmin = false }: AgentKnowledgeCardProps) {
+export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, config }: AgentKnowledgeCardProps) {
   const id = clientId ?? client.id
   const [qa, setQa] = useState<{ q: string; a: string }[]>(client.extra_qa ?? [])
   const [adding, setAdding] = useState(false)
@@ -19,13 +21,14 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false }
   const [newA, setNewA] = useState('')
   const { saving, patch } = usePatchSettings(id, isAdmin)
 
-  const factCount = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
-  const faqCount = qa.filter(p => p.q?.trim() && p.a?.trim()).length
-  const hoursSet = !!client.business_hours_weekday
+  const factCount = (config?.knowledge.businessFacts ?? client.business_facts)
+    ?.split('\n').filter(l => l.trim()).length ?? 0
+  const faqCount = config ? config.knowledge.extraQa.length : qa.filter(p => p.q?.trim() && p.a?.trim()).length
+  const hoursSet = !!(config?.hours.hoursWeekday ?? client.business_hours_weekday)
   const bookingConnected = !!(client.booking_enabled && client.calendar_auth_status === 'connected')
-  const voiceStyle = client.voice_style_preset ?? 'default'
-  const knowledgeActive = client.knowledge_backend === 'pgvector'
-  const hasWebsite = !!client.website_url
+  const voiceStyle = config?.persona.voicePreset ?? client.voice_style_preset ?? 'default'
+  const knowledgeActive = config ? config.capabilities.knowledgeEnabled : client.knowledge_backend === 'pgvector'
+  const hasWebsite = !!(config?.business.websiteUrl ?? client.website_url)
 
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [scrapeSaving, setScrapeSaving] = useState(false)

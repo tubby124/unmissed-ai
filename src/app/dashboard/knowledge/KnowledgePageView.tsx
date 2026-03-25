@@ -6,6 +6,7 @@ import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContext
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngineCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import PlanGate from '@/components/dashboard/PlanGate'
@@ -22,11 +23,12 @@ function KnowledgeCards({
   previewMode?: boolean
 }) {
   const knowledgeActive = client.knowledge_backend === 'pgvector'
+  const config = buildClientAgentConfig(client)
 
   return (
     <div className="space-y-6">
       {/* Summary card — what the agent currently knows */}
-      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
 
       {/* Questions from calls the agent couldn't answer */}
       <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
