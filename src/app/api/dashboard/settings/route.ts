@@ -410,12 +410,13 @@ export async function PATCH(req: NextRequest) {
     'booking_enabled' in updates ||
     'agent_voice_id' in updates ||
     'knowledge_backend' in updates ||
-    'sms_enabled' in updates
+    'sms_enabled' in updates ||
+    'twilio_number' in updates
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, knowledge_backend, selected_plan, subscription_status')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
       .eq('id', targetClientId)
       .single()
 
@@ -436,6 +437,9 @@ export async function PATCH(req: NextRequest) {
       const bookingEnabled = 'booking_enabled' in updates
         ? (updates.booking_enabled as boolean)
         : (clientRow.booking_enabled ?? false)
+      const twilioNumber = 'twilio_number' in updates
+        ? (updates.twilio_number as string | null)
+        : (clientRow.twilio_number as string | null)
       try {
         const promptToSync = typeof updates.system_prompt === 'string'
           ? updates.system_prompt
@@ -464,6 +468,7 @@ export async function PATCH(req: NextRequest) {
           slug: clientRow.slug,
           forwarding_number: fwdNumber || undefined,
           sms_enabled: smsEnabled,
+          twilio_number: twilioNumber || undefined,
           knowledge_backend: knowledgeBackend,
           knowledge_chunk_count: knowledgeChunkCount,
           transfer_conditions: transferConditions,
@@ -476,7 +481,7 @@ export async function PATCH(req: NextRequest) {
         // Keep clients.tools in sync — runtime-authoritative for live calls (Finding 6)
         const syncTools = buildAgentTools(agentFlags)
         await supabase.from('clients').update({ tools: syncTools }).eq('id', targetClientId)
-        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber} sms=${smsEnabled} knowledge=${knowledgeBackend} booking=${bookingEnabled})`)
+        console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber} sms=${smsEnabled} twilio=${!!twilioNumber} knowledge=${knowledgeBackend} booking=${bookingEnabled})`)
         ultravox_synced = true
 
         // Post-enable verification: when booking_enabled is toggled ON, verify calendar tools are registered
