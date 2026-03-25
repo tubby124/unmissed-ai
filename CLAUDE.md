@@ -11,6 +11,20 @@ Use imported rules and commands instead of bloating this file.
 - Prefer runtime truth over prompt polish
 - Frontend is the control plane, not decorative UI
 
+## Required project context
+
+Read these before making architecture or control-plane changes:
+
+@docs/architecture/control-plane-mutation-contract.md
+@docs/architecture/per-call-context-contract.md
+@docs/architecture/call-path-capability-matrix.md
+@docs/architecture/webhook-security-and-idempotency.md
+
+- `clients.tools` is runtime tool truth for production calls — not the Ultravox stored agent tools.
+- Per-call context (hours, caller phone, after-hours state) must not be stored as long-lived prompt truth.
+- Do not add new capability logic in two separate places (`buildCapabilityFlags` + `buildAgentTools` must stay in sync).
+- Webhook hardening (fallback sig + voicemail idempotency) is already applied — do not redo that pass.
+
 ## Read these imported rules
 @.claude/rules/core-operating-mode.md
 @.claude/rules/prompt-edit-safety.md

@@ -58,13 +58,21 @@ export async function POST(
   // Find the call_log row created when voicemail TwiML was returned
   const { data: callLog, error: logErr } = await supabase
     .from('call_logs')
-    .select('id, client_id, caller_phone, ai_summary')
+    .select('id, client_id, caller_phone, ai_summary, recording_url')
     .eq('twilio_call_sid', callSid)
     .eq('call_status', 'VOICEMAIL')
     .single()
 
   if (logErr || !callLog) {
     console.error(`[voicemail] No VOICEMAIL call_log for callSid=${callSid}: ${logErr?.message || 'not found'}`)
+    return new NextResponse('OK', { status: 200 })
+  }
+
+  // Idempotency guard: if this RecordingSid was already stored, skip re-processing
+  // Twilio retries recordingStatusCallback on slow responses — this prevents duplicate Telegram alerts
+  const expectedPath = `vm-${recordingSid}.mp3`
+  if (callLog.recording_url === expectedPath) {
+    console.log(`[voicemail] Duplicate delivery for recordingSid=${recordingSid} callSid=${callSid} — skipping`)
     return new NextResponse('OK', { status: 200 })
   }
 

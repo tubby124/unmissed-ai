@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { buildVoicemailTwiml } from '@/lib/twilio'
+import { validateSignature, buildVoicemailTwiml } from '@/lib/twilio'
 import { APP_URL } from '@/lib/app-url'
 
 /**
@@ -13,6 +13,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const body = Object.fromEntries(formData.entries()) as Record<string, string>
   const callerPhone = body.From || 'unknown'
   const callSid = body.CallSid || 'unknown'
+
+  // Validate Twilio signature — prevents log pollution from arbitrary HTTP clients
+  const signature = req.headers.get('X-Twilio-Signature') || ''
+  const url = `${APP_URL}/api/webhook/${slug}/fallback`
+  if (!validateSignature(signature, url, body)) {
+    console.error(`[fallback] Twilio signature FAILED for slug=${slug}`)
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   console.error(`[fallback] Primary webhook failed for slug=${slug} caller=${callerPhone} callSid=${callSid}`)
 

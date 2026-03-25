@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createDemoCall } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 
 const perIpLimiter = new SlidingWindowRateLimiter(5, 60 * 60 * 1000)
 const perClientLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
   const supa = createServiceClient()
   const { data: client, error: clientErr } = await supa
     .from('clients')
-    .select('system_prompt, agent_voice_id, agent_name, status')
+    .select('id, slug, system_prompt, agent_voice_id, agent_name, status, niche, business_name, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, business_facts, extra_qa, context_data, context_data_label, knowledge_backend, injected_note')
     .eq('id', clientId)
     .limit(1)
     .maybeSingle()
@@ -57,10 +58,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Agent is still being configured' }, { status: 503 })
   }
 
+  // Resolve {{callerContext}}, {{businessFacts}}, {{contextData}} placeholders.
+  // The stored system_prompt contains these as Agents API template variables.
+  // createDemoCall() uses direct Ultravox createCall (not Agents API), so placeholders
+  // must be resolved inline before sending — same pattern as browser-test-call/route.ts.
+  const clientRow: ClientRow = {
+    id: client.id,
+    slug: (client.slug as string) ?? 'trial-test',
+    niche: (client.niche as string | null) ?? undefined,
+    business_name: (client.business_name as string | null) ?? undefined,
+    timezone: (client.timezone as string | null) ?? undefined,
+    business_hours_weekday: (client.business_hours_weekday as string | null) ?? undefined,
+    business_hours_weekend: (client.business_hours_weekend as string | null) ?? undefined,
+    after_hours_behavior: (client.after_hours_behavior as string | null) ?? undefined,
+    after_hours_emergency_phone: (client.after_hours_emergency_phone as string | null) ?? undefined,
+    business_facts: (client.business_facts as string | null) ?? undefined,
+    extra_qa: (client.extra_qa as { q: string; a: string }[] | null) ?? undefined,
+    context_data: (client.context_data as string | null) ?? undefined,
+    context_data_label: (client.context_data_label as string | null) ?? undefined,
+    knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
+    injected_note: (client.injected_note as string | null) ?? undefined,
+  }
+  const knowledgeBackend = (client.knowledge_backend as string | null)
+  const corpusAvailable = knowledgeBackend === 'pgvector'
+  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
+
+  const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
+  let knowledgeBlockStr = ctx.knowledge.block
+  if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
+    knowledgeBlockStr = knowledgeBlockStr
+      ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
+      : ctx.retrieval.promptInstruction
+  }
+
+  const resolvedPrompt = (client.system_prompt as string)
+    .replace(/\{\{callerContext\}\}/g, callerContextRaw)
+    .replace(/\{\{businessFacts\}\}/g, knowledgeBlockStr)
+    .replace(/\{\{extraQa\}\}/g, '')
+    .replace(/\{\{contextData\}\}/g, ctx.assembled.contextDataBlock)
+
   try {
     const { joinUrl, callId } = await createDemoCall({
-      systemPrompt: client.system_prompt,
-      voice: client.agent_voice_id || undefined,
+      systemPrompt: resolvedPrompt,
+      voice: (client.agent_voice_id as string | null) || undefined,
       maxDuration: '180s',
     })
 
