@@ -1,69 +1,51 @@
 "use client";
 
+/**
+ * Onboarding Shell — page.tsx
+ *
+ * Owns:  step state machine, navigation, localStorage persistence,
+ *        activation API call, shell layout (top bar, progress, sidebar, footer nav).
+ *
+ * Does NOT own: step content — each step is its own file under ./steps/.
+ *
+ * ── HOW TO CHANGE THE FLOW ─────────────────────────────────────────────────
+ * See src/app/onboard/config/steps.ts — edit STEP_DEFS there.
+ * This file should rarely need to change unless you're updating the shell UI.
+ *
+ * ── HOW TO CHANGE SIDEBAR COPY ─────────────────────────────────────────────
+ * Edit SIDEBAR_BENEFITS below (scroll down ~30 lines).
+ */
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { OnboardingData, defaultOnboardingData } from "@/types/onboarding";
-import Step1GBP from "./steps/step1-gbp";
-import Step2Job from "./steps/step2-job";
-import Step3VoicePreview from "./steps/step2-voice-preview";
-import StepPlan from "./steps/step-plan";
-import Step5Capabilities from "./steps/step3-capabilities";
-import Step6Schedule from "./steps/step4-schedule";
-import Step7Activate from "./steps/step6-activate";
 import { SegmentedProgress } from "@/components/ui/progress-bar";
 import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { trackEvent } from "@/lib/analytics";
 import { loadVisitor } from "@/lib/demo-visitor";
 import ThemeToggle from "@/components/ThemeToggle";
+import { STEP_DEFS, TOTAL_STEPS, type ActivationContext } from "./config/steps";
+
+// ── Sidebar content — edit these to change the left-panel marketing copy ──────
+const SIDEBAR_BENEFITS: { icon: string; text: string }[] = [
+  { icon: "📞", text: "Answers every call, 24/7" },
+  { icon: "📅", text: "Books appointments automatically" },
+  { icon: "💬", text: "Texts callers a summary" },
+  { icon: "⚡", text: "No contracts. Cancel anytime." },
+];
+
+const SIDEBAR_PRICING = {
+  label: "Free trial",
+  price: "$0",
+  period: "today",
+  footnote: "No card required to try",
+};
+// ──────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
-const TOTAL_STEPS = 7;
-
-const STEP_LABELS: Record<number, string> = {
-  1: "Your business",
-  2: "Agent's job",
-  3: "Voice",
-  4: "Your plan",
-  5: "Capabilities",
-  6: "Schedule",
-  7: "Launch",
-};
-
-function getStepSequence(): number[] {
-  return [1, 2, 3, 4, 5, 6, 7];
-}
-
-function countDigits(s: string): number {
-  return (s.match(/\d/g) || []).length;
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
-
-function canAdvance(step: number, data: OnboardingData): boolean {
-  switch (step) {
-    case 1:
-      return !!data.businessName && !!data.voiceId;
-    case 2:
-      return !!data.agentJob;
-    case 3:
-      return !!data.voiceId;
-    case 4:
-      return !!data.selectedPlan;
-    case 5:
-      return true;
-    case 6:
-      return true;
-    case 7:
-      return true;
-    default:
-      return true;
-  }
-}
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -100,8 +82,9 @@ export default function OnboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const stepSequence = getStepSequence();
-  const stepIndex = stepSequence.indexOf(step);
+  // step is 1-based; stepIndex is 0-based
+  const stepIndex = step - 1;
+  const stepDef = STEP_DEFS[stepIndex];
 
   // Auto-detect timezone on mount
   useEffect(() => {
@@ -134,17 +117,17 @@ export default function OnboardPage() {
   };
 
   const goNext = () => {
-    if (stepIndex < stepSequence.length - 1) {
+    if (step < TOTAL_STEPS) {
       setDirection(1);
       trackEvent("onboard_step_complete", { step, niche: data.niche || "none" });
-      setStep(stepSequence[stepIndex + 1]);
+      setStep(step + 1);
     }
   };
 
   const goBack = () => {
     if (stepIndex > 0) {
       setDirection(-1);
-      setStep(stepSequence[stepIndex - 1]);
+      setStep(step - 1);
     }
   };
 
@@ -167,8 +150,6 @@ export default function OnboardPage() {
           throw new Error(json.error || "Trial signup failed");
         }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
-        // If we have a recovery setup URL, send the user directly into password setup.
-        // This avoids depending on email delivery for first-time access.
         if (json.setupUrl) {
           window.location.href = json.setupUrl;
         } else {
@@ -201,9 +182,16 @@ export default function OnboardPage() {
     exit: (dir: number) => ({ x: dir > 0 ? -60 : 60, opacity: 0 }),
   };
 
-  const canGoNext = canAdvance(step, data);
-  const isLastStep = stepIndex === stepSequence.length - 1;
+  const canGoNext = stepDef?.canAdvance(data) ?? true;
+  const isLastStep = step === TOTAL_STEPS;
   const progressValue = Math.max(8, Math.round((stepIndex / (TOTAL_STEPS - 1)) * 100));
+
+  // Props for the activation step
+  const activationCtx: ActivationContext = {
+    onActivate: handleActivate,
+    isSubmitting,
+    error,
+  };
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-background">
@@ -215,7 +203,7 @@ export default function OnboardPage() {
         </span>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            Step {stepIndex + 1} of {TOTAL_STEPS} — {STEP_LABELS[step]}
+            Step {stepIndex + 1} of {TOTAL_STEPS} — {stepDef?.label ?? ""}
           </span>
           <ThemeToggle />
         </div>
@@ -247,12 +235,7 @@ export default function OnboardPage() {
               </h3>
             </div>
             <ul className="space-y-3">
-              {[
-                { icon: "📞", text: "Answers every call, 24/7" },
-                { icon: "📅", text: "Books appointments automatically" },
-                { icon: "💬", text: "Texts callers a summary" },
-                { icon: "⚡", text: "No contracts. Cancel anytime." },
-              ].map(({ icon, text }) => (
+              {SIDEBAR_BENEFITS.map(({ icon, text }) => (
                 <li key={text} className="flex items-start gap-2.5">
                   <span className="text-base shrink-0 mt-0.5">{icon}</span>
                   <span className="text-sm text-indigo-200 leading-snug">{text}</span>
@@ -260,9 +243,12 @@ export default function OnboardPage() {
               ))}
             </ul>
             <div className="rounded-xl bg-indigo-900/60 border border-indigo-800/60 p-4 space-y-1">
-              <p className="text-xs font-semibold text-indigo-300">Free trial</p>
-              <p className="text-2xl font-bold text-white">$0 <span className="text-sm font-normal text-indigo-300">today</span></p>
-              <p className="text-xs text-indigo-400">No card required to try</p>
+              <p className="text-xs font-semibold text-indigo-300">{SIDEBAR_PRICING.label}</p>
+              <p className="text-2xl font-bold text-white">
+                {SIDEBAR_PRICING.price}{" "}
+                <span className="text-sm font-normal text-indigo-300">{SIDEBAR_PRICING.period}</span>
+              </p>
+              <p className="text-xs text-indigo-400">{SIDEBAR_PRICING.footnote}</p>
             </div>
           </div>
 
@@ -283,39 +269,25 @@ export default function OnboardPage() {
                     exit="exit"
                     transition={{ duration: 0.2, ease: "easeOut" }}
                   >
-                    {step === 1 && (
-                      <Step1GBP data={data} onUpdate={update} />
-                    )}
-                    {step === 2 && (
-                      <Step2Job data={data} onUpdate={update} />
-                    )}
-                    {step === 3 && (
-                      <Step3VoicePreview data={data} onUpdate={update} />
-                    )}
-                    {step === 4 && (
-                      <StepPlan data={data} onUpdate={update} />
-                    )}
-                    {step === 5 && (
-                      <Step5Capabilities data={data} onUpdate={update} />
-                    )}
-                    {step === 6 && (
-                      <Step6Schedule data={data} onUpdate={update} />
-                    )}
-                    {step === 7 && (
-                      <Step7Activate
-                        data={data}
-                        onUpdate={update}
-                        onActivate={handleActivate}
-                        isSubmitting={isSubmitting}
-                        error={error}
-                      />
-                    )}
+                    {STEP_DEFS.map((def, i) => {
+                      if (step !== i + 1) return null;
+                      const StepComponent = def.component;
+                      const extraProps = def.activationProps ? activationCtx : {};
+                      return (
+                        <StepComponent
+                          key={i + 1}
+                          data={data}
+                          onUpdate={update}
+                          {...extraProps}
+                        />
+                      );
+                    })}
                   </motion.div>
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* Footer nav — Back always visible; Continue hidden on last step (step 6 has its own Launch CTA) */}
+            {/* Footer nav */}
             <div className="shrink-0 border-t border-border px-5 lg:px-8 py-4 bg-card">
               <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
                 <Button
@@ -327,7 +299,7 @@ export default function OnboardPage() {
                   ← Back
                 </Button>
 
-                {!isLastStep && (
+                {!isLastStep && !stepDef?.hideFooterCta && (
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       onClick={goNext}
