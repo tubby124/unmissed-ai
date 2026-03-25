@@ -4,8 +4,10 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import type { TrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
+import { trackEvent } from '@/lib/analytics'
 
 interface WelcomeViewProps {
+  clientId: string
   trialWelcome: TrialWelcomeViewModel
   clientStatus: string | null
   hasAgent: boolean
@@ -27,6 +29,7 @@ function provisioningSubtext(state: TrialWelcomeViewModel['provisioningState']):
 }
 
 export default function WelcomeView({
+  clientId,
   trialWelcome,
   clientStatus,
   hasAgent,
@@ -36,10 +39,11 @@ export default function WelcomeView({
 }: WelcomeViewProps) {
   const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber } = trialWelcome
 
-  // Mark welcome as seen so /dashboard doesn't redirect here again
+  // Mark welcome as seen (per-client) and fire view event
   useEffect(() => {
-    document.cookie = 'welcome_seen=1; path=/; max-age=31536000; SameSite=Lax'
-  }, [])
+    document.cookie = `welcome_seen_${clientId}=1; path=/dashboard; max-age=2592000; SameSite=Lax`
+    trackEvent('welcome_viewed', { client_id: clientId, provisioning_state: provisioningState })
+  }, [clientId, provisioningState])
 
   return (
     <div className="p-3 sm:p-6 max-w-xl mx-auto space-y-5">
@@ -69,12 +73,14 @@ export default function WelcomeView({
 
       {/* ── Orb / Test call — PRIMARY ACTION ────────────────────── */}
       {hasAgent ? (
-        <AgentTestCard
-          agentName={agentName}
-          businessName={businessName}
-          clientStatus={clientStatus}
-          isTrial={true}
-        />
+        <div onClick={() => trackEvent('test_call_started_from_welcome', { client_id: clientId })}>
+          <AgentTestCard
+            agentName={agentName}
+            businessName={businessName}
+            clientStatus={clientStatus}
+            isTrial={true}
+          />
+        </div>
       ) : (
         <div className="rounded-2xl p-8 card-surface text-center">
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: 'var(--color-hover)' }}>
@@ -144,6 +150,7 @@ export default function WelcomeView({
         </div>
         <a
           href="/dashboard/settings?tab=billing"
+          onClick={() => trackEvent('upgrade_clicked_from_welcome', { client_id: clientId })}
           className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
@@ -158,6 +165,7 @@ export default function WelcomeView({
       <div className="text-center pb-2">
         <Link
           href="/dashboard"
+          onClick={() => trackEvent('explore_dashboard_clicked', { client_id: clientId })}
           className="text-xs t3 hover:opacity-75 transition-opacity"
         >
           Explore your dashboard →

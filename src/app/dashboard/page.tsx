@@ -30,7 +30,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (!isAdmin) {
     if (cu?.client_id) {
       const cookieStore = await cookies()
-      if (!cookieStore.get('welcome_seen')) {
+      if (!cookieStore.get(`welcome_seen_${cu.client_id}`)) {
         const { data: clientRow } = await supabase
           .from('clients')
           .select('subscription_status, setup_complete')

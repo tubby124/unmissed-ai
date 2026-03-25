@@ -64,6 +64,7 @@ export default async function WelcomePage() {
 
   return (
     <WelcomeView
+      clientId={client.id}
       trialWelcome={trialWelcome}
       clientStatus={c.status as string | null}
       hasAgent={!!c.ultravox_agent_id}
