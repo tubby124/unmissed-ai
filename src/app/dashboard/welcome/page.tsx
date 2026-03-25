@@ -23,7 +23,7 @@ export default async function WelcomePage() {
 
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, niche, status, subscription_status, trial_expires_at, agent_name, agent_voice_id, voice_style_preset, forwarding_number, transfer_conditions, booking_enabled, sms_enabled, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, website_url, ultravox_agent_id, setup_complete, selected_plan, monthly_minute_limit, calendar_auth_status')
+    .select('id, slug, business_name, niche, status, subscription_status, trial_expires_at, agent_name, agent_voice_id, voice_style_preset, forwarding_number, transfer_conditions, booking_enabled, sms_enabled, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, website_url, website_scrape_status, ultravox_agent_id, setup_complete, selected_plan, monthly_minute_limit, calendar_auth_status')
     .eq('id', cu.client_id)
     .single()
 
@@ -40,6 +40,7 @@ export default async function WelcomePage() {
     business_name: client.business_name,
     niche: client.niche,
     website_url: c.website_url as string | null,
+    website_scrape_status: c.website_scrape_status as string | null,
     booking_enabled: client.booking_enabled,
     sms_enabled: c.sms_enabled as boolean | null,
     forwarding_number: c.forwarding_number as string | null,
