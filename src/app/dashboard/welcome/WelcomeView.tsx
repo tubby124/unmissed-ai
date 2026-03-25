@@ -5,13 +5,13 @@ import Link from 'next/link'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import type { TrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
 import { trackEvent } from '@/lib/analytics'
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 
 interface WelcomeViewProps {
   clientId: string
   trialWelcome: TrialWelcomeViewModel
   clientStatus: string | null
   hasAgent: boolean
-  hasKnowledge: boolean
   hasFacts: boolean
   hasBooking: boolean
 }
@@ -33,16 +33,20 @@ export default function WelcomeView({
   trialWelcome,
   clientStatus,
   hasAgent,
-  hasKnowledge,
   hasFacts,
   hasBooking,
 }: WelcomeViewProps) {
   const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber } = trialWelcome
+  const { openUpgradeModal } = useUpgradeModal()
 
-  // Mark welcome as seen (per-client) and fire view event
+  // Mark welcome as seen (per-client) and fire view event — deduped to once per session per client
   useEffect(() => {
     document.cookie = `welcome_seen_${clientId}=1; path=/dashboard; max-age=2592000; SameSite=Lax`
-    trackEvent('welcome_viewed', { client_id: clientId, provisioning_state: provisioningState })
+    const sessionKey = `welcome_viewed_${clientId}`
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, '1')
+      trackEvent('welcome_viewed', { client_id: clientId, provisioning_state: provisioningState })
+    }
   }, [clientId, provisioningState])
 
   return (
@@ -119,10 +123,10 @@ export default function WelcomeView({
           <KnowledgeRow label="FAQs" active={hasFaqs} activeText="Configured" inactiveText="None added yet" />
           <KnowledgeRow
             label="Knowledge"
-            active={hasKnowledge || hasFacts}
-            activeText={hasKnowledge ? 'Website loaded' : 'Facts added'}
+            active={hasWebsite || hasFacts}
+            activeText={hasWebsite ? 'Website loaded' : 'Facts added'}
             inactiveText="Basic only"
-            neutral={!hasKnowledge && hasFacts}
+            neutral={!hasWebsite && hasFacts}
           />
           <KnowledgeRow label="Booking" active={hasBooking} activeText="Calendar connected" inactiveText="Not connected" neutral={!hasBooking} />
           <KnowledgeRow label="Forwarding" active={hasForwardingNumber} activeText="Configured" inactiveText="Not set" />
@@ -148,17 +152,16 @@ export default function WelcomeView({
             </div>
           ))}
         </div>
-        <a
-          href="/dashboard/settings?tab=billing"
-          onClick={() => trackEvent('upgrade_clicked_from_welcome', { client_id: clientId })}
-          className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+        <button
+          onClick={() => openUpgradeModal('welcome_upgrade_cta', clientId, daysLeft ?? undefined)}
+          className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
           Get a real phone number — upgrade to go live
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </a>
+        </button>
       </div>
 
       {/* ── Escape hatch ─────────────────────────────────────────── */}
