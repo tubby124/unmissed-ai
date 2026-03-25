@@ -15,6 +15,7 @@ import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
+import { getPlanEntitlements } from "@/lib/plan-entitlements";
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 3
@@ -72,6 +73,17 @@ export async function POST(req: NextRequest) {
 
   const intakePayload = toIntakePayload(data);
 
+  // Gate-13: Enforce plan entitlements server-side — UI can show toggles as disabled
+  // but state can still carry values from a previously selected plan or job step.
+  const entitlements = getPlanEntitlements(data.selectedPlan)
+  const effectiveCallHandlingMode = entitlements.bookingEnabled
+    ? (data.callHandlingMode || 'triage')
+    : 'triage'
+  const effectiveCallForwardingEnabled = entitlements.transferEnabled
+    ? (data.callForwardingEnabled ?? false)
+    : false
+  const effectiveEmergencyPhone = effectiveCallForwardingEnabled ? (data.emergencyPhone?.trim() || null) : null
+
   // For real_estate the display name is the agent's personal name (ownerName),
   // not the brokerage (businessName). The brokerage is preserved inside intake_json.
   const displayName = (data.niche === "real_estate" && data.ownerName?.trim())
@@ -86,7 +98,7 @@ export async function POST(req: NextRequest) {
     .insert({
       business_name: displayName,
       niche: data.niche || "other",
-      intake_json: { ...data, ...intakePayload },
+      intake_json: { ...data, ...intakePayload, call_handling_mode: effectiveCallHandlingMode },
       status: "pending",
       progress_status: "pending",
       owner_name: data.ownerName || null,
@@ -127,10 +139,8 @@ export async function POST(req: NextRequest) {
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
       selected_plan: data.selectedPlan || 'core',
-      // Gate-11: Write forwarding_number so buildAgentTools() deploys transfer tool at activation
-      forwarding_number: (data.callForwardingEnabled && data.emergencyPhone?.trim())
-        ? data.emergencyPhone.trim()
-        : null,
+      // Gate-11+13: Write forwarding_number only when plan entitlement allows it
+      forwarding_number: effectiveEmergencyPhone,
       // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
       telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
       email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,
@@ -152,7 +162,12 @@ export async function POST(req: NextRequest) {
     .eq("id", intakeId);
 
   // ── Generate prompt + create Ultravox agent (same as create-public-checkout) ──
-  const intakeData: Record<string, unknown> = { ...data, ...intakePayload };
+  // Gate-13: Apply effective (plan-gated) values so prompt matches actual entitlements
+  const intakeData: Record<string, unknown> = {
+    ...data,
+    ...intakePayload,
+    call_handling_mode: effectiveCallHandlingMode,
+  };
   if (!intakeData.niche && data.niche) intakeData.niche = data.niche;
 
   // Website scraping enrichment
