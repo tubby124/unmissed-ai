@@ -82,8 +82,10 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
     {
       label: 'SMS follow-up',
       available: true,
-      active: !!client.sms_enabled,
-      actionHint: 'Configure SMS templates',
+      active: !!(client.sms_enabled && client.twilio_number),
+      actionHint: client.sms_enabled && !client.twilio_number
+        ? 'Requires a phone number — upgrade to activate'
+        : 'Configure SMS templates',
       section: 'sms',
     },
     {

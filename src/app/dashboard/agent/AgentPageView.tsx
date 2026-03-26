@@ -12,6 +12,7 @@ import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import QuickInject from '@/components/dashboard/settings/QuickInject'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 // ─── Bot animation keyframes (required by AgentIdentityHeader CSS classes) ────
@@ -262,6 +263,14 @@ function AgentCards({
         daysRemaining={daysRemaining}
       />
 
+      {/* ── 2.5. Today's Update ────────────────────────────── */}
+      <div>
+        <SectionLabel>Today&apos;s Update</SectionLabel>
+        <div className="rounded-2xl border b-theme bg-surface px-5 pb-4">
+          <QuickInject client={client} isAdmin={isAdmin} />
+        </div>
+      </div>
+
       {/* ── 3. Agent Identity ──────────────────────────────── */}
       <div>
         <SectionLabel>Identity &amp; Status</SectionLabel>
@@ -311,26 +320,7 @@ function AgentCards({
         </div>
       </div>
 
-      {/* ── 4. Voice & Style ───────────────────────────────── */}
-      <div>
-        <SectionLabel>Voice &amp; Style</SectionLabel>
-        <div className="space-y-3">
-          {/* Speaker voice — controls agent_voice_id, syncs live agent */}
-          <div className="rounded-2xl border b-theme bg-surface p-5">
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Speaker</p>
-            <VoicePicker client={client} isAdmin={isAdmin} />
-          </div>
-          {/* Personality — controls voice_style_preset (prompt patch) */}
-          <VoiceStyleCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialPreset={client.voice_style_preset ?? 'casual_friendly'}
-            previewMode={previewMode}
-          />
-        </div>
-      </div>
-
-      {/* ── 5. What It Knows ───────────────────────────────── */}
+      {/* ── 4. What It Knows ───────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <SectionLabel>What It Knows</SectionLabel>
@@ -380,6 +370,25 @@ function AgentCards({
               </Link>
             </p>
           )}
+        </div>
+      </div>
+
+      {/* ── 5. Voice & Style ───────────────────────────────── */}
+      <div>
+        <SectionLabel>Voice &amp; Style</SectionLabel>
+        <div className="space-y-3">
+          {/* Speaker voice — controls agent_voice_id, syncs live agent */}
+          <div className="rounded-2xl border b-theme bg-surface p-5">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Speaker</p>
+            <VoicePicker client={client} isAdmin={isAdmin} />
+          </div>
+          {/* Personality — controls voice_style_preset (prompt patch) */}
+          <VoiceStyleCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialPreset={client.voice_style_preset ?? 'casual_friendly'}
+            previewMode={previewMode}
+          />
         </div>
       </div>
 
