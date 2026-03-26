@@ -159,7 +159,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         {/* Line 1: phone + status + call-back + meta */}
         <div className="flex items-center gap-3 mb-1.5">
           <span className="font-mono text-[13px] font-medium tracking-tight shrink-0" style={{ color: "var(--color-text-1)" }}>
-            {call.caller_phone || 'Unknown'}
+            {call.caller_phone === 'trial-test' ? 'Your test call' : (call.caller_phone || 'Unknown')}
           </span>
           <StatusBadge status={call.call_status} showDot={false} />
 
@@ -180,7 +180,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
           })()}
 
           {/* HOT lead call-back button */}
-          {call.call_status === 'HOT' && call.caller_phone && onCallBack && (
+          {call.call_status === 'HOT' && call.caller_phone && call.caller_phone !== 'trial-test' && onCallBack && (
             <button
               onClick={e => { e.stopPropagation(); onCallBack(call.caller_phone!) }}
               className="shrink-0 border border-green-500/40 text-green-400 text-[10px] rounded-full px-2 py-0.5 hover:bg-green-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
@@ -403,7 +403,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                   {/* Quick actions */}
                   <div className="flex items-center gap-2 flex-wrap pt-0.5 border-t b-theme">
                     <div className="flex items-center gap-2 flex-wrap pt-2">
-                      {call.caller_phone && (
+                      {call.caller_phone && call.caller_phone !== 'trial-test' && (
                         <button
                           onClick={e => { e.stopPropagation(); copyText(call.caller_phone!, 'phone') }}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border b-theme bg-[var(--color-hover)] hover:border-[var(--color-primary)]/40 transition-colors cursor-pointer t2"
@@ -415,7 +415,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                           {copied === 'phone' ? 'Copied!' : 'Copy Phone'}
                         </button>
                       )}
-                      {call.caller_phone && (
+                      {call.caller_phone && call.caller_phone !== 'trial-test' && (
                         <a
                           href={buildCalendarUrl({
                             callerPhone: call.caller_phone,

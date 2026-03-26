@@ -91,6 +91,22 @@ const STATUS_STYLES: Record<string, {
     },
     label: 'Trial',
   },
+  trial_test: {
+    style: {
+      backgroundColor: 'color-mix(in srgb, #818cf8 10%, transparent)',
+      color: '#818cf8',
+      borderColor: 'color-mix(in srgb, #818cf8 30%, transparent)',
+    },
+    label: 'Test Call',
+  },
+  trial_test_completed: {
+    style: {
+      backgroundColor: 'color-mix(in srgb, #818cf8 10%, transparent)',
+      color: '#818cf8',
+      borderColor: 'color-mix(in srgb, #818cf8 30%, transparent)',
+    },
+    label: 'Test Call',
+  },
   live: {
     style: {
       backgroundColor: 'var(--color-success-tint)',

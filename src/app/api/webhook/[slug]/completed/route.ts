@@ -101,9 +101,9 @@ export async function POST(
         return
       }
 
-      // S12-TRIAL1: Dashboard agent test calls skip the full notification pipeline
-      if (existingRow?.call_status === 'test') {
-        console.log(`[completed] Skipping test call callId=${callId} — no classification/notifications needed`)
+      // S12-TRIAL1: Dashboard agent test calls + trial browser calls skip the full notification pipeline
+      if (existingRow?.call_status === 'test' || existingRow?.call_status === 'trial_test') {
+        console.log(`[completed] Skipping test/trial_test call callId=${callId} — no classification/notifications needed`)
         return
       }
 
