@@ -65,7 +65,7 @@ export default function ForwardingSheet({ clientId, isAdmin, initialForwardingNu
       {error && <p className="text-xs text-red-400">{error}</p>}
 
       <a
-        href="/dashboard/settings?tab=transfer"
+        href="/dashboard/actions"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >

@@ -74,7 +74,7 @@ export default function IdentitySheet({ clientId, isAdmin, agentName, markDirty,
           Choose your agent&apos;s voice, speed, and communication style from the Voice settings.
         </p>
         <a
-          href="/dashboard/settings?tab=voice"
+          href="/dashboard/agent"
           className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors hover:bg-hover"
           style={{ border: '1px solid var(--color-border)' }}
         >

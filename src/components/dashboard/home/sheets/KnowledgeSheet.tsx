@@ -228,7 +228,7 @@ export default function KnowledgeSheet({
 
       {/* Link to full knowledge settings */}
       <a
-        href="/dashboard/settings?tab=knowledge"
+        href="/dashboard/knowledge"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >

@@ -44,7 +44,7 @@ export default function NotificationsSheet({ telegramConnected, onSave: _onSave 
         </div>
         {!telegramConnected && (
           <a
-            href="/dashboard/settings?tab=notifications"
+            href="/dashboard/notifications"
             className="block w-full py-2 rounded-lg text-center text-xs font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'rgba(0,136,204,0.8)' }}
           >
@@ -72,7 +72,7 @@ export default function NotificationsSheet({ telegramConnected, onSave: _onSave 
       </div>
 
       <a
-        href="/dashboard/settings?tab=notifications"
+        href="/dashboard/notifications"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >

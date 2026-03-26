@@ -443,6 +443,38 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                   className="overflow-hidden"
                 >
                   <div className="ml-4 pl-3 border-l pb-1" style={{ borderColor: "var(--color-border)" }}>
+                    {!isAdmin && (
+                      <>
+                        <Link
+                          href="/dashboard/agent"
+                          className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                          style={{ color: "var(--color-text-2)" }}
+                        >
+                          Agent
+                        </Link>
+                        <Link
+                          href="/dashboard/knowledge"
+                          className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                          style={{ color: "var(--color-text-2)" }}
+                        >
+                          Knowledge
+                        </Link>
+                        <Link
+                          href="/dashboard/actions"
+                          className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                          style={{ color: "var(--color-text-2)" }}
+                        >
+                          Call Handling
+                        </Link>
+                        <Link
+                          href="/dashboard/notifications"
+                          className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
+                          style={{ color: "var(--color-text-2)" }}
+                        >
+                          Notifications
+                        </Link>
+                      </>
+                    )}
                     <Link
                       href={`/dashboard/settings?tab=billing${previewMode && previewClient ? `&preview=true&client_id=${previewClient.id}` : ''}`}
                       className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"

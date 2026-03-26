@@ -86,7 +86,7 @@ export default function HoursSheet({ clientId, isAdmin, initialWeekday, initialW
       {error && <p className="text-xs text-red-400">{error}</p>}
 
       <a
-        href="/dashboard/settings?tab=hours"
+        href="/dashboard/agent"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >
