@@ -18,6 +18,8 @@ import BillingSheet from './sheets/BillingSheet'
 interface EditableFields {
   hoursWeekday: string | null
   hoursWeekend: string | null
+  afterHoursBehavior: string | null
+  afterHoursPhone: string | null
   faqs: { q: string; a: string }[]
   forwardingNumber: string | null
   websiteUrl: string | null
@@ -153,6 +155,8 @@ export default function HomeSideSheet({
               isAdmin={isAdmin}
               initialWeekday={editableFields.hoursWeekday ?? ''}
               initialWeekend={editableFields.hoursWeekend ?? ''}
+              initialAfterHoursBehavior={editableFields.afterHoursBehavior}
+              initialAfterHoursPhone={editableFields.afterHoursPhone}
               markDirty={markDirty}
               markClean={markClean}
               onSave={onDataRefresh}

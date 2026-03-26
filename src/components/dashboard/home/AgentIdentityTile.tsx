@@ -5,6 +5,8 @@
  * Shows agent name + niche/style subtitle. Opens IdentitySheet on click.
  */
 
+import Link from 'next/link'
+
 interface Props {
   agentName: string
   niche: string | null
@@ -53,6 +55,20 @@ export default function AgentIdentityTile({ agentName, niche, voiceStylePreset, 
 
       {/* Edit nudge */}
       <p className="text-[11px] t3 leading-relaxed">Tap to rename or change voice settings.</p>
+
+      {/* Test agent CTA */}
+      <Link
+        href="/dashboard/agent"
+        onClick={e => e.stopPropagation()}
+        className="flex items-center gap-1.5 text-[11px] font-semibold transition-opacity hover:opacity-75"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Test your agent →
+      </Link>
     </button>
   )
 }

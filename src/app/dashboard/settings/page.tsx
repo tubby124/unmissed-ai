@@ -103,10 +103,11 @@ export interface ClientConfig {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ client_id?: string }>
+  searchParams?: Promise<{ client_id?: string; tab?: string }>
 }) {
   const params = searchParams ? await searchParams : {}
   const initialClientId = params?.client_id
+  const initialTab = params?.tab as import('@/components/dashboard/settings/constants').SettingsTab | undefined
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -136,6 +137,7 @@ export default async function SettingsPage({
         isAdmin={true}
         appUrl={appUrl}
         initialClientId={initialClientId}
+        initialTab={initialTab}
       />
     )
   }
@@ -154,6 +156,7 @@ export default async function SettingsPage({
       isAdmin={false}
       appUrl={appUrl}
       initialClientId={initialClientId}
+      initialTab={initialTab}
     />
   )
 }

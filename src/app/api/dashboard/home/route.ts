@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete')
       .eq('id', clientId)
       .single(),
 
@@ -223,6 +223,8 @@ export async function GET(request: Request) {
     editableFields: {
       hoursWeekday: (c.business_hours_weekday as string | null) ?? null,
       hoursWeekend: (c.business_hours_weekend as string | null) ?? null,
+      afterHoursBehavior: (c.after_hours_behavior as string | null) ?? null,
+      afterHoursPhone: (c.after_hours_emergency_phone as string | null) ?? null,
       faqs: Array.isArray(client.extra_qa) ? (client.extra_qa as { q: string; a: string }[]) : [],
       forwardingNumber: (c.forwarding_number as string | null) ?? null,
       websiteUrl: (client.website_url as string | null) ?? null,

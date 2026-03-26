@@ -95,6 +95,8 @@ interface HomeData {
   editableFields: {
     hoursWeekday: string | null
     hoursWeekend: string | null
+    afterHoursBehavior: string | null
+    afterHoursPhone: string | null
     faqs: { q: string; a: string }[]
     forwardingNumber: string | null
     websiteUrl: string | null

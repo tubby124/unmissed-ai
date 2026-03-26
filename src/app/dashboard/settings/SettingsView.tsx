@@ -10,6 +10,7 @@ import { getClientSetupState } from '@/lib/client-utils'
 import ClientSelector from '@/components/dashboard/ClientSelector'
 import type { ClientOption } from '@/components/dashboard/ClientSelector'
 import type { VoiceTabVoice, GodConfigEntry, SettingsTab } from '@/components/dashboard/settings/constants'
+import { TAB_DEFINITIONS } from '@/components/dashboard/settings/constants'
 import { fmtDate } from '@/components/dashboard/settings/shared'
 import AgentTab from '@/components/dashboard/settings/AgentTab'
 import SmsTab from '@/components/dashboard/settings/SmsTab'
@@ -25,9 +26,10 @@ interface SettingsViewProps {
   isAdmin: boolean
   appUrl: string
   initialClientId?: string
+  initialTab?: SettingsTab
 }
 
-export default function SettingsView({ clients, isAdmin, appUrl, initialClientId }: SettingsViewProps) {
+export default function SettingsView({ clients, isAdmin, appUrl, initialClientId, initialTab }: SettingsViewProps) {
   const { previewMode } = useAdminClient()
 
   const [selectedId, setSelectedId] = useState(
@@ -114,7 +116,10 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   )
 
   // ─── Tab & UI state ──────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<SettingsTab>(isAdmin ? 'general' : 'billing')
+  const validTabs = TAB_DEFINITIONS.filter(t => isAdmin || !t.adminOnly).map(t => t.id)
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    (initialTab && validTabs.includes(initialTab)) ? initialTab : (isAdmin ? 'general' : 'billing')
+  )
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
 
