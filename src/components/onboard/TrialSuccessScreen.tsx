@@ -235,8 +235,10 @@ export function TrialSuccessScreen({
   const [liveCount, setLiveCount] = useState(initialKnowledgeCount);
   const [showCall, setShowCall] = useState(false);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [callId, setCallId] = useState<string | null>(null);
   const [callLoading, setCallLoading] = useState(false);
   const [callError, setCallError] = useState<string | null>(null);
+  const [callComplete, setCallComplete] = useState(false);
 
   // Agent knowledge snapshot — fetched once after mount
   const [snapshot, setSnapshot] = useState<AgentSnapshot | null>(null);
@@ -337,6 +339,7 @@ export function TrialSuccessScreen({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to start call');
       setJoinUrl(json.joinUrl);
+      setCallId(json.callId ?? null);
       setShowCall(true);
     } catch (err) {
       setCallError(err instanceof Error ? err.message : 'Something went wrong');
@@ -419,7 +422,45 @@ export function TrialSuccessScreen({
 
       {/* Primary CTAs */}
       <div className="space-y-3">
-        {!showCall ? (
+        {callComplete ? (
+          /* Post-call conversion state — the "holy shit it worked" moment */
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 space-y-4 text-center">
+            <div className="space-y-1">
+              <p className="text-emerald-400 font-semibold text-sm">
+                ✓ That call was recorded
+              </p>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Sign in to see the transcript, call summary, and everything {agentName ?? "your agent"} learned from that conversation.
+              </p>
+              {callId && (
+                <p className="text-white/30 text-[11px]">
+                  Call ID: {callId.slice(0, 8)}…
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-white hover:bg-white/90 text-gray-900 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 min-h-[44px]"
+            >
+              <GoogleIcon />
+              {googleLoading ? "Redirecting to Google…" : "Sign in to see your call log"}
+            </button>
+            <a
+              href="/login"
+              className="block text-xs text-white/40 hover:text-white/60 transition-colors"
+            >
+              Sign in with email →
+            </a>
+            <button
+              onClick={() => { setCallComplete(false); setShowCall(false); }}
+              className="block w-full text-xs text-white/25 hover:text-white/40 transition-colors cursor-pointer"
+            >
+              Back to setup
+            </button>
+          </div>
+        ) : !showCall ? (
           <>
             <button
               onClick={handleStartCall}
@@ -445,7 +486,10 @@ export function TrialSuccessScreen({
             <CallProvider>
               <BrowserTestCall
                 joinUrl={joinUrl}
-                onEnd={(_transcripts) => setShowCall(false)}
+                onEnd={(_transcripts) => {
+                  setShowCall(false);
+                  setCallComplete(true);
+                }}
               />
             </CallProvider>
             <a

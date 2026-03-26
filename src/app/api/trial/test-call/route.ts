@@ -7,10 +7,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createDemoCall } from '@/lib/ultravox'
+import { createDemoCall, signCallbackUrl } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { APP_URL } from '@/lib/app-url'
 
 const perIpLimiter = new SlidingWindowRateLimiter(5, 60 * 60 * 1000)
 const perClientLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)
@@ -98,10 +99,27 @@ export async function POST(req: NextRequest) {
     .replace(/\{\{contextData\}\}/g, ctx.assembled.contextDataBlock)
 
   try {
+    // Build signed callback URL so Ultravox can POST back when the trial call ends
+    const callbackBaseUrl = `${APP_URL}/api/trial/call-ended?clientId=${clientId}`
+    const callbackUrl = signCallbackUrl(callbackBaseUrl, clientId)
+
     const { joinUrl, callId } = await createDemoCall({
       systemPrompt: resolvedPrompt,
       voice: (client.agent_voice_id as string | null) || undefined,
       maxDuration: '180s',
+      callbackUrl,
+    })
+
+    // Pre-insert a call_logs row so the dashboard shows "first call" immediately after sign-in
+    const supa = createServiceClient()
+    supa.from('call_logs').insert({
+      ultravox_call_id: callId,
+      client_id: clientId,
+      caller_phone: 'trial-test',
+      call_status: 'trial_test',
+      started_at: new Date().toISOString(),
+    }).then(({ error }) => {
+      if (error) console.error(`[trial/test-call] call_logs insert failed for callId=${callId}: ${error.message}`)
     })
 
     return NextResponse.json({ joinUrl, callId, agentName: client.agent_name })
