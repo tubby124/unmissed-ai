@@ -336,10 +336,12 @@ export function TrialSuccessScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to start call');
-      setJoinUrl(json.joinUrl);
-      setCallId(json.callId ?? null);
+      const text = await res.text();
+      let json: Record<string, unknown> = {};
+      try { json = JSON.parse(text); } catch { /* non-JSON body (e.g. Railway restart 503) */ }
+      if (!res.ok) throw new Error((json.error as string) || 'Agent is starting up — please try again in a moment.');
+      setJoinUrl((json.joinUrl as string) ?? null);
+      setCallId((json.callId as string) ?? null);
       setShowCall(true);
     } catch (err) {
       setCallError(err instanceof Error ? err.message : 'Something went wrong');

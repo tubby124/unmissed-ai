@@ -92,6 +92,15 @@ export async function POST(req: NextRequest) {
       } else {
         console.log(`[trial/call-ended] call_logs updated: callId=${callId} duration=${durationSeconds}s`)
       }
+
+      // Track minutes usage so the dashboard shows accurate consumption
+      if (durationSeconds > 0) {
+        const { error: rpcError } = await supabase.rpc('increment_seconds_used', {
+          p_client_id: clientId,
+          p_seconds: durationSeconds,
+        })
+        if (rpcError) console.error(`[trial/call-ended] seconds increment failed: ${rpcError.message}`)
+      }
     } catch (err) {
       console.error(`[trial/call-ended] after() error for callId=${callId}:`, err)
     }
