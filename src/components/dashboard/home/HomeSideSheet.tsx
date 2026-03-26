@@ -6,6 +6,7 @@
  * based on the openSheet ID passed in.
  */
 
+import { useEffect } from 'react'
 import type { SheetId } from '@/hooks/useHomeSheet'
 import IdentitySheet from './sheets/IdentitySheet'
 import KnowledgeSheet from './sheets/KnowledgeSheet'
@@ -70,6 +71,15 @@ export default function HomeSideSheet({
   onDataRefresh,
 }: Props) {
   const isOpen = openSheet !== null
+
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   return (
     <>

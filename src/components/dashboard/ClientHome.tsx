@@ -27,6 +27,8 @@ import AgentKnowledgeTile from './home/AgentKnowledgeTile'
 import AgentIdentityTile from './home/AgentIdentityTile'
 import CallHandlingTile from './home/CallHandlingTile'
 import NotificationsTile from './home/NotificationsTile'
+import BusinessHoursTile from './home/BusinessHoursTile'
+import BillingTile from './home/BillingTile'
 import SuggestedTestPrompts from './home/SuggestedTestPrompts'
 import HomeSideSheet from './home/HomeSideSheet'
 
@@ -457,6 +459,20 @@ export default function ClientHome() {
               telegramConnected={onboarding.telegramConnected}
               agentName={agent.name}
               onOpenSheet={() => sheet.open('notifications')}
+            />
+
+            {/* Business hours tile */}
+            <BusinessHoursTile
+              hoursWeekday={data.editableFields.hoursWeekday}
+              hoursWeekend={data.editableFields.hoursWeekend}
+              onOpenSheet={() => sheet.open('hours')}
+            />
+
+            {/* Billing tile */}
+            <BillingTile
+              selectedPlan={data.selectedPlan}
+              subscriptionStatus={onboarding.subscriptionStatus}
+              onOpenSheet={() => sheet.open('billing')}
             />
           </div>
         )}
