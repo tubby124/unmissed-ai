@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=invalid_link', baseUrl))
   }
 
-  // recovery and invite both need password setup — email/magic-link goes to next
-  const destination = (type === 'recovery' || type === 'invite') ? '/auth/set-password' : next
+  // invite links need password setup; recovery (one-click login) and email go to next
+  const destination = type === 'invite' ? '/auth/set-password' : next
   const response = NextResponse.redirect(new URL(destination, baseUrl))
 
   // Set session cookies directly on the redirect response (same pattern as auth/callback)

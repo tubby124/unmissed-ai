@@ -181,9 +181,18 @@ export async function activateClient(params: {
         resolvedUserId = newUserData?.user?.id ?? null
       }
 
-      // Route to login with email pre-filled so the user sees a login form
-      // (not silently landing on another user's dashboard if already logged in elsewhere)
+      // Generate a one-click recovery link so the user is auto-authenticated on click.
+      // Fallback: login with email pre-filled + QWERTY123 hint.
       setupUrl = `${appUrl}/login?email=${encodeURIComponent(contactEmail)}`
+      try {
+        const { data: linkData } = await adminSupa.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
+        const actionLink = linkData?.properties?.action_link ?? ''
+        if (actionLink) {
+          const parsed = new URL(actionLink)
+          const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+          if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+        }
+      } catch { /* fall through to login URL */ }
 
       if (resolvedUserId) {
         const newUserId = resolvedUserId
