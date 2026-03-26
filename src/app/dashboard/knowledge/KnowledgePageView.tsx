@@ -12,6 +12,7 @@ import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggesti
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import PlanGate from '@/components/dashboard/PlanGate'
 import { useCallContext } from '@/contexts/CallContext'
+import { toast } from 'sonner'
 
 // ─── Inner card group — keyed on client.id so state resets on client switch ──
 
@@ -118,16 +119,24 @@ export default function KnowledgePageView({ clients, isAdmin, previewMode, initi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isAdmin ? { client_id: client.id } : {}),
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        toast.error('Failed to start test call')
+        return
+      }
       const data = await res.json()
-      if (!data.joinUrl) return
+      if (!data.joinUrl) {
+        toast.error('No agent configured for this client')
+        return
+      }
       setMeta({
         agentName: client.agent_name ?? client.business_name ?? 'Agent',
         businessName: client.business_name ?? '',
         sourceRoute: '/dashboard/knowledge',
       })
       await startCall(data.joinUrl)
-    } catch { /* silent */ } finally {
+    } catch {
+      toast.error('Failed to connect to agent')
+    } finally {
       setTestCallLoading(false)
     }
   }

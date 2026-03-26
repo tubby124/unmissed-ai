@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
@@ -97,6 +98,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
   const [websiteChunksLoading, setWebsiteChunksLoading] = useState(false)
   const [showWebsiteChunks, setShowWebsiteChunks] = useState(false)
   const [chunkActioning, setChunkActioning] = useState<string | null>(null)
+  const [chunkOffset, setChunkOffset] = useState(0)
+  const [chunkTotal, setChunkTotal] = useState(0)
+  const [chunkLoadingMore, setChunkLoadingMore] = useState(false)
+  const [approvingAll, setApprovingAll] = useState(false)
+
+  const pathname = usePathname()
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -201,39 +208,80 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
     }
   }
 
-  async function fetchWebsiteChunks() {
-    setWebsiteChunksLoading(true)
+  async function fetchWebsiteChunks(offset = 0) {
+    if (offset === 0) setWebsiteChunksLoading(true)
+    else setChunkLoadingMore(true)
     try {
-      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&source=website_scrape&limit=20`)
+      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&source=website_scrape&limit=20&offset=${offset}`)
       if (res.ok) {
         const data = await res.json()
-        setWebsiteChunks(data.chunks ?? [])
+        if (offset === 0) {
+          setWebsiteChunks(data.chunks ?? [])
+        } else {
+          setWebsiteChunks(prev => [...prev, ...(data.chunks ?? [])])
+        }
+        setChunkTotal(data.total ?? 0)
+        setChunkOffset(offset)
       }
     } catch { /* silent */ } finally {
       setWebsiteChunksLoading(false)
+      setChunkLoadingMore(false)
     }
   }
 
   async function handleChunkAction(chunkId: string, action: 'approve' | 'reject' | 'delete') {
+    // Optimistic update
+    const prevChunks = websiteChunks
+    setWebsiteChunks(prev => action === 'delete'
+      ? prev.filter(c => c.id !== chunkId)
+      : prev.map(c => c.id === chunkId ? { ...c, status: action === 'approve' ? 'approved' : 'rejected' } : c)
+    )
     setChunkActioning(chunkId)
     try {
+      let res: Response
       if (action === 'delete') {
-        await fetch(`/api/dashboard/knowledge/chunks?id=${chunkId}`, { method: 'DELETE' })
+        res = await fetch(`/api/dashboard/knowledge/chunks?id=${chunkId}`, { method: 'DELETE' })
       } else {
-        await fetch('/api/dashboard/knowledge/approve', {
+        res = await fetch('/api/dashboard/knowledge/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chunkId, action }),
         })
       }
-      setWebsiteChunks(prev => action === 'delete'
-        ? prev.filter(c => c.id !== chunkId)
-        : prev.map(c => c.id === chunkId ? { ...c, status: action === 'approve' ? 'approved' : 'rejected' } : c)
-      )
-      // Refresh stats after action
+      if (!res.ok) throw new Error('Action failed')
       fetchStats()
-    } catch { /* silent */ } finally {
+      window.dispatchEvent(new CustomEvent('knowledge-chunks-refresh'))
+    } catch {
+      setWebsiteChunks(prevChunks)
+      toast.error(action === 'delete' ? 'Failed to delete chunk' : `Failed to ${action} chunk`)
+    } finally {
       setChunkActioning(null)
+    }
+  }
+
+  async function handleApproveAll() {
+    const pendingChunks = websiteChunks.filter(c => c.status === 'pending')
+    if (pendingChunks.length === 0) return
+    setApprovingAll(true)
+    const prevChunks = websiteChunks
+    setWebsiteChunks(prev => prev.map(c => c.status === 'pending' ? { ...c, status: 'approved' } : c))
+    try {
+      const results = await Promise.all(pendingChunks.map(c =>
+        fetch('/api/dashboard/knowledge/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chunkId: c.id, action: 'approve' }),
+        })
+      ))
+      if (results.some(r => !r.ok)) throw new Error('Some approvals failed')
+      toast.success(`Approved ${pendingChunks.length} chunk${pendingChunks.length !== 1 ? 's' : ''}`)
+      fetchStats()
+      window.dispatchEvent(new CustomEvent('knowledge-chunks-refresh'))
+    } catch {
+      setWebsiteChunks(prevChunks)
+      toast.error('Failed to approve all chunks')
+    } finally {
+      setApprovingAll(false)
     }
   }
 
@@ -516,16 +564,27 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             <div className="rounded-xl border b-theme p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-semibold t3">Website Content</p>
-                <button
-                  onClick={() => {
-                    const next = !showWebsiteChunks
-                    setShowWebsiteChunks(next)
-                    if (next && websiteChunks.length === 0) fetchWebsiteChunks()
-                  }}
-                  className="text-[10px] font-medium text-blue-400 hover:text-blue-300 transition-colors focus-visible:outline-none"
-                >
-                  {showWebsiteChunks ? 'Hide' : `View ${stats.bySource.website_scrape} chunk${stats.bySource.website_scrape !== 1 ? 's' : ''}`}
-                </button>
+                <div className="flex items-center gap-2">
+                  {showWebsiteChunks && websiteChunks.some(c => c.status === 'pending') && (
+                    <button
+                      onClick={handleApproveAll}
+                      disabled={approvingAll}
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none"
+                    >
+                      {approvingAll ? '...' : 'Approve All'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      const next = !showWebsiteChunks
+                      setShowWebsiteChunks(next)
+                      if (next) fetchWebsiteChunks(0)
+                    }}
+                    className="text-[10px] font-medium text-blue-400 hover:text-blue-300 transition-colors focus-visible:outline-none"
+                  >
+                    {showWebsiteChunks ? 'Hide' : `View ${stats.bySource.website_scrape} chunk${stats.bySource.website_scrape !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
               </div>
 
               {showWebsiteChunks && (
@@ -541,51 +600,66 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                   ) : websiteChunks.length === 0 ? (
                     <p className="text-[10px] t3">No website chunks found.</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                      {websiteChunks.map((chunk) => (
-                        <div key={chunk.id} className="rounded-lg border b-theme p-2 space-y-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[11px] t2 leading-relaxed flex-1 line-clamp-2">
-                              {chunk.content.length > 140 ? chunk.content.slice(0, 140) + '…' : chunk.content}
-                            </p>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                              chunk.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                              : chunk.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            }`}>
-                              {chunk.status}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {chunk.status !== 'approved' && (
+                    <>
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                        {websiteChunks.map((chunk) => (
+                          <div key={chunk.id} className="rounded-lg border b-theme p-2 space-y-1.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-[11px] t2 leading-relaxed flex-1 line-clamp-2">
+                                {chunk.content.length > 140 ? chunk.content.slice(0, 140) + '…' : chunk.content}
+                              </p>
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                chunk.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                : chunk.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              }`}>
+                                {chunk.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {chunk.status !== 'approved' && (
+                                <button
+                                  onClick={() => handleChunkAction(chunk.id, 'approve')}
+                                  disabled={chunkActioning === chunk.id}
+                                  className="text-[9px] font-medium px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                                >
+                                  ✓ Approve
+                                </button>
+                              )}
+                              {chunk.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handleChunkAction(chunk.id, 'reject')}
+                                  disabled={chunkActioning === chunk.id}
+                                  className="text-[9px] font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                                >
+                                  ✗ Reject
+                                </button>
+                              )}
                               <button
-                                onClick={() => handleChunkAction(chunk.id, 'approve')}
+                                onClick={() => handleChunkAction(chunk.id, 'delete')}
                                 disabled={chunkActioning === chunk.id}
-                                className="text-[9px] font-medium px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                                className="text-[9px] font-medium px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
                               >
-                                ✓ Approve
+                                Delete
                               </button>
-                            )}
-                            {chunk.status !== 'rejected' && (
-                              <button
-                                onClick={() => handleChunkAction(chunk.id, 'reject')}
-                                disabled={chunkActioning === chunk.id}
-                                className="text-[9px] font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
-                              >
-                                ✗ Reject
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleChunkAction(chunk.id, 'delete')}
-                              disabled={chunkActioning === chunk.id}
-                              className="text-[9px] font-medium px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
-                            >
-                              Delete
-                            </button>
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                      {/* Load More */}
+                      {chunkTotal > websiteChunks.length && (
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[9px] t3 font-mono">{websiteChunks.length} of {chunkTotal}</span>
+                          <button
+                            onClick={() => fetchWebsiteChunks(chunkOffset + 20)}
+                            disabled={chunkLoadingMore}
+                            className="text-[10px] font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors focus-visible:outline-none"
+                          >
+                            {chunkLoadingMore ? 'Loading...' : 'Load More'}
+                          </button>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -740,10 +814,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             )}
           </div>
 
-          {/* Navigation hint */}
-          <p className="text-[10px] t3">
-            Manage chunks, approve suggestions, and run full searches in the <span className="font-medium t2">Knowledge</span> tab.
-          </p>
+          {/* Navigation hint — hide when already on the knowledge page */}
+          {!pathname?.includes('/dashboard/knowledge') && (
+            <p className="text-[10px] t3">
+              Manage chunks, approve suggestions, and run full searches in the <span className="font-medium t2">Knowledge</span> tab.
+            </p>
+          )}
         </div>
       )}
 

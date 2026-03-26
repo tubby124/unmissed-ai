@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 
 interface PendingChunk {
   id: string
@@ -57,7 +58,15 @@ export default function PendingSuggestions({ clientId }: PendingSuggestionsProps
     fetchPending()
   }, [fetchPending])
 
+  // Refresh when chunks are approved/rejected/deleted elsewhere on the page
+  useEffect(() => {
+    window.addEventListener('knowledge-chunks-refresh', fetchPending)
+    return () => window.removeEventListener('knowledge-chunks-refresh', fetchPending)
+  }, [fetchPending])
+
   async function handleAction(chunkId: string, action: 'approve' | 'reject') {
+    const prevChunks = chunks
+    setChunks(prev => prev.filter(c => c.id !== chunkId))
     setActionLoading(chunkId)
     try {
       const res = await fetch('/api/dashboard/knowledge/approve', {
@@ -66,9 +75,10 @@ export default function PendingSuggestions({ clientId }: PendingSuggestionsProps
         body: JSON.stringify({ chunkId, action }),
       })
       if (!res.ok) throw new Error('Action failed')
-      setChunks(prev => prev.filter(c => c.id !== chunkId))
+      window.dispatchEvent(new CustomEvent('knowledge-chunks-refresh'))
     } catch {
-      // silent
+      setChunks(prevChunks)
+      toast.error(`Failed to ${action} suggestion`)
     } finally {
       setActionLoading(null)
     }
