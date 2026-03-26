@@ -217,6 +217,8 @@ function LoginContent() {
   const [error, setError] = useState('')
   const [showRecoveryHint, setShowRecoveryHint] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
@@ -250,6 +252,19 @@ function LoginContent() {
 
     router.push('/dashboard')
     router.refresh()
+  }
+
+  async function handleMagicLink() {
+    if (!email) { setError('Enter your email first, then click this link.'); return }
+    setError('')
+    setMagicLinkLoading(true)
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+    setMagicLinkLoading(false)
+    if (otpError) {
+      setError(otpError.message)
+    } else {
+      setMagicLinkSent(true)
+    }
   }
 
   async function handleGoogleSignIn() {
@@ -399,6 +414,19 @@ function LoginContent() {
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </motion.button>
+
+              {magicLinkSent ? (
+                <p className="text-center text-sm t2">Check your email — we sent a sign-in link.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleMagicLink}
+                  disabled={magicLinkLoading}
+                  className="w-full text-sm t3 hover:t1 transition-colors text-center disabled:opacity-50"
+                >
+                  {magicLinkLoading ? 'Sending...' : 'Email me a sign-in link instead'}
+                </button>
+              )}
             </form>
           </motion.div>
 

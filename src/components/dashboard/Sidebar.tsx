@@ -26,9 +26,10 @@ interface SidebarProps {
   subscriptionStatus?: string | null
   trialExpiresAt?: string | null
   initialCollapsed?: boolean
+  userEmail?: string
 }
 
-export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null, subscriptionStatus = null, trialExpiresAt = null, initialCollapsed = false }: SidebarProps) {
+export default function Sidebar({ businessName, isAdmin = false, clientId = null, setupIncomplete = false, telegramConnected = false, niche = null, clientStatus = null, subscriptionStatus = null, trialExpiresAt = null, initialCollapsed = false, userEmail }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [liveCount, setLiveCount] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
@@ -525,6 +526,10 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
             </span>
             <span className="whitespace-nowrap">Take tour</span>
           </button>
+        )}
+
+        {!collapsed && userEmail && (
+          <p className="px-3 py-1 text-[10px] truncate" style={{ color: "var(--color-text-3)" }}>{userEmail}</p>
         )}
 
         <button

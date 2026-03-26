@@ -16,29 +16,15 @@ import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
+import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 3
-const RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, timestamps)
-  return timestamps.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+const trialRateLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000) // 3/hr/IP
 
 export async function POST(req: NextRequest) {
   const supa = createServiceClient()
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
-  if (isRateLimited(ip)) {
+  if (!trialRateLimiter.check(ip).allowed) {
     return NextResponse.json({ error: 'Too many trial requests. Please try again later.' }, { status: 429 })
   }
 
@@ -81,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 409 })
   }
 
-  recordUsage(ip)
+  trialRateLimiter.record(ip)
 
   const intakePayload = toIntakePayload(data);
 

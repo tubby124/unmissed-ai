@@ -99,7 +99,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
             <div className="flex flex-1 relative overflow-hidden">
               {/* Desktop sidebar */}
-              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} initialCollapsed={false} />
+              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} initialCollapsed={false} userEmail={user?.email ?? undefined} />
 
               {/* Main content */}
               <main className="flex-1 min-w-0 overflow-y-auto">

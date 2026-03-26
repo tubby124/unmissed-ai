@@ -12,6 +12,7 @@ interface Client {
   twilio_number: string | null
   niche?: string | null
   status?: string | null
+  last_sign_in_at?: string | null
 }
 
 const PROTECTED_SLUGS = ['hasan-sharif', 'windshield-hub', 'urban-vibe', 'manzil-isa']
@@ -128,6 +129,11 @@ function ActiveClientCard({ client, onDeleted }: { client: Client; onDeleted: ()
             <p className="text-sm font-medium truncate" style={{ color: "var(--color-text-1)" }}>{client.business_name}</p>
             <StatusDot status={client.status} />
           </div>
+          {client.last_sign_in_at && (
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-3)" }}>
+              Last login {new Date(client.last_sign_in_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          )}
           <div className="flex items-center gap-2 mt-0.5">
             {client.twilio_number ? (
               <button
