@@ -191,6 +191,8 @@ export async function POST(req: NextRequest) {
       websiteContent = [factLines, qaLines].filter(Boolean).join("\n\n");
     }
   }
+  // GBP description intentionally NOT routed through websiteContent/buildPromptFromIntake.
+  // It goes into business_facts only (call-time injection, editable/clearable from dashboard Facts card).
 
   // Fetch knowledge docs uploaded during onboarding
   let knowledgeDocs = "";
@@ -342,7 +344,10 @@ export async function POST(req: NextRequest) {
     .map((p: { question: string; answer: string }) => ({ q: p.question.trim(), a: p.answer.trim() }));
   const allQa = [...scrapedQa, ...manualQa];
 
-  const factsText = scrapedFacts.join('\n');
+  // If no scraped facts, fall back to GBP description formatted as a fact line
+  const gbpFact = (data.gbpDescription && scrapedFacts.length === 0)
+    ? `About this business: ${data.gbpDescription}` : '';
+  const factsText = scrapedFacts.join('\n') || gbpFact;
   if (factsText || allQa.length > 0) {
     await supa.from('clients').update({
       ...(factsText ? { business_facts: factsText } : {}),

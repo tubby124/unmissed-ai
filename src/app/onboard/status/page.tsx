@@ -27,8 +27,12 @@ function StatusContent() {
   const trialClientId = searchParams.get("clientId");
   const trialAgentName = searchParams.get("agentName") ? decodeURIComponent(searchParams.get("agentName")!) : null;
   const rawSetupUrl = searchParams.get("setupUrl") ? decodeURIComponent(searchParams.get("setupUrl")!) : null;
-  // Sanitize: if the stored URL has localhost (from a dev-environment test), fall back to /dashboard
-  const trialSetupUrl = rawSetupUrl && !rawSetupUrl.includes("localhost") ? rawSetupUrl : "/dashboard";
+  // For localhost dev: strip the host so /login?email=... still works correctly
+  const trialSetupUrl = rawSetupUrl
+    ? (rawSetupUrl.includes("localhost")
+        ? rawSetupUrl.replace(/^https?:\/\/[^/]+/, '')
+        : rawSetupUrl)
+    : "/login";
   const trialTelegramLink = searchParams.get("telegramLink") ? decodeURIComponent(searchParams.get("telegramLink")!) : null;
   const trialEmail = searchParams.get("email") ? decodeURIComponent(searchParams.get("email")!) : null;
   const trialKnowledgeCount = searchParams.get("knowledgeCount") ? parseInt(searchParams.get("knowledgeCount")!, 10) : 0;

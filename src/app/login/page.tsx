@@ -216,6 +216,7 @@ function LoginContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [showRecoveryHint, setShowRecoveryHint] = useState(false)
+  const [isNewAccount, setIsNewAccount] = useState(false)
   const [loading, setLoading] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [magicLinkLoading, setMagicLinkLoading] = useState(false)
@@ -234,6 +235,11 @@ function LoginContent() {
       setShowRecoveryHint(true)
     } else if (urlError === 'auth_callback_failed') {
       setError('Sign-in failed. Please try again or use a different method.')
+    }
+    const urlEmail = searchParams.get('email')
+    if (urlEmail) {
+      setEmail(decodeURIComponent(urlEmail))
+      setIsNewAccount(true)
     }
   }, [searchParams])
 
@@ -350,6 +356,12 @@ function LoginContent() {
               <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
             </div>
 
+            {isNewAccount && (
+              <div className="mb-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-300">
+                Welcome! Your temporary password is <strong>QWERTY123</strong> — you can change it after logging in.
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <GlassInput
                 label="Email"
@@ -357,7 +369,7 @@ function LoginContent() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                autoFocus
+                autoFocus={!isNewAccount}
                 autoComplete="email"
                 inputMode="email"
                 enterKeyHint="next"

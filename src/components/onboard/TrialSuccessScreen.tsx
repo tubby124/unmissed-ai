@@ -478,7 +478,7 @@ export function TrialSuccessScreen({
               href={setupUrl || "/dashboard"}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
-              Open your dashboard →
+              Log in to your dashboard →
             </a>
           </>
         ) : joinUrl ? (
@@ -496,7 +496,7 @@ export function TrialSuccessScreen({
               href={setupUrl || "/dashboard"}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
-              Open your dashboard →
+              Log in to your dashboard →
             </a>
           </>
         ) : null}

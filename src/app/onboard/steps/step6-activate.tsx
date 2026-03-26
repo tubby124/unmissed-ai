@@ -131,6 +131,32 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         </div>
       </div>
 
+      {/* GBP data summary — show what was learned from Google Maps */}
+      {(data.gbpDescription || data.placesRating || data.businessHoursText) && (
+        <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 p-4 space-y-2">
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+            What we learned from Google Maps
+          </p>
+          {data.gbpDescription && (
+            <p className="text-sm text-foreground italic leading-snug">&ldquo;{data.gbpDescription}&rdquo;</p>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {data.placesRating && (
+              <span>⭐ {data.placesRating} rating{data.placesReviewCount ? ` (${data.placesReviewCount} reviews)` : ''}</span>
+            )}
+            {data.businessHoursText && (
+              <span>🕐 {data.businessHoursText}</span>
+            )}
+            {data.callbackPhone && (
+              <span>📞 {data.callbackPhone}</span>
+            )}
+          </div>
+          <p className="text-xs text-emerald-600 dark:text-emerald-500">
+            Your agent will know this — you can edit it any time from your dashboard.
+          </p>
+        </div>
+      )}
+
       {/* Agent summary card */}
       <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 space-y-2">
         <div className="flex items-center justify-between">

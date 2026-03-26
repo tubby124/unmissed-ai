@@ -28,6 +28,7 @@ interface PlaceResult {
   photoUrl: string | null
   status: string | null
   types: string[]
+  editorialSummary: string | null
 }
 
 interface Props {

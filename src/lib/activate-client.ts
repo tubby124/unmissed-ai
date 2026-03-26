@@ -161,18 +161,14 @@ export async function activateClient(params: {
     try {
       let resolvedUserId: string | null = null
 
-      // Two-step auth setup:
-      // Step 1: Create user with email_confirm: false (unconfirmed). This is critical —
-      // if the user is auto-confirmed before generateLink(invite) runs, Supabase won't
-      // store the invite token (tokens are only stored for unconfirmed users), causing
-      // otp_expired on every visit.
-      // Step 2: generateLink(type='invite') on the unconfirmed user stores the token in
-      // auth.one_time_tokens. When the user visits the action_link, Supabase confirms
-      // the email, creates the session (implicit flow → #access_token in hash), and
-      // redirects to /auth/set-password where the Supabase browser client picks up the session.
+      // Temporary auth setup (until custom domain + Resend are configured):
+      // Create user with a default password so login always works even if the welcome
+      // email fails to deliver (Hotmail/live.com rejects emails from non-custom domains).
+      // Users can change their password from the dashboard at any time.
       const { data: newUserData, error: createErr } = await adminSupa.auth.admin.createUser({
         email: contactEmail,
-        email_confirm: false,
+        password: 'QWERTY123',
+        email_confirm: true,
       })
 
       if (createErr) {
@@ -185,18 +181,9 @@ export async function activateClient(params: {
         resolvedUserId = newUserData?.user?.id ?? null
       }
 
-      if (resolvedUserId) {
-        const { data: inviteData, error: inviteErr } = await adminSupa.auth.admin.generateLink({
-          type: 'invite',
-          email: contactEmail,
-          options: { redirectTo: `${appUrl}/auth/callback?next=/auth/set-password` },
-        })
-        if (inviteErr) {
-          console.error(`${logPrefix} generateLink(invite) failed: ${inviteErr.message}`)
-        } else if (inviteData?.properties?.action_link) {
-          setupUrl = inviteData.properties.action_link
-        }
-      }
+      // Route to login with email pre-filled so the user sees a login form
+      // (not silently landing on another user's dashboard if already logged in elsewhere)
+      setupUrl = `${appUrl}/login?email=${encodeURIComponent(contactEmail)}`
 
       if (resolvedUserId) {
         const newUserId = resolvedUserId
@@ -242,12 +229,12 @@ export async function activateClient(params: {
   ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
   ${isTrial ? '<p>Try your agent from the dashboard using WebRTC demo calls. Upgrade anytime to get a dedicated phone number.</p>' : ''}
 
-  <p><strong>Set up your dashboard password</strong></p>
+  <p><strong>Log in to your dashboard</strong></p>
   <a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">
-    Create my password →
+    Log in to my dashboard →
   </a>
-  <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
-  <p style="margin-top:8px;font-size:14px">Or <a href="${appUrl}/login" style="color:#4f46e5">log in directly</a> if you already set a password.</p>
+  <p style="font-size:13px;color:#555;margin-top:8px">Your temporary password is: <strong>QWERTY123</strong></p>
+  <p style="font-size:12px;color:#888;margin-top:4px">You can change it from your dashboard settings after logging in.</p>
 
   ${!isTrial && telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
 

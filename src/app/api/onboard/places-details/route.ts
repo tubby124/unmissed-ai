@@ -37,6 +37,7 @@ interface PlaceDetails {
   photos?: { photo_reference: string }[]
   business_status?: string
   types?: string[]
+  editorial_summary?: { overview?: string }
 }
 
 export async function GET(req: NextRequest) {
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
   try {
     const params = new URLSearchParams({
       place_id,
-      fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,rating,user_ratings_total,photos,business_status,types',
+      fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,rating,user_ratings_total,photos,business_status,types,editorial_summary',
       key: apiKey,
     })
     if (sessiontoken) params.set('sessiontoken', sessiontoken)
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
         photoUrl,
         status: r.business_status ?? null,
         types: r.types ?? [],
+        editorialSummary: r.editorial_summary?.overview ?? null,
       },
     })
   } catch (err) {

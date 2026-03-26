@@ -71,6 +71,7 @@ export interface OnboardingData {
   placesPhotoUrl?: string;        // Business photo URL from Google Places
   placesRating?: number;          // Google rating (1-5)
   placesReviewCount?: number;     // Total review count from Google
+  gbpDescription?: string;        // Google Business Profile editorial summary (seeds business_facts)
   businessHoursText: string;   // e.g. "Mon–Fri 9am–5pm, Sat 10am–2pm" — used when step 3 is skipped
   servicesOffered: string;     // brief services description — optional, used when step 4 is skipped
 

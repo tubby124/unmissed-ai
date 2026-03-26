@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Niche, OnboardingData, defaultAgentNames } from "@/types/onboarding";
+import { Niche, OnboardingData, defaultAgentNames, nicheLabels, nicheEmojis } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PlacesAutocomplete from "@/components/onboard/PlacesAutocomplete";
@@ -55,6 +55,8 @@ interface PendingPlace {
   reviewCount: number | null;
   types: string[];
   placeId: string;
+  description: string | null;
+  website: string | null;
 }
 
 interface Props {
@@ -68,6 +70,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [placesKey, setPlacesKey] = useState(0);
   const [gbpConfirmed, setGbpConfirmed] = useState(!!(data.placeId || data.businessName));
   const [showManual, setShowManual] = useState(!!(data.businessName && !data.placeId));
+  const [nichePickerDismissed, setNichePickerDismissed] = useState(false);
 
   // Derive predicted agent name from pending place for the CTA button
   const getPendingAgentName = (): string => {
@@ -90,6 +93,8 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     if (pendingPlace.phone) updates.callbackPhone = pendingPlace.phone;
     if (pendingPlace.hours?.length) updates.businessHoursText = pendingPlace.hours.join(", ");
     if (pendingPlace.photoUrl) updates.placesPhotoUrl = pendingPlace.photoUrl;
+    if (pendingPlace.description) updates.gbpDescription = pendingPlace.description;
+    if (pendingPlace.website && !data.websiteUrl) updates.websiteUrl = pendingPlace.website;
     if (pendingPlace.rating) updates.placesRating = pendingPlace.rating;
     if (pendingPlace.reviewCount) updates.placesReviewCount = pendingPlace.reviewCount;
     updates.placeId = pendingPlace.placeId;
@@ -115,6 +120,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     trackEvent("onboard_gbp_used", { niche: String(detectedNiche) });
     setGbpConfirmed(true);
     setPendingPlace(null);
+    if (detectedNiche === 'other') setNichePickerDismissed(false);
   };
 
   const handleManual = () => {
@@ -155,6 +161,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                   name: result.name, address: result.address, phone: result.phone,
                   hours: result.hours, photoUrl: result.photoUrl, rating: result.rating,
                   reviewCount: result.reviewCount, types: result.types ?? [], placeId: result.placeId,
+                  description: result.editorialSummary, website: result.website,
                 })
               }
             />
@@ -200,6 +207,12 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               </div>
               {pendingPlace.address && (
                 <p className="text-sm text-muted-foreground mt-0.5">{pendingPlace.address}</p>
+              )}
+              {pendingPlace.description && (
+                <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">&ldquo;{pendingPlace.description}&rdquo;</p>
+              )}
+              {pendingPlace.website && (
+                <p className="text-xs text-indigo-500 mt-1 truncate">{pendingPlace.website}</p>
               )}
               <div className="flex items-center gap-2 mt-4">
                 <motion.button
@@ -261,6 +274,53 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                 Change
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Niche picker — shown when GBP niche couldn't be auto-detected */}
+      <AnimatePresence>
+        {gbpConfirmed && data.niche === 'other' && !nichePickerDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20"
+          >
+            <div>
+              <p className="text-sm font-semibold text-foreground">What kind of business is this?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">We couldn&apos;t detect your industry automatically — pick one so we build the right agent.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(NICHE_PRODUCTION_READY) as Niche[])
+                .filter((n) => NICHE_PRODUCTION_READY[n] && n !== 'other')
+                .map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => {
+                      const updates: Partial<OnboardingData> = { niche: n };
+                      if (agentNameIsAutoSet(data.agentName, data.niche)) {
+                        updates.agentName = defaultAgentNames[n];
+                      }
+                      onUpdate(updates);
+                      setNichePickerDismissed(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-sm text-left transition-colors cursor-pointer"
+                  >
+                    <span className="text-base">{nicheEmojis[n]}</span>
+                    <span className="font-medium text-foreground leading-tight">{nicheLabels[n]}</span>
+                  </button>
+                ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setNichePickerDismissed(true)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Skip — my business is unique
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
