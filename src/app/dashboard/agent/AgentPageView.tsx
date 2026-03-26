@@ -187,15 +187,22 @@ function AgentCards({
       urgency: 'low',
     })
   }
-  if (client.subscription_status === 'trialing' && daysRemaining !== undefined && daysRemaining <= 3) {
+  if (client.subscription_status === 'trialing' && daysRemaining !== undefined && daysRemaining <= 7) {
     attentionItems.push({
       label: daysRemaining === 0
         ? 'Trial expired — upgrade now to keep your number'
-        : `Trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — upgrade to keep your number`,
+        : `Trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — upgrade to keep your number`,
       href: '/dashboard/settings',
-      urgency: daysRemaining <= 1 ? 'high' : 'medium',
+      urgency: daysRemaining <= 1 ? 'high' : daysRemaining <= 3 ? 'medium' : 'low',
     })
   }
+
+  const hasHighUrgency = attentionItems.some(i => i.urgency === 'high')
+  const hasMediumUrgency = attentionItems.some(i => i.urgency === 'medium')
+
+  // Reset date for minutes bar
+  const minuteResetDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+    .toLocaleDateString('en', { month: 'short', day: 'numeric' })
 
   return (
     <div className="space-y-6">
@@ -204,21 +211,41 @@ function AgentCards({
       {/* ── 1. Needs Attention — elevated above test card when active ── */}
       {attentionItems.length > 0 && (
         <div>
-          <SectionLabel>Needs Attention</SectionLabel>
-          <div className="rounded-2xl border b-theme bg-surface overflow-hidden divide-y" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{
+              color: hasHighUrgency ? '#f87171' : hasMediumUrgency ? '#fbbf24' : 'var(--color-text-3)'
+            }}>
+              Needs Attention
+            </p>
+            <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-full ${
+              hasHighUrgency ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'
+            }`}>{attentionItems.length}</span>
+          </div>
+          <div className={`rounded-2xl border bg-surface overflow-hidden divide-y ${
+            hasHighUrgency ? 'border-red-500/40' :
+            hasMediumUrgency ? 'border-amber-500/30' :
+            'b-theme'
+          }`} style={!hasHighUrgency && !hasMediumUrgency ? { borderColor: 'var(--color-border)' } : undefined}>
             {attentionItems.map((item, i) => (
               <Link
                 key={i}
                 href={item.href}
-                className="flex items-center gap-3 px-5 py-3.5 hover:bg-hover transition-colors group"
+                className="flex items-start gap-3 px-4 py-3 hover:bg-hover transition-colors group relative"
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                <span className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-r-full ${
+                  item.urgency === 'high' ? 'bg-red-500' :
+                  item.urgency === 'medium' ? 'bg-amber-400' :
+                  'bg-zinc-600'
+                }`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
                   item.urgency === 'high' ? 'bg-red-400' :
                   item.urgency === 'medium' ? 'bg-amber-400' :
                   'bg-zinc-500'
                 }`} />
-                <span className="text-xs t2 flex-1 leading-relaxed">{item.label}</span>
-                <ChevronRight className="t3 shrink-0 group-hover:t1 transition-colors" />
+                <span className={`text-xs flex-1 leading-relaxed ${
+                  item.urgency === 'high' ? 't1' : 't2'
+                }`}>{item.label}</span>
+                <ChevronRight className="t3 shrink-0 mt-0.5 group-hover:t1 transition-colors" />
               </Link>
             ))}
           </div>
@@ -247,12 +274,14 @@ function AgentCards({
           {/* Usage bar */}
           <div className="pt-4 border-t b-theme">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Minutes This Month</p>
+              <p className={`text-[10px] font-semibold tracking-[0.15em] uppercase transition-colors ${
+                usagePct >= 95 ? 'text-amber-400' : 't3'
+              }`}>Minutes This Month</p>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {minuteLimit} min</span>
                 {(client.bonus_minutes ?? 0) > 0 && (
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
-                    +{client.bonus_minutes} bonus
+                    +{client.bonus_minutes}
                   </span>
                 )}
               </div>
@@ -268,8 +297,10 @@ function AgentCards({
                 style={{ width: `${Math.min(usagePct, 100)}%` }}
               />
             </div>
-            <p className="text-[11px] t3 mt-1.5 tabular-nums font-mono">
-              {Math.max(minuteLimit - minutesUsed, 0)} min remaining · resets 1st of month
+            <p className={`text-[11px] mt-1.5 tabular-nums font-mono transition-colors ${
+              usagePct >= 95 ? 'text-red-400' : 't3'
+            }`}>
+              {Math.max(minuteLimit - minutesUsed, 0)} min remaining · resets {minuteResetDate}
             </p>
           </div>
           <AgentNameField
@@ -311,7 +342,9 @@ function AgentCards({
           </Link>
         </div>
         <div className="rounded-2xl border b-theme bg-surface px-5 py-4">
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className={`grid grid-cols-3 gap-3 text-center ${
+            factLines === 0 && faqCount === 0 && client.website_scrape_status !== 'approved' ? 'opacity-60' : ''
+          }`}>
             <div>
               <p className={`text-xl font-bold tabular-nums ${factLines > 0 ? 't1' : 't3'}`}>{factLines}</p>
               <p className="text-[10px] t3 mt-0.5">Business facts</p>
@@ -321,10 +354,22 @@ function AgentCards({
               <p className="text-[10px] t3 mt-0.5">Q&amp;A pairs</p>
             </div>
             <div>
-              <p className={`text-xl font-bold ${client.website_scrape_status === 'approved' ? 'text-green-400' : 't3'}`}>
-                {client.website_scrape_status === 'approved' ? '✓' : '—'}
-              </p>
-              <p className="text-[10px] t3 mt-0.5">Website</p>
+              {client.website_scrape_status === 'approved' ? (
+                <>
+                  <p className="text-xl font-bold text-green-400">✓</p>
+                  <p className="text-[10px] t3 mt-0.5">Website</p>
+                </>
+              ) : client.website_scrape_status === 'extracted' ? (
+                <>
+                  <p className="text-xl font-bold text-amber-400">!</p>
+                  <p className="text-[10px] text-amber-400/70 mt-0.5">Review ready</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-bold t3">—</p>
+                  <p className="text-[10px] t3 mt-0.5">Website</p>
+                </>
+              )}
             </div>
           </div>
           {factLines === 0 && faqCount === 0 && client.website_scrape_status !== 'approved' && (
