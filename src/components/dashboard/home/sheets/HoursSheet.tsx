@@ -10,7 +10,6 @@ import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettin
 const BEHAVIOR_OPTIONS = [
   { value: 'take_message', label: 'Take a message' },
   { value: 'route_emergency', label: 'Route to emergency number' },
-  { value: 'disabled', label: 'Unavailable' },
 ] as const
 
 interface Props {
@@ -49,7 +48,7 @@ export default function HoursSheet({
       business_hours_weekday: weekday,
       business_hours_weekend: weekend,
       after_hours_behavior: behavior,
-      after_hours_emergency_phone: behavior === 'route_emergency' ? emergencyPhone : null,
+      after_hours_emergency_phone: emergencyPhone,
     })
     if (res?.ok) markClean()
   }
