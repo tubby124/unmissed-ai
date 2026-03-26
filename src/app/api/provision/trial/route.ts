@@ -137,6 +137,7 @@ export async function POST(req: NextRequest) {
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
       selected_plan: data.selectedPlan || 'core',
+      knowledge_backend: 'pgvector',
       // Gate-11+13: Write forwarding_number only when plan entitlement allows it
       forwarding_number: effectiveEmergencyPhone,
       // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
