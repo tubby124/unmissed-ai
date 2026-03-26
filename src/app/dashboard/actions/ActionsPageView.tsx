@@ -56,7 +56,8 @@ function ActionCards({
   const summary = buildSummary(client)
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Row 1: Hours | Scheduling */}
       <div id="hours">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Hours</p>
         <HoursCard
@@ -73,6 +74,8 @@ function ActionCards({
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Scheduling</p>
         <BookingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>
+
+      {/* Row 2: Call Menu | Voicemail */}
       <div id="call-menu">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Call Menu</p>
         <IvrMenuCard
@@ -96,17 +99,21 @@ function ActionCards({
           previewMode={previewMode}
         />
       </div>
-      <div id="call-handoff">
+
+      {/* Row 3: Call Handoff — full width (phone + conditions textarea) */}
+      <div id="call-handoff" className="sm:col-span-2">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Call Handoff</p>
         <TransferSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>
-      <div id="after-call">
+
+      {/* Row 4: After-Call Messaging — full width (SMS template is long) */}
+      <div id="after-call" className="sm:col-span-2">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>After-Call Follow-up</p>
         <MessagingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>
 
-      {/* Behavior summary */}
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
+      {/* Row 5: Behavior summary — full width */}
+      <div className="sm:col-span-2 rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
         <p className="text-[10px] uppercase tracking-[0.15em] t3 font-semibold">What happens after calls</p>
         <p className="text-xs t2 leading-relaxed">{summary}</p>
       </div>
@@ -140,7 +147,7 @@ export default function ActionsPageView({ clients, isAdmin, previewMode, initial
   if (!client) return null
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 max-w-3xl">
+    <div className="p-3 sm:p-6 space-y-4 max-w-4xl">
       {isAdmin && clients.length > 1 && (
         <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
       )}
