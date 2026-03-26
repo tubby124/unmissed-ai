@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 /** Card display mode — settings (full) vs onboarding (simplified copy/fields). */
@@ -45,6 +46,7 @@ export function usePatchSettings(
   isAdmin: boolean,
   options?: UsePatchSettingsOptions,
 ) {
+  const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -98,6 +100,8 @@ export function usePatchSettings(
         options?.onPromptChange?.(data.system_prompt)
       }
       options?.onSave?.()
+      // Refresh server component data so other cards on the page see updated values
+      router.refresh()
       // Toast feedback
       if (data.ultravox_synced === false && data.ultravox_error) {
         toast.warning('Saved, but agent sync failed — retry from the card')

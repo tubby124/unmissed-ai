@@ -454,9 +454,11 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // 1b — Reseed knowledge chunks when business_facts or extra_qa changed
-  // Fire-and-forget: non-blocking, logs errors but doesn't fail the request.
+  // 1b — Reseed knowledge chunks when business_facts or extra_qa changed.
+  // Awaited when knowledge_backend='pgvector' so chunk count is accurate before agent sync.
+  // Non-blocking (fire-and-forget) for all other backends.
   // Only reseeds 'settings_edit' source — preserves website_scrape, manual, gap_resolution chunks.
+  let knowledgeReseeded = false
   if ('business_facts' in updates || 'extra_qa' in updates) {
     const { data: freshClient } = await supabase
       .from('clients')
@@ -466,9 +468,13 @@ export async function PATCH(req: NextRequest) {
     if (freshClient?.knowledge_backend === 'pgvector') {
       const facts = typeof freshClient.business_facts === 'string' ? freshClient.business_facts : null
       const qa: { q: string; a: string }[] = Array.isArray(freshClient.extra_qa) ? freshClient.extra_qa : []
-      reseedKnowledgeFromSettings(targetClientId, facts, qa)
-        .then(r => console.log(`[settings] Knowledge reseed: stored=${r.stored} failed=${r.failed} client=${targetClientId}`))
-        .catch(err => console.error(`[settings] Knowledge reseed failed: ${err}`))
+      try {
+        const r = await reseedKnowledgeFromSettings(targetClientId, facts, qa)
+        console.log(`[settings] Knowledge reseed: stored=${r.stored} failed=${r.failed} client=${targetClientId}`)
+        knowledgeReseeded = true
+      } catch (err) {
+        console.error(`[settings] Knowledge reseed failed: ${err}`)
+      }
     }
   }
 
@@ -487,7 +493,8 @@ export async function PATCH(req: NextRequest) {
     'agent_voice_id' in updates ||
     'knowledge_backend' in updates ||
     'sms_enabled' in updates ||
-    'twilio_number' in updates
+    'twilio_number' in updates ||
+    knowledgeReseeded // re-register queryKnowledge tool after chunk count changes
 
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
