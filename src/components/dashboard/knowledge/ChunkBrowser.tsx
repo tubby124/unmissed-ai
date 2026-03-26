@@ -58,6 +58,8 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
   const [offset, setOffset] = useState(0)
   const [statusFilter, setStatusFilter] = useState('all')
   const [trustTierFilter, setTrustTierFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const [clearingAll, setClearingAll] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editTier, setEditTier] = useState<'high' | 'medium' | 'low'>('medium')
@@ -81,6 +83,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
         limit: String(LIMIT),
         offset: String(currentOffset),
       })
+      if (sourceFilter !== 'all') params.set('source', sourceFilter)
       const res = await fetch(`/api/dashboard/knowledge/chunks?${params}`)
       if (!res.ok) throw new Error('Failed to load chunks')
       const data = await res.json()
@@ -99,12 +102,12 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [clientId, statusFilter, trustTierFilter, offset])
+  }, [clientId, statusFilter, trustTierFilter, sourceFilter, offset])
 
   useEffect(() => {
     fetchChunks(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, statusFilter, trustTierFilter])
+  }, [clientId, statusFilter, trustTierFilter, sourceFilter])
 
   function handleExpand(chunk: KnowledgeChunk) {
     if (expandedId === chunk.id) {
@@ -151,6 +154,27 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
     }
   }
 
+  async function handleClearAll() {
+    const label = sourceFilter !== 'all' ? `all "${sourceFilter}" chunks` : 'ALL knowledge chunks'
+    if (!confirm(`Delete ${label} for this client? This cannot be undone.`)) return
+    setClearingAll(true)
+    try {
+      const params = new URLSearchParams({ client_id: clientId, clear_all: 'true' })
+      if (sourceFilter !== 'all') params.set('source', sourceFilter)
+      const res = await fetch(`/api/dashboard/knowledge/chunks?${params}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Clear failed')
+      const data = await res.json()
+      setChunks([])
+      setTotal(0)
+      setOffset(0)
+      console.log(`[ChunkBrowser] cleared ${data.deleted} chunks`)
+    } catch {
+      // silent
+    } finally {
+      setClearingAll(false)
+    }
+  }
+
   async function handleDelete(chunkId: string) {
     if (!confirm('Delete this knowledge chunk? This cannot be undone.')) return
     setActionLoading(chunkId)
@@ -185,7 +209,20 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="bg-hover border b-theme rounded-lg px-2 py-1 text-[11px] t2 focus:outline-none focus:border-blue-500/50"
+          >
+            <option value="all">All Sources</option>
+            <option value="knowledge_doc">knowledge_doc</option>
+            <option value="website_scrape">website_scrape</option>
+            <option value="settings_edit">settings_edit</option>
+            <option value="bulk_import">bulk_import</option>
+            <option value="dashboard_manual">dashboard_manual</option>
+            <option value="manual_entry">manual_entry</option>
+          </select>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -206,6 +243,15 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+          {total > 0 && (
+            <button
+              onClick={handleClearAll}
+              disabled={clearingAll}
+              className="px-3 py-1 rounded-lg text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+            >
+              {clearingAll ? 'Clearing...' : sourceFilter !== 'all' ? `Clear ${sourceFilter}` : 'Clear All'}
+            </button>
+          )}
         </div>
       </div>
 

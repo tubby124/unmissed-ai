@@ -16,12 +16,40 @@ export async function DELETE(req: NextRequest) {
 
   if (!cu) return new NextResponse('No client found', { status: 404 })
 
-  const chunkId = req.nextUrl.searchParams.get('id')
-  if (!chunkId) return NextResponse.json({ error: 'Missing chunk id' }, { status: 400 })
+  const params = req.nextUrl.searchParams
+  const chunkId = params.get('id')
+  const clearAll = params.get('clear_all') === 'true'
 
   const svc = createServiceClient()
 
-  // Verify chunk exists and belongs to user's client
+  // ── Bulk clear ────────────────────────────────────────────────────────────
+  if (clearAll) {
+    const rawClientId = params.get('client_id')
+    const targetClientId = cu.role === 'admin' && rawClientId ? rawClientId : cu.client_id
+    if (!targetClientId) return NextResponse.json({ error: 'client_id required' }, { status: 400 })
+    if (cu.role !== 'admin' && targetClientId !== cu.client_id) {
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+
+    let query = svc.from('knowledge_chunks').delete().eq('client_id', targetClientId)
+    const sourceFilter = params.get('source')
+    if (sourceFilter) query = query.eq('source', sourceFilter)
+    const statusFilter = params.get('status')
+    if (statusFilter) query = query.eq('status', statusFilter)
+
+    const { error } = await query
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    try { await syncClientTools(svc, targetClientId) } catch (err) {
+      console.error(`[knowledge/chunks DELETE clear_all] tools sync failed: ${err}`)
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Single chunk delete ───────────────────────────────────────────────────
+  if (!chunkId) return NextResponse.json({ error: 'Missing chunk id or clear_all=true' }, { status: 400 })
+
   const { data: chunk } = await svc
     .from('knowledge_chunks')
     .select('id, client_id')
@@ -30,7 +58,6 @@ export async function DELETE(req: NextRequest) {
 
   if (!chunk) return NextResponse.json({ error: 'Chunk not found' }, { status: 404 })
 
-  // Admin can delete any, owners can only delete their own client's chunks
   if (cu.role !== 'admin' && chunk.client_id !== cu.client_id) {
     return new NextResponse('Forbidden', { status: 403 })
   }
@@ -42,8 +69,6 @@ export async function DELETE(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // S5: rebuild clients.tools — deleting an approved chunk may remove queryKnowledge tool
-  // S7e: awaited (fire-and-forget not safe in Next.js route handlers)
   try { await syncClientTools(svc, chunk.client_id) } catch (err) {
     console.error(`[knowledge/chunks DELETE] tools sync failed: ${err}`)
   }
