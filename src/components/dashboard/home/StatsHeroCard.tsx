@@ -46,39 +46,41 @@ export default function StatsHeroCard({
 
   return (
     <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`w-2.5 h-2.5 rounded-full ${agentStatus === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
-        <h1 className="text-lg font-semibold t1">{agentName}</h1>
-        {isTrial ? (
-          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-            isExpired
-              ? 'bg-red-500/10 text-red-400 border-red-500/30'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-red-400' : 'bg-amber-400'}`} />
-            {isExpired ? 'Trial ended' : 'Trial'}
-          </span>
-        ) : (
-          <span
-            className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
-            style={{
-              backgroundColor: agentStatus === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
-              color: agentStatus === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
-            }}
-          >
-            {agentStatus === 'active' ? 'Live' : agentStatus ?? 'Unknown'}
-          </span>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <p className="text-3xl font-bold t1 tracking-tight">
-          {totalCalls}
-          <span className="text-sm font-normal t3 ml-2">
-            call{totalCalls !== 1 ? 's' : ''} this month
-          </span>
-        </p>
-        <TrendBadge value={callsTrend} />
+      {/* Header row: calls on left, agent identity on right */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-3xl font-bold t1 tracking-tight">
+            {totalCalls}
+            <span className="text-sm font-normal t3 ml-2">
+              call{totalCalls !== 1 ? 's' : ''} this month
+            </span>
+          </p>
+          <TrendBadge value={callsTrend} />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={`w-2 h-2 rounded-full ${agentStatus === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
+          <span className="text-sm font-semibold t1">{agentName}</span>
+          {isTrial ? (
+            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+              isExpired
+                ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-red-400' : 'bg-amber-400'}`} />
+              {isExpired ? 'Trial ended' : 'Trial'}
+            </span>
+          ) : (
+            <span
+              className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: agentStatus === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
+                color: agentStatus === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
+              }}
+            >
+              {agentStatus === 'active' ? 'Live' : agentStatus ?? 'Unknown'}
+            </span>
+          )}
+        </div>
       </div>
 
       <div>

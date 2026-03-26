@@ -206,12 +206,12 @@ function AgentCards({
     .toLocaleDateString('en', { month: 'short', day: 'numeric' })
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <style>{BOT_KEYFRAMES}</style>
 
       {/* ── 1. Needs Attention — elevated above test card when active ── */}
       {attentionItems.length > 0 && (
-        <div>
+        <div className="sm:col-span-2">
           <div className="flex items-center gap-2 mb-3">
             <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{
               color: hasHighUrgency ? '#f87171' : hasMediumUrgency ? '#fbbf24' : 'var(--color-text-3)'
@@ -254,14 +254,16 @@ function AgentCards({
       )}
 
       {/* ── 2. Test Your Agent ─────────────────────────────── */}
-      <AgentTestCard
-        agentName={client.agent_name ?? client.business_name ?? 'your agent'}
-        businessName={client.business_name}
-        clientStatus={client.status ?? null}
-        isTrial={!isAdmin && client.subscription_status === 'trialing'}
-        clientId={isAdmin ? client.id : undefined}
-        daysRemaining={daysRemaining}
-      />
+      <div className="sm:col-span-2">
+        <AgentTestCard
+          agentName={client.agent_name ?? client.business_name ?? 'your agent'}
+          businessName={client.business_name}
+          clientStatus={client.status ?? null}
+          isTrial={!isAdmin && client.subscription_status === 'trialing'}
+          clientId={isAdmin ? client.id : undefined}
+          daysRemaining={daysRemaining}
+        />
+      </div>
 
       {/* ── 2.5. Today's Update ────────────────────────────── */}
       <div>
@@ -393,7 +395,7 @@ function AgentCards({
       </div>
 
       {/* ── 6. What It Can Do ──────────────────────────────── */}
-      <div>
+      <div className="sm:col-span-2">
         <SectionLabel>What It Can Do</SectionLabel>
         <CapabilitiesCard
           client={client}
@@ -403,7 +405,7 @@ function AgentCards({
       </div>
 
       {/* ── 7. Recent Changes ──────────────────────────────── */}
-      <div>
+      <div className="sm:col-span-2">
         <SectionLabel>Recent Changes</SectionLabel>
         <ActivityLog clientId={client.id} isAdmin={isAdmin} />
       </div>
@@ -431,7 +433,7 @@ export default function AgentPageView({ clients, isAdmin, previewMode, initialCl
   if (!client) return null
 
   return (
-    <div className="p-3 sm:p-6 space-y-6 max-w-3xl">
+    <div className="p-3 sm:p-6 space-y-4 max-w-4xl">
       {isAdmin && clients.length > 1 && (
         <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
       )}
