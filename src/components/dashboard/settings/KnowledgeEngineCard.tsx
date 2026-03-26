@@ -51,6 +51,14 @@ interface GapEntry {
   last_seen: string
 }
 
+interface WebsiteChunk {
+  id: string
+  content: string
+  status: string
+  trust_tier: string
+  source: string
+}
+
 export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onClientUpdate }: KnowledgeEngineCardProps) {
   const enabled = client.knowledge_backend === 'pgvector'
   const [stats, setStats] = useState<ChunkStats | null>(null)
@@ -83,6 +91,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
   const [testLoading, setTestLoading] = useState(false)
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
   const [testError, setTestError] = useState('')
+
+  // Website chunk browser state
+  const [websiteChunks, setWebsiteChunks] = useState<WebsiteChunk[]>([])
+  const [websiteChunksLoading, setWebsiteChunksLoading] = useState(false)
+  const [showWebsiteChunks, setShowWebsiteChunks] = useState(false)
+  const [chunkActioning, setChunkActioning] = useState<string | null>(null)
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -184,6 +198,42 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       setTestError(err instanceof Error ? err.message : 'Query failed')
     } finally {
       setTestLoading(false)
+    }
+  }
+
+  async function fetchWebsiteChunks() {
+    setWebsiteChunksLoading(true)
+    try {
+      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&source=website_scrape&limit=20`)
+      if (res.ok) {
+        const data = await res.json()
+        setWebsiteChunks(data.chunks ?? [])
+      }
+    } catch { /* silent */ } finally {
+      setWebsiteChunksLoading(false)
+    }
+  }
+
+  async function handleChunkAction(chunkId: string, action: 'approve' | 'reject' | 'delete') {
+    setChunkActioning(chunkId)
+    try {
+      if (action === 'delete') {
+        await fetch(`/api/dashboard/knowledge/chunks?id=${chunkId}`, { method: 'DELETE' })
+      } else {
+        await fetch('/api/dashboard/knowledge/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chunkId, action }),
+        })
+      }
+      setWebsiteChunks(prev => action === 'delete'
+        ? prev.filter(c => c.id !== chunkId)
+        : prev.map(c => c.id === chunkId ? { ...c, status: action === 'approve' ? 'approved' : 'rejected' } : c)
+      )
+      // Refresh stats after action
+      fetchStats()
+    } catch { /* silent */ } finally {
+      setChunkActioning(null)
     }
   }
 
@@ -458,6 +508,87 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Loading stats...
+            </div>
+          )}
+
+          {/* Website chunk browser */}
+          {stats && (stats.bySource.website_scrape ?? 0) > 0 && (
+            <div className="rounded-xl border b-theme p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold t3">Website Content</p>
+                <button
+                  onClick={() => {
+                    const next = !showWebsiteChunks
+                    setShowWebsiteChunks(next)
+                    if (next && websiteChunks.length === 0) fetchWebsiteChunks()
+                  }}
+                  className="text-[10px] font-medium text-blue-400 hover:text-blue-300 transition-colors focus-visible:outline-none"
+                >
+                  {showWebsiteChunks ? 'Hide' : `View ${stats.bySource.website_scrape} chunk${stats.bySource.website_scrape !== 1 ? 's' : ''}`}
+                </button>
+              </div>
+
+              {showWebsiteChunks && (
+                <div className="space-y-2">
+                  {websiteChunksLoading ? (
+                    <div className="flex items-center gap-2 text-[11px] t3">
+                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Loading...
+                    </div>
+                  ) : websiteChunks.length === 0 ? (
+                    <p className="text-[10px] t3">No website chunks found.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                      {websiteChunks.map((chunk) => (
+                        <div key={chunk.id} className="rounded-lg border b-theme p-2 space-y-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[11px] t2 leading-relaxed flex-1 line-clamp-2">
+                              {chunk.content.length > 140 ? chunk.content.slice(0, 140) + '…' : chunk.content}
+                            </p>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
+                              chunk.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                              : chunk.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {chunk.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {chunk.status !== 'approved' && (
+                              <button
+                                onClick={() => handleChunkAction(chunk.id, 'approve')}
+                                disabled={chunkActioning === chunk.id}
+                                className="text-[9px] font-medium px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                              >
+                                ✓ Approve
+                              </button>
+                            )}
+                            {chunk.status !== 'rejected' && (
+                              <button
+                                onClick={() => handleChunkAction(chunk.id, 'reject')}
+                                disabled={chunkActioning === chunk.id}
+                                className="text-[9px] font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                              >
+                                ✗ Reject
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleChunkAction(chunk.id, 'delete')}
+                              disabled={chunkActioning === chunk.id}
+                              className="text-[9px] font-medium px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

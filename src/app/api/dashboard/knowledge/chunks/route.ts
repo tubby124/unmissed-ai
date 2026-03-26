@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
     : cu.client_id
   const statusFilter = params.get('status') ?? 'all'
   const trustTierFilter = params.get('trust_tier') ?? 'all'
+  const sourceFilter = params.get('source') ?? 'all'
   const limit = Math.min(parseInt(params.get('limit') ?? '50', 10), 200)
   const offset = parseInt(params.get('offset') ?? '0', 10)
 
@@ -87,6 +88,9 @@ export async function GET(req: NextRequest) {
   if (trustTierFilter !== 'all') {
     query = query.eq('trust_tier', trustTierFilter)
   }
+  if (sourceFilter !== 'all') {
+    query = query.eq('source', sourceFilter)
+  }
 
   const { data: chunks, error } = await query
 
@@ -103,6 +107,9 @@ export async function GET(req: NextRequest) {
   }
   if (trustTierFilter !== 'all') {
     countQuery = countQuery.eq('trust_tier', trustTierFilter)
+  }
+  if (sourceFilter !== 'all') {
+    countQuery = countQuery.eq('source', sourceFilter)
   }
 
   const { count } = await countQuery
