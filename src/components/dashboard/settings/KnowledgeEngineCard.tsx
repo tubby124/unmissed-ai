@@ -18,8 +18,22 @@ interface ChunkStats {
   pending: number
   rejected: number
   byType: Record<string, number>
+  bySource: Record<string, number>
   sourceCount: number
   maxSources: number
+}
+
+function sourceLabel(source: string): string {
+  switch (source) {
+    case 'website_scrape': return 'Website'
+    case 'settings_edit': return 'Manual entries'
+    case 'knowledge_doc': return 'Documents'
+    case 'gap_resolution': return 'Gap answers'
+    case 'manual': return 'Manual'
+    case 'niche_template': return 'Template'
+    case 'call_learning': return 'Call learning'
+    default: return source.replace(/_/g, ' ')
+  }
 }
 
 interface TestResult {
@@ -52,6 +66,11 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
   const [gaps, setGaps] = useState<GapEntry[]>([])
   const [gapsCount, setGapsCount] = useState(0)
 
+  // Local FAQ state — tracks accumulated in-session saves even when onClientUpdate is a no-op
+  const [localExtraQa, setLocalExtraQa] = useState<{ q: string; a: string }[]>(
+    Array.isArray(client.extra_qa) ? client.extra_qa : []
+  )
+
   // Inline gap answer state
   const [answeringGap, setAnsweringGap] = useState<string | null>(null)
   const [gapAnswer, setGapAnswer] = useState('')
@@ -82,6 +101,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           pending: data.pending ?? 0,
           rejected: data.rejected ?? 0,
           byType: data.byType ?? {},
+          bySource: data.bySource ?? {},
           sourceCount: data.sourceCount ?? 0,
           maxSources: data.maxSources ?? 3,
         })
@@ -175,9 +195,8 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
 
     try {
       if (destination === 'faq') {
-        // Add to extra_qa via settings PATCH
-        const currentQa = Array.isArray(client.extra_qa) ? client.extra_qa : []
-        const newQa = [...currentQa, { q: query, a: gapAnswer.trim() }]
+        // Add to extra_qa via settings PATCH — use localExtraQa to accumulate in-session saves
+        const newQa = [...localExtraQa, { q: query, a: gapAnswer.trim() }]
         const res = await fetch('/api/dashboard/settings', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -187,6 +206,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           const data = await res.json().catch(() => ({ error: 'Failed to save FAQ' }))
           throw new Error(data.error ?? 'Failed to save FAQ')
         }
+        setLocalExtraQa(newQa)
         onClientUpdate?.({ extra_qa: newQa })
       } else {
         // Add to knowledge_chunks via chunks POST
@@ -270,12 +290,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             </span>
           )}
 
-          {/* Source count badge */}
-          {localEnabled && stats && !statsLoading && (
+          {/* Uploaded doc count badge — only when docs exist or at limit */}
+          {localEnabled && stats && !statsLoading && (stats.sourceCount > 0 || stats.sourceCount >= stats.maxSources) && (
             <span className={`text-[9px] font-mono ${
               stats.sourceCount >= stats.maxSources ? 'text-amber-400' : 't3'
             }`}>
-              {stats.sourceCount}/{stats.maxSources} source{stats.maxSources !== 1 ? 's' : ''}
+              {stats.sourceCount}/{stats.maxSources} doc{stats.maxSources !== 1 ? 's' : ''}
             </span>
           )}
 
@@ -354,7 +374,24 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       {/* Expanded content */}
       {!collapsed && localEnabled && (
         <div className="mt-4 space-y-4">
-          {/* Source count + at-limit warning */}
+          {/* Current knowledge sources — what types of content are actually present */}
+          {stats && Object.keys(stats.bySource).length > 0 && (
+            <div className="px-3 py-2.5 rounded-xl border b-theme bg-hover space-y-2">
+              <p className="text-[10px] font-semibold t3">Current sources</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(stats.bySource)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([src, count]) => (
+                    <span key={src} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/[0.07] border border-purple-500/15 text-[9px] text-purple-300/90">
+                      {sourceLabel(src)}
+                      <span className="text-purple-400/50 font-mono">{count}</span>
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Uploaded document limit — separate from source types above */}
           {stats && (
             <div className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
               stats.sourceCount >= stats.maxSources
@@ -362,7 +399,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                 : 'b-theme bg-hover'
             }`}>
               <span className="text-[11px] t2">
-                Knowledge sources: <span className="font-semibold t1">{stats.sourceCount}</span>
+                Uploaded documents: <span className="font-semibold t1">{stats.sourceCount}</span>
                 <span className="t3"> / {stats.maxSources}</span>
               </span>
               {stats.sourceCount >= stats.maxSources && (

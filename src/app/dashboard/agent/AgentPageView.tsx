@@ -140,6 +140,11 @@ function AgentCards({
   const minuteLimit = (client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT) + (client.bonus_minutes ?? 0)
   const usagePct = minuteLimit > 0 ? (minutesUsed / minuteLimit) * 100 : 0
 
+  // ── Trial days remaining ──────────────────────────────────────────────────────
+  const daysRemaining = client.trial_expires_at
+    ? Math.max(0, Math.ceil((new Date(client.trial_expires_at).getTime() - Date.now()) / 86400000))
+    : undefined
+
   // ── Needs Attention ──────────────────────────────────────────────────────────
   const factLines = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
   const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
@@ -157,7 +162,7 @@ function AgentCards({
   if (usagePct >= 80) {
     attentionItems.push({
       label: `${Math.round(usagePct)}% of monthly minutes used`,
-      href: '/dashboard/setup',
+      href: '/dashboard/settings',
       urgency: usagePct >= 95 ? 'high' : 'medium',
     })
   }
@@ -180,6 +185,15 @@ function AgentCards({
       label: 'Business hours not set — callers can\'t be told when you\'re available',
       href: '/dashboard/actions#hours',
       urgency: 'low',
+    })
+  }
+  if (client.subscription_status === 'trialing' && daysRemaining !== undefined && daysRemaining <= 3) {
+    attentionItems.push({
+      label: daysRemaining === 0
+        ? 'Trial expired — upgrade now to keep your number'
+        : `Trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — upgrade to keep your number`,
+      href: '/dashboard/settings',
+      urgency: daysRemaining <= 1 ? 'high' : 'medium',
     })
   }
 
@@ -217,6 +231,8 @@ function AgentCards({
         businessName={client.business_name}
         clientStatus={client.status ?? null}
         isTrial={!isAdmin && client.subscription_status === 'trialing'}
+        clientId={isAdmin ? client.id : undefined}
+        daysRemaining={daysRemaining}
       />
 
       {/* ── 3. Agent Identity ──────────────────────────────── */}
@@ -232,7 +248,14 @@ function AgentCards({
           <div className="pt-4 border-t b-theme">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Minutes This Month</p>
-              <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {minuteLimit} min</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {minuteLimit} min</span>
+                {(client.bonus_minutes ?? 0) > 0 && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
+                    +{client.bonus_minutes} bonus
+                  </span>
+                )}
+              </div>
             </div>
             <div className="h-1.5 bg-hover rounded-full overflow-hidden">
               <div

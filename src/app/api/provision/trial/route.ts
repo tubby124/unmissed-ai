@@ -69,6 +69,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An account with this email already exists. Please log in instead." }, { status: 409 })
   }
 
+  // W1-B: Guard against auth users from prior trials where intake row was cleared but client row persists
+  const { data: existingClientByEmail } = await supa
+    .from('clients')
+    .select('id')
+    .eq('contact_email', data.contactEmail.trim())
+    .limit(1)
+    .maybeSingle()
+
+  if (existingClientByEmail) {
+    return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 409 })
+  }
+
   recordUsage(ip)
 
   const intakePayload = toIntakePayload(data);

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   // Parallel: chunks + source count + client plan
   const [chunksResult, sourceCountResult, clientResult] = await Promise.all([
-    svc.from('knowledge_chunks').select('status, chunk_type').eq('client_id', clientId),
+    svc.from('knowledge_chunks').select('status, chunk_type, source').eq('client_id', clientId),
     svc.from('client_knowledge_docs').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
     svc.from('clients').select('selected_plan, subscription_status').eq('id', clientId).single(),
   ])
@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
   const rows = chunksResult.data ?? []
   let approved = 0, pending = 0, rejected = 0
   const byType: Record<string, number> = {}
+  const bySource: Record<string, number> = {}
 
   for (const row of rows) {
     if (row.status === 'approved') approved++
@@ -46,6 +47,9 @@ export async function GET(req: NextRequest) {
 
     const t = row.chunk_type ?? 'unknown'
     byType[t] = (byType[t] ?? 0) + 1
+
+    const s = row.source ?? 'unknown'
+    bySource[s] = (bySource[s] ?? 0) + 1
   }
 
   // Derive plan source limits
@@ -63,6 +67,7 @@ export async function GET(req: NextRequest) {
     pending,
     rejected,
     byType,
+    bySource,
     sourceCount,
     maxSources,
   })

@@ -67,6 +67,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
       const res = await fetch("/api/dashboard/agent-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clientId ? { client_id: clientId } : {}),
       })
 
       if (!res.ok) {
@@ -89,7 +90,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
     } finally {
       setIsRequesting(false)
     }
-  }, [callBusy, startCall, setMeta, agentName, businessName, pathname])
+  }, [callBusy, startCall, setMeta, agentName, businessName, pathname, clientId])
 
   const handleRetry = useCallback(() => {
     setApiError(null)
@@ -161,6 +162,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                 <Phone className="w-4 h-4" />
                 Start Test Call
               </button>
+              <p className="text-[10px] t3 mt-2">Counts against your monthly minutes</p>
             </div>
           </motion.div>
         )}
@@ -334,7 +336,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                 </p>
                 {!isStepComplete("train_agent") && (
                   <a
-                    href="/dashboard/settings?tab=knowledge"
+                    href="/dashboard/knowledge"
                     className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity t2"
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-primary)" }} />
@@ -343,7 +345,7 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                 )}
                 {!isStepComplete("setup_alerts") && (
                   <a
-                    href="/dashboard/settings?tab=notifications"
+                    href="/dashboard/notifications"
                     className="flex items-center gap-2.5 py-1.5 text-xs hover:opacity-80 transition-opacity t2"
                   >
                     <Bell className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-warning)" }} />

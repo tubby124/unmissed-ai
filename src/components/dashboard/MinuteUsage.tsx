@@ -62,14 +62,14 @@ export default function MinuteUsage({ minutesUsed, minuteLimit, bonusMinutes }: 
         {usagePct > 100 ? (
           <p className="text-[11px] text-amber-400">
             Over limit &mdash;{' '}
-            <Link href="/dashboard/settings?tab=billing" className="underline hover:text-amber-300">
+            <Link href="/dashboard/settings" className="underline hover:text-amber-300">
               buy more minutes
             </Link>
           </p>
         ) : usagePct > 80 ? (
           <p className="text-[11px] text-amber-400">
             {remaining} min remaining &mdash;{' '}
-            <Link href="/dashboard/settings?tab=billing" className="underline hover:text-amber-300">
+            <Link href="/dashboard/settings" className="underline hover:text-amber-300">
               reload
             </Link>
           </p>
