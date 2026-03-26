@@ -485,7 +485,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                           {gap.count}x
                         </span>
                         {gap.count >= 3 && (
-                          <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 whitespace-nowrap">
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 whitespace-nowrap">
                             Add as FAQ
                           </span>
                         )}
@@ -582,8 +582,8 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                 {testResults.length === 0 ? (
                   <p className="text-[10px] t3">No matching chunks. Agent would say it's not sure.</p>
                 ) : (
-                  testResults.slice(0, 3).map((result, i) => (
-                    <div key={i} className="rounded-lg border b-theme p-2 space-y-1">
+                  testResults.slice(0, 3).map((result) => (
+                    <div key={`${result.source}-${result.chunk_type}-${(result.similarity * 10000).toFixed(0)}`} className="rounded-lg border b-theme p-2 space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                           result.trust_tier === 'high' ? 'bg-green-400/10 text-green-400'
