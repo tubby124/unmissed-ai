@@ -23,25 +23,14 @@
 
 ## P0 — Trust / UX Blockers (fix next session)
 
-### P0-1: No logged-in user identity visible
-**Impact:** User opens dashboard, no idea which account they're in. Sidebar shows business name but not the email address / personal account.
-**Root cause:** `layout.tsx` fetches `user` from Supabase auth but never passes `user.email` to Sidebar. Sidebar has no email display.
-**Fix:** Pass `userEmail={user?.email}` from layout → Sidebar; show `text-[10px] t3 truncate` near the sign-out button when sidebar is expanded. 2 files, ~6 lines.
+### ✅ P0-1: No logged-in user identity visible
+Pass `userEmail={user?.email}` from `layout.tsx` → `Sidebar.tsx`. Email shown in `text-[10px]` above sign-out when sidebar is expanded.
 
-### P0-2: Trial login recovery is broken ("cokey")
-**Impact:** Trial users create an account with no explicit password. If they close the browser and email delivery fails (Resend sandbox), their only login path is Google OAuth. There's no OTP/magic link option on the login page.
-**Root cause:**
-- `/login` page has `signInWithPassword` (needs password they never set) + Google OAuth (needs matching Google account)
-- No `signInWithOtp` / magic link
-- `/auth/forgot-password` flow requires email delivery — broken in sandbox
-**Fix options (pick one):**
-- A. Add magic link / OTP tab to login page — `signInWithOtp({ email, options: { shouldCreateUser: false } })`
-- B. Add "Email me a sign-in link" below the email/password form as secondary CTA
-- Recommend B — minimum change, works without touching Google OAuth flow
+### ✅ P0-2: Trial login recovery is broken
+Added "Email me a sign-in link instead" button below the sign-in form in `src/app/login/page.tsx`. Uses `signInWithOtp({ email, options: { shouldCreateUser: false } })`. Shows confirmation message on success.
 
-### P0-3: Trial success screen has no "come back later" login link
-**Impact:** Newly provisioned trial user closes the browser. They don't know to go to `/login`. No email arrived. They're locked out.
-**Fix:** Add "Save this link to log back in →" with `/login` URL to the trial success screen (`src/app/onboard/status/page.tsx`). Also surface the Google OAuth button on that screen with "or continue with Google."
+### ✅ P0-3: Trial success screen login link
+Already implemented — `TrialSuccessScreen` had Google OAuth + "Sign in with email →" link to `/login` in the "Access your dashboard" card. Confirmed done.
 
 ---
 
@@ -62,19 +51,11 @@
 - Trial users see "Go Live" in nav but when clicked, it may feel blocked because they have no Twilio number yet
 **Fix:** After removing collapsed sidebar, validate trial welcome flow end-to-end. Consider adding a "Your trial includes:" feature checklist to orientation.
 
-### P1-2: Module-level rate limiter resets on Railway deploy
-**File:** `src/app/api/provision/trial/route.ts` — uses `Map<string, ...>` at module level
-**Impact:** Rate limit resets on every Railway deploy. During a deploy, burst signups bypass the IP rate limit.
-**Fix:** Replace with `SlidingWindowRateLimiter` from `src/lib/rate-limiter.ts`. Already used in other routes. ~5 line change.
+### ✅ P1-2: Module-level rate limiter resets on Railway deploy
+Swapped `Map<string, number[]>` + manual helpers → `SlidingWindowRateLimiter(3, 60*60*1000)` in `src/app/api/provision/trial/route.ts`. Now uses the same class as all other routes.
 
-### P1-3: Admin login observability — "who's logged in"
-**What the user said:** "we should be able to know which users logged in"
-**Current state:** No last-login tracking. Admin has no view of which client accounts have active sessions.
-**Fix options:**
-- A. Add `last_login_at` column to `clients` + update on dashboard page load
-- B. Supabase Auth admin API — query `auth.users` for `last_sign_in_at` (no schema change)
-- C. Simple: show `last_sign_in_at` from `auth.users` in the admin clients table
-- Recommend B/C — zero migration, reads from auth.users directly. Admin `/dashboard/clients` table can show last login time per client email.
+### ✅ P1-3: Admin login observability — "who's logged in"
+`src/app/dashboard/clients/page.tsx` now fetches `last_sign_in_at` from `auth.users` via service client admin API. Shown in each client card as "Last login Mar 25, 2026". Zero schema migration — reads directly from Supabase auth.
 
 ---
 
@@ -109,19 +90,41 @@
 | P3-6 | Retake tour button only in expanded sidebar | Collapsed sidebar → tour button invisible |
 | P3-7 | `text-[8px]` remaining instances | Run `grep -rn 'text-\[8px\]'` — may have more in other cards |
 
+## P-NEXT — Documented Gaps (next sprint)
+
+### HIGH: `patchServicesOffered` silent fail
+**File:** `src/lib/prompt-patcher.ts`
+**Root cause:** If the client prompt was hand-crafted (no `**What services do you offer?**` Q&A format), updating services saves to DB but the patcher finds no match and silently skips. No warning returned to user or logged.
+**Fix:** Return `patched: false` + a warning string from `patchServicesOffered()`. In settings PATCH, include `warnings: ['services_not_patched_in_prompt']` in the response when the patcher skips. Show inline toast in ServicesCard: "Saved to DB — but your prompt may need manual update."
+
+### HIGH: `business_name` post-provision silent fail
+**File:** `src/lib/prompt-patcher.ts` — `patchBusinessName()`
+**Root cause:** Uses word-boundary regex to find old name. If the prompt was manually edited and the old name no longer appears verbatim (or appears inside a larger word), the patch silently skips.
+**Fix:** Same pattern as above — return `patched: false` + warning when `replacements === 0`. Show warning in settings: "Name saved — run /prompt-deploy to update your agent's prompt."
+
+### MEDIUM: Knowledge reseed timing
+**File:** `src/app/api/dashboard/settings/route.ts`
+**Root cause:** `reseedKnowledgeFromSettings()` is now awaited (good), but embedding 30+ chunks can take 2–8 seconds. First big facts save → noticeably slow API response.
+**Fix:** Return `knowledge_reseeding: true` in settings PATCH response when reseed was triggered. Card can show a brief "Updating knowledge…" indicator.
+
+### MEDIUM: `router.refresh()` unreliability in Next.js 15
+**Root cause:** Sonar-confirmed — `router.refresh()` sometimes doesn't trigger re-renders in v15 server components. Cards that read from `useState` initialized from props won't see the refresh.
+**Fix (long-term):** Migrate per-card state to SWR or a shared context. Short-term workaround: `window.location.reload()` after critical saves if cards don't reflect new state. Not urgent — only visible after first save in a session.
+
 ---
 
 ## Execution Order
 
 ```
-Next session:
-  P0-1 → show user email in sidebar footer (2 files, 6 lines)
-  P0-2 → add magic link option to login page
-  P0-3 → add login link to trial success screen
-  P1-1 → validate trial welcome end-to-end with fresh signup test
-  P1-2 → swap module-level Map → SlidingWindowRateLimiter (5 lines)
-  P1-3 → show last_sign_in_at in admin clients table
+✅ P0-1 → user email in sidebar footer — DONE
+✅ P0-2 → magic link on login page — DONE
+✅ P0-3 → trial success login link — already existed, confirmed
+✅ P1-2 → SlidingWindowRateLimiter swap — DONE
+✅ P1-3 → last_sign_in_at in admin clients table — DONE
 
-  Later:
-  P2-1, P2-2, P2-3 → in one ops-hardening session
+Remaining:
+  P1-1 → validate trial welcome end-to-end with fresh signup test (manual)
+  P2-1 → voicemail duplicate Telegram alert (RecordingSid guard)
+  P2-2 → RLS verification on realtime tables
+  P2-3 → knowledge_query_log dedup constraint (low urgency)
 ```

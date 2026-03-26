@@ -93,7 +93,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
   const [testError, setTestError] = useState('')
 
-  // Website chunk browser state
+  // Chunk browser state (all sources)
   const [websiteChunks, setWebsiteChunks] = useState<WebsiteChunk[]>([])
   const [websiteChunksLoading, setWebsiteChunksLoading] = useState(false)
   const [showWebsiteChunks, setShowWebsiteChunks] = useState(false)
@@ -102,6 +102,8 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
   const [chunkTotal, setChunkTotal] = useState(0)
   const [chunkLoadingMore, setChunkLoadingMore] = useState(false)
   const [approvingAll, setApprovingAll] = useState(false)
+  const [chunkSourceFilter, setChunkSourceFilter] = useState<string>('all')
+  const [expandedChunk, setExpandedChunk] = useState<string | null>(null)
 
   const pathname = usePathname()
 
@@ -208,11 +210,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
     }
   }
 
-  async function fetchWebsiteChunks(offset = 0) {
+  async function fetchWebsiteChunks(offset = 0, sourceFilter = chunkSourceFilter) {
     if (offset === 0) setWebsiteChunksLoading(true)
     else setChunkLoadingMore(true)
     try {
-      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}&source=website_scrape&limit=20&offset=${offset}`)
+      const sourceParam = sourceFilter !== 'all' ? `&source=${sourceFilter}` : ''
+      const res = await fetch(`/api/dashboard/knowledge/chunks?client_id=${client.id}${sourceParam}&limit=20&offset=${offset}`)
       if (res.ok) {
         const data = await res.json()
         if (offset === 0) {
@@ -559,11 +562,11 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             </div>
           )}
 
-          {/* Website chunk browser */}
-          {stats && (stats.bySource.website_scrape ?? 0) > 0 && (
+          {/* Browse all knowledge chunks */}
+          {stats && stats.approved + stats.pending + stats.rejected > 0 && (
             <div className="rounded-xl border b-theme p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold t3">Website Content</p>
+                <p className="text-[10px] font-semibold t3">Browse Knowledge</p>
                 <div className="flex items-center gap-2">
                   {showWebsiteChunks && websiteChunks.some(c => c.status === 'pending') && (
                     <button
@@ -578,17 +581,39 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                     onClick={() => {
                       const next = !showWebsiteChunks
                       setShowWebsiteChunks(next)
-                      if (next) fetchWebsiteChunks(0)
+                      if (next) fetchWebsiteChunks(0, chunkSourceFilter)
                     }}
                     className="text-[10px] font-medium text-blue-400 hover:text-blue-300 transition-colors focus-visible:outline-none"
                   >
-                    {showWebsiteChunks ? 'Hide' : `View ${stats.bySource.website_scrape} chunk${stats.bySource.website_scrape !== 1 ? 's' : ''}`}
+                    {showWebsiteChunks ? 'Hide' : `View ${stats.approved + stats.pending} chunk${stats.approved + stats.pending !== 1 ? 's' : ''}`}
                   </button>
                 </div>
               </div>
 
               {showWebsiteChunks && (
                 <div className="space-y-2">
+                  {/* Source filter tabs */}
+                  {stats && Object.keys(stats.bySource).length > 1 && (
+                    <div className="flex flex-wrap gap-1">
+                      {(['all', ...Object.keys(stats.bySource)] as string[]).map(src => (
+                        <button
+                          key={src}
+                          onClick={() => {
+                            setChunkSourceFilter(src)
+                            fetchWebsiteChunks(0, src)
+                          }}
+                          className={`text-[9px] px-2 py-0.5 rounded-full border transition-colors focus-visible:outline-none ${
+                            chunkSourceFilter === src
+                              ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                              : 'bg-hover t3 b-theme hover:t1'
+                          }`}
+                        >
+                          {src === 'all' ? `All (${stats.approved + stats.pending})` : `${sourceLabel(src)} (${stats.bySource[src]})`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {websiteChunksLoading ? (
                     <div className="flex items-center gap-2 text-[11px] t3">
                       <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
@@ -598,23 +623,39 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                       Loading...
                     </div>
                   ) : websiteChunks.length === 0 ? (
-                    <p className="text-[10px] t3">No website chunks found.</p>
+                    <p className="text-[10px] t3">No chunks found.</p>
                   ) : (
                     <>
-                      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
                         {websiteChunks.map((chunk) => (
                           <div key={chunk.id} className="rounded-lg border b-theme p-2 space-y-1.5">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-[11px] t2 leading-relaxed flex-1 line-clamp-2">
-                                {chunk.content.length > 140 ? chunk.content.slice(0, 140) + '…' : chunk.content}
-                              </p>
-                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                                chunk.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                : chunk.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              }`}>
-                                {chunk.status}
-                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-[11px] t2 leading-relaxed cursor-pointer ${expandedChunk === chunk.id ? '' : 'line-clamp-2'}`}
+                                  onClick={() => setExpandedChunk(expandedChunk === chunk.id ? null : chunk.id)}
+                                >
+                                  {chunk.content}
+                                </p>
+                                {chunk.content.length > 140 && expandedChunk !== chunk.id && (
+                                  <button
+                                    onClick={() => setExpandedChunk(chunk.id)}
+                                    className="text-[9px] text-blue-400 hover:text-blue-300 mt-0.5"
+                                  >
+                                    Show more
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                  chunk.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                  : chunk.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {chunk.status}
+                                </span>
+                                <span className="text-[9px] t3">{sourceLabel(chunk.source)}</span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-1.5">
                               {chunk.status !== 'approved' && (
@@ -646,12 +687,11 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                           </div>
                         ))}
                       </div>
-                      {/* Load More */}
                       {chunkTotal > websiteChunks.length && (
                         <div className="flex items-center justify-between pt-1">
                           <span className="text-[9px] t3 font-mono">{websiteChunks.length} of {chunkTotal}</span>
                           <button
-                            onClick={() => fetchWebsiteChunks(chunkOffset + 20)}
+                            onClick={() => fetchWebsiteChunks(chunkOffset + 20, chunkSourceFilter)}
                             disabled={chunkLoadingMore}
                             className="text-[10px] font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors focus-visible:outline-none"
                           >

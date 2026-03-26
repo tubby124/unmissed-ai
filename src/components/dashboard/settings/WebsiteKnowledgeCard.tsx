@@ -43,6 +43,23 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
   const approved = client.website_knowledge_approved
   const knowledgeLive = client.knowledge_backend === 'pgvector' && status === 'approved'
 
+  // Selection state — all checked by default when preview loads
+  const previewFactsList = preview?.businessFacts?.filter(f => f?.trim()) ?? []
+  const previewQaList = preview?.extraQa?.filter(q => q.q?.trim()) ?? []
+  const [selectedFacts, setSelectedFacts] = useState<Set<number>>(
+    () => new Set(previewFactsList.map((_, i) => i))
+  )
+  const [selectedQa, setSelectedQa] = useState<Set<number>>(
+    () => new Set(previewQaList.map((_, i) => i))
+  )
+
+  const toggleFact = (i: number) => setSelectedFacts(prev => {
+    const next = new Set(prev); next.has(i) ? next.delete(i) : next.add(i); return next
+  })
+  const toggleQa = (i: number) => setSelectedQa(prev => {
+    const next = new Set(prev); next.has(i) ? next.delete(i) : next.add(i); return next
+  })
+
   const handleScrapeUrl = async (url: string) => {
     const trimmed = url.trim()
     if (!trimmed) return
@@ -111,8 +128,8 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
         body: JSON.stringify({
           clientId: client.id,
           approved: {
-            businessFacts: preview.businessFacts,
-            extraQa: preview.extraQa,
+            businessFacts: previewFactsList.filter((_, i) => selectedFacts.has(i)),
+            extraQa: previewQaList.filter((_, i) => selectedQa.has(i)),
             serviceTags: preview.serviceTags,
           },
         }),
@@ -289,16 +306,25 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
             </p>
           </div>
           {preview && (previewFacts > 0 || previewQa > 0) && (
-            <ReviewPreview preview={preview} />
+            <SelectablePreview
+              facts={previewFactsList}
+              qa={previewQaList}
+              selectedFacts={selectedFacts}
+              selectedQa={selectedQa}
+              onToggleFact={toggleFact}
+              onToggleQa={toggleQa}
+            />
           )}
           {!previewMode && preview && (
             <button
               onClick={handleApprove}
-              disabled={approveBusy}
+              disabled={approveBusy || (selectedFacts.size === 0 && selectedQa.size === 0)}
               className="w-full mb-3 text-[11px] font-semibold text-white rounded-xl px-3 py-2.5 transition-opacity disabled:opacity-50 hover:opacity-90"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
-              {approveBusy ? 'Adding to agent…' : 'Add to Agent'}
+              {approveBusy
+                ? 'Adding to agent…'
+                : `Add ${selectedFacts.size + selectedQa.size} item${selectedFacts.size + selectedQa.size !== 1 ? 's' : ''} to Agent`}
             </button>
           )}
         </>
@@ -338,10 +364,19 @@ type KnowledgePreview = {
   serviceTags: string[]
 }
 
-function ReviewPreview({ preview }: { preview: KnowledgePreview }) {
-  const [expanded, setExpanded] = useState(false)
-  const facts = preview.businessFacts.filter(f => f?.trim())
-  const qa = preview.extraQa.filter(q => q.q?.trim())
+interface SelectablePreviewProps {
+  facts: string[]
+  qa: { q: string; a: string }[]
+  selectedFacts: Set<number>
+  selectedQa: Set<number>
+  onToggleFact: (i: number) => void
+  onToggleQa: (i: number) => void
+}
+
+function SelectablePreview({ facts, qa, selectedFacts, selectedQa, onToggleFact, onToggleQa }: SelectablePreviewProps) {
+  const [expanded, setExpanded] = useState(true)
+  const allFactsSelected = facts.every((_, i) => selectedFacts.has(i))
+  const allQaSelected = qa.every((_, i) => selectedQa.has(i))
 
   return (
     <div className="mb-2 rounded-xl border b-theme overflow-hidden">
@@ -350,7 +385,12 @@ function ReviewPreview({ preview }: { preview: KnowledgePreview }) {
         className="w-full flex items-center justify-between px-3 py-2 text-[10px] t3 hover:t1 text-left transition-colors"
         type="button"
       >
-        <span className="font-medium">Review extracted content</span>
+        <span className="font-medium">
+          Select items to add
+          <span className="ml-1.5 t3 font-normal">
+            ({selectedFacts.size + selectedQa.size} of {facts.length + qa.length} selected)
+          </span>
+        </span>
         <svg
           width="12" height="12" viewBox="0 0 24 24" fill="none"
           className={`transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`}
@@ -359,32 +399,81 @@ function ReviewPreview({ preview }: { preview: KnowledgePreview }) {
         </svg>
       </button>
       {expanded && (
-        <div className="px-3 pb-3 border-t b-theme space-y-2">
+        <div className="px-3 pb-3 border-t b-theme space-y-3">
           {facts.length > 0 && (
             <div className="pt-2">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3 mb-1.5">
-                Facts ({facts.length})
-              </p>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3">
+                  Facts ({facts.length})
+                </p>
+                <button
+                  type="button"
+                  className="text-[9px] t3 hover:t1 underline underline-offset-2"
+                  onClick={() => {
+                    if (allFactsSelected) {
+                      facts.forEach((_, i) => { if (selectedFacts.has(i)) onToggleFact(i) })
+                    } else {
+                      facts.forEach((_, i) => { if (!selectedFacts.has(i)) onToggleFact(i) })
+                    }
+                  }}
+                >
+                  {allFactsSelected ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
               <ul className="space-y-1">
                 {facts.map((f, i) => (
-                  <li key={i} className="text-[10px] t2 leading-relaxed flex gap-1.5 items-start">
-                    <span className="shrink-0 mt-[5px] w-1 h-1 rounded-full bg-current opacity-40" />
-                    {f}
+                  <li key={i}>
+                    <label className="flex gap-2 items-start cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedFacts.has(i)}
+                        onChange={() => onToggleFact(i)}
+                        className="mt-[3px] shrink-0 accent-[var(--color-primary)]"
+                      />
+                      <span className={`text-[10px] leading-relaxed transition-colors ${selectedFacts.has(i) ? 't2' : 't3 line-through opacity-50'}`}>
+                        {f}
+                      </span>
+                    </label>
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {qa.length > 0 && (
-            <div className={facts.length > 0 ? 'pt-1' : 'pt-2'}>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3 mb-1.5">
-                Q&amp;A ({qa.length})
-              </p>
+            <div className={facts.length > 0 ? 'pt-1 border-t b-theme' : 'pt-2'}>
+              <div className="flex items-center justify-between mb-1.5 pt-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] t3">
+                  Q&amp;A ({qa.length})
+                </p>
+                <button
+                  type="button"
+                  className="text-[9px] t3 hover:t1 underline underline-offset-2"
+                  onClick={() => {
+                    if (allQaSelected) {
+                      qa.forEach((_, i) => { if (selectedQa.has(i)) onToggleQa(i) })
+                    } else {
+                      qa.forEach((_, i) => { if (!selectedQa.has(i)) onToggleQa(i) })
+                    }
+                  }}
+                >
+                  {allQaSelected ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
               <ul className="space-y-2">
                 {qa.map((item, i) => (
-                  <li key={i} className="text-[10px] leading-relaxed">
-                    <p className="t1 font-medium">{item.q}</p>
-                    <p className="t3 mt-0.5">{item.a}</p>
+                  <li key={i}>
+                    <label className="flex gap-2 items-start cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedQa.has(i)}
+                        onChange={() => onToggleQa(i)}
+                        className="mt-[3px] shrink-0 accent-[var(--color-primary)]"
+                      />
+                      <div className={`text-[10px] leading-relaxed transition-colors ${selectedQa.has(i) ? '' : 'opacity-50'}`}>
+                        <p className={`font-medium ${selectedQa.has(i) ? 't1' : 't3 line-through'}`}>{item.q}</p>
+                        <p className="t3 mt-0.5">{item.a}</p>
+                      </div>
+                    </label>
                   </li>
                 ))}
               </ul>
