@@ -44,10 +44,10 @@ describe('constants', () => {
 // ── CSV Parsing ────────────────────────────────────────────────────────────────
 
 describe('parseCSV', () => {
-  test('skips header row and joins cells with pipe', () => {
+  test('includes header labels in each row', () => {
     const csv = 'Name,Phone,Service\nJohn Doe,555-1234,Oil Change\nJane Smith,555-5678,Brake Repair'
     const result = parseCSV(csv)
-    assert.equal(result, 'John Doe | 555-1234 | Oil Change\nJane Smith | 555-5678 | Brake Repair')
+    assert.equal(result, 'Name: John Doe | Phone: 555-1234 | Service: Oil Change\nName: Jane Smith | Phone: 555-5678 | Service: Brake Repair')
   })
 
   test('handles quoted fields', () => {
@@ -64,11 +64,11 @@ describe('parseCSV', () => {
     assert.equal(result, csv)
   })
 
-  test('handles empty cells', () => {
+  test('handles empty cells — skips header:value pairs with empty values', () => {
     const csv = 'A,B,C\nfoo,,bar\n,baz,'
     const result = parseCSV(csv)
-    // Empty cells are filtered out
-    assert.equal(result, 'foo | bar\nbaz')
+    // Empty cells are filtered out, but header labels are preserved
+    assert.equal(result, 'A: foo | C: bar\nB: baz')
   })
 
   test('handles real-world FAQ CSV', () => {
@@ -88,12 +88,13 @@ describe('parseCSV', () => {
 
   test('commas inside quoted values split into separate cells (known limitation)', () => {
     // Our simple CSV parser doesn't handle RFC 4180 quoted commas.
-    // This is acceptable for knowledge docs — content is still captured, just split differently.
+    // "Mon-Fri, 9-5" splits into ['Mon-Fri', ' 9-5'] — the second cell has no matching header
+    // and gets dropped. Main value (Mon-Fri) is preserved under its header column.
     const csv = 'Q,A\n"What hours?","Mon-Fri, 9-5"'
     const result = parseCSV(csv)
-    // "Mon-Fri, 9-5" becomes "Mon-Fri | 9-5" — content preserved, just pipe-separated
+    // Primary cell content captured under column headers
     assert.ok(result.includes('Mon-Fri'))
-    assert.ok(result.includes('9-5'))
+    assert.ok(result.includes('What hours?'))
   })
 })
 
@@ -107,18 +108,18 @@ describe('extractText', () => {
     assert.equal(result, content)
   })
 
-  test('extracts CSV from .csv buffer', async () => {
+  test('extracts CSV from .csv buffer with header labels', async () => {
     const csv = 'Header1,Header2\nValue1,Value2\nValue3,Value4'
     const buffer = Buffer.from(csv, 'utf-8')
     const result = await extractText(buffer, 'data.csv', 'text/csv')
-    assert.equal(result, 'Value1 | Value2\nValue3 | Value4')
+    assert.equal(result, 'Header1: Value1 | Header2: Value2\nHeader1: Value3 | Header2: Value4')
   })
 
   test('detects CSV by mime type even without .csv extension', async () => {
     const csv = 'Q,A\nQuestion 1,Answer 1'
     const buffer = Buffer.from(csv, 'utf-8')
     const result = await extractText(buffer, 'data.xls', 'application/vnd.ms-excel')
-    assert.equal(result, 'Question 1 | Answer 1')
+    assert.equal(result, 'Q: Question 1 | A: Answer 1')
   })
 
   test('throws on unsupported file type', async () => {

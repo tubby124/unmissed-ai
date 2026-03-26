@@ -64,14 +64,21 @@ export async function extractText(
 }
 
 /**
- * Parses CSV text: skip header row, join cell values with " | " per row.
+ * Parses CSV text: one chunk per data row, with column headers as labels.
+ * Output format: "Column1: value | Column2: value | ..."
+ * This keeps each chunk self-describing so vector search can match on field names.
  * Handles simple quoted fields (strips quotes).
  */
 export function parseCSV(text: string): string {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
   if (lines.length <= 1) return text // just header or single line
+  const headers = lines[0].replace(/"/g, '').split(',').map(c => c.trim())
   const dataLines = lines.slice(1).map(line => {
-    return line.replace(/"/g, '').split(',').map(c => c.trim()).filter(c => c).join(' | ')
+    const cells = line.replace(/"/g, '').split(',').map(c => c.trim())
+    return headers
+      .map((h, i) => (cells[i] ? `${h}: ${cells[i]}` : null))
+      .filter(Boolean)
+      .join(' | ')
   })
   return dataLines.join('\n')
 }
@@ -132,6 +139,49 @@ function splitAtSentences(text: string): string[] {
     chunks.push(current.trim())
   }
   return chunks
+}
+
+// ── Content Type Detection ─────────────────────────────────────────────────────
+
+export interface ContentTypeResult {
+  type: string
+  label: string
+  description: string
+  emoji: string
+}
+
+/**
+ * Auto-detects the type of content from extracted chunk text and filename.
+ * Used to show the user a meaningful label when reviewing uploaded knowledge.
+ */
+export function detectContentType(chunks: string[], filename: string): ContentTypeResult {
+  const sample = [filename, ...chunks.slice(0, 5)].join(' ').toLowerCase()
+
+  if (/address.*rent|rent.*price|move.*in.*date|pet.*policy|sqft.*rent|bedroom.*bathroom.*rent|available.*unit|listing/i.test(sample)) {
+    return { type: 'rental_listings', label: 'Rental Listings', description: 'Available properties with pricing and availability', emoji: '🏠' }
+  }
+  if (/work.*order|maintenance.*request|repair.*status|issue.*unit|priority.*open|reported.*by/i.test(sample)) {
+    return { type: 'maintenance_log', label: 'Maintenance Log', description: 'Open work orders and service history', emoji: '🔧' }
+  }
+  if (/tenant.*name|lease.*start|lease.*end|balance.*owing|rent.*arrears|payment.*due|rent.*roll/i.test(sample)) {
+    return { type: 'tenant_roster', label: 'Tenant Roster', description: 'Active tenants, lease terms, and balances', emoji: '👥' }
+  }
+  if (/question.*answer|q:.*a:|faq|q\s*\|.*a\s*\|/i.test(sample)) {
+    return { type: 'faq', label: 'FAQ / Q&A', description: 'Frequently asked questions and answers', emoji: '💬' }
+  }
+  if (/price|rate|service.*fee|cost.*per|quote|estimate|package|plan/i.test(sample)) {
+    return { type: 'service_menu', label: 'Services & Pricing', description: 'Service offerings and pricing details', emoji: '💰' }
+  }
+  if (/available|slot|appointment|schedule|booking|time.*window/i.test(sample)) {
+    return { type: 'availability', label: 'Availability Schedule', description: 'Appointment windows and availability', emoji: '📅' }
+  }
+  if (/sku|part.*number|inventory|stock.*qty|item.*description|quantity.*on.*hand/i.test(sample)) {
+    return { type: 'inventory', label: 'Inventory / Parts', description: 'Product and parts reference data', emoji: '📦' }
+  }
+  if (/procedure|policy|guideline|step.*\d|instruction|manual|how.*to/i.test(sample)) {
+    return { type: 'manual', label: 'Policy & Procedures', description: 'Operational guidelines and procedures', emoji: '📋' }
+  }
+  return { type: 'general', label: 'General Knowledge', description: 'Custom knowledge for your agent', emoji: '📄' }
 }
 
 // ── Truncation ─────────────────────────────────────────────────────────────────

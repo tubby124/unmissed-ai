@@ -70,11 +70,23 @@ export default function KnowledgeBaseTab({
 
   // File upload state
   const [fileUploadOpen, setFileUploadOpen] = useState(false)
-  const [fileUploading, setFileUploading] = useState(false)
-  const [fileUploadResult, setFileUploadResult] = useState<{ ok: boolean; filename: string; chunksCreated: number; charCount: number } | null>(null)
-  const [fileUploadError, setFileUploadError] = useState('')
   const [fileDragging, setFileDragging] = useState(false)
   const docFileInputRef = useRef<HTMLInputElement>(null)
+
+  // File upload preview flow
+  const [uploadPreviewStatus, setUploadPreviewStatus] = useState<'idle' | 'loading' | 'preview' | 'approving' | 'done'>('idle')
+  const [uploadPreviewData, setUploadPreviewData] = useState<{
+    filename: string
+    charCount: number
+    truncated: boolean
+    chunkCount: number
+    contentType: { type: string; label: string; description: string; emoji: string }
+    chunks: string[]
+    hasMore: boolean
+  } | null>(null)
+  const [uploadPreviewError, setUploadPreviewError] = useState('')
+  const [uploadDoneResult, setUploadDoneResult] = useState<{ filename: string; chunksCreated: number } | null>(null)
+  const [selectedChunks, setSelectedChunks] = useState<Set<number>>(new Set())
 
   // Bulk import state
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
@@ -255,33 +267,96 @@ export default function KnowledgeBaseTab({
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     const allowed = new Set(['pdf', 'txt', 'docx', 'csv'])
     if (!allowed.has(ext)) {
-      setFileUploadError('Unsupported file type. Allowed: PDF, TXT, DOCX, CSV')
+      setUploadPreviewError('Unsupported file type. Allowed: PDF, TXT, DOCX, CSV')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setFileUploadError('File too large (max 5MB)')
+      setUploadPreviewError('File too large (max 5MB)')
       return
     }
-    setFileUploading(true)
-    setFileUploadError('')
-    setFileUploadResult(null)
+    setUploadPreviewStatus('loading')
+    setUploadPreviewError('')
+    setUploadPreviewData(null)
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('client_id', clientId)
-      const res = await fetch('/api/dashboard/knowledge/upload', {
+      const res = await fetch('/api/dashboard/knowledge/upload-preview', {
         method: 'POST',
         body: formData,
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed')
-      setFileUploadResult({ ok: true, filename: data.filename, chunksCreated: data.chunksCreated, charCount: data.charCount })
+      if (!res.ok) throw new Error(data.error ?? 'Preview failed')
+      setUploadPreviewData(data)
+      setSelectedChunks(new Set(data.chunks.map((_: string, i: number) => i)))
+      setUploadPreviewStatus('preview')
+    } catch (err) {
+      setUploadPreviewError(err instanceof Error ? err.message : 'Failed to read file')
+      setUploadPreviewStatus('idle')
+    }
+  }
+
+  function toggleChunk(i: number) {
+    setSelectedChunks(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else next.add(i)
+      return next
+    })
+  }
+
+  function toggleAllChunks() {
+    if (!uploadPreviewData) return
+    if (selectedChunks.size === uploadPreviewData.chunks.length) {
+      setSelectedChunks(new Set())
+    } else {
+      setSelectedChunks(new Set(uploadPreviewData.chunks.map((_, i) => i)))
+    }
+  }
+
+  async function handleApproveUpload() {
+    if (!uploadPreviewData) return
+    setUploadPreviewStatus('approving')
+    setUploadPreviewError('')
+    try {
+      const chunks = uploadPreviewData.chunks
+        .filter((_, i) => selectedChunks.has(i))
+        .map(content => ({
+          content,
+          chunk_type: 'document',
+          trust_tier: 'high',
+          source: 'knowledge_doc',
+        }))
+      if (chunks.length === 0) return
+
+      // Batch if needed (bulk-import limit is 100)
+      let totalSucceeded = 0
+      for (let start = 0; start < chunks.length; start += 100) {
+        const batch = chunks.slice(start, start + 100)
+        const res = await fetch('/api/dashboard/knowledge/bulk-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: clientId, chunks: batch, auto_approve: true }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Import failed')
+        totalSucceeded += data.succeeded
+      }
+
+      setUploadDoneResult({ filename: uploadPreviewData.filename, chunksCreated: totalSucceeded })
+      setUploadPreviewStatus('done')
       triggerRefresh()
     } catch (err) {
-      setFileUploadError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setFileUploading(false)
+      setUploadPreviewError(err instanceof Error ? err.message : 'Failed to add chunks')
+      setUploadPreviewStatus('preview')
     }
+  }
+
+  function resetUploadFlow() {
+    setUploadPreviewStatus('idle')
+    setUploadPreviewData(null)
+    setUploadPreviewError('')
+    setUploadDoneResult(null)
+    setSelectedChunks(new Set())
   }
 
   async function handleExport() {
@@ -401,7 +476,7 @@ export default function KnowledgeBaseTab({
                   Manual Entry
                 </button>
                 <button
-                  onClick={() => { setFileUploadOpen(v => !v); setShowAddForm(false); setBulkImportOpen(false); setScrapeStatus('idle'); setScrapePreview(null); setFileUploadResult(null); setFileUploadError('') }}
+                  onClick={() => { setFileUploadOpen(v => !v); setShowAddForm(false); setBulkImportOpen(false); setScrapeStatus('idle'); setScrapePreview(null); resetUploadFlow() }}
                   className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                     fileUploadOpen
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -490,59 +565,203 @@ export default function KnowledgeBaseTab({
               {/* File upload form */}
               {fileUploadOpen && (
                 <div className="space-y-3">
-                  <p className="text-xs t3">
-                    Upload a PDF, TXT, DOCX, or CSV file. Content is extracted, split into chunks, and embedded into the knowledge base.
-                  </p>
-                  <div
-                    onDragOver={e => { e.preventDefault(); setFileDragging(true) }}
-                    onDragLeave={e => { e.preventDefault(); setFileDragging(false) }}
-                    onDrop={e => {
-                      e.preventDefault()
-                      setFileDragging(false)
-                      const file = e.dataTransfer.files[0]
-                      if (file) handleDocFileUpload(file)
-                    }}
-                    onClick={() => docFileInputRef.current?.click()}
-                    className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-all ${
-                      fileDragging
-                        ? 'border-emerald-500 bg-emerald-500/5'
-                        : 'b-theme bg-surface'
-                    } ${fileUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`mb-2 ${fileDragging ? 'text-emerald-400' : 't3'}`}>
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <p className="text-xs font-medium t2">
-                      {fileUploading ? 'Uploading...' : 'Drop a file here or click to upload'}
-                    </p>
-                    <p className="text-[10px] t3 mt-1">PDF, TXT, DOCX, or CSV — max 5MB</p>
-                    <input
-                      ref={docFileInputRef}
-                      type="file"
-                      accept=".pdf,.txt,.docx,.csv"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (file) handleDocFileUpload(file)
-                        e.target.value = ''
-                      }}
-                    />
-                  </div>
-                  {fileUploadError && (
-                    <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
-                      {fileUploadError}
+
+                  {/* ── Drop zone (idle) ─────────────────────────────────── */}
+                  {uploadPreviewStatus === 'idle' && (
+                    <>
+                      <p className="text-xs t3">
+                        Upload a PDF, TXT, DOCX, or CSV file. We&apos;ll extract the content and let you review it before it goes into the knowledge base.
+                      </p>
+                      <div
+                        onDragOver={e => { e.preventDefault(); setFileDragging(true) }}
+                        onDragLeave={e => { e.preventDefault(); setFileDragging(false) }}
+                        onDrop={e => {
+                          e.preventDefault()
+                          setFileDragging(false)
+                          const file = e.dataTransfer.files[0]
+                          if (file) handleDocFileUpload(file)
+                        }}
+                        onClick={() => docFileInputRef.current?.click()}
+                        className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 cursor-pointer transition-all ${
+                          fileDragging ? 'border-emerald-500 bg-emerald-500/5' : 'b-theme bg-surface hover:border-emerald-500/50'
+                        }`}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`mb-2 ${fileDragging ? 'text-emerald-400' : 't3'}`}>
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <p className="text-xs font-medium t2">Drop a file here or click to upload</p>
+                        <p className="text-[10px] t3 mt-1">PDF, TXT, DOCX, or CSV — max 5MB</p>
+                        <input
+                          ref={docFileInputRef}
+                          type="file"
+                          accept=".pdf,.txt,.docx,.csv"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) handleDocFileUpload(file)
+                            e.target.value = ''
+                          }}
+                        />
+                      </div>
+                      {uploadPreviewError && (
+                        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+                          {uploadPreviewError}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* ── Loading orb (extracting) ─────────────────────────── */}
+                  {uploadPreviewStatus === 'loading' && (
+                    <div className="flex flex-col items-center justify-center py-10 gap-5">
+                      <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" style={{ animationDuration: '1.4s' }} />
+                        <div className="absolute inset-1.5 rounded-full bg-emerald-500/25 animate-pulse" />
+                        <div className="absolute inset-3.5 rounded-full bg-emerald-400/70 flex items-center justify-center">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-white">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium t2">Reading your file...</p>
+                        <p className="text-xs t3 mt-1">Extracting and splitting content into chunks</p>
+                      </div>
                     </div>
                   )}
-                  {fileUploadResult && (
-                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-300 flex items-start gap-2">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
-                        <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span>
-                        <strong>{fileUploadResult.filename}</strong> — {fileUploadResult.chunksCreated} chunk{fileUploadResult.chunksCreated !== 1 ? 's' : ''} extracted and added to <strong>Pending Review</strong> below. Approve chunks to make them searchable by your agent.
-                      </span>
+
+                  {/* ── Preview (review chunks) ──────────────────────────── */}
+                  {uploadPreviewStatus === 'preview' && uploadPreviewData && (
+                    <div className="space-y-3">
+                      {/* Content type detection badge */}
+                      <div className="flex items-center gap-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5">
+                        <span className="text-xl leading-none">{uploadPreviewData.contentType.emoji}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-emerald-300">{uploadPreviewData.contentType.label}</p>
+                          <p className="text-[10px] t3">{uploadPreviewData.contentType.description}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-sm font-mono font-bold text-emerald-400">{uploadPreviewData.chunkCount}</p>
+                          <p className="text-[10px] t3">chunks</p>
+                        </div>
+                      </div>
+
+                      {/* File + size */}
+                      <div className="flex items-center gap-2 px-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-xs t2 font-medium truncate">{uploadPreviewData.filename}</span>
+                        <span className="text-[10px] t3 shrink-0 ml-auto">
+                          {uploadPreviewData.charCount >= 1000
+                            ? `${(uploadPreviewData.charCount / 1000).toFixed(1)}K chars`
+                            : `${uploadPreviewData.charCount} chars`}
+                          {uploadPreviewData.truncated && ' (truncated to 50K)'}
+                        </span>
+                      </div>
+
+                      {/* Chunk list */}
+                      <div className="rounded-lg border b-theme overflow-hidden">
+                        <div className="flex items-center justify-between px-3 py-2 border-b b-theme">
+                          <p className="text-[10px] t3 font-semibold">
+                            {selectedChunks.size} of {uploadPreviewData.chunks.length} chunks selected
+                            {uploadPreviewData.hasMore && ' (first 50 shown)'}
+                          </p>
+                          <button onClick={toggleAllChunks} className="text-[11px] text-blue-400 hover:opacity-75 transition-opacity">
+                            {selectedChunks.size === uploadPreviewData.chunks.length ? 'Deselect all' : 'Select all'}
+                          </button>
+                        </div>
+                        <div className="max-h-52 overflow-y-auto divide-y divide-[var(--border-color,rgba(255,255,255,0.08))]">
+                          {uploadPreviewData.chunks.map((chunk, i) => (
+                            <div
+                              key={i}
+                              onClick={() => toggleChunk(i)}
+                              className={`flex items-start gap-2.5 px-3 py-2 cursor-pointer transition-colors hover:bg-hover ${
+                                selectedChunks.has(i) ? '' : 'opacity-35'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedChunks.has(i)}
+                                onChange={() => toggleChunk(i)}
+                                onClick={e => e.stopPropagation()}
+                                className="mt-0.5 shrink-0 accent-emerald-500"
+                              />
+                              <p className="text-[11px] t2 leading-relaxed line-clamp-2">{chunk}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {uploadPreviewError && (
+                        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+                          {uploadPreviewError}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={resetUploadFlow}
+                          className="px-3 py-2 rounded-lg text-xs t3 border b-theme hover:bg-hover transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleApproveUpload}
+                          disabled={selectedChunks.size === 0 || previewMode}
+                          className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-40"
+                        >
+                          Add {selectedChunks.size} chunk{selectedChunks.size !== 1 ? 's' : ''} to Knowledge Base
+                        </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* ── Embedding orb (approving) ────────────────────────── */}
+                  {uploadPreviewStatus === 'approving' && (
+                    <div className="flex flex-col items-center justify-center py-10 gap-5">
+                      <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-full bg-green-500/20 animate-ping" style={{ animationDuration: '1.2s' }} />
+                        <div className="absolute inset-1.5 rounded-full bg-green-500/25 animate-pulse" />
+                        <div className="absolute inset-3.5 rounded-full bg-green-400/70 flex items-center justify-center">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-white">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium t2">Embedding knowledge...</p>
+                        <p className="text-xs t3 mt-1">Generating vectors for {selectedChunks.size} chunk{selectedChunks.size !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Success card ─────────────────────────────────────── */}
+                  {uploadPreviewStatus === 'done' && uploadDoneResult && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3.5">
+                        <div className="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-green-400">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-green-300">Knowledge added</p>
+                          <p className="text-[11px] t3 mt-0.5">
+                            <strong className="text-green-400">{uploadDoneResult.chunksCreated}</strong> chunk{uploadDoneResult.chunksCreated !== 1 ? 's' : ''} from <strong className="t2">{uploadDoneResult.filename}</strong> are now searchable by your agent.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={resetUploadFlow}
+                        className="w-full px-4 py-2 rounded-lg text-xs font-medium border b-theme t2 hover:bg-hover transition-colors"
+                      >
+                        Upload Another File
+                      </button>
+                    </div>
+                  )}
+
                 </div>
               )}
 

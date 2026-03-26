@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Validation failed', details: errors }, { status: 400 })
   }
 
-  const status = body.auto_approve && cu.role === 'admin' ? 'approved' : 'pending'
+  const canAutoApprove = cu.role === 'admin' || cu.role === 'owner'
+  const status = body.auto_approve && canAutoApprove ? 'approved' : 'pending'
   const runId = `bulk-import-${Date.now()}`
 
   // Embed all chunks in parallel (batches of 10 to avoid rate limits)
