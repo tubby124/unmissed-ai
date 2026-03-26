@@ -75,10 +75,14 @@ export function buildRetrievalConfig(
 
   // Determine effective backend and enabled state
   const backend: RetrievalBackend = knowledgeBackend
-  const enabled = nicheSupportsLookup && (
-    backend === 'pgvector' ||
-    (backend === 'ultravox' && corpusAvailable) ||
-    (!backend && corpusAvailable) // legacy: no backend set but corpus available
+  // pgvector bypasses the niche gate — if the client explicitly has pgvector enabled,
+  // they uploaded knowledge and it should be retrievable regardless of niche defaults.
+  // Non-pgvector backends still require useKnowledgeLookup=true on the niche.
+  const enabled = (backend === 'pgvector') || (
+    nicheSupportsLookup && (
+      (backend === 'ultravox' && corpusAvailable) ||
+      (!backend && corpusAvailable) // legacy: no backend set but corpus available
+    )
   )
 
   const knowledgeTruncated = countFullFacts(knowledge) > knowledge.facts.length
@@ -116,7 +120,8 @@ export function buildRetrievalInstruction(knowledgeTruncated: boolean, backend?:
     ? ' The facts above are a summary — more detail is available through search.'
     : ''
 
-  const toolName = backend === 'pgvector' ? 'queryKnowledge' : 'queryCorpus'
+  // pgvector is now universal — only legacy ultravox backend uses queryCorpus
+  const toolName = backend === 'ultravox' ? 'queryCorpus' : 'queryKnowledge'
 
   return [
     '## KNOWLEDGE LOOKUP',

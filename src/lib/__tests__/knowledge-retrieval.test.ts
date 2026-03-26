@@ -77,14 +77,23 @@ function makeClientRow(overrides: Partial<ClientRow> = {}): ClientRow {
 // ── Retrieval gating tests ───────────────────────────────────────────────────
 
 describe('buildRetrievalConfig — gating', () => {
-  test('disabled when useKnowledgeLookup=false, even if corpus available', () => {
+  test('disabled when useKnowledgeLookup=false and no pgvector backend', () => {
     const caps = makeCapabilities({ useKnowledgeLookup: false })
     const knowledge = makeKnowledge(makeBusiness())
-    const result = buildRetrievalConfig(caps, knowledge, true)
+    const result = buildRetrievalConfig(caps, knowledge, true) // no backend = null
     assert.equal(result.enabled, false)
     assert.equal(result.nicheSupportsLookup, false)
     assert.equal(result.corpusAvailable, true)
     assert.equal(result.promptInstruction, '')
+  })
+
+  test('enabled when pgvector backend even if useKnowledgeLookup=false (niche gate bypassed)', () => {
+    const caps = makeCapabilities({ useKnowledgeLookup: false })
+    const knowledge = makeKnowledge(makeBusiness())
+    const result = buildRetrievalConfig(caps, knowledge, true, 'pgvector')
+    assert.equal(result.enabled, true)
+    assert.equal(result.nicheSupportsLookup, false)
+    assert.ok(result.promptInstruction.length > 0)
   })
 
   test('disabled when corpus not available, even if capability enabled', () => {
@@ -119,9 +128,9 @@ describe('buildRetrievalConfig — gating', () => {
 // ── Prompt instruction content tests ─────────────────────────────────────────
 
 describe('buildRetrievalInstruction — content', () => {
-  test('mentions queryCorpus tool', () => {
+  test('mentions queryKnowledge tool by default (pgvector universal)', () => {
     const instruction = buildRetrievalInstruction(false)
-    assert.ok(instruction.includes('queryCorpus'))
+    assert.ok(instruction.includes('queryKnowledge'))
   })
 
   test('starts with KNOWLEDGE LOOKUP header', () => {
@@ -393,7 +402,7 @@ describe('AgentContext — retrieval field', () => {
     const client = makeClientRow({ niche: 'auto_glass' })
     const ctx = buildAgentContext(client, '+15551234567', [], new Date(), true)
     assert.equal(ctx.retrieval.enabled, true)
-    assert.ok(ctx.retrieval.promptInstruction.includes('queryCorpus'))
+    assert.ok(ctx.retrieval.promptInstruction.includes('queryKnowledge'))
   })
 
   test('retrieval disabled for voicemail even with corpusAvailable=true', () => {
@@ -403,11 +412,11 @@ describe('AgentContext — retrieval field', () => {
     assert.equal(ctx.retrieval.promptInstruction, '')
   })
 
-  test('retrieval disabled when niche does not support lookup even with corpusAvailable=true', () => {
-    // corpusAvailable is passed as true but the niche might not support it
-    const client = makeClientRow({ niche: 'other' })
+  test('retrieval disabled for other niche when no pgvector backend set', () => {
+    // useKnowledgeLookup=false on 'other' niche; no knowledge_backend = no pgvector bypass
+    const client = makeClientRow({ niche: 'other' }) // knowledge_backend defaults to null
     const ctx = buildAgentContext(client, '+15551234567', [], new Date(), true)
-    assert.equal(ctx.retrieval.enabled, false) // 'other' niche has useKnowledgeLookup=false
+    assert.equal(ctx.retrieval.enabled, false)
   })
 
   test('knowledge summary still present regardless of retrieval state', () => {
