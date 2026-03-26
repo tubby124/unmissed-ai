@@ -112,15 +112,14 @@ export async function POST(req: NextRequest) {
 
     // Pre-insert a call_logs row so the dashboard shows "first call" immediately after sign-in
     const supa = createServiceClient()
-    supa.from('call_logs').insert({
+    const { error: logErr } = await supa.from('call_logs').insert({
       ultravox_call_id: callId,
       client_id: clientId,
       caller_phone: 'trial-test',
       call_status: 'trial_test',
       started_at: new Date().toISOString(),
-    }).then(({ error }) => {
-      if (error) console.error(`[trial/test-call] call_logs insert failed for callId=${callId}: ${error.message}`)
     })
+    if (logErr) console.error(`[trial/test-call] call_logs insert failed for callId=${callId}: ${logErr.message}`)
 
     return NextResponse.json({ joinUrl, callId, agentName: client.agent_name })
   } catch (err) {
