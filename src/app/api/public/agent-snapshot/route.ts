@@ -38,13 +38,16 @@ export async function GET(req: NextRequest) {
     website_url: string | null
     status: string | null
     niche: string | null
+    injected_note: string | null
+    trial_expires_at: string | null
   }
 
   const { data: rawClient } = await supa
     .from('clients')
     .select(
       'agent_name, services_offered, business_hours_weekday, business_hours_weekend, ' +
-      'business_facts, extra_qa, website_scrape_status, website_url, status, niche'
+      'business_facts, extra_qa, website_scrape_status, website_url, status, niche, ' +
+      'injected_note, trial_expires_at'
     )
     .eq('id', clientId)
     .in('status', ['active', 'setup'])
@@ -94,9 +97,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     servicesNote,
     hoursNote,
-    topFacts,         // string[] — first 3 scraped facts (empty array if none)
-    faqCount,         // number of FAQ pairs stored
-    scrapeStatus,     // 'approved' | 'extracted' | 'none'
-    hasWebsite,       // boolean — whether a website URL was provided
+    topFacts,           // string[] — first 3 scraped facts (empty array if none)
+    faqCount,           // number of FAQ pairs stored
+    scrapeStatus,       // 'approved' | 'extracted' | 'none'
+    hasWebsite,         // boolean — whether a website URL was provided
+    injectedNote: client.injected_note?.trim() || null,  // current quick note (if any)
+    trialExpiresAt: client.trial_expires_at || null,     // ISO string — trial end date
   })
 }

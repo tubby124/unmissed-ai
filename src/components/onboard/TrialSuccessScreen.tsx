@@ -16,6 +16,18 @@ interface AgentSnapshot {
   faqCount: number;
   scrapeStatus: "approved" | "extracted" | "none";
   hasWebsite: boolean;
+  injectedNote: string | null;
+  trialExpiresAt: string | null;
+}
+
+/** Returns "X days left" or "X hours left" string from an ISO date */
+function getTrialCountdown(expiresAt: string): string {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return "Trial expired";
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} left`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} left in trial`;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -85,11 +97,13 @@ function AgentKnowledgeCard({
   snapshot,
   liveCount,
   loading,
+  injectedNote,
 }: {
   agentName: string | null;
   snapshot: AgentSnapshot | null;
   liveCount: number;
   loading: boolean;
+  injectedNote?: string | null;
 }) {
   const name = agentName ?? "Your agent";
 
@@ -112,7 +126,7 @@ function AgentKnowledgeCard({
   const { servicesNote, hoursNote, topFacts, faqCount, scrapeStatus, hasWebsite } = snapshot;
 
   // Nothing to show at all
-  const hasAnything = servicesNote || hoursNote || topFacts.length > 0 || liveCount > 0;
+  const hasAnything = servicesNote || hoursNote || topFacts.length > 0 || liveCount > 0 || injectedNote;
   if (!hasAnything) return null;
 
   // Show approved facts (user reviewed) or just a count for extracted
@@ -146,6 +160,19 @@ function AgentKnowledgeCard({
         {/* Hours — direct from user input, always safe */}
         {hoursNote && (
           <KnowledgeFact label="Hours" value={hoursNote} />
+        )}
+
+        {/* Live injected note — shows immediately after user saves */}
+        {injectedNote && (
+          <KnowledgeFact
+            icon={
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 12.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11zM7.25 5a.75.75 0 011.5 0v3.5a.75.75 0 01-1.5 0V5zm.75 6.5a.875.875 0 110-1.75.875.875 0 010 1.75z"/>
+              </svg>
+            }
+            label="Right now"
+            value={injectedNote}
+          />
         )}
 
         {/* Approved scraped facts — user reviewed, show the actual strings */}
@@ -215,6 +242,13 @@ export function TrialSuccessScreen({
   const [snapshot, setSnapshot] = useState<AgentSnapshot | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(true);
 
+  // Quick note injection
+  const [noteText, setNoteText] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [liveNote, setLiveNote] = useState<string | null>(null);
+
   // Clear draft on mount
   useEffect(() => {
     try { localStorage.removeItem(STORAGE_KEYS.ONBOARD_DRAFT); } catch { /* ignore */ }
@@ -229,7 +263,13 @@ export function TrialSuccessScreen({
     fetch(`/api/public/agent-snapshot?clientId=${clientId}`)
       .then(r => r.ok ? r.json() : null)
       .then((json: AgentSnapshot | null) => {
-        if (json && !('error' in (json as object))) setSnapshot(json);
+        if (json && !('error' in (json as object))) {
+          setSnapshot(json);
+          if (json.injectedNote) {
+            setLiveNote(json.injectedNote);
+            setNoteText(json.injectedNote);
+          }
+        }
       })
       .catch(() => { /* silent fail — card simply won't render */ })
       .finally(() => setSnapshotLoading(false));
@@ -251,6 +291,29 @@ export function TrialSuccessScreen({
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [clientId, supabase]);
+
+  async function handleSaveNote() {
+    if (!clientId || noteSaving) return;
+    setNoteSaving(true);
+    setNoteError(null);
+    setNoteSaved(false);
+    try {
+      const res = await fetch('/api/trial/update-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, note: noteText.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Save failed');
+      setLiveNote(noteText.trim() || null);
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 3000);
+    } catch (err) {
+      setNoteError(err instanceof Error ? err.message : 'Could not save. Try again.');
+    } finally {
+      setNoteSaving(false);
+    }
+  }
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -282,9 +345,10 @@ export function TrialSuccessScreen({
     }
   }
 
+  const trialCountdown = snapshot?.trialExpiresAt ? getTrialCountdown(snapshot.trialExpiresAt) : null;
   const subtitle = liveCount > 0
-    ? `${agentName ?? "Your agent"} is ready to answer calls — trained on ${liveCount} facts from your business. 7-day free trial, no card needed.`
-    : `${agentName ?? "Your agent"} is ready to answer calls. 7-day free trial, no credit card needed.`;
+    ? `${agentName ?? "Your agent"} is ready to answer calls — trained on ${liveCount} facts from your business.`
+    : `${agentName ?? "Your agent"} is ready to answer calls.`;
 
   return (
     <div className="max-w-md w-full space-y-6 py-12">
@@ -298,6 +362,11 @@ export function TrialSuccessScreen({
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold text-foreground">Your agent is live.</h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
+          {trialCountdown && (
+            <p className="text-xs font-semibold text-amber-400">
+              {trialCountdown} — no card needed
+            </p>
+          )}
         </div>
       </div>
 
@@ -307,7 +376,46 @@ export function TrialSuccessScreen({
         snapshot={snapshot}
         liveCount={liveCount}
         loading={snapshotLoading}
+        injectedNote={liveNote}
       />
+
+      {/* Quick note injection */}
+      {clientId && (
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">
+              Tell {agentName ?? "your agent"} something right now
+            </p>
+            <p className="text-[11px] text-white/30 leading-relaxed">
+              Anything time-sensitive — out sick, running late, special hours, a promotion. Goes live instantly.
+            </p>
+          </div>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder={`e.g. "Closed today — back tomorrow at 9am" or "Free delivery this week"`}
+            maxLength={500}
+            rows={2}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 resize-none"
+          />
+          {noteError && <p className="text-xs text-red-400">{noteError}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveNote}
+              disabled={noteSaving || noteText.trim() === (liveNote ?? "")}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {noteSaving ? "Saving…" : "Update agent"}
+            </button>
+            {noteSaved && (
+              <span className="text-xs text-emerald-400 font-semibold">Live on next call ✓</span>
+            )}
+            {noteText.trim() && (
+              <span className="text-xs text-white/25 ml-auto">{noteText.length}/500</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Primary CTAs */}
       <div className="space-y-3">
@@ -348,6 +456,21 @@ export function TrialSuccessScreen({
             </a>
           </>
         ) : null}
+      </div>
+
+      {/* Next steps */}
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-2.5">
+        <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">What to do next</p>
+        {[
+          { n: "1", text: `Call ${agentName ?? "your agent"} — test it yourself first` },
+          { n: "2", text: "Sign in to your dashboard to see call logs + tweak settings" },
+          { n: "3", text: "Share the number with customers before the trial ends" },
+        ].map(({ n, text }) => (
+          <div key={n} className="flex items-start gap-2.5">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center mt-0.5">{n}</span>
+            <p className="text-sm text-white/60">{text}</p>
+          </div>
+        ))}
       </div>
 
       {/* Dashboard access */}
