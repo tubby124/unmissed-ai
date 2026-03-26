@@ -18,7 +18,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
   const [adding, setAdding] = useState(false)
   const [newQ, setNewQ] = useState('')
   const [newA, setNewA] = useState('')
-  const { saving, patch } = usePatchSettings(id, isAdmin)
+  const { saving, knowledgeReseeded, patch } = usePatchSettings(id, isAdmin)
 
   const factCount = (config?.knowledge.businessFacts ?? client.business_facts)
     ?.split('\n').filter(l => l.trim()).length ?? 0
@@ -198,6 +198,13 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
           </svg>
           Quick add Q&A
         </button>
+      )}
+
+      {/* Knowledge reseed confirmation */}
+      {knowledgeReseeded && (
+        <p className="mt-2 text-[10px] text-blue-400/80">
+          Knowledge base updated — new Q&amp;A is searchable on the next call.
+        </p>
       )}
 
       {/* Website scrape hint — only when no website URL configured */}

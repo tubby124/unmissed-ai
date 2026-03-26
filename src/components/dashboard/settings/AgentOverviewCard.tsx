@@ -82,6 +82,9 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
       }
       setSavedName(trimmed)
       setFooterSaved(true)
+      // Surface patcher warning if name wasn't found in prompt
+      const w = (data.warnings ?? []).find((w: { field?: string; message?: string }) => w.field === 'agent_name_not_patched')
+      if (w?.message) setFooterError(w.message)
       onSave?.()
       setTimeout(() => setFooterSaved(false), 3000)
     } else {

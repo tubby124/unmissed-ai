@@ -53,6 +53,7 @@ export function usePatchSettings(
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
+  const [knowledgeReseeded, setKnowledgeReseeded] = useState(false)
 
   // SET-14: Store last payload that triggered a sync failure for retry
   const lastFailedPayload = useRef<Record<string, unknown> | null>(null)
@@ -75,6 +76,7 @@ export function usePatchSettings(
     })
 
     setSaving(false)
+    setKnowledgeReseeded(false)
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
       setSaved(true)
@@ -96,6 +98,9 @@ export function usePatchSettings(
       if (Array.isArray(data.warnings)) {
         setWarnings(data.warnings.map((w: { message?: string }) => w.message || String(w)))
       }
+      if (data.knowledge_reseeding === true) {
+        setKnowledgeReseeded(true)
+      }
       if (typeof data.system_prompt === 'string') {
         options?.onPromptChange?.(data.system_prompt)
       }
@@ -108,7 +113,7 @@ export function usePatchSettings(
       } else {
         toast.success('Saved')
       }
-      setTimeout(() => { setSaved(false); setSyncStatus(null); setWarnings([]) }, 5000)
+      setTimeout(() => { setSaved(false); setSyncStatus(null); setWarnings([]); setKnowledgeReseeded(false) }, 5000)
     } else {
       const data = await res.json().catch(() => ({}))
       const msg = data.error || `Save failed (${res.status})`
@@ -127,5 +132,5 @@ export function usePatchSettings(
 
   const clearError = useCallback(() => setError(null), [])
 
-  return { saving, saved, error, syncStatus, syncError, warnings, patch, clearError, retrySyncFailed }
+  return { saving, saved, error, syncStatus, syncError, warnings, knowledgeReseeded, patch, clearError, retrySyncFailed }
 }

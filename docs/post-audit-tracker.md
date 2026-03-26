@@ -92,20 +92,20 @@ Swapped `Map<string, number[]>` + manual helpers → `SlidingWindowRateLimiter(3
 
 ## P-NEXT — Documented Gaps (next sprint)
 
-### HIGH: `patchServicesOffered` silent fail
-**File:** `src/lib/prompt-patcher.ts`
-**Root cause:** If the client prompt was hand-crafted (no `**What services do you offer?**` Q&A format), updating services saves to DB but the patcher finds no match and silently skips. No warning returned to user or logged.
-**Fix:** Return `patched: false` + a warning string from `patchServicesOffered()`. In settings PATCH, include `warnings: ['services_not_patched_in_prompt']` in the response when the patcher skips. Show inline toast in ServicesCard: "Saved to DB — but your prompt may need manual update."
+### ✅ HIGH: `patchServicesOffered` silent fail
+**File:** `src/lib/prompt-patcher.ts` + `settings/route.ts` + `ServicesOfferedCard.tsx`
+**Root cause:** If the client prompt was hand-crafted (no `**What services do you offer?**` Q&A format), updating services saves to DB but the patcher finds no match and silently skips.
+**Fix applied:** `else` branch in `settings/route.ts` pushes `{ field: 'services_not_patched', message: "Services saved — but your agent's prompt doesn't use the standard format..." }` to `promptWarnings`. `ServicesOfferedCard` detects via `useEffect` on `warnings` state and shows amber banner.
 
-### HIGH: `business_name` post-provision silent fail
-**File:** `src/lib/prompt-patcher.ts` — `patchBusinessName()`
-**Root cause:** Uses word-boundary regex to find old name. If the prompt was manually edited and the old name no longer appears verbatim (or appears inside a larger word), the patch silently skips.
-**Fix:** Same pattern as above — return `patched: false` + warning when `replacements === 0`. Show warning in settings: "Name saved — run /prompt-deploy to update your agent's prompt."
+### ✅ HIGH: `business_name` / `agent_name` post-provision silent fail
+**Files:** `src/lib/prompt-patcher.ts` + `settings/route.ts` + `AgentOverviewCard.tsx`
+**Root cause:** Word-boundary regex patcher silently skips when old name not found verbatim.
+**Fix applied:** `else` branches in `settings/route.ts` push `{ field: 'agent_name_not_patched' }` and `{ field: 'business_name_not_patched' }` warnings. `AgentOverviewCard` reads `data.warnings` from PATCH response and surfaces via `footerError` state.
 
-### MEDIUM: Knowledge reseed timing
+### ✅ MEDIUM: Knowledge reseed timing
 **File:** `src/app/api/dashboard/settings/route.ts`
 **Root cause:** `reseedKnowledgeFromSettings()` is now awaited (good), but embedding 30+ chunks can take 2–8 seconds. First big facts save → noticeably slow API response.
-**Fix:** Return `knowledge_reseeding: true` in settings PATCH response when reseed was triggered. Card can show a brief "Updating knowledge…" indicator.
+**Fix applied:** `knowledge_reseeding: true` added to PATCH response. `usePatchSettings` exposes `knowledgeReseeded` state. `AdvancedContextCard` and `AgentKnowledgeCard` show "Knowledge base updated — new facts/Q&A are searchable on the next call." after saves that trigger reseed.
 
 ### MEDIUM: `router.refresh()` unreliability in Next.js 15
 **Root cause:** Sonar-confirmed — `router.refresh()` sometimes doesn't trigger re-renders in v15 server components. Cards that read from `useState` initialized from props won't see the refresh.

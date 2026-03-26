@@ -41,7 +41,7 @@ export default function AdvancedContextCard({
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false)
 
-  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { saving, saved, error, knowledgeReseeded, patch } = usePatchSettings(clientId, isAdmin, { onSave })
   const { markDirty, markClean } = useDirtyGuard('advanced-context-' + clientId)
 
   async function save() {
@@ -128,6 +128,18 @@ export default function AdvancedContextCard({
               className="text-[10px] text-green-400/80 mb-3 -mt-2"
             >
               Injected on every call — not stored in the prompt. Changes take effect on the next call.
+            </motion.p>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {knowledgeReseeded && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="text-[10px] text-blue-400/80 mb-3 -mt-2"
+            >
+              Knowledge base updated — new facts are searchable on the next call.
             </motion.p>
           )}
         </AnimatePresence>

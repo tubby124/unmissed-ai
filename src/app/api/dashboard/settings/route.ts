@@ -373,6 +373,9 @@ export async function PATCH(req: NextRequest) {
           updates.system_prompt = patched
           updates.updated_at = new Date().toISOString()
           console.log(`[settings] Agent name patched '${oldName}' → '${newName}' in prompt for client=${targetClientId}`)
+        } else {
+          // patcher found no match — name saved to DB but prompt wasn't updated
+          promptWarnings.push({ field: 'agent_name_not_patched', message: `Name saved — but "${oldName}" wasn't found in your agent's prompt. Run /prompt-deploy to update the prompt.` })
         }
       }
     }
@@ -406,6 +409,9 @@ export async function PATCH(req: NextRequest) {
           updates.system_prompt = patched
           updates.updated_at = new Date().toISOString()
           console.log(`[settings] Business name patched '${oldName}' → '${newName}' in prompt for client=${targetClientId}`)
+        } else {
+          // patcher found no match — name saved to DB but prompt wasn't updated
+          promptWarnings.push({ field: 'business_name_not_patched', message: `Business name saved — but "${oldName}" wasn't found in your agent's prompt. Run /prompt-deploy to update the prompt.` })
         }
       }
     }
@@ -438,6 +444,9 @@ export async function PATCH(req: NextRequest) {
         updates.system_prompt = patched
         updates.updated_at = new Date().toISOString()
         console.log(`[settings] Services offered patched in prompt for client=${targetClientId}`)
+      } else {
+        // patcher found no match — prompt uses a hand-crafted format without the standard Q&A line
+        promptWarnings.push({ field: 'services_not_patched', message: "Services saved — but your agent's prompt doesn't use the standard format and wasn't automatically updated. Changes will apply next time the prompt is regenerated." })
       }
     }
   }
@@ -667,5 +676,6 @@ export async function PATCH(req: NextRequest) {
     ...(ultravox_error ? { ultravox_error } : {}),
     ...(promptWarnings.length ? { warnings: promptWarnings } : {}),
     ...(typeof updates.system_prompt === 'string' ? { system_prompt: updates.system_prompt } : {}),
+    ...(knowledgeReseeded ? { knowledge_reseeding: true } : {}),
   })
 }

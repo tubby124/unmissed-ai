@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { usePatchSettings } from './usePatchSettings'
 
@@ -18,7 +18,14 @@ export default function ServicesOfferedCard({
   const id = clientId ?? client.id
   const [value, setValue] = useState(client.services_offered ?? '')
   const [editing, setEditing] = useState(false)
-  const { saving, patch } = usePatchSettings(id, isAdmin)
+  const { saving, patch, warnings } = usePatchSettings(id, isAdmin)
+  const [patchWarning, setPatchWarning] = useState<string | null>(null)
+
+  // Surface patcher warnings after each save
+  useEffect(() => {
+    const w = warnings.find(msg => msg.includes("prompt doesn't use the standard format") || msg.includes('Services saved'))
+    setPatchWarning(w ?? null)
+  }, [warnings])
 
   async function handleSave() {
     await patch({ services_offered: value.trim() })
@@ -39,6 +46,12 @@ export default function ServicesOfferedCard({
           <span className="ml-1 opacity-60">· sourced from your Google Business Profile or onboarding</span>
         )}
       </p>
+
+      {patchWarning && (
+        <p className="text-[10px] text-amber-400/90 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-3 py-2 mb-3 leading-relaxed">
+          ⚠ {patchWarning}
+        </p>
+      )}
 
       {editing ? (
         <div className="space-y-2">
