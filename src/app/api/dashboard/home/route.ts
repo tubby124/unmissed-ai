@@ -4,6 +4,7 @@ import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
 import { buildCapabilityFlags } from '@/lib/capability-flags'
+import { deriveActivationState } from '@/lib/derive-activation-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -77,6 +78,12 @@ export async function GET(request: Request) {
       .eq('client_id', clientId)
       .order('started_at', { ascending: false })
       .limit(5),
+
+    // Knowledge chunk counts by source + status (for knowledge tile)
+    supabase
+      .from('knowledge_chunks')
+      .select('source, status, updated_at')
+      .eq('client_id', clientId),
   ])
 
   const client = clientRes.data
@@ -88,6 +95,22 @@ export async function GET(request: Request) {
   const prevCalls = prevCallsRes.data ?? []
   const bookings = bookingsRes.data ?? []
   const recentCalls = recentRes.data ?? []
+  const knowledgeChunks = knowledgeRes.data ?? []
+
+  // Knowledge tile data
+  const approvedChunks = knowledgeChunks.filter(k => k.status === 'approved')
+  const pendingChunks = knowledgeChunks.filter(k => k.status === 'pending')
+  const sourceTypes = [...new Set(approvedChunks.map(k => k.source as string))]
+  const allUpdatedAts = approvedChunks.map(k => k.updated_at).filter(Boolean) as string[]
+  const lastUpdatedAt = allUpdatedAts.length > 0
+    ? allUpdatedAts.sort().reverse()[0]
+    : null
+
+  // Activation state — truthful readiness, not just setup flags
+  const activation = deriveActivationState({
+    twilio_number: client.twilio_number,
+    setup_complete: client.setup_complete as boolean | null,
+  })
 
   // Aggregate stats
   const totalCalls = calls.length
@@ -184,6 +207,19 @@ export async function GET(request: Request) {
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
     },
     trialWelcome,
+    selectedPlan: (c.selected_plan as string | null) ?? null,
+    websiteScrapeStatus: (client.website_scrape_status as string | null) ?? null,
+    activation: {
+      state: activation,
+      twilio_number_present: !!client.twilio_number,
+      setup_complete: (c.setup_complete as boolean | null) ?? null,
+    },
+    knowledge: {
+      approved_chunk_count: approvedChunks.length,
+      pending_review_count: pendingChunks.length,
+      source_types: sourceTypes,
+      last_updated_at: lastUpdatedAt,
+    },
     editableFields: {
       hoursWeekday: (c.business_hours_weekday as string | null) ?? null,
       hoursWeekend: (c.business_hours_weekend as string | null) ?? null,

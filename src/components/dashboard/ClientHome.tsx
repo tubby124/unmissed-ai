@@ -1,21 +1,34 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
-import TrialKnowledgeCards from '@/components/dashboard/TrialKnowledgeCards'
-import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
-import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
 import { deriveTrialPhase } from '@/lib/trial-display-state'
+import { deriveHomePhase } from '@/lib/derive-home-phase'
+import type { ActivationState } from '@/lib/derive-activation-state'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import ErrorCard from '@/components/dashboard/ErrorCard'
 import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
+import { useHomeSheet } from '@/hooks/useHomeSheet'
+
+// Bento tile components
+import TrialExpiredHero from './home/TrialExpiredHero'
+import TrialWelcomeBanner from './home/TrialWelcomeBanner'
+import ProofStrip from './home/ProofStrip'
+import StatsHeroCard from './home/StatsHeroCard'
+import ActivationTile from './home/ActivationTile'
+import AgentKnowledgeTile from './home/AgentKnowledgeTile'
+import AgentIdentityTile from './home/AgentIdentityTile'
+import CallHandlingTile from './home/CallHandlingTile'
+import NotificationsTile from './home/NotificationsTile'
+import SuggestedTestPrompts from './home/SuggestedTestPrompts'
+import HomeSideSheet from './home/HomeSideSheet'
 
 interface HomeData {
   admin: boolean
@@ -85,6 +98,20 @@ interface HomeData {
     websiteUrl: string | null
     businessFacts: string | null
   }
+  // New fields added in Phase 1
+  selectedPlan: string | null
+  websiteScrapeStatus: string | null
+  activation: {
+    state: ActivationState
+    twilio_number_present: boolean
+    setup_complete: boolean | null
+  }
+  knowledge: {
+    approved_chunk_count: number
+    pending_review_count: number
+    source_types: string[]
+    last_updated_at: string | null
+  }
 }
 
 function formatPhone(phone: string | null): string {
@@ -129,20 +156,20 @@ export default function ClientHome() {
   const [data, setData] = useState<HomeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
-  const [welcomeDismissed, setWelcomeDismissed] = useState(true) // start dismissed to avoid flash
+  const [welcomeDismissed, setWelcomeDismissed] = useState(true)
   const [postCallDismissed, setPostCallDismissed] = useState(false)
   const hasTrackedCallEnd = useRef(false)
   const hasAutoOpenedUpgrade = useRef(false)
   const searchParams = useSearchParams()
-  const adminClientId = searchParams.get('client_id') // admin cloak param
+  const adminClientId = searchParams.get('client_id')
   const { callState, resetCall } = useCallContext()
   const { openUpgradeModal } = useUpgradeModal()
+  const sheet = useHomeSheet()
 
   useEffect(() => {
     setWelcomeDismissed(localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true')
   }, [])
 
-  // Track test_call_completed once per call cycle; reset dismissed state on next call
   useEffect(() => {
     if (callState === 'ended' && !hasTrackedCallEnd.current) {
       hasTrackedCallEnd.current = true
@@ -154,7 +181,6 @@ export default function ClientHome() {
     }
   }, [callState])
 
-  // Track urgency/expiry events once per load (data-driven)
   useEffect(() => {
     if (!data) return
     const phase = deriveTrialPhase({
@@ -167,11 +193,10 @@ export default function ClientHome() {
     else if (phase === 'active_urgent') trackEvent('urgent_trial_banner_seen')
   }, [data])
 
-  // Auto-open upgrade modal when redirected from a trial-locked route (?upgrade=1)
   useEffect(() => {
     if (hasAutoOpenedUpgrade.current) return
     if (searchParams.get('upgrade') !== '1') return
-    if (!data) return // wait for data to get clientId + daysLeft
+    if (!data) return
     hasAutoOpenedUpgrade.current = true
     openUpgradeModal('locked_route', data.clientId, data.trialWelcome.daysLeft ?? undefined)
     const cleaned = new URL(window.location.href)
@@ -179,7 +204,7 @@ export default function ClientHome() {
     window.history.replaceState({}, '', cleaned.toString())
   }, [data, searchParams, openUpgradeModal])
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const url = adminClientId
       ? `/api/dashboard/home?client_id=${adminClientId}`
       : '/api/dashboard/home'
@@ -192,6 +217,8 @@ export default function ClientHome() {
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false))
   }, [adminClientId])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   if (loading) {
     return (
@@ -230,23 +257,25 @@ export default function ClientHome() {
   if (data.admin) return null
 
   const { agent, stats, usage, recentCalls, capabilities, onboarding } = data
-  const usagePct = usage.totalAvailable > 0 ? Math.min((usage.minutesUsed / usage.totalAvailable) * 100, 100) : 0
-  const usageHigh = usagePct >= 80
 
   const homeClientId = data.clientId
   const daysRemaining = data.trialWelcome.daysLeft ?? undefined
+
   const trialPhase = deriveTrialPhase({
     subscriptionStatus: onboarding.subscriptionStatus,
     daysLeft: data.trialWelcome.daysLeft,
     isTrialExpired: data.trialWelcome.isTrialExpired,
   })
+  const homePhase = deriveHomePhase(trialPhase, data.activation?.state ?? 'awaiting_number')
   const isTrial = trialPhase !== 'paid_or_non_trial'
   const isTrialActive = trialPhase !== 'expired' && trialPhase !== 'paid_or_non_trial'
   const isExpired = trialPhase === 'expired'
-  const isUrgent = trialPhase === 'active_urgent' || trialPhase === 'active_final'
   const showChecklist = onboarding.clientStatus === 'active' && !isExpired
   const hasRealCalls = stats.totalCalls > 0
   const justUpgraded = searchParams.get('upgraded') === 'true'
+
+  // ProofStrip: most recent completed call from recentCalls (not 'live')
+  const lastCompletedCall = recentCalls.find(c => c.call_status !== 'live') ?? null
 
   function dismissWelcome() {
     localStorage.setItem(WELCOME_DISMISSED_KEY, 'true')
@@ -254,397 +283,286 @@ export default function ClientHome() {
     trackEvent('trial_welcome_banner_dismissed', { trial_phase: trialPhase })
   }
 
-  // Action items (non-trial only — trial has focused guidance cards)
-  const actions: { text: string; link: string; priority: 'high' | 'medium' | 'low' }[] = []
-  if (!isTrial && !showChecklist) {
-    if (!capabilities.hasFacts && !capabilities.hasFaqs) {
-      actions.push({ text: 'Teach your agent about your business', link: '/dashboard/settings?tab=knowledge', priority: 'high' })
-    }
-    if (!capabilities.hasWebsite) {
-      actions.push({ text: 'Add your website to teach your agent more', link: '/dashboard/settings?tab=knowledge', priority: 'medium' })
-    }
-    if (!capabilities.hasHours) {
-      actions.push({ text: 'Set your business hours', link: '/dashboard/setup', priority: 'medium' })
-    }
-    if (usageHigh) {
-      actions.push({ text: `${usage.minutesUsed} of ${usage.totalAvailable} minutes used this month`, link: '/dashboard/settings?tab=billing', priority: 'high' })
-    }
-  }
-
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <>
+      <div className="p-3 sm:p-6 space-y-4">
 
-      {/* Upgrade success — shown when Stripe redirects back with ?upgraded=true */}
-      {justUpgraded && (
-        <div
-          className="rounded-2xl p-4 sm:p-5 flex items-start gap-3"
-          style={{ background: 'var(--color-success-tint)', border: '1px solid color-mix(in srgb, var(--color-success) 25%, transparent)' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-success)' }}>
-            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <div>
-            <p className="text-sm font-semibold t1">You&apos;re upgraded — welcome to the team</p>
-            <p className="text-xs t3 mt-0.5 leading-relaxed">Your account is now active. Complete your phone setup to start receiving real calls.</p>
-            <a href="/dashboard/setup" className="text-xs font-semibold mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
-              Finish setup →
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Trial expired hero — full-width, non-dismissable */}
-      {isExpired && (
-        <div
-          className="rounded-2xl p-5 sm:p-6 text-center"
-          style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, var(--color-surface) 100%)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(239,68,68,0.12)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)' }}>
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <h2 className="text-base font-semibold t1 mb-1">Your free trial has ended</h2>
-          <p className="text-sm t3 mb-4 leading-relaxed max-w-sm mx-auto">
-            Get a real phone number and start taking calls from actual customers.
-          </p>
-          <button
-            onClick={() => { trackEvent('expired_upgrade_clicked'); openUpgradeModal('trial_expired_hero', homeClientId) }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--color-primary)' }}
+        {/* ── Upgrade success banner ─────────────────────────────── */}
+        {justUpgraded && (
+          <div
+            className="rounded-2xl p-4 sm:p-5 flex items-start gap-3"
+            style={{ background: 'var(--color-success-tint)', border: '1px solid color-mix(in srgb, var(--color-success) 25%, transparent)' }}
           >
-            Get Your Phone Number
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-success)' }}>
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Trial welcome banner — dismissable, active trials only */}
-      {isTrialActive && !welcomeDismissed && (
-        <div
-          className="rounded-2xl p-4 sm:p-5 relative"
-          style={{
-            background: isUrgent
-              ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, var(--color-surface) 100%)'
-              : 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-surface) 100%)',
-            border: isUrgent ? '1px solid rgba(245,158,11,0.25)' : '1px solid var(--color-border)',
-          }}
-        >
-          <button
-            onClick={dismissWelcome}
-            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full hover:bg-hover transition-colors"
-            style={{ color: 'var(--color-text-3)' }}
-            aria-label="Dismiss"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-          <div className="flex items-start gap-3 pr-8">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: isUrgent ? 'rgba(245,158,11,0.15)' : 'var(--color-primary)' }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke={isUrgent ? 'rgb(245,158,11)' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <div>
+              <p className="text-sm font-semibold t1">You&apos;re upgraded — welcome to the team</p>
+              <p className="text-xs t3 mt-0.5 leading-relaxed">Your account is now active. Complete your phone setup to start receiving real calls.</p>
+              <a href="/dashboard/setup" className="text-xs font-semibold mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
+                Finish setup →
+              </a>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-semibold t1">
-                  {data.trialWelcome.provisioningState === 'ready'
-                    ? `${data.trialWelcome.agentName} is ready to test`
-                    : data.trialWelcome.provisioningState === 'pending'
-                    ? `${data.trialWelcome.agentName} is being set up`
-                    : 'Your agent is being provisioned'}
-                </p>
-                {data.trialWelcome.daysLeft !== null && (
-                  <span
-                    className="text-[11px] px-2 py-0.5 rounded-full font-semibold leading-none whitespace-nowrap"
-                    style={{
-                      backgroundColor: trialPhase === 'active_final' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.10)',
-                      color: trialPhase === 'active_final' ? 'rgb(239,68,68)' : 'rgb(245,158,11)',
-                    }}
-                  >
-                    {trialPhase === 'active_final'
-                      ? 'Last day'
-                      : `${data.trialWelcome.daysLeft} day${data.trialWelcome.daysLeft !== 1 ? 's' : ''} left`}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs t3 mt-1 leading-relaxed">
-                {data.trialWelcome.provisioningState === 'ready'
-                  ? isUrgent
-                    ? "Time's running out — upgrade now to keep your agent taking real calls."
-                    : "Everything's ready. Start a test call to hear how it handles real callers."
-                  : data.trialWelcome.provisioningState === 'pending'
-                  ? "We're still setting up part of your account. You can start testing now."
-                  : 'Your agent is still being provisioned. Check back shortly.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Trial label above the orb — active trials only */}
-      {isTrialActive && onboarding.hasAgent && (
-        <p className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-2" style={{ color: isUrgent ? 'rgb(245,158,11)' : 'var(--color-primary)' }}>
-          {isUrgent ? 'Test before your trial ends' : 'Your AI receptionist is ready — call it now'}
-        </p>
-      )}
-
-      {/* Test your agent — the aha moment (suppressed when trial expired) */}
-      {onboarding.hasAgent && !isExpired && (
-        <AgentTestCard
-          agentName={agent.name}
-          businessName={onboarding.businessName}
-          clientStatus={onboarding.clientStatus}
-          isTrial={isTrial}
-          clientId={homeClientId}
-          daysRemaining={daysRemaining}
-        />
-      )}
-
-      {/* Post-call improvement loop — active trial users only, shown after each completed test call */}
-      {isTrialActive && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
-        <PostCallImprovementPanel
-          hasHours={data.trialWelcome.hasHours}
-          hasFaqs={data.trialWelcome.hasFaqs}
-          hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
-          existingFaqs={data.editableFields.faqs}
-          onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
-          onRetest={resetCall}
-          clientId={homeClientId}
-          daysRemaining={daysRemaining}
-        />
-      )}
-
-      {/* Onboarding checklist */}
-      {showChecklist && (
-        <OnboardingChecklist
-          hasPhoneNumber={onboarding.hasPhoneNumber}
-          hasReceivedCall={hasRealCalls}
-          telegramConnected={onboarding.telegramConnected}
-          hasKnowledge={capabilities.hasKnowledge}
-          isTrial={isTrial}
-        />
-      )}
-
-      {/* Hero stats card — hidden for active trial users with no calls; always shown for expired/paid */}
-      {(!isTrialActive || hasRealCalls) && (
-        <div data-tour="agent-hero" className="rounded-2xl p-5 sm:p-6 card-surface">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'active' ? 'bg-green-400' : 'bg-amber-400'}`} />
-            <h1 className="text-lg font-semibold t1">{agent.name}</h1>
-            {isTrial ? (
-              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                isExpired
-                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-red-400' : 'bg-amber-400'}`} />
-                {isExpired ? 'Trial ended' : 'Trial'}
-              </span>
-            ) : (
-              <span
-                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: agent.status === 'active' ? 'var(--color-success-tint)' : 'var(--color-warning-tint)',
-                  color: agent.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)',
-                }}
-              >
-                {agent.status === 'active' ? 'Live' : agent.status}
-              </span>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <p className="text-3xl font-bold t1 tracking-tight">
-              {stats.totalCalls}
-              <span className="text-sm font-normal t3 ml-2">
-                call{stats.totalCalls !== 1 ? 's' : ''} this month
-              </span>
-            </p>
-            <TrendBadge value={stats.trends.callsChange} />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[12px] t3">
-                <span className={`font-semibold ${usageHigh ? 'text-amber-400' : 't1'}`}>{usage.minutesUsed}</span> of {usage.totalAvailable} minutes used
-              </p>
-              <p className="text-[11px] t3">{Math.round(usagePct)}%</p>
-            </div>
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
-              <div
-                className={`h-full rounded-full transition-all ${usageHigh ? 'bg-amber-500' : 'bg-blue-500'}`}
-                style={{ width: `${usagePct}%` }}
-              />
-            </div>
-            {usage.bonusMinutes > 0 && (
-              <p className="text-[11px] t3 mt-1">Includes {usage.bonusMinutes} bonus minutes</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Inline-editable knowledge cards — active trial users only */}
-      {isTrialActive && homeClientId && (
-        <TrialKnowledgeCards
-          clientId={homeClientId}
-          isAdmin={false}
-          initialHoursWeekday={data.editableFields.hoursWeekday}
-          initialHoursWeekend={data.editableFields.hoursWeekend}
-          initialFaqs={data.editableFields.faqs}
-          initialForwardingNumber={data.editableFields.forwardingNumber}
-          initialWebsiteUrl={data.editableFields.websiteUrl}
-          isExpired={isExpired}
-          trialPhase={trialPhase}
-          onRetest={resetCall}
-        />
-      )}
-
-      {/* Agent Intelligence Section — what the agent knows + unlock previews */}
-      {onboarding.hasAgent && (
-        <AgentIntelligenceSection
-          agentName={agent.name}
-          businessName={onboarding.businessName}
-          hoursWeekday={data.editableFields.hoursWeekday}
-          faqs={data.editableFields.faqs}
-          businessFacts={data.editableFields.businessFacts}
-          websiteUrl={data.editableFields.websiteUrl}
-          hasKnowledge={capabilities.hasKnowledge}
-          hasSms={capabilities.hasSms}
-          hasBooking={capabilities.hasBooking}
-          hasTransfer={capabilities.hasTransfer}
-          isTrial={isTrial}
-          clientId={homeClientId}
-        />
-      )}
-
-      {/* Capabilities + voice summary — always shown once agent exists */}
-      {onboarding.hasAgent && (
-        <CapabilitiesCard
-          capabilities={capabilities}
-          agentName={agent.name}
-          voiceStylePreset={agent.voiceStylePreset}
-          isTrial={isTrial}
-          clientId={homeClientId}
-        />
-      )}
-
-      {/* Subtle upgrade nudge — active trial only (expired has dedicated hero above) */}
-      {isTrialActive && (
-        <div className="text-center pb-1">
-          <button
-            onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
-            className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
-          >
-            Ready to take real calls? Get a phone number →
-          </button>
-        </div>
-      )}
-
-      {/* Quick stats row — only when there are real calls */}
-      {hasRealCalls && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="rounded-2xl p-4 card-surface">
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Hot Leads</p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
-              <TrendBadge value={stats.trends.hotChange} />
-            </div>
-          </div>
-          <div className="rounded-2xl p-4 card-surface">
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Bookings</p>
-            <p className="text-2xl font-bold t1">{stats.bookings}</p>
-          </div>
-          <div className="rounded-2xl p-4 card-surface col-span-2 sm:col-span-1">
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Avg Quality</p>
-            <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Action items — non-trial only */}
-      {actions.length > 0 && (
-        <div className="rounded-2xl p-4 space-y-2 card-surface">
-          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Suggested Actions</p>
-          {actions.map((action, i) => (
-            <Link
-              key={i}
-              href={action.link}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-hover"
-            >
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                action.priority === 'high' ? 'bg-amber-400' : action.priority === 'medium' ? 'bg-blue-400' : 'bg-zinc-500'
-              }`} />
-              <span className="text-xs t2">{action.text}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="t3 ml-auto shrink-0">
-                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Recent calls */}
-      <div className="rounded-2xl p-4 card-surface">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
-          <Link href="/dashboard/calls" className="text-[12px] font-medium hover:opacity-75 transition-opacity" style={{ color: 'var(--color-primary)' }}>
-            View all
-          </Link>
-        </div>
-
-        {recentCalls.length === 0 ? (
-          <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent above to get started.</p>
-        ) : (
-          <div className="space-y-1">
-            {recentCalls.map(call => {
-              const isTestCall = call.call_status === 'test'
-              const row = (
-                <div
-                  key={call.id}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-hover"
-                >
-                  <span className="shrink-0">
-                    {isTestCall ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-400">Test</span>
-                    ) : (
-                      <StatusBadge status={call.call_status} showDot={false} />
-                    )}
-                  </span>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium t1 truncate">
-                      {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
-                    </p>
-                    {!isTestCall && call.ai_summary && (
-                      <p className="text-[11px] t3 truncate">{call.ai_summary}</p>
-                    )}
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
-                    <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
-                  </div>
-                </div>
-              )
-
-              // Link to call detail only for real calls with a valid ultravox_call_id
-              return isTestCall ? row : (
-                <Link key={call.id} href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`} className="block cursor-pointer">
-                  {row}
-                </Link>
-              )
-            })}
           </div>
         )}
+
+        {/* ── Phase: trial_expired ───────────────────────────────── */}
+        {homePhase === 'trial_expired' && (
+          <TrialExpiredHero
+            clientId={homeClientId}
+            onUpgradeClick={() => openUpgradeModal('trial_expired_hero', homeClientId)}
+          />
+        )}
+
+        {/* ── Trial welcome banner (active trials, dismissable) ─── */}
+        {isTrialActive && !welcomeDismissed && (
+          <TrialWelcomeBanner
+            trialPhase={trialPhase}
+            agentName={data.trialWelcome.agentName}
+            daysLeft={data.trialWelcome.daysLeft}
+            provisioningState={data.trialWelcome.provisioningState}
+            onDismiss={dismissWelcome}
+          />
+        )}
+
+        {/* ── Trial label above orb ──────────────────────────────── */}
+        {isTrialActive && onboarding.hasAgent && (
+          <p
+            className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-1"
+            style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
+          >
+            {(trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'Test before your trial ends' : 'Your AI receptionist is ready — call it now'}
+          </p>
+        )}
+
+        {/* ── Agent test card ────────────────────────────────────── */}
+        {onboarding.hasAgent && !isExpired && (
+          <AgentTestCard
+            agentName={agent.name}
+            businessName={onboarding.businessName}
+            clientStatus={onboarding.clientStatus}
+            isTrial={isTrial}
+            clientId={homeClientId}
+            daysRemaining={daysRemaining}
+          />
+        )}
+
+        {/* ── Post-call improvement loop (trial, after test call) ── */}
+        {isTrialActive && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
+          <PostCallImprovementPanel
+            hasHours={data.trialWelcome.hasHours}
+            hasFaqs={data.trialWelcome.hasFaqs}
+            hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
+            existingFaqs={data.editableFields.faqs}
+            onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
+            onRetest={resetCall}
+            clientId={homeClientId}
+            daysRemaining={daysRemaining}
+          />
+        )}
+
+        {/* ── Suggested test prompts (trial, before first test) ──── */}
+        {isTrialActive && callState === 'idle' && !postCallDismissed && (
+          <SuggestedTestPrompts
+            hasHours={!!data.editableFields.hoursWeekday}
+            hasFaqs={data.editableFields.faqs.length > 0}
+            hasTransfer={capabilities.hasTransfer}
+            firstFaqQuestion={data.editableFields.faqs[0]?.q ?? null}
+            onPromptClick={() => {}}
+          />
+        )}
+
+        {/* ── Proof strip — last completed call ─────────────────── */}
+        {homePhase !== 'trial_expired' && lastCompletedCall && (
+          <ProofStrip
+            call={lastCompletedCall}
+            hasHours={capabilities.hasHours}
+            hasFaqs={capabilities.hasFaqs}
+            hasForwardingNumber={!!data.editableFields.forwardingNumber}
+            onRetest={resetCall}
+          />
+        )}
+
+        {/* ── Onboarding checklist ───────────────────────────────── */}
+        {showChecklist && (
+          <OnboardingChecklist
+            hasPhoneNumber={onboarding.hasPhoneNumber}
+            hasReceivedCall={hasRealCalls}
+            telegramConnected={onboarding.telegramConnected}
+            hasKnowledge={capabilities.hasKnowledge}
+            isTrial={isTrial}
+          />
+        )}
+
+        {/* ── Stats hero card ────────────────────────────────────── */}
+        {(!isTrialActive || hasRealCalls) && (
+          <StatsHeroCard
+            agentName={agent.name}
+            agentStatus={agent.status}
+            isTrial={isTrial}
+            isExpired={isExpired}
+            totalCalls={stats.totalCalls}
+            callsTrend={stats.trends.callsChange}
+            minutesUsed={usage.minutesUsed}
+            totalAvailable={usage.totalAvailable}
+            bonusMinutes={usage.bonusMinutes}
+            onUpgrade={() => openUpgradeModal('home_stats_usage', homeClientId, daysRemaining)}
+          />
+        )}
+
+        {/* ── Bento grid: knowledge + call handling + notifications ─ */}
+        {onboarding.hasAgent && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Knowledge tile */}
+            <AgentKnowledgeTile
+              clientId={homeClientId}
+              selectedPlan={data.selectedPlan}
+              subscriptionStatus={onboarding.subscriptionStatus}
+              websiteScrapeStatus={data.websiteScrapeStatus}
+              knowledge={data.knowledge}
+              editableFields={data.editableFields}
+              onOpenSheet={() => sheet.open('knowledge')}
+            />
+
+            {/* Call handling tile */}
+            <CallHandlingTile
+              selectedPlan={data.selectedPlan}
+              subscriptionStatus={onboarding.subscriptionStatus}
+              capabilities={capabilities}
+              knowledge={data.knowledge}
+              onOpenSheet={sheet.open}
+            />
+
+            {/* Activation tile — paid_awaiting only */}
+            {homePhase === 'paid_awaiting' && data.activation && (
+              <div className="sm:col-span-2">
+                <ActivationTile
+                  state={data.activation.state}
+                  onOpenForwardingSheet={() => sheet.open('forwarding')}
+                  onRefreshClick={fetchData}
+                />
+              </div>
+            )}
+
+            {/* Identity tile */}
+            <AgentIdentityTile
+              agentName={agent.name}
+              niche={agent.niche}
+              voiceStylePreset={agent.voiceStylePreset}
+              onOpenSheet={() => sheet.open('identity')}
+            />
+
+            {/* Notifications tile */}
+            <NotificationsTile
+              telegramConnected={onboarding.telegramConnected}
+              agentName={agent.name}
+              onOpenSheet={() => sheet.open('notifications')}
+            />
+          </div>
+        )}
+
+        {/* ── Quick stats row (real calls only) ─────────────────── */}
+        {hasRealCalls && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="rounded-2xl p-4 card-surface">
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Hot Leads</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-red-400">{stats.hotLeads}</p>
+                <TrendBadge value={stats.trends.hotChange} />
+              </div>
+            </div>
+            <div className="rounded-2xl p-4 card-surface">
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Bookings</p>
+              <p className="text-2xl font-bold t1">{stats.bookings}</p>
+            </div>
+            <div className="rounded-2xl p-4 card-surface col-span-2 sm:col-span-1">
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Avg Quality</p>
+              <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Trial quiet upgrade nudge ──────────────────────────── */}
+        {isTrialActive && (
+          <div className="text-center pb-1">
+            <button
+              onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
+              className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
+            >
+              Ready to take real calls? Get a phone number →
+            </button>
+          </div>
+        )}
+
+        {/* ── Recent calls ───────────────────────────────────────── */}
+        <div className="rounded-2xl p-4 card-surface">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
+            <Link href="/dashboard/calls" className="text-[12px] font-medium hover:opacity-75 transition-opacity" style={{ color: 'var(--color-primary)' }}>
+              View all
+            </Link>
+          </div>
+
+          {recentCalls.length === 0 ? (
+            <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent above to get started.</p>
+          ) : (
+            <div className="space-y-1">
+              {recentCalls.map(call => {
+                const isTestCall = call.call_status === 'test'
+                const row = (
+                  <div
+                    key={call.id}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-hover"
+                  >
+                    <span className="shrink-0">
+                      {isTestCall ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-400">Test</span>
+                      ) : (
+                        <StatusBadge status={call.call_status} showDot={false} />
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium t1 truncate">
+                        {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
+                      </p>
+                      {!isTestCall && call.ai_summary && (
+                        <p className="text-[11px] t3 truncate">{call.ai_summary}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                      <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
+                    </div>
+                  </div>
+                )
+                return isTestCall ? row : (
+                  <Link key={call.id} href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`} className="block cursor-pointer">
+                    {row}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* ── HomeSideSheet — single host for all 6 sheet types ─── */}
+      <HomeSideSheet
+        openSheet={sheet.openSheet}
+        onClose={sheet.close}
+        markDirty={sheet.markDirty}
+        markClean={sheet.markClean}
+        clientId={homeClientId}
+        isAdmin={false}
+        agentName={agent.name}
+        editableFields={data.editableFields}
+        websiteScrapeStatus={data.websiteScrapeStatus}
+        knowledge={data.knowledge}
+        selectedPlan={data.selectedPlan}
+        subscriptionStatus={onboarding.subscriptionStatus}
+        telegramConnected={onboarding.telegramConnected}
+        onDataRefresh={fetchData}
+      />
+    </>
   )
 }
