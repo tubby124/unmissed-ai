@@ -29,50 +29,25 @@ function KnowledgeCards({
   const config = buildClientAgentConfig(client)
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {/* ── Needs Attention ──────────────────────────────────────────────────── */}
 
       {/* Questions from calls the agent couldn't answer */}
-      <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
+      <div className="sm:col-span-2">
+        <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
+      </div>
 
       {/* Knowledge chunks waiting for review */}
-      <PendingSuggestions clientId={client.id} />
+      <div className="sm:col-span-2">
+        <PendingSuggestions clientId={client.id} />
+      </div>
 
       {/* ── Current knowledge ────────────────────────────────────────────────── */}
 
       {/* Summary card — what the agent currently knows */}
       <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
 
-      {/* ── Test & manage ────────────────────────────────────────────────────── */}
-
-      {/* Knowledge engine (pgvector) — includes Test Query and chunk library */}
-      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-        <KnowledgeEngineCard
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          onClientUpdate={() => {}}
-        />
-      </PlanGate>
-
-      {/* ── Add knowledge ────────────────────────────────────────────────────── */}
-
-      {/* Business facts & FAQs */}
-      <AdvancedContextCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialFacts={client.business_facts ?? ''}
-        initialQA={client.extra_qa ?? []}
-        initialContextData={client.context_data ?? ''}
-        initialContextDataLabel={client.context_data_label ?? ''}
-        prompt={client.system_prompt ?? ''}
-        injectedNote={client.injected_note ?? ''}
-        knowledgeEnabled={knowledgeActive}
-        timezone={client.timezone ?? 'America/Regina'}
-        previewMode={previewMode}
-      />
-
-      {/* Website knowledge */}
+      {/* Website knowledge — sits beside AgentKnowledgeCard */}
       <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
         <WebsiteKnowledgeCard
           client={client}
@@ -80,6 +55,39 @@ function KnowledgeCards({
           previewMode={previewMode}
         />
       </PlanGate>
+
+      {/* ── Add knowledge ────────────────────────────────────────────────────── */}
+
+      {/* Business facts & FAQs */}
+      <div className="sm:col-span-2">
+        <AdvancedContextCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialFacts={client.business_facts ?? ''}
+          initialQA={client.extra_qa ?? []}
+          initialContextData={client.context_data ?? ''}
+          initialContextDataLabel={client.context_data_label ?? ''}
+          prompt={client.system_prompt ?? ''}
+          injectedNote={client.injected_note ?? ''}
+          knowledgeEnabled={knowledgeActive}
+          timezone={client.timezone ?? 'America/Regina'}
+          previewMode={previewMode}
+        />
+      </div>
+
+      {/* ── Test & manage ────────────────────────────────────────────────────── */}
+
+      {/* Knowledge engine (pgvector) — includes Test Query and chunk library */}
+      <div className="sm:col-span-2">
+        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+          <KnowledgeEngineCard
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+            onClientUpdate={() => {}}
+          />
+        </PlanGate>
+      </div>
     </div>
   )
 }
@@ -144,7 +152,7 @@ export default function KnowledgePageView({ clients, isAdmin, previewMode, initi
   const callActive = callState === 'active' || callState === 'connecting'
 
   return (
-    <div className="p-3 sm:p-6 space-y-6 max-w-3xl">
+    <div className="p-3 sm:p-6 space-y-4 max-w-4xl">
       <div className="flex items-center justify-between gap-3">
         {isAdmin && clients.length > 1 ? (
           <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
