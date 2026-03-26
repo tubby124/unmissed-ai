@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     content: p,
     chunkType: 'document',
     source: 'knowledge_doc',
-    status: 'approved',
+    status: 'pending',
     trustTier: 'high',
   }))
 
