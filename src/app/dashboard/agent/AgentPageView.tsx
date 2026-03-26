@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AgentIdentityHeader from '@/components/dashboard/settings/AgentIdentityHeader'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
+import VoicePicker from '@/components/dashboard/settings/VoicePicker'
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
@@ -259,12 +260,20 @@ function AgentCards({
       {/* ── 4. Voice & Style ───────────────────────────────── */}
       <div>
         <SectionLabel>Voice &amp; Style</SectionLabel>
-        <VoiceStyleCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialPreset={client.voice_style_preset ?? 'casual_friendly'}
-          previewMode={previewMode}
-        />
+        <div className="space-y-3">
+          {/* Speaker voice — controls agent_voice_id, syncs live agent */}
+          <div className="rounded-2xl border b-theme bg-surface p-5">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Speaker</p>
+            <VoicePicker client={client} isAdmin={isAdmin} />
+          </div>
+          {/* Personality — controls voice_style_preset (prompt patch) */}
+          <VoiceStyleCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            initialPreset={client.voice_style_preset ?? 'casual_friendly'}
+            previewMode={previewMode}
+          />
+        </div>
       </div>
 
       {/* ── 5. What It Knows ───────────────────────────────── */}
