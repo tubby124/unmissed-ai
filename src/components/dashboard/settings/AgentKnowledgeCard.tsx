@@ -176,13 +176,13 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
             <button
               onClick={saveNewQa}
               disabled={saving || !newQ.trim() || !newA.trim()}
-              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-all disabled:opacity-40"
+              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-500 hover:bg-blue-400 text-white transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
             >
               {saving ? 'Saving…' : 'Add Q&A'}
             </button>
             <button
               onClick={cancelAdd}
-              className="px-3 py-1.5 rounded-xl text-xs t3 hover:t2 transition-colors"
+              className="px-3 py-1.5 rounded-xl text-xs t3 hover:t2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
             >
               Cancel
             </button>
@@ -191,7 +191,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-hover hover:bg-surface text-xs t3 hover:t2 transition-colors"
+          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-transparent hover:bg-hover text-xs t3 hover:t2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
             <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -211,7 +211,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
             <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="font-semibold text-amber-400/90">Teach your agent more</span>
-          <span className="t3">— add your website below →</span>
+          <span className="t3">— add your website in Knowledge →</span>
         </a>
       )}
     </div>

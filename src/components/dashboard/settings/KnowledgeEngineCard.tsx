@@ -260,13 +260,15 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
 
   return (
     <div className="rounded-2xl border b-theme bg-surface p-5">
-      {/* Header row */}
-      <button
-        onClick={() => setCollapsed(v => !v)}
-        className="w-full flex items-center justify-between"
-      >
-        <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3">
+      {/* Header row — split into two siblings to avoid nested <button> (H2) */}
+      <div className="w-full flex items-center justify-between">
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand Knowledge Engine' : 'Collapse Knowledge Engine'}
+          className="flex items-center gap-2 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Knowledge Engine</p>
@@ -282,7 +284,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
 
           {/* Chunk count badge */}
           {localEnabled && stats && !statsLoading && (
-            <span className="text-[9px] font-mono t3">
+            <span className="text-[9px] font-mono t3 tabular-nums">
               {stats.approved} chunk{stats.approved !== 1 ? 's' : ''}
               {stats.pending > 0 && (
                 <span className="text-amber-400"> + {stats.pending} pending</span>
@@ -292,7 +294,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
 
           {/* Uploaded doc count badge — only when docs exist or at limit */}
           {localEnabled && stats && !statsLoading && (stats.sourceCount > 0 || stats.sourceCount >= stats.maxSources) && (
-            <span className={`text-[9px] font-mono ${
+            <span className={`text-[9px] font-mono tabular-nums ${
               stats.sourceCount >= stats.maxSources ? 'text-amber-400' : 't3'
             }`}>
               {stats.sourceCount}/{stats.maxSources} doc{stats.maxSources !== 1 ? 's' : ''}
@@ -301,7 +303,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
 
           {/* Gaps badge */}
           {localEnabled && gapsCount > 0 && !statsLoading && (
-            <span className="text-[9px] font-mono text-amber-400/70">
+            <span className="text-[9px] font-mono text-amber-400/70 tabular-nums">
               {gapsCount} gap{gapsCount !== 1 ? 's' : ''}
             </span>
           )}
@@ -315,10 +317,10 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                 : '\u2713 Saved'}
             </span>
           )}
-        </div>
+        </button>
 
-        <div className="flex items-center gap-3">
-          {/* Admin toggle */}
+        <div className="flex items-center gap-3 ml-2 shrink-0">
+          {/* Admin toggle — sibling of collapse button, not nested inside it */}
           {isAdmin && (
             <PremiumToggle
               checked={localEnabled}
@@ -327,15 +329,22 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             />
           )}
 
-          {/* Collapse chevron */}
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            className={`t3 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+          {/* Collapse chevron — separate button */}
+          <button
+            onClick={() => setCollapsed(v => !v)}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand' : 'Collapse'}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
           >
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              className={`t3 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Description when collapsed */}
       {collapsed && (
@@ -416,7 +425,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                       if (data.url) window.location.href = data.url
                     } catch { /* silent */ }
                   }}
-                  className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+                  className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
                 >
                   Upgrade for more
                 </button>
@@ -463,12 +472,12 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
               </div>
 
               {gapSuccess && (
-                <p className="text-[10px] text-green-400">{gapSuccess}</p>
+                <p className="text-[10px] text-green-400" aria-live="polite">{gapSuccess}</p>
               )}
 
               <div className="space-y-1.5">
-                {gaps.map((gap, i) => (
-                  <div key={i}>
+                {gaps.map((gap) => (
+                  <div key={gap.query}>
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-[11px] t2 leading-relaxed line-clamp-1 flex-1">&ldquo;{gap.query}&rdquo;</p>
                       <div className="flex items-center gap-2 shrink-0">
@@ -487,7 +496,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                               setGapAnswer('')
                               setGapError(null)
                             }}
-                            className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                            className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
                           >
                             {answeringGap === gap.query ? 'Cancel' : 'Add Answer'}
                           </button>
@@ -515,20 +524,20 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                           <button
                             onClick={() => handleAddGapAnswer(gap.query, 'faq')}
                             disabled={gapSaving || !gapAnswer.trim()}
-                            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition-colors cursor-pointer"
+                            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
                             title="Injected into every call — best for frequently asked questions"
                           >
                             {gapSaving ? '...' : 'Add as FAQ'}
-                            <span className="block text-[8px] font-normal opacity-70">Always knows</span>
+                            <span className="block text-[10px] font-normal opacity-70">Always knows</span>
                           </button>
                           <button
                             onClick={() => handleAddGapAnswer(gap.query, 'knowledge')}
                             disabled={gapSaving || !gapAnswer.trim()}
-                            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-40 transition-colors cursor-pointer"
+                            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
                             title="Searched via RAG when relevant — best for detailed or rare questions"
                           >
                             {gapSaving ? '...' : 'Add to Knowledge'}
-                            <span className="block text-[8px] font-normal opacity-70">Searched when needed</span>
+                            <span className="block text-[10px] font-normal opacity-70">Searched when needed</span>
                           </button>
                         </div>
                       </div>
@@ -558,7 +567,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
               <button
                 onClick={handleTestQuery}
                 disabled={testLoading || !testQuery.trim() || previewMode}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium disabled:opacity-50 transition-colors shrink-0"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium disabled:opacity-50 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
               >
                 {testLoading ? '...' : 'Search'}
               </button>
@@ -618,7 +627,7 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
             <button
               onClick={handleToggle}
               disabled={toggling || previewMode}
-              className="mt-3 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40"
+              className="mt-3 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
             >
               {toggling ? 'Enabling...' : 'Enable Knowledge Engine'}
             </button>
