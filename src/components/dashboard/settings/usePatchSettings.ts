@@ -58,6 +58,16 @@ export function usePatchSettings(
   // SET-14: Store last payload that triggered a sync failure for retry
   const lastFailedPayload = useRef<Record<string, unknown> | null>(null)
 
+  // REFACTOR-1: Latest-ref pattern — options callbacks stay current without being useCallback deps.
+  // Cards pass inline { onSave, onPromptChange } objects that recreate every render; putting options
+  // in the dep array caused patch to also recreate every render.
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
+  // REFACTOR-2: Debounce router.refresh() — back-to-back saves can trigger two in-flight refreshes
+  // in Next.js 15 App Router which race and cause hydration mismatches.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const patch = useCallback(async (body: Record<string, unknown>) => {
     setSaving(true)
     setSaved(false)
@@ -102,18 +112,25 @@ export function usePatchSettings(
         setKnowledgeReseeded(true)
       }
       if (typeof data.system_prompt === 'string') {
-        options?.onPromptChange?.(data.system_prompt)
+        optionsRef.current?.onPromptChange?.(data.system_prompt)
       }
-      options?.onSave?.()
-      // Refresh server component data so other cards on the page see updated values
-      router.refresh()
-      // Toast feedback
+      optionsRef.current?.onSave?.()
+      // REFACTOR-2: Debounced refresh — coalesces back-to-back saves into a single navigation update.
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+      refreshTimerRef.current = setTimeout(() => { router.refresh() }, 300)
+      // REFACTOR-4: Use toast.warning when patcher warnings are present so the user isn't misled
+      // by a green ✓ Saved toast while an amber warning banner is also showing.
+      // Must check data.warnings (raw response) — React state hasn't re-rendered yet at this point.
       if (data.ultravox_synced === false && data.ultravox_error) {
         toast.warning('Saved, but agent sync failed — retry from the card')
+      } else if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+        toast.warning('Saved — see warning below')
       } else {
         toast.success('Saved')
       }
-      setTimeout(() => { setSaved(false); setSyncStatus(null); setWarnings([]); setKnowledgeReseeded(false) }, 5000)
+      // REFACTOR-3: Removed setWarnings([]) — warnings already clear at the start of each new
+      // patch() call (line 67), so the 5s auto-dismiss was silently swallowing them.
+      setTimeout(() => { setSaved(false); setSyncStatus(null); setKnowledgeReseeded(false) }, 5000)
     } else {
       const data = await res.json().catch(() => ({}))
       const msg = data.error || `Save failed (${res.status})`
@@ -121,7 +138,7 @@ export function usePatchSettings(
       toast.error(msg)
     }
     return res
-  }, [clientId, isAdmin, options])
+  }, [clientId, isAdmin])  // options removed — read via optionsRef (REFACTOR-1)
 
   // SET-14: Re-send the last failed payload to retry Ultravox sync
   const retrySyncFailed = useCallback(async () => {
