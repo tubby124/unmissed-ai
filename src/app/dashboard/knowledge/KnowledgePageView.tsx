@@ -8,6 +8,7 @@ import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngine
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
+import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import PlanGate from '@/components/dashboard/PlanGate'
 
@@ -27,11 +28,32 @@ function KnowledgeCards({
 
   return (
     <div className="space-y-6">
-      {/* Summary card — what the agent currently knows */}
-      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
+      {/* ── Needs Attention ──────────────────────────────────────────────────── */}
 
       {/* Questions from calls the agent couldn't answer */}
       <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
+
+      {/* Knowledge chunks waiting for review */}
+      <PendingSuggestions clientId={client.id} />
+
+      {/* ── Current knowledge ────────────────────────────────────────────────── */}
+
+      {/* Summary card — what the agent currently knows */}
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
+
+      {/* ── Test & manage ────────────────────────────────────────────────────── */}
+
+      {/* Knowledge engine (pgvector) — includes Test Query and chunk library */}
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+        <KnowledgeEngineCard
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+          onClientUpdate={() => {}}
+        />
+      </PlanGate>
+
+      {/* ── Add knowledge ────────────────────────────────────────────────────── */}
 
       {/* Business facts & FAQs */}
       <AdvancedContextCard
@@ -54,16 +76,6 @@ function KnowledgeCards({
           client={client}
           isAdmin={isAdmin}
           previewMode={previewMode}
-        />
-      </PlanGate>
-
-      {/* Knowledge engine (pgvector) */}
-      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-        <KnowledgeEngineCard
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          onClientUpdate={() => {}}
         />
       </PlanGate>
     </div>

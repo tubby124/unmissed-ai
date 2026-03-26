@@ -5,6 +5,9 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import BookingSettingsSection from '@/components/dashboard/actions/BookingSettingsSection'
 import TransferSettingsSection from '@/components/dashboard/actions/TransferSettingsSection'
 import MessagingSettingsSection from '@/components/dashboard/actions/MessagingSettingsSection'
+import HoursCard from '@/components/dashboard/settings/HoursCard'
+import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
+import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 
 // ─── Behavior summary ─────────────────────────────────────────────────────────
@@ -54,15 +57,50 @@ function ActionCards({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div id="hours">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Hours</p>
+        <HoursCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialWeekday={client.business_hours_weekday ?? ''}
+          initialWeekend={client.business_hours_weekend ?? ''}
+          initialBehavior={client.after_hours_behavior ?? 'take_message'}
+          initialPhone={client.after_hours_emergency_phone ?? ''}
+          previewMode={previewMode}
+        />
+      </div>
+      <div id="scheduling">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Scheduling</p>
         <BookingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>
-      <div>
+      <div id="call-menu">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Call Menu</p>
+        <IvrMenuCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialEnabled={!!client.ivr_enabled}
+          initialPrompt={client.ivr_prompt ?? ''}
+          businessName={client.business_name ?? null}
+          agentName={client.agent_name ?? null}
+          previewMode={previewMode}
+        />
+      </div>
+      <div id="voicemail">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Voicemail</p>
+        <VoicemailGreetingCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialText={client.voicemail_greeting_text ?? ''}
+          businessName={client.business_name ?? null}
+          hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+          previewMode={previewMode}
+        />
+      </div>
+      <div id="call-handoff">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Call Handoff</p>
         <TransferSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>
-      <div>
+      <div id="after-call">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>After-Call Follow-up</p>
         <MessagingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
       </div>

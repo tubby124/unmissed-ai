@@ -292,7 +292,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                               className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
                               style={{ color: pathname.startsWith('/dashboard/actions') ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: pathname.startsWith('/dashboard/actions') ? 600 : undefined }}
                             >
-                              Actions
+                              Call Handling
                             </Link>
                             <Link
                               href={`/dashboard/voices${cloakSuffix}`}

@@ -146,6 +146,12 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.weekly_digest_enabled === 'boolean') {
     updates.weekly_digest_enabled = body.weekly_digest_enabled
   }
+  if (typeof body.telegram_notifications_enabled === 'boolean') {
+    updates.telegram_notifications_enabled = body.telegram_notifications_enabled
+  }
+  if (typeof body.email_notifications_enabled === 'boolean') {
+    updates.email_notifications_enabled = body.email_notifications_enabled
+  }
   // Timezone — available to all roles (required for correct booking slot times per client)
   if (typeof body.timezone === 'string' && body.timezone) {
     updates.timezone = body.timezone

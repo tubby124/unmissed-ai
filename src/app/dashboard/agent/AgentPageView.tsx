@@ -1,40 +1,96 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
-import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
+import AgentIdentityHeader from '@/components/dashboard/settings/AgentIdentityHeader'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
-import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
-import HoursCard from '@/components/dashboard/settings/HoursCard'
-import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
-import BookingCard from '@/components/dashboard/settings/BookingCard'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
-import AgentCurrentVoiceCard from '@/components/dashboard/settings/AgentCurrentVoiceCard'
-import SettingsPanel from '@/components/dashboard/settings/SettingsPanel'
-import TransferSettingsSection from '@/components/dashboard/actions/TransferSettingsSection'
-import MessagingSettingsSection from '@/components/dashboard/actions/MessagingSettingsSection'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
-// ─── Voice style label map ────────────────────────────────────────────────────
+// ─── Bot animation keyframes (required by AgentIdentityHeader CSS classes) ────
 
-const VOICE_STYLE_LABELS: Record<string, string> = {
-  casual_friendly: 'casual, friendly',
-  professional_warm: 'professional, warm',
-  direct_efficient: 'direct, efficient',
+const BOT_KEYFRAMES = `
+  @keyframes antennaBlink {
+    0%, 90%, 100% { opacity: 1; }
+    95% { opacity: 0.2; }
+  }
+  @keyframes armWave {
+    0%, 100% { transform: rotate(-12deg); }
+    50% { transform: rotate(12deg); }
+  }
+  .bot-antenna { animation: antennaBlink 2.4s ease-in-out infinite; }
+  .bot-arm-l { animation: armWave 1.8s ease-in-out infinite; transform-origin: 80% 20%; }
+  .bot-arm-r { animation: armWave 1.8s ease-in-out infinite reverse; transform-origin: 20% 20%; }
+`
+
+// ─── Chevron icon ─────────────────────────────────────────────────────────────
+
+function ChevronRight({ className = '' }: { className?: string }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
 }
 
-// ─── Panel title map ──────────────────────────────────────────────────────────
+// ─── Agent name inline edit ───────────────────────────────────────────────────
 
-const PANEL_TITLES: Record<string, string> = {
-  hours: 'Answering Schedule',
-  ivr: 'Voicemail Menu (IVR)',
-  booking: 'Appointment Booking',
-  'agent-config': 'Live Transfer',
-  sms: 'SMS Follow-up',
+function AgentNameField({
+  clientId,
+  isAdmin,
+  initialName,
+}: {
+  clientId: string
+  isAdmin: boolean
+  initialName: string
+}) {
+  const [name, setName] = useState(initialName)
+  const savedName = useRef(initialName)
+  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+
+  return (
+    <div className="pt-4 border-t b-theme">
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-2">Agent persona name</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="flex-1 min-w-0 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+          placeholder="e.g. Aisha, Max, Riley"
+          maxLength={40}
+        />
+        <button
+          onClick={() => { patch({ agent_name: name }); savedName.current = name }}
+          disabled={saving || name === savedName.current}
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+            saved
+              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
+          } disabled:opacity-40`}
+        >
+          {saving ? 'Saving…' : saved ? '✓' : 'Save'}
+        </button>
+      </div>
+      <p className="text-[10px] t3 mt-1.5">The name your agent uses when introducing itself to callers.</p>
+    </div>
+  )
+}
+
+// ─── Section label ────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>
+      {children}
+    </p>
+  )
 }
 
 // ─── Inner card group — keyed on client.id so state resets on client switch ──
@@ -49,38 +105,112 @@ function AgentCards({
   previewMode?: boolean
 }) {
   const [statusLocal, setStatusLocal] = useState(client.status ?? 'active')
-  const [activePanel, setActivePanel] = useState<string | null>(null)
   const { patch } = usePatchSettings(client.id, isAdmin)
   const router = useRouter()
 
   const isActive = statusLocal === 'active'
 
   function toggleStatus() {
+    if (previewMode) return
     const newStatus = isActive ? 'paused' : 'active'
     setStatusLocal(newStatus)
     patch({ status: newStatus })
   }
 
+  // All capability configure clicks now route to dedicated pages — no inline drawers
   const handleConfigure = useCallback((section: string) => {
-    // Navigate to dedicated pages for knowledge-related sections
-    if (section === 'knowledge' || section === 'advanced-context') {
-      router.push('/dashboard/knowledge')
-      return
+    const dest: Record<string, string> = {
+      knowledge: '/dashboard/knowledge',
+      'advanced-context': '/dashboard/knowledge',
+      hours: '/dashboard/actions#hours',
+      booking: '/dashboard/actions#scheduling',
+      ivr: '/dashboard/actions#call-menu',
+      voicemail: '/dashboard/actions#voicemail',
+      'agent-config': '/dashboard/actions#call-handoff',
+      sms: '/dashboard/actions#after-call',
     }
-    // Voicemail: scroll to it on this page
-    if (section === 'voicemail') {
-      document.getElementById('voicemail-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
-    }
-    // Everything else opens in the panel
-    setActivePanel(section)
+    router.push(dest[section] ?? '/dashboard/actions')
   }, [router])
 
-  const voiceStyleLabel = VOICE_STYLE_LABELS[client.voice_style_preset ?? 'casual_friendly'] ?? 'casual, friendly'
+  // ── Usage ────────────────────────────────────────────────────────────────────
+  const minutesUsed = client.seconds_used_this_month != null
+    ? Math.ceil(client.seconds_used_this_month / 60)
+    : (client.minutes_used_this_month ?? 0)
+  const minuteLimit = (client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT) + (client.bonus_minutes ?? 0)
+  const usagePct = minuteLimit > 0 ? (minutesUsed / minuteLimit) * 100 : 0
+
+  // ── Needs Attention ──────────────────────────────────────────────────────────
+  const factLines = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
+  const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
+
+  type AttentionItem = { label: string; href: string; urgency: 'high' | 'medium' | 'low' }
+  const attentionItems: AttentionItem[] = []
+
+  if (client.calendar_auth_status === 'expired') {
+    attentionItems.push({
+      label: 'Google Calendar authorization expired — reconnect to restore appointment booking',
+      href: '/dashboard/actions#scheduling',
+      urgency: 'high',
+    })
+  }
+  if (usagePct >= 80) {
+    attentionItems.push({
+      label: `${Math.round(usagePct)}% of monthly minutes used`,
+      href: '/dashboard/setup',
+      urgency: usagePct >= 95 ? 'high' : 'medium',
+    })
+  }
+  if (factLines === 0 && faqCount === 0 && client.website_scrape_status !== 'approved') {
+    attentionItems.push({
+      label: 'Agent has no business knowledge — add facts, Q&A, or a website',
+      href: '/dashboard/knowledge',
+      urgency: 'medium',
+    })
+  }
+  if (client.website_url && client.website_scrape_status === 'extracted') {
+    attentionItems.push({
+      label: 'Website scraped and ready — review and approve your knowledge',
+      href: '/dashboard/knowledge',
+      urgency: 'medium',
+    })
+  }
+  if (!client.business_hours_weekday) {
+    attentionItems.push({
+      label: 'Business hours not set — callers can\'t be told when you\'re available',
+      href: '/dashboard/actions#hours',
+      urgency: 'low',
+    })
+  }
 
   return (
     <div className="space-y-6">
-      {/* ── Test Your Agent (orb) ─────────────────────────── */}
+      <style>{BOT_KEYFRAMES}</style>
+
+      {/* ── 1. Needs Attention — elevated above test card when active ── */}
+      {attentionItems.length > 0 && (
+        <div>
+          <SectionLabel>Needs Attention</SectionLabel>
+          <div className="rounded-2xl border b-theme bg-surface overflow-hidden divide-y" style={{ borderColor: 'var(--color-border)' }}>
+            {attentionItems.map((item, i) => (
+              <Link
+                key={i}
+                href={item.href}
+                className="flex items-center gap-3 px-5 py-3.5 hover:bg-hover transition-colors group"
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  item.urgency === 'high' ? 'bg-red-400' :
+                  item.urgency === 'medium' ? 'bg-amber-400' :
+                  'bg-zinc-500'
+                }`} />
+                <span className="text-xs t2 flex-1 leading-relaxed">{item.label}</span>
+                <ChevronRight className="t3 shrink-0 group-hover:t1 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. Test Your Agent ─────────────────────────────── */}
       <AgentTestCard
         agentName={client.agent_name ?? client.business_name ?? 'your agent'}
         businessName={client.business_name}
@@ -88,48 +218,97 @@ function AgentCards({
         isTrial={!isAdmin && client.subscription_status === 'trialing'}
       />
 
-      {/* ── Identity & Status ─────────────────────────────── */}
+      {/* ── 3. Agent Identity ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Identity &amp; Status</p>
-        <AgentOverviewCard
-          client={client}
-          isAdmin={isAdmin}
-          isActive={isActive}
-          onToggleStatus={toggleStatus}
-          previewMode={previewMode}
-        />
-      </div>
-
-      {/* ── Voice & Style ─────────────────────────────────── */}
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Voice &amp; Style</p>
-        <div className="space-y-4">
-          <VoiceStyleCard
+        <SectionLabel>Identity &amp; Status</SectionLabel>
+        <div className="rounded-2xl border b-theme bg-surface p-5">
+          <AgentIdentityHeader
+            client={client}
+            isActive={isActive}
+            onToggleStatus={toggleStatus}
+          />
+          {/* Usage bar */}
+          <div className="pt-4 border-t b-theme">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Minutes This Month</p>
+              <span className="text-xs font-mono t2 tabular-nums">{minutesUsed} / {minuteLimit} min</span>
+            </div>
+            <div className="h-1.5 bg-hover rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  usagePct > 100 ? 'bg-pink-500' :
+                  usagePct >= 95 ? 'bg-red-500' :
+                  usagePct >= 80 ? 'bg-amber-500' :
+                  'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(usagePct, 100)}%` }}
+              />
+            </div>
+            <p className="text-[11px] t3 mt-1.5 tabular-nums font-mono">
+              {Math.max(minuteLimit - minutesUsed, 0)} min remaining · resets 1st of month
+            </p>
+          </div>
+          <AgentNameField
             clientId={client.id}
             isAdmin={isAdmin}
-            initialPreset={client.voice_style_preset ?? 'casual_friendly'}
-            previewMode={previewMode}
-          />
-          <div id="voicemail-section">
-            <VoicemailGreetingCard
-              clientId={client.id}
-              isAdmin={isAdmin}
-              initialText={client.voicemail_greeting_text ?? ''}
-              businessName={client.business_name}
-              hasAudioGreeting={!!client.voicemail_greeting_audio_url}
-              previewMode={previewMode}
-            />
-          </div>
-          <AgentCurrentVoiceCard
-            agentVoiceId={client.agent_voice_id ?? ''}
-            isAdmin={isAdmin}
+            initialName={client.agent_name ?? ''}
           />
         </div>
       </div>
 
-      {/* ── Capabilities (clickable → opens panel) ──────── */}
+      {/* ── 4. Voice & Style ───────────────────────────────── */}
       <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Capabilities</p>
+        <SectionLabel>Voice &amp; Style</SectionLabel>
+        <VoiceStyleCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialPreset={client.voice_style_preset ?? 'casual_friendly'}
+          previewMode={previewMode}
+        />
+      </div>
+
+      {/* ── 5. What It Knows ───────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <SectionLabel>What It Knows</SectionLabel>
+          <Link
+            href="/dashboard/knowledge"
+            className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 -mt-3"
+          >
+            Manage <ChevronRight />
+          </Link>
+        </div>
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-4">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className={`text-xl font-bold tabular-nums ${factLines > 0 ? 't1' : 't3'}`}>{factLines}</p>
+              <p className="text-[10px] t3 mt-0.5">Business facts</p>
+            </div>
+            <div>
+              <p className={`text-xl font-bold tabular-nums ${faqCount > 0 ? 't1' : 't3'}`}>{faqCount}</p>
+              <p className="text-[10px] t3 mt-0.5">Q&amp;A pairs</p>
+            </div>
+            <div>
+              <p className={`text-xl font-bold ${client.website_scrape_status === 'approved' ? 'text-green-400' : 't3'}`}>
+                {client.website_scrape_status === 'approved' ? '✓' : '—'}
+              </p>
+              <p className="text-[10px] t3 mt-0.5">Website</p>
+            </div>
+          </div>
+          {factLines === 0 && faqCount === 0 && client.website_scrape_status !== 'approved' && (
+            <p className="text-[11px] text-amber-400/80 mt-3 pt-3 border-t b-theme">
+              Your agent answers calls but knows nothing specific about your business yet.{' '}
+              <Link href="/dashboard/knowledge" className="underline hover:text-amber-300 transition-colors">
+                Add knowledge →
+              </Link>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── 6. What It Can Do ──────────────────────────────── */}
+      <div>
+        <SectionLabel>What It Can Do</SectionLabel>
         <CapabilitiesCard
           client={client}
           isAdmin={isAdmin}
@@ -137,82 +316,11 @@ function AgentCards({
         />
       </div>
 
-      {/* Behavior summary */}
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
-        <p className="text-[10px] uppercase tracking-[0.15em] t3 font-semibold">How your agent sounds</p>
-        <p className="text-xs t2 leading-relaxed">
-          Speaks in a{' '}
-          <span className="font-medium t1">{voiceStyleLabel}</span> tone.
-          {client.agent_name ? (
-            <> Acts as <span className="font-medium t1">{client.agent_name}</span>.</>
-          ) : null}
-          {!client.agent_name && client.business_name ? (
-            <> Represents <span className="font-medium t1">{client.business_name}</span>.</>
-          ) : null}
-        </p>
-      </div>
-
-      {/* ── Activity ──────────────────────────────────────── */}
+      {/* ── 7. Recent Changes ──────────────────────────────── */}
       <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Activity</p>
+        <SectionLabel>Recent Changes</SectionLabel>
         <ActivityLog clientId={client.id} isAdmin={isAdmin} />
       </div>
-
-      {/* ── Settings Panel (right-side drawer) ────────────── */}
-      <SettingsPanel
-        open={activePanel !== null}
-        onClose={() => setActivePanel(null)}
-        title={activePanel ? (PANEL_TITLES[activePanel] ?? '') : ''}
-      >
-        {activePanel === 'hours' && (
-          <HoursCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialWeekday={client.business_hours_weekday ?? ''}
-            initialWeekend={client.business_hours_weekend ?? ''}
-            initialBehavior={client.after_hours_behavior ?? 'take_message'}
-            initialPhone={client.after_hours_emergency_phone ?? ''}
-            previewMode={previewMode}
-          />
-        )}
-        {activePanel === 'ivr' && (
-          <IvrMenuCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            initialEnabled={client.ivr_enabled ?? false}
-            initialPrompt={client.ivr_prompt ?? ''}
-            businessName={client.business_name}
-            agentName={client.agent_name}
-            previewMode={previewMode}
-          />
-        )}
-        {activePanel === 'booking' && (
-          <BookingCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            calendarAuthStatus={client.calendar_auth_status}
-            googleCalendarId={client.google_calendar_id}
-            initialDuration={client.booking_service_duration_minutes ?? 30}
-            initialBuffer={client.booking_buffer_minutes ?? 0}
-            initialBookingEnabled={client.booking_enabled ?? false}
-            previewMode={previewMode}
-          />
-        )}
-        {activePanel === 'agent-config' && (
-          <TransferSettingsSection
-            client={client}
-            isAdmin={isAdmin}
-            previewMode={previewMode}
-          />
-        )}
-        {activePanel === 'sms' && (
-          <MessagingSettingsSection
-            client={client}
-            isAdmin={isAdmin}
-            previewMode={previewMode}
-          />
-        )}
-      </SettingsPanel>
     </div>
   )
 }
@@ -232,12 +340,6 @@ export default function AgentPageView({ clients, isAdmin, previewMode, initialCl
       ? initialClientId
       : clients[0]?.id ?? ''
   )
-
-  useEffect(() => {
-    if (initialClientId && clients.find(c => c.id === initialClientId)) {
-      setSelectedId(initialClientId)
-    }
-  }, [initialClientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
   if (!client) return null

@@ -17,6 +17,8 @@ interface AlertsTabProps {
 export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTgStyle }: AlertsTabProps) {
   const { saving, patch } = usePatchSettings(client.id, isAdmin)
   const [weeklyDigest, setWeeklyDigest] = useState(client.weekly_digest_enabled !== false)
+  const [telegramEnabled, setTelegramEnabled] = useState(client.telegram_notifications_enabled !== false)
+  const [emailEnabled, setEmailEnabled] = useState(client.email_notifications_enabled !== false)
 
   async function toggleWeeklyDigest() {
     const newVal = !weeklyDigest
@@ -30,6 +32,20 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
     setTgStyle(style)
     const res = await patch({ telegram_style: style })
     if (!res?.ok) setTgStyle(prev)
+  }
+
+  async function toggleTelegramNotifications() {
+    const newVal = !telegramEnabled
+    setTelegramEnabled(newVal)
+    const res = await patch({ telegram_notifications_enabled: newVal })
+    if (!res?.ok) setTelegramEnabled(!newVal)
+  }
+
+  async function toggleEmailNotifications() {
+    const newVal = !emailEnabled
+    setEmailEnabled(newVal)
+    const res = await patch({ email_notifications_enabled: newVal })
+    if (!res?.ok) setEmailEnabled(!newVal)
   }
 
   return (
@@ -147,72 +163,64 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       </div>
     )}
 
-    {/* Notification preferences matrix */}
+    {/* Notification channel toggles */}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
       <div className="p-5 border-b b-theme">
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Notification Preferences</p>
-        <p className="text-[11px] t3">Fine-grained control over which events trigger alerts. SMS and Email channels are in development.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Notification Preferences</p>
+            <p className="text-[11px] t3">Enable or disable post-call notifications per channel.</p>
+          </div>
+          {saving && (
+            <span className="text-[10px] t3 animate-pulse flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+              Saving...
+            </span>
+          )}
+        </div>
       </div>
-      <div className="p-5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr>
-                <th className="text-left pb-3 t3 font-medium w-36" />
-                {(['Telegram', 'SMS', 'Email'] as const).map(ch => (
-                  <th key={ch} className="pb-3 font-medium px-6 text-center">
-                    <span className={`inline-flex items-center gap-1.5 text-[10px] ${
-                      ch === 'Telegram' && client.telegram_bot_token && client.telegram_chat_id
-                        ? 'text-blue-400'
-                        : 't3'
-                    }`}>
-                      {ch}
-                      {ch !== 'Telegram' && (
-                        <span className="text-[8px] font-semibold px-1 py-px rounded bg-hover t3">Soon</span>
-                      )}
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {([
-                { event: 'HOT lead', active: true },
-                { event: 'Missed call', active: true },
-                { event: 'Daily digest', active: false },
-              ] as const).map(({ event, active }) => (
-                <tr key={event} className="group">
-                  <td className="py-3.5 t2 font-medium pr-4">
-                    <div className="flex items-center gap-2">
-                      {event}
-                      {active && client.telegram_bot_token && client.telegram_chat_id && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Active" />
-                      )}
-                    </div>
-                  </td>
-                  {(['telegram', 'sms', 'email'] as const).map(ch => {
-                    const isActive = ch === 'telegram' && active && !!(client.telegram_bot_token && client.telegram_chat_id)
-                    return (
-                      <td key={ch} className="py-3.5 px-6 text-center">
-                        <span
-                          aria-label={`${event} via ${ch}: ${isActive ? 'active' : 'not available'}`}
-                          className={`w-9 h-5 rounded-full relative inline-flex items-center transition-colors duration-200 ${
-                            isActive
-                              ? 'bg-blue-500'
-                              : 'bg-hover opacity-40'
-                          }`}
-                        >
-                          <span className={`w-4 h-4 rounded-full bg-white shadow-sm absolute transition-all duration-200 ${
-                            isActive ? 'left-[18px]' : 'left-0.5'
-                          }`} />
-                        </span>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="p-5 space-y-4">
+        {/* Telegram toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold t1">Telegram</p>
+            <p className="text-[10px] t3 mt-0.5">
+              {client.telegram_bot_token && client.telegram_chat_id
+                ? 'Receive call summaries in your Telegram chat.'
+                : 'Connect Telegram to enable this channel.'}
+            </p>
+          </div>
+          <PremiumToggle
+            checked={telegramEnabled && !!(client.telegram_bot_token && client.telegram_chat_id)}
+            onChange={() => {
+              if (!client.telegram_bot_token || !client.telegram_chat_id) return
+              if (!previewMode) toggleTelegramNotifications()
+            }}
+            disabled={saving || previewMode || !(client.telegram_bot_token && client.telegram_chat_id)}
+          />
+        </div>
+
+        {/* Email toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold t1">Email</p>
+            <p className="text-[10px] t3 mt-0.5">
+              {client.contact_email
+                ? `Notifications sent to ${client.contact_email}.`
+                : 'No contact email on file.'}
+              {!client.contact_email && (
+                <span className="ml-1 text-[8px] font-semibold px-1 py-px rounded bg-hover t3">Contact support to set up</span>
+              )}
+            </p>
+          </div>
+          <PremiumToggle
+            checked={emailEnabled && !!client.contact_email}
+            onChange={() => {
+              if (!client.contact_email) return
+              if (!previewMode) toggleEmailNotifications()
+            }}
+            disabled={saving || previewMode || !client.contact_email}
+          />
         </div>
       </div>
     </div>

@@ -32,7 +32,7 @@ function ForgotPasswordContent() {
     setState('loading')
 
     const trimmedEmail = email.trim()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/auth/set-password`
+    const redirectTo = `${window.location.origin}/auth/confirm?next=/auth/set-password`
 
     trackEvent('password_reset_requested', { method: 'email' })
 

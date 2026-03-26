@@ -6,7 +6,7 @@ import AlertsTab from '@/components/dashboard/settings/AlertsTab'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 
 // Minimal fields needed by AlertsTab
-const SELECT = 'id, telegram_chat_id, telegram_bot_token, telegram_style, weekly_digest_enabled, contact_email'
+const SELECT = 'id, telegram_chat_id, telegram_bot_token, telegram_style, weekly_digest_enabled, contact_email, telegram_notifications_enabled, email_notifications_enabled'
 
 /**
  * Renders the Alerts configuration (channel status, message style, notification
