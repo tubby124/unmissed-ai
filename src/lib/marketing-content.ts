@@ -26,7 +26,43 @@ export const HERO = {
   headlineAccent: 'We fix that.',
   subtitle:
     "85% of callers who reach voicemail don't call back. That's a $400 job — gone to whoever picked up. We make sure you're whoever picked up.",
-  ctaLabel: "Hear your agent answer — we'll call you now:",
+  ctaLabel: "Get a live call from Zara in seconds.",
+  proofLine: "Hear exactly how Unmissed answers, qualifies, and follows up with callers.",
+}
+
+// ─── Call Me Now Widget Copy ──────────────────────────────────────────
+export const CALL_ME_WIDGET_COPY = {
+  /** Hero/compact mode helper text under the input row */
+  helperTextCompact:  "Zara will call you in seconds. No app. No sign-up.",
+  /** Standard (non-compact) label above the input */
+  standardLabel:      "Get a live call from Zara in seconds.",
+  /** Expanded helper text in non-compact mode */
+  helperTextFull:     "We'll call your phone and connect you live. No app needed.",
+  /** Proof line — shows under input in hero compact mode */
+  proofLine:          "Hear exactly how Unmissed answers, qualifies, and follows up with callers.",
+  /** Success heading — urgency, not celebration */
+  successHeading:     "Pick up now — Zara is calling from an unknown number.",
+  /** Success body — sets expectation + reinforces value */
+  successBody:        "That's Zara, our AI receptionist. This is exactly what your callers will hear.",
+  /** Button states */
+  buttonIdle:         "Call Me Now",
+  buttonLoading:      "Calling...",
+}
+
+// ─── Talk to Zara Widget Copy ─────────────────────────────────────────
+export const TALK_TO_ZARA_COPY = {
+  /** Floating button label (desktop) */
+  floatingLabel:      "Talk to Zara",
+  /** Small subline shown under floating label on desktop */
+  floatingSubline:    "browser · no phone",
+  /** Form intro */
+  formIntro:          "Tell Zara a bit about yourself — she'll tailor the conversation:",
+  /** Phone placeholder */
+  phonePlaceholder:   "Mobile # (optional) — Zara will text you a recap",
+  /** Submit button */
+  submitLabel:        "Talk to Zara",
+  /** Skip link */
+  skipLabel:          "Skip — just start the call",
 }
 
 // ─── Hero Call Mockup ────────────────────────────────────────────────

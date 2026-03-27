@@ -7,6 +7,8 @@ import { X } from "lucide-react"
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import DemoCall from "./DemoCall"
 import { loadVisitor, saveVisitor, normalizePhoneNA, type VisitorInfo } from "@/lib/demo-visitor"
+import { TALK_TO_ZARA_COPY } from "@/lib/marketing-content"
+import { trackEvent } from "@/lib/analytics"
 
 type WidgetStep = "closed" | "form" | "call"
 
@@ -64,6 +66,7 @@ export default function TalkToAgentWidget() {
 
   function open() {
     setShowPulse(false)
+    trackEvent("demo_widget_open")
     // Skip form if we already have visitor info saved
     if (visitorInfo) {
       setStep("call")
@@ -81,6 +84,7 @@ export default function TalkToAgentWidget() {
     }
     saveVisitor(info)
     setVisitorInfo({ ...info, phone: normalizePhoneNA(rawPhone) || rawPhone })
+    trackEvent("demo_browser_start", { has_phone: !!rawPhone })
     setStep("call")
   }
 
@@ -116,7 +120,12 @@ export default function TalkToAgentWidget() {
               <VoicePoweredOrb externalEnergy={showPulse ? 0.3 : 0.1} />
             </span>
 
-            <span className="relative hidden sm:inline whitespace-nowrap">Talk to Zara</span>
+            <span className="relative hidden sm:inline whitespace-nowrap leading-tight text-left">
+              {TALK_TO_ZARA_COPY.floatingLabel}
+              <span className="block text-[9px] opacity-55 font-normal tracking-wide">
+                {TALK_TO_ZARA_COPY.floatingSubline}
+              </span>
+            </span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -190,7 +199,7 @@ export default function TalkToAgentWidget() {
               {step === "form" && (
                 <div className="px-4 pb-5 sm:px-5 pt-4">
                   <p className="text-sm mb-4" style={{ color: "var(--color-text-2)" }}>
-                    Quick intro so Zara knows who she&apos;s talking to:
+                    {TALK_TO_ZARA_COPY.formIntro}
                   </p>
                   <form onSubmit={e => { e.preventDefault(); submitForm() }}>
                     <input
@@ -214,7 +223,7 @@ export default function TalkToAgentWidget() {
                       type="tel"
                       value={phoneInput}
                       onChange={e => setPhoneInput(e.target.value)}
-                      placeholder="Phone (optional — enables live SMS demo)"
+                      placeholder={TALK_TO_ZARA_COPY.phonePlaceholder}
                       className="w-full px-3.5 py-2.5 rounded-lg text-sm mb-3.5 outline-none focus:ring-2"
                       style={{ color: "var(--color-text-1)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                     />
@@ -223,7 +232,7 @@ export default function TalkToAgentWidget() {
                       className="w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer transition-colors"
                       style={{ backgroundColor: "var(--color-primary)" }}
                     >
-                      Talk to Zara
+                      {TALK_TO_ZARA_COPY.submitLabel}
                     </button>
                   </form>
                   <button
@@ -231,7 +240,7 @@ export default function TalkToAgentWidget() {
                     className="w-full text-xs mt-2 py-1 cursor-pointer"
                     style={{ color: "var(--color-text-3)" }}
                   >
-                    Skip — just start the call
+                    {TALK_TO_ZARA_COPY.skipLabel}
                   </button>
                 </div>
               )}

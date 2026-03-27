@@ -2,6 +2,8 @@
 
 import { useState, useRef } from "react"
 import { Phone, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react"
+import { CALL_ME_WIDGET_COPY } from "@/lib/marketing-content"
+import { trackEvent } from "@/lib/analytics"
 
 interface CallMeNowWidgetProps {
   /** Pre-selected niche for the demo agent (default: auto_glass) */
@@ -53,6 +55,7 @@ export default function CallMeNowWidget({
 
     setState("loading")
     setErrorMsg("")
+    trackEvent("demo_hero_submit", { niche: niche ?? "unmissed_demo" })
 
     const e164 = `${countryCode}${digits}`
 
@@ -69,11 +72,13 @@ export default function CallMeNowWidget({
         const msg = data.error || "Something went wrong. Try again."
         setState("error")
         setErrorMsg(msg)
+        trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo" })
         onError?.(msg)
         return
       }
 
       setState("success")
+      trackEvent("demo_call_completed", { niche: niche ?? "unmissed_demo", call_sid: data.callSid ?? "" })
       onCallStarted?.(data.callSid)
 
       // Reset after 8 seconds
@@ -118,10 +123,10 @@ export default function CallMeNowWidget({
           <Check size={24} style={{ color: "#10B981" }} />
         </div>
         <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
-          Calling you now!
+          {CALL_ME_WIDGET_COPY.successHeading}
         </p>
         <p className="text-xs text-center" style={{ color: "var(--color-text-3)" }}>
-          Pick up when your phone rings. You&apos;ll be connected to an AI agent demo.
+          {CALL_ME_WIDGET_COPY.successBody}
         </p>
       </div>
     )
@@ -145,7 +150,7 @@ export default function CallMeNowWidget({
           className="text-sm font-semibold mb-3"
           style={{ color: "var(--color-text-1)" }}
         >
-          Get a call from our AI agent
+          {CALL_ME_WIDGET_COPY.standardLabel}
         </p>
       )}
 
@@ -201,7 +206,7 @@ export default function CallMeNowWidget({
             <Phone size={16} />
           )}
           <span className="hidden sm:inline">
-            {state === "loading" ? "Calling..." : "Call Me"}
+            {state === "loading" ? CALL_ME_WIDGET_COPY.buttonLoading : CALL_ME_WIDGET_COPY.buttonIdle}
           </span>
         </button>
       </div>
@@ -221,10 +226,18 @@ export default function CallMeNowWidget({
         className="text-xs mt-2"
         style={{ color: "var(--color-text-3)" }}
       >
-        {compact
-          ? "Enter your number. We'll call you in seconds."
-          : "We'll call your phone and connect you to a live AI agent demo. No app needed."}
+        {compact ? CALL_ME_WIDGET_COPY.helperTextCompact : CALL_ME_WIDGET_COPY.helperTextFull}
       </p>
+
+      {/* Proof line — compact/hero mode only */}
+      {compact && (
+        <p
+          className="text-xs mt-1 opacity-70"
+          style={{ color: "var(--color-text-3)" }}
+        >
+          {CALL_ME_WIDGET_COPY.proofLine}
+        </p>
+      )}
     </form>
   )
 }
