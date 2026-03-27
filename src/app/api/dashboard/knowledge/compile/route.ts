@@ -77,6 +77,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Input too long (max 20,000 chars)' }, { status: 400 })
   }
 
+  if (body.client_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
+    return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
+  }
+
   const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
   if (!clientId) return NextResponse.json({ error: 'No client found' }, { status: 400 })
 
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
     .from('clients')
     .select('business_name, niche, selected_plan, subscription_status')
     .eq('id', clientId)
-    .single()
+    .maybeSingle()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
@@ -109,7 +113,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = `You are a business knowledge compiler for a voice AI assistant.
 Analyze raw text from a business owner and extract every distinct piece of knowledge the AI agent could use to answer caller questions.
 
-Business: ${client.business_name ?? 'Unknown'} (${client.niche ?? 'general'})
+Business: ${(client.business_name ?? 'Unknown').replace(/[\r\n]/g, ' ').slice(0, 100)} (${(client.niche ?? 'general').replace(/[\r\n]/g, ' ').slice(0, 50)})
 
 Classify each item as one of these kinds:
 - business_fact: General facts about the business (team, certifications, equipment, amenities, etc.)
@@ -170,8 +174,19 @@ Rules:
     return NextResponse.json({ error: 'AI compilation failed — try again' }, { status: 502 })
   }
 
+  // Validate kinds before returning — unknown kinds crash KnowledgeCompiler's KIND_META lookup
+  const VALID_KINDS = new Set([
+    'business_fact', 'faq_pair', 'operating_policy', 'call_behavior_instruction',
+    'pricing_or_offer', 'hours_or_availability', 'location_or_service_area',
+    'unsupported_or_ambiguous', 'conflict_flag',
+  ])
+  const safeItems = (result.items ?? []).filter(
+    (item): item is Record<string, unknown> =>
+      item !== null && typeof item === 'object' && VALID_KINDS.has((item as Record<string, unknown>).kind as string),
+  )
+
   return NextResponse.json({
-    items: result.items ?? [],
+    items: safeItems,
     warnings: result.warnings ?? [],
   })
 }

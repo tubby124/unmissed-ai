@@ -48,11 +48,19 @@ export async function POST(req: NextRequest) {
     client_id?: string
   }
 
+  if (body.client_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
+    return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
+  }
+
   const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
   if (!clientId) return NextResponse.json({ error: 'No client found' }, { status: 400 })
 
   const faqItems = (body.faq_items ?? []).filter(i => i.q?.trim() && i.a?.trim())
   const factItems = (body.fact_items ?? []).filter(i => i.text?.trim() && !BLOCKED_KINDS.has(i.kind))
+
+  if (faqItems.length + factItems.length > 200) {
+    return NextResponse.json({ error: 'Too many items (max 200)' }, { status: 400 })
+  }
 
   if (faqItems.length === 0 && factItems.length === 0) {
     return NextResponse.json({ ok: true, faqsAdded: 0, chunksCreated: 0 })
@@ -64,7 +72,7 @@ export async function POST(req: NextRequest) {
     .from('clients')
     .select('extra_qa, business_facts, knowledge_backend, selected_plan, subscription_status')
     .eq('id', clientId)
-    .single()
+    .maybeSingle()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
@@ -94,11 +102,13 @@ export async function POST(req: NextRequest) {
         seen.set(pair.q.trim().toLowerCase(), { q: pair.q.trim(), a: pair.a.trim() })
       }
     }
-    const beforeCount = seen.size
+    // Count items that are truly new or change an existing answer (not pure no-op duplicates)
     for (const pair of faqItems) {
-      seen.set(pair.q.trim().toLowerCase(), { q: pair.q.trim(), a: pair.a.trim() })
+      const key = pair.q.trim().toLowerCase()
+      const existing = seen.get(key)
+      if (!existing || existing.a !== pair.a.trim()) faqsAdded++
+      seen.set(key, { q: pair.q.trim(), a: pair.a.trim() })
     }
-    faqsAdded = seen.size - beforeCount
 
     const mergedQa = Array.from(seen.values())
 
