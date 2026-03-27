@@ -81,10 +81,50 @@ export async function POST(req: NextRequest) {
     deleted.ultravox_agent = 'none'
   }
 
-  // ── 3. Twilio number — log warning, do not auto-release ───────────────────
+  // ── 3. Release Twilio number ──────────────────────────────────────────────
   if (client.twilio_number) {
-    warnings.push(`Twilio number ${client.twilio_number} was NOT auto-released. Release manually in Twilio Console.`)
-    deleted.twilio_number = 'not_released'
+    const sid = process.env.TWILIO_ACCOUNT_SID
+    const token = process.env.TWILIO_AUTH_TOKEN
+    if (sid && token) {
+      try {
+        const twilio = (await import('twilio')).default
+        const twilioClient = twilio(sid, token)
+        const numbers = await twilioClient.incomingPhoneNumbers.list({ phoneNumber: client.twilio_number, limit: 1 })
+        if (numbers.length > 0) {
+          await twilioClient.incomingPhoneNumbers(numbers[0].sid).remove()
+          deleted.twilio_number = 'released'
+          console.log(`[account/delete] Twilio number ${client.twilio_number} released`)
+        } else {
+          warnings.push(`Twilio number ${client.twilio_number} not found in account — may already be released`)
+          deleted.twilio_number = 'not_found'
+        }
+      } catch (err) {
+        warnings.push(`Twilio number release failed: ${String(err).slice(0, 120)}. Release manually.`)
+        deleted.twilio_number = 'release_failed'
+      }
+    } else {
+      warnings.push(`Twilio credentials not configured — number ${client.twilio_number} NOT released`)
+      deleted.twilio_number = 'no_credentials'
+    }
+  }
+
+  // ── 3b. Clean up recordings from Supabase storage ──────────────────────────
+  try {
+    const { data: recordings } = await svc.storage.from('recordings').list(client.slug)
+    if (recordings && recordings.length > 0) {
+      const paths = recordings.map(f => `${client.slug}/${f.name}`)
+      const { error: storageErr } = await svc.storage.from('recordings').remove(paths)
+      if (storageErr) {
+        warnings.push(`Recording cleanup partial: ${storageErr.message}`)
+      }
+      deleted.recordings = recordings.length
+      console.log(`[account/delete] ${recordings.length} recordings removed from storage for ${client.slug}`)
+    } else {
+      deleted.recordings = 0
+    }
+  } catch (err) {
+    warnings.push(`Recording storage cleanup failed: ${String(err).slice(0, 120)}`)
+    deleted.recordings = 'cleanup_failed'
   }
 
   // ── 4. Collect user_ids that are exclusively linked to this client ─────────

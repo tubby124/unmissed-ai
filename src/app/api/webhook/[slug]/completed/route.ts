@@ -323,6 +323,44 @@ export async function POST(
         }
       }
 
+      // ── G7: Usage threshold alerts (80% and 100%) ────────────────────────────
+      // Fire once per billing cycle per threshold. Uses timestamp columns to dedup.
+      try {
+        const { data: usageRow } = await supabase
+          .from('clients')
+          .select('seconds_used_this_month, monthly_minute_limit, bonus_minutes, selected_plan, minute_warning_80_sent_at, minute_warning_100_sent_at')
+          .eq('id', client.id)
+          .single()
+
+        if (usageRow) {
+          const minutesUsed = Math.ceil((usageRow.seconds_used_this_month ?? 0) / 60)
+          const limit = (usageRow.monthly_minute_limit ?? 100) + (usageRow.bonus_minutes ?? 0)
+          const pct = limit > 0 ? (minutesUsed / limit) * 100 : 0
+          const botToken = client.telegram_bot_token as string | null
+          const chatId = client.telegram_chat_id as string | null
+
+          // 80% threshold — fire once
+          if (pct >= 80 && pct < 100 && !usageRow.minute_warning_80_sent_at && botToken && chatId) {
+            await sendAlert(botToken, chatId,
+              `⚠️ <b>Usage Alert:</b> You've used ${minutesUsed} of ${limit} minutes (${Math.round(pct)}%). Consider upgrading or buying extra minutes.`
+            )
+            await supabase.from('clients').update({ minute_warning_80_sent_at: new Date().toISOString() }).eq('id', client.id)
+            console.log(`[completed] 80% usage alert sent for client=${client.id} (${minutesUsed}/${limit} min)`)
+          }
+
+          // 100% threshold — fire once
+          if (pct >= 100 && !usageRow.minute_warning_100_sent_at && botToken && chatId) {
+            await sendAlert(botToken, chatId,
+              `🚨 <b>Minute Limit Reached:</b> You've used ${minutesUsed} of ${limit} minutes. New calls will be blocked until the next billing cycle or until you add more minutes.`
+            )
+            await supabase.from('clients').update({ minute_warning_100_sent_at: new Date().toISOString() }).eq('id', client.id)
+            console.log(`[completed] 100% usage alert sent for client=${client.id} (${minutesUsed}/${limit} min)`)
+          }
+        }
+      } catch (usageErr) {
+        console.error('[completed] Usage alert check failed (non-fatal):', usageErr)
+      }
+
       // ── L5: Per-call transcript analysis (keyword-based, $0 cost) ───────────
       if (transcript.length > 0 && callLogId && !skipClassification) {
         try {

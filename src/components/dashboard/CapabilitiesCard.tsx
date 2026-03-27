@@ -33,6 +33,7 @@ interface CapabilityItem {
   dotType: DotType
   link: string | null
   upgradeRequired?: boolean
+  tooltip?: string
 }
 
 const VOICE_LABELS: Record<string, string> = {
@@ -88,7 +89,7 @@ function CapabilityRow({
   onUpgradeClick: () => void
 }) {
   const inner = (
-    <div className="flex items-center gap-3 rounded-xl px-3 py-3 min-h-[52px] transition-colors duration-200 hover:bg-hover cursor-pointer">
+    <div className="flex items-center gap-3 rounded-xl px-3 py-3 min-h-[52px] transition-colors duration-200 hover:bg-hover cursor-pointer" title={item.tooltip}>
       {item.enabled ? <CheckIcon /> : <EmptyDot />}
 
       <div className="flex-1 min-w-0">
@@ -209,11 +210,12 @@ export default function CapabilitiesCard({
     {
       id: 'transfer',
       label: 'Transfer calls',
-      enabledDesc: 'Forwards calls to your number',
+      enabledDesc: 'Configured — phone calls only',
       disabledDesc: 'Set a forwarding number to enable',
       enabled: capabilities.hasTransfer,
       dotType: 'always',
       link: '/dashboard/settings?tab=actions',
+      tooltip: 'Transfer works on live phone calls only. Browser test calls cannot transfer.',
     },
     {
       id: 'hours',
@@ -227,12 +229,13 @@ export default function CapabilitiesCard({
     {
       id: 'sms',
       label: 'SMS follow-up',
-      enabledDesc: 'Sends follow-up texts after calls',
-      disabledDesc: 'Configure SMS templates to enable',
+      enabledDesc: 'Sends follow-up texts — phone calls only',
+      disabledDesc: 'Requires a phone number on your plan',
       enabled: capabilities.hasSms,
       dotType: 'always',
       link: '/dashboard/settings?tab=sms',
       upgradeRequired: true,
+      tooltip: 'SMS requires a Twilio phone number. Available on paid plans.',
     },
     {
       id: 'voicemail',
