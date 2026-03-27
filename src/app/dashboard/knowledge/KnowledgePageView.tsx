@@ -9,6 +9,7 @@ import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCa
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
+import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import PlanGate from '@/components/dashboard/PlanGate'
 import { useCallContext } from '@/contexts/CallContext'
@@ -73,6 +74,13 @@ function KnowledgeCards({
           timezone={client.timezone ?? 'America/Regina'}
           previewMode={previewMode}
         />
+      </div>
+
+      {/* Paste unstructured text → auto-split → pgvector corpus */}
+      <div className="sm:col-span-2">
+        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+          <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} />
+        </PlanGate>
       </div>
 
       {/* ── Test & manage ────────────────────────────────────────────────────── */}

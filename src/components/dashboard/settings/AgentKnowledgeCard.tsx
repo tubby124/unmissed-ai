@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { ClientAgentConfig } from '@/types/client-agent-config'
 import { usePatchSettings } from './usePatchSettings'
+import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
 
 interface AgentKnowledgeCardProps {
   client: ClientConfig
@@ -16,6 +17,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
   const id = clientId ?? client.id
   const [qa, setQa] = useState<{ q: string; a: string }[]>(client.extra_qa ?? [])
   const [adding, setAdding] = useState(false)
+  const [pastingText, setPastingText] = useState(false)
   const [newQ, setNewQ] = useState('')
   const [newA, setNewA] = useState('')
   const { saving, knowledgeReseeded, patch } = usePatchSettings(id, isAdmin)
@@ -46,6 +48,8 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
     setNewA('')
     setAdding(false)
   }
+
+  const knowledgeEnabled = client.knowledge_backend === 'pgvector'
 
   const stats = [
     {
@@ -153,8 +157,34 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
         </p>
       </div>
 
-      {/* Quick add Q&A */}
-      {adding ? (
+      {/* Quick-add inputs — Q&A or raw text paste (one at a time) */}
+      {!adding && !pastingText && (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => setAdding(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-transparent hover:bg-hover text-xs t3 hover:t2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Quick add Q&amp;A
+          </button>
+          {knowledgeEnabled && (
+            <button
+              onClick={() => setPastingText(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-transparent hover:bg-hover text-xs t3 hover:t2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Paste text
+            </button>
+          )}
+        </div>
+      )}
+
+      {adding && (
         <div className="mt-3 space-y-2">
           <input
             type="text"
@@ -188,16 +218,18 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border b-theme bg-transparent hover:bg-hover text-xs t3 hover:t2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Quick add Q&A
-        </button>
+      )}
+
+      {pastingText && (
+        <div className="mt-3">
+          <KnowledgeTextInput
+            clientId={id}
+            isAdmin={isAdmin}
+            compact
+            onSuccess={() => setPastingText(false)}
+          />
+          {/* Cancel button for when KnowledgeTextInput is collapsed inside compact mode */}
+        </div>
       )}
 
       {/* Knowledge reseed confirmation */}
@@ -208,7 +240,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
       )}
 
       {/* Website scrape hint — only when no website URL configured */}
-      {!hasWebsite && !adding && (
+      {!hasWebsite && !adding && !pastingText && (
         <a
           href="/dashboard/knowledge"
           className="mt-3 flex items-center gap-1.5 text-[10px] hover:opacity-80 transition-opacity"
