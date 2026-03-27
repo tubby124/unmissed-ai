@@ -1,11 +1,31 @@
 'use client'
 
+import { useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import CallMeNowWidget from './CallMeNowWidget'
 import { TRIAL, FOUNDING_PROMO, BASE_PLAN } from '@/lib/pricing'
 import { HERO } from '@/lib/marketing-content'
+import { trackEvent } from '@/lib/analytics'
 
 export default function HeroContent() {
+  const ctaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ctaRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          trackEvent('hero_cta_visible')
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.5 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div className="text-center lg:text-left z-10">
       {/* Eyebrow + H1 */}
@@ -49,6 +69,7 @@ export default function HeroContent() {
 
       {/* PRIMARY CTA — Phone input */}
       <motion.div
+        ref={ctaRef}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.35 }}

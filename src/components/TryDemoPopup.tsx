@@ -63,10 +63,10 @@ export default function TryDemoPopup() {
 
               <div className="min-w-0 flex-1">
                 <p className="text-white text-sm font-semibold leading-tight">
-                  Talk to our AI agent
+                  Talk to Zara, our AI receptionist
                 </p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Free, no sign-up. Takes 30 seconds.
+                  Free, no sign-up. Browser call, no phone needed.
                 </p>
 
                 <Link

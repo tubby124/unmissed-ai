@@ -81,11 +81,11 @@ export default function CallMeNowWidget({
       trackEvent("demo_call_completed", { niche: niche ?? "unmissed_demo", call_sid: data.callSid ?? "" })
       onCallStarted?.(data.callSid)
 
-      // Reset after 8 seconds
+      // Reset after 20s — outbound Twilio calls can take 15-20s to connect
       setTimeout(() => {
         setState("idle")
         setPhone("")
-      }, 8000)
+      }, 20000)
     } catch {
       const msg = "Network error. Check your connection and try again."
       setState("error")

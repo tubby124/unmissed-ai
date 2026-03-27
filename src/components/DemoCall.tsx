@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "motion/react"
+import { trackEvent } from "@/lib/analytics"
 import BorderBeam from "@/components/ui/border-beam"
 import {
   WaveformBars,
@@ -151,7 +152,8 @@ export default function DemoCall({ demoId, callerName, agentName, companyName, a
 
     // Log demo end (fire-and-forget)
     if (callId) {
-      const duration = callStartRef.current > 0 ? Math.round((Date.now() - callStartRef.current) / 1000) : undefined
+      const duration = callStartRef.current > 0 ? Math.round((Date.now() - callStartRef.current) / 1000) : 0
+      trackEvent("demo_browser_end", { duration_seconds: duration })
       fetch("/api/demo/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
