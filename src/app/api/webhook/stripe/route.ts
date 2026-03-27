@@ -143,6 +143,9 @@ export async function POST(req: NextRequest) {
           minutes_used_this_month: 0,
           seconds_used_this_month: 0,
           grace_period_end: null,
+          // G7: Reset usage alert timestamps so they fire again in the new cycle
+          minute_warning_80_sent_at: null,
+          minute_warning_100_sent_at: null,
           subscription_current_period_end: new Date(sub.items.data[0]?.current_period_end * 1000).toISOString(),
           stripe_discount_name: discountName,
           effective_monthly_rate: effectiveRate,
@@ -394,7 +397,11 @@ export async function POST(req: NextRequest) {
       const currentBonus = (currentClient?.bonus_minutes as number) ?? 0
       await adminSupa
         .from('clients')
-        .update({ bonus_minutes: currentBonus + reloadMinutes })
+        .update({
+          bonus_minutes: currentBonus + reloadMinutes,
+          // G7: Reset 100% warning since user is now below limit again
+          minute_warning_100_sent_at: null,
+        })
         .eq('id', reloadClientId)
 
       console.log(`[stripe-webhook] Minute reload: +${reloadMinutes} min for slug=${reloadSlug} (total bonus: ${currentBonus + reloadMinutes})`)

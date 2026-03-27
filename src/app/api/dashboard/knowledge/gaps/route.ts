@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { embedText } from '@/lib/embeddings'
+import { embedText, reseedKnowledgeFromSettings } from '@/lib/embeddings'
 
 /**
  * GET /api/dashboard/knowledge/gaps
@@ -248,6 +248,22 @@ export async function PATCH(req: NextRequest) {
         } else {
           faqCreated = true
           console.log(`[knowledge-gaps] FAQ created from gap resolve: "${query.slice(0, 60)}" for client=${clientId}`)
+
+          // G5: Reseed knowledge chunks so the new FAQ is immediately searchable
+          const { data: kbCheck } = await svc
+            .from('clients')
+            .select('knowledge_backend, business_facts')
+            .eq('id', clientId)
+            .single()
+          if (kbCheck?.knowledge_backend === 'pgvector') {
+            try {
+              const facts = typeof kbCheck.business_facts === 'string' ? kbCheck.business_facts : null
+              await reseedKnowledgeFromSettings(clientId, facts, updatedQa)
+              console.log(`[knowledge-gaps] Knowledge reseeded after FAQ creation for client=${clientId}`)
+            } catch (reseedErr) {
+              console.error('[knowledge-gaps] Knowledge reseed after FAQ failed (non-fatal):', reseedErr)
+            }
+          }
         }
       }
     } catch (faqErr) {
