@@ -35,19 +35,19 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
       <div className="space-y-3">
         {AGENT_MODES.map((mode) => {
           const isSelected = currentMode === mode.id;
-          const requiresPro = mode.id === "full_service" && !isPro;
+          // Booking mode is always selectable — just needs calendar connected later
+          const needsCalendar = mode.id === "full_service";
 
           return (
             <button
               key={mode.id}
               type="button"
-              onClick={() => !requiresPro && selectMode(mode.id)}
+              onClick={() => selectMode(mode.id)}
               className={[
-                "w-full text-left rounded-xl border p-4 transition-all",
+                "w-full text-left rounded-xl border p-4 transition-all cursor-pointer",
                 isSelected
                   ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
                   : "border-border bg-card hover:border-indigo-300 dark:hover:border-indigo-700",
-                requiresPro ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
               ].join(" ")}
             >
               <div className="flex items-start gap-3">
@@ -68,18 +68,13 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                     <span className="text-xs text-muted-foreground">
                       — {mode.tagline}
                     </span>
-                    {requiresPro && (
-                      <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
-                        Pro plan
-                      </span>
-                    )}
                   </div>
 
                   <p className="text-xs text-muted-foreground mt-1">
                     {mode.description}
                   </p>
 
-                  {/* Quote preview — only when selected */}
+                  {/* Quote preview + calendar note — only when selected */}
                   <AnimatePresence>
                     {isSelected && (
                       <motion.div
@@ -103,6 +98,11 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                             </li>
                           ))}
                         </ul>
+                        {needsCalendar && (
+                          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
+                            You&apos;ll connect your Google Calendar from your dashboard to activate booking.
+                          </p>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
