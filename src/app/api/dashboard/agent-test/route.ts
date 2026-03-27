@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { callViaAgent } from '@/lib/ultravox'
+import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
+import { APP_URL } from '@/lib/app-url'
 
 // 5 test calls per client per 30 minutes
 const rateLimiter = new SlidingWindowRateLimiter(5, 30 * 60_000)
@@ -98,15 +99,21 @@ export async function POST(req: NextRequest) {
 
   // Build tool overrides from clients.tools (runtime X-Tool-Secret injection)
   const overrideTools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+  const slug = (client.slug as string) ?? ''
+
+  // Callback URL → production completed webhook for classification, gap detection, minute tracking
+  const callbackBaseUrl = `${APP_URL}/api/webhook/${slug}/completed`
+  const callbackUrl = signCallbackUrl(callbackBaseUrl, slug)
 
   try {
     const { joinUrl, callId } = await callViaAgent(client.ultravox_agent_id as string, {
       medium: 'webrtc',
       maxDuration: '300s',
+      callbackUrl,
       callerContext: callerContextRaw,
       businessFacts: knowledgeBlockStr,
       contextData: contextDataBlock,
-      metadata: { slug: (client.slug as string) ?? '', source: 'dashboard-agent-test', userId: user.id },
+      metadata: { slug, source: 'dashboard-agent-test', userId: user.id },
       overrideTools,
     })
 

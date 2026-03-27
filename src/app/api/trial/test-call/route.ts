@@ -1,13 +1,18 @@
 /**
  * POST /api/trial/test-call
  *
- * Public endpoint — creates a WebRTC demo call for trial users on the success screen.
+ * Public endpoint — creates a WebRTC test call for trial users on the success screen.
  * Rate limited: 5 calls/hr/IP + 3 calls/hr/clientId.
  * No auth required (trial users haven't created accounts yet).
+ *
+ * Uses Agents API (callViaAgent) when ultravox_agent_id exists, giving the trial user
+ * real tools, full context injection, and routing through the production completed webhook
+ * for classification, gap detection, transcript analysis, and minute tracking.
+ * Falls back to createDemoCall() if no agent is provisioned yet.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createDemoCall, signCallbackUrl } from '@/lib/ultravox'
+import { callViaAgent, createDemoCall, signCallbackUrl } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
   const supa = createServiceClient()
   const { data: client, error: clientErr } = await supa
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, agent_name, status, niche, business_name, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, business_facts, extra_qa, context_data, context_data_label, knowledge_backend, injected_note')
+    .select('id, slug, system_prompt, agent_voice_id, agent_name, status, niche, business_name, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, business_facts, extra_qa, context_data, context_data_label, knowledge_backend, injected_note, ultravox_agent_id, tools')
     .eq('id', clientId)
     .limit(1)
     .maybeSingle()
@@ -59,13 +64,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Agent is still being configured' }, { status: 503 })
   }
 
-  // Resolve {{callerContext}}, {{businessFacts}}, {{contextData}} placeholders.
-  // The stored system_prompt contains these as Agents API template variables.
-  // createDemoCall() uses direct Ultravox createCall (not Agents API), so placeholders
-  // must be resolved inline before sending — same pattern as browser-test-call/route.ts.
+  const slug = (client.slug as string) ?? 'trial-test'
+
+  // Build context — same as production inbound path
   const clientRow: ClientRow = {
     id: client.id,
-    slug: (client.slug as string) ?? 'trial-test',
+    slug,
     niche: (client.niche as string | null) ?? undefined,
     business_name: (client.business_name as string | null) ?? undefined,
     timezone: (client.timezone as string | null) ?? undefined,
@@ -91,27 +95,52 @@ export async function POST(req: NextRequest) {
       ? `${knowledgeBlockStr}\n\n${ctx.retrieval.promptInstruction}`
       : ctx.retrieval.promptInstruction
   }
-
-  const resolvedPrompt = (client.system_prompt as string)
-    .replace(/\{\{callerContext\}\}/g, callerContextRaw)
-    .replace(/\{\{businessFacts\}\}/g, knowledgeBlockStr)
-    .replace(/\{\{extraQa\}\}/g, '')
-    .replace(/\{\{contextData\}\}/g, ctx.assembled.contextDataBlock)
+  const contextDataBlock = ctx.assembled.contextDataBlock
 
   try {
-    // Build signed callback URL so Ultravox can POST back when the trial call ends
-    const callbackBaseUrl = `${APP_URL}/api/trial/call-ended?clientId=${clientId}`
-    const callbackUrl = signCallbackUrl(callbackBaseUrl, clientId)
+    // Callback URL → production completed webhook for full classification + gap detection
+    const callbackBaseUrl = `${APP_URL}/api/webhook/${slug}/completed`
+    const callbackUrl = signCallbackUrl(callbackBaseUrl, slug)
 
-    const { joinUrl, callId } = await createDemoCall({
-      systemPrompt: resolvedPrompt,
-      voice: (client.agent_voice_id as string | null) || undefined,
-      maxDuration: '90s',
-      callbackUrl,
-    })
+    let joinUrl: string
+    let callId: string
 
-    // Pre-insert a call_logs row so the dashboard shows "first call" immediately after sign-in
-    const supa = createServiceClient()
+    if (client.ultravox_agent_id) {
+      // Agents API path — same as production inbound + dashboard agent-test
+      const overrideTools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+      const result = await callViaAgent(client.ultravox_agent_id as string, {
+        medium: 'webrtc',
+        maxDuration: '300s',
+        callbackUrl,
+        callerContext: callerContextRaw,
+        businessFacts: knowledgeBlockStr,
+        contextData: contextDataBlock,
+        metadata: { slug, source: 'trial-test', client_id: clientId },
+        overrideTools,
+      })
+      joinUrl = result.joinUrl
+      callId = result.callId
+      console.log(`[trial/test-call] Agents API: slug=${slug} callId=${callId} tools=${overrideTools?.length ?? 0}`)
+    } else {
+      // Fallback: no agent provisioned yet — use createDemoCall with resolved prompt
+      const resolvedPrompt = (client.system_prompt as string)
+        .replace(/\{\{callerContext\}\}/g, callerContextRaw)
+        .replace(/\{\{businessFacts\}\}/g, knowledgeBlockStr)
+        .replace(/\{\{extraQa\}\}/g, '')
+        .replace(/\{\{contextData\}\}/g, contextDataBlock)
+
+      const result = await createDemoCall({
+        systemPrompt: resolvedPrompt,
+        voice: (client.agent_voice_id as string | null) || undefined,
+        maxDuration: '300s',
+        callbackUrl,
+      })
+      joinUrl = result.joinUrl
+      callId = result.callId
+      console.log(`[trial/test-call] createDemoCall fallback: slug=${slug} callId=${callId}`)
+    }
+
+    // Pre-insert call_logs row — completed webhook picks this up for CAS lock
     const { error: logErr } = await supa.from('call_logs').insert({
       ultravox_call_id: callId,
       client_id: clientId,
@@ -123,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ joinUrl, callId, agentName: client.agent_name })
   } catch (err) {
-    console.error('[trial/test-call] createDemoCall failed:', err)
+    console.error('[trial/test-call] call creation failed:', err)
     return NextResponse.json({ error: 'Failed to start call. Please try again.' }, { status: 502 })
   }
 }

@@ -101,18 +101,18 @@ export async function POST(
         return
       }
 
-      // S12-TRIAL1: Dashboard agent test calls + trial browser calls skip the full notification pipeline
-      if (existingRow?.call_status === 'test' || existingRow?.call_status === 'trial_test') {
-        console.log(`[completed] Skipping test/trial_test call callId=${callId} — no classification/notifications needed`)
-        return
+      // Test/trial calls: process fully (classification, gaps, insights) but skip notifications
+      const isTestCall = existingRow?.call_status === 'test' || existingRow?.call_status === 'trial_test'
+      if (isTestCall) {
+        console.log(`[completed] Test call detected (${existingRow?.call_status}) callId=${callId} — will classify + detect gaps, skip notifications`)
       }
 
-      // Atomic dedup: transition 'live' → 'processing'
+      // Atomic dedup: transition 'live'/'test'/'trial_test' → 'processing'
       const { data: locked } = await supabase
         .from('call_logs')
         .update({ call_status: 'processing' })
         .eq('ultravox_call_id', callId)
-        .eq('call_status', 'live')
+        .in('call_status', ['live', 'test', 'trial_test'])
         .select('id')
 
       if (!locked?.length) {
@@ -237,8 +237,8 @@ export async function POST(
       // Call log row ID for notification_logs FK
       const callLogId = updatedRows?.[0]?.id ?? null
 
-      // ── Ops alert for system failures ─────────────────────────────────────────
-      if (endReason === 'connection_error' || endReason === 'system_error') {
+      // ── Ops alert for system failures (skip for test calls) ──────────────────
+      if (!isTestCall && (endReason === 'connection_error' || endReason === 'system_error')) {
         if (client.telegram_bot_token && client.telegram_chat_id) {
           await sendAlert(
             client.telegram_bot_token,
@@ -275,8 +275,10 @@ export async function POST(
         console.error('[completed] Recording storage failed:', storageErr)
       }
 
-      // ── S3 idempotency guard: skip notifications if already sent for this call ──
-      if (await notificationsAlreadySent(supabase, callLogId)) {
+      // ── Notifications: skip for test/trial calls (no Telegram, SMS, or email) ──
+      if (isTestCall) {
+        console.log(`[completed] Skipping notifications for test call callId=${callId}`)
+      } else if (await notificationsAlreadySent(supabase, callLogId)) {
         console.warn(`[completed] IDEMPOTENCY — notifications already sent for callId=${callId} callLogId=${callLogId} — skipping Telegram/SMS/email`)
       } else {
         // Build shared notification context
