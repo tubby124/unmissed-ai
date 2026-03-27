@@ -5,6 +5,13 @@ import { OnboardingData } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AGENT_MODES, AgentMode } from "@/lib/capabilities";
+import { Inbox, Headphones, CalendarCheck, PhoneForwarded, Check } from "lucide-react";
+
+const MODE_ICONS: Record<AgentMode, React.ReactNode> = {
+  message_only: <Inbox className="w-5 h-5" />,
+  triage: <Headphones className="w-5 h-5" />,
+  full_service: <CalendarCheck className="w-5 h-5" />,
+};
 
 interface Props {
   data: OnboardingData;
@@ -18,7 +25,13 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
   const isPro = data.selectedPlan === "pro" || data.selectedPlan === null;
 
   function selectMode(mode: AgentMode) {
-    onUpdate({ callHandlingMode: mode });
+    // Set both callHandlingMode (canonical) and agentJob (legacy fallback)
+    const jobMap: Record<AgentMode, 'message_taker' | 'receptionist' | 'booking_agent'> = {
+      message_only: 'message_taker',
+      triage: 'receptionist',
+      full_service: 'booking_agent',
+    };
+    onUpdate({ callHandlingMode: mode, agentJob: jobMap[mode] });
   }
 
   return (
@@ -36,38 +49,40 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
       <div className="space-y-3">
         {AGENT_MODES.map((mode) => {
           const isSelected = currentMode === mode.id;
-          // Booking mode is always selectable — just needs calendar connected later
           const needsCalendar = mode.id === "full_service";
 
           return (
-            <button
+            <motion.button
               key={mode.id}
               type="button"
               onClick={() => selectMode(mode.id)}
+              whileTap={{ scale: 0.98 }}
               className={[
-                "w-full text-left rounded-xl border p-4 transition-all cursor-pointer",
+                "w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer relative overflow-hidden",
                 isSelected
-                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
-                  : "border-border bg-card hover:border-indigo-300 dark:hover:border-indigo-700",
+                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+                  : "border-border bg-card hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm",
               ].join(" ")}
             >
               <div className="flex items-start gap-3">
-                {/* Radio dot */}
-                <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center border-indigo-500">
-                  {isSelected && (
-                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                  )}
+                {/* Icon circle */}
+                <div className={[
+                  "mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                  isSelected
+                    ? "bg-indigo-600 text-white"
+                    : "bg-muted text-muted-foreground",
+                ].join(" ")}>
+                  {MODE_ICONS[mode.id]}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-base">{mode.icon}</span>
                     <span className="font-semibold text-sm text-foreground">
                       {mode.label}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      — {mode.tagline}
+                      {mode.tagline}
                     </span>
                   </div>
 
@@ -75,14 +90,14 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                     {mode.description}
                   </p>
 
-                  {/* Quote preview + calendar note — only when selected */}
+                  {/* Expanded details when selected */}
                   <AnimatePresence>
                     {isSelected && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.18 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         className="overflow-hidden"
                       >
                         <p className="mt-2 text-xs italic text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg px-3 py-2">
@@ -94,7 +109,7 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                               key={item}
                               className="flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
-                              <span className="text-emerald-500">✓</span>
+                              <Check className="w-3 h-3 text-emerald-500 shrink-0" />
                               {item}
                             </li>
                           ))}
@@ -113,8 +128,18 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* Green glow indicator when selected */}
+                {isSelected && (
+                  <div className="absolute top-3 right-3">
+                    <span className="relative flex size-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex size-3 rounded-full bg-emerald-500 shadow-[0_0_6px_2px_rgba(34,197,94,0.5)]" />
+                    </span>
+                  </div>
+                )}
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -138,8 +163,9 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  📞 Call Forwarding
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <PhoneForwarded className="w-4 h-4 text-indigo-500" />
+                  Call Forwarding
                 </span>
                 {!isPro && (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
