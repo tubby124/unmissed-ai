@@ -34,7 +34,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   // Validate E.164 — NANP only (US/Canada +1)
+  // Note: VoIP detection is NOT implemented; the prompt does not claim we skip VoIP numbers.
   if (!/^\+1[2-9]\d{9}$/.test(to)) {
+    if (call_id) {
+      const supabase = createServiceClient()
+      const { data: callRow } = await supabase
+        .from('call_logs')
+        .select('id')
+        .eq('ultravox_call_id', call_id)
+        .maybeSingle()
+      if (callRow?.id) {
+        await supabase.from('call_logs')
+          .update({ sms_outcome: 'failed_missing_phone' })
+          .eq('id', callRow.id)
+      }
+    }
     return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
   }
 
@@ -53,6 +67,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
   if (!callState && call_id) callState = await readCallStateFromDb(supabase, call_id)
 
+  // Resolve call_logs row id for linking and outcome writes.
+  // If not in call_logs, check demo_calls and guard against double-send there too.
+  let relatedCallId: string | null = null
+  let isDemoCall = false
+  if (call_id) {
+    const { data: callRow } = await supabase
+      .from('call_logs')
+      .select('id')
+      .eq('ultravox_call_id', call_id)
+      .maybeSingle()
+    relatedCallId = callRow?.id ?? null
+
+    if (!relatedCallId) {
+      // Not a production call — check demo_calls for dedup
+      const { data: demoRow } = await supabase
+        .from('demo_calls')
+        .select('id, in_call_sms_sent')
+        .eq('ultravox_call_id', call_id)
+        .maybeSingle()
+      if (demoRow) {
+        isDemoCall = true
+        if (demoRow.in_call_sms_sent) {
+          // Demo already sent — logical guard (demo calls are low-concurrency)
+          console.log(`[sms-tool] SKIP demo duplicate: slug=${slug} call_id=${call_id}`)
+          return NextResponse.json({ result: 'already_attempted' })
+        }
+      }
+    }
+  }
+
   // Check opt-out list before sending (TCPA/CRTC compliance)
   const { data: optOut } = await supabase
     .from('sms_opt_outs')
@@ -63,66 +107,75 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   if (optOut && !optOut.opted_back_in_at) {
     console.log(`[sms-tool] BLOCKED — recipient opted out: slug=${slug} to=${to}`)
+    if (relatedCallId) {
+      await supabase.from('call_logs')
+        .update({ sms_outcome: 'blocked_opt_out' })
+        .eq('id', relatedCallId)
+    }
     const blockedResponse = NextResponse.json({ result: 'SMS blocked — recipient opted out' })
     if (callState) setStateUpdate(blockedResponse, { lastToolOutcome: 'sms_blocked' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_blocked' })
     return blockedResponse
   }
 
-  // Find related call_log id for linking
-  let relatedCallId: string | null = null
-  if (call_id) {
-    const { data: callRow } = await supabase
-      .from('call_logs')
-      .select('id')
-      .eq('ultravox_call_id', call_id)
-      .single()
-    relatedCallId = callRow?.id ?? null
+  // ── Track B.1: Atomic idempotency via DB unique constraint ──────────────────
+  // INSERT the sms_logs row before calling Twilio. The unique index on
+  // (related_call_id) WHERE direction='outbound' means only one concurrent
+  // request can claim this call's SMS send. The second gets a 23505 and bails.
+  // This is atomic — no read-then-skip race window.
+  const statusCallbackUrl = `${APP_URL}/api/webhook/${slug}/sms-status`
+  const { data: claimRow, error: claimError } = await supabase.from('sms_logs').insert({
+    client_id: client.id,
+    related_call_id: relatedCallId,
+    direction: 'outbound',
+    from_number: client.twilio_number,
+    to_number: to,
+    body: message,
+    status: 'pending',
+    attempted_at: new Date().toISOString(),
+  }).select('id').single()
+
+  if (claimError) {
+    if (claimError.code === '23505') {
+      // Unique constraint fired — another concurrent request already owns this send
+      console.log(`[sms-tool] SKIP duplicate — unique constraint hit: slug=${slug} call_id=${call_id}`)
+      return NextResponse.json({ result: 'already_attempted' })
+    }
+    // Non-unique DB error — log but don't abort the send over a logging issue
+    console.error(`[sms-tool] sms_logs claim insert failed: ${claimError.message}`)
   }
 
   try {
-    const statusCallbackUrl = `${APP_URL}/api/webhook/${slug}/sms-status`
     const twilioMessage = await sendSmsTracked(to, client.twilio_number, message, statusCallbackUrl)
     console.log(`[sms-tool] Sent in-call SMS: slug=${slug} to=${to} call_id=${call_id} sid=${twilioMessage.sid}`)
 
-    // Log outbound SMS
-    const { error: logError } = await supabase.from('sms_logs').insert({
-      client_id: client.id,
-      message_sid: twilioMessage.sid,
-      direction: 'outbound',
-      from_number: client.twilio_number,
-      to_number: to,
-      body: message,
-      status: 'sent',
-      related_call_id: relatedCallId,
-    })
-    if (logError) {
-      console.error(`[sms-tool] sms_logs insert failed: ${logError.message}`)
+    // Update the claimed sms_logs row with real SID and status
+    if (claimRow?.id) {
+      const { error: updateErr } = await supabase.from('sms_logs')
+        .update({
+          message_sid: twilioMessage.sid,
+          provider_message_sid: twilioMessage.sid,
+          status: 'sent',
+        })
+        .eq('id', claimRow.id)
+      if (updateErr) console.error(`[sms-tool] sms_logs update failed: ${updateErr.message}`)
     }
 
-    // Mark that in-call SMS was sent (for post-call dedupe)
-    if (call_id) {
-      // Try call_logs first (production calls)
-      const { data: logRow, error: logUpdateError } = await supabase.from('call_logs')
+    // Write outcome to call_logs (production calls)
+    if (relatedCallId) {
+      const { error: logUpdateError } = await supabase.from('call_logs')
+        .update({ in_call_sms_sent: true, sms_outcome: 'sent' })
+        .eq('id', relatedCallId)
+      if (logUpdateError) {
+        console.error(`[sms-tool] call_logs outcome write failed: slug=${slug} call_id=${call_id} error=${logUpdateError.message}`)
+      }
+    } else if (call_id) {
+      // No call_logs row — try demo_calls (call-me widget)
+      const { error: demoError } = await supabase.from('demo_calls')
         .update({ in_call_sms_sent: true })
         .eq('ultravox_call_id', call_id)
-        .select('id')
-
-      if (logUpdateError) {
-        console.error(`[sms-tool] DEDUPE WRITE FAILED call_logs: slug=${slug} call_id=${call_id} error=${logUpdateError.message}`)
-      }
-
-      // If not in call_logs, try demo_calls (call-me widget demos)
-      if (!logRow?.length) {
-        const { error: demoError } = await supabase.from('demo_calls')
-          .update({ in_call_sms_sent: true })
-          .eq('ultravox_call_id', call_id)
-
-        if (demoError) {
-          console.error(`[sms-tool] DEDUPE WRITE FAILED demo_calls: slug=${slug} call_id=${call_id} error=${demoError.message}`)
-        } else {
-          console.log(`[sms-tool] Marked demo_calls.in_call_sms_sent: slug=${slug} call_id=${call_id}`)
-        }
+      if (demoError) {
+        console.error(`[sms-tool] demo_calls update failed: slug=${slug} call_id=${call_id} error=${demoError.message}`)
       }
     }
 
@@ -133,6 +186,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[sms-tool] Send failed: ${msg}`)
+
+    // Update claimed row with failure details
+    if (claimRow?.id) {
+      await supabase.from('sms_logs')
+        .update({ status: 'failed', error_message: msg })
+        .eq('id', claimRow.id)
+    }
+
+    // Write outcome to call_logs
+    if (relatedCallId) {
+      await supabase.from('call_logs')
+        .update({ sms_outcome: 'failed_provider' })
+        .eq('id', relatedCallId)
+    }
+
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'sms_error' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_error' })

@@ -21,12 +21,21 @@ interface CallLog {
   duration_seconds: number | null
   started_at: string
   business_name?: string | null
+  client_id?: string | null
   confidence?: number | null
   sentiment?: string | null
   key_topics?: string[] | null
   next_steps?: string | null
   quality_score?: number | null
   transfer_status?: string | null
+  sms_outcome?: string | null
+}
+
+const SMS_OUTCOME_BADGE: Record<string, { label: string; color: string }> = {
+  sent:                 { label: 'SMS Sent',   color: 'green' },
+  blocked_opt_out:      { label: 'Opted Out',  color: 'amber' },
+  failed_provider:      { label: 'SMS Failed', color: 'red'   },
+  failed_missing_phone: { label: 'No Phone',   color: 'zinc'  },
 }
 
 const TRANSFER_BADGE: Record<string, { label: string; color: string; pulse?: boolean }> = {
@@ -91,6 +100,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
   const [recordingAvailable, setRecordingAvailable] = useState<boolean | null>(null)
   const [recordingLoading, setRecordingLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [smsOptOut, setSmsOptOut] = useState<{ opted_out: boolean; opted_out_at: string | null } | null>(null)
   const supabase = createBrowserClient()
 
   function copyText(text: string, key: string) {
@@ -122,6 +132,14 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         .single()
       setExpandData(data as ExpandedData | null)
       setLoading(false)
+    }
+
+    // Fetch SMS opt-out status once if call had an SMS attempt
+    if (next && call.sms_outcome != null && smsOptOut === null) {
+      fetch(`/api/dashboard/calls/${call.ultravox_call_id}/sms-status`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => d && setSmsOptOut({ opted_out: d.opted_out, opted_out_at: d.opted_out_at }))
+        .catch(() => {})
     }
 
     // Check recording availability once per lifecycle (fire-and-forget)
@@ -174,6 +192,22 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             }
             return (
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colorMap[b.color] ?? ''} ${b.pulse ? 'animate-pulse' : ''}`}>
+                {b.label}
+              </span>
+            )
+          })()}
+
+          {/* SMS outcome badge */}
+          {call.sms_outcome && SMS_OUTCOME_BADGE[call.sms_outcome] && (() => {
+            const b = SMS_OUTCOME_BADGE[call.sms_outcome!]
+            const colorMap: Record<string, string> = {
+              green: 'bg-green-500/15 text-green-400 border-green-500/30',
+              amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+              red:   'bg-red-500/15 text-red-400 border-red-500/30',
+              zinc:  'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
+            }
+            return (
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colorMap[b.color] ?? ''}`}>
                 {b.label}
               </span>
             )
@@ -332,6 +366,30 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                       <p className="text-[11px] text-amber-400/90 font-medium leading-relaxed">{nextSteps}</p>
                     </div>
                   )}
+
+                  {/* SMS status */}
+                  {call.sms_outcome != null && (() => {
+                    const badge = SMS_OUTCOME_BADGE[call.sms_outcome!] ?? { label: 'Unknown', color: 'zinc' }
+                    const colorMap: Record<string, string> = {
+                      green: 'bg-green-500/15 text-green-400 border-green-500/30',
+                      amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+                      red:   'bg-red-500/15 text-red-400 border-red-500/30',
+                      zinc:  'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
+                    }
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>SMS</span>
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colorMap[badge.color] ?? colorMap.zinc}`}>
+                          {badge.label}
+                        </span>
+                        {smsOptOut?.opted_out && (
+                          <span className="text-[10px] text-amber-400/70">
+                            opted out{smsOptOut.opted_out_at ? ` ${new Date(smsOptOut.opted_out_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}` : ''}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {/* All topics */}
                   {(expandData?.key_topics ?? call.key_topics ?? []).length > 0 && (

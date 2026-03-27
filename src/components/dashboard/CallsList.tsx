@@ -39,6 +39,7 @@ interface CallLog {
   next_steps?: string | null
   quality_score?: number | null
   transfer_status?: string | null
+  sms_outcome?: string | null
 }
 
 interface ClientInfo {
@@ -182,7 +183,13 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       })
       .on('postgres_changes', updateOpts, (payload) => {
         const row = payload.new as CallLog
-        setCalls(prev => prev.map(c => c.id === row.id ? { ...c, ...row } : c))
+        setCalls(prev => prev.map(c => c.id === row.id ? {
+          ...c,
+          ...row,
+          // Preserve cached values for fields absent in partial Realtime payloads
+          sms_outcome:     row.sms_outcome     !== undefined ? row.sms_outcome     : c.sms_outcome,
+          transfer_status: row.transfer_status !== undefined ? row.transfer_status : c.transfer_status,
+        } : c))
       })
       .subscribe()
 
@@ -195,7 +202,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
     const poll = async () => {
       let q = supabase
         .from('call_logs')
-        .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, transfer_status, clients(business_name)')
+        .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, transfer_status, sms_outcome, clients(business_name)')
         .in('call_status', ['live', 'processing'])
         .order('started_at', { ascending: false })
       if (!isAdmin && clientId) q = q.eq('client_id', clientId)

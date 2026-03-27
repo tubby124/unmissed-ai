@@ -52,7 +52,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, ivr_enabled, ivr_prompt, selected_plan, subscription_status')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, ivr_enabled, ivr_prompt, selected_plan, subscription_status, sms_enabled')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -154,6 +154,19 @@ export async function POST(
     priorCallRows = (priorData ?? []) as PriorCall[]
   }
 
+  // ── SMS opt-out check — prevents agent from verbally promising SMS to opted-out callers ──
+  let smsCallerOptedOut = false
+  if (client.sms_enabled && callerPhone !== 'unknown') {
+    const { data: optOutRow } = await supabase
+      .from('sms_opt_outs')
+      .select('id')
+      .eq('client_id', client.id)
+      .eq('phone_number', callerPhone)
+      .is('opted_back_in_at', null)
+      .maybeSingle()
+    smsCallerOptedOut = !!optOutRow
+  }
+
   const clientRow: ClientRow = {
     id: client.id,
     slug,
@@ -189,8 +202,11 @@ export async function POST(
 
   // callerContextBlock = '[TODAY: ...\nCALLER PHONE: ...]'  — for createCall fallback (brackets included)
   // callerContextRaw   = 'TODAY: ...\nCALLER PHONE: ...'   — for Agents API template substitution (no brackets)
-  const callerContextBlock = ctx.assembled.callerContextBlock
-  const callerContextRaw   = callerContextBlock.slice(1, -1)
+  let callerContextRaw   = ctx.assembled.callerContextBlock.slice(1, -1)
+  if (smsCallerOptedOut) {
+    callerContextRaw += '\nSMS STATUS: Caller has opted out. Do not offer or send a text.'
+  }
+  const callerContextBlock = `[${callerContextRaw}]`
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
   // Phase 4: always inject retrieval instruction when enabled — never drop it
   let knowledgeBlockStr = ctx.knowledge.block
