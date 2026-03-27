@@ -88,7 +88,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Prompt generation failed: ${err}` }, { status: 500 })
     }
 
-    const promptWithContext = prompt + `\n\n[PREVIEW MODE — The business owner is testing their own agent before going live.\nCALLER NAME: ${callerName}\n5-minute preview. Be concise.]
+    // buildPromptFromIntake intentionally ignores websiteContent — inject directly here
+    const knowledgeInject = websiteContent
+      ? `\n\n# WHAT WE KNOW ABOUT THIS BUSINESS\n${websiteContent}`
+      : ''
+
+    const promptWithContext = prompt + knowledgeInject + `\n\n[PREVIEW MODE — The business owner is testing their own agent before going live.\nCALLER NAME: ${callerName}\n5-minute preview. Be concise.]
 
 HANG-UP RULES (mandatory — follow exactly):
 - When the caller says "bye", "goodbye", "thanks", "thank you", "okay thanks", "that's all", "I'm good", "I'm done", or any other signal they are finished — say a brief farewell (max 5 words) and invoke hangUp in the SAME response.
