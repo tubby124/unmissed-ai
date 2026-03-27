@@ -8,23 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 10
-const RATE_WINDOW_MS = 60 * 1000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, timestamps)
-  return timestamps.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+const limiter = new SlidingWindowRateLimiter(10, 60 * 1000)
 
 interface PlaceDetails {
   name?: string
@@ -44,7 +30,7 @@ export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
 
-  if (isRateLimited(ip)) {
+  if (!limiter.check(ip).allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
@@ -81,7 +67,7 @@ export async function GET(req: NextRequest) {
     const r = data.result
 
     if (!r) {
-      recordUsage(ip)
+      limiter.record(ip)
       return NextResponse.json({ available: true, result: null })
     }
 
@@ -91,7 +77,7 @@ export async function GET(req: NextRequest) {
       photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${r.photos[0].photo_reference}&key=${apiKey}`
     }
 
-    recordUsage(ip)
+    limiter.record(ip)
 
     return NextResponse.json({
       available: true,

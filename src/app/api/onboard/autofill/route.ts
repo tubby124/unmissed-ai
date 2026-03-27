@@ -6,23 +6,9 @@
  * Times out after 12s. Returns {} on any failure.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 60 * 1000 // 1 minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS)
-  rateLimitMap.set(ip, timestamps)
-  return timestamps.length >= RATE_LIMIT
-}
-
-function recordUsage(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || []
-  timestamps.push(Date.now())
-  rateLimitMap.set(ip, timestamps)
-}
+const limiter = new SlidingWindowRateLimiter(5, 60 * 1000)
 
 async function extractBusinessInfo(url: string): Promise<{ hours?: string; services?: string; faqs?: Array<{question: string; answer: string}> }> {
   const apiKey = process.env.OPENROUTER_API_KEY
@@ -67,7 +53,7 @@ Use null for hours/services if not found. Use null for faqs if there isn't enoug
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
-  if (isRateLimited(ip)) {
+  if (!limiter.check(ip).allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
@@ -88,7 +74,7 @@ export async function POST(req: NextRequest) {
       if (!extracted || (!extracted.hours && !extracted.services && !extracted.faqs)) {
         return NextResponse.json({})
       }
-      recordUsage(ip)
+      limiter.record(ip)
       return NextResponse.json(extracted)
     } catch {
       clearTimeout(timer)

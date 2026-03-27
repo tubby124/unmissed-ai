@@ -8,6 +8,7 @@ import { getPlanName } from '@/lib/settings-utils'
 import { BASE_PLAN, SETUP, MINUTE_RELOAD, getEffectiveMonthly, PLANS } from '@/lib/pricing'
 import UsageSummary from '@/components/dashboard/UsageSummary'
 import AdminPromoPanel from './AdminPromoPanel'
+import DangerZoneCard from './DangerZoneCard'
 
 interface BillingTabProps {
   client: ClientConfig
@@ -341,6 +342,13 @@ export default function BillingTab({
 
       {/* Admin: Ultravox account-level usage */}
       {isAdmin && <UsageSummary isAdmin={isAdmin} />}
+
+      {/* Danger Zone — account deletion */}
+      {!previewMode && (
+        <div className="p-5">
+          <DangerZoneCard clientId={client.id} previewMode={previewMode} />
+        </div>
+      )}
     </div>
   </>)
 }

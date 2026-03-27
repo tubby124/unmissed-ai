@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   // Send password reset email so client can set their own password
   await adminSupa.auth.resetPasswordForEmail(email, {
-    redirectTo: `${APP_URL}/auth/callback?next=/auth/set-password`,
+    redirectTo: `${APP_URL}/auth/confirm?next=/auth/set-password`,
   })
 
   return NextResponse.json({ success: true, userId: newUserId })
