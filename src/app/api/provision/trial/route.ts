@@ -359,8 +359,17 @@ export async function POST(req: NextRequest) {
 
   // Gate-17: Set website_scrape_status to reflect actual scrape data.
   // Without this, hasWebsite (Gate-4) returns false for users who approved scrape during onboarding.
+  // Also write website_knowledge_approved so dashboard stat cells show correct counts on first load.
   if (data.websiteScrapeResult) {
-    await supa.from('clients').update({ website_scrape_status: 'approved' }).eq('id', clientId)
+    const sr = data.websiteScrapeResult as { serviceTags?: string[] }
+    await supa.from('clients').update({
+      website_scrape_status: 'approved',
+      website_knowledge_approved: {
+        businessFacts: scrapedFacts,
+        extraQa: scrapedQa,
+        serviceTags: sr.serviceTags ?? [],
+      },
+    }).eq('id', clientId)
   } else if (rawScrapeResult?.rawContent) {
     await supa.from('clients').update({ website_scrape_status: 'extracted' }).eq('id', clientId)
   }

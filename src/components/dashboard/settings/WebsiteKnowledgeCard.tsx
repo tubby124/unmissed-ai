@@ -15,7 +15,7 @@ interface WebsiteKnowledgeCardProps {
 type ScrapeStatus = 'idle' | 'scraping' | 'extracted' | 'approved' | 'failed'
 
 function resolveStatus(client: ClientConfig): ScrapeStatus {
-  if (client.website_scrape_status === 'approved' && client.website_knowledge_approved) return 'approved'
+  if (client.website_scrape_status === 'approved') return 'approved'
   if (client.website_scrape_status === 'extracted' && client.website_knowledge_preview) return 'extracted'
   if (client.website_scrape_status === 'scraping') return 'scraping'
   if (client.website_scrape_status === 'failed') return 'failed'
