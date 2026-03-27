@@ -72,6 +72,49 @@ export function patchCalendarBlock(
   return prompt
 }
 
+// ── SMS follow-up block ──────────────────────────────────────────────────────
+
+export const SMS_HEADING = '# SMS FOLLOW-UP'
+
+/**
+ * Build the standalone SMS follow-up instruction block.
+ * NOTE: Does NOT claim VoIP detection — that capability is not implemented.
+ */
+export function getSmsBlock(): string {
+  return `# SMS FOLLOW-UP
+
+After collecting the caller's information (name and reason for calling), and before hanging up:
+1. Call sendTextMessage in the SAME turn as your closing line.
+2. Do not ask for permission. Do not describe the text contents.
+3. Only send if the caller has provided a phone number.
+The backend handles opt-out compliance automatically.`
+}
+
+/**
+ * Patch a system prompt to add or remove the SMS FOLLOW-UP block.
+ * Mirrors the pattern of patchCalendarBlock — idempotent in both directions.
+ */
+export function patchSmsBlock(prompt: string, enabled: boolean): string {
+  const hasBlock = prompt.includes(SMS_HEADING)
+
+  if (enabled && !hasBlock) {
+    return prompt.trimEnd() + '\n\n' + getSmsBlock()
+  }
+
+  if (!enabled && hasBlock) {
+    const startIdx = prompt.indexOf(SMS_HEADING)
+    const afterStart = prompt.indexOf('\n#', startIdx + SMS_HEADING.length)
+    if (afterStart === -1) {
+      return prompt.substring(0, startIdx).trimEnd()
+    }
+    return (prompt.substring(0, startIdx) + prompt.substring(afterStart))
+      .replace(/\n{3,}/g, '\n\n')
+      .trimEnd()
+  }
+
+  return prompt
+}
+
 // ── Voice style section patcher ──────────────────────────────────────────────
 
 /**

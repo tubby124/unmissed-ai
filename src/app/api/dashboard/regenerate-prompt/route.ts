@@ -16,7 +16,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
-import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { patchCalendarBlock, patchSmsBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -140,7 +140,13 @@ export async function POST(req: NextRequest) {
       console.log(`[regenerate-prompt] Re-applied calendar booking block`)
     }
 
-    // 3. Voice style: if a preset was applied, re-patch the tone/style section
+    // 3. SMS follow-up block: if sms_enabled, ensure the block is present post-regen
+    if (client.sms_enabled) {
+      newPrompt = patchSmsBlock(newPrompt, true)
+      console.log(`[regenerate-prompt] Re-applied SMS follow-up block`)
+    }
+
+    // 4. Voice style: re-patch the tone/style section if a preset was applied
     const voicePreset = client.voice_style_preset as string | null
     if (voicePreset) {
       const preset = VOICE_PRESETS[voicePreset]
