@@ -30,7 +30,7 @@ export async function GET() {
   // Fetch all non-deleted clients with their critical resource fields
   const { data: clients, error } = await svc
     .from('clients')
-    .select('id, slug, business_name, status, subscription_status, ultravox_agent_id, twilio_number, tools, last_agent_sync_status, last_agent_sync_at')
+    .select('id, slug, business_name, status, subscription_status, ultravox_agent_id, twilio_number, tools, system_prompt, last_agent_sync_status, last_agent_sync_at')
     .neq('status', 'deleted')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -58,6 +58,9 @@ export async function GET() {
     }
     if (isActive && (c.last_agent_sync_status as string) === 'error') {
       issues.push(`last sync failed at ${c.last_agent_sync_at}`)
+    }
+    if (isActive && (!c.system_prompt || (c.system_prompt as string).trim().length < 50)) {
+      issues.push('missing or empty system_prompt')
     }
 
     if (issues.length > 0) {

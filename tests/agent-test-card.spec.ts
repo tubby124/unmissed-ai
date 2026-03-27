@@ -6,7 +6,7 @@ const PASSWORD = process.env.TEST_PASSWORD || '';
 async function login(page: Page) {
   await page.goto('/login');
   await page.getByPlaceholder('you@company.com').fill(EMAIL);
-  await page.getByPlaceholder('••••••••').fill(PASSWORD);
+  await page.locator('input[type="password"]').fill(PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForURL('**/dashboard**', { timeout: 15_000 });
 }

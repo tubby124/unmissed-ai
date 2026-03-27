@@ -18,7 +18,7 @@ const TARGET_CLIENT_NAME = process.env.TARGET_CLIENT_NAME || 'Windshield Hub'
 async function loginAsAdmin(page: Page) {
   await page.goto('/login')
   await page.getByPlaceholder('you@company.com').fill(ADMIN_EMAIL)
-  await page.getByPlaceholder('••••••••').fill(ADMIN_PASSWORD)
+  await page.locator('input[type="password"]').fill(ADMIN_PASSWORD)
   await page.getByRole('button', { name: /sign in/i }).click()
   await page.waitForURL('**/dashboard**', { timeout: 15_000 })
 }

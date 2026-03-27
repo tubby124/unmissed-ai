@@ -22,7 +22,7 @@ test.describe('Auth guards', () => {
   test('wrong password shows error message', async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder('you@company.com').fill('e2etest@unmissed.ai');
-    await page.getByPlaceholder('••••••••').fill('definitely-wrong-password');
+    await page.locator('input[type="password"]').fill('definitely-wrong-password');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should show an error — either red text or toast

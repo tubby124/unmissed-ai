@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -84,6 +84,14 @@ export async function GET(request: Request) {
       .from('knowledge_chunks')
       .select('source, status, updated_at')
       .eq('client_id', clientId),
+
+    // Open gaps count (for insights header)
+    supabase
+      .from('knowledge_query_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('result_count', 0)
+      .is('resolved_at', null),
   ])
 
   const client = clientRes.data
@@ -104,6 +112,13 @@ export async function GET(request: Request) {
   const allUpdatedAts = approvedChunks.map(k => k.updated_at).filter(Boolean) as string[]
   const lastUpdatedAt = allUpdatedAts.length > 0
     ? allUpdatedAts.sort().reverse()[0]
+    : null
+
+  // G5/D: Knowledge coverage + open gaps for insights header
+  const openGaps = gapsRes.count ?? 0
+  const coverageDenominator = approvedChunks.length + pendingChunks.length + openGaps
+  const knowledgeCoverage = coverageDenominator > 0
+    ? Math.round((approvedChunks.length / coverageDenominator) * 100)
     : null
 
   // Activation state — truthful readiness, not just setup flags
@@ -223,6 +238,10 @@ export async function GET(request: Request) {
       pending_review_count: pendingChunks.length,
       source_types: sourceTypes,
       last_updated_at: lastUpdatedAt,
+    },
+    insights: {
+      knowledgeCoverage,
+      openGaps,
     },
     editableFields: {
       hoursWeekday: (c.business_hours_weekday as string | null) ?? null,

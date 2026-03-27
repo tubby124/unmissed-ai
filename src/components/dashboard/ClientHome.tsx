@@ -14,6 +14,8 @@ import { deriveTrialPhase } from '@/lib/trial-display-state'
 import { deriveHomePhase } from '@/lib/derive-home-phase'
 import type { ActivationState } from '@/lib/derive-activation-state'
 import StatusBadge from '@/components/dashboard/StatusBadge'
+import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
+import { CallInsightsHeader } from '@/components/dashboard/CallInsightsHeader'
 import ErrorCard from '@/components/dashboard/ErrorCard'
 import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 import { useHomeSheet } from '@/hooks/useHomeSheet'
@@ -116,6 +118,14 @@ interface HomeData {
     pending_review_count: number
     source_types: string[]
     last_updated_at: string | null
+  }
+  agentSync?: {
+    last_agent_sync_at: string | null
+    last_agent_sync_status: string | null
+  }
+  insights?: {
+    knowledgeCoverage: number | null
+    openGaps: number
   }
 }
 
@@ -392,6 +402,16 @@ export default function ClientHome() {
           />
         )}
 
+        {/* ── Call insights header ──────────────────────────────── */}
+        {data.insights && (!isTrialActive || hasRealCalls) && (
+          <CallInsightsHeader
+            totalCalls={stats.totalCalls}
+            avgQuality={stats.avgQuality}
+            knowledgeCoverage={data.insights.knowledgeCoverage}
+            openGaps={data.insights.openGaps}
+          />
+        )}
+
         {/* ── Stats hero card ────────────────────────────────────── */}
         {(!isTrialActive || hasRealCalls) && (
           <StatsHeroCard
@@ -442,13 +462,23 @@ export default function ClientHome() {
               </div>
             )}
 
-            {/* Identity tile */}
-            <AgentIdentityTile
-              agentName={agent.name}
-              niche={agent.niche}
-              voiceStylePreset={agent.voiceStylePreset}
-              onOpenSheet={() => sheet.open('identity')}
-            />
+            {/* Identity tile + sync badge */}
+            <div className="space-y-2">
+              <AgentIdentityTile
+                agentName={agent.name}
+                niche={agent.niche}
+                voiceStylePreset={agent.voiceStylePreset}
+                onOpenSheet={() => sheet.open('identity')}
+              />
+              {data.agentSync && (
+                <div className="px-1">
+                  <AgentSyncBadge
+                    lastSyncAt={data.agentSync.last_agent_sync_at}
+                    lastSyncStatus={data.agentSync.last_agent_sync_status}
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Notifications tile */}
             <NotificationsTile

@@ -21,7 +21,7 @@ test.describe('Public pages', () => {
     // Core login elements
     await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
     await expect(page.getByPlaceholder('you@company.com')).toBeVisible();
-    await expect(page.getByPlaceholder('••••••••')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /email me a sign-in link/i })).toBeVisible();
@@ -59,7 +59,7 @@ test.describe('Login flow', () => {
     await page.goto('/login');
 
     await page.getByPlaceholder('you@company.com').fill(EMAIL);
-    await page.getByPlaceholder('••••••••').fill(PASSWORD);
+    await page.locator('input[type="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should redirect to dashboard
@@ -73,7 +73,7 @@ test.describe('Login flow', () => {
     // Login first
     await page.goto('/login');
     await page.getByPlaceholder('you@company.com').fill(EMAIL);
-    await page.getByPlaceholder('••••••••').fill(PASSWORD);
+    await page.locator('input[type="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('**/dashboard**', { timeout: 15_000 });
 
@@ -95,7 +95,7 @@ test.describe('Login flow', () => {
   test('login with wrong password shows error', async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder('you@company.com').fill(EMAIL);
-    await page.getByPlaceholder('••••••••').fill('wrong-password-123');
+    await page.locator('input[type="password"]').fill('wrong-password-123');
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should show an error message
@@ -113,7 +113,7 @@ test.describe('Admin pages (requires admin login)', () => {
   test('admin dashboard loads', async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder('you@company.com').fill(ADMIN_EMAIL);
-    await page.getByPlaceholder('••••••••').fill(ADMIN_PASSWORD);
+    await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('**/dashboard**', { timeout: 15_000 });
 
