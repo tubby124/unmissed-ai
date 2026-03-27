@@ -21,7 +21,6 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { OnboardingData, defaultOnboardingData } from "@/types/onboarding";
-import { SegmentedProgress } from "@/components/ui/progress-bar";
 import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { trackEvent } from "@/lib/analytics";
@@ -29,13 +28,14 @@ import { loadVisitor } from "@/lib/demo-visitor";
 import ThemeToggle from "@/components/ThemeToggle";
 import { STEP_DEFS, TOTAL_STEPS, type ActivationContext } from "./config/steps";
 import { ProvisioningOverlay } from "@/components/onboard/ProvisioningOverlay";
+import { Check, Phone, Calendar, MessageSquare, Zap } from "lucide-react";
 
 // ── Sidebar content — edit these to change the left-panel marketing copy ──────
-const SIDEBAR_BENEFITS: { icon: string; text: string }[] = [
-  { icon: "📞", text: "Answers every call, 24/7" },
-  { icon: "📅", text: "Books appointments automatically" },
-  { icon: "💬", text: "Texts callers a summary" },
-  { icon: "⚡", text: "No contracts. Cancel anytime." },
+const SIDEBAR_BENEFITS: { icon: React.ReactNode; text: string }[] = [
+  { icon: <Phone className="w-4 h-4" />, text: "Answers every call, 24/7" },
+  { icon: <Calendar className="w-4 h-4" />, text: "Books appointments automatically" },
+  { icon: <MessageSquare className="w-4 h-4" />, text: "Texts callers a summary" },
+  { icon: <Zap className="w-4 h-4" />, text: "No contracts. Cancel anytime." },
 ];
 
 const SIDEBAR_PRICING = {
@@ -198,23 +198,51 @@ export default function OnboardPage() {
         <span className="text-sm font-bold text-primary tracking-tight">
           {BRAND_NAME}
         </span>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            Step {stepIndex + 1} of {TOTAL_STEPS} — {stepDef?.label ?? ""}
-          </span>
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </div>
 
-      {/* Progress strip */}
-      <div className="shrink-0 px-4 pb-2">
-        <SegmentedProgress
-          value={progressValue}
-          segments={TOTAL_STEPS * 4}
-          showPercentage={false}
-          showDemo={false}
-          className="h-1.5"
-        />
+      {/* Labeled step progress */}
+      <div className="shrink-0 px-4 pb-3">
+        <div className="flex items-center gap-1 max-w-lg mx-auto">
+          {STEP_DEFS.map((def, i) => {
+            const isComplete = i < stepIndex;
+            const isCurrent = i === stepIndex;
+            return (
+              <div key={i} className="flex items-center flex-1 min-w-0 last:flex-none">
+                {/* Step dot */}
+                <div className="flex flex-col items-center gap-1">
+                  <motion.div
+                    className={[
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors shrink-0",
+                      isComplete
+                        ? "bg-indigo-600 text-white"
+                        : isCurrent
+                          ? "bg-indigo-600 text-white ring-4 ring-indigo-600/20"
+                          : "bg-muted text-muted-foreground",
+                    ].join(" ")}
+                    animate={isCurrent ? { scale: [1, 1.08, 1] } : {}}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    {isComplete ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                  </motion.div>
+                  <span className={[
+                    "text-[10px] font-medium hidden sm:block whitespace-nowrap",
+                    isCurrent ? "text-indigo-600 dark:text-indigo-400" : isComplete ? "text-foreground" : "text-muted-foreground",
+                  ].join(" ")}>
+                    {def.label}
+                  </span>
+                </div>
+                {/* Connector line */}
+                {i < STEP_DEFS.length - 1 && (
+                  <div className={[
+                    "flex-1 h-0.5 mx-1 rounded-full transition-colors mt-[-18px] sm:mt-0",
+                    isComplete ? "bg-indigo-600" : "bg-muted",
+                  ].join(" ")} />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Center area */}
@@ -234,7 +262,7 @@ export default function OnboardPage() {
             <ul className="space-y-3">
               {SIDEBAR_BENEFITS.map(({ icon, text }) => (
                 <li key={text} className="flex items-start gap-2.5">
-                  <span className="text-base shrink-0 mt-0.5">{icon}</span>
+                  <span className="text-indigo-400 shrink-0 mt-0.5">{icon}</span>
                   <span className="text-sm text-indigo-200 leading-snug">{text}</span>
                 </li>
               ))}

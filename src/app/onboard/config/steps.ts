@@ -62,26 +62,20 @@ export interface StepDef {
 // Import step components here. Add/remove/reorder entries to change the flow.
 
 import Step1GBP from '../steps/step1-gbp'
-import Step2Job from '../steps/step2-job'
 import Step2VoicePreview from '../steps/step2-voice-preview'
 import StepPlan from '../steps/step-plan'
 import Step3Capabilities from '../steps/step3-capabilities'
 import Step4Schedule from '../steps/step4-schedule'
 import Step6Activate from '../steps/step6-activate'
 // Inactive steps (not currently in the flow):
-// import Step4Knowledge from '../steps/step4'  ← knowledge upload (removed from trial flow)
-// import Step4OldStyle from '../steps/step4'    ← old niche form style
+// import Step2Job from '../steps/step2-job'         ← merged into Step3Capabilities (same question)
+// import Step4Knowledge from '../steps/step4'        ← knowledge upload (removed from trial flow)
 
 export const STEP_DEFS: StepDef[] = [
   {
     label: 'Your business',
     component: Step1GBP,
     canAdvance: (d) => !!d.businessName && !!d.voiceId,
-  },
-  {
-    label: "Agent's job",
-    component: Step2Job,
-    canAdvance: (d) => !!d.agentJob,
   },
   {
     label: 'Voice',
@@ -94,7 +88,7 @@ export const STEP_DEFS: StepDef[] = [
     canAdvance: (d) => !!d.selectedPlan,
   },
   {
-    label: 'Capabilities',
+    label: 'Agent mode',
     component: Step3Capabilities,
     canAdvance: () => true,
   },
@@ -108,7 +102,7 @@ export const STEP_DEFS: StepDef[] = [
     component: Step6Activate,
     canAdvance: () => true,
     hideFooterCta: true,
-    activationProps: true,  // page.tsx injects onActivate / isSubmitting / error
+    activationProps: true,
   },
 ]
 

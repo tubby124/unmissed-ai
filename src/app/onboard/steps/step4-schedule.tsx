@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { OnboardingData } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
+import { Clock, Sun, PenLine } from "lucide-react";
 
 type ScheduleMode = "24_7" | "business_hours" | "custom";
 
@@ -11,24 +12,24 @@ interface Props {
   onUpdate: (updates: Partial<OnboardingData>) => void;
 }
 
-const SCHEDULE_OPTIONS: { mode: ScheduleMode; label: string; description: string; icon: string }[] = [
+const SCHEDULE_OPTIONS: { mode: ScheduleMode; label: string; description: string; icon: React.ReactNode }[] = [
   {
     mode: "24_7",
     label: "24/7 available",
     description: "Your agent answers every call, day or night",
-    icon: "🌙",
+    icon: <Clock className="w-5 h-5" />,
   },
   {
     mode: "business_hours",
     label: "Business hours",
     description: "Answers during your set hours, takes messages after",
-    icon: "🕘",
+    icon: <Sun className="w-5 h-5" />,
   },
   {
     mode: "custom",
     label: "Custom schedule",
     description: "Describe your hours in your own words",
-    icon: "✏️",
+    icon: <PenLine className="w-5 h-5" />,
   },
 ];
 
@@ -72,46 +73,50 @@ export default function Step4Schedule({ data, onUpdate }: Props) {
       </div>
 
       <div className="space-y-2">
-        {SCHEDULE_OPTIONS.map(({ mode, label, description, icon }) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => handleModeChange(mode)}
-            className={`w-full text-left flex items-start gap-3 rounded-xl border-2 p-4 transition-all cursor-pointer ${
-              currentMode === mode
-                ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"
-                : "border-border hover:border-indigo-300 dark:hover:border-indigo-700"
-            }`}
-          >
-            {/* Radio indicator */}
-            <div
-              className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                currentMode === mode ? "border-indigo-600" : "border-muted-foreground/40"
-              }`}
+        {SCHEDULE_OPTIONS.map(({ mode, label, description, icon }) => {
+          const isSelected = currentMode === mode;
+          return (
+            <motion.button
+              key={mode}
+              type="button"
+              onClick={() => handleModeChange(mode)}
+              whileTap={{ scale: 0.98 }}
+              className={[
+                "w-full text-left flex items-start gap-3 rounded-xl border-2 p-4 transition-all cursor-pointer relative",
+                isSelected
+                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+                  : "border-border hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm",
+              ].join(" ")}
             >
-              {currentMode === mode && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-2 h-2 rounded-full bg-indigo-600"
-                />
+              {/* Icon */}
+              <div className={[
+                "mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                isSelected ? "bg-indigo-600 text-white" : "bg-muted text-muted-foreground",
+              ].join(" ")}>
+                {icon}
+              </div>
+
+              <div>
+                <p className={`text-sm font-semibold ${
+                  isSelected ? "text-indigo-900 dark:text-indigo-200" : "text-foreground"
+                }`}>
+                  {label}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+              </div>
+
+              {/* Glow indicator */}
+              {isSelected && (
+                <div className="absolute top-3 right-3">
+                  <span className="relative flex size-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex size-3 rounded-full bg-emerald-500 shadow-[0_0_6px_2px_rgba(34,197,94,0.5)]" />
+                  </span>
+                </div>
               )}
-            </div>
-
-            <span className="text-lg shrink-0 mt-0.5">{icon}</span>
-
-            <div>
-              <p
-                className={`text-sm font-semibold ${
-                  currentMode === mode ? "text-indigo-900 dark:text-indigo-200" : "text-foreground"
-                }`}
-              >
-                {label}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-            </div>
-          </button>
-        ))}
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Hours input — slides in for business_hours or custom */}

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 import { getAgentMode } from "@/lib/capabilities";
+import { Shield, CalendarOff, X, Check, Rocket } from "lucide-react";
 
 interface Props {
   data: OnboardingData;
@@ -51,7 +52,7 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
           What {agentName} will know
         </p>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-          {modeConfig.icon} {modeConfig.label}
+          {modeConfig.label}
         </span>
       </div>
 
@@ -75,7 +76,7 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
       <div className="flex flex-wrap gap-1.5">
         {activeCaps.map(c => (
           <span key={c.label} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[11px] text-emerald-700 dark:text-emerald-300">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            <Check className="w-3 h-3" />
             {c.label}
           </span>
         ))}
@@ -106,15 +107,15 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
       {/* Trust chips */}
       <div className="flex flex-wrap gap-2">
         {[
-          { icon: "🔒", text: "Secure" },
-          { icon: "📅", text: "$0 today" },
-          { icon: "✕", text: "Cancel anytime" },
+          { icon: <Shield className="w-3.5 h-3.5" />, text: "Secure" },
+          { icon: <CalendarOff className="w-3.5 h-3.5" />, text: "$0 today" },
+          { icon: <X className="w-3.5 h-3.5" />, text: "Cancel anytime" },
         ].map(({ icon, text }) => (
           <span
             key={text}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-medium text-muted-foreground"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground"
           >
-            <span>{icon}</span>
+            {icon}
             {text}
           </span>
         ))}
@@ -271,10 +272,24 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         type="button"
         onClick={() => onActivate("trial")}
         disabled={isSubmitting}
-        whileTap={{ scale: 0.98 }}
-        className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        whileTap={{ scale: 0.97 }}
+        whileHover={{ scale: 1.01 }}
+        className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 hover:shadow-xl hover:shadow-indigo-600/30 transition-shadow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {isSubmitting ? "Setting up your agent..." : `Launch ${agentName} →`}
+        {isSubmitting ? (
+          <>
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Setting up your agent...
+          </>
+        ) : (
+          <>
+            <Rocket className="w-4 h-4" />
+            Launch {agentName}
+          </>
+        )}
       </motion.button>
     </div>
   );
