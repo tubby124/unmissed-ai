@@ -218,6 +218,7 @@ export function TrialSuccessScreen({
   agentName,
   setupUrl,
   telegramLink: _telegramLink,
+  email,
   knowledgeCount: initialKnowledgeCount = 0,
 }: {
   clientId: string | null;
@@ -477,7 +478,7 @@ export function TrialSuccessScreen({
             </button>
             {callError && <p className="text-sm text-red-500 text-center">{callError}</p>}
             <a
-              href={setupUrl || "/dashboard"}
+              href={email ? `/login?email=${encodeURIComponent(email)}` : (setupUrl || "/login")}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
               Log in to your dashboard →
@@ -495,7 +496,7 @@ export function TrialSuccessScreen({
               />
             </CallProvider>
             <a
-              href={setupUrl || "/dashboard"}
+              href={email ? `/login?email=${encodeURIComponent(email)}` : (setupUrl || "/login")}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
               Log in to your dashboard →
@@ -532,11 +533,20 @@ export function TrialSuccessScreen({
           {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
         </button>
         <a
-          href="/login"
+          href={email ? `/login?email=${encodeURIComponent(email)}` : "/login"}
           className="block w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           Sign in with email →
         </a>
+        {/* Temporary password hint — until email delivery is fixed (GATE-1) */}
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 space-y-0.5">
+          <p className="text-xs text-amber-300/90 font-medium">
+            Your temporary password: <span className="font-mono font-bold tracking-wide select-all">QWERTY123</span>
+          </p>
+          <p className="text-[11px] text-amber-300/50">
+            Change it from your dashboard after signing in.
+          </p>
+        </div>
       </div>
 
       {/* Footer */}

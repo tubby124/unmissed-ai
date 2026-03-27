@@ -92,23 +92,23 @@ export const AUTO_GLASS: NichePageData = {
   leadCardNiche: "auto-glass",
   schema: {
     name: "Auto Glass Receptionist AI",
-    description: "AI receptionist service for auto glass shops. Answers inbound calls, collects vehicle details, damage description, and ADAS calibration requirements. Delivers structured lead cards via Telegram/SMS.",
+    description: "AI receptionist for auto glass shops. Answers inbound calls, collects vehicle details, damage description, and ADAS calibration requirements. Delivers structured lead cards via Telegram/SMS.",
   },
   hero: {
     subtitle: "For Auto Glass Shops",
     headline: "Stop losing windshield jobs to voicemail.",
-    body: "You\u2019re in the middle of a ADAS calibration. A customer calls about a cracked windshield on their 2024 F-150. 3 rings. They hang up and call the next shop. That\u2019s a $600 job gone.",
-    tagline: "Your AI receptionist answers. Every time.",
+    body: "You\u2019re mid-calibration. A customer calls about a cracked windshield on their 2024 F-150. Three rings. They hang up and call the next shop on Google. That\u2019s a $600 job gone — and you\u2019ll never know they called.",
+    tagline: "You can\u2019t stop mid-install to answer. Your agent never lets a call go to voicemail.",
     ctaLabel: "Get My Auto Glass Agent \u2192",
   },
   stats: [
     { value: "$150\u2013$800", label: "Avg glass job value", color: "primary" },
     { value: "3 jobs/week", label: "Typical missed calls per shop", color: "red" },
-    { value: "$93,600", label: "Annual revenue at risk", color: "green" },
+    { value: "$93,600", label: "Estimated annual opportunity", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to quote the job.",
-    subtext: "Before you even call them back, you know exactly what the job involves.",
+    subtext: "You call back knowing the vehicle, the damage, and whether ADAS calibration is in play.",
     items: [
       { icon: Car, label: "Year, Make, Model" },
       { icon: Zap, label: "Damage type & size" },
@@ -141,23 +141,23 @@ export const HVAC: NichePageData = {
   leadCardNiche: "hvac",
   schema: {
     name: "HVAC Receptionist AI",
-    description: "AI receptionist for HVAC companies. Answers inbound calls, triages heating/cooling emergencies, collects system details and schedules service.",
+    description: "AI receptionist for HVAC companies. Answers inbound calls, handles heating and cooling emergencies, collects system details, and routes urgent service inquiries.",
   },
   hero: {
     subtitle: "For HVAC Companies",
-    headline: "Stop losing emergency calls to voicemail.",
-    body: "It\u2019s \u201330\u00B0C and a furnace goes out at 2 AM. The homeowner calls your company. 3 rings. Voicemail. They call the next HVAC company. That\u2019s a $500 emergency call gone.",
-    tagline: "Your AI receptionist answers. Every time.",
+    headline: "Stop losing service calls to voicemail.",
+    body: "It\u2019s \u201330\u00B0C and a furnace goes out at 2 AM. The homeowner calls your company. Three rings. Voicemail. They call the next HVAC company on Google. That\u2019s a $500 emergency call \u2014 and the service contract behind it \u2014 gone.",
+    tagline: "Emergency or not, your agent answers before they try the next HVAC company.",
     ctaLabel: "Get My HVAC Agent \u2192",
   },
   stats: [
     { value: "$200\u2013$800", label: "Avg service call value", color: "primary" },
     { value: "5+ calls/week", label: "Missed during peak season", color: "red" },
-    { value: "$156,000", label: "Annual revenue at risk", color: "green" },
+    { value: "$156,000", label: "Estimated annual opportunity", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to dispatch the right tech.",
-    subtext: "Before you even call them back, you know exactly what the job involves.",
+    subtext: "You call back knowing the system, the urgency, and whether it\u2019s an emergency dispatch or a booking.",
     items: [
       { icon: Home, label: "Heating or cooling issue?" },
       { icon: Thermometer, label: "System type (furnace, AC, heat pump)" },
@@ -170,7 +170,7 @@ export const HVAC: NichePageData = {
   },
   demo: {
     type: "coming-soon",
-    text: "We\u2019re onboarding our first HVAC clients now. Try our live agents in the meantime:",
+    text: "HVAC demo launching soon \u2014 try our live agents in the meantime:",
   },
   pricing: {
     headline: "One missed service call pays for 6 months.",
@@ -195,18 +195,18 @@ export const PLUMBING: NichePageData = {
   hero: {
     subtitle: "For Plumbers",
     headline: "Stop losing emergency jobs to voicemail.",
-    body: "A pipe bursts at midnight. The homeowner is panicking, water everywhere. They call your company. Voicemail. They call the next plumber on Google. That\u2019s a $400+ emergency job gone.",
-    tagline: "Your AI receptionist answers. Every time.",
+    body: "A pipe bursts at midnight. The homeowner is panicking, water everywhere, shut-off valve location unknown. They call your company. Voicemail. They call the next plumber on Google and someone else gets the job. Emergency calls pay double. Your agent catches every one.",
+    tagline: "A burst pipe at midnight can\u2019t wait for voicemail. Your agent is always there.",
     ctaLabel: "Get My Plumbing Agent \u2192",
   },
   stats: [
     { value: "$200\u2013$600", label: "Avg service call value", color: "primary" },
     { value: "4 calls/week", label: "Missed after hours", color: "red" },
-    { value: "$124,800", label: "Annual revenue at risk", color: "green" },
+    { value: "$124,800", label: "Estimated annual opportunity", color: "green" },
   ],
   collected: {
-    headline: "Your agent collects everything you need to dispatch the right plumber.",
-    subtext: "Before you even call them back, you know exactly what the job involves.",
+    headline: "Your agent captures what you\u2019d need to dispatch \u2014 before you pick up the phone.",
+    subtext: "You call back knowing the issue, the urgency, and whether it needs same-day response.",
     items: [
       { icon: Droplets, label: "Type of issue (leak, clog, water heater, sewer)" },
       { icon: AlertTriangle, label: "Emergency level (flooding, no water, can wait)" },
@@ -219,7 +219,7 @@ export const PLUMBING: NichePageData = {
   },
   demo: {
     type: "coming-soon",
-    text: "We\u2019re onboarding our first plumbing clients now. Try our live agents in the meantime:",
+    text: "Plumbing demo launching soon \u2014 try our live agents in the meantime:",
   },
   pricing: {
     headline: "One missed emergency pays for 6 months.",
@@ -239,23 +239,23 @@ export const DENTAL: NichePageData = {
   leadCardNiche: "dental",
   schema: {
     name: "Dental Office Receptionist AI",
-    description: "AI receptionist for dental offices. Answers calls, screens new patients, collects insurance info, and schedules appointments.",
+    description: "AI receptionist for dental offices. Answers calls, screens new patients, collects insurance info, and captures appointment preferences.",
   },
   hero: {
     subtitle: "For Dental Offices",
     headline: "Stop losing new patients to voicemail.",
-    body: "A patient has a toothache at 8 PM. They call your office. Voicemail. They call the next dentist on Google and book there instead. That\u2019s an $800+ new patient \u2014 and every recall visit after \u2014 gone.",
-    tagline: "Your AI receptionist answers. Every time.",
+    body: "A patient has a toothache at 8 PM. They call your office. Voicemail. They call the next dentist on Google and book there instead. That\u2019s not just a lost appointment \u2014 it\u2019s the cleaning, the crown, the X-rays, and every visit for the next decade. Gone because nobody picked up.",
+    tagline: "After-hours patients call once. Your agent makes sure it counts.",
     ctaLabel: "Get My Dental Agent \u2192",
   },
   stats: [
     { value: "$800\u2013$2,000", label: "Avg new patient lifetime value", color: "primary" },
     { value: "8+ calls/week", label: "Missed outside office hours", color: "red" },
-    { value: "$332,800", label: "Annual revenue at risk", color: "green" },
+    { value: "$332,800", label: "Estimated annual opportunity", color: "green" },
   ],
   collected: {
-    headline: "Your agent collects everything you need to triage and book.",
-    subtext: "Before you even call them back, you know exactly what the patient needs.",
+    headline: "Your agent captures what your front desk would \u2014 even after hours.",
+    subtext: "You arrive Monday knowing who called, what they needed, and who to book first thing.",
     items: [
       { icon: Stethoscope, label: "New or existing patient?" },
       { icon: HeartPulse, label: "Reason for call (pain, cleaning, cosmetic, emergency)" },
@@ -268,7 +268,7 @@ export const DENTAL: NichePageData = {
   },
   demo: {
     type: "coming-soon",
-    text: "We\u2019re onboarding our first dental clients now. Try our live agents in the meantime:",
+    text: "Dental demo launching soon \u2014 try our live agents in the meantime:",
   },
   pricing: {
     headline: "One new patient pays for a full year.",
@@ -293,18 +293,18 @@ export const LEGAL: NichePageData = {
   hero: {
     subtitle: "For Law Firms",
     headline: "Stop losing clients to voicemail.",
-    body: "Someone just got in a car accident. They need a personal injury lawyer now. They call your firm at 6 PM. Voicemail. They call the next firm. That\u2019s a $3,000\u2013$50,000 retainer gone.",
-    tagline: "Your AI receptionist answers. Every time.",
+    body: "Someone just got in a car accident. They need a personal injury lawyer now. They call your firm at 6 PM. Voicemail. They call the next firm on Google. That\u2019s a $3,000\u2013$10,000 retainer gone \u2014 to a firm that simply picked up.",
+    tagline: "Clients call in crisis. Your agent makes sure they reach someone.",
     ctaLabel: "Get My Law Firm Agent \u2192",
   },
   stats: [
     { value: "$3,000\u2013$10,000", label: "Avg retainer value", color: "primary" },
     { value: "6+ calls/week", label: "Missed after hours", color: "red" },
-    { value: "$936,000", label: "Annual revenue at risk", color: "green" },
+    { value: "$936,000", label: "Estimated annual opportunity", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to qualify the lead.",
-    subtext: "Before you even call them back, you know exactly what the case involves.",
+    subtext: "You call back knowing the practice area, urgency, and whether they\u2019re ready to retain.",
     items: [
       { icon: Scale, label: "Area of law (PI, family, criminal, business, real estate)" },
       { icon: ClipboardList, label: "Brief case description" },
@@ -317,7 +317,7 @@ export const LEGAL: NichePageData = {
   },
   demo: {
     type: "coming-soon",
-    text: "We\u2019re onboarding our first legal clients now. Try our live agents in the meantime:",
+    text: "Legal demo launching soon \u2014 try our live agents in the meantime:",
   },
   pricing: {
     headline: "One signed client pays for years of service.",
@@ -342,15 +342,14 @@ export const REALTY: NichePageData = {
   hero: {
     subtitle: "For Real Estate Agents",
     headline: "Your AI that handles calls while you show properties.",
-    body: "You\u2019re in the middle of a showing. A buyer calls about a listing. You can\u2019t pick up. They call the next agent. You lost the lead.",
+    body: "You\u2019re in the middle of a showing. Your phone rings \u2014 a buyer saw your sign, wants to book a viewing, has a pre-approval, timeline is next month. You can\u2019t stop. They call the next agent on the listing. By the time the showing wraps, they\u2019ve already booked a tour somewhere else.",
     tagline: "Your AI agent qualifies every inquiry \u2014 even at 11pm.",
     ctaLabel: "Get My Realtor Agent \u2192",
-    proofLine: "\uD83D\uDCCA Proven: 2,082 calls handled for Hasan Sharif at eXp Realty",
     secondaryCta: { href: "/demo", label: "Hear a Demo Call \u2192" },
     leadCardLabel: "This hits your Telegram within seconds of every inquiry:",
   },
   stats: [
-    { value: "2,082", label: "Calls handled for Hasan Sharif", color: "primary" },
+    { value: "2,082+", label: "Calls handled for one BC agent", color: "primary" },
     { value: "$12,000+", label: "Avg deal commission", color: "red" },
     { value: "24/7", label: "Coverage \u2014 even on showings", color: "green" },
   ],

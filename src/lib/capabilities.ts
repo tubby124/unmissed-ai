@@ -43,7 +43,7 @@ export const AGENT_MODES: AgentModeConfig[] = [
     tagline: 'Never miss a message',
     description: 'Answers missed calls, takes a message, and sends you the summary instantly.',
     quote: '"Got it — I\'ll let them know you called. What\'s the best way to reach you?"',
-    icon: '📬',
+    icon: 'inbox',
     included: ['Instant call summaries via Telegram or email', 'Captures name, phone, and reason for calling', 'After-hours coverage included'],
   },
   {
@@ -52,7 +52,7 @@ export const AGENT_MODES: AgentModeConfig[] = [
     tagline: 'Answer questions + qualify leads',
     description: 'Answers questions from your website and FAQ, qualifies callers, and routes them properly.',
     quote: '"Sure, I can help with that. Are you looking to book a service or do you have a quick question?"',
-    icon: '🧑‍💼',
+    icon: 'headphones',
     included: ['Everything in AI Voicemail', 'Answers from your FAQ and website', 'Lead qualification and scoring', 'Caller categorization (hot / warm / cold)'],
   },
   {
@@ -61,7 +61,7 @@ export const AGENT_MODES: AgentModeConfig[] = [
     tagline: 'Book, answer, and handle everything',
     description: 'Books appointments, answers questions, and handles callers end-to-end — like a full front desk.',
     quote: '"I can book you in for Tuesday at 2pm — does that work for you?"',
-    icon: '🏆',
+    icon: 'calendar-check',
     included: ['Everything in AI Receptionist', 'Calendar booking via Google Calendar', 'Appointment confirmations', 'Smart escalation to your phone'],
   },
 ]
@@ -94,7 +94,7 @@ export const CAPABILITIES: CapabilityConfig[] = [
   {
     id: 'forwarding',
     label: 'Call Forwarding',
-    description: 'Transfer urgent calls to your phone number — available after you get a number.',
+    description: 'Transfer urgent callers live to your phone — phone calls only, Pro plan required.',
     requiresPlan: 'pro',
     needsAgentSync: true,
     dbField: 'forwarding_number',
@@ -104,7 +104,7 @@ export const CAPABILITIES: CapabilityConfig[] = [
   {
     id: 'ivr',
     label: 'IVR Pre-filter',
-    description: 'Play a menu before callers reach your agent (e.g. "Press 1 for service, 2 for billing")',
+    description: 'Phone calls only — plays a pre-answer menu before callers reach your agent (e.g. "Press 1 for service, 2 for billing")',
     requiresPlan: null,
     needsAgentSync: false,
     dbField: 'ivr_enabled',

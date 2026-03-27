@@ -16,7 +16,7 @@
  * Edit SIDEBAR_BENEFITS below (scroll down ~30 lines).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { BRAND_NAME } from "@/lib/brand";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { trackEvent } from "@/lib/analytics";
 import { loadVisitor } from "@/lib/demo-visitor";
+import { createBrowserClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { STEP_DEFS, TOTAL_STEPS, type ActivationContext } from "./config/steps";
 import { ProvisioningOverlay } from "@/components/onboard/ProvisioningOverlay";
@@ -132,6 +133,9 @@ export default function OnboardPage() {
     }
   };
 
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
+  if (!supabaseRef.current) supabaseRef.current = createBrowserClient();
+
   const handleActivate = async (mode: "trial" | "paid") => {
     setIsSubmitting(true);
     setError(null);
@@ -151,6 +155,26 @@ export default function OnboardPage() {
           throw new Error(json.error || "Trial signup failed");
         }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+
+        // Auto-login: provision creates user with QWERTY123 default password.
+        // If sign-in succeeds, go straight to the dashboard (which auto-redirects
+        // trial users to /dashboard/welcome). If it fails, fall back to the
+        // trial success screen with password hint.
+        const email = data.contactEmail?.trim();
+        if (email && supabaseRef.current) {
+          const { error: loginErr } = await supabaseRef.current.auth.signInWithPassword({
+            email,
+            password: 'QWERTY123',
+          });
+          if (!loginErr) {
+            trackEvent("onboard_auto_login", { success: true });
+            router.push("/dashboard");
+            return;
+          }
+          console.warn('[onboard] Auto-login failed, falling back to success screen:', loginErr.message);
+        }
+
+        // Fallback: send to TrialSuccessScreen (with password hint visible)
         router.push(
           `/onboard/status?trial=true&clientId=${json.clientId}&agentName=${encodeURIComponent(json.agentName || "")}&telegramLink=${encodeURIComponent(json.telegramLink || "")}&email=${encodeURIComponent(data.contactEmail || "")}&knowledgeCount=${json.knowledgeCount ?? 0}${json.setupUrl ? `&setupUrl=${encodeURIComponent(json.setupUrl)}` : ""}`
         );

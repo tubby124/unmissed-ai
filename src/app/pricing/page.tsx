@@ -220,7 +220,7 @@ export default function PricingPage() {
                 "You're often on a job site and can't answer the phone",
                 "You've lost a customer because they called a competitor when you didn't pick up",
                 "You rely on voicemail but most callers don't leave a message",
-                "You want to know which leads are hot before you call back",
+                "You want to know who's worth calling back before you dial",
                 "You run a service business with 1–20 employees",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">

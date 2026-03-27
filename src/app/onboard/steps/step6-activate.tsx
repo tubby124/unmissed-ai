@@ -255,7 +255,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         </p>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-            {modeConfig.icon} {modeConfig.label}
+            {modeConfig.label}
           </span>
         </div>
         <p className="text-xs text-muted-foreground">7-day free trial · No credit card required</p>

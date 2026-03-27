@@ -83,11 +83,6 @@ export const STEP_DEFS: StepDef[] = [
     canAdvance: (d) => !!d.voiceId,
   },
   {
-    label: 'Your plan',
-    component: StepPlan,
-    canAdvance: (d) => !!d.selectedPlan,
-  },
-  {
     label: 'Agent mode',
     component: Step3Capabilities,
     canAdvance: () => true,
@@ -96,6 +91,11 @@ export const STEP_DEFS: StepDef[] = [
     label: 'Schedule',
     component: Step4Schedule,
     canAdvance: () => true,
+  },
+  {
+    label: 'Your plan',
+    component: StepPlan,
+    canAdvance: (d) => !!d.selectedPlan,
   },
   {
     label: 'Launch',

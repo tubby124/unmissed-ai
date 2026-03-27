@@ -18,8 +18,8 @@ export const CURRENCY = "CAD";
 export const SETUP = {
   price: 25,
   label: "$25 one-time setup",
-  includes: "50 free minutes included",
-  description: "We build your AI agent, tune it to your niche, and get you live.",
+  includes: "Built from your Google Business Profile and website — live before your first call",
+  description: "Your agent is built from your business info as you onboard. Live before you forward your first call.",
 };
 
 // ─── Free Trial ─────────────────────────────────────────────────────
@@ -35,78 +35,80 @@ export const TRIAL = {
 export const PLANS = [
   {
     id: "lite" as const,
-    name: "Lite",
-    tagline: "Never miss the message",
+    name: "AI Voicemail",
+    tagline: "Your calls get answered. You get the summary, not the voicemail.",
     monthly: 49,
     foundingMonthly: 29,
     annual: 24, // annual pricing TBD
     annualBilledTotal: 288, // annual pricing TBD
     minutes: 100,
-    description: "For missed calls and after-hours coverage.",
+    description: "Stop listening to voicemails. Your agent answers every call and sends you a full summary — who called, what they need, and when.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // $49/mo CAD (FOUNDING29 promo = $29/mo)
+    stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // $49/mo CAD — NOT used for new signups (see STRIPE_SUBSCRIPTION_PRICE_ID env var)
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
     stripeProductId: "prod_UCl8SbXQTqNhT6",
-    foundingStripeMonthlyPriceId: "", // Not needed — founding rate uses promo code FOUNDING29 ($20/mo off coupon)
+    // TO GO LIVE AT $29 (no coupon): create a $29/mo CAD recurring price for prod_UCl8SbXQTqNhT6
+    // in Stripe Dashboard, then update Railway env var STRIPE_SUBSCRIPTION_PRICE_ID to that price ID.
+    // Sandbox $29 test price (sk_test_): "price_1TFVvt15xbnnajlTRXrQZcLV"
     features: [
-      "Live AI voicemail (24/7)",
-      "Captures name, number & reason for call",
-      "Call summary texted to owner",
-      "SMS notification on every call",
-      "Niche-specific AI prompt",
-      "Dashboard with full call log",
+      "100 minutes/month included",
+      "Answers every call — even when you're on a job",
+      "Captures caller name, number, and what they need",
+      "Full call summary sent to your phone — SMS or Telegram",
+      "Trained on your trade: services, hours, and common questions",
+      "Full call history in your dashboard",
     ],
-    notIncluded: ["Booking", "Call transfer", "Website knowledge", "Lead scoring"],
+    notIncluded: ["Booking", "Live call transfer", "Website & Google Business knowledge", "Caller priority ranking"],
     cta: "Start 7-Day Free Trial",
     href: "/onboard",
   },
   {
     id: "core" as const,
-    name: "Core",
-    tagline: "Never miss the customer",
+    name: "AI Receptionist",
+    tagline: "Answers the call. Handles the questions. Tells you who to call back.",
     monthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
     minutes: 400,
-    description: "For busy businesses that can't afford missed leads.",
+    description: "Know exactly who called and why — before you pick up the phone. Every caller ranked by how urgent the job is.",
     isPopular: true,
     stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR", // $119/mo CAD
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
-      "Everything in Lite",
-      "Full AI receptionist (answers 24/7)",
-      "Website + Google Business knowledge",
-      "Lead capture & scoring (HOT / WARM / COLD)",
-      "Automatic caller follow-up text",
-      "Daily 8AM call digest",
-      "The Learning Loop (weekly AI review)",
+      "400 minutes/month included",
+      "Everything in AI Voicemail",
+      "Answers caller questions using your website and Google Business listing",
+      "Ranks every caller — you know who to call back first",
+      "Sends callers an automatic follow-up text after the call",
+      "Daily morning summary of all your calls",
+      "Weekly review — your agent improves from real call patterns",
     ],
-    notIncluded: ["Booking", "Call transfer"],
+    notIncluded: ["Booking", "Live call transfer"],
     cta: "Start 7-Day Free Trial",
     href: "/onboard",
   },
   {
     id: "pro" as const,
-    name: "Pro",
-    tagline: "Turn calls into booked jobs",
+    name: "AI Receptionist + Booking",
+    tagline: "Books the job while you're on the job.",
     monthly: 229,
     annual: 149, // annual pricing TBD
     annualBilledTotal: 1788, // annual pricing TBD
     minutes: 1000,
-    description: "For businesses that want calls turned into bookings and handoffs.",
+    description: "Calls answered, callers qualified, and jobs booked directly into your calendar. Urgent calls reach your phone live.",
     isPopular: false,
     stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // $229/mo CAD
     stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
     stripeProductId: "prod_UCl8d1JTMthpf7",
     features: [
-      "Everything in Core",
-      "Calendar booking (Google Calendar)",
-      "Live call transfer to your phone",
-      "Structured intake & qualification",
-      "Smarter call routing logic",
+      "1,000 minutes/month included",
+      "Everything in AI Receptionist",
+      "Books appointments into your Google Calendar (connection required at setup)",
+      "Urgent phone calls transferred live to your number",
+      "Collects full job details from every caller before you call back",
       "Priority support",
-      "Advanced follow-up controls",
+      "Customizable follow-up messages",
     ],
     notIncluded: [],
     cta: "Start 7-Day Free Trial",
@@ -120,7 +122,7 @@ export const POLICIES = {
   contracts: "No contracts. Cancel anytime.",
   cancellation: "Cancel anytime — no notice period, no fees.",
   dataOwnership: "Your call log data lives in your dashboard — you own it.",
-  setupTime: "Agent live within 48 hours",
+  setupTime: "Live before your first call — built during setup",
 };
 
 // ─── Competitor Data (for comparison tables) ────────────────────────
@@ -179,13 +181,13 @@ export const COMPETITORS = [
 export const FEATURE_COMPARISON = [
   { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate per plan" },
   { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].monthly}/mo CAD` },
-  { feature: "No per-minute overages", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you (48hr)" },
+  { feature: "Predictable monthly cost", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes — flat base rate, no surprise overage fees" },
+  { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you — live during signup" },
   { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Booking included", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (Pro — $${PLANS[2].monthly}/mo)` },
-  { feature: "Live call transfer", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (Pro — $${PLANS[2].monthly}/mo)` },
+  { feature: "Booking included", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
+  { feature: "Live call transfer", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
   { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", askbenny: "EN/FR", unmissed: "English (more coming)" },
-  { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (Learning Loop)" },
+  { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (weekly review)" },
   { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", askbenny: "Vendor-locked", unmissed: "Dashboard (yours)" },
   { feature: "Instant mobile alerts", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Telegram + SMS" },
   { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", askbenny: "Monthly", unmissed: "None — cancel anytime" },
@@ -268,7 +270,7 @@ export const FOUNDING_PROMO = {
   minutes: PLANS[0].minutes,
   badge: "Founding Rate",
   label: "$29/mo locked for founding members",
-  description: "Lock in $29/mo Lite forever. Standard price: $49/mo.",
+  description: "Lock in $29/mo AI Voicemail forever. Standard price: $49/mo.",
   regularPrice: PLANS[0].monthly,
 };
 

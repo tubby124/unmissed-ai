@@ -10,7 +10,7 @@
 export const BRAND_NAME = 'unmissed.ai'
 export const BRAND_DOMAIN = 'unmissed.ai'
 export const BRAND_PRODUCT = 'AI Receptionist'
-export const BRAND_TAGLINE = 'AI receptionist for service businesses'
+export const BRAND_TAGLINE = 'Stop losing jobs to missed calls.'
 
 export const SUPPORT_EMAIL = `support@${BRAND_DOMAIN}`
 export const NOTIFICATIONS_EMAIL = `notifications@${BRAND_DOMAIN}`

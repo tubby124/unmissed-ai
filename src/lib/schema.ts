@@ -14,7 +14,7 @@ export const faqSchema = {
       name: "Will customers know it's AI?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Most can't tell. But if asked directly, the agent says it's an AI assistant for your business. Transparency builds trust — and it's required by law in some US states. Your agent identifies itself professionally at the start of every call.",
+        text: "Most can't tell. But if asked directly, the agent says it's an AI assistant for your business. Transparency builds trust — it's our policy and best practice. Your agent identifies itself professionally when asked.",
       },
     },
     {

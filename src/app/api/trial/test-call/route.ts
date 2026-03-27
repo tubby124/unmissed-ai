@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     const { joinUrl, callId } = await createDemoCall({
       systemPrompt: resolvedPrompt,
       voice: (client.agent_voice_id as string | null) || undefined,
-      maxDuration: '180s',
+      maxDuration: '90s',
       callbackUrl,
     })
 

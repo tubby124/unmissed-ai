@@ -20,13 +20,13 @@ import { BRAND_NAME } from './brand'
 
 // ─── Hero ────────────────────────────────────────────────────────────
 export const HERO = {
-  eyebrow: 'AI Receptionist for Service Businesses',
-  headline: ['Every call answered.', 'Every lead captured.', 'Even at 2am.'],
+  eyebrow: '$29/mo · Built for service businesses that can\'t afford to miss calls',
+  headline: ['They called.', 'You didn\'t answer.', 'We fix that.'],
   /** Highlighted portion of the last headline line (rendered in primary color) */
-  headlineAccent: 'Even at 2am.',
+  headlineAccent: 'We fix that.',
   subtitle:
-    "62% of service businesses miss calls daily. 85% of those callers won't call back. That's a $400 job — gone to whoever picked up.",
-  ctaLabel: "Hear it yourself — we'll call you in 10 seconds:",
+    "85% of callers who reach voicemail don't call back. That's a $400 job — gone to whoever picked up. We make sure you're whoever picked up.",
+  ctaLabel: "Hear your agent answer — we'll call you now:",
 }
 
 // ─── Hero Call Mockup ────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export const HERO_MOCKUP = {
   /** Caller intent shown in the classifying/hot stages */
   callerIntent: 'Windshield chip repair',
   /** Telegram toast text */
-  toastTitle: 'HOT lead — Tyler captured it',
+  toastTitle: 'New job — Tyler has the details',
   toastSubtitle: 'Windshield chip · ready to book',
 }
 
@@ -57,8 +57,8 @@ export const HERO_MOCKUP = {
 export const TRUST_BAR = {
   label: 'Trusted by service businesses across Canada',
   stats: [
-    { icon: Phone as LucideIcon, value: '8,400+', label: 'Calls handled', delay: 0 },
-    { icon: Users as LucideIcon, value: '2,100+', label: 'Leads captured', delay: 0.1 },
+    { icon: Phone as LucideIcon, value: '8,400+', label: 'Calls answered', delay: 0 },
+    { icon: Users as LucideIcon, value: '2,100+', label: 'Jobs captured', delay: 0.1 },
     { icon: Zap as LucideIcon, value: '<1s', label: 'Answer time', delay: 0.2 },
     { icon: Clock as LucideIcon, value: '24/7', label: 'Always on', delay: 0.3 },
   ],
@@ -67,48 +67,48 @@ export const TRUST_BAR = {
 // ─── Demo Section (DemoAudioPlayer) ─────────────────────────────────
 export const DEMO_SECTION = {
   eyebrow: 'Live Demo',
-  headline: 'See it in action.',
-  subheadline: 'Real conversations your AI receptionist handles — every call captured, every lead saved.',
+  headline: 'Hear it answer.',
+  subheadline: 'Real calls your AI agent handles — every caller greeted, every job captured.',
   ctaLabel: 'Talk to an AI Agent Live',
   ctaHref: '/try',
-  ctaSubtext: 'No sign-up needed · Uses your microphone · 5-minute demo',
+  ctaSubtext: 'Free · No sign-up · Browser-based demo',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────
 export const HOW_IT_WORKS = {
   eyebrow: 'How It Works',
-  headline: 'Four steps. Zero work on your end.',
-  subheadline: 'We set it all up. You just get the leads.',
+  headline: 'Four steps. No setup work on your end.',
+  subheadline: 'Your agent is built during signup. You just forward your calls.',
   /** Shown below the steps grid */
-  proofLine: '8,400+ calls handled · 24/7 coverage · Agent live within 24 hours',
+  proofLine: '8,400+ calls answered · 24/7 coverage · Built from your business info during signup',
   steps: [
     {
       number: '01',
       icon: PhoneIncoming as LucideIcon,
-      title: 'Customer calls your number',
+      title: 'Your number forwards to your agent',
       description:
-        'Your existing business number (or a new one) forwards to your AI agent. Zero downtime, zero configuration by you.',
+        'Your existing business number forwards to your AI agent. Takes two minutes. No downtime, no new number required.',
     },
     {
       number: '02',
       icon: Bot as LucideIcon,
-      title: 'AI agent answers — every time',
+      title: 'Agent answers — every time',
       description:
-        'Your agent knows your business, your services, your pricing. It speaks naturally, collects the caller\'s info, and qualifies the lead.',
+        'Your agent knows your trade, your services, your hours. It speaks naturally, captures the caller\'s info, and understands what they need.',
     },
     {
       number: '03',
       icon: BellRing as LucideIcon,
-      title: 'You get an instant alert',
+      title: 'You get the message instantly',
       description:
-        'A structured lead card hits your Telegram or SMS within seconds: caller name, number, what they need, and how hot the lead is.',
+        'A full call summary hits your Telegram or SMS within seconds: caller name, number, what they need, and who to call back first.',
     },
     {
       number: '04',
       icon: CircleCheck as LucideIcon,
-      title: 'You call back only warm leads',
+      title: 'Call back informed — skip the jobs not worth your time',
       description:
-        'No more chasing cold voicemails. You see the full context before you dial. Close the job, not the guesswork.',
+        'You know exactly what the job is before you dial. No chasing dead ends. Just close the work that\'s worth your time.',
     },
   ],
 }
@@ -116,16 +116,16 @@ export const HOW_IT_WORKS = {
 // ─── Pricing Section (homepage inline) ───────────────────────────────
 export const PRICING_SECTION = {
   eyebrow: 'Pricing',
-  headline: 'Simple, honest pricing.',
-  subheadline: 'No per-minute charges. Simple, predictable pricing.',
+  headline: '$29/mo. Agent live before your first call.',
+  subheadline: 'Flat monthly plans with generous included minutes. No surprise per-minute billing — optional reload packs available when you need more.',
   fullPricingLinkText: 'See full pricing details and feature comparison →',
 }
 
 // ─── Final CTA (homepage) ────────────────────────────────────────────
 export const FINAL_CTA = {
-  headline: 'Stop leaving money on the table.',
-  subheadline: 'Every call you miss is a job that went to someone who picked up.',
-  signupLinkText: 'Or sign up and build your agent →',
+  headline: 'The next missed call is a job you won\'t get back.',
+  subheadline: 'Every unanswered call goes to whoever picked up. Make sure that\'s you.',
+  signupLinkText: 'Or sign up and get your agent live →',
 }
 
 // ─── FAQ ─────────────────────────────────────────────────────────────
@@ -135,27 +135,27 @@ export const FAQ_ITEMS = [
   {
     question: "Will customers know they're talking to AI?",
     answer:
-      "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (required by law and good practice), but most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
+      "Your agent sounds natural and professional — not robotic. We disclose it's an AI assistant when asked directly (our policy and best practice), and most callers are impressed, not put off. Your agent says 'I'm an AI assistant for [Your Business]' if asked. In practice, callers care more about getting their question answered than who's answering.",
   },
   {
-    question: `What makes ${BRAND_NAME} worth it?`,
+    question: `What do I actually get?`,
     answer:
-      `Every plan includes generous minutes, niche-specific AI prompts, instant notifications, and our Learning Loop that improves your agent from real calls every week. There's no per-minute billing — you pay a flat rate starting at $${PLANS[0].monthly}/mo and know exactly what your bill will be. Need more minutes? Reload packs are just $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} minutes.`,
+      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No per-minute billing — you pay a flat base rate starting at $${PLANS[0].monthly}/mo. Need more minutes? Reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
   },
   {
     question: 'How are you different from Dialzara, Rosie, or My AI Front Desk?',
     answer:
-      `Three ways. First, pricing: they all charge per minute or per caller — your bill spikes when you're busy. We charge a flat rate per plan starting at $${PLANS[0].monthly}/mo. Second, setup: they're self-serve platforms where you configure everything yourself. We build your agent for you with industry-specific scripts tested on real calls. Third, depth: each plan includes generous minutes and core AI features. Booking, live transfer, and advanced features are available on Core ($${PLANS[1].monthly}/mo) and Pro ($${PLANS[2].monthly}/mo) plans.`,
+      `Three differences. First, pricing: they all charge per minute or per caller — your bill spikes when you're busy. We charge a flat rate starting at $${PLANS[0].monthly}/mo. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on the ${PLANS[2].name} plan ($${PLANS[2].monthly}/mo).`,
   },
   {
     question: 'What does the $25 setup fee cover?',
     answer:
-      `The ${SETUP.label} covers building your custom AI agent — we tune it to your specific business, niche, hours, and services. It includes ${SETUP.includes}. You don't configure anything yourself — we handle it all and have your agent live within 48 hours.`,
+      `The ${SETUP.label} covers building your custom AI agent — trained on your specific trade, services, hours, and common questions. ${SETUP.description} You don't configure anything yourself.`,
   },
   {
     question: 'What if the agent says something wrong?',
     answer:
-      "Your agent only answers questions using what we program into its knowledge base — your services, pricing, hours, policies. If a caller asks something outside that scope, it politely says it'll have you follow up directly. It never makes up information. And through The Learning Loop, any knowledge gaps are flagged weekly so you can add to it.",
+      "Your agent only answers questions using what we build into its knowledge base — your services, pricing, hours, policies. If a caller asks something outside that scope, it politely says it'll have you follow up directly. It never makes up information. Any gaps are flagged in your weekly review so you can fill them in.",
   },
   {
     question: 'Does it work after hours and on weekends?',
@@ -165,11 +165,11 @@ export const FAQ_ITEMS = [
   {
     question: 'How do I update what my agent knows?',
     answer:
-      "Log into your dashboard and update your agent's knowledge base directly — add new pricing, new services, new FAQs, or change your hours. Changes take effect immediately. You can also message us and we'll handle it within 24 hours. Either way, your agent stays current.",
+      "Log into your dashboard and update your agent's knowledge base directly — add new pricing, new services, new FAQs, or change your hours. Your agent picks up the changes on the next call. You can also message us and we'll handle it within 24 hours.",
   },
   {
     question: 'What if I want to cancel?',
     answer:
-      `${POLICIES.cancellation} No contracts, no cancellation fees. Your call logs stay in your dashboard, so you keep your data either way. We're confident you won't want to cancel once you see the leads you were missing.`,
+      `${POLICIES.cancellation} No contracts, no cancellation fees. Your call logs stay in your dashboard — you keep your data either way. We're confident you won't want to cancel once you see the jobs you were missing.`,
   },
 ]

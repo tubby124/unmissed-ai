@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check, X, Star } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PLANS, TRIAL, POLICIES, CURRENCY } from "@/lib/pricing";
+import { PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO } from "@/lib/pricing";
 
 export default function PricingCards({ compact = false }: { compact?: boolean }) {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -56,7 +56,11 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
         }`}
       >
         {PLANS.map((plan, index) => {
-          const price = isAnnual ? plan.annual : plan.monthly;
+          const displayPrice = !isAnnual && FOUNDING_PROMO.enabled && plan.foundingMonthly
+          ? plan.foundingMonthly
+          : isAnnual ? plan.annual : plan.monthly;
+        const price = displayPrice;
+        const isFoundingRate = !isAnnual && FOUNDING_PROMO.enabled && !!plan.foundingMonthly;
 
           return (
             <motion.div
@@ -88,8 +92,15 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                   : undefined,
               }}
             >
+              {/* Founding rate badge */}
+              {isFoundingRate && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: "#059669" }}>
+                  Founding Rate — locks in forever
+                </div>
+              )}
+
               {/* Popular badge */}
-              {plan.isPopular && (
+              {plan.isPopular && !isFoundingRate && (
                 <motion.div
                   initial={{ scale: 0, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
@@ -106,7 +117,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
               {/* Plan name + tagline */}
               <div className="mb-5">
                 <p
-                  className="text-xs font-mono uppercase tracking-wider mb-1"
+                  className="text-sm font-semibold mb-1"
                   style={{ color: "var(--color-text-2)" }}
                 >
                   {plan.name}
@@ -136,6 +147,11 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                   <span className="text-sm" style={{ color: "var(--color-text-3)" }}>
                     /mo {CURRENCY}
                   </span>
+                  {isFoundingRate && (
+                    <span className="text-sm line-through" style={{ color: "var(--color-text-3)" }}>
+                      ${plan.monthly}
+                    </span>
+                  )}
                 </div>
 
                 <AnimatePresence mode="wait">

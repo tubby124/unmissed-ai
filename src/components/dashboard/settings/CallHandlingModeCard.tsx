@@ -68,7 +68,6 @@ export default function CallHandlingModeCard({
               }`}
             >
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-sm">{m.icon}</span>
                 <span className="text-xs font-semibold t1">{m.label}</span>
                 {isSelected && (
                   <span className="ml-auto text-[10px] font-medium text-[var(--color-primary)]">Active</span>

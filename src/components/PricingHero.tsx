@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { TRIAL, POLICIES, PLANS } from '@/lib/pricing'
+import { TRIAL, POLICIES, PLANS, FOUNDING_PROMO } from '@/lib/pricing'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
@@ -15,10 +15,7 @@ export function GuaranteeBar() {
       viewport={{ once: true }}
     >
       <p className="text-green-400 font-semibold text-sm">
-        {TRIAL.label} · {POLICIES.contracts} · {POLICIES.cancellation}
-      </p>
-      <p className="text-gray-500 text-xs mt-1">
-        {POLICIES.dataOwnership}
+        {TRIAL.label} · {POLICIES.contracts} · {POLICIES.dataOwnership}
       </p>
     </motion.div>
   )
@@ -43,7 +40,9 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
         >
-          Start at ${PLANS[0].monthly}/mo. Scale when you&apos;re ready.
+          {FOUNDING_PROMO.enabled
+            ? `$${FOUNDING_PROMO.foundingMonthly}/mo. A dollar a day. Agent ready before your first call.`
+            : `Plans from $${PLANS[0].monthly}/mo. Scales as you grow.`}
         </motion.h1>
         <motion.p
           className="text-gray-400 text-xl leading-relaxed mb-2"

@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     const { joinUrl, callId } = await createDemoCall({
       systemPrompt,
       voice: voiceId,
-      maxDuration: '180s',
+      maxDuration: '90s',
       timeExceededMessage: 'Test call time limit reached. Edit the prompt and try again!',
     })
 

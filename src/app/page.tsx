@@ -23,14 +23,14 @@ import AuthHashRedirect from "@/components/AuthHashRedirect";
 export const metadata: Metadata = {
   title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
   description:
-    "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you an instant notification.",
+    "Stop losing jobs to missed calls. Your AI agent answers every call 24/7, captures the job details, and sends you an instant notification — so you call back informed.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}`,
   },
   openGraph: {
     title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
-      "Stop losing leads to voicemail. AI agent answers every call, captures every lead, sends instant alerts. Built for service businesses.",
+      "Stop losing jobs to missed calls. AI agent answers every call, captures job details, sends instant alerts. Built for service businesses.",
   },
 };
 
