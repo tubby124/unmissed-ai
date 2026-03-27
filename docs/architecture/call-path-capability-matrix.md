@@ -1,7 +1,8 @@
 # Call-Path Capability Matrix
 
-> Source of truth: derived from code as of 2026-03-25.
+> Source of truth: derived from code as of 2026-03-27.
 > All claims are traced to specific files. Items marked [UNVERIFIED] could not be confirmed from read code.
+> DR-1 and DR-2 fixed 2026-03-27. UI truth obligations added in Section 6.
 
 ---
 
@@ -84,9 +85,9 @@ No outbound calling path was found in the codebase (no `/api/outbound`, no `dial
 |---|---|---|---|---|---|
 | **Prompt/config source** | `clients.system_prompt` from Supabase (live row) | `DEMO_AGENTS[demoId].systemPrompt` hardcoded, or live Supabase prompt if `useLivePrompt=true`; preview mode: generated from onboarding data | `clients.system_prompt` from Supabase by clientId | `clients.system_prompt` from Supabase | Raw `prompt` string from POST body |
 | **Ultravox call creation function** | `callViaAgent()` (Agents API) primary, `createCall()` fallback | `createDemoCall()` | `createDemoCall()` | `callViaAgent()` primary, `createCall()` fallback | `createDemoCall()` |
-| **Tool builder path** | `buildAgentTools()` — full plan-gated tool assembly stored in `clients.tools`; injected via `overrideTools` at call time | `buildDemoTools()` — capability-driven; calendar and SMS possible; transfer ALWAYS false for browser | None — no tools injected | None — `callViaAgent` without `overrideTools`; Agents API uses the stored agent tools [UNVERIFIED whether stored tools fire] | None |
+| **Tool builder path** | `buildAgentTools()` — full plan-gated tool assembly stored in `clients.tools`; injected via `overrideTools` at call time | `buildDemoTools()` — capability-driven; calendar and SMS possible; transfer ALWAYS false for browser | None — no tools injected | YES — `overrideTools` from `clients.tools` (FIXED 2026-03-27, was missing) | None |
 | **Plan gating enforced** | YES — `buildAgentTools()` gates on `getPlanEntitlements()`; disclaimer injected into prompt for gated capabilities | NO — demo tools are capability-flag driven, not plan-gated | NO — no tools injected | PARTIAL — if Agents API path used, agent tools were built with plan gating at last `updateAgent()` call; no runtime re-check | NO |
-| **Caller context injected** | YES — `buildAgentContext()` produces `callerContextBlock`, `businessFacts`, `contextData` blocks; injected as `templateContext` (Agents API) or appended to prompt (createCall fallback) | PARTIAL — name/phone/email from POST body injected as `[DEMO MODE — BROWSER\nCALLER NAME: ...\n...]` inline; no after-hours, no returning caller | NO — prompt used raw, no context blocks | YES — `buildAgentContext()` used; same injection as Path A | NO |
+| **Caller context injected** | YES — `buildAgentContext()` produces `callerContextBlock`, `businessFacts`, `contextData` blocks; injected as `templateContext` (Agents API) or appended to prompt (createCall fallback) | PARTIAL — name/phone/email from POST body injected as `[DEMO MODE — BROWSER\nCALLER NAME: ...\n...]` inline; no after-hours, no returning caller | YES — `buildAgentContext()` resolves all `{{placeholders}}` before `createDemoCall()` (FIXED 2026-03-27, was raw prompt) | YES — `buildAgentContext()` used; same injection as Path A | NO |
 | **Returning caller detection** | YES — queries `call_logs` for prior calls by `caller_phone + client_id`; injects summary | NO | NO | NO (prior calls not queried) | NO |
 | **After-hours detection** | YES — `detectAfterHours()` from `agent-context.ts`; injects `OFFICE STATUS:` note | NO | NO | NO | NO |
 | **DTMF / IVR available** | YES — if `ivr_enabled=true`, `<Gather>` plays before agent connection; 1=voicemail, else=agent | NO — WebRTC has no DTMF support | NO | NO (PSTN outbound but Ultravox stream; DTMF not wired) | NO |
@@ -114,14 +115,14 @@ No outbound calling path was found in the codebase (no `/api/outbound`, no `dial
 ## 3. Drift Risk Section
 
 ### DR-1: Trial Success WebRTC (Path C) uses raw prompt, no context injection
-- **Divergence:** Path C calls `createDemoCall(client.system_prompt, ...)` with no `callerContext`, `businessFacts`, or `contextData`. The prompt stored in `clients.system_prompt` contains `{{callerContext}}`, `{{businessFacts}}`, `{{contextData}}` placeholders appended by `updateAgent()`. These are Agents API template variables; in `createDemoCall()` they are never resolved. The caller hears "{{businessFacts}}" spoken literally if the LLM tries to verbalize the placeholder.
-- **File:** `src/app/api/trial/test-call/route.ts` line 61-65
-- **Classification:** Known gap — this is the post-signup "first listen" experience and the prompt was never intended for raw injection. The placeholder leakage risk is real if the LLM reads prompt text verbatim.
+- **Status:** FIXED (2026-03-27)
+- **Fix:** `src/app/api/trial/test-call/route.ts` lines 62-99 now calls `buildAgentContext()` with a synthetic phone `+15555550100` and resolves all `{{callerContext}}`, `{{businessFacts}}`, `{{contextData}}` placeholders via `.replace()` before passing to `createDemoCall()`. Same pattern as `browser-test-call/route.ts`.
+- **Remaining limitation:** No tools are injected (trial test calls have no tool registration). This is intentional — trial test calls are listen-only experiences.
 
 ### DR-2: Dashboard Test Call (Path D) does not inject tools via overrideTools
-- **Divergence:** Path D creates the Ultravox call via `callViaAgent()` without passing `overrideTools`. The agent's stored tools (built at last `updateAgent()` time) are what fire. This means the tools that run on a dashboard test call may differ from the tools that run on a live inbound call if `clients.tools` was updated but `updateAgent()` has not been called since. It also means the test call never gets a freshly-built `buildAgentTools()` assembly with runtime `overrideTools`.
-- **File:** `src/app/api/dashboard/test-call/route.ts` lines 80-99
-- **Classification:** Known gap
+- **Status:** FIXED (2026-03-27)
+- **Fix:** `src/app/api/dashboard/test-call/route.ts` line 78 builds `overrideTools` from `client.tools` (runtime-authoritative source). Line 89 passes it to `callViaAgent()`. Tools now match the live inbound path.
+- **Remaining limitation:** Plan gating is not re-evaluated at call creation time (see DR-6). The `clients.tools` array was last built by `syncClientTools()` or settings PATCH, which does apply plan gates.
 
 ### DR-3: Demo path (Path B) injects SMS tool but demo clients may lack `twilio_number`
 - **Divergence:** `buildDemoTools()` injects `buildSmsTools(slug)` when `hasCallerPhone=true`. The SMS tool points to `/api/webhook/${slug}/sms`, which requires the client to have a Twilio number. If the demo client slug's `sms_enabled` is false or `twilio_number` is null, the tool will be injected but will fail at runtime.
@@ -129,9 +130,10 @@ No outbound calling path was found in the codebase (no `/api/outbound`, no `dial
 - **Classification:** Known gap — `buildDemoTools` does not guard on `sms_enabled` or `twilio_number` presence; it relies on the `hasCallerPhone` flag from the caller.
 
 ### DR-4: Live Inbound `createCall` fallback loses Agents API benefits
-- **Divergence:** When `callViaAgent()` fails and the inbound route falls back to `createCall()`, several differences apply: (a) `initialState` is injected (call state init), whereas Agents API ignores it. (b) `languageHint: 'en'` is passed; Agents API path omits it. (c) `callerContextBlock` is appended to prompt string directly rather than via `templateContext`. The voice remains from `client.agent_voice_id` in both cases.
+- **Divergence:** When `callViaAgent()` fails and the inbound route falls back to `createCall()`, several differences apply: (a) `initialState` is injected (call state init), whereas Agents API path does not use it. (b) `languageHint: 'en'` is passed; Agents API path omits it. (c) `callerContextBlock` is appended to prompt string directly rather than via `templateContext`. The voice remains from `client.agent_voice_id` in both cases.
 - **File:** `src/app/api/webhook/[slug]/inbound/route.ts` lines 265-292
 - **Classification:** Intentional — the fallback is a safety net; behavioral differences are documented inline.
+- **Sonar note (2026-03-27):** Perplexity Sonar Pro reports that `initialState` IS a supported parameter on the Agents API (`POST /api/agents/{agentId}/calls`). However, commit `edc36e6` (see `memory/feedback-agents-api-guard.md`) removed `initialState` from the Agents API path because it was rejected at runtime. This may be a version-specific Ultravox behavior — re-test if upgrading past `ultravox-v0.7`.
 
 ### DR-5: Demo mode (Path B) with `useLivePrompt` resolves `{{templateContext}}` with a fake phone number
 - **Divergence:** When `demo.useLivePrompt=true`, `buildAgentContext()` is called with a hardcoded phone `'+15555550100'` (not the actual demo visitor's phone). This means the caller context injected into the live prompt uses a placeholder number, not the real visitor phone.
@@ -231,7 +233,34 @@ When adding a new capability (e.g. a new tool, a new feature flag, a new prompt 
 
 ---
 
-## 6. Explicitly Deferred Capabilities
+## 6. UI Truth Obligations
+
+> Added 2026-03-27. Any dashboard or onboarding UI that displays a capability status must respect these constraints.
+
+### Rule: Capability badges must not claim more than the call path supports
+
+If the UI says "Transfer: Active", the user expects transfer to work. But browser-based test calls (WebRTC) have no Twilio Call SID, so `transferCall` cannot execute. The badge is technically correct (the tool is registered) but functionally misleading for browser callers.
+
+### Per-capability UI truth table
+
+| Capability | Phone calls (PSTN) | Browser calls (WebRTC) | UI obligation |
+|---|---|---|---|
+| **SMS follow-up** | YES (if `twilio_number` set) | NO (no Twilio number on trial) | Badge must note "requires phone number" for trial users |
+| **Call transfer** | YES (if `forwarding_number` set) | NO (no Twilio SID) | Badge must note "phone calls only" |
+| **Calendar booking** | YES | YES (tool works via HTTP) | No qualification needed |
+| **Knowledge (pgvector)** | YES | YES (tool works via HTTP) | No qualification needed |
+| **IVR pre-filter** | YES (Twilio `<Gather>`) | NO (no DTMF on WebRTC) | Badge must note "phone calls only" |
+| **Call summaries** | YES (post-call webhook) | PARTIAL (only if `callbackUrl` configured) | No qualification needed for dashboard display |
+
+### Where to enforce
+
+- `CapabilitiesCard.tsx` — dashboard badge display
+- `KnowledgeSummary` in `step6-activate.tsx` — onboarding summary (currently shows capability pills without qualifications — acceptable for onboarding since the user hasn't activated yet)
+- Any future "agent status" or "agent health" display
+
+---
+
+## 7. Explicitly Deferred Capabilities
 
 ### Inactivity Policy Tuning
 - **Current state:** `DEFAULT_INACTIVITY` is a module-level constant in `src/lib/ultravox.ts` (30s warning, 15s hang-up soft). Applied to all paths identically.

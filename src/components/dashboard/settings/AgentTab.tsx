@@ -18,6 +18,7 @@ import { findExistingSectionHeader } from '@/lib/prompt-sections'
 import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
 import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
 import BookingCard from '@/components/dashboard/settings/BookingCard'
+import CallHandlingModeCard from '@/components/dashboard/settings/CallHandlingModeCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import SetupCard from '@/components/dashboard/settings/SetupCard'
 import GodModeCard from '@/components/dashboard/settings/GodModeCard'
@@ -138,6 +139,7 @@ interface AgentTabProps {
 
 const SCROLL_TO_SECTION: Record<string, string> = {
   'voice-style': 'identity',
+  'voicemail': 'identity',
   'hours': 'capabilities',
   'booking': 'capabilities',
   'ivr': 'capabilities',
@@ -342,6 +344,13 @@ export default function AgentTab({
       isAdmin={isAdmin}
     />
 
+    {/* ── CAPABILITIES OVERVIEW (always visible, all users) ────────── */}
+    <CapabilitiesCard
+      client={client}
+      isAdmin={isAdmin}
+      onConfigure={isAdmin ? handleConfigure : undefined}
+    />
+
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
     <SettingsSection
       id="talk"
@@ -424,6 +433,15 @@ export default function AgentTab({
           )}
         </>
       )}
+      <CallHandlingModeCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        initialMode={(client.call_handling_mode as 'message_only' | 'triage' | 'full_service') ?? 'triage'}
+        selectedPlan={client.selected_plan}
+        subscriptionStatus={client.subscription_status}
+        previewMode={previewMode}
+        onPromptChange={handlePromptChange}
+      />
       <div id="section-voice-style">
         <VoiceStyleCard
           clientId={client.id}
@@ -433,14 +451,16 @@ export default function AgentTab({
           onPromptChange={handlePromptChange}
         />
       </div>
-      <VoicemailGreetingCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialText={client.voicemail_greeting_text ?? ''}
-        businessName={client.business_name}
-        hasAudioGreeting={!!client.voicemail_greeting_audio_url}
-        previewMode={previewMode}
-      />
+      <div id="section-voicemail">
+        <VoicemailGreetingCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialText={client.voicemail_greeting_text ?? ''}
+          businessName={client.business_name}
+          hasAudioGreeting={!!client.voicemail_greeting_audio_url}
+          previewMode={previewMode}
+        />
+      </div>
       {isAdmin && (
         <SectionEditorCard
           clientId={client.id}
@@ -560,21 +580,7 @@ export default function AgentTab({
       onToggle={() => toggleSection('capabilities')}
       accentColor="green"
     >
-      {isAdmin ? (
-        <CapabilitiesCard
-          client={client}
-          isAdmin={isAdmin}
-          onConfigure={handleConfigure}
-        />
-      ) : (
-        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium t1">Capabilities overview</p>
-            <p className="text-[11px] t3">Booking, transfer, SMS and knowledge status</p>
-          </div>
-          <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Agent →</a>
-        </div>
-      )}
+      {/* CapabilitiesCard moved to top-level (always visible above sections) */}
       {!isAdmin && (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
           <div>

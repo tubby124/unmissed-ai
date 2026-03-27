@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { ClientAgentConfig } from '@/types/client-agent-config'
 import { usePatchSettings } from './usePatchSettings'
@@ -50,6 +50,21 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
   }
 
   const knowledgeEnabled = client.knowledge_backend === 'pgvector'
+
+  // Fetch knowledge source breakdown when pgvector is active
+  const [sources, setSources] = useState<{ source: string; approved: number }[] | null>(null)
+  useEffect(() => {
+    if (!knowledgeEnabled) return
+    const url = `/api/dashboard/knowledge/stats?client_id=${id}`
+    fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (!data?.bySource) return
+      const entries = Object.entries(data.bySource as Record<string, number>)
+        .map(([source, count]) => ({ source, approved: count }))
+        .filter(e => e.approved > 0)
+        .sort((a, b) => b.approved - a.approved)
+      setSources(entries)
+    }).catch(() => {})
+  }, [knowledgeEnabled, id])
 
   const stats = [
     {
@@ -157,6 +172,22 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
         </p>
       </div>
 
+      {/* Knowledge sources breakdown — only when pgvector has chunks */}
+      {knowledgeEnabled && sources && sources.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-[9px] font-semibold tracking-[0.1em] uppercase t3">Knowledge sources</p>
+          <div className="flex flex-wrap gap-1.5">
+            {sources.map(s => (
+              <span key={s.source} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/[0.07] border border-purple-500/15 text-[9px] text-purple-300/90">
+                <span className="w-1 h-1 rounded-full bg-green-400/80" title="Live — active in calls" />
+                {knowledgeSourceLabel(s.source)}
+                <span className="font-mono text-purple-400/70">{s.approved}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick-add inputs — Q&A or raw text paste (one at a time) */}
       {!adding && !pastingText && (
         <div className="mt-3 flex gap-2">
@@ -262,4 +293,18 @@ function formatPreset(preset: string): string {
     .split('_')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+}
+
+function knowledgeSourceLabel(source: string): string {
+  switch (source) {
+    case 'website_scrape': return 'Website'
+    case 'settings_edit': return 'Settings'
+    case 'knowledge_doc': return 'Documents'
+    case 'dashboard_manual': return 'Dashboard'
+    case 'manual': return 'Manual'
+    case 'bulk_import': return 'Import'
+    case 'gap_resolution': return 'Gap answers'
+    case 'niche_template': return 'Template'
+    default: return source.replace(/_/g, ' ')
+  }
 }

@@ -6,6 +6,7 @@ import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
+import { getAgentMode } from "@/lib/capabilities";
 
 interface Props {
   data: OnboardingData;
@@ -15,10 +16,83 @@ interface Props {
   error: string | null;
 }
 
+function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName: string }) {
+  const mode = data.callHandlingMode ?? 'triage'
+  const modeConfig = getAgentMode(mode)
+
+  // Count knowledge items
+  const faqCount = (data.faqPairs || []).filter(p => p.question?.trim() && p.answer?.trim()).length
+  const scrapeResult = data.websiteScrapeResult
+  const scrapedFactCount = scrapeResult
+    ? scrapeResult.businessFacts.filter((_: string, i: number) => scrapeResult.approvedFacts?.[i] !== false).length
+    : 0
+  const scrapedQaCount = scrapeResult
+    ? scrapeResult.extraQa.filter((_: { q: string; a: string }, i: number) => scrapeResult.approvedQa?.[i] !== false).length
+    : 0
+  const hasHours = !!(data.businessHoursText?.trim())
+  const hasWebsite = !!(data.websiteUrl?.trim())
+  const totalKnowledge = faqCount + scrapedFactCount + scrapedQaCount
+
+  // Capability status
+  const caps = [
+    { label: 'Call summaries', on: true },
+    { label: 'SMS follow-up', on: data.callerAutoText !== false },
+    { label: 'Website knowledge', on: hasWebsite },
+    { label: 'Calendar booking', on: mode === 'full_service' },
+    { label: 'Call forwarding', on: !!(data.callForwardingEnabled && data.emergencyPhone?.trim()) },
+    { label: 'IVR pre-filter', on: data.ivrEnabled === true },
+  ]
+  const activeCaps = caps.filter(c => c.on)
+
+  return (
+    <div className="rounded-xl border b-theme bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold tracking-[0.12em] uppercase t3">
+          What {agentName} will know
+        </p>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+          {modeConfig.icon} {modeConfig.label}
+        </span>
+      </div>
+
+      {/* Knowledge counts */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="text-center p-2 rounded-lg bg-muted/50">
+          <p className="text-lg font-bold text-foreground">{totalKnowledge}</p>
+          <p className="text-[10px] t3">{totalKnowledge === 1 ? 'fact' : 'facts'}</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-muted/50">
+          <p className="text-lg font-bold text-foreground">{faqCount}</p>
+          <p className="text-[10px] t3">{faqCount === 1 ? 'FAQ' : 'FAQs'}</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-muted/50">
+          <p className="text-lg font-bold text-foreground">{hasHours ? 'Set' : '--'}</p>
+          <p className="text-[10px] t3">hours</p>
+        </div>
+      </div>
+
+      {/* Active capabilities */}
+      <div className="flex flex-wrap gap-1.5">
+        {activeCaps.map(c => (
+          <span key={c.label} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[11px] text-emerald-700 dark:text-emerald-300">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            {c.label}
+          </span>
+        ))}
+      </div>
+
+      <p className="text-xs t3">
+        You can teach {agentName} more from your dashboard after launch.
+      </p>
+    </div>
+  )
+}
+
 export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting, error }: Props) {
   const agentName = data.agentName || "your agent";
   const businessName = data.businessName || "your business";
   const planData = PLANS.find((p) => p.id === data.selectedPlan) ?? PLANS[1]; // default Core
+  const modeConfig = getAgentMode(data.callHandlingMode ?? 'triage')
 
   return (
     <div className="space-y-6">
@@ -135,6 +209,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         </div>
       </div>
 
+      {/* ── Pre-activation knowledge summary ─────────────────────────── */}
+      <KnowledgeSummary data={data} agentName={agentName} />
+
       {/* GBP data summary — show what was learned from Google Maps */}
       {(data.gbpDescription || data.placesRating || data.businessHoursText) && (
         <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 p-4 space-y-2">
@@ -146,13 +223,13 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
           )}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {data.placesRating && (
-              <span>⭐ {data.placesRating} rating{data.placesReviewCount ? ` (${data.placesReviewCount} reviews)` : ''}</span>
+              <span>{data.placesRating} rating{data.placesReviewCount ? ` (${data.placesReviewCount} reviews)` : ''}</span>
             )}
             {data.businessHoursText && (
-              <span>🕐 {data.businessHoursText}</span>
+              <span>{data.businessHoursText}</span>
             )}
             {data.callbackPhone && (
-              <span>📞 {data.callbackPhone}</span>
+              <span>{data.callbackPhone}</span>
             )}
           </div>
           <p className="text-xs text-emerald-600 dark:text-emerald-500">
@@ -162,7 +239,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
       )}
 
       {/* Agent summary card */}
-      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 space-y-2">
+      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
             Your plan
@@ -175,6 +252,11 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
           <span className="font-bold">{agentName}</span> will answer calls for{" "}
           <span className="font-bold">{businessName}</span>
         </p>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+            {modeConfig.icon} {modeConfig.label}
+          </span>
+        </div>
         <p className="text-xs text-muted-foreground">7-day free trial · No credit card required</p>
       </div>
 

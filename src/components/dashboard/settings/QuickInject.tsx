@@ -64,7 +64,7 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
               </span>
             )}
           </div>
-          <p className="text-[11px] t3 mt-0.5">Temporary override — away message, holiday hours, or promotions. Stays until you clear it.</p>
+          <p className="text-[11px] t3 mt-0.5">Temporary override read to callers at the start of each call. Stays until you clear it.</p>
         </div>
         {isActive && (
           <button

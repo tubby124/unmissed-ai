@@ -13,28 +13,24 @@ const JOB_OPTIONS: {
   icon: string;
   title: string;
   description: string;
-  callHandlingMode: OnboardingData["callHandlingMode"];
 }[] = [
   {
     id: "message_taker",
     icon: "📋",
     title: "Take messages",
     description: "Answers every call, collects the caller's info, and texts you a summary",
-    callHandlingMode: "triage",
   },
   {
     id: "receptionist",
     icon: "💬",
     title: "Answer questions",
     description: "Handles FAQs, explains your services, and qualifies callers before they reach you",
-    callHandlingMode: "triage",
   },
   {
     id: "booking_agent",
     icon: "📅",
     title: "Book & schedule",
     description: "Books appointments directly and transfers urgent callers to your phone",
-    callHandlingMode: "full_service",
   },
 ];
 
@@ -54,13 +50,13 @@ export default function Step2Job({ data, onUpdate }: Props) {
       </div>
 
       <div className="space-y-3">
-        {JOB_OPTIONS.map(({ id, icon, title, description, callHandlingMode }) => {
+        {JOB_OPTIONS.map(({ id, icon, title, description }) => {
           const isSelected = selected === id;
           return (
             <button
               key={id}
               type="button"
-              onClick={() => onUpdate({ agentJob: id, callHandlingMode })}
+              onClick={() => onUpdate({ agentJob: id })}
               className={`w-full text-left flex items-start gap-4 rounded-xl border-2 p-4 transition-all cursor-pointer ${
                 isSelected
                   ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"

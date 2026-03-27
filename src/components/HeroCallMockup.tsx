@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
+import { HERO_MOCKUP } from "@/lib/marketing-content"
 
 // Pre-computed bar heights — deterministic, avoids hydration mismatch
 const BAR_HEIGHTS = Array.from({ length: 20 }, (_, i) => 4 + ((i * 7 + 3) % 22))
@@ -16,13 +17,6 @@ const STAGE_DURATIONS: Record<Stage, number> = {
   hot: 2200,
   summary: 3200,
 }
-
-const SUMMARY_ROWS = [
-  { label: "Duration", value: "2m 14s" },
-  { label: "Intent", value: "Windshield chip repair" },
-  { label: "Outcome", value: "Appointment booked" },
-  { label: "SMS sent", value: "Confirmation sent" },
-]
 
 export default function HeroCallMockup() {
   const [stage, setStage] = useState<Stage>("ringing")
@@ -101,7 +95,7 @@ export default function HeroCallMockup() {
               {stage === "summary" ? "Call ended" : "Incoming Call"}
             </p>
             <p className="font-semibold text-sm" style={{ color: "var(--color-text-1)" }}>
-              Crystal Clear Auto Glass
+              {HERO_MOCKUP.businessName}
             </p>
           </div>
 
@@ -233,7 +227,7 @@ export default function HeroCallMockup() {
               >
                 <div className="flex items-center justify-between text-xs">
                   <span style={{ color: "var(--color-text-3)" }}>Caller intent</span>
-                  <span style={{ color: "var(--color-text-2)" }}>Windshield chip repair</span>
+                  <span style={{ color: "var(--color-text-2)" }}>{HERO_MOCKUP.callerIntent}</span>
                 </div>
                 {stage === "hot" && (
                   <motion.div
@@ -272,10 +266,10 @@ export default function HeroCallMockup() {
                     color: "var(--color-text-2)",
                   }}
                 >
-                  Chip repair booked for Tuesday. Caller confirmed availability and SMS confirmation sent.
+                  {HERO_MOCKUP.summaryText}
                 </motion.div>
 
-                {SUMMARY_ROWS.map((row, i) => (
+                {HERO_MOCKUP.summaryRows.map((row, i) => (
                   <motion.div
                     key={row.label}
                     initial={{ opacity: 0, y: 4 }}
@@ -303,7 +297,7 @@ export default function HeroCallMockup() {
           {/* Always-visible agent row */}
           <div className="flex items-center justify-between text-xs pt-0.5">
             <span style={{ color: "var(--color-text-3)" }}>Agent</span>
-            <span style={{ color: "var(--color-text-2)" }}>Tyler · Auto Glass</span>
+            <span style={{ color: "var(--color-text-2)" }}>{HERO_MOCKUP.agentName}</span>
           </div>
         </div>
       </motion.div>
@@ -331,10 +325,10 @@ export default function HeroCallMockup() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold truncate" style={{ color: "var(--color-text-1)" }}>
-                HOT lead — Tyler captured it
+                {HERO_MOCKUP.toastTitle}
               </p>
               <p className="text-xs truncate" style={{ color: "var(--color-text-3)" }}>
-                Windshield chip · ready to book
+                {HERO_MOCKUP.toastSubtitle}
               </p>
             </div>
           </motion.div>

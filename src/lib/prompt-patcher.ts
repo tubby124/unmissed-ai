@@ -288,3 +288,63 @@ export function getClosePerson(
 
   return agentName || 'the team'
 }
+
+// ── Call handling mode patcher ──────────────────────────────────────────────
+
+/** Mode instruction text — shared with prompt-builder.ts (lines 2142-2149). */
+export const MODE_INSTRUCTIONS: Record<string, string> = {
+  message_only:
+    "Your ONLY goal is to collect the caller's name, phone number, and a brief message. Do not ask follow-up questions, do not triage, do not offer information. Get the 3 fields and close.",
+  full_service:
+    "You are a full-service receptionist. Answer detailed questions from the KNOWLEDGE BASE and FAQ sections. If the caller wants to book an appointment, collect their preferred date/time and confirm you'll have {{CLOSE_PERSON}} confirm the booking.",
+  triage:
+    "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback.",
+}
+
+/**
+ * Patch the ## CALL HANDLING MODE section in a stored prompt.
+ *
+ * Finds the heading and replaces its content until the next ## heading or end.
+ * For full_service mode, replaces {{CLOSE_PERSON}} with the provided closePerson.
+ * Returns the original prompt unchanged if the heading is not found.
+ */
+export function patchCallHandlingMode(
+  prompt: string,
+  newMode: 'message_only' | 'triage' | 'full_service',
+  closePerson?: string,
+): string {
+  const heading = '## CALL HANDLING MODE'
+  const headingIdx = prompt.indexOf(heading)
+  if (headingIdx === -1) return prompt
+
+  const afterHeading = headingIdx + heading.length
+
+  // Find the end: next ## heading or end of string
+  const rest = prompt.slice(afterHeading)
+  const nextHeadingMatch = rest.match(/^## /m)
+  let sectionEnd: number
+  if (nextHeadingMatch?.index !== undefined && nextHeadingMatch.index > 0) {
+    sectionEnd = afterHeading + nextHeadingMatch.index
+  } else {
+    // Check for # heading (top-level) as well
+    const nextTopMatch = rest.match(/^# /m)
+    if (nextTopMatch?.index !== undefined && nextTopMatch.index > 0) {
+      sectionEnd = afterHeading + nextTopMatch.index
+    } else {
+      sectionEnd = prompt.length
+    }
+  }
+
+  let instruction = MODE_INSTRUCTIONS[newMode] ?? MODE_INSTRUCTIONS.triage
+  if (newMode === 'full_service' && closePerson) {
+    instruction = instruction.replace('{{CLOSE_PERSON}}', closePerson)
+  } else if (newMode === 'full_service') {
+    instruction = instruction.replace('{{CLOSE_PERSON}}', 'the team')
+  }
+
+  return (
+    prompt.substring(0, headingIdx) +
+    heading + '\n' + instruction + '\n\n' +
+    prompt.substring(sectionEnd).trimStart()
+  ).replace(/\n{3,}/g, '\n\n').trimEnd()
+}

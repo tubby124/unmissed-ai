@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react"
 import { DEMOS } from "./demo-data"
 import DemoCallCard from "./DemoCallCard"
 import DemoOutcome from "./DemoOutcome"
+import { DEMO_SECTION } from "@/lib/marketing-content"
 
 export default function DemoAudioPlayer() {
   const [activeTab, setActiveTab] = useState("auto-glass")
@@ -108,16 +109,16 @@ export default function DemoAudioPlayer() {
             className="text-xs font-mono uppercase tracking-widest mb-2"
             style={{ color: "var(--color-primary)" }}
           >
-            Live Demo
+            {DEMO_SECTION.eyebrow}
           </p>
           <h2
             className="text-3xl md:text-4xl font-bold mb-3"
             style={{ color: "var(--color-text-1)" }}
           >
-            See it in action.
+            {DEMO_SECTION.headline}
           </h2>
           <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
-            Real conversations your AI receptionist handles — every call captured, every lead saved.
+            {DEMO_SECTION.subheadline}
           </p>
         </div>
 
@@ -174,15 +175,15 @@ export default function DemoAudioPlayer() {
           className="text-center mt-10"
         >
           <Link
-            href="/try"
+            href={DEMO_SECTION.ctaHref}
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer"
             style={{ backgroundColor: "var(--color-cta)" }}
           >
-            Talk to an AI Agent Live
+            {DEMO_SECTION.ctaLabel}
             <ArrowRight size={16} />
           </Link>
           <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
-            No sign-up needed · Uses your microphone · 5-minute demo
+            {DEMO_SECTION.ctaSubtext}
           </p>
         </motion.div>
       </div>

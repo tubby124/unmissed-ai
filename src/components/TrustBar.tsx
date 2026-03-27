@@ -1,14 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { Phone, Users, Zap, Clock } from 'lucide-react'
-
-const PROOF_STATS = [
-  { icon: Phone, value: '8,400+', label: 'Calls handled', delay: 0 },
-  { icon: Users, value: '2,100+', label: 'Leads captured', delay: 0.1 },
-  { icon: Zap, value: '<1s', label: 'Answer time', delay: 0.2 },
-  { icon: Clock, value: '24/7', label: 'Always on', delay: 0.3 },
-]
+import { TRUST_BAR } from '@/lib/marketing-content'
 
 export default function TrustBar() {
   return (
@@ -20,17 +13,15 @@ export default function TrustBar() {
       }}
     >
       <div className="max-w-4xl mx-auto">
-        {/* Heading */}
         <p
           className="text-center text-xs font-mono uppercase tracking-widest mb-6"
           style={{ color: 'var(--color-text-3)' }}
         >
-          Trusted by service businesses across Canada
+          {TRUST_BAR.label}
         </p>
 
-        {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {PROOF_STATS.map((stat) => (
+          {TRUST_BAR.stats.map((stat) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 12 }}

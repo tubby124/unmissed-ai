@@ -189,11 +189,20 @@ export const NICHE_CAPABILITIES: Record<string, AgentCapabilities> = {
 }
 
 /**
+ * Normalizes niche slugs so DB values with hyphens (e.g. "auto-glass")
+ * resolve to the canonical underscore keys in NICHE_CAPABILITIES (e.g. "auto_glass").
+ */
+function normalizeNiche(niche: string): string {
+  return niche.replace(/-/g, '_')
+}
+
+/**
  * Returns the capability flags for a given niche.
  * Falls back to the most conservative default for unknown niches.
+ * Normalizes hyphens → underscores so DB slugs match registry keys.
  */
 export function getCapabilities(niche: string): AgentCapabilities {
-  return NICHE_CAPABILITIES[niche] ?? DEFAULT_CAPABILITIES
+  return NICHE_CAPABILITIES[normalizeNiche(niche)] ?? DEFAULT_CAPABILITIES
 }
 
 /**
@@ -320,7 +329,7 @@ export const NICHE_DELTAS: Record<string, NicheDelta> = {
  * Unknown niches return 'shared_standard' (safest default — uses shared template with no overrides).
  */
 export function getNicheFamily(niche: string): NicheFamily {
-  return NICHE_DELTAS[niche]?.family ?? 'shared_standard'
+  return NICHE_DELTAS[normalizeNiche(niche)]?.family ?? 'shared_standard'
 }
 
 /**
@@ -328,7 +337,7 @@ export function getNicheFamily(niche: string): NicheFamily {
  * Unknown niches return a minimal shared_standard descriptor.
  */
 export function getNicheDelta(niche: string): NicheDelta {
-  return NICHE_DELTAS[niche] ?? {
+  return NICHE_DELTAS[normalizeNiche(niche)] ?? {
     family: 'shared_standard' as NicheFamily,
     overrideKeys: [],
     buildtimeSpecialCases: [],

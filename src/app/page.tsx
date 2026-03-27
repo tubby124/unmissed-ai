@@ -17,6 +17,7 @@ import CallMeNowWidget from "@/components/CallMeNowWidget";
 // TalkToAgentWidget moved to root layout — available site-wide
 import { FOUNDING_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
+import { PRICING_SECTION, FINAL_CTA } from "@/lib/marketing-content";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
 
 export const metadata: Metadata = {
@@ -106,19 +107,19 @@ export default async function HomePage() {
                 className="text-xs font-mono uppercase tracking-widest mb-2"
                 style={{ color: "var(--color-primary)" }}
               >
-                Pricing
+                {PRICING_SECTION.eyebrow}
               </p>
               <h2
                 className="text-3xl md:text-4xl font-bold mb-3"
                 style={{ color: "var(--color-text-1)" }}
               >
-                Simple, honest pricing.
+                {PRICING_SECTION.headline}
               </h2>
               <p
                 className="text-lg"
                 style={{ color: "var(--color-text-2)" }}
               >
-                No per-minute charges. Simple, predictable pricing.
+                {PRICING_SECTION.subheadline}
               </p>
             </div>
             <ErrorBoundary>
@@ -130,7 +131,7 @@ export default async function HomePage() {
                 className="text-sm transition-colors"
                 style={{ color: "var(--color-primary)" }}
               >
-                See full pricing details and feature comparison →
+                {PRICING_SECTION.fullPricingLinkText}
               </a>
             </p>
           </div>
@@ -151,13 +152,13 @@ export default async function HomePage() {
               className="text-4xl md:text-5xl font-black mb-4"
               style={{ color: "var(--color-text-1)" }}
             >
-              Stop leaving money on the table.
+              {FINAL_CTA.headline}
             </h2>
             <p
               className="text-xl mb-8"
               style={{ color: "var(--color-text-2)" }}
             >
-              Every call you miss is a job that went to someone who picked up.
+              {FINAL_CTA.subheadline}
             </p>
 
             {/* Phone input — bookends the hero CTA */}
@@ -192,7 +193,7 @@ export default async function HomePage() {
                 className="text-sm font-medium transition-colors"
                 style={{ color: "var(--color-primary)" }}
               >
-                Or sign up and build your agent →
+                {FINAL_CTA.signupLinkText}
               </Link>
             </p>
           </div>

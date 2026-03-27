@@ -3,7 +3,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { replacePromptSection } from '@/lib/prompt-sections'
 import { sendAlert } from '@/lib/telegram'
-import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, patchBusinessName, patchServicesOffered, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { patchCalendarBlock, patchVoiceStyleSection, patchAgentName, patchBusinessName, patchServicesOffered, patchCallHandlingMode, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { VOICE_PRESETS } from '@/lib/prompt-builder'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { reseedKnowledgeFromSettings } from '@/lib/embeddings'
@@ -195,6 +195,21 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.ivr_prompt === 'string') {
     updates.ivr_prompt = body.ivr_prompt.trim() || null
+  }
+
+  // Call handling mode — message_only | triage | full_service
+  const VALID_MODES = ['message_only', 'triage', 'full_service']
+  if (typeof body.call_handling_mode === 'string' && VALID_MODES.includes(body.call_handling_mode)) {
+    updates.call_handling_mode = body.call_handling_mode
+  }
+
+  // Owner name — editable post-provision (DB_ONLY, no prompt/tool impact)
+  if (typeof body.owner_name === 'string') {
+    updates.owner_name = body.owner_name.trim() || null
+  }
+  // Callback phone — editable post-provision (DB_ONLY, no prompt/tool impact)
+  if (typeof body.callback_phone === 'string') {
+    updates.callback_phone = body.callback_phone.trim() || null
   }
 
   // Website URL — saved here; caller is responsible for triggering /api/dashboard/scrape-website separately
@@ -451,6 +466,48 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // ── Auto-patch prompt when call_handling_mode changes ──────────────────────
+  // Replace the ## CALL HANDLING MODE section with mode-specific instructions.
+  // Mode is intent — does NOT auto-enable booking_enabled.
+  if (typeof body.call_handling_mode === 'string' && VALID_MODES.includes(body.call_handling_mode)) {
+    let promptToPatch: string | null = typeof updates.system_prompt === 'string'
+      ? updates.system_prompt as string
+      : null
+    let clientAgentName: string | null = null
+
+    if (!promptToPatch) {
+      const { data: row } = await supabase
+        .from('clients')
+        .select('system_prompt, agent_name')
+        .eq('id', targetClientId)
+        .single()
+      promptToPatch = (row?.system_prompt as string) ?? null
+      clientAgentName = (row?.agent_name as string) ?? null
+    } else {
+      const { data: row } = await supabase
+        .from('clients')
+        .select('agent_name')
+        .eq('id', targetClientId)
+        .single()
+      clientAgentName = (row?.agent_name as string) ?? null
+    }
+
+    if (promptToPatch) {
+      const closePerson = getClosePerson(promptToPatch, clientAgentName)
+      const patched = patchCallHandlingMode(promptToPatch, body.call_handling_mode, closePerson)
+      if (patched !== promptToPatch) {
+        const modeV = validatePrompt(patched)
+        if (!modeV.valid) return NextResponse.json({ error: modeV.error }, { status: 400 })
+        if (modeV.warnings.length) promptWarnings = [...promptWarnings, ...modeV.warnings]
+        updates.system_prompt = patched
+        updates.updated_at = new Date().toISOString()
+        console.log(`[settings] Call handling mode patched to '${body.call_handling_mode}' for client=${targetClientId}`)
+      } else {
+        promptWarnings.push({ field: 'mode_not_patched', message: "Mode saved — but your agent's prompt doesn't have a CALL HANDLING MODE section. Run /prompt-deploy to update the prompt." })
+      }
+    }
+  }
+
   if (!Object.keys(updates).length) {
     return new NextResponse('Nothing to update', { status: 400 })
   }
@@ -499,6 +556,7 @@ export async function PATCH(req: NextRequest) {
     'forwarding_number' in updates ||
     'transfer_conditions' in updates ||
     'booking_enabled' in updates ||
+    'call_handling_mode' in updates ||
     'agent_voice_id' in updates ||
     'knowledge_backend' in updates ||
     'sms_enabled' in updates ||
@@ -508,7 +566,7 @@ export async function PATCH(req: NextRequest) {
   if (needsAgentSync) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
+      .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, call_handling_mode, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
       .eq('id', targetClientId)
       .single()
 

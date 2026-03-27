@@ -129,6 +129,15 @@ export function toIntakePayload(data: OnboardingData) {
     hoursWeekend = `Sunday ${to12h(sunDay.open)}–${to12h(sunDay.close)}`
   }
 
+  // Derive call_handling_mode: step3 is canonical; fallback to agentJob if step3 was skipped
+  let effectiveMode = data.callHandlingMode
+  if (!effectiveMode && data.agentJob) {
+    effectiveMode = data.agentJob === 'booking_agent' ? 'full_service'
+      : data.agentJob === 'message_taker' ? 'message_only'
+      : 'triage'
+  }
+  if (!effectiveMode) effectiveMode = 'triage'
+
   return {
     business_name: data.businessName,
     niche,
@@ -159,8 +168,8 @@ export function toIntakePayload(data: OnboardingData) {
       (Array.isArray(data.nicheAnswers?.services)
         ? (data.nicheAnswers.services as string[]).join(', ')
         : (data.nicheAnswers?.services as string) || ''),
-    call_handling_mode: data.callHandlingMode || 'triage',
-    booking_enabled: data.callHandlingMode === 'full_service',
+    call_handling_mode: effectiveMode,
+    booking_enabled: effectiveMode === 'full_service',
     owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,
 

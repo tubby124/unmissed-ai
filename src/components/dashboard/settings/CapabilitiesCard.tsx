@@ -10,14 +10,18 @@ interface CapabilitiesCardProps {
   onConfigure?: (section: string) => void
 }
 
+type CapabilityStatus = 'active' | 'needs_setup' | 'upgrade_required'
+
 type CapabilityItem = {
+  id: string
   label: string
+  status: CapabilityStatus
   available: boolean
-  active: boolean
   detail?: string
   actionHint?: string
+  upgradeLabel?: string
+  pathNote?: string
   section?: string
-  layer?: 'always' | 'lookup'
 }
 
 export default function CapabilitiesCard({ client, isAdmin, onConfigure }: CapabilitiesCardProps) {
@@ -29,97 +33,125 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
 
   const capabilities: CapabilityItem[] = [
     {
+      id: 'messages',
       label: 'Take messages',
       available: hasCapability(niche, 'takeMessages'),
-      active: hasCapability(niche, 'takeMessages'),
+      status: 'active',
       detail: 'Collects name, number, and reason for calling',
-      layer: 'always',
     },
     {
+      id: 'answer-questions',
       label: 'Answer business questions',
       available: hasCapability(niche, 'useKnowledgeLookup'),
-      active: !!(client.business_facts || (client.extra_qa && client.extra_qa.length > 0)),
+      status: (factLines > 0 || faqCount > 0) ? 'active' : 'needs_setup',
       detail: factLines > 0 || faqCount > 0
         ? `${factLines > 0 ? `${factLines} fact${factLines !== 1 ? 's' : ''}` : ''}${factLines > 0 && faqCount > 0 ? ' + ' : ''}${faqCount > 0 ? `${faqCount} Q&A` : ''}`
         : undefined,
-      actionHint: 'Add business facts or Q&A to enable',
+      actionHint: 'Add business facts or Q&A',
       section: 'advanced-context',
-      layer: 'always',
     },
     {
+      id: 'knowledge',
       label: 'Search knowledge base',
       available: true,
-      active: client.knowledge_backend === 'pgvector',
+      status: !entitlements.knowledgeEnabled
+        ? 'upgrade_required'
+        : client.knowledge_backend === 'pgvector' ? 'active' : 'needs_setup',
       detail: client.knowledge_backend === 'pgvector' ? 'Searches uploaded docs during calls' : undefined,
-      actionHint: 'Enable to let your agent search documents',
+      actionHint: 'Enable document search',
+      upgradeLabel: 'Core',
       section: 'knowledge',
-      layer: 'lookup',
     },
     {
+      id: 'booking',
       label: 'Book appointments',
       available: hasCapability(niche, 'bookAppointments'),
-      active: !!(entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected'),
-      detail: entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected' ? 'Google Calendar connected' : undefined,
-      actionHint: 'Connect Google Calendar to enable',
+      status: !entitlements.bookingEnabled
+        ? 'upgrade_required'
+        : (client.booking_enabled && client.calendar_auth_status === 'connected') ? 'active' : 'needs_setup',
+      detail: (entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected')
+        ? 'Google Calendar connected' : undefined,
+      actionHint: !client.booking_enabled
+        ? 'Enable booking in settings'
+        : 'Connect Google Calendar',
+      upgradeLabel: 'Pro',
+      pathNote: (entitlements.bookingEnabled && client.booking_enabled && client.calendar_auth_status === 'connected')
+        ? 'Works on live phone calls and dashboard test calls' : undefined,
       section: 'booking',
     },
     {
+      id: 'transfer',
       label: 'Transfer calls',
       available: hasCapability(niche, 'transferCalls'),
-      active: !!(entitlements.transferEnabled && client.forwarding_number),
-      detail: entitlements.transferEnabled && client.forwarding_number ? `Transfers to ${formatPhone(client.forwarding_number)}` : undefined,
-      actionHint: 'Set a forwarding number to enable',
+      status: !entitlements.transferEnabled
+        ? 'upgrade_required'
+        : client.forwarding_number ? 'active' : 'needs_setup',
+      detail: (entitlements.transferEnabled && client.forwarding_number)
+        ? `Transfers to ${formatPhone(client.forwarding_number)}` : undefined,
+      actionHint: 'Set a forwarding number',
+      upgradeLabel: 'Pro',
+      pathNote: (entitlements.transferEnabled && client.forwarding_number)
+        ? 'Phone calls only' : undefined,
       section: 'agent-config',
     },
     {
+      id: 'hours',
       label: 'Business hours',
       available: true,
-      active: !!client.business_hours_weekday,
+      status: client.business_hours_weekday ? 'active' : 'needs_setup',
       detail: client.business_hours_weekday || undefined,
-      actionHint: 'Set your hours so callers know when you\'re open',
+      actionHint: "Set your hours",
       section: 'hours',
     },
     {
+      id: 'sms',
       label: 'SMS follow-up',
       available: true,
-      active: !!(client.sms_enabled && client.twilio_number),
+      status: (client.sms_enabled && client.twilio_number) ? 'active' : 'needs_setup',
       actionHint: client.sms_enabled && !client.twilio_number
-        ? 'Requires a phone number — upgrade to activate'
-        : 'Configure SMS templates',
+        ? 'Available after go-live'
+        : 'Enable SMS templates',
+      pathNote: (client.sms_enabled && !client.twilio_number)
+        ? 'Needs a Twilio number — available after go-live' : undefined,
       section: 'sms',
     },
     {
+      id: 'reference-data',
       label: 'Look up reference data',
       available: hasCapability(niche, 'useTenantLookup') || hasCapability(niche, 'usePropertyLookup'),
-      active: !!client.context_data,
+      status: client.context_data ? 'active' : 'needs_setup',
       detail: client.context_data ? `Using ${client.context_data_label || 'reference data'}` : undefined,
-      actionHint: 'Upload reference data to enable',
+      actionHint: 'Upload reference data',
       section: 'advanced-context',
-      layer: 'lookup',
     },
     {
+      id: 'voicemail',
       label: 'Voicemail fallback',
       available: true,
-      active: true,
+      status: 'active',
       detail: client.voicemail_greeting_text ? 'Custom greeting set' : 'Default greeting',
       section: 'voicemail',
     },
     {
+      id: 'ivr',
       label: 'Voicemail menu (IVR)',
       available: true,
-      active: !!client.ivr_enabled,
+      status: client.ivr_enabled ? 'active' : 'needs_setup',
       detail: client.ivr_enabled
         ? (client.ivr_prompt ? 'Custom menu set' : 'Press 1 for voicemail')
         : undefined,
-      actionHint: 'Let callers press 1 for voicemail before connecting',
+      actionHint: 'Add a voicemail menu option',
+      pathNote: client.ivr_enabled ? 'Phone calls only' : undefined,
       section: 'ivr',
     },
   ]
 
   const visible = capabilities.filter(c => c.available)
-  const activeCount = visible.filter(c => c.active).length
+  const activeCount = visible.filter(c => c.status === 'active').length
 
   if (visible.length === 0) return null
+
+  const ratio = activeCount / visible.length
 
   return (
     <div className="rounded-2xl border b-theme bg-surface p-5">
@@ -133,7 +165,7 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Your Agent Can Do</p>
         </div>
         <div className="flex items-center gap-2">
-          <ReadinessBadge ratio={activeCount / visible.length} />
+          <ReadinessBadge ratio={ratio} />
           <span className="text-[10px] font-mono t3">
             {activeCount}/{visible.length}
           </span>
@@ -144,63 +176,66 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
       <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden mb-4 mt-2">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            activeCount / visible.length >= 0.8 ? 'bg-green-500/60'
-              : activeCount / visible.length >= 0.5 ? 'bg-blue-500/60'
+            ratio >= 0.8 ? 'bg-green-500/60'
+              : ratio >= 0.5 ? 'bg-blue-500/60'
               : 'bg-amber-500/60'
           }`}
-          style={{ width: `${(activeCount / visible.length) * 100}%` }}
+          style={{ width: `${ratio * 100}%` }}
         />
-      </div>
-
-      {/* Knowledge layer legend */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400/80" />
-          <span className="text-[9px] t3">Always knows</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-400/80" />
-          <span className="text-[9px] t3">Searches when needed</span>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {visible.map(cap => {
-          const isClickable = !!cap.section && !!onConfigure
+          const isClickable = !!cap.section && !!onConfigure && cap.status !== 'upgrade_required'
           const Wrapper = isClickable ? 'button' : 'div'
 
           return (
             <Wrapper
-              key={cap.label}
+              key={cap.id}
               {...(isClickable ? {
                 onClick: () => onConfigure!(cap.section!),
                 type: 'button' as const,
               } : {})}
               className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-colors text-left ${
-                cap.active
+                cap.status === 'active'
                   ? 'border-green-500/20 bg-green-500/[0.04]'
+                  : cap.status === 'upgrade_required'
+                  ? 'border-zinc-700/20 bg-zinc-800/[0.03] opacity-60'
                   : 'b-theme bg-surface'
               } ${isClickable ? 'hover:border-blue-500/30 hover:bg-blue-500/[0.03] cursor-pointer' : ''}`}
             >
-              {cap.active ? (
+              {/* Status icon */}
+              {cap.status === 'active' ? (
                 <span className="text-green-400 mt-0.5 shrink-0 text-xs">&#10003;</span>
+              ) : cap.status === 'upgrade_required' ? (
+                <LockIcon />
               ) : (
-                <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: 'var(--color-border)' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-400/60 mt-1.5 shrink-0" />
               )}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className={`text-xs font-medium ${cap.active ? 't1' : 't3'}`}>{cap.label}</p>
-                  {cap.layer === 'always' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400/80 shrink-0" title="Always available on every call" />
-                  )}
-                  {cap.layer === 'lookup' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400/80 shrink-0" title="Searched when relevant" />
-                  )}
-                </div>
-                {cap.active ? (
-                  <p className="text-[10px] text-green-400/70 truncate">{cap.detail || 'Enabled'}</p>
+                <p className={`text-xs font-medium ${
+                  cap.status === 'active' ? 't1'
+                  : cap.status === 'upgrade_required' ? 'text-zinc-500'
+                  : 't2'
+                }`}>{cap.label}</p>
+                {cap.status === 'active' ? (
+                  <>
+                    <p className="text-[10px] text-green-400/70 truncate">{cap.detail || 'Enabled'}</p>
+                    {cap.pathNote && (
+                      <p className="text-[9px] t3 mt-0.5">{cap.pathNote}</p>
+                    )}
+                  </>
+                ) : cap.status === 'upgrade_required' ? (
+                  <p className="text-[10px] text-zinc-500 truncate">
+                    Requires {cap.upgradeLabel} plan
+                  </p>
                 ) : (
-                  <p className="text-[10px] t3 truncate">{cap.actionHint || 'Available'}</p>
+                  <>
+                    <p className="text-[10px] text-amber-400/70 truncate">{cap.actionHint || 'Not configured'}</p>
+                    {cap.pathNote && (
+                      <p className="text-[9px] t3 mt-0.5">{cap.pathNote}</p>
+                    )}
+                  </>
                 )}
               </div>
               {isClickable && (
@@ -213,6 +248,15 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
         })}
       </div>
     </div>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-zinc-500 mt-0.5 shrink-0">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
   )
 }
 

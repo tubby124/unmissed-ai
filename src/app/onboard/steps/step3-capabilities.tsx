@@ -14,7 +14,8 @@ interface Props {
 export default function Step3Capabilities({ data, onUpdate }: Props) {
   const currentMode = data.callHandlingMode ?? "triage";
   const forwardingEnabled = data.callForwardingEnabled ?? false;
-  const isPro = data.selectedPlan === "pro";
+  // Pro plan or no plan selected yet (trial/pre-selection) — both get full access
+  const isPro = data.selectedPlan === "pro" || data.selectedPlan === null;
 
   function selectMode(mode: AgentMode) {
     onUpdate({ callHandlingMode: mode });
@@ -98,7 +99,12 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                             </li>
                           ))}
                         </ul>
-                        {needsCalendar && (
+                        {needsCalendar && !isPro && (
+                          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
+                            Calendar booking requires the Pro plan. You can upgrade after activation &mdash; your agent will run as AI Receptionist until then.
+                          </p>
+                        )}
+                        {needsCalendar && isPro && (
                           <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                             You&apos;ll connect your Google Calendar from your dashboard to activate booking.
                           </p>

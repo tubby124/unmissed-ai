@@ -71,6 +71,7 @@ const TRIAL_ROW: ClientsRow = {
   trial_expires_at: '2026-03-31T00:00:00Z',
   setup_complete: false,
   booking_enabled: true,
+  call_handling_mode: 'full_service',
 }
 
 // ── Tests: minimal row (all defaults) ────────────────────────────────────────

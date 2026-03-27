@@ -16,7 +16,7 @@ export type VoicePresetId =
 
 export type ScheduleMode = '24_7' | 'business_hours'
 
-export type CallHandlingMode = 'triage' | 'full_service'
+export type CallHandlingMode = 'message_only' | 'triage' | 'full_service'
 
 export type ScrapeStatus = 'none' | 'pending' | 'complete' | 'error'
 
@@ -57,7 +57,7 @@ export type AgentRouting = {
   callForwardingEnabled: boolean
   forwardingNumber: string | null
   transferEnabled: boolean
-  /** Derived from booking_enabled: 'full_service' | 'triage' */
+  /** Top-level DB column: 'message_only' | 'triage' | 'full_service' */
   callHandlingMode: CallHandlingMode
 }
 

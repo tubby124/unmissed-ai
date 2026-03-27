@@ -57,6 +57,7 @@ export type ClientsRow = {
   booking_enabled?: boolean | null
   sms_enabled?: boolean | null
   ivr_enabled?: boolean | null
+  call_handling_mode?: string | null
   knowledge_backend?: string | null
   business_facts?: string | null
   extra_qa?: { q: string; a: string }[] | null
@@ -128,7 +129,10 @@ export function buildClientAgentConfig(
   const forwardingNumber = row.forwarding_number?.trim() || null
   const callForwardingEnabled = !!forwardingNumber
   const bookingEnabled = row.booking_enabled ?? false
-  const callHandlingMode: CallHandlingMode = bookingEnabled ? 'full_service' : 'triage'
+  const rawMode = row.call_handling_mode as CallHandlingMode | null
+  const callHandlingMode: CallHandlingMode = (rawMode && ['message_only', 'triage', 'full_service'].includes(rawMode))
+    ? rawMode
+    : 'triage'
 
   // Knowledge — filter empty Q&A pairs (same logic as buildAgentContext)
   const extraQa = (row.extra_qa ?? []).filter(p => p.q?.trim() && p.a?.trim())
