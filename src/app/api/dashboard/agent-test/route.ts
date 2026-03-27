@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
-import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { APP_URL } from '@/lib/app-url'
 
@@ -86,7 +86,18 @@ export async function POST(req: NextRequest) {
   }
   const knowledgeBackend = client.knowledge_backend as string | null
   const corpusAvailable = knowledgeBackend === 'pgvector'
-  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
+
+  // Query prior test calls so the agent recognizes returning testers
+  const { data: priorData } = await svc
+    .from('call_logs')
+    .select('started_at, call_status, ai_summary, caller_name, ultravox_call_id')
+    .in('caller_phone', ['trial-test', 'webrtc-test'])
+    .eq('client_id', client.id)
+    .order('started_at', { ascending: false })
+    .limit(5)
+  const priorCalls = (priorData ?? []) as PriorCall[]
+
+  const ctx = buildAgentContext(clientRow, '+15555550100', priorCalls, new Date(), corpusAvailable)
 
   const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
   let knowledgeBlockStr = ctx.knowledge.block

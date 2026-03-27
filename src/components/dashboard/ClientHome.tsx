@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { formatPhone } from '@/lib/format-phone'
 import { useSearchParams } from 'next/navigation'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
@@ -118,13 +119,6 @@ interface HomeData {
   }
 }
 
-function formatPhone(phone: string | null): string {
-  if (!phone) return 'Unknown'
-  const d = phone.replace(/\D/g, '')
-  if (d.length === 11 && d[0] === '1') return `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
-  return phone
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()

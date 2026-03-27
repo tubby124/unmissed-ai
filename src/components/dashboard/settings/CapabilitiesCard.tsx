@@ -3,6 +3,7 @@
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { hasCapability } from '@/lib/niche-capabilities'
 import { getPlanEntitlements, resolveEffectivePlanId } from '@/lib/plan-entitlements'
+import { formatPhone } from '@/lib/format-phone'
 
 interface CapabilitiesCardProps {
   client: ClientConfig
@@ -272,10 +273,3 @@ function ReadinessBadge({ ratio }: { ratio: number }) {
   )
 }
 
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 11 && digits[0] === '1') {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  return phone
-}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { createCall, callViaAgent } from '@/lib/ultravox'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
 
 export async function POST(req: NextRequest) {
@@ -76,16 +77,22 @@ export async function POST(req: NextRequest) {
 
   // Build tool overrides from clients.tools (runtime-authoritative source, same as inbound path)
   const overrideTools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+  const slug = client.slug as string
+
+  // Callback URL → production completed webhook for classification, gap detection, minute tracking
+  const callbackBaseUrl = `${APP_URL}/api/webhook/${slug}/completed`
+  const callbackUrl = signCallbackUrl(callbackBaseUrl, slug)
 
   // Create Ultravox call with full context
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     if (client.ultravox_agent_id) {
       ultravoxCall = await callViaAgent(client.ultravox_agent_id as string, {
+        callbackUrl,
         callerContext: callerContextRaw,
         businessFacts: knowledgeBlockStr,
         contextData: contextDataBlock,
-        metadata: { caller_phone: toPhone, client_slug: client.slug as string, client_id: client.id, test_call: 'true' },
+        metadata: { caller_phone: toPhone, client_slug: slug, client_id: client.id, source: 'dashboard-test-call' },
         overrideTools,
       })
     } else {
@@ -98,12 +105,25 @@ export async function POST(req: NextRequest) {
       ultravoxCall = await createCall({
         systemPrompt: promptFull,
         voice: client.agent_voice_id,
-        metadata: { caller_phone: toPhone, client_slug: client.slug as string, client_id: client.id, test_call: 'true' },
+        callbackUrl,
+        metadata: { caller_phone: toPhone, client_slug: slug, client_id: client.id, source: 'dashboard-test-call' },
       })
     }
   } catch (err) {
     return NextResponse.json({ error: `Ultravox call creation failed: ${String(err)}` }, { status: 500 })
   }
+
+  // Insert call_logs row — completed webhook picks this up for classification + minute tracking
+  const svc = createServiceClient()
+  svc.from('call_logs').insert({
+    ultravox_call_id: ultravoxCall.callId,
+    client_id: clientId,
+    caller_phone: toPhone,
+    call_status: 'test',
+    started_at: new Date().toISOString(),
+  }).then(({ error }) => {
+    if (error) console.error(`[test-call] call_logs insert failed: ${error.message}`)
+  })
 
   // Dial the operator via Twilio outbound, connecting to the Ultravox stream
   const twiml = `<Response><Connect><Stream url="${ultravoxCall.joinUrl}"/></Connect></Response>`

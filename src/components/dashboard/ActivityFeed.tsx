@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
+import { formatPhone } from '@/lib/format-phone'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { createSoundCues } from '@/components/DemoCallVisuals'
 
@@ -28,14 +29,6 @@ const STATUS_LABEL: Record<string, string> = {
   HOT: 'Hot', WARM: 'Warm', COLD: 'Cold', JUNK: 'Junk', live: 'Live', processing: '…',
 }
 
-function formatPhone(phone: string | null): string {
-  if (!phone) return 'Unknown'
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 11 && digits[0] === '1') {
-    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  return phone
-}
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()

@@ -4,17 +4,8 @@ import { useState } from 'react'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { NICHE_CONFIG } from '@/lib/niche-config'
+import { formatPhone } from '@/lib/format-phone'
 
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-  return raw
-}
 
 export default function AdminCommandStrip() {
   const { selectedClient, isAdmin, previewMode, exitPreview } = useAdminClient()

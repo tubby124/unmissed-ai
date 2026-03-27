@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import NumberTicker from '@/components/ui/number-ticker'
+import { formatPhone } from '@/lib/format-phone'
 import { NICHE_CONFIG } from '@/lib/niche-config'
 
 interface CampaignStat {
@@ -28,16 +29,6 @@ function isTestClient(campaign: CampaignStat): boolean {
   return false
 }
 
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-  return raw
-}
 
 function statusDot(status: string | null): { color: string; label: string } {
   switch (status) {
