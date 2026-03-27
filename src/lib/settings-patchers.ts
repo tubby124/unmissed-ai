@@ -23,7 +23,7 @@ import {
   getClosePerson,
 } from './prompt-patcher'
 import { replacePromptSection } from './prompt-sections'
-import { VOICE_PRESETS } from './prompt-builder'
+import { VOICE_PRESETS } from './voice-presets'
 import { validatePrompt, type PromptWarning, type SettingsBody } from './settings-schema'
 
 // ── Types ───────────────────────────────────────────────────────────────────────
