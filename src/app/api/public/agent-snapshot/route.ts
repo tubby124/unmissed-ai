@@ -16,8 +16,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { checkPublicRateLimit } from '@/lib/public-rate-limiter'
 
 export async function GET(req: NextRequest) {
+  const rl = checkPublicRateLimit(req)
+  if (rl) return rl
   const clientId = req.nextUrl.searchParams.get('clientId')
   if (!clientId) {
     return NextResponse.json({ error: 'clientId required' }, { status: 400 })

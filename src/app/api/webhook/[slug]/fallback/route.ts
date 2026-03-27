@@ -37,17 +37,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (client) {
       const recordingCallbackUrl = `${APP_URL}/api/webhook/${slug}/voicemail`
 
-      // Create voicemail call_log entry
-      supabase.from('call_logs').insert({
-        client_id: client.id,
-        caller_phone: callerPhone,
-        twilio_call_sid: callSid,
-        call_status: 'VOICEMAIL',
-        started_at: new Date().toISOString(),
-        ai_summary: 'Voicemail fallback — primary webhook failed',
-      }).then(({ error }) => {
-        if (error) console.error(`[fallback] Voicemail call_log insert failed:`, error.message)
-      })
+      // Dedup: check if a call_log row already exists for this CallSid
+      // (Twilio retries fallback on slow responses — prevents duplicate VOICEMAIL rows)
+      const { data: existing } = await supabase
+        .from('call_logs')
+        .select('id')
+        .eq('twilio_call_sid', callSid)
+        .limit(1)
+        .maybeSingle()
+
+      if (!existing) {
+        supabase.from('call_logs').insert({
+          client_id: client.id,
+          caller_phone: callerPhone,
+          twilio_call_sid: callSid,
+          call_status: 'VOICEMAIL',
+          started_at: new Date().toISOString(),
+          ai_summary: 'Voicemail fallback — primary webhook failed',
+        }).then(({ error }) => {
+          if (error) console.error(`[fallback] Voicemail call_log insert failed:`, error.message)
+        })
+      } else {
+        console.log(`[fallback] Duplicate CallSid=${callSid} — skipping call_log insert`)
+      }
 
       const twiml = buildVoicemailTwiml({
         businessName: client.business_name,

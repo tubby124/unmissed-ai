@@ -10,8 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { checkPublicRateLimit } from '@/lib/public-rate-limiter'
 
 export async function GET(req: NextRequest) {
+  const rl = checkPublicRateLimit(req)
+  if (rl) return rl
+
   const svc = createServiceClient()
   const intakeId = req.nextUrl.searchParams.get('intakeId')
 
