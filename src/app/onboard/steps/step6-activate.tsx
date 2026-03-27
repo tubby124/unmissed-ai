@@ -5,6 +5,7 @@ import { OnboardingData, NotificationMethod } from "@/types/onboarding";
 import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 
 interface Props {
   data: OnboardingData;
@@ -109,6 +110,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             placeholder="https://yourbusiness.com"
           />
         </div>
+
+        {/* Website scrape preview — auto-fires when websiteUrl is set */}
+        <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
 
         {/* Notification method */}
         <div className="space-y-1.5">
