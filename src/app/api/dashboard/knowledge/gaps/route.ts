@@ -163,7 +163,10 @@ export async function POST(req: NextRequest) {
  * PATCH /api/dashboard/knowledge/gaps
  *
  * Resolves a gap by marking all matching query_log rows as resolved.
- * Body: { client_id?, query: string, resolution_type: 'faq' | 'knowledge' | 'dismissed' }
+ * Body: { client_id?, query: string, resolution_type: 'faq' | 'knowledge' | 'dismissed', answer?: string }
+ *
+ * When resolution_type='faq' and answer is provided, auto-creates an FAQ entry
+ * in clients.extra_qa so the answer is immediately available to the agent.
  */
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerClient()
@@ -182,6 +185,7 @@ export async function PATCH(req: NextRequest) {
     client_id?: string
     query?: string
     resolution_type?: string
+    answer?: string
   }
 
   const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
@@ -214,6 +218,43 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Gap → FAQ bridge: when resolving with type='faq' and an answer is provided,
+  // auto-append to clients.extra_qa so the agent can answer this question immediately.
+  let faqCreated = false
+  if (resolutionType === 'faq' && typeof body.answer === 'string' && body.answer.trim()) {
+    try {
+      const { data: client } = await svc
+        .from('clients')
+        .select('extra_qa')
+        .eq('id', clientId)
+        .single()
+
+      const existingQa: { q: string; a: string }[] = Array.isArray(client?.extra_qa) ? client.extra_qa : []
+
+      // Dedup: skip if an FAQ with the same question already exists
+      const normalizedQ = query.toLowerCase().trim()
+      const alreadyExists = existingQa.some(
+        entry => entry.q.toLowerCase().trim() === normalizedQ
+      )
+
+      if (!alreadyExists) {
+        const updatedQa = [...existingQa, { q: query, a: body.answer.trim() }]
+        const { error: qaErr } = await svc
+          .from('clients')
+          .update({ extra_qa: updatedQa })
+          .eq('id', clientId)
+        if (qaErr) {
+          console.error(`[knowledge-gaps] FAQ auto-create failed: ${qaErr.message}`)
+        } else {
+          faqCreated = true
+          console.log(`[knowledge-gaps] FAQ created from gap resolve: "${query.slice(0, 60)}" for client=${clientId}`)
+        }
+      }
+    } catch (faqErr) {
+      console.error('[knowledge-gaps] FAQ bridge failed (non-fatal):', faqErr)
+    }
+  }
+
   // Auto-cascade: resolve semantically similar gaps (skip for dismissals)
   let autoCascadeCount = 0
   let autoCascadeQueries: string[] = []
@@ -245,6 +286,7 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     resolved_count: count ?? 0,
+    faq_created: faqCreated,
     auto_cascade_count: autoCascadeCount,
     auto_cascade_queries: autoCascadeQueries,
   })

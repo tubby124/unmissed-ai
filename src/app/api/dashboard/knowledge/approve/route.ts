@@ -87,6 +87,33 @@ export async function POST(req: NextRequest) {
     console.error(`[knowledge/approve] tools sync failed: ${err}`)
   }
 
-  return NextResponse.json({ ok: true, action, chunkId })
+  // G5: When a chunk is approved, try to auto-resolve open gaps that the new content answers.
+  // Uses the chunk's embedding to find semantically similar unresolved questions.
+  let gapsResolved = 0
+  if (action === 'approve') {
+    try {
+      const approvedContent = typeof editedContent === 'string' && editedContent.trim()
+        ? editedContent.trim()
+        : chunk.content
+      const chunkEmbedding = await embedText(approvedContent)
+      if (chunkEmbedding) {
+        const { data: cascadeResult } = await svc.rpc('auto_resolve_similar_gaps', {
+          p_client_id: chunk.client_id,
+          p_query_embedding: JSON.stringify(chunkEmbedding),
+          p_source_query: approvedContent.slice(0, 200),
+          p_similarity_threshold: 0.78,
+          p_max_resolve: 20,
+        })
+        gapsResolved = cascadeResult?.[0]?.resolved_count ?? 0
+        if (gapsResolved > 0) {
+          console.log(`[knowledge/approve] Auto-resolved ${gapsResolved} gaps after approving chunk ${chunkId}`)
+        }
+      }
+    } catch (gapErr) {
+      console.error('[knowledge/approve] Gap auto-resolve failed (non-fatal):', gapErr)
+    }
+  }
+
+  return NextResponse.json({ ok: true, action, chunkId, gaps_resolved: gapsResolved })
 }
 
