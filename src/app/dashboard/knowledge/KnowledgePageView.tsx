@@ -1,66 +1,151 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
-import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngineCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import ChunkBrowser from '@/components/dashboard/knowledge/ChunkBrowser'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
 import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
-import PlanGate from '@/components/dashboard/PlanGate'
 import { useCallContext } from '@/contexts/CallContext'
 import { toast } from 'sonner'
+import {
+  parseKnowledgeTab,
+  parseAddSource,
+  type KnowledgeTab,
+  type AddSource,
+} from '@/lib/dashboard-routes'
 
-// ─── Inner card group — keyed on client.id so state resets on client switch ──
+// ─── Tab bar ─────────────────────────────────────────────────────────────────
 
-function KnowledgeCards({
+function KnowledgeTabBar({
+  activeTab,
+  searchParams,
+}: {
+  activeTab: KnowledgeTab
+  searchParams: ReturnType<typeof useSearchParams>
+}) {
+  const tabs: { id: KnowledgeTab; label: string }[] = [
+    { id: 'browse', label: 'Browse' },
+    { id: 'add', label: 'Add Knowledge' },
+    { id: 'gaps', label: 'Questions & Gaps' },
+  ]
+  return (
+    <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'var(--color-hover)' }}>
+      {tabs.map(({ id, label }) => {
+        const p = new URLSearchParams(searchParams.toString())
+        p.set('tab', id)
+        p.delete('source')
+        return (
+          <Link
+            key={id}
+            href={`?${p.toString()}`}
+            replace
+            className="flex-1 py-2 text-center text-sm font-medium rounded-lg transition-colors"
+            style={
+              activeTab === id
+                ? {
+                    backgroundColor: 'var(--color-surface)',
+                    color: 'var(--color-text-1)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }
+                : { color: 'var(--color-text-3)' }
+            }
+          >
+            {label}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Add-source sub-tabs ──────────────────────────────────────────────────────
+
+function AddSourceTabBar({
+  activeSource,
+  searchParams,
+}: {
+  activeSource: AddSource
+  searchParams: ReturnType<typeof useSearchParams>
+}) {
+  const sources: { id: AddSource; label: string }[] = [
+    { id: 'website', label: 'Website' },
+    { id: 'manual', label: 'Manual' },
+    { id: 'text', label: 'Bulk Text' },
+  ]
+  return (
+    <div className="flex gap-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
+      {sources.map(({ id, label }) => {
+        const p = new URLSearchParams(searchParams.toString())
+        p.set('tab', 'add')
+        p.set('source', id)
+        const isActive = activeSource === id
+        return (
+          <Link
+            key={id}
+            href={`?${p.toString()}`}
+            replace
+            className="px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
+            style={
+              isActive
+                ? { color: 'var(--color-primary)', borderBottomColor: 'var(--color-primary)' }
+                : { color: 'var(--color-text-3)', borderBottomColor: 'transparent' }
+            }
+          >
+            {label}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Browse tab ───────────────────────────────────────────────────────────────
+
+function BrowseTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
+  const config = buildClientAgentConfig(client)
+  return (
+    <div className="space-y-3">
+      {/* Summary — what the agent currently knows */}
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
+      {/* All knowledge chunks — visible to all users, actions gated inside */}
+      <ChunkBrowser clientId={client.id} isAdmin={isAdmin} />
+    </div>
+  )
+}
+
+// ─── Add Knowledge tab ────────────────────────────────────────────────────────
+
+function AddTab({
   client,
   isAdmin,
   previewMode,
+  activeSource,
+  searchParams,
 }: {
   client: ClientConfig
   isAdmin: boolean
   previewMode?: boolean
+  activeSource: AddSource
+  searchParams: ReturnType<typeof useSearchParams>
 }) {
   const knowledgeActive = client.knowledge_backend === 'pgvector'
-  const config = buildClientAgentConfig(client)
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {/* ── Needs Attention ──────────────────────────────────────────────────── */}
+    <div className="space-y-3">
+      <AddSourceTabBar activeSource={activeSource} searchParams={searchParams} />
 
-      {/* Questions from calls the agent couldn't answer */}
-      <div className="sm:col-span-2">
-        <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
-      </div>
+      {activeSource === 'website' && (
+        <WebsiteKnowledgeCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      )}
 
-      {/* Knowledge chunks waiting for review */}
-      <div className="sm:col-span-2">
-        <PendingSuggestions clientId={client.id} />
-      </div>
-
-      {/* ── Current knowledge ────────────────────────────────────────────────── */}
-
-      {/* Summary card — what the agent currently knows */}
-      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
-
-      {/* Website knowledge — sits beside AgentKnowledgeCard */}
-      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-        <WebsiteKnowledgeCard
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-        />
-      </PlanGate>
-
-      {/* ── Add knowledge ────────────────────────────────────────────────────── */}
-
-      {/* Business facts & FAQs */}
-      <div className="sm:col-span-2">
+      {activeSource === 'manual' && (
         <AdvancedContextCard
           clientId={client.id}
           isAdmin={isAdmin}
@@ -74,28 +159,22 @@ function KnowledgeCards({
           timezone={client.timezone ?? 'America/Regina'}
           previewMode={previewMode}
         />
-      </div>
+      )}
 
-      {/* Paste unstructured text → auto-split → pgvector corpus */}
-      <div className="sm:col-span-2">
-        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-          <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} />
-        </PlanGate>
-      </div>
+      {activeSource === 'text' && (
+        <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} />
+      )}
+    </div>
+  )
+}
 
-      {/* ── Test & manage ────────────────────────────────────────────────────── */}
+// ─── Gaps tab ─────────────────────────────────────────────────────────────────
 
-      {/* Knowledge engine (pgvector) — includes Test Query and chunk library */}
-      <div className="sm:col-span-2">
-        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-          <KnowledgeEngineCard
-            client={client}
-            isAdmin={isAdmin}
-            previewMode={previewMode}
-            onClientUpdate={() => {}}
-          />
-        </PlanGate>
-      </div>
+function GapsTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
+  return (
+    <div className="space-y-3">
+      <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
+      <PendingSuggestions clientId={client.id} />
     </div>
   )
 }
@@ -109,7 +188,16 @@ interface KnowledgePageViewProps {
   initialClientId?: string
 }
 
-export default function KnowledgePageView({ clients, isAdmin, previewMode, initialClientId }: KnowledgePageViewProps) {
+export default function KnowledgePageView({
+  clients,
+  isAdmin,
+  previewMode,
+  initialClientId,
+}: KnowledgePageViewProps) {
+  const searchParams = useSearchParams()
+  const activeTab = parseKnowledgeTab(searchParams.get('tab'))
+  const activeSource = parseAddSource(searchParams.get('source'))
+
   const [selectedId, setSelectedId] = useState(
     initialClientId && clients.find(c => c.id === initialClientId)
       ? initialClientId
@@ -161,6 +249,7 @@ export default function KnowledgePageView({ clients, isAdmin, previewMode, initi
 
   return (
     <div className="p-3 sm:p-6 space-y-4 max-w-4xl">
+      {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         {isAdmin && clients.length > 1 ? (
           <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
@@ -172,14 +261,44 @@ export default function KnowledgePageView({ clients, isAdmin, previewMode, initi
           disabled={testCallLoading || callActive || previewMode}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
           </svg>
           {testCallLoading ? 'Connecting...' : callActive ? 'In Call' : 'Talk to Agent'}
         </button>
       </div>
 
-      <KnowledgeCards key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      {/* Tab bar */}
+      <KnowledgeTabBar activeTab={activeTab} searchParams={searchParams} />
+
+      {/* Tab content — keyed on client.id so state resets on admin client switch */}
+      {activeTab === 'browse' && (
+        <BrowseTab key={client.id} client={client} isAdmin={isAdmin} />
+      )}
+
+      {activeTab === 'add' && (
+        <AddTab
+          key={client.id}
+          client={client}
+          isAdmin={isAdmin}
+          previewMode={previewMode}
+          activeSource={activeSource}
+          searchParams={searchParams}
+        />
+      )}
+
+      {activeTab === 'gaps' && (
+        <GapsTab key={client.id} client={client} isAdmin={isAdmin} />
+      )}
     </div>
   )
 }

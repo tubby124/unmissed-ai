@@ -20,7 +20,6 @@ export const GROUP_LABELS: Record<number, string | null> = {
 export const NAV_ITEMS: NavItem[] = [
   // ── Group 1 — CLIENT MAIN ─────────────────────────────────────────────────
   { href: '/dashboard', label: 'Overview', adminLabel: 'Command Center', adminOnly: false, group: 1, iconName: 'command-center' },
-  { href: '/dashboard/agent', label: 'Agent', adminOnly: false, group: 1, iconName: 'agent' },
   { href: '/dashboard/knowledge', label: 'Knowledge', adminOnly: false, group: 1, iconName: 'book' },
   { href: '/dashboard/actions', label: 'Call Handling', adminOnly: false, group: 1, iconName: 'bolt' },
   { href: '/dashboard/calls', label: 'Calls', adminOnly: false, group: 1, iconName: 'phone' },

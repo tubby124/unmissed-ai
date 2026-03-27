@@ -73,7 +73,9 @@ export default function CallHandlingTile({
   knowledge,
   onOpenSheet,
 }: Props) {
-  const planId = (subscriptionStatus === 'trialing' ? 'trial' : (selectedPlan ?? null)) as Parameters<typeof getPlanEntitlements>[0]
+  const planId: Parameters<typeof getPlanEntitlements>[0] = subscriptionStatus === 'trialing' ? 'trial'
+    : subscriptionStatus ? (selectedPlan ?? null)
+    : null
   const plan = getPlanEntitlements(planId)
 
   const rows: Row[] = [

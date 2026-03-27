@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { formatPhone } from '@/lib/format-phone'
 import { useSearchParams } from 'next/navigation'
+import { parseDashboardTab, type DashboardTab } from '@/lib/dashboard-routes'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
@@ -170,6 +171,7 @@ export default function ClientHome() {
   const hasAutoOpenedUpgrade = useRef(false)
   const searchParams = useSearchParams()
   const adminClientId = searchParams.get('client_id')
+  const activeTab = parseDashboardTab(searchParams.get('tab'))
   const { callState, resetCall } = useCallContext()
   const { openUpgradeModal } = useUpgradeModal()
   const sheet = useHomeSheet()
@@ -332,6 +334,40 @@ export default function ClientHome() {
             onDismiss={dismissWelcome}
           />
         )}
+
+        {/* ── Tab segmented control ──────────────────────────────── */}
+        {(() => {
+          const tabs: { id: DashboardTab; label: string }[] = [
+            { id: 'overview', label: 'Overview' },
+            { id: 'activity', label: 'Activity' },
+          ]
+          return (
+            <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'var(--color-hover)' }}>
+              {tabs.map(({ id, label }) => {
+                const p = new URLSearchParams(searchParams.toString())
+                if (id === 'overview') { p.delete('tab'); p.delete('section') }
+                else { p.set('tab', id); p.delete('section') }
+                const q = p.toString()
+                return (
+                  <Link
+                    key={id}
+                    href={q ? `?${q}` : '?'}
+                    replace
+                    className="flex-1 py-2 text-center text-sm font-medium rounded-lg transition-colors"
+                    style={activeTab === id
+                      ? { backgroundColor: 'var(--color-surface)', color: 'var(--color-text-1)', boxShadow: 'var(--shadow-sm)' }
+                      : { color: 'var(--color-text-3)' }
+                    }
+                  >
+                    {label}
+                  </Link>
+                )
+              })}
+            </div>
+          )
+        })()}
+
+        {activeTab === 'overview' && (<>
 
         {/* ── Trial label above orb ──────────────────────────────── */}
         {isTrialActive && onboarding.hasAgent && (
@@ -503,6 +539,22 @@ export default function ClientHome() {
           </div>
         )}
 
+        {/* ── Trial quiet upgrade nudge ──────────────────────────── */}
+        {isTrialActive && (
+          <div className="text-center pb-1">
+            <button
+              onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
+              className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
+            >
+              Ready to take real calls? Get a phone number →
+            </button>
+          </div>
+        )}
+
+        </>)}
+
+        {activeTab === 'activity' && (<>
+
         {/* ── Quick stats row (real calls only) ─────────────────── */}
         {hasRealCalls && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -521,18 +573,6 @@ export default function ClientHome() {
               <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Avg Quality</p>
               <p className="text-2xl font-bold t1">{stats.avgQuality !== null ? stats.avgQuality.toFixed(1) : '—'}</p>
             </div>
-          </div>
-        )}
-
-        {/* ── Trial quiet upgrade nudge ──────────────────────────── */}
-        {isTrialActive && (
-          <div className="text-center pb-1">
-            <button
-              onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
-              className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
-            >
-              Ready to take real calls? Get a phone number →
-            </button>
           </div>
         )}
 
@@ -586,6 +626,9 @@ export default function ClientHome() {
             </div>
           )}
         </div>
+
+        </>)}
+
       </div>
 
       {/* ── HomeSideSheet — single host for all 6 sheet types ─── */}

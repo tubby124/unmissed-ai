@@ -130,40 +130,46 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
   return (
     <div id="agent-test-card" className="mb-6">
       <AnimatePresence mode="wait">
-        {/* ─── Idle: Orb CTA ─── */}
+        {/* ─── Idle: compact strip ─── */}
         {displayState === "idle" && (
           <motion.div
             key="idle"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="rounded-2xl p-6 sm:p-8 card-surface"
+            className="flex items-center gap-3 px-4 py-3.5 rounded-2xl card-surface"
           >
-            <div className="flex flex-col items-center text-center">
-              {/* Orb — ambient idle glow */}
+            {/* Pulsing ready indicator */}
+            <div className="relative flex-shrink-0 w-9 h-9">
               <motion.div
-                className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden mb-5"
-                animate={{ scale: [1, 1.035, 1] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-full"
+                style={{ backgroundColor: "var(--color-primary)", opacity: 0.12 }}
+                animate={{ scale: [1, 1.55], opacity: [0.25, 0] }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: "easeOut" }}
+              />
+              <div
+                className="absolute inset-0 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}
               >
-                <VoicePoweredOrb externalEnergy={0.08} />
-              </motion.div>
-
-              <h3 className="font-semibold text-base t1 mb-1">{agentName}</h3>
-              <p className="text-sm t3 mb-5 max-w-xs">
-                Talk to your agent right from your browser — hear exactly how callers experience it.
-              </p>
-
-              <button
-                onClick={handleStartTest}
-                className="px-6 py-2.5 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <Phone className="w-4 h-4" />
-                Start Test Call
-              </button>
-              <p className="text-[10px] t3 mt-2">Counts against your monthly minutes</p>
+                <Phone className="w-4 h-4" style={{ color: "var(--color-primary)" }} />
+              </div>
             </div>
+
+            {/* Agent info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold t1 truncate">{agentName}</p>
+              <p className="text-xs t3">Browser test — ready</p>
+            </div>
+
+            {/* CTA */}
+            <button
+              onClick={handleStartTest}
+              className="flex-shrink-0 px-4 py-2 rounded-xl text-white font-medium text-sm cursor-pointer inline-flex items-center gap-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              <span className="hidden sm:inline">Start Test Call</span>
+              <span className="sm:hidden">Test</span>
+            </button>
           </motion.div>
         )}
 
