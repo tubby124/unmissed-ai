@@ -5,6 +5,7 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { ClientAgentConfig } from '@/types/client-agent-config'
 import { usePatchSettings } from './usePatchSettings'
 import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
+import { knowledgeRoutes } from '@/lib/dashboard-routes'
 
 interface AgentKnowledgeCardProps {
   client: ClientConfig
@@ -35,7 +36,10 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
     const trimQ = newQ.trim()
     const trimA = newA.trim()
     if (!trimQ || !trimA) return
-    const updated = [...qa, { q: trimQ, a: trimA }]
+    const existingIdx = qa.findIndex(p => p.q.trim().toLowerCase() === trimQ.toLowerCase())
+    const updated = existingIdx >= 0
+      ? qa.map((p, i) => i === existingIdx ? { q: trimQ, a: trimA } : p)
+      : [...qa, { q: trimQ, a: trimA }]
     await patch({ extra_qa: updated })
     setQa(updated)
     setNewQ('')
@@ -273,7 +277,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
       {/* Website scrape hint — only when no website URL configured */}
       {!hasWebsite && !adding && !pastingText && (
         <a
-          href="/dashboard/knowledge"
+          href={knowledgeRoutes.add('website')}
           className="mt-3 flex items-center gap-1.5 text-[10px] hover:opacity-80 transition-opacity"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="text-amber-400/80 shrink-0">

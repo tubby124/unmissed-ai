@@ -129,20 +129,24 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
       id: 'voicemail',
       label: 'Voicemail fallback',
       available: true,
-      status: 'active',
-      detail: client.voicemail_greeting_text ? 'Custom greeting set' : 'Default greeting',
+      status: client.twilio_number ? 'active' : 'needs_setup',
+      detail: client.twilio_number
+        ? (client.voicemail_greeting_text ? 'Custom greeting set' : 'Default greeting')
+        : undefined,
+      actionHint: 'Available after go-live',
+      pathNote: client.twilio_number ? 'Phone calls only' : undefined,
       section: 'voicemail',
     },
     {
       id: 'ivr',
       label: 'Voicemail menu (IVR)',
       available: true,
-      status: client.ivr_enabled ? 'active' : 'needs_setup',
-      detail: client.ivr_enabled
+      status: (client.ivr_enabled && !!client.twilio_number) ? 'active' : 'needs_setup',
+      detail: (client.ivr_enabled && client.twilio_number)
         ? (client.ivr_prompt ? 'Custom menu set' : 'Press 1 for voicemail')
         : undefined,
       actionHint: 'Add a voicemail menu option',
-      pathNote: client.ivr_enabled ? 'Phone calls only' : undefined,
+      pathNote: (client.ivr_enabled && client.twilio_number) ? 'Phone calls only' : undefined,
       section: 'ivr',
     },
   ]

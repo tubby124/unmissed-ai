@@ -2,6 +2,17 @@
 // Single source of truth for all dashboard URLs.
 // Phase 3 (ClientHome) and Phase 4 (KnowledgePageView) consume the parsers.
 // No component should hard-code these URL strings.
+//
+// Knowledge deep-link reference (Gate 0 verified 2026-03-27):
+//   Browse + source registry:  /dashboard/knowledge?tab=browse
+//   Add website:               /dashboard/knowledge?tab=add&source=website
+//   Add manual facts/QA:       /dashboard/knowledge?tab=add&source=manual
+//   Add bulk text:             /dashboard/knowledge?tab=add&source=text
+//   Gaps + suggestions:        /dashboard/knowledge?tab=gaps
+//   (Compiler review — Gate 4): /dashboard/knowledge?tab=browse&draft=<id>
+//
+// NOTE: /dashboard/settings?tab=knowledge does NOT exist for non-admins.
+//       All knowledge entry points for owners must use /dashboard/knowledge.
 
 // ── Valid param values ───────────────────────────────────────────────────────
 

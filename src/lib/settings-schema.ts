@@ -325,9 +325,15 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     updates.updated_at = new Date().toISOString()
   }
 
-  // extra_qa — array
+  // extra_qa — array (deduplicate by question, last-write-wins, strip empty pairs)
   if (body.extra_qa !== undefined) {
-    updates.extra_qa = body.extra_qa
+    const seen = new Map<string, { q: string; a: string }>()
+    for (const pair of body.extra_qa) {
+      if (pair.q?.trim() && pair.a?.trim()) {
+        seen.set(pair.q.trim().toLowerCase(), { q: pair.q.trim(), a: pair.a.trim() })
+      }
+    }
+    updates.extra_qa = Array.from(seen.values())
   }
 
   // Number fields with custom constraints

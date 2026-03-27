@@ -8,10 +8,12 @@ import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContext
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import ChunkBrowser from '@/components/dashboard/knowledge/ChunkBrowser'
+import KnowledgeSourceRegistry from '@/components/dashboard/knowledge/KnowledgeSourceRegistry'
+import CallContextPreview from '@/components/dashboard/knowledge/CallContextPreview'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
-import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
+import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import { useCallContext } from '@/contexts/CallContext'
 import { toast } from 'sonner'
@@ -78,7 +80,7 @@ function AddSourceTabBar({
   const sources: { id: AddSource; label: string }[] = [
     { id: 'website', label: 'Website' },
     { id: 'manual', label: 'Manual' },
-    { id: 'text', label: 'Bulk Text' },
+    { id: 'text', label: 'AI Compiler' },
   ]
   return (
     <div className="flex gap-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -113,6 +115,18 @@ function BrowseTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean
   const config = buildClientAgentConfig(client)
   return (
     <div className="space-y-3">
+      {/* Source registry — where knowledge comes from */}
+      <KnowledgeSourceRegistry clientId={client.id} />
+      {/* Call-time context preview — what the agent sees on every call */}
+      <CallContextPreview
+        facts={client.business_facts ?? ''}
+        qa={client.extra_qa ?? []}
+        injectedNote={client.injected_note ?? ''}
+        contextData={client.context_data ?? ''}
+        contextDataLabel={client.context_data_label ?? ''}
+        knowledgeEnabled={client.knowledge_backend === 'pgvector'}
+        timezone={client.timezone ?? 'America/Regina'}
+      />
       {/* Summary — what the agent currently knows */}
       <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
       {/* All knowledge chunks — visible to all users, actions gated inside */}
@@ -162,7 +176,7 @@ function AddTab({
       )}
 
       {activeSource === 'text' && (
-        <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} />
+        <KnowledgeCompiler clientId={client.id} isAdmin={isAdmin} />
       )}
     </div>
   )
