@@ -162,3 +162,87 @@ describe('Full settings → AgentContext integration', () => {
     assert.equal(ctx.capabilities.usePropertyLookup, true)
   })
 })
+
+// ── G0.5: Sync trigger classification ─────────────────────────────────────
+
+/**
+ * Mirror the needsAgentSync logic from settings/route.ts.
+ * If the settings route changes this expression, this test must be updated too —
+ * that's the point. It catches accidental sync-trigger omissions.
+ */
+const SYNC_TRIGGER_FIELDS = new Set([
+  'system_prompt',
+  'forwarding_number',
+  'transfer_conditions',
+  'booking_enabled',
+  'call_handling_mode',
+  'agent_voice_id',
+  'knowledge_backend',
+  'sms_enabled',
+  'twilio_number',
+])
+
+const DB_ONLY_FIELDS = [
+  'voicemail_greeting_text',
+  'voicemail_greeting_audio_url',
+  'ivr_enabled',
+  'ivr_prompt',
+  'telegram_notifications_enabled',
+  'email_notifications_enabled',
+  'telegram_style',
+  'weekly_digest_enabled',
+  'injected_note',
+  'context_data',
+  'context_data_label',
+  'website_url',
+]
+
+function computeNeedsSync(updates: Record<string, unknown>, knowledgeReseeded = false): boolean {
+  return (
+    typeof updates.system_prompt === 'string' ||
+    'forwarding_number' in updates ||
+    'transfer_conditions' in updates ||
+    'booking_enabled' in updates ||
+    'call_handling_mode' in updates ||
+    'agent_voice_id' in updates ||
+    'knowledge_backend' in updates ||
+    'sms_enabled' in updates ||
+    'twilio_number' in updates ||
+    knowledgeReseeded
+  )
+}
+
+describe('G0.5: needsAgentSync classification', () => {
+  test('runtime-bearing fields trigger sync', () => {
+    for (const field of SYNC_TRIGGER_FIELDS) {
+      const updates: Record<string, unknown> = {}
+      if (field === 'system_prompt') {
+        updates[field] = 'new prompt text'
+      } else {
+        updates[field] = 'test-value'
+      }
+      assert.ok(
+        computeNeedsSync(updates),
+        `${field} should trigger needsAgentSync but did not`,
+      )
+    }
+  })
+
+  test('knowledgeReseeded triggers sync even with no field updates', () => {
+    assert.ok(computeNeedsSync({}, true), 'knowledgeReseeded should trigger sync')
+  })
+
+  test('DB-only fields do NOT trigger sync', () => {
+    for (const field of DB_ONLY_FIELDS) {
+      const updates: Record<string, unknown> = { [field]: 'test-value' }
+      assert.ok(
+        !computeNeedsSync(updates),
+        `${field} should NOT trigger needsAgentSync but did`,
+      )
+    }
+  })
+
+  test('empty updates do not trigger sync', () => {
+    assert.ok(!computeNeedsSync({}), 'empty updates should not trigger sync')
+  })
+})

@@ -634,6 +634,13 @@ export async function PATCH(req: NextRequest) {
         console.log(`[settings] Ultravox agent ${clientRow.ultravox_agent_id} synced (prompt=${typeof updates.system_prompt === 'string'} transfer=${!!fwdNumber} sms=${smsEnabled} twilio=${!!twilioNumber} knowledge=${knowledgeBackend} booking=${bookingEnabled})`)
         ultravox_synced = true
 
+        // G0.5: Record sync success for drift detection
+        await supabase.from('clients').update({
+          last_agent_sync_at: new Date().toISOString(),
+          last_agent_sync_status: 'success',
+          last_agent_sync_error: null,
+        }).eq('id', targetClientId)
+
         // Post-enable verification: when booking_enabled is toggled ON, verify calendar tools are registered
         if ('booking_enabled' in updates && updates.booking_enabled === true) {
           const uvKey = process.env.ULTRAVOX_API_KEY
@@ -663,6 +670,13 @@ export async function PATCH(req: NextRequest) {
         ultravox_error = err instanceof Error ? err.message : String(err)
         console.error(`[settings] Ultravox agent sync failed: ${ultravox_error}`)
         // Don't fail the whole request — Supabase save succeeded
+
+        // G0.5: Record sync failure for drift detection
+        await supabase.from('clients').update({
+          last_agent_sync_at: new Date().toISOString(),
+          last_agent_sync_status: 'error',
+          last_agent_sync_error: ultravox_error.slice(0, 500),
+        }).eq('id', targetClientId)
 
         // SET-14: Alert operator via Telegram so drift doesn't go unnoticed
         const opToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
@@ -731,6 +745,7 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     ultravox_synced,
+    ...(ultravox_synced ? { last_sync_at: new Date().toISOString() } : {}),
     ...(ultravox_error ? { ultravox_error } : {}),
     ...(promptWarnings.length ? { warnings: promptWarnings } : {}),
     ...(typeof updates.system_prompt === 'string' ? { system_prompt: updates.system_prompt } : {}),
