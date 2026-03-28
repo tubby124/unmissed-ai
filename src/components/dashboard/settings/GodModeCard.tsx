@@ -32,7 +32,10 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
     charCountCurrent: number
     charCountRebuilt: number
     effectiveCallHandlingMode: string
+    currentAgentMode: string | null
+    changedSections: string[]
   } | null>(null)
+  const [showFullPrompts, setShowFullPrompts] = useState(false)
   const [deepModeError, setDeepModeError] = useState<string | null>(null)
 
   async function handleDeepModePreview() {
@@ -85,6 +88,7 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
     setDeepModeStep('idle')
     setPreviewData(null)
     setDeepModeError(null)
+    setShowFullPrompts(false)
   }
 
   const update = useCallback((field: keyof GodConfigEntry, value: string | number) => {
@@ -272,50 +276,106 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
             )}
 
             {/* Preview result */}
-            {(deepModeStep === 'preview_ready' || deepModeStep === 'deploying') && previewData && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-[10px] t3 mb-1">Current ({previewData.charCountCurrent.toLocaleString()} chars)</p>
-                    <div className="bg-black/30 border b-theme rounded-lg p-2 h-56 overflow-y-auto">
-                      <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.currentPrompt.slice(0, 800)}{previewData.currentPrompt.length > 800 ? '\n…' : ''}</pre>
+            {(deepModeStep === 'preview_ready' || deepModeStep === 'deploying') && previewData && (() => {
+              const delta = previewData.charCountRebuilt - previewData.charCountCurrent
+              return (
+                <div className="space-y-2">
+                  {/* Change summary */}
+                  <div className="rounded-lg bg-black/30 border b-theme p-3">
+                    <p className="text-[10px] font-semibold tracking-[0.12em] uppercase t3 mb-2">What&apos;s Changing</p>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[11px]">
+                      <span className="t3">Mode</span>
+                      <span className="font-mono">
+                        <span className="text-red-400/80">{previewData.currentAgentMode ?? 'lead_capture'}</span>
+                        <span className="t3 mx-1">→</span>
+                        <span className="text-green-400">{selectedMode}</span>
+                      </span>
+                      <span className="t3">Call handling</span>
+                      <span className="font-mono">
+                        <span className="text-red-400/80">{currentCallHandlingMode ?? 'triage'}</span>
+                        <span className="t3 mx-1">→</span>
+                        <span className="text-green-400">{previewData.effectiveCallHandlingMode}</span>
+                      </span>
+                      <span className="t3">Prompt size</span>
+                      <span className="font-mono t1">
+                        {previewData.charCountCurrent.toLocaleString()} → {previewData.charCountRebuilt.toLocaleString()} chars
+                        {' '}
+                        <span className={delta > 0 ? 'text-amber-400' : delta < 0 ? 'text-green-400' : 't3'}>
+                          ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
+                        </span>
+                      </span>
                     </div>
+                    {previewData.changedSections.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/5">
+                        <p className="text-[10px] t3 mb-1.5">Sections modified</p>
+                        <div className="flex flex-wrap gap-1">
+                          {previewData.changedSections.map(s => (
+                            <span key={s} className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 font-mono border border-amber-500/20">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {previewData.changedSections.length === 0 && (
+                      <p className="text-[10px] t3 mt-2">No section-level differences detected.</p>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-[10px] t3 mb-1">Rebuilt ({previewData.charCountRebuilt.toLocaleString()} chars) → <span className="font-mono text-amber-400">{previewData.effectiveCallHandlingMode}</span></p>
-                    <div className="bg-black/30 border border-amber-500/20 rounded-lg p-2 h-56 overflow-y-auto">
-                      <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.rebuiltPrompt.slice(0, 800)}{previewData.rebuiltPrompt.length > 800 ? '\n…' : ''}</pre>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Warning */}
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-[11px] text-amber-300">
-                  <strong>Warning:</strong> This will overwrite the current system prompt with a full rebuild.
-                  Manual edits made after the last regen will be lost.
-                  A backup is saved to prompt history for rollback.
-                </div>
-
-                {/* Action row */}
-                <div className="flex gap-2">
+                  {/* Toggle full prompts */}
                   <button
                     type="button"
-                    onClick={handleDeepModeDeploy}
-                    disabled={deepModeStep === 'deploying' || previewMode}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition-all disabled:opacity-40"
+                    onClick={() => setShowFullPrompts(p => !p)}
+                    className="text-[11px] t3 underline underline-offset-2 hover:opacity-100 opacity-60 transition-opacity"
                   >
-                    {deepModeStep === 'deploying' ? 'Deploying…' : 'Confirm & Deploy'}
+                    {showFullPrompts ? 'Hide full prompts' : 'Show full prompts'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={resetDeepMode}
-                    className="px-3 py-1.5 rounded-lg text-xs t3 border b-theme hover:bg-hover transition-all"
-                  >
-                    Cancel
-                  </button>
+
+                  {showFullPrompts && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[10px] t3 mb-1">Current ({previewData.charCountCurrent.toLocaleString()} chars)</p>
+                        <div className="bg-black/30 border b-theme rounded-lg p-2 h-56 overflow-y-auto">
+                          <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.currentPrompt.slice(0, 1200)}{previewData.currentPrompt.length > 1200 ? '\n…' : ''}</pre>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] t3 mb-1">Rebuilt ({previewData.charCountRebuilt.toLocaleString()} chars)</p>
+                        <div className="bg-black/30 border border-amber-500/20 rounded-lg p-2 h-56 overflow-y-auto">
+                          <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.rebuiltPrompt.slice(0, 1200)}{previewData.rebuiltPrompt.length > 1200 ? '\n…' : ''}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Warning */}
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-[11px] text-amber-300">
+                    <strong>Warning:</strong> This will overwrite the current system prompt with a full rebuild.
+                    Manual edits made after the last regen will be lost.
+                    A backup is saved to prompt history for rollback.
+                  </div>
+
+                  {/* Action row */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDeepModeDeploy}
+                      disabled={deepModeStep === 'deploying' || previewMode}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition-all disabled:opacity-40"
+                    >
+                      {deepModeStep === 'deploying' ? 'Deploying…' : 'Confirm & Deploy'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetDeepMode}
+                      className="px-3 py-1.5 rounded-lg text-xs t3 border b-theme hover:bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
           </div>
         )}
       </div>

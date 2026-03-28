@@ -63,6 +63,7 @@ export interface AgentModeRebuildResult {
   currentPrompt: string | null
   regenSource: 'intake'
   effectiveCallHandlingMode: string
+  currentAgentMode: string | null
   clientSlug: string
   intakeAgentName: string | undefined
   prevCharCount: number
@@ -101,7 +102,7 @@ export async function buildAgentModeRebuildPrompt(
       'id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, ' +
       'forwarding_number, booking_enabled, sms_enabled, twilio_number, ' +
       'knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, ' +
-      'niche, call_handling_mode',
+      'niche, call_handling_mode, agent_mode',
     )
     .eq('id', clientId)
     .single()
@@ -114,7 +115,7 @@ export async function buildAgentModeRebuildPrompt(
     sms_enabled: boolean | null; twilio_number: string | null
     knowledge_backend: string | null; transfer_conditions: string | null
     system_prompt: string | null; voice_style_preset: string | null
-    niche: string | null; call_handling_mode: string | null
+    niche: string | null; call_handling_mode: string | null; agent_mode: string | null
   } | null
 
   if (!client) throw new Error('Client not found')
@@ -201,6 +202,7 @@ export async function buildAgentModeRebuildPrompt(
     currentPrompt,
     regenSource: 'intake',
     effectiveCallHandlingMode,
+    currentAgentMode: (client.agent_mode as string | null) ?? null,
     clientSlug: client.slug,
     intakeAgentName,
     prevCharCount,
