@@ -9,6 +9,7 @@ import HoursCard from '@/components/dashboard/settings/HoursCard'
 import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
+import ServiceCatalogEditor from '@/components/dashboard/actions/ServiceCatalogEditor'
 
 // ─── Behavior summary ─────────────────────────────────────────────────────────
 
@@ -110,6 +111,17 @@ function ActionCards({
       <div id="after-call" className="sm:col-span-2">
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>After-Call Follow-up</p>
         <MessagingSettingsSection client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
+
+      {/* Row 4b: Service Catalog — full width */}
+      <div id="service-catalog" className="sm:col-span-2">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Services</p>
+        <ServiceCatalogEditor
+          clientId={client.id}
+          isAdmin={isAdmin}
+          agentMode={client.agent_mode ?? null}
+          previewMode={previewMode}
+        />
       </div>
 
       {/* Row 5: Behavior summary — full width */}

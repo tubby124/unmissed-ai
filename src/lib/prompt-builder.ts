@@ -3,6 +3,7 @@ import { getCapabilities } from '@/lib/niche-capabilities'
 import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summary'
 import { VOICE_PRESETS } from './voice-presets'
 import { MODE_INSTRUCTIONS } from './prompt-patcher'
+import { type ServiceCatalogItem, parseServiceCatalog, formatServiceCatalog, buildBookingNotesBlock } from './service-catalog'
 
 /**
  * prompt-builder.ts — TypeScript port of PROVISIONING/app/prompt_builder.py
@@ -1961,47 +1962,6 @@ function applyModeVariableOverrides(
   }
 }
 
-// ── Service catalog helpers ────────────────────────────────────────────────────
-
-export interface ServiceCatalogItem {
-  name: string
-  duration_mins?: number
-  price?: string
-}
-
-/**
- * Parse and validate a raw service_catalog value from intake data.
- * Accepts a JSON string or a pre-parsed array. Returns [] on any error.
- */
-function parseServiceCatalog(raw: unknown): ServiceCatalogItem[] {
-  try {
-    const arr: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!Array.isArray(arr)) return []
-    return arr.filter(
-      (s): s is ServiceCatalogItem =>
-        typeof s === 'object' && s !== null && typeof (s as ServiceCatalogItem).name === 'string' && (s as ServiceCatalogItem).name.trim() !== '',
-    )
-  } catch {
-    return []
-  }
-}
-
-/**
- * Format a service catalog as a compact human-readable string for the SERVICES_OFFERED variable.
- * E.g. "Haircut (30 min · $35), Color Treatment (90 min · $120), Blowout (45 min)"
- */
-function formatServiceCatalog(catalog: ServiceCatalogItem[]): string {
-  return catalog
-    .filter(s => s.name.trim())
-    .map(s => {
-      const parts: string[] = []
-      if (s.duration_mins) parts.push(`${s.duration_mins} min`)
-      if (s.price?.trim()) parts.push(s.price.trim())
-      return parts.length > 0 ? `${s.name.trim()} (${parts.join(' · ')})` : s.name.trim()
-    })
-    .join(', ')
-}
-
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
@@ -2057,10 +2017,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   }
 
   // service_catalog — structured services list, overrides SERVICES_OFFERED when non-empty
-  const rawServiceCatalog = intake.service_catalog
+  let catalog: ServiceCatalogItem[] = []
   let catalogServiceNames: string[] = []
-  if (rawServiceCatalog) {
-    const catalog = parseServiceCatalog(rawServiceCatalog)
+  if (intake.service_catalog) {
+    catalog = parseServiceCatalog(intake.service_catalog)
     if (catalog.length > 0) {
       variables.SERVICES_OFFERED = formatServiceCatalog(catalog)
       catalogServiceNames = catalog.map(s => s.name.trim())
@@ -2326,6 +2286,17 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     const infoStart = prompt.indexOf('## 4. INFO COLLECTION')
     if (triageStart !== -1 && infoStart !== -1) {
       prompt = prompt.slice(0, triageStart) + '## 3. TRIAGE\n\n' + triageDeep + '\n\n' + prompt.slice(infoStart)
+    }
+  }
+
+  // Booking notes — append SERVICE NOTES block after TRIAGE when appointment_booking + catalog has notes
+  if (effectiveMode === 'appointment_booking' && catalog.length > 0) {
+    const notesBlock = buildBookingNotesBlock(catalog)
+    if (notesBlock) {
+      const infoHeader = prompt.indexOf('\n## 4. INFO COLLECTION')
+      if (infoHeader !== -1) {
+        prompt = prompt.slice(0, infoHeader) + '\n\n' + notesBlock + prompt.slice(infoHeader)
+      }
     }
   }
 

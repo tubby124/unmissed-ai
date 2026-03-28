@@ -10,6 +10,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
+import { rowsToCatalogItems } from '@/lib/service-catalog'
 import {
   patchCalendarBlock,
   patchSmsBlock,
@@ -148,8 +149,18 @@ export async function buildAgentModeRebuildPrompt(
   intakeData.agent_mode = agentModeOverride
   intakeData.call_handling_mode = effectiveCallHandlingMode
 
-  // Inject service_catalog from clients row (not in intake_json — saved separately)
-  if (client.service_catalog) {
+  // Inject service_catalog: prefer active rows from client_services table;
+  // fall back to JSONB clients.service_catalog for clients without relational rows.
+  const { data: serviceRows } = await svc
+    .from('client_services')
+    .select('name, description, category, duration_mins, price, booking_notes, active, sort_order')
+    .eq('client_id', clientId)
+    .eq('active', true)
+    .order('sort_order')
+    .order('created_at')
+  if (serviceRows && serviceRows.length > 0) {
+    intakeData.service_catalog = rowsToCatalogItems(serviceRows as Parameters<typeof rowsToCatalogItems>[0])
+  } else if (client.service_catalog) {
     intakeData.service_catalog = client.service_catalog
   }
 
