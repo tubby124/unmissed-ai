@@ -93,11 +93,13 @@ export async function embedText(text: string): Promise<number[] | null> {
 /**
  * Embed and store multiple chunks for a client.
  * Uses ON CONFLICT to upsert (dedup by client_id + content_hash + chunk_type + source).
+ * @param compileRunId — optional UUID from compiler_runs table for provenance tracking
  */
 export async function embedChunks(
   clientId: string,
   chunks: ChunkInput[],
   sourceRunId: string,
+  compileRunId?: string,
 ): Promise<EmbedResult> {
   const supabase = createServiceClient()
   let stored = 0
@@ -124,6 +126,7 @@ export async function embedChunks(
     }
     if (chunk.status) row.status = chunk.status
     if (chunk.trustTier) row.trust_tier = chunk.trustTier
+    if (compileRunId) row.compile_run_id = compileRunId
 
     const { error } = await supabase
       .from('knowledge_chunks')

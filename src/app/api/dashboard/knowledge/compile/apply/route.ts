@@ -13,11 +13,14 @@
  * Response: { ok: true, faqsAdded: number, chunksCreated: number }
  */
 
+import { createHash } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedChunks, reseedKnowledgeFromSettings, type ChunkInput } from '@/lib/embeddings'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+
+const COMPILER_MODEL = 'claude-haiku-4-5-20251001'
 
 const BLOCKED_KINDS = new Set([
   'call_behavior_instruction',
@@ -54,6 +57,8 @@ export async function POST(req: NextRequest) {
     faq_items?: { q: string; a: string }[]
     fact_items?: { kind: string; text: string }[]
     client_id?: string
+    raw_input_hash?: string
+    model_used?: string
   }
 
   if (body.client_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
@@ -150,8 +155,37 @@ export async function POST(req: NextRequest) {
       trustTier: HIGH_RISK_KINDS.has(item.kind) ? 'medium' : 'high',
     }))
 
+    // Write compiler_runs provenance row before embedding
+    const highRiskCount = factItems.filter(i => HIGH_RISK_KINDS.has(i.kind)).length
+    const rawInputHash = body.raw_input_hash
+      ?? createHash('sha256').update(JSON.stringify(factItems)).digest('hex').slice(0, 32)
+    const modelUsed = body.model_used ?? COMPILER_MODEL
+
+    let compileRunId: string | undefined
+    const { data: runRow, error: runErr } = await svc
+      .from('compiler_runs')
+      .insert({
+        client_id: clientId,
+        model_used: modelUsed,
+        raw_input_hash: rawInputHash,
+        total_extracted: factItems.length + faqItems.length,
+        approved_count: factItems.length,
+        faq_count: faqItems.length,
+        high_risk_count: highRiskCount,
+        chunk_count: chunks.length,
+        created_by_user_id: user.id,
+      })
+      .select('id')
+      .single()
+
+    if (runErr) {
+      console.error('[compile/apply] compiler_runs insert failed:', runErr)
+    } else {
+      compileRunId = runRow.id
+    }
+
     try {
-      const result = await embedChunks(clientId, chunks, `compiled-import-${Date.now()}`)
+      const result = await embedChunks(clientId, chunks, `compiled-import-${Date.now()}`, compileRunId)
       chunksCreated = result.stored
       if (result.failed > 0) {
         console.error(`[compile/apply] ${result.failed} chunks failed to embed`)
