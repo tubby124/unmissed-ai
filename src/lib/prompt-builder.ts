@@ -1937,10 +1937,16 @@ function applyModeVariableOverrides(
   const overrides = MODE_VARIABLE_OVERRIDES[effectiveMode]
   if (!overrides) return { modeForbiddenExtra: '', modeTriageDeep: '' }
 
-  // Variable overrides: only apply when variable is not already set by niche or intake
+  // Variable overrides: only apply when variable is not already set by niche or intake.
+  // Exception: appointment_booking always overrides COMPLETION_FIELDS and CLOSE_ACTION because
+  // booking fundamentally changes what "done" means — date/time is always required regardless of niche.
+  const FORCE_OVERRIDE_FIELDS: Partial<Record<string, ReadonlyArray<string>>> = {
+    appointment_booking: ['COMPLETION_FIELDS', 'CLOSE_ACTION'],
+  }
+  const forced = FORCE_OVERRIDE_FIELDS[effectiveMode] ?? []
   const varFields = ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'] as const
   for (const field of varFields) {
-    if (overrides[field] && !variables[field]) {
+    if (overrides[field] && (!variables[field] || forced.includes(field))) {
       variables[field] = overrides[field]!
     }
   }
