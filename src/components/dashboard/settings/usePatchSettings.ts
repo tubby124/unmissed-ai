@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 export type CardMode = 'settings' | 'onboarding'
 
 /** Sync status from the API response. */
-export type SyncStatus = 'synced' | 'not-needed' | 'failed' | null
+export type SyncStatus = 'synced' | 'not-needed' | 'skipped' | 'failed' | null
 
 export interface UsePatchSettingsOptions {
   onSave?: () => void
@@ -101,6 +101,9 @@ export function usePatchSettings(
         setSyncError(data.ultravox_error)
         // SET-14: Store payload for retry
         lastFailedPayload.current = body
+      } else if (data.ultravox_synced === false) {
+        // Sync was needed but skipped (e.g. no ultravox_agent_id set yet)
+        setSyncStatus('skipped')
       } else {
         // No ultravox_synced field = call-time injection, no agent sync needed
         setSyncStatus('not-needed')
@@ -123,6 +126,8 @@ export function usePatchSettings(
       // Must check data.warnings (raw response) — React state hasn't re-rendered yet at this point.
       if (data.ultravox_synced === false && data.ultravox_error) {
         toast.warning('Saved, but agent sync failed — retry from the card')
+      } else if (data.ultravox_synced === false) {
+        toast.warning('Saved — agent sync skipped')
       } else if (Array.isArray(data.warnings) && data.warnings.length > 0) {
         toast.warning('Saved — see warning below')
       } else {

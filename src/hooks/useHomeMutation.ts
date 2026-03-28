@@ -64,7 +64,7 @@ export function useHomeMutation({ clientId, isAdmin, onSave }: UseHomeMutationOp
     } else if (patchSettings.syncStatus === 'failed') {
       setStatus('failed')
     } else {
-      // not-needed = DB-only save (call-time injection field)
+      // not-needed or skipped = DB saved, no agent sync (call-time injection or no agent ID yet)
       setStatus('saved_local')
       setTimeout(() => setStatus('idle'), 4000)
     }
@@ -78,7 +78,7 @@ export function useHomeMutation({ clientId, isAdmin, onSave }: UseHomeMutationOp
     if (status !== 'saving') return
     if (syncStatus === 'synced') setStatus('synced')
     else if (syncStatus === 'failed') setStatus('failed')
-    else if (syncStatus === 'not-needed') {
+    else if (syncStatus === 'not-needed' || syncStatus === 'skipped') {
       setStatus('saved_local')
       setTimeout(() => setStatus('idle'), 4000)
     }

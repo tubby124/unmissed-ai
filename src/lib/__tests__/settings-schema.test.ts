@@ -301,14 +301,14 @@ describe('buildUpdates', () => {
 // ── validatePrompt ─────────────────────────────────────────────────────────────
 
 describe('validatePrompt', () => {
-  test('rejects prompt over 12K chars', () => {
-    const result = validatePrompt('x'.repeat(12001))
+  test('rejects prompt over 25K chars', () => {
+    const result = validatePrompt('x'.repeat(25001))
     assert.ok(!result.valid)
-    assert.ok(result.error!.includes('12,000'))
+    assert.ok(result.error!.includes('25,000'))
   })
 
-  test('warns about prompt over 8K chars', () => {
-    const result = validatePrompt('x'.repeat(8001))
+  test('warns about prompt over 15K chars', () => {
+    const result = validatePrompt('x'.repeat(15001))
     assert.ok(result.valid)
     assert.ok(result.warnings.some(w => w.field === 'length'))
   })

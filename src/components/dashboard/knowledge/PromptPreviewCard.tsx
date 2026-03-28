@@ -84,7 +84,7 @@ export default function PromptPreviewCard({ systemPrompt, isAdmin }: Props) {
                 {isAdmin ? (
                   <>
                     Script is managed via{' '}
-                    <Link href="/dashboard/settings?tab=agent" className="underline underline-offset-2">
+                    <Link href="/dashboard/settings?tab=general" className="underline underline-offset-2">
                       Settings → Agent
                     </Link>
                     . Changes take effect on the next call.
