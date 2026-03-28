@@ -22,6 +22,7 @@ import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { patchCalendarBlock, patchSmsBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { buildAgentModeRebuildPrompt, AGENT_MODE_VALUES, type AgentMode } from '@/lib/agent-mode-rebuild'
+import { rowsToCatalogItems } from '@/lib/service-catalog'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -147,6 +148,21 @@ export async function POST(req: NextRequest) {
       .eq('client_id', clientId)
     if (kDocs && kDocs.length > 0) {
       knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
+    }
+
+    // Inject service_catalog: prefer active rows from client_services table;
+    // fall back to JSONB clients.service_catalog for clients without relational rows.
+    const { data: serviceRows } = await svc
+      .from('client_services')
+      .select('name, description, category, duration_mins, price, booking_notes, active, sort_order')
+      .eq('client_id', clientId)
+      .eq('active', true)
+      .order('sort_order')
+      .order('created_at')
+    if (serviceRows && serviceRows.length > 0) {
+      intakeData.service_catalog = rowsToCatalogItems(serviceRows as Parameters<typeof rowsToCatalogItems>[0])
+    } else if (client.service_catalog) {
+      intakeData.service_catalog = client.service_catalog
     }
 
     newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
