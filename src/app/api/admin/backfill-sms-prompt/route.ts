@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   // ── Load all sms_enabled clients with prompts ─────────────────────────────
   const { data: clients, error: clientsErr } = await svc
     .from('clients')
-    .select('id, slug, system_prompt, sms_enabled')
+    .select('id, slug, system_prompt, sms_enabled, agent_mode')
     .eq('sms_enabled', true)
     .not('system_prompt', 'is', null)
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
           continue
         }
 
-        const patched = patchSmsBlock(prompt, true)
+        const patched = patchSmsBlock(prompt, true, (client as Record<string, unknown>).agent_mode as string | null)
 
         if (!dryRun) {
           const { error: updateErr } = await svc
