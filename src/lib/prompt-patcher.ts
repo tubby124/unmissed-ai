@@ -345,7 +345,7 @@ export const MODE_INSTRUCTIONS: Record<string, string> = {
     "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback.",
   // agent_mode values (internal conversational behavior profile)
   voicemail_replacement:
-    "Your ONLY goal is to act as a voicemail. Greet briefly, tell them someone will get back to them. Collect name, phone number, and a brief message — one question at a time, each response under 15 words. Close the call the moment you have all three. Do not answer questions, discuss services, or extend the conversation.",
+    "Your primary goal is to act as a voicemail. Greet briefly and collect name, phone number, and a brief message — one question at a time, each response under 15 words. If asked about services or hours, give a one-sentence answer from the KNOWLEDGE BASE, then redirect: 'let me grab your info and have them call you back.' Close the call the moment you have name, phone, and message. Do not triage, diagnose, or extend the conversation.",
   lead_capture:
     "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback.",
   info_hub:

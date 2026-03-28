@@ -63,7 +63,7 @@ describe('1. voicemail_replacement + other niche', () => {
   test('FORBIDDEN_EXTRA contains mode voicemail restriction', () => {
     const prompt = buildPromptFromIntake(intake('other', 'voicemail_replacement'))
     assert.ok(
-      prompt.includes('Do not triage. Do not offer information.'),
+      prompt.includes('Do not triage or diagnose.'),
       'Expected voicemail_replacement FORBIDDEN_EXTRA appended',
     )
   })
@@ -113,7 +113,7 @@ describe('2. voicemail_replacement + auto_glass — niche wins over mode for TRI
     const prompt = buildPromptFromIntake(intake('auto_glass', 'voicemail_replacement'))
     // auto_glass has FORBIDDEN_EXTRA (VIN spelling rule) + mode appends its own
     assert.ok(
-      prompt.includes('Do not triage. Do not offer information.'),
+      prompt.includes('Do not triage or diagnose.'),
       'Mode FORBIDDEN_EXTRA must always append',
     )
   })

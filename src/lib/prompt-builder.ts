@@ -1897,7 +1897,7 @@ const MODE_VARIABLE_OVERRIDES: Record<string, {
     CLOSE_ACTION: 'tell them someone will call back shortly',
     FIRST_INFO_QUESTION: 'your name?',
     INFO_TO_COLLECT: 'name, phone, brief message',
-    FORBIDDEN_EXTRA: 'Do not triage. Do not offer information. Collect name, phone, and a brief message only.',
+    FORBIDDEN_EXTRA: 'Do not triage or diagnose. You may confirm services or hours in one sentence if asked — then immediately redirect to message-taking. Collect name, phone, and a brief message only.',
     TRIAGE_DEEP: "Ask for the caller's name, phone number, and a brief message. Do not ask about services, schedules, or urgency.",
   },
   info_hub: {
