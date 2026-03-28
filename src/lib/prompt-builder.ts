@@ -1859,7 +1859,7 @@ Use this when a caller wants to book a ${serviceType} directly on the call.
 
 Step 1 — Ask what day works: "what day were you thinking?"
 Step 2 — Check slots: say "one sec, let me pull that up..." in that SAME turn, then call checkCalendarAvailability with date in YYYY-MM-DD format. Use TODAY from callerContext to resolve "tomorrow", "next Monday", etc.
-Step 3 — Read back up to 3 slots: "I've got [time], [time], and [time] — any of those work?"
+Step 3 — If caller already named a specific time AND that time appears in the slots: skip listing — go straight to "perfect, let me grab that [time] for you..." and proceed to Step 4. Only list up to 3 options when the caller has NOT named a time, or when their requested time is unavailable.
 Step 4 — If name not yet collected: "and your name?"
 Step 5 — Book it: say "perfect, booking that now..." in the SAME turn as calling bookAppointment with:
   - date: YYYY-MM-DD
@@ -1910,10 +1910,11 @@ const MODE_VARIABLE_OVERRIDES: Record<string, {
   },
   appointment_booking: {
     COMPLETION_FIELDS: "caller's name, phone number, service type, and preferred date/time",
-    CLOSE_ACTION: 'schedule an appointment',
-    FIRST_INFO_QUESTION: 'What service are you looking for?',
+    CLOSE_ACTION: 'book an appointment right now on this call',
+    FIRST_INFO_QUESTION: 'What service are you looking for and what day works?',
     INFO_TO_COLLECT: 'name, phone, service type, preferred date/time',
-    FORBIDDEN_EXTRA: 'Do not close without attempting to book or schedule.',
+    FORBIDDEN_EXTRA: 'Do not close without attempting to book. Lead every call with: "I can check availability and book you right now — what service are you looking for?" Drive to checkCalendarAvailability on this call. Never end without either a booking confirmed or a specific date/time collected.',
+    TRIAGE_DEEP: 'Lead with booking ability. Open with: "I can check availability and book you right now — what service were you looking for?" Call checkCalendarAvailability on the same call. Do not push through a long triage script before offering to book.',
   },
   // lead_capture: no overrides — defers entirely to niche/template/call_handling_mode
 }

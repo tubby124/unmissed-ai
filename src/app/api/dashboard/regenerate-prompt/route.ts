@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     .limit(1)
     .single()
 
-  if (lastRegen?.created_at) {
+  if (lastRegen?.created_at && cu.role !== 'admin') {
     const elapsed = Date.now() - new Date(lastRegen.created_at).getTime()
     if (elapsed < REGEN_COOLDOWN_MS) {
       const remainingSeconds = Math.ceil((REGEN_COOLDOWN_MS - elapsed) / 1000)

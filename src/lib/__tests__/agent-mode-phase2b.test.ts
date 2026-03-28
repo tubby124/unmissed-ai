@@ -186,7 +186,7 @@ describe('4. appointment_booking + other niche', () => {
   test('FORBIDDEN_EXTRA contains appointment restriction', () => {
     const prompt = buildPromptFromIntake(intake('other', 'appointment_booking'))
     assert.ok(
-      prompt.includes('Do not close without attempting to book or schedule'),
+      prompt.includes('Do not close without attempting to book'),
       'Expected appointment_booking FORBIDDEN_EXTRA appended',
     )
   })

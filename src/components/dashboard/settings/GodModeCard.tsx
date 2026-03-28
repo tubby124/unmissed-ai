@@ -277,13 +277,13 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-[10px] t3 mb-1">Current ({previewData.charCountCurrent.toLocaleString()} chars)</p>
-                    <div className="bg-black/30 border b-theme rounded-lg p-2 h-32 overflow-y-auto">
+                    <div className="bg-black/30 border b-theme rounded-lg p-2 h-56 overflow-y-auto">
                       <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.currentPrompt.slice(0, 800)}{previewData.currentPrompt.length > 800 ? '\n…' : ''}</pre>
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] t3 mb-1">Rebuilt ({previewData.charCountRebuilt.toLocaleString()} chars) → <span className="font-mono text-amber-400">{previewData.effectiveCallHandlingMode}</span></p>
-                    <div className="bg-black/30 border border-amber-500/20 rounded-lg p-2 h-32 overflow-y-auto">
+                    <div className="bg-black/30 border border-amber-500/20 rounded-lg p-2 h-56 overflow-y-auto">
                       <pre className="text-[10px] t2 whitespace-pre-wrap font-mono">{previewData.rebuiltPrompt.slice(0, 800)}{previewData.rebuiltPrompt.length > 800 ? '\n…' : ''}</pre>
                     </div>
                   </div>

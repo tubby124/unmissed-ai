@@ -33,10 +33,10 @@ export const AGENT_MODE_VALUES: AgentMode[] = [
 ]
 
 export const AGENT_MODE_LABELS: Record<AgentMode, string> = {
-  voicemail_replacement: 'Voicemail Replacement — take a message',
-  lead_capture: 'Lead Capture — collect and route (default)',
-  info_hub: 'Info Hub — answer questions first',
-  appointment_booking: 'Appointment Booking — drive scheduling',
+  voicemail_replacement: 'AI Voicemail — take a message, nothing more',
+  lead_capture: 'AI Receptionist — qualify and route leads (default)',
+  info_hub: 'AI Receptionist (Info-First) — answer questions before qualifying',
+  appointment_booking: 'AI Receptionist + Booking — lead immediately with scheduling',
 }
 
 /**
