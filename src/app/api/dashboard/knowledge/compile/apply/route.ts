@@ -25,6 +25,14 @@ const BLOCKED_KINDS = new Set([
   'conflict_flag',
 ])
 
+// High-risk kinds get trustTier='medium' — content is time-sensitive or easily stale
+const HIGH_RISK_KINDS = new Set([
+  'pricing_or_offer',
+  'hours_or_availability',
+  'location_or_service_area',
+  'operating_policy',
+])
+
 export async function POST(req: NextRequest) {
   // ── Auth ─────────────────────────────────────────────────────────────────────
   const supabase = await createServerClient()
@@ -139,7 +147,7 @@ export async function POST(req: NextRequest) {
       chunkType: 'document',
       source: 'compiled_import',
       status: 'approved',
-      trustTier: 'high',
+      trustTier: HIGH_RISK_KINDS.has(item.kind) ? 'medium' : 'high',
     }))
 
     try {

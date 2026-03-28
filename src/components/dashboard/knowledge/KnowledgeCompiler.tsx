@@ -42,6 +42,14 @@ const KIND_META: Record<ItemKind, { label: string; color: string; approvable: bo
   conflict_flag:             { label: 'Conflict',     color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', approvable: false },
 }
 
+// High-risk kinds need manual verification before import (content can be stale/inaccurate)
+const HIGH_RISK_KINDS = new Set<ItemKind>([
+  'pricing_or_offer',
+  'hours_or_availability',
+  'location_or_service_area',
+  'operating_policy',
+])
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function KindBadge({ kind }: { kind: ItemKind }) {
@@ -136,16 +144,37 @@ function ReviewStep({
   onBack: () => void
   loading: boolean
 }) {
+  const [verifiedHighRisk, setVerifiedHighRisk] = useState<Set<number>>(new Set())
+
+  function toggleVerified(i: number) {
+    setVerifiedHighRisk(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
   const approvedCount = approved.filter(Boolean).length
   const approvableItems = items.filter((item) => KIND_META[item.kind].approvable)
   const flaggedItems = items.filter((item) => !KIND_META[item.kind].approvable)
+
+  // Block apply if any approved high-risk item hasn't been verified
+  const unverifiedHighRisk = items.filter((item, i) =>
+    approved[i] && HIGH_RISK_KINDS.has(item.kind) && !verifiedHighRisk.has(i)
+  ).length
+  const canApply = approvedCount > 0 && unverifiedHighRisk === 0
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs t2 font-medium">Review extracted items</p>
-          <p className="text-[11px] t3">{approvedCount} of {approvableItems.length} items selected for import</p>
+          <p className="text-[11px] t3">
+            {approvedCount} of {approvableItems.length} items selected
+            {unverifiedHighRisk > 0 && (
+              <span className="ml-1 text-amber-400">· {unverifiedHighRisk} need verification</span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -156,7 +185,8 @@ function ReviewStep({
           </button>
           <button
             onClick={onApply}
-            disabled={loading || approvedCount === 0}
+            disabled={loading || !canApply}
+            title={unverifiedHighRisk > 0 ? `Verify ${unverifiedHighRisk} high-risk item${unverifiedHighRisk !== 1 ? 's' : ''} before importing` : undefined}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
           >
             {loading ? 'Saving…' : `Add ${approvedCount} item${approvedCount !== 1 ? 's' : ''}`}
@@ -227,6 +257,19 @@ function ReviewStep({
                   <p className="text-[11px] t2 whitespace-pre-wrap break-words leading-relaxed">{displayText}</p>
                   {item.review_reason && (
                     <p className="text-[10px] text-amber-400/80 italic">{item.review_reason}</p>
+                  )}
+                  {isApprovable && isApproved && HIGH_RISK_KINDS.has(item.kind) && (
+                    <label className="flex items-start gap-1.5 cursor-pointer mt-1 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                      <input
+                        type="checkbox"
+                        checked={verifiedHighRisk.has(i)}
+                        onChange={() => toggleVerified(i)}
+                        className="mt-0.5 w-3 h-3 accent-amber-500 shrink-0"
+                      />
+                      <span className="text-[10px] text-amber-400/90 leading-snug">
+                        I&apos;ve verified this is current and accurate (pricing, hours, and location info can change — incorrect data misleads callers)
+                      </span>
+                    </label>
                   )}
                   {!isApprovable && (
                     <p className="text-[10px] text-red-400/80">

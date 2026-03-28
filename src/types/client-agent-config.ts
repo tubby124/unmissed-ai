@@ -75,6 +75,15 @@ export type AgentKnowledge = {
   scrapeStatus: ScrapeStatus
 }
 
+export type AgentGbp = {
+  hasGbp: boolean
+  placeId: string | null
+  rating: number | null
+  reviewCount: number | null
+  photoUrl: string | null
+  summary: string | null
+}
+
 export type AgentTrial = {
   subscriptionStatus: SubscriptionStatus
   selectedPlan: string | null
@@ -101,6 +110,7 @@ export type ClientAgentConfig = {
   routing: AgentRouting
   capabilities: AgentCapabilities
   knowledge: AgentKnowledge
+  gbp: AgentGbp
   trial: AgentTrial
   auth: AgentAuth
 }

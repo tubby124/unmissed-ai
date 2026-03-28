@@ -23,7 +23,7 @@ export default async function WelcomePage() {
 
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, niche, status, subscription_status, trial_expires_at, agent_name, agent_voice_id, voice_style_preset, forwarding_number, transfer_conditions, booking_enabled, sms_enabled, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, website_url, website_scrape_status, ultravox_agent_id, setup_complete, selected_plan, monthly_minute_limit, calendar_auth_status')
+    .select('id, slug, business_name, niche, status, subscription_status, trial_expires_at, agent_name, agent_voice_id, voice_style_preset, forwarding_number, transfer_conditions, booking_enabled, sms_enabled, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, website_url, website_scrape_status, ultravox_agent_id, setup_complete, selected_plan, monthly_minute_limit, calendar_auth_status, gbp_place_id, gbp_rating, gbp_review_count, gbp_photo_url, gbp_summary')
     .eq('id', cu.client_id)
     .single()
 
@@ -59,9 +59,21 @@ export default async function WelcomePage() {
     setup_complete: c.setup_complete as boolean | null,
     monthly_minute_limit: client.monthly_minute_limit,
     selected_plan: c.selected_plan as string | null,
+    gbp_place_id: c.gbp_place_id as string | null,
+    gbp_rating: c.gbp_rating as number | null,
+    gbp_review_count: c.gbp_review_count as number | null,
+    gbp_photo_url: c.gbp_photo_url as string | null,
+    gbp_summary: c.gbp_summary as string | null,
   })
 
-  const trialWelcome = buildTrialWelcomeViewModel(config, !!c.ultravox_agent_id)
+  const { count: compiledCount } = await supabase
+    .from('knowledge_chunks')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', cu.client_id)
+    .eq('source', 'compiled_import')
+    .eq('status', 'approved')
+
+  const trialWelcome = buildTrialWelcomeViewModel(config, !!c.ultravox_agent_id, new Date(), compiledCount ?? 0)
 
   return (
     <WelcomeView

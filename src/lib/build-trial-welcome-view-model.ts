@@ -22,6 +22,8 @@ export type TrialWelcomeViewModel = {
   hasFaqs: boolean
   hasWebsite: boolean
   hasForwardingNumber: boolean
+  hasGbp: boolean
+  compiledChunkCount: number
   /**
    * ready     — agent exists + forwarding is configured (setup_complete)
    * pending   — agent exists, forwarding not yet configured
@@ -34,6 +36,7 @@ export function buildTrialWelcomeViewModel(
   config: ClientAgentConfig,
   hasAgent: boolean,
   now: Date = new Date(),
+  compiledChunkCount: number = 0,
 ): TrialWelcomeViewModel {
   // Days left — only meaningful when trial is active
   const daysLeft =
@@ -71,6 +74,8 @@ export function buildTrialWelcomeViewModel(
     // scrapeStatus='complete' means scrape ran AND user approved it — corpus is actually live
     hasWebsite: config.knowledge.scrapeStatus === 'complete',
     hasForwardingNumber: config.routing.callForwardingEnabled,
+    hasGbp: config.gbp.hasGbp,
+    compiledChunkCount,
     provisioningState,
   }
 }

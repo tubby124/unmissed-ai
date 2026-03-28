@@ -36,7 +36,7 @@ export default function WelcomeView({
   hasFacts,
   hasBooking,
 }: WelcomeViewProps) {
-  const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber } = trialWelcome
+  const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber, hasGbp, compiledChunkCount } = trialWelcome
   const { openUpgradeModal } = useUpgradeModal()
 
   // Mark welcome as seen (per-client) and fire view event — deduped to once per session per client
@@ -123,10 +123,10 @@ export default function WelcomeView({
           <KnowledgeRow label="FAQs" active={hasFaqs} activeText="Configured" inactiveText="None added yet" />
           <KnowledgeRow
             label="Knowledge"
-            active={hasWebsite || hasFacts}
-            activeText={hasWebsite ? 'Website loaded' : 'Facts added'}
+            active={hasWebsite || hasFacts || hasGbp || compiledChunkCount > 0}
+            activeText={hasWebsite ? 'Website loaded' : hasGbp ? 'Google data loaded' : compiledChunkCount > 0 ? `${compiledChunkCount} AI-compiled` : 'Facts added'}
             inactiveText="Basic only"
-            neutral={!hasWebsite && hasFacts}
+            neutral={!hasWebsite && !hasGbp && compiledChunkCount === 0 && hasFacts}
           />
           <KnowledgeRow label="Booking" active={hasBooking} activeText="Calendar connected" inactiveText="Not connected" neutral={!hasBooking} />
           <KnowledgeRow label="Forwarding" active={hasForwardingNumber} activeText="Configured" inactiveText="Not set" />
@@ -221,6 +221,13 @@ function TeachAgentCard({ clientId, agentName }: { clientId: string; agentName: 
         </p>
         <p className="text-xs t3 leading-relaxed">
           Paste anything — services, pricing, team bios, policies, FAQs. {agentName} will learn it and use it on calls.
+        </p>
+        <p className="text-[10px] t3 leading-relaxed mt-1">
+          This text goes directly to your agent&apos;s knowledge — no AI review.{' '}
+          <Link href="/dashboard/knowledge?tab=add&source=text" className="underline underline-offset-2 hover:opacity-75">
+            Use AI Compiler →
+          </Link>{' '}
+          for structured extraction and approval.
         </p>
       </div>
       <textarea

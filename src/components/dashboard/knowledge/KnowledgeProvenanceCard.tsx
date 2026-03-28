@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
@@ -12,11 +12,23 @@ interface Props {
 
 export default function KnowledgeProvenanceCard({ client }: Props) {
   const [open, setOpen] = useState(false)
+  const [compiledCount, setCompiledCount] = useState(0)
+
+  useEffect(() => {
+    fetch(`/api/dashboard/knowledge/stats?client_id=${client.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.bySource) {
+          setCompiledCount(data.bySource['compiled_import'] ?? 0)
+        }
+      })
+      .catch(() => {})
+  }, [client.id])
 
   const hasGbp = !!client.gbp_place_id
   const hasWebsite = !!client.website_knowledge_approved
 
-  if (!hasGbp && !hasWebsite) return null
+  if (!hasGbp && !hasWebsite && compiledCount === 0) return null
 
   const gbpFacts = client.gbp_summary
   const gbpRating = client.gbp_rating
@@ -56,6 +68,11 @@ export default function KnowledgeProvenanceCard({ client }: Props) {
           {hasWebsite && (
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400/70 border border-blue-500/15">
               Website
+            </span>
+          )}
+          {compiledCount > 0 && (
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400/70 border border-purple-500/15">
+              AI Compiler
             </span>
           )}
         </div>
@@ -160,6 +177,29 @@ export default function KnowledgeProvenanceCard({ client }: Props) {
                       Re-scrape →
                     </Link>
                   </div>
+                </div>
+              )}
+
+              {/* AI Compiler section */}
+              {compiledCount > 0 && (
+                <div className="p-4 rounded-xl bg-purple-500/[0.03] border border-purple-500/15 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <p className="text-[11px] font-semibold t1">From AI Compiler</p>
+                    <Link
+                      href={knowledgeRoutes.add('text')}
+                      className="text-[10px] font-medium ml-auto"
+                      style={{ color: 'var(--color-primary)' }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      Add more →
+                    </Link>
+                  </div>
+                  <p className="text-[10px] t3">
+                    {compiledCount} chunk{compiledCount !== 1 ? 's' : ''} imported via AI-assisted extraction
+                  </p>
                 </div>
               )}
 

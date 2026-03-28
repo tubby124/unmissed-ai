@@ -68,6 +68,11 @@ export type ClientsRow = {
   selected_plan?: string | null
   trial_expires_at?: string | null
   monthly_minute_limit?: number | null
+  gbp_place_id?: string | null
+  gbp_rating?: number | null
+  gbp_review_count?: number | null
+  gbp_photo_url?: string | null
+  gbp_summary?: string | null
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -198,6 +203,14 @@ export function buildClientAgentConfig(
       trialConverted,
       monthlyMinuteLimit: row.monthly_minute_limit ?? DEFAULT_MONTHLY_MINUTE_LIMIT,
       isTrialActive,
+    },
+    gbp: {
+      hasGbp: !!row.gbp_place_id,
+      placeId: row.gbp_place_id ?? null,
+      rating: row.gbp_rating ?? null,
+      reviewCount: row.gbp_review_count ?? null,
+      photoUrl: row.gbp_photo_url ?? null,
+      summary: row.gbp_summary ?? null,
     },
     auth: {
       setupComplete,

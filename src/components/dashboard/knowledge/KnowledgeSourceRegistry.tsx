@@ -47,11 +47,22 @@ const SOURCE_DEFS: SourceDef[] = [
   {
     id: 'text',
     label: 'Text Imports',
-    sources: ['bulk_import', 'dashboard_manual', 'manual', 'manual_text', 'compiled_import'],
+    sources: ['bulk_import', 'dashboard_manual', 'manual', 'manual_text'],
     actionHref: knowledgeRoutes.add('text'),
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
         <path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'ai_compiler',
+    label: 'AI Compiler',
+    sources: ['compiled_import'],
+    actionHref: knowledgeRoutes.add('text'),
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
