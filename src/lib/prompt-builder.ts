@@ -1961,6 +1961,47 @@ function applyModeVariableOverrides(
   }
 }
 
+// ── Service catalog helpers ────────────────────────────────────────────────────
+
+export interface ServiceCatalogItem {
+  name: string
+  duration_mins?: number
+  price?: string
+}
+
+/**
+ * Parse and validate a raw service_catalog value from intake data.
+ * Accepts a JSON string or a pre-parsed array. Returns [] on any error.
+ */
+function parseServiceCatalog(raw: unknown): ServiceCatalogItem[] {
+  try {
+    const arr: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (!Array.isArray(arr)) return []
+    return arr.filter(
+      (s): s is ServiceCatalogItem =>
+        typeof s === 'object' && s !== null && typeof (s as ServiceCatalogItem).name === 'string' && (s as ServiceCatalogItem).name.trim() !== '',
+    )
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Format a service catalog as a compact human-readable string for the SERVICES_OFFERED variable.
+ * E.g. "Haircut (30 min · $35), Color Treatment (90 min · $120), Blowout (45 min)"
+ */
+function formatServiceCatalog(catalog: ServiceCatalogItem[]): string {
+  return catalog
+    .filter(s => s.name.trim())
+    .map(s => {
+      const parts: string[] = []
+      if (s.duration_mins) parts.push(`${s.duration_mins} min`)
+      if (s.price?.trim()) parts.push(s.price.trim())
+      return parts.length > 0 ? `${s.name.trim()} (${parts.join(' · ')})` : s.name.trim()
+    })
+    .join(', ')
+}
+
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
@@ -2013,6 +2054,17 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   if (!variables.SERVICES_OFFERED?.trim() || variables.SERVICES_OFFERED === nicheDefaults.SERVICES_OFFERED) {
     const nicheServices = intake.niche_services as string | undefined
     if (nicheServices?.trim()) variables.SERVICES_OFFERED = nicheServices
+  }
+
+  // service_catalog — structured services list, overrides SERVICES_OFFERED when non-empty
+  const rawServiceCatalog = intake.service_catalog
+  let catalogServiceNames: string[] = []
+  if (rawServiceCatalog) {
+    const catalog = parseServiceCatalog(rawServiceCatalog)
+    if (catalog.length > 0) {
+      variables.SERVICES_OFFERED = formatServiceCatalog(catalog)
+      catalogServiceNames = catalog.map(s => s.name.trim())
+    }
   }
 
   // Insurance preset
@@ -2151,7 +2203,20 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Phase 2b — apply agent-mode variable defaults for deeper build-time behavior.
   // Must run after niche+intake overrides (already in variables) and after effectiveMode is known.
   // Returns FORBIDDEN_EXTRA append text and TRIAGE_DEEP fallback for the post-build pipeline.
-  const { modeForbiddenExtra, modeTriageDeep, modeForcesTriageDeep } = applyModeVariableOverrides(effectiveMode, variables)
+  let { modeForbiddenExtra, modeTriageDeep, modeForcesTriageDeep } = applyModeVariableOverrides(effectiveMode, variables)
+
+  // service_catalog — override TRIAGE_DEEP + FIRST_INFO_QUESTION for appointment_booking with catalog
+  if (effectiveMode === 'appointment_booking' && catalogServiceNames.length > 0) {
+    const nameList = catalogServiceNames.join(', ')
+    modeTriageDeep = `Lead with booking. Ask which service they need: ${nameList}. Call checkCalendarAvailability right away. Do not push through a long triage script.`
+    if (catalogServiceNames.length <= 3) {
+      const last = catalogServiceNames[catalogServiceNames.length - 1]
+      const rest = catalogServiceNames.slice(0, -1)
+      variables.FIRST_INFO_QUESTION = rest.length > 0
+        ? `What would you like to book — ${rest.join(', ')}, or ${last} — and when works for you?`
+        : `I can help book a ${last} — what day works best for you?`
+    }
+  }
 
   // FAQ pairs from structured input
   const faqPairsRaw = intake.niche_faq_pairs as string | undefined

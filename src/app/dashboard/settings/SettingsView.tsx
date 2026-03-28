@@ -14,6 +14,7 @@ import { TAB_DEFINITIONS } from '@/components/dashboard/settings/constants'
 import { fmtDate } from '@/components/dashboard/settings/shared'
 import AgentTab from '@/components/dashboard/settings/AgentTab'
 import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
+import ServiceCatalogCard, { type ServiceCatalogItem } from '@/components/dashboard/settings/ServiceCatalogCard'
 import SmsTab from '@/components/dashboard/settings/SmsTab'
 import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
@@ -351,12 +352,21 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             setVoiceStylePreset={setVoiceStylePreset}
           />
         ) : (
-          <AgentModeCard
-            clientId={client.id}
-            currentAgentMode={client.agent_mode ?? null}
-            currentCallHandlingMode={client.call_handling_mode ?? null}
-            previewMode={previewMode}
-          />
+          <>
+            <AgentModeCard
+              clientId={client.id}
+              currentAgentMode={client.agent_mode ?? null}
+              currentCallHandlingMode={client.call_handling_mode ?? null}
+              previewMode={previewMode}
+            />
+            {client.agent_mode === 'appointment_booking' && (
+              <ServiceCatalogCard
+                clientId={client.id}
+                initialCatalog={(client.service_catalog as ServiceCatalogItem[]) ?? []}
+                previewMode={previewMode}
+              />
+            )}
+          </>
         )
       )}
 

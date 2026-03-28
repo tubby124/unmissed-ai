@@ -91,6 +91,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   voicemail_greeting_audio_url:  { mutationClass: 'DB_ONLY', triggersSync: false },
   ivr_enabled:                   { mutationClass: 'DB_ONLY', triggersSync: false },
   ivr_prompt:                    { mutationClass: 'DB_ONLY', triggersSync: false },
+  service_catalog:               { mutationClass: 'DB_ONLY', triggersSync: false },
   owner_name:                    { mutationClass: 'DB_ONLY', triggersSync: false },
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
@@ -183,6 +184,13 @@ export const settingsBodySchema = z.object({
 
   // Agent mode (internal conversational behavior profile)
   agent_mode: z.enum(VALID_AGENT_MODES).optional(),
+
+  // Service catalog — structured list for appointment_booking mode
+  service_catalog: z.array(z.object({
+    name: z.string().min(1),
+    duration_mins: z.number().positive().optional(),
+    price: z.string().optional(),
+  })).optional(),
 
   // Post-provision editable
   owner_name: z.string().optional(),
@@ -353,6 +361,11 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   if (body.injected_note !== undefined) {
     const noteText = typeof body.injected_note === 'string' ? body.injected_note.trim() : null
     updates.injected_note = noteText || null
+  }
+
+  // service_catalog — array of service items (filter out empty names)
+  if (body.service_catalog !== undefined) {
+    updates.service_catalog = body.service_catalog.filter(s => s.name.trim())
   }
 
   // pending_loop_suggestion — any (nullable)
