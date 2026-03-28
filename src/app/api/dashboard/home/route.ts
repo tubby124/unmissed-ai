@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode')
       .eq('id', clientId)
       .single(),
 
@@ -229,6 +229,7 @@ export async function GET(request: Request) {
     },
     trialWelcome,
     selectedPlan: (c.selected_plan as string | null) ?? null,
+    callHandlingMode: (c.call_handling_mode as string | null) ?? null,
     websiteScrapeStatus: (client.website_scrape_status as string | null) ?? null,
     activation: {
       state: activation,

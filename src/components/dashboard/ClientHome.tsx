@@ -100,6 +100,7 @@ export interface HomeData {
   }
   // New fields added in Phase 1
   selectedPlan: string | null
+  callHandlingMode: string | null
   websiteScrapeStatus: string | null
   activation: {
     state: ActivationState

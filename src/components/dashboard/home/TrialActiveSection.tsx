@@ -21,6 +21,7 @@ import ProofStrip from './ProofStrip'
 import StatsHeroCard from './StatsHeroCard'
 import SuggestedTestPrompts from './SuggestedTestPrompts'
 import TeachAgentCard from './TeachAgentCard'
+import TrialModeSwitcher from './TrialModeSwitcher'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -132,6 +133,18 @@ export default function TrialActiveSection({
           </p>
         </div>
 
+        {/* Mode switcher — pick how the agent handles calls before testing */}
+        {onboarding.hasAgent && data.clientId && (
+          <TrialModeSwitcher
+            clientId={data.clientId}
+            subscriptionStatus={onboarding.subscriptionStatus}
+            selectedPlan={data.selectedPlan}
+            currentMode={data.callHandlingMode}
+            hasBooking={capabilities.hasBooking}
+            onRetest={resetCall}
+          />
+        )}
+
         {/* Agent test card */}
         {onboarding.hasAgent ? (
           <div onClick={() => trackEvent('test_call_started_from_welcome', { client_id: data.clientId ?? '' })}>
@@ -237,6 +250,18 @@ export default function TrialActiveSection({
             ? 'Test before your trial ends'
             : 'Your AI receptionist is ready — call it now'}
         </p>
+      )}
+
+      {/* Mode switcher */}
+      {onboarding.hasAgent && data.clientId && (
+        <TrialModeSwitcher
+          clientId={data.clientId}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          selectedPlan={data.selectedPlan}
+          currentMode={data.callHandlingMode}
+          hasBooking={capabilities.hasBooking}
+          onRetest={resetCall}
+        />
       )}
 
       {/* Agent test card */}
