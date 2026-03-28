@@ -145,6 +145,12 @@ export async function GET(request: Request) {
   // Capability flags — truthful runtime readiness, not just DB flag state
   const capabilities = buildCapabilityFlags(client)
 
+  // hasInteracted: true when user has made at least one call (including test calls)
+  const hasInteracted = recentCalls.length > 0
+
+  // compiledChunkCount: approved AI Compiler chunks (for view model knowledge badge)
+  const compiledChunkCount = knowledgeChunks.filter(k => k.source === 'compiled_import' && k.status === 'approved').length
+
   // Build normalized config → trial welcome view model
   const c = client as Record<string, unknown>
   const config = buildClientAgentConfig({
@@ -172,7 +178,7 @@ export async function GET(request: Request) {
     monthly_minute_limit: client.monthly_minute_limit,
     selected_plan: c.selected_plan as string | null,
   })
-  const trialWelcome = buildTrialWelcomeViewModel(config, !!client.ultravox_agent_id)
+  const trialWelcome = buildTrialWelcomeViewModel(config, !!client.ultravox_agent_id, new Date(), compiledChunkCount, hasInteracted)
 
   return NextResponse.json({
     admin: false,

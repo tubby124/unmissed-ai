@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { createServerClient } from '@/lib/supabase/server'
 import SystemPulse from '@/components/dashboard/SystemPulse'
 import ActionItems from '@/components/dashboard/ActionItems'
@@ -26,22 +25,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const isAdmin = cu?.role === 'admin'
 
-  // Non-admin: check for trial first-visit and redirect to /dashboard/welcome
   if (!isAdmin) {
-    if (cu?.client_id) {
-      const cookieStore = await cookies()
-      if (!cookieStore.get(`welcome_seen_${cu.client_id}`)) {
-        const { data: clientRow } = await supabase
-          .from('clients')
-          .select('subscription_status, setup_complete')
-          .eq('id', cu.client_id)
-          .single()
-        const c = clientRow as Record<string, unknown> | null
-        if (c?.subscription_status === 'trialing' && !c?.setup_complete) {
-          redirect('/dashboard/welcome')
-        }
-      }
-    }
     return <ClientHome />
   }
 

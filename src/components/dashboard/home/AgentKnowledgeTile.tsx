@@ -115,6 +115,18 @@ export default function AgentKnowledgeTile({
     )
   }
 
+  if (knowledge.approved_chunk_count === 0) {
+    return (
+      <div className="rounded-2xl p-4 card-surface space-y-2">
+        <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">Knowledge</p>
+        <p className="text-sm t3">No knowledge sources yet</p>
+        <button onClick={onOpenSheet} className="text-[12px] font-medium" style={{ color: 'var(--color-primary)' }}>
+          Add your first source →
+        </button>
+      </div>
+    )
+  }
+
   return (
     <button
       onClick={onOpenSheet}

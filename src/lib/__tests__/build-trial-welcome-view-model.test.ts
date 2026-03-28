@@ -35,9 +35,9 @@ function base(): ClientsRow {
   }
 }
 
-function buildVm(row: ClientsRow, hasAgent: boolean, now?: Date) {
+function buildVm(row: ClientsRow, hasAgent: boolean, now?: Date, hasInteracted?: boolean) {
   const config = buildClientAgentConfig(row, now ?? new Date())
-  return buildTrialWelcomeViewModel(config, hasAgent, now ?? new Date())
+  return buildTrialWelcomeViewModel(config, hasAgent, now ?? new Date(), 0, hasInteracted ?? false)
 }
 
 // ── hasWebsite truth ──────────────────────────────────────────────────────────
@@ -171,14 +171,20 @@ describe('provisioningState', () => {
 // ── isFirstVisit ──────────────────────────────────────────────────────────────
 
 describe('isFirstVisit', () => {
-  test('setup_complete=false → isFirstVisit=true', () => {
-    const vm = buildVm({ ...base(), setup_complete: false }, true)
+  test('hasInteracted=false → isFirstVisit=true', () => {
+    const vm = buildVm(base(), true, undefined, false)
     assert.equal(vm.isFirstVisit, true)
   })
 
-  test('setup_complete=true → isFirstVisit=false', () => {
-    const vm = buildVm({ ...base(), setup_complete: true }, true)
+  test('hasInteracted=true → isFirstVisit=false', () => {
+    const vm = buildVm(base(), true, undefined, true)
     assert.equal(vm.isFirstVisit, false)
+  })
+
+  test('defaults to isFirstVisit=true when hasInteracted omitted', () => {
+    const config = buildClientAgentConfig(base())
+    const vm = buildTrialWelcomeViewModel(config, true)
+    assert.equal(vm.isFirstVisit, true)
   })
 })
 

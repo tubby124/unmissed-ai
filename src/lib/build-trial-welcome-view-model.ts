@@ -39,6 +39,7 @@ export function buildTrialWelcomeViewModel(
   hasAgent: boolean,
   now: Date = new Date(),
   compiledChunkCount: number = 0,
+  hasInteracted: boolean = false,
 ): TrialWelcomeViewModel {
   // Days left — only meaningful when trial is active
   const daysLeft =
@@ -70,10 +71,10 @@ export function buildTrialWelcomeViewModel(
     agentName: config.persona.agentName,
     daysLeft,
     isTrialExpired,
-    isFirstVisit: config.auth.isFirstVisit,
+    isFirstVisit: !hasInteracted,
     hasHours: !!config.hours.hoursWeekday,
     hasFaqs: config.knowledge.extraQa.length > 0,
-    // scrapeStatus='complete' means scrape ran AND user approved it — corpus is actually live
+    // deriveScrapeStatus() maps both DB 'approved' and legacy DB 'complete' → intermediate 'complete'
     hasWebsite: config.knowledge.scrapeStatus === 'complete',
     hasForwardingNumber: config.routing.callForwardingEnabled,
     hasGbp: config.gbp.hasGbp,

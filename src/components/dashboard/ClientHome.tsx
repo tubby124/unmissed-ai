@@ -5,9 +5,6 @@ import Link from 'next/link'
 import { formatPhone } from '@/lib/format-phone'
 import { useSearchParams } from 'next/navigation'
 import { parseDashboardTab, type DashboardTab } from '@/lib/dashboard-routes'
-import AgentTestCard from '@/components/dashboard/AgentTestCard'
-import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
-import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { useCallContext } from '@/contexts/CallContext'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
@@ -15,28 +12,20 @@ import { deriveTrialPhase } from '@/lib/trial-display-state'
 import { deriveHomePhase } from '@/lib/derive-home-phase'
 import type { ActivationState } from '@/lib/derive-activation-state'
 import StatusBadge from '@/components/dashboard/StatusBadge'
-import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
-import { CallInsightsHeader } from '@/components/dashboard/CallInsightsHeader'
 import ErrorCard from '@/components/dashboard/ErrorCard'
 import { SkeletonBox } from '@/components/dashboard/SkeletonLoader'
 import { useHomeSheet } from '@/hooks/useHomeSheet'
 
-// Bento tile components
-import TrialExpiredHero from './home/TrialExpiredHero'
+// Phase section components (Wave 2 decomposition)
+import TrialExpiredSection from './home/TrialExpiredSection'
+import TrialActiveSection from './home/TrialActiveSection'
+import PaidAwaitingSection from './home/PaidAwaitingSection'
+import PaidReadySection from './home/PaidReadySection'
+// Shared bento-level components kept at this level
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
-import ProofStrip from './home/ProofStrip'
-import StatsHeroCard from './home/StatsHeroCard'
-import ActivationTile from './home/ActivationTile'
-import AgentKnowledgeTile from './home/AgentKnowledgeTile'
-import AgentIdentityTile from './home/AgentIdentityTile'
-import CallHandlingTile from './home/CallHandlingTile'
-import NotificationsTile from './home/NotificationsTile'
-import BusinessHoursTile from './home/BusinessHoursTile'
-import BillingTile from './home/BillingTile'
-import SuggestedTestPrompts from './home/SuggestedTestPrompts'
 import HomeSideSheet from './home/HomeSideSheet'
 
-interface HomeData {
+export interface HomeData {
   admin: boolean
   clientId: string | null
   agent: { name: string; status: string; niche: string | null; voiceStylePreset: string | null }
@@ -94,6 +83,9 @@ interface HomeData {
     hasFaqs: boolean
     hasWebsite: boolean
     hasForwardingNumber: boolean
+    hasGbp: boolean
+    hasFacts: boolean
+    compiledChunkCount: number
     provisioningState: 'ready' | 'pending' | 'incomplete'
   }
   editableFields: {
@@ -172,7 +164,7 @@ export default function ClientHome() {
   const searchParams = useSearchParams()
   const adminClientId = searchParams.get('client_id')
   const activeTab = parseDashboardTab(searchParams.get('tab'))
-  const { callState, resetCall } = useCallContext()
+  const { callState } = useCallContext()
   const { openUpgradeModal } = useUpgradeModal()
   const sheet = useHomeSheet()
 
@@ -266,7 +258,7 @@ export default function ClientHome() {
   if (!data) return null
   if (data.admin) return null
 
-  const { agent, stats, usage, recentCalls, capabilities, onboarding } = data
+  const { agent, stats, recentCalls, onboarding } = data
 
   const homeClientId = data.clientId
   const daysRemaining = data.trialWelcome.daysLeft ?? undefined
@@ -316,14 +308,6 @@ export default function ClientHome() {
           </div>
         )}
 
-        {/* ── Phase: trial_expired ───────────────────────────────── */}
-        {homePhase === 'trial_expired' && (
-          <TrialExpiredHero
-            clientId={homeClientId}
-            onUpgradeClick={() => openUpgradeModal('trial_expired_hero', homeClientId)}
-          />
-        )}
-
         {/* ── Trial welcome banner (active trials, dismissable) ─── */}
         {isTrialActive && !welcomeDismissed && (
           <TrialWelcomeBanner
@@ -368,189 +352,39 @@ export default function ClientHome() {
         })()}
 
         {activeTab === 'overview' && (<>
-
-        {/* ── Trial label above orb ──────────────────────────────── */}
-        {isTrialActive && onboarding.hasAgent && (
-          <p
-            className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-1"
-            style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
-          >
-            {(trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'Test before your trial ends' : 'Your AI receptionist is ready — call it now'}
-          </p>
-        )}
-
-        {/* ── Agent test card ────────────────────────────────────── */}
-        {onboarding.hasAgent && !isExpired && (
-          <AgentTestCard
-            agentName={agent.name}
-            businessName={onboarding.businessName}
-            clientStatus={onboarding.clientStatus}
-            isTrial={isTrial}
-            clientId={homeClientId}
-            daysRemaining={daysRemaining}
-          />
-        )}
-
-        {/* ── Post-call improvement loop (trial, after test call) ── */}
-        {isTrialActive && callState === 'ended' && !postCallDismissed && data.trialWelcome && (
-          <PostCallImprovementPanel
-            hasHours={data.trialWelcome.hasHours}
-            hasFaqs={data.trialWelcome.hasFaqs}
-            hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
-            existingFaqs={data.editableFields.faqs}
-            onDismiss={() => { trackEvent('post_call_improvement_dismissed'); setPostCallDismissed(true) }}
-            onRetest={resetCall}
-            clientId={homeClientId}
-            daysRemaining={daysRemaining}
-          />
-        )}
-
-        {/* ── Suggested test prompts (trial, before first test) ──── */}
-        {isTrialActive && callState === 'idle' && !postCallDismissed && (
-          <SuggestedTestPrompts
-            hasHours={!!data.editableFields.hoursWeekday}
-            hasFaqs={data.editableFields.faqs.length > 0}
-            hasTransfer={capabilities.hasTransfer}
-            firstFaqQuestion={data.editableFields.faqs[0]?.q ?? null}
-            onPromptClick={() => {}}
-          />
-        )}
-
-        {/* ── Proof strip — last completed call ─────────────────── */}
-        {homePhase !== 'trial_expired' && lastCompletedCall && (
-          <ProofStrip
-            call={lastCompletedCall}
-            hasHours={capabilities.hasHours}
-            hasFaqs={capabilities.hasFaqs}
-            hasForwardingNumber={!!data.editableFields.forwardingNumber}
-            onRetest={resetCall}
-          />
-        )}
-
-        {/* ── Onboarding checklist ───────────────────────────────── */}
-        {showChecklist && (
-          <OnboardingChecklist
-            hasPhoneNumber={onboarding.hasPhoneNumber}
-            hasReceivedCall={hasRealCalls}
-            telegramConnected={onboarding.telegramConnected}
-            hasKnowledge={capabilities.hasKnowledge}
-            isTrial={isTrial}
-          />
-        )}
-
-        {/* ── Call insights header ──────────────────────────────── */}
-        {data.insights && (!isTrialActive || hasRealCalls) && (
-          <CallInsightsHeader
-            totalCalls={stats.totalCalls}
-            avgQuality={stats.avgQuality}
-            knowledgeCoverage={data.insights.knowledgeCoverage}
-            openGaps={data.insights.openGaps}
-          />
-        )}
-
-        {/* ── Stats hero card ────────────────────────────────────── */}
-        {(!isTrialActive || hasRealCalls) && (
-          <StatsHeroCard
-            agentName={agent.name}
-            agentStatus={agent.status}
-            isTrial={isTrial}
-            isExpired={isExpired}
-            totalCalls={stats.totalCalls}
-            callsTrend={stats.trends.callsChange}
-            minutesUsed={usage.minutesUsed}
-            totalAvailable={usage.totalAvailable}
-            bonusMinutes={usage.bonusMinutes}
-            onUpgrade={() => openUpgradeModal('home_stats_usage', homeClientId, daysRemaining)}
-          />
-        )}
-
-        {/* ── Bento grid: knowledge + call handling + notifications ─ */}
-        {onboarding.hasAgent && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Knowledge tile */}
-            <AgentKnowledgeTile
+          {homePhase === 'trial_expired' && (
+            <TrialExpiredSection
               clientId={homeClientId}
-              selectedPlan={data.selectedPlan}
-              subscriptionStatus={onboarding.subscriptionStatus}
-              websiteScrapeStatus={data.websiteScrapeStatus}
-              knowledge={data.knowledge}
-              editableFields={data.editableFields}
-              onOpenSheet={() => sheet.open('knowledge')}
+              onUpgradeClick={() => openUpgradeModal('trial_expired_hero', homeClientId)}
             />
-
-            {/* Call handling tile */}
-            <CallHandlingTile
-              selectedPlan={data.selectedPlan}
-              subscriptionStatus={onboarding.subscriptionStatus}
-              capabilities={capabilities}
-              knowledge={data.knowledge}
-              onOpenSheet={sheet.open}
+          )}
+          {homePhase === 'trial_active' && (
+            <TrialActiveSection
+              data={data}
+              trialPhase={trialPhase}
+              daysRemaining={daysRemaining}
+              isTrial={isTrial}
+              isFirstVisit={data.trialWelcome.isFirstVisit}
+              showChecklist={showChecklist}
+              hasRealCalls={hasRealCalls}
+              lastCompletedCall={lastCompletedCall}
+              postCallDismissed={postCallDismissed}
+              onPostCallDismiss={() => setPostCallDismissed(true)}
+              sheet={sheet}
             />
-
-            {/* Activation tile — paid_awaiting only */}
-            {homePhase === 'paid_awaiting' && data.activation && (
-              <div className="sm:col-span-2">
-                <ActivationTile
-                  state={data.activation.state}
-                  onOpenForwardingSheet={() => sheet.open('forwarding')}
-                  onRefreshClick={fetchData}
-                />
-              </div>
-            )}
-
-            {/* Identity tile + sync badge */}
-            <div className="space-y-2">
-              <AgentIdentityTile
-                agentName={agent.name}
-                niche={agent.niche}
-                voiceStylePreset={agent.voiceStylePreset}
-                onOpenSheet={() => sheet.open('identity')}
-              />
-              {data.agentSync && (
-                <div className="px-1">
-                  <AgentSyncBadge
-                    lastSyncAt={data.agentSync.last_agent_sync_at}
-                    lastSyncStatus={data.agentSync.last_agent_sync_status}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Notifications tile */}
-            <NotificationsTile
-              telegramConnected={onboarding.telegramConnected}
-              agentName={agent.name}
-              onOpenSheet={() => sheet.open('notifications')}
+          )}
+          {homePhase === 'paid_awaiting' && (
+            <PaidAwaitingSection data={data} sheet={sheet} fetchData={fetchData} />
+          )}
+          {homePhase === 'paid_ready' && (
+            <PaidReadySection
+              data={data}
+              showChecklist={showChecklist}
+              hasRealCalls={hasRealCalls}
+              lastCompletedCall={lastCompletedCall}
+              sheet={sheet}
             />
-
-            {/* Business hours tile */}
-            <BusinessHoursTile
-              hoursWeekday={data.editableFields.hoursWeekday}
-              hoursWeekend={data.editableFields.hoursWeekend}
-              onOpenSheet={() => sheet.open('hours')}
-            />
-
-            {/* Billing tile */}
-            <BillingTile
-              selectedPlan={data.selectedPlan}
-              subscriptionStatus={onboarding.subscriptionStatus}
-              onOpenSheet={() => sheet.open('billing')}
-            />
-          </div>
-        )}
-
-        {/* ── Trial quiet upgrade nudge ──────────────────────────── */}
-        {isTrialActive && (
-          <div className="text-center pb-1">
-            <button
-              onClick={() => openUpgradeModal('home_quiet_nudge', homeClientId, daysRemaining)}
-              className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
-            >
-              Ready to take real calls? Get a phone number →
-            </button>
-          </div>
-        )}
-
+          )}
         </>)}
 
         {activeTab === 'activity' && (<>
