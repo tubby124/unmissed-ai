@@ -13,6 +13,7 @@ import type { VoiceTabVoice, GodConfigEntry, SettingsTab } from '@/components/da
 import { TAB_DEFINITIONS } from '@/components/dashboard/settings/constants'
 import { fmtDate } from '@/components/dashboard/settings/shared'
 import AgentTab from '@/components/dashboard/settings/AgentTab'
+import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
 import SmsTab from '@/components/dashboard/settings/SmsTab'
 import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
@@ -238,7 +239,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
       <div className="border-b b-theme">
         <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
           {([
-            { id: 'general',       label: 'Agent',    adminOnly: true,  icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+            { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
             { id: 'sms',           label: 'SMS',      adminOnly: true,  icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
             { id: 'voice',         label: 'Voice',    adminOnly: true,  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
             { id: 'notifications', label: 'Alerts',   adminOnly: true,  icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
@@ -350,11 +351,12 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             setVoiceStylePreset={setVoiceStylePreset}
           />
         ) : (
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-            <p className="text-sm font-medium t1">Agent settings have moved</p>
-            <p className="text-[12px] t3 max-w-xs">Manage your agent&apos;s identity, voice, capabilities, availability, and activity from your Agent page.</p>
-            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Agent →</a>
-          </div>
+          <AgentModeCard
+            clientId={client.id}
+            currentAgentMode={client.agent_mode ?? null}
+            currentCallHandlingMode={client.call_handling_mode ?? null}
+            previewMode={previewMode}
+          />
         )
       )}
 
