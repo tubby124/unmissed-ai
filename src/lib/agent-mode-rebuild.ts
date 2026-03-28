@@ -128,7 +128,7 @@ export async function buildAgentModeRebuildPrompt(
     .from('intake_submissions')
     .select('intake_json')
     .eq('client_slug', client.slug)
-    .order('created_at', { ascending: false })
+    .order('submitted_at', { ascending: false })
     .limit(1)
     .single()
 
