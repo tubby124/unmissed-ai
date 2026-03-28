@@ -26,13 +26,19 @@ export async function GET(req: NextRequest) {
 
   const svc = createServiceClient()
 
-  // Parallel: chunks + source count + client plan + open gaps
-  const [chunksResult, sourceCountResult, clientResult, gapsResult] = await Promise.all([
+  // Parallel: chunks + source count + client plan + open gaps + last compiler run
+  const [chunksResult, sourceCountResult, clientResult, gapsResult, lastRunResult] = await Promise.all([
     svc.from('knowledge_chunks').select('status, chunk_type, source').eq('client_id', clientId),
     svc.from('client_knowledge_docs').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
     svc.from('clients').select('selected_plan, subscription_status').eq('id', clientId).single(),
     svc.from('knowledge_query_log').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).eq('result_count', 0).is('resolved_at', null),
+    svc.from('compiler_runs')
+      .select('id, model_used, chunk_count, faq_count, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   if (chunksResult.error) return NextResponse.json({ error: chunksResult.error.message }, { status: 500 })
@@ -82,5 +88,6 @@ export async function GET(req: NextRequest) {
     maxSources,
     openGaps,
     coverage,
+    lastCompilerRun: lastRunResult.data ?? null,
   })
 }

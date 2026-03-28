@@ -13,6 +13,7 @@ interface Props {
 export default function KnowledgeProvenanceCard({ client }: Props) {
   const [open, setOpen] = useState(false)
   const [compiledCount, setCompiledCount] = useState(0)
+  const [lastRun, setLastRun] = useState<{ model_used: string; chunk_count: number; faq_count: number; created_at: string } | null>(null)
 
   useEffect(() => {
     fetch(`/api/dashboard/knowledge/stats?client_id=${client.id}`)
@@ -20,6 +21,9 @@ export default function KnowledgeProvenanceCard({ client }: Props) {
       .then(data => {
         if (data?.bySource) {
           setCompiledCount(data.bySource['compiled_import'] ?? 0)
+        }
+        if (data?.lastCompilerRun) {
+          setLastRun(data.lastCompilerRun)
         }
       })
       .catch(() => {})
@@ -200,6 +204,16 @@ export default function KnowledgeProvenanceCard({ client }: Props) {
                   <p className="text-[10px] t3">
                     {compiledCount} chunk{compiledCount !== 1 ? 's' : ''} imported via AI-assisted extraction
                   </p>
+                  {lastRun && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400/70 border border-purple-500/15">
+                        {lastRun.model_used.replace('claude-', '').replace(/-\d{8}$/, '')}
+                      </span>
+                      <span className="text-[10px] t3">
+                        Last run {new Date(lastRun.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

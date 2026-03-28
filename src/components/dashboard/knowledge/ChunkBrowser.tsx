@@ -41,6 +41,7 @@ function ChunkStatusBadge({ status }: { status: string }) {
     approved: { bg: 'bg-green-400/10', text: 'text-green-400' },
     pending: { bg: 'bg-yellow-400/10', text: 'text-yellow-400' },
     rejected: { bg: 'bg-red-400/10', text: 'text-red-400' },
+    revoked: { bg: 'bg-gray-400/10', text: 'text-gray-400' },
   }
   const c = config[status] ?? { bg: 'bg-hover', text: 't3' }
   return (
@@ -119,7 +120,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
     setEditTier((chunk.trust_tier as 'high' | 'medium' | 'low') || 'medium')
   }
 
-  async function handleAction(chunkId: string, action: 'approve' | 'reject') {
+  async function handleAction(chunkId: string, action: 'approve' | 'reject' | 'revoke') {
     setActionLoading(chunkId)
     try {
       const body: Record<string, unknown> = { chunkId, action }
@@ -134,12 +135,13 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
       })
       if (!res.ok) throw new Error('Action failed')
 
+      const newStatus = action === 'approve' ? 'approved' : action === 'revoke' ? 'revoked' : 'rejected'
       setChunks(prev =>
         prev.map(c =>
           c.id === chunkId
             ? {
                 ...c,
-                status: action === 'approve' ? 'approved' : 'rejected',
+                status: newStatus,
                 trust_tier: action === 'approve' ? editTier : c.trust_tier,
                 content: action === 'approve' ? editContent : c.content,
               }
@@ -216,6 +218,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
             className="bg-hover border b-theme rounded-lg px-2 py-1 text-[11px] t2 focus:outline-none focus:border-blue-500/50"
           >
             <option value="all">All Sources</option>
+            <option value="compiled_import">compiled_import</option>
             <option value="knowledge_doc">knowledge_doc</option>
             <option value="website_scrape">website_scrape</option>
             <option value="settings_edit">settings_edit</option>
@@ -232,6 +235,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
+            <option value="revoked">Revoked</option>
           </select>
           <select
             value={trustTierFilter}
@@ -340,6 +344,16 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
                           >
                             {actionLoading === chunk.id ? '...' : 'Delete'}
                           </button>
+                          {chunk.status === 'approved' && chunk.source === 'compiled_import' && (
+                            <button
+                              onClick={() => handleAction(chunk.id, 'revoke')}
+                              disabled={actionLoading === chunk.id}
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 hover:bg-gray-500/20 disabled:opacity-50 transition-colors"
+                              title="Remove from search results while preserving audit trail"
+                            >
+                              {actionLoading === chunk.id ? '...' : 'Revoke'}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleAction(chunk.id, 'reject')}
                             disabled={actionLoading === chunk.id}

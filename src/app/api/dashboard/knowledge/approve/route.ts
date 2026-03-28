@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const { chunkId, action, trustTier, editedContent } = body as {
     chunkId?: string
-    action?: 'approve' | 'reject'
+    action?: 'approve' | 'reject' | 'revoke'
     trustTier?: 'high' | 'medium' | 'low'
     editedContent?: string
   }
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
   if (!chunkId || !action) {
     return NextResponse.json({ error: 'chunkId and action are required' }, { status: 400 })
   }
-  if (action !== 'approve' && action !== 'reject') {
-    return NextResponse.json({ error: 'action must be "approve" or "reject"' }, { status: 400 })
+  if (action !== 'approve' && action !== 'reject' && action !== 'revoke') {
+    return NextResponse.json({ error: 'action must be "approve", "reject", or "revoke"' }, { status: 400 })
   }
 
   const svc = createServiceClient()
@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
         updates.embedding = JSON.stringify(newEmbedding)
       }
     }
+  } else if (action === 'revoke') {
+    updates.status = 'revoked'
   } else {
     updates.status = 'rejected'
   }

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
+import { getCompiledChunkCount } from '@/lib/knowledge-stats'
 import WelcomeView from './WelcomeView'
 
 export const dynamic = 'force-dynamic'
@@ -66,14 +67,9 @@ export default async function WelcomePage() {
     gbp_summary: c.gbp_summary as string | null,
   })
 
-  const { count: compiledCount } = await supabase
-    .from('knowledge_chunks')
-    .select('id', { count: 'exact', head: true })
-    .eq('client_id', cu.client_id)
-    .eq('source', 'compiled_import')
-    .eq('status', 'approved')
+  const compiledCount = await getCompiledChunkCount(cu.client_id, supabase)
 
-  const trialWelcome = buildTrialWelcomeViewModel(config, !!c.ultravox_agent_id, new Date(), compiledCount ?? 0)
+  const trialWelcome = buildTrialWelcomeViewModel(config, !!c.ultravox_agent_id, new Date(), compiledCount)
 
   return (
     <WelcomeView
