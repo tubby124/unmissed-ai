@@ -14,6 +14,8 @@ import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
 import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
+import KnowledgeProvenanceCard from '@/components/dashboard/knowledge/KnowledgeProvenanceCard'
+import PromptPreviewCard from '@/components/dashboard/knowledge/PromptPreviewCard'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import { useCallContext } from '@/contexts/CallContext'
 import { toast } from 'sonner'
@@ -127,6 +129,10 @@ function BrowseTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean
         knowledgeEnabled={client.knowledge_backend === 'pgvector'}
         timezone={client.timezone ?? 'America/Regina'}
       />
+      {/* Provenance — where the knowledge was imported from */}
+      <KnowledgeProvenanceCard client={client} />
+      {/* Agent script — read-only prompt preview */}
+      <PromptPreviewCard systemPrompt={client.system_prompt} isAdmin={isAdmin} />
       {/* Summary — what the agent currently knows */}
       <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
       {/* All knowledge chunks — visible to all users, actions gated inside */}

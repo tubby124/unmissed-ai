@@ -360,6 +360,17 @@ export async function POST(req: NextRequest) {
     console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
   }
 
+  // Persist GBP provenance snapshot so the knowledge page can show "Imported from Google"
+  if (data.placeId) {
+    void supa.from('clients').update({
+      gbp_place_id:     data.placeId,
+      gbp_summary:      data.gbpDescription ?? null,
+      gbp_rating:       data.placesRating ?? null,
+      gbp_review_count: data.placesReviewCount ?? null,
+      gbp_photo_url:    data.placesPhotoUrl ?? null,
+    }).eq('id', clientId)
+  }
+
   // Gate-17: Set website_scrape_status to reflect actual scrape data.
   // Without this, hasWebsite (Gate-4) returns false for users who approved scrape during onboarding.
   // Also write website_knowledge_approved so dashboard stat cells show correct counts on first load.
