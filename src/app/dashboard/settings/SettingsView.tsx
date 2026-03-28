@@ -308,66 +308,48 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── Agent Tab ──────────────────────────────────────────────── */}
       {activeTab === 'general' && (
-        isAdmin ? (
-          <AgentTab
-            client={client}
-            isAdmin={isAdmin}
-            appUrl={appUrl}
-            previewMode={previewMode}
-            prompt={prompt}
-            setPrompt={setPrompt}
-            status={status}
-            setStatus={setStatus}
-            godConfig={godConfig}
-            setGodConfig={setGodConfig}
-            telegramTest={telegramTest}
-            setTelegramTest={setTelegramTest}
-            hoursWeekday={hoursWeekday}
-            setHoursWeekday={setHoursWeekday}
-            hoursWeekend={hoursWeekend}
-            setHoursWeekend={setHoursWeekend}
-            afterHoursBehavior={afterHoursBehavior}
-            setAfterHoursBehavior={setAfterHoursBehavior}
-            afterHoursPhone={afterHoursPhone}
-            setAfterHoursPhone={setAfterHoursPhone}
-            sectionContent={sectionContent}
-            setSectionContent={setSectionContent}
-            businessFacts={businessFacts}
-            setBusinessFacts={setBusinessFacts}
-            extraQA={extraQA}
-            setExtraQA={setExtraQA}
-            contextData={contextData}
-            contextDataLabel={contextDataLabel}
-            bookingDuration={bookingDuration}
-            setBookingDuration={setBookingDuration}
-            bookingBuffer={bookingBuffer}
-            setBookingBuffer={setBookingBuffer}
-            forwardingNumber={forwardingNumber}
-            setForwardingNumber={setForwardingNumber}
-            transferConditions={transferConditions}
-            setTransferConditions={setTransferConditions}
-            setupComplete={setupComplete}
-            setSetupComplete={setSetupComplete}
-            voiceStylePreset={voiceStylePreset}
-            setVoiceStylePreset={setVoiceStylePreset}
-          />
-        ) : (
-          <>
-            <AgentModeCard
-              clientId={client.id}
-              currentAgentMode={client.agent_mode ?? null}
-              currentCallHandlingMode={client.call_handling_mode ?? null}
-              previewMode={previewMode}
-            />
-            {client.agent_mode === 'appointment_booking' && (
-              <ServiceCatalogCard
-                clientId={client.id}
-                initialCatalog={(client.service_catalog as ServiceCatalogItem[]) ?? []}
-                previewMode={previewMode}
-              />
-            )}
-          </>
-        )
+        <AgentTab
+          client={client}
+          isAdmin={isAdmin}
+          appUrl={appUrl}
+          previewMode={previewMode}
+          prompt={prompt}
+          setPrompt={setPrompt}
+          status={status}
+          setStatus={setStatus}
+          godConfig={godConfig}
+          setGodConfig={setGodConfig}
+          telegramTest={telegramTest}
+          setTelegramTest={setTelegramTest}
+          hoursWeekday={hoursWeekday}
+          setHoursWeekday={setHoursWeekday}
+          hoursWeekend={hoursWeekend}
+          setHoursWeekend={setHoursWeekend}
+          afterHoursBehavior={afterHoursBehavior}
+          setAfterHoursBehavior={setAfterHoursBehavior}
+          afterHoursPhone={afterHoursPhone}
+          setAfterHoursPhone={setAfterHoursPhone}
+          sectionContent={sectionContent}
+          setSectionContent={setSectionContent}
+          businessFacts={businessFacts}
+          setBusinessFacts={setBusinessFacts}
+          extraQA={extraQA}
+          setExtraQA={setExtraQA}
+          contextData={contextData}
+          contextDataLabel={contextDataLabel}
+          bookingDuration={bookingDuration}
+          setBookingDuration={setBookingDuration}
+          bookingBuffer={bookingBuffer}
+          setBookingBuffer={setBookingBuffer}
+          forwardingNumber={forwardingNumber}
+          setForwardingNumber={setForwardingNumber}
+          transferConditions={transferConditions}
+          setTransferConditions={setTransferConditions}
+          setupComplete={setupComplete}
+          setSetupComplete={setSetupComplete}
+          voiceStylePreset={voiceStylePreset}
+          setVoiceStylePreset={setVoiceStylePreset}
+        />
       )}
 
       {/* ─── SMS Tab ────────────────────────────────────────────────── */}
@@ -381,6 +363,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             setSmsEnabled={(val) => setSmsEnabled(prev => ({ ...prev, [client.id]: val }))}
             smsTemplate={smsTemplate[client.id] ?? ''}
             setSmsTemplate={(val) => setSmsTemplate(prev => ({ ...prev, [client.id]: val }))}
+            agentMode={client.agent_mode}
           />
         ) : (
           <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">

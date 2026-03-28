@@ -270,10 +270,6 @@ export default function AgentTab({
   // ─── JSX ───────────────────────────────────────────────────────────────────────
 
   return (<div className="space-y-2">
-    {!isAdmin && (
-      <p className="text-[11px] t3 pb-1">Configure what your agent knows and how it handles calls.</p>
-    )}
-
     {/* ── 0. Setup (admin only — clients manage this on Go Live) ──── */}
     {isAdmin && (
       <SetupCard
@@ -289,61 +285,34 @@ export default function AgentTab({
         }
       />
     )}
-    {!isAdmin && (
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium t1">Phone &amp; call forwarding</p>
-          <p className="text-[11px] t3">Manage forwarding codes and call routing</p>
-        </div>
-        <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
-          Go Live →
-        </a>
-      </div>
+
+    {/* ── Plan Info + Billing (admin — top; owner — bottom after sections) */}
+    {isAdmin && (
+      <>
+        <PlanInfoCard
+          clientId={client.id}
+          selectedPlan={client.selected_plan}
+          subscriptionStatus={client.subscription_status}
+          secondsUsedThisMonth={client.seconds_used_this_month}
+          monthlyMinuteLimit={client.monthly_minute_limit}
+          bonusMinutes={client.bonus_minutes ?? 0}
+          trialExpiresAt={client.trial_expires_at ?? null}
+          trialConverted={client.trial_converted ?? null}
+          stripeCustomerId={client.stripe_customer_id ?? null}
+        />
+        <BillingCard
+          clientId={client.id}
+          selectedPlan={client.selected_plan}
+          subscriptionStatus={client.subscription_status}
+          subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
+          stripeCustomerId={client.stripe_customer_id ?? null}
+          stripeDiscountName={client.stripe_discount_name ?? null}
+          effectiveMonthlyRate={client.effective_monthly_rate ?? null}
+          cancelAt={client.cancel_at ?? null}
+          isAdmin={isAdmin}
+        />
+      </>
     )}
-
-    {/* Call forwarding quick link */}
-    {!isAdmin && client.twilio_number && !setupComplete[client.id] && (
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          <span className="text-xs t2">Need help forwarding calls to <span className="font-mono">{fmtPhone(client.twilio_number)}</span>?</span>
-        </div>
-        <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200">
-          Carrier instructions
-        </a>
-      </div>
-    )}
-
-    {/* ── Setup Progress Ring (non-admin only) ─────────────────────── */}
-    {!isAdmin && (
-      <SetupProgressRing client={client} isAdmin={isAdmin} />
-    )}
-
-    {/* ── Plan Info ─────────────────────────────────────────────────── */}
-    <PlanInfoCard
-      clientId={client.id}
-      selectedPlan={client.selected_plan}
-      subscriptionStatus={client.subscription_status}
-      secondsUsedThisMonth={client.seconds_used_this_month}
-      monthlyMinuteLimit={client.monthly_minute_limit}
-      bonusMinutes={client.bonus_minutes ?? 0}
-      trialExpiresAt={client.trial_expires_at ?? null}
-      trialConverted={client.trial_converted ?? null}
-      stripeCustomerId={client.stripe_customer_id ?? null}
-    />
-
-    {/* ── Billing Management ──────────────────────────────────────── */}
-    <BillingCard
-      clientId={client.id}
-      selectedPlan={client.selected_plan}
-      subscriptionStatus={client.subscription_status}
-      subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
-      stripeCustomerId={client.stripe_customer_id ?? null}
-      stripeDiscountName={client.stripe_discount_name ?? null}
-      effectiveMonthlyRate={client.effective_monthly_rate ?? null}
-      cancelAt={client.cancel_at ?? null}
-      isAdmin={isAdmin}
-    />
 
     {/* ── CAPABILITIES OVERVIEW (always visible, all users) ────────── */}
     <CapabilitiesCard
@@ -538,28 +507,12 @@ export default function AgentTab({
           </PlanGate>
         </>
       ) : (
-        <div className="space-y-2">
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Business facts &amp; FAQs</p>
-              <p className="text-[11px] t3">Teach your agent about your business</p>
-            </div>
-            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium t1">Facts, FAQs &amp; website knowledge</p>
+            <p className="text-[11px] t3">Manage everything your agent knows about your business</p>
           </div>
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Website knowledge</p>
-              <p className="text-[11px] t3">Manage your website knowledge source</p>
-            </div>
-            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
-          </div>
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium t1">Knowledge base</p>
-              <p className="text-[11px] t3">pgvector search and retrieval settings</p>
-            </div>
-            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
-          </div>
+          <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Manage →</a>
         </div>
       )}
       {isAdmin && (
@@ -665,16 +618,26 @@ export default function AgentTab({
       </SettingsSection>
     )}
 
-    {/* ── Non-admin: simple behavior view ──────────────────────────── */}
+    {/* ── Non-admin: Agent Script section (collapsible, matches admin pattern) */}
     {!isAdmin && (
-      <PromptEditorCard
-        client={client}
-        isAdmin={isAdmin}
-        nicheLabel={nicheConfig.label}
-        prompt={prompt[client.id] ?? ''}
-        onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
-        previewMode={previewMode}
-      />
+      <SettingsSection
+        id="script"
+        title="Agent Script"
+        subtitle="See what your agent says on calls"
+        icon={<FileIcon />}
+        isOpen={openSections.script ?? false}
+        onToggle={() => toggleSection('script')}
+        accentColor="blue"
+      >
+        <PromptEditorCard
+          client={client}
+          isAdmin={isAdmin}
+          nicheLabel={nicheConfig.label}
+          prompt={prompt[client.id] ?? ''}
+          onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
+          previewMode={previewMode}
+        />
+      </SettingsSection>
     )}
 
     {/* ── 6. CONFIGURATION (admin only) ────────────────────────────── */}
@@ -709,6 +672,48 @@ export default function AgentTab({
         )}
         <RuntimeCard client={client} />
       </SettingsSection>
+    )}
+
+    {/* ── Owner: billing + setup at bottom (not above the hero orb) ── */}
+    {!isAdmin && (
+      <>
+        <PlanInfoCard
+          clientId={client.id}
+          selectedPlan={client.selected_plan}
+          subscriptionStatus={client.subscription_status}
+          secondsUsedThisMonth={client.seconds_used_this_month}
+          monthlyMinuteLimit={client.monthly_minute_limit}
+          bonusMinutes={client.bonus_minutes ?? 0}
+          trialExpiresAt={client.trial_expires_at ?? null}
+          trialConverted={client.trial_converted ?? null}
+          stripeCustomerId={client.stripe_customer_id ?? null}
+        />
+        <BillingCard
+          clientId={client.id}
+          selectedPlan={client.selected_plan}
+          subscriptionStatus={client.subscription_status}
+          subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
+          stripeCustomerId={client.stripe_customer_id ?? null}
+          stripeDiscountName={client.stripe_discount_name ?? null}
+          effectiveMonthlyRate={client.effective_monthly_rate ?? null}
+          cancelAt={client.cancel_at ?? null}
+          isAdmin={isAdmin}
+        />
+        <SetupProgressRing client={client} isAdmin={isAdmin} />
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium t1">Phone &amp; call forwarding</p>
+            <p className="text-[11px] t3">
+              {client.twilio_number
+                ? <>Your number: <span className="font-mono">{fmtPhone(client.twilio_number)}</span> &mdash; carrier instructions</>
+                : 'Configure your phone number and call routing'}
+            </p>
+          </div>
+          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0 cursor-pointer">
+            Setup →
+          </a>
+        </div>
+      </>
     )}
 
     {/* ── ACTIVITY LOG ──────────────────────────────────────────── */}
