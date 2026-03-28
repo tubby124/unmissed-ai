@@ -14,6 +14,7 @@
 
 import type {
   ClientAgentConfig,
+  AgentMode,
   VoicePresetId,
   ScheduleMode,
   CallHandlingMode,
@@ -58,6 +59,7 @@ export type ClientsRow = {
   sms_enabled?: boolean | null
   ivr_enabled?: boolean | null
   call_handling_mode?: string | null
+  agent_mode?: string | null
   knowledge_backend?: string | null
   business_facts?: string | null
   extra_qa?: { q: string; a: string }[] | null
@@ -139,6 +141,12 @@ export function buildClientAgentConfig(
     ? rawMode
     : 'triage'
 
+  const VALID_AGENT_MODES: AgentMode[] = ['voicemail_replacement', 'lead_capture', 'info_hub', 'appointment_booking']
+  const rawAgentMode = row.agent_mode as AgentMode | null
+  const agentMode: AgentMode = (rawAgentMode && VALID_AGENT_MODES.includes(rawAgentMode))
+    ? rawAgentMode
+    : 'lead_capture'
+
   // Knowledge — filter empty Q&A pairs (same logic as buildAgentContext)
   const extraQa = (row.extra_qa ?? []).filter(p => p.q?.trim() && p.a?.trim())
 
@@ -183,6 +191,7 @@ export function buildClientAgentConfig(
       forwardingNumber,
       transferEnabled: !!(row.transfer_conditions?.trim()),
       callHandlingMode,
+      agentMode,
     },
     capabilities: {
       smsEnabled: row.sms_enabled ?? false,

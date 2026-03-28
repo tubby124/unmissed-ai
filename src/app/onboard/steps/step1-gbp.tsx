@@ -32,6 +32,12 @@ function detectNicheFromTypes(types: string[]): Niche | null {
   return null;
 }
 
+function defaultAgentModeForNiche(niche: Niche): NonNullable<import('@/types/onboarding').OnboardingData['agentMode']> {
+  if (niche === 'restaurant' || niche === 'print_shop') return 'info_hub'
+  if (niche === 'voicemail') return 'voicemail_replacement'
+  return 'lead_capture'
+}
+
 function parseAddressParts(address: string): { city: string; state: string; streetAddress: string } {
   const parts = address.split(",").map((s) => s.trim());
   const provincePattern = /^([A-Z]{2})\b/;
@@ -105,6 +111,11 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
       if (detected && NICHE_PRODUCTION_READY[detected]) detectedNiche = detected;
     }
     updates.niche = detectedNiche;
+
+    // Set agentMode smart default if not yet explicitly set by user (step 3 not yet visited).
+    if (data.agentMode === undefined) {
+      updates.agentMode = defaultAgentModeForNiche(detectedNiche)
+    }
 
     // Set agent name from niche only if the current name is empty or was auto-set by the system.
     // Preserves explicitly user-typed names even if they happen to match another niche's default.
@@ -303,6 +314,9 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                       const updates: Partial<OnboardingData> = { niche: n };
                       if (agentNameIsAutoSet(data.agentName, data.niche)) {
                         updates.agentName = defaultAgentNames[n];
+                      }
+                      if (data.agentMode === undefined) {
+                        updates.agentMode = defaultAgentModeForNiche(n);
                       }
                       onUpdate(updates);
                       setNichePickerDismissed(true);

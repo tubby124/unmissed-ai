@@ -46,6 +46,7 @@ interface PatcherContext {
   currentNiche: string | null
   currentAgentName: string | null
   currentBusinessName: string | null
+  currentCallHandlingMode: string | null
 }
 
 /**
@@ -54,7 +55,7 @@ interface PatcherContext {
  */
 const PATCH_TRIGGER_FIELDS = [
   'section_id', 'booking_enabled', 'sms_enabled', 'voice_style_preset',
-  'agent_name', 'business_name', 'services_offered', 'call_handling_mode',
+  'agent_name', 'business_name', 'services_offered', 'call_handling_mode', 'agent_mode',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {
@@ -74,7 +75,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name')
+    .select('system_prompt, niche, agent_name, business_name, call_handling_mode')
     .eq('id', clientId)
     .single()
 
@@ -87,6 +88,7 @@ async function fetchPatcherContext(
     // Use OLD names from DB — needed for replacement patching
     currentAgentName: (data?.agent_name as string) ?? null,
     currentBusinessName: (data?.business_name as string) ?? null,
+    currentCallHandlingMode: (data?.call_handling_mode as string) ?? null,
   }
 }
 
@@ -240,14 +242,20 @@ export async function applyPromptPatches(
     }
   }
 
-  if (typeof body.call_handling_mode === 'string') {
+  if (typeof body.agent_mode === 'string' || typeof body.call_handling_mode === 'string') {
+    const rawAgentMode = body.agent_mode ?? null
+    const callHandlingMode = body.call_handling_mode ?? ctx.currentCallHandlingMode ?? 'triage'
+    // agent_mode takes precedence unless it's the default 'lead_capture' (which defers to call_handling_mode)
+    const effectiveMode = (rawAgentMode && rawAgentMode !== 'lead_capture')
+      ? rawAgentMode
+      : callHandlingMode
     const closePerson = getClosePerson(prompt, ctx.currentAgentName)
-    const patched = patchCallHandlingMode(prompt, body.call_handling_mode, closePerson)
+    const patched = patchCallHandlingMode(prompt, effectiveMode, closePerson)
     if (patched !== prompt) {
       const err = applyPatch(patched, prompt, updates, warnings)
       if (err) return { warnings, error: err }
       prompt = patched
-      console.log(`[settings] Call handling mode patched to '${body.call_handling_mode}' for client=${clientId}`)
+      console.log(`[settings] Call handling mode patched to '${effectiveMode}' (agent_mode=${rawAgentMode ?? 'n/a'}, call_handling_mode=${callHandlingMode}) for client=${clientId}`)
     } else {
       warnings.push({ field: 'mode_not_patched', message: "Mode saved — but your agent's prompt doesn't have a CALL HANDLING MODE section. Run /prompt-deploy to update the prompt." })
     }

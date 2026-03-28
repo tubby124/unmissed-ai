@@ -694,6 +694,8 @@ export default function AgentTab({
             clientId={client.id}
             initialConfig={godConfig[client.id]}
             previewMode={previewMode}
+            currentAgentMode={(client.agent_mode as string | null) ?? null}
+            currentCallHandlingMode={(client.call_handling_mode as string | null) ?? null}
           />
         )}
         <RuntimeCard client={client} />

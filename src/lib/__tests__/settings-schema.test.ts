@@ -166,12 +166,14 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
     //   'knowledge_backend' in updates ||
     //   'sms_enabled' in updates ||
     //   'twilio_number' in updates
+    // Phase 4 addition: 'agent_mode' — deep-mode rebuild triggers Ultravox sync
     const expectedSyncFields = [
       'system_prompt',
       'forwarding_number',
       'transfer_conditions',
       'booking_enabled',
       'call_handling_mode',
+      'agent_mode',
       'agent_voice_id',
       'knowledge_backend',
       'sms_enabled',

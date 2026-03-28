@@ -4,14 +4,58 @@ import { motion, AnimatePresence } from "motion/react";
 import { OnboardingData } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AGENT_MODES, AgentMode } from "@/lib/capabilities";
-import { Inbox, Headphones, CalendarCheck, PhoneForwarded, Check } from "lucide-react";
+import { Inbox, HelpCircle, CalendarCheck, PhoneForwarded, Check, MessageSquare } from "lucide-react";
 
-const MODE_ICONS: Record<AgentMode, React.ReactNode> = {
-  message_only: <Inbox className="w-5 h-5" />,
-  triage: <Headphones className="w-5 h-5" />,
-  full_service: <CalendarCheck className="w-5 h-5" />,
-};
+type AgentModeId = 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking';
+
+interface AgentModeOption {
+  id: AgentModeId;
+  label: string;
+  tagline: string;
+  description: string;
+  quote: string;
+  included: string[];
+  icon: React.ReactNode;
+}
+
+const AGENT_MODE_OPTIONS: AgentModeOption[] = [
+  {
+    id: 'voicemail_replacement',
+    icon: <Inbox className="w-5 h-5" />,
+    label: 'Take a message and pass it along',
+    tagline: '— simple & fast',
+    description: 'Greet the caller, collect a brief message, and close. No triage, no back-and-forth.',
+    quote: '"Hi — what\'s your name and what\'s the message? I\'ll make sure they get it."',
+    included: ['Caller name + callback number', 'Brief message', 'Instant notification to you'],
+  },
+  {
+    id: 'lead_capture',
+    icon: <MessageSquare className="w-5 h-5" />,
+    label: 'Capture caller details so I can follow up',
+    tagline: '— most popular',
+    description: 'Ask what the caller needs, collect their contact info, and route to callback.',
+    quote: '"What brings you in today? And who should we follow up with?"',
+    included: ['Caller name + number', 'Reason for calling', 'Triage + callback routing'],
+  },
+  {
+    id: 'info_hub',
+    icon: <HelpCircle className="w-5 h-5" />,
+    label: 'Answer questions about my business',
+    tagline: '— always-on FAQ',
+    description: 'Answer common questions using your knowledge base before collecting contact info.',
+    quote: '"Great question — we\'re open Mon–Fri 9–5, and here\'s what we offer..."',
+    included: ['Hours, services, pricing answers', 'FAQ from your website', 'Contact info collected at end'],
+  },
+  {
+    id: 'appointment_booking',
+    icon: <CalendarCheck className="w-5 h-5" />,
+    label: 'Help callers book appointments',
+    tagline: '— drive bookings',
+    description: 'Focus on scheduling. Collect preferred date/time and contact info.',
+    quote: '"What day works for you? Let me check what\'s available."',
+    included: ['Preferred date + time', 'Caller name + number', 'Calendar booking (if connected)'],
+  },
+];
 
 interface Props {
   data: OnboardingData;
@@ -19,43 +63,32 @@ interface Props {
 }
 
 export default function Step3Capabilities({ data, onUpdate }: Props) {
-  const currentMode = data.callHandlingMode ?? "triage";
+  const currentMode: AgentModeId = data.agentMode ?? 'lead_capture';
   const forwardingEnabled = data.callForwardingEnabled ?? false;
   // Pro plan or no plan selected yet (trial/pre-selection) — both get full access
   const isPro = data.selectedPlan === "pro" || data.selectedPlan === null;
-
-  function selectMode(mode: AgentMode) {
-    // Set both callHandlingMode (canonical) and agentJob (legacy fallback)
-    const jobMap: Record<AgentMode, 'message_taker' | 'receptionist' | 'booking_agent'> = {
-      message_only: 'message_taker',
-      triage: 'receptionist',
-      full_service: 'booking_agent',
-    };
-    onUpdate({ callHandlingMode: mode, agentJob: jobMap[mode] });
-  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground">
-          What should {data.agentName || "your agent"} do?
+          What should {data.agentName || "your agent"} focus on?
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Pick the mode that fits your business. You can change this anytime.
+          Pick the goal that fits your business. You can refine this later.
         </p>
       </div>
 
       {/* Mode cards */}
       <div className="space-y-3">
-        {AGENT_MODES.map((mode) => {
+        {AGENT_MODE_OPTIONS.map((mode) => {
           const isSelected = currentMode === mode.id;
-          const needsCalendar = mode.id === "full_service";
 
           return (
             <motion.button
               key={mode.id}
               type="button"
-              onClick={() => selectMode(mode.id)}
+              onClick={() => onUpdate({ agentMode: mode.id })}
               whileTap={{ scale: 0.98 }}
               className={[
                 "w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer relative overflow-hidden",
@@ -72,7 +105,7 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                     ? "bg-indigo-600 text-white"
                     : "bg-muted text-muted-foreground",
                 ].join(" ")}>
-                  {MODE_ICONS[mode.id]}
+                  {mode.icon}
                 </div>
 
                 {/* Content */}
@@ -114,12 +147,7 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                             </li>
                           ))}
                         </ul>
-                        {needsCalendar && !isPro && (
-                          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
-                            Calendar booking requires the Pro plan. You can upgrade after activation &mdash; your agent will run as AI Receptionist until then.
-                          </p>
-                        )}
-                        {needsCalendar && isPro && (
+                        {mode.id === 'appointment_booking' && (
                           <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                             You&apos;ll connect your Google Calendar from your dashboard to activate booking.
                           </p>

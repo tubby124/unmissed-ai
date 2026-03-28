@@ -73,10 +73,13 @@ export async function POST(req: NextRequest) {
 
   // Gate-13: Enforce plan entitlements server-side — UI can show toggles as disabled
   // but state can still carry values from a previously selected plan or job step.
+  // Use toIntakePayload's derived call_handling_mode as the base (handles agent_mode→message_only).
+  // Only block full_service for non-Pro plans — message_only and triage are safe to pass through.
   const entitlements = getPlanEntitlements(data.selectedPlan)
-  const effectiveCallHandlingMode = entitlements.bookingEnabled
-    ? (data.callHandlingMode || 'triage')
-    : 'triage'
+  const rawCallHandlingMode = intakePayload.call_handling_mode
+  const effectiveCallHandlingMode = (!entitlements.bookingEnabled && rawCallHandlingMode === 'full_service')
+    ? 'triage'
+    : (rawCallHandlingMode || 'triage')
   const effectiveCallForwardingEnabled = entitlements.transferEnabled
     ? (data.callForwardingEnabled ?? false)
     : false
@@ -137,6 +140,7 @@ export async function POST(req: NextRequest) {
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
       call_handling_mode: effectiveCallHandlingMode,
+      agent_mode: intakePayload.agent_mode ?? 'lead_capture',
       selected_plan: data.selectedPlan || 'core',
       knowledge_backend: 'pgvector',
       // Gate-11+13: Write forwarding_number only when plan entitlement allows it

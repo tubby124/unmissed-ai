@@ -138,6 +138,14 @@ export function toIntakePayload(data: OnboardingData) {
   }
   if (!effectiveMode) effectiveMode = 'triage'
 
+  // Override call_handling_mode when agent_mode requires it.
+  // voicemail_replacement → message_only (minimal collection, no triage).
+  // appointment_booking stays triage — do NOT derive full_service (avoids booking_enabled coupling).
+  const agentModeVal = data.agentMode ?? 'lead_capture'
+  if (agentModeVal === 'voicemail_replacement') {
+    effectiveMode = 'message_only'
+  }
+
   return {
     business_name: data.businessName,
     niche,
@@ -169,6 +177,7 @@ export function toIntakePayload(data: OnboardingData) {
         ? (data.nicheAnswers.services as string[]).join(', ')
         : (data.nicheAnswers?.services as string) || ''),
     call_handling_mode: effectiveMode,
+    agent_mode: data.agentMode ?? 'lead_capture',
     booking_enabled: effectiveMode === 'full_service',
     owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,

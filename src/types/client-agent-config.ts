@@ -18,6 +18,9 @@ export type ScheduleMode = '24_7' | 'business_hours'
 
 export type CallHandlingMode = 'message_only' | 'triage' | 'full_service'
 
+/** Internal conversational behavior profile — distinct from CallHandlingMode (customer-facing product mode). */
+export type AgentMode = 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking'
+
 export type ScrapeStatus = 'none' | 'pending' | 'complete' | 'error'
 
 export type SubscriptionStatus = 'none' | 'trial' | 'active' | 'canceled' | 'past_due'
@@ -59,6 +62,8 @@ export type AgentRouting = {
   transferEnabled: boolean
   /** Top-level DB column: 'message_only' | 'triage' | 'full_service' */
   callHandlingMode: CallHandlingMode
+  /** Internal behavior profile. Default: 'lead_capture'. No prompt wiring in Phase 1. */
+  agentMode: AgentMode
 }
 
 export type AgentCapabilities = {

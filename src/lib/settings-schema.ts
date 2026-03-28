@@ -34,7 +34,7 @@ export interface FieldDef {
    * If set, changing this field triggers an auto-patch on system_prompt.
    * The patcher name maps to an orchestrator step in settings-patchers.ts.
    */
-  triggersPatch?: 'calendar' | 'sms' | 'voice_style' | 'agent_name' | 'business_name' | 'services' | 'call_handling_mode' | 'section_edit'
+  triggersPatch?: 'calendar' | 'sms' | 'voice_style' | 'agent_name' | 'business_name' | 'services' | 'call_handling_mode' | 'agent_mode' | 'section_edit'
 }
 
 /**
@@ -50,6 +50,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   transfer_conditions:  { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
   booking_enabled:      { mutationClass: 'DB_PLUS_PROMPT_PLUS_TOOLS', triggersSync: true, triggersPatch: 'calendar' },
   call_handling_mode:   { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true, triggersPatch: 'call_handling_mode' },
+  agent_mode:           { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true, triggersPatch: 'agent_mode' },
   agent_voice_id:       { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
   knowledge_backend:    { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true, adminOnly: true },
   sms_enabled:          { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true, triggersPatch: 'sms' },
@@ -104,6 +105,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
 // ── Zod schema ──────────────────────────────────────────────────────────────────
 
 const VALID_MODES = ['message_only', 'triage', 'full_service'] as const
+const VALID_AGENT_MODES = ['voicemail_replacement', 'lead_capture', 'info_hub', 'appointment_booking'] as const
 const VALID_AFTER_HOURS = ['take_message', 'route_emergency', 'custom_message'] as const
 const VALID_TELEGRAM_STYLES = ['compact', 'standard', 'action_card'] as const
 
@@ -178,6 +180,9 @@ export const settingsBodySchema = z.object({
 
   // Call handling mode
   call_handling_mode: z.enum(VALID_MODES).optional(),
+
+  // Agent mode (internal conversational behavior profile)
+  agent_mode: z.enum(VALID_AGENT_MODES).optional(),
 
   // Post-provision editable
   owner_name: z.string().optional(),
@@ -277,7 +282,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   // Enum/string fields — direct copy
   const directFields: (keyof SettingsBody)[] = [
     'status', 'sms_template', 'voice_style_preset', 'agent_voice_id',
-    'telegram_style', 'timezone', 'after_hours_behavior', 'call_handling_mode',
+    'telegram_style', 'timezone', 'after_hours_behavior', 'call_handling_mode', 'agent_mode',
     'business_facts',
   ]
 

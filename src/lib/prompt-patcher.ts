@@ -334,14 +334,24 @@ export function getClosePerson(
 
 // ── Call handling mode patcher ──────────────────────────────────────────────
 
-/** Mode instruction text — shared with prompt-builder.ts (lines 2142-2149). */
+/** Mode instruction text — shared with prompt-builder.ts. */
 export const MODE_INSTRUCTIONS: Record<string, string> = {
+  // call_handling_mode values (customer-facing product tier)
   message_only:
     "Your ONLY goal is to collect the caller's name, phone number, and a brief message. Do not ask follow-up questions, do not triage, do not offer information. Get the 3 fields and close.",
   full_service:
     "You are a full-service receptionist. Answer detailed questions from the KNOWLEDGE BASE and FAQ sections. If the caller wants to book an appointment, collect their preferred date/time and confirm you'll have {{CLOSE_PERSON}} confirm the booking.",
   triage:
     "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback.",
+  // agent_mode values (internal conversational behavior profile)
+  voicemail_replacement:
+    "Your ONLY goal is to act as a voicemail: greet the caller, collect their name, phone number, and a brief message, then close. Do not answer questions, do not triage, do not offer information.",
+  lead_capture:
+    "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback.",
+  info_hub:
+    "You are an information assistant. Answer questions from the KNOWLEDGE BASE and FAQ sections. Collect the caller's name and phone number before hanging up.",
+  appointment_booking:
+    "You are a booking assistant. Your primary goal is to schedule an appointment. Collect the caller's preferred date/time, name, and phone number. If booking is enabled, use the calendar flow below.",
 }
 
 /**
@@ -353,7 +363,7 @@ export const MODE_INSTRUCTIONS: Record<string, string> = {
  */
 export function patchCallHandlingMode(
   prompt: string,
-  newMode: 'message_only' | 'triage' | 'full_service',
+  newMode: string,
   closePerson?: string,
 ): string {
   const heading = '## CALL HANDLING MODE'
@@ -379,10 +389,8 @@ export function patchCallHandlingMode(
   }
 
   let instruction = MODE_INSTRUCTIONS[newMode] ?? MODE_INSTRUCTIONS.triage
-  if (newMode === 'full_service' && closePerson) {
-    instruction = instruction.replace('{{CLOSE_PERSON}}', closePerson)
-  } else if (newMode === 'full_service') {
-    instruction = instruction.replace('{{CLOSE_PERSON}}', 'the team')
+  if (instruction.includes('{{CLOSE_PERSON}}')) {
+    instruction = instruction.replace('{{CLOSE_PERSON}}', closePerson || 'the team')
   }
 
   return (

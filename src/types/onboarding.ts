@@ -130,6 +130,9 @@ export interface OnboardingData {
 
   // Plan selection (step 4)
   selectedPlan: 'lite' | 'core' | 'pro' | null;
+
+  // Internal behavior profile — Phase 1: carried through intake, not yet surfaced in UI.
+  agentMode?: 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking';
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────

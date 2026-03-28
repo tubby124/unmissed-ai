@@ -2,6 +2,7 @@ import { wrapSection } from '@/lib/prompt-sections'
 import { getCapabilities } from '@/lib/niche-capabilities'
 import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summary'
 import { VOICE_PRESETS } from './voice-presets'
+import { MODE_INSTRUCTIONS } from './prompt-patcher'
 
 /**
  * prompt-builder.ts — TypeScript port of PROVISIONING/app/prompt_builder.py
@@ -1873,6 +1874,82 @@ DAY FULL (available=false or no slots): say "looks like we're full that day — 
 TOOL ERROR (fallback=true or no response): fall back to message mode — collect preferred day/time and close as normal.`.trim()
 }
 
+// ── Agent-mode variable overrides (Phase 2b — build-time only) ───────────────
+//
+// These defaults fill template variables that sections 2–6 depend on.
+// They fire ONLY when the niche + intake have not already set the variable.
+// FORBIDDEN_EXTRA is always appended (never replaces niche value).
+// TRIAGE_DEEP is returned as a fallback (niche value wins if present).
+//
+// Phase 2b scope: build-time only. Settings patchers are NOT extended here.
+// Existing clients receive deeper behavior on the next full prompt regeneration.
+
+const MODE_VARIABLE_OVERRIDES: Record<string, {
+  COMPLETION_FIELDS?: string
+  CLOSE_ACTION?: string
+  FIRST_INFO_QUESTION?: string
+  INFO_TO_COLLECT?: string
+  FORBIDDEN_EXTRA?: string
+  TRIAGE_DEEP?: string
+}> = {
+  voicemail_replacement: {
+    COMPLETION_FIELDS: "caller's name, phone number, and a brief message",
+    CLOSE_ACTION: 'tell them someone will call back shortly',
+    FIRST_INFO_QUESTION: 'your name?',
+    INFO_TO_COLLECT: 'name, phone, brief message',
+    FORBIDDEN_EXTRA: 'Do not triage. Do not offer information. Collect name, phone, and a brief message only.',
+    TRIAGE_DEEP: "Ask for the caller's name, phone number, and a brief message. Do not ask about services, schedules, or urgency.",
+  },
+  info_hub: {
+    COMPLETION_FIELDS: "caller's name and phone number (only if they request a callback)",
+    CLOSE_ACTION: 'answer their questions; offer callback if they want follow-up',
+    FIRST_INFO_QUESTION: 'What can I help you with today?',
+    INFO_TO_COLLECT: 'name and phone (only if callback requested)',
+    FORBIDDEN_EXTRA: 'Answer questions before asking for contact info. Only request name and phone if the caller wants a callback.',
+    TRIAGE_DEEP: 'Ask the caller what they\'d like to know: "What can I help you with today?" Answer from the PRODUCT KNOWLEDGE BASE. Do not push through a triage script.',
+  },
+  appointment_booking: {
+    COMPLETION_FIELDS: "caller's name, phone number, service type, and preferred date/time",
+    CLOSE_ACTION: 'schedule an appointment',
+    FIRST_INFO_QUESTION: 'What service are you looking for?',
+    INFO_TO_COLLECT: 'name, phone, service type, preferred date/time',
+    FORBIDDEN_EXTRA: 'Do not close without attempting to book or schedule.',
+  },
+  // lead_capture: no overrides — defers entirely to niche/template/call_handling_mode
+}
+
+/**
+ * Apply agent-mode-level variable defaults to the variables dict.
+ *
+ * Override hierarchy (highest → lowest priority):
+ *   1. Niche default (spread into variables from NICHE_DEFAULTS before this call)
+ *   2. Intake form value (applied to variables before this call)
+ *   3. Agent mode default (applied here — only when variable is still unset)
+ *
+ * FORBIDDEN_EXTRA: always appended (returned, not mutated into variables).
+ * TRIAGE_DEEP: returned as fallback for the post-build niche override pipeline.
+ */
+function applyModeVariableOverrides(
+  effectiveMode: string,
+  variables: Record<string, string>,
+): { modeForbiddenExtra: string; modeTriageDeep: string } {
+  const overrides = MODE_VARIABLE_OVERRIDES[effectiveMode]
+  if (!overrides) return { modeForbiddenExtra: '', modeTriageDeep: '' }
+
+  // Variable overrides: only apply when variable is not already set by niche or intake
+  const varFields = ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'] as const
+  for (const field of varFields) {
+    if (overrides[field] && !variables[field]) {
+      variables[field] = overrides[field]!
+    }
+  }
+
+  return {
+    modeForbiddenExtra: overrides.FORBIDDEN_EXTRA ?? '',
+    modeTriageDeep: overrides.TRIAGE_DEEP ?? '',
+  }
+}
+
 // ── Main intake-to-prompt function ────────────────────────────────────────────
 
 export function buildPromptFromIntake(intake: Record<string, unknown>, websiteContent?: string, knowledgeDocs?: string): string {
@@ -2050,16 +2127,20 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   const rawCity = variables.CITY || ''
   variables.LOCATION_STRING = rawCity && rawCity !== 'N/A' ? ` in ${rawCity}` : ''
 
-  // Call handling mode instructions
+  // Call handling mode instructions — two-path resolver (agent_mode takes precedence over call_handling_mode)
+  const rawAgentMode = (intake.agent_mode as string) || null
   const callHandlingMode = (intake.call_handling_mode as string) || 'triage'
-  if (callHandlingMode === 'message_only') {
-    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "Your ONLY goal is to collect the caller's name, phone number, and a brief message. Do not ask follow-up questions, do not triage, do not offer information. Get the 3 fields and close."
-  } else if (callHandlingMode === 'full_service') {
-    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "You are a full-service receptionist. Answer detailed questions from the KNOWLEDGE BASE and FAQ sections. If the caller wants to book an appointment, collect their preferred date/time and confirm you'll have " + (variables.CLOSE_PERSON || 'the team') + " confirm the booking."
-  } else {
-    // triage (default) — existing template behavior
-    variables.CALL_HANDLING_MODE_INSTRUCTIONS = "Use the triage script below to understand what the caller needs, collect relevant info, and route to callback."
+  const effectiveMode = (rawAgentMode && rawAgentMode !== 'lead_capture') ? rawAgentMode : callHandlingMode
+  let modeInstruction = MODE_INSTRUCTIONS[effectiveMode] ?? MODE_INSTRUCTIONS.triage
+  if (modeInstruction.includes('{{CLOSE_PERSON}}')) {
+    modeInstruction = modeInstruction.replace('{{CLOSE_PERSON}}', variables.CLOSE_PERSON || 'the team')
   }
+  variables.CALL_HANDLING_MODE_INSTRUCTIONS = modeInstruction
+
+  // Phase 2b — apply agent-mode variable defaults for deeper build-time behavior.
+  // Must run after niche+intake overrides (already in variables) and after effectiveMode is known.
+  // Returns FORBIDDEN_EXTRA append text and TRIAGE_DEEP fallback for the post-build pipeline.
+  const { modeForbiddenExtra, modeTriageDeep } = applyModeVariableOverrides(effectiveMode, variables)
 
   // FAQ pairs from structured input
   const faqPairsRaw = intake.niche_faq_pairs as string | undefined
@@ -2128,7 +2209,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     : ''
   const forbiddenExtra = nicheDefaults.FORBIDDEN_EXTRA || ''
   const agentRestrictions = intake.agent_restrictions as string | undefined
-  const effectiveRestrictions = [nicheRestriction, forbiddenExtra, agentRestrictions?.trim()].filter(Boolean).join('\n')
+  const effectiveRestrictions = [nicheRestriction, forbiddenExtra, modeForbiddenExtra, agentRestrictions?.trim()].filter(Boolean).join('\n')
   if (effectiveRestrictions) {
     const restrictionLines: string[] = []
     let ruleNum = 10
@@ -2160,8 +2241,8 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     }
   }
 
-  // Replace shallow triage with deep niche version
-  const triageDeep = nicheDefaults.TRIAGE_DEEP || ''
+  // Replace shallow triage with deep niche version (niche wins; mode fallback when niche has none)
+  const triageDeep = nicheDefaults.TRIAGE_DEEP || modeTriageDeep || ''
   if (triageDeep) {
     const triageStart = prompt.indexOf('## 3. TRIAGE')
     const infoStart = prompt.indexOf('## 4. INFO COLLECTION')
@@ -2190,13 +2271,16 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     }
   }
 
-  // Replace generic inline examples with niche-specific examples
+  // Replace generic inline examples with niche-specific examples.
+  // End marker is ## CALL HANDLING MODE (not # PRODUCT KNOWLEDGE BASE) so that the
+  // CALL HANDLING MODE and FAQ sections are preserved after the replacement.
   const nicheExamples = nicheDefaults.NICHE_EXAMPLES || ''
   if (nicheExamples) {
     const exStart = prompt.indexOf('# INLINE EXAMPLES')
-    const kbStart = prompt.indexOf('# PRODUCT KNOWLEDGE BASE')
-    if (exStart !== -1 && kbStart !== -1) {
-      prompt = prompt.slice(0, exStart) + '# INLINE EXAMPLES — READ THESE CAREFULLY\n\n' + nicheExamples + '\n\n' + prompt.slice(kbStart)
+    const callHandlingStart = prompt.indexOf('\n## CALL HANDLING MODE')
+    const exEnd = callHandlingStart !== -1 ? callHandlingStart : prompt.indexOf('\n# PRODUCT KNOWLEDGE BASE')
+    if (exStart !== -1 && exEnd !== -1) {
+      prompt = prompt.slice(0, exStart) + '# INLINE EXAMPLES — READ THESE CAREFULLY\n\n' + nicheExamples + prompt.slice(exEnd)
     }
   }
 

@@ -8,7 +8,11 @@
  * S6e: Rate limiting — max 1 regeneration per 5 minutes per client (HTTP 429)
  * S6f: Intake fallback — if no intake exists, refreshes tools/voice from current prompt + settings
  *
- * Body: { clientId: string }
+ * Body: { clientId: string, agentModeOverride?: AgentMode }
+ *   agentModeOverride: admin-only — forces a full Phase 2b deep-mode rebuild with this mode.
+ *   When provided: S6f fallback is SUPPRESSED (fail loudly if no intake exists).
+ *   When absent: existing behavior is unchanged.
+ *
  * Returns: { ok, saved, synced, source, error?, cooldown_seconds? }
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -17,6 +21,7 @@ import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { patchCalendarBlock, patchSmsBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
+import { buildAgentModeRebuildPrompt, AGENT_MODE_VALUES, type AgentMode } from '@/lib/agent-mode-rebuild'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -34,13 +39,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json().catch(() => ({})) as { clientId?: string }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; agentModeOverride?: string }
   const { clientId } = body
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
   // Scope check: owners can only regenerate their own client
   if (cu.role === 'owner' && cu.client_id !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // agentModeOverride is admin-only — owners cannot trigger a deep-mode rebuild
+  const agentModeOverride = body.agentModeOverride as AgentMode | undefined
+  if (agentModeOverride !== undefined) {
+    if (cu.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: agentModeOverride requires admin role' }, { status: 403 })
+    }
+    if (!AGENT_MODE_VALUES.includes(agentModeOverride)) {
+      return NextResponse.json({ error: `Invalid agentModeOverride: ${agentModeOverride}` }, { status: 400 })
+    }
   }
 
   const svc = createServiceClient()
@@ -95,9 +111,32 @@ export async function POST(req: NextRequest) {
 
   let newPrompt: string
   let regenSource: 'intake' | 'refresh'
+  let agentModeWriteBack: { agent_mode: AgentMode; call_handling_mode: string } | undefined
 
-  if (intake?.intake_json) {
-    // Primary path: regenerate from intake data
+  if (agentModeOverride) {
+    // ── Phase 4 deep-mode rebuild path (admin-only) ───────────────────────────
+    // Uses the shared helper so preview and confirm produce identical prompts.
+    // Throws if no intake exists (no S6f fallback for explicit mode overrides).
+    let rebuildResult
+    try {
+      rebuildResult = await buildAgentModeRebuildPrompt(svc, clientId, agentModeOverride)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({ error: msg }, { status: 404 })
+    }
+    newPrompt = rebuildResult.newPrompt
+    regenSource = 'intake'
+    agentModeWriteBack = {
+      agent_mode: agentModeOverride,
+      call_handling_mode: rebuildResult.effectiveCallHandlingMode,
+    }
+    console.log(
+      `[regenerate-prompt] deep-mode rebuild: mode=${agentModeOverride} ` +
+      `call_handling_mode=${rebuildResult.effectiveCallHandlingMode} ` +
+      `chars=${newPrompt.length}`,
+    )
+  } else if (intake?.intake_json) {
+    // ── Standard path: regenerate from intake data ────────────────────────────
     const intakeData = { ...intake.intake_json } as Record<string, unknown>
 
     // For active clients, preserve the current agent_name
@@ -188,6 +227,11 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   }
   if (newVersion) dbUpdates.active_prompt_version_id = newVersion.id
+  // Write agent_mode + call_handling_mode when a deep-mode rebuild was performed
+  if (agentModeWriteBack) {
+    dbUpdates.agent_mode = agentModeWriteBack.agent_mode
+    dbUpdates.call_handling_mode = agentModeWriteBack.call_handling_mode
+  }
   await svc.from('clients').update(dbUpdates).eq('id', clientId)
 
   // ── Sync to Ultravox agent if one exists ───────────────────────────────────
@@ -230,7 +274,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  console.log(`[regenerate-prompt] client=${client.slug} v${newVersion?.version ?? '?'} source=${regenSource} role=${cu.role} chars=${newPrompt.length} delta=${delta}`)
+  const modeTag = agentModeWriteBack ? ` mode=${agentModeWriteBack.agent_mode}` : ''
+  console.log(`[regenerate-prompt] client=${client.slug} v${newVersion?.version ?? '?'} source=${regenSource}${modeTag} role=${cu.role} chars=${newPrompt.length} delta=${delta}`)
 
   return NextResponse.json({ ok: true, saved: true, synced: true, source: regenSource })
 }
