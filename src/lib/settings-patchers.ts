@@ -47,6 +47,8 @@ interface PatcherContext {
   currentAgentName: string | null
   currentBusinessName: string | null
   currentCallHandlingMode: string | null
+  currentAgentMode: string | null
+  currentSmsEnabled: boolean
 }
 
 /**
@@ -75,7 +77,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name, call_handling_mode')
+    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled')
     .eq('id', clientId)
     .single()
 
@@ -89,6 +91,8 @@ async function fetchPatcherContext(
     currentAgentName: (data?.agent_name as string) ?? null,
     currentBusinessName: (data?.business_name as string) ?? null,
     currentCallHandlingMode: (data?.call_handling_mode as string) ?? null,
+    currentAgentMode: (data?.agent_mode as string) ?? null,
+    currentSmsEnabled: (data?.sms_enabled as boolean) ?? false,
   }
 }
 
@@ -218,12 +222,14 @@ export async function applyPromptPatches(
   }
 
   if (typeof body.sms_enabled === 'boolean') {
-    const patched = patchSmsBlock(prompt, body.sms_enabled)
+    // Pass current agent mode so the SMS block content matches the agent's behavior
+    const agentModeForSms = (body.agent_mode as string | undefined) ?? ctx.currentAgentMode
+    const patched = patchSmsBlock(prompt, body.sms_enabled, agentModeForSms)
     if (patched !== prompt) {
       const err = applyPatch(patched, prompt, updates, warnings)
       if (err) return { warnings, error: err }
       prompt = patched
-      console.log(`[settings] SMS block ${body.sms_enabled ? 'added to' : 'removed from'} prompt for client=${clientId}`)
+      console.log(`[settings] SMS block ${body.sms_enabled ? 'added to' : 'removed from'} prompt (mode=${agentModeForSms ?? 'default'}) for client=${clientId}`)
     }
   }
 
@@ -258,6 +264,19 @@ export async function applyPromptPatches(
       console.log(`[settings] Call handling mode patched to '${effectiveMode}' (agent_mode=${rawAgentMode ?? 'n/a'}, call_handling_mode=${callHandlingMode}) for client=${clientId}`)
     } else {
       warnings.push({ field: 'mode_not_patched', message: "Mode saved — but your agent's prompt doesn't have a CALL HANDLING MODE section. Run /prompt-deploy to update the prompt." })
+    }
+
+    // When agent_mode changes, refresh the SMS block if SMS is currently enabled —
+    // the SMS instructions must match the agent's new behavior (e.g. booking vs voicemail).
+    // Only triggers when agent_mode is explicitly in the body (not just call_handling_mode changes).
+    if (rawAgentMode && ctx.currentSmsEnabled) {
+      const smsRefreshed = patchSmsBlock(prompt, true, rawAgentMode)
+      if (smsRefreshed !== prompt) {
+        const err = applyPatch(smsRefreshed, prompt, updates, warnings)
+        if (err) return { warnings, error: err }
+        prompt = smsRefreshed
+        console.log(`[settings] SMS block refreshed for new agent_mode='${rawAgentMode}' for client=${clientId}`)
+      }
     }
   }
 

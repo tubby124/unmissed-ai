@@ -6,6 +6,25 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 import { usePatchSettings } from './usePatchSettings'
 
+const SMS_MODE_HINTS: Record<string, { title: string; description: string }> = {
+  voicemail_replacement: {
+    title: 'Message receipt',
+    description: 'After taking a message, your agent sends a brief confirmation — "We got your message and will call you back soon."',
+  },
+  appointment_booking: {
+    title: 'Booking confirmation',
+    description: 'After confirming a booking, your agent texts the appointment date, time, and service.',
+  },
+  info_hub: {
+    title: 'On-request only',
+    description: "Agent only sends a text if the caller asks for it. Won't offer proactively.",
+  },
+  lead_capture: {
+    title: 'Lead follow-up',
+    description: "After collecting the caller's name and reason for calling, your agent sends a follow-up confirmation.",
+  },
+}
+
 interface SmsTabProps {
   client: ClientConfig
   isAdmin: boolean
@@ -14,6 +33,7 @@ interface SmsTabProps {
   setSmsEnabled: (val: boolean) => void
   smsTemplate: string
   setSmsTemplate: (val: string) => void
+  agentMode?: string | null
 }
 
 export default function SmsTab({
@@ -24,6 +44,7 @@ export default function SmsTab({
   setSmsEnabled,
   smsTemplate,
   setSmsTemplate,
+  agentMode,
 }: SmsTabProps) {
   const { saving: smsSaving, saved: smsSaved, patch } = usePatchSettings(client.id, isAdmin)
   const [testSmsPhone, setTestSmsPhone] = useState('')
@@ -114,6 +135,23 @@ export default function SmsTab({
             : smsEnabled ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
         </span>
       </div>
+
+      {/* Mode-aware hint: what the agent will actually do */}
+      {smsEnabled && client.twilio_number && (() => {
+        const modeKey = (agentMode && SMS_MODE_HINTS[agentMode]) ? agentMode : 'lead_capture'
+        const hint = SMS_MODE_HINTS[modeKey]
+        return (
+          <div className="mt-3 flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--color-primary)]/[0.05] border border-[var(--color-primary)]/15">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-[var(--color-primary)] shrink-0 mt-0.5">
+              <path d="M12 16v-4m0-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div>
+              <p className="text-[10px] font-semibold t2 mb-0.5">{hint.title}</p>
+              <p className="text-[11px] t3">{hint.description}</p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Template editor */}
       <div className="mt-3">

@@ -2,7 +2,7 @@ import { wrapSection } from '@/lib/prompt-sections'
 import { getCapabilities } from '@/lib/niche-capabilities'
 import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summary'
 import { VOICE_PRESETS } from './voice-presets'
-import { MODE_INSTRUCTIONS } from './prompt-patcher'
+import { MODE_INSTRUCTIONS, getSmsBlock } from './prompt-patcher'
 import { type ServiceCatalogItem, parseServiceCatalog, formatServiceCatalog, buildBookingNotesBlock } from './service-catalog'
 
 /**
@@ -2408,6 +2408,11 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     const serviceType = variables.SERVICE_APPOINTMENT_TYPE || 'appointment'
     const closePerson = variables.CLOSE_PERSON || 'the team'
     prompt += '\n\n' + buildCalendarBlock(serviceType, closePerson)
+  }
+
+  // Append SMS follow-up block if sms_enabled — mode-aware so instructions match agent behavior
+  if (intake.sms_enabled === true) {
+    prompt += '\n\n' + getSmsBlock((intake.agent_mode as string) || null)
   }
 
   // B4 — Wrap named sections in markers so clients can edit them via the settings UI.

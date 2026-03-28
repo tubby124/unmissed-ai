@@ -200,9 +200,9 @@ export async function buildAgentModeRebuildPrompt(
     )
   }
 
-  // 3. SMS follow-up block
+  // 3. SMS follow-up block (mode-aware: agentModeOverride is the new mode being applied)
   if (client.sms_enabled) {
-    newPrompt = patchSmsBlock(newPrompt, true)
+    newPrompt = patchSmsBlock(newPrompt, true, agentModeOverride)
   }
 
   // 4. Voice style preset

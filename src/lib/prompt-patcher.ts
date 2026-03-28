@@ -78,27 +78,72 @@ export const SMS_HEADING = '# SMS FOLLOW-UP'
 
 /**
  * Build the standalone SMS follow-up instruction block.
+ * Returns mode-appropriate instructions — different agent modes have different SMS behaviors.
  * NOTE: Does NOT claim VoIP detection — that capability is not implemented.
  */
-export function getSmsBlock(): string {
-  return `# SMS FOLLOW-UP
+export function getSmsBlock(agentMode?: string | null): string {
+  switch (agentMode) {
+    case 'voicemail_replacement':
+      return `# SMS FOLLOW-UP
+
+After collecting the caller's name, phone, and message:
+1. Call sendTextMessage in the SAME turn as your closing line to confirm receipt.
+2. Keep the text brief: confirm you received their message and that someone will call back.
+3. Do not ask for permission. Only send if the caller has provided a phone number.
+The backend handles opt-out compliance automatically.`
+
+    case 'appointment_booking':
+      return `# SMS FOLLOW-UP
+
+After confirming a booking:
+1. Call sendTextMessage in the SAME turn as your closing confirmation.
+2. Include the appointment date, time, and service in the text.
+3. Do not ask for permission. Only send if the caller has provided a phone number.
+The backend handles opt-out compliance automatically.`
+
+    case 'info_hub':
+      return `# SMS FOLLOW-UP
+
+If the caller asks for written information or a summary of key details discussed:
+1. Call sendTextMessage with the relevant info before hanging up.
+2. Do not offer to send a text unless the caller explicitly requests it.
+3. Only send if the caller has provided a phone number.
+The backend handles opt-out compliance automatically.`
+
+    case 'lead_capture':
+    default:
+      return `# SMS FOLLOW-UP
 
 After collecting the caller's information (name and reason for calling), and before hanging up:
 1. Call sendTextMessage in the SAME turn as your closing line.
 2. Do not ask for permission. Do not describe the text contents.
 3. Only send if the caller has provided a phone number.
 The backend handles opt-out compliance automatically.`
+  }
 }
 
 /**
- * Patch a system prompt to add or remove the SMS FOLLOW-UP block.
- * Mirrors the pattern of patchCalendarBlock — idempotent in both directions.
+ * Patch a system prompt to add, remove, or refresh the SMS FOLLOW-UP block.
+ * - enabled + no block → append mode-appropriate block
+ * - enabled + block exists + agentMode → replace block with mode-appropriate version
+ * - enabled + block exists + no agentMode → no-op (preserve existing block)
+ * - disabled + block exists → remove block
  */
-export function patchSmsBlock(prompt: string, enabled: boolean): string {
+export function patchSmsBlock(prompt: string, enabled: boolean, agentMode?: string | null): string {
   const hasBlock = prompt.includes(SMS_HEADING)
 
   if (enabled && !hasBlock) {
-    return prompt.trimEnd() + '\n\n' + getSmsBlock()
+    return prompt.trimEnd() + '\n\n' + getSmsBlock(agentMode)
+  }
+
+  if (enabled && hasBlock && agentMode != null) {
+    // Replace existing block with mode-appropriate version (handles mode change while SMS stays on)
+    const startIdx = prompt.indexOf(SMS_HEADING)
+    const afterStart = prompt.indexOf('\n#', startIdx + SMS_HEADING.length)
+    const withoutBlock = afterStart === -1
+      ? prompt.substring(0, startIdx).trimEnd()
+      : (prompt.substring(0, startIdx) + prompt.substring(afterStart)).replace(/\n{3,}/g, '\n\n').trimEnd()
+    return withoutBlock + '\n\n' + getSmsBlock(agentMode)
   }
 
   if (!enabled && hasBlock) {

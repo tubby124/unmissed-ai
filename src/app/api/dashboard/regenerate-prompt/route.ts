@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -190,10 +190,10 @@ export async function POST(req: NextRequest) {
       console.log(`[regenerate-prompt] Re-applied calendar booking block`)
     }
 
-    // 3. SMS follow-up block: if sms_enabled, ensure the block is present post-regen
+    // 3. SMS follow-up block: if sms_enabled, ensure the block is present post-regen (mode-aware)
     if (client.sms_enabled) {
-      newPrompt = patchSmsBlock(newPrompt, true)
-      console.log(`[regenerate-prompt] Re-applied SMS follow-up block`)
+      newPrompt = patchSmsBlock(newPrompt, true, client.agent_mode as string | null)
+      console.log(`[regenerate-prompt] Re-applied SMS follow-up block (mode=${client.agent_mode ?? 'default'})`)
     }
 
     // 4. Voice style: re-patch the tone/style section if a preset was applied
