@@ -19,6 +19,7 @@ import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
 import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
 import BookingCard from '@/components/dashboard/settings/BookingCard'
 import CallHandlingModeCard from '@/components/dashboard/settings/CallHandlingModeCard'
+import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import SetupCard from '@/components/dashboard/settings/SetupCard'
 import GodModeCard from '@/components/dashboard/settings/GodModeCard'
@@ -442,6 +443,14 @@ export default function AgentTab({
         previewMode={previewMode}
         onPromptChange={handlePromptChange}
       />
+      {!isAdmin && (
+        <AgentModeCard
+          clientId={client.id}
+          currentAgentMode={client.agent_mode ?? null}
+          currentCallHandlingMode={client.call_handling_mode ?? null}
+          previewMode={previewMode}
+        />
+      )}
       <div id="section-voice-style">
         <VoiceStyleCard
           clientId={client.id}

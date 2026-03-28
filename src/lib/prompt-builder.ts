@@ -1933,15 +1933,18 @@ const MODE_VARIABLE_OVERRIDES: Record<string, {
 function applyModeVariableOverrides(
   effectiveMode: string,
   variables: Record<string, string>,
-): { modeForbiddenExtra: string; modeTriageDeep: string } {
+): { modeForbiddenExtra: string; modeTriageDeep: string; modeForcesTriageDeep: boolean } {
   const overrides = MODE_VARIABLE_OVERRIDES[effectiveMode]
-  if (!overrides) return { modeForbiddenExtra: '', modeTriageDeep: '' }
+  if (!overrides) return { modeForbiddenExtra: '', modeTriageDeep: '', modeForcesTriageDeep: false }
 
   // Variable overrides: only apply when variable is not already set by niche or intake.
-  // Exception: appointment_booking always overrides COMPLETION_FIELDS and CLOSE_ACTION because
-  // booking fundamentally changes what "done" means — date/time is always required regardless of niche.
+  // Modes that redefine call intent (voicemail_replacement, info_hub, appointment_booking) force-override
+  // behavioral fields regardless of niche, because mode intent must win over niche collection behavior.
+  // lead_capture has no overrides and continues to defer entirely to niche.
   const FORCE_OVERRIDE_FIELDS: Partial<Record<string, ReadonlyArray<string>>> = {
-    appointment_booking: ['COMPLETION_FIELDS', 'CLOSE_ACTION'],
+    appointment_booking: ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'],
+    voicemail_replacement: ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'],
+    info_hub: ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'],
   }
   const forced = FORCE_OVERRIDE_FIELDS[effectiveMode] ?? []
   const varFields = ['COMPLETION_FIELDS', 'CLOSE_ACTION', 'FIRST_INFO_QUESTION', 'INFO_TO_COLLECT'] as const
@@ -1954,6 +1957,7 @@ function applyModeVariableOverrides(
   return {
     modeForbiddenExtra: overrides.FORBIDDEN_EXTRA ?? '',
     modeTriageDeep: overrides.TRIAGE_DEEP ?? '',
+    modeForcesTriageDeep: forced.length > 0 && !!overrides.TRIAGE_DEEP,
   }
 }
 
@@ -2147,7 +2151,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Phase 2b — apply agent-mode variable defaults for deeper build-time behavior.
   // Must run after niche+intake overrides (already in variables) and after effectiveMode is known.
   // Returns FORBIDDEN_EXTRA append text and TRIAGE_DEEP fallback for the post-build pipeline.
-  const { modeForbiddenExtra, modeTriageDeep } = applyModeVariableOverrides(effectiveMode, variables)
+  const { modeForbiddenExtra, modeTriageDeep, modeForcesTriageDeep } = applyModeVariableOverrides(effectiveMode, variables)
 
   // FAQ pairs from structured input
   const faqPairsRaw = intake.niche_faq_pairs as string | undefined
@@ -2248,8 +2252,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     }
   }
 
-  // Replace shallow triage with deep niche version (niche wins; mode fallback when niche has none)
-  const triageDeep = nicheDefaults.TRIAGE_DEEP || modeTriageDeep || ''
+  // Replace shallow triage with deep version.
+  // Mode wins when it explicitly redefines call intent (modeForcesTriageDeep);
+  // otherwise niche wins and mode is a fallback for niches without a TRIAGE_DEEP.
+  const triageDeep = modeForcesTriageDeep ? modeTriageDeep : (nicheDefaults.TRIAGE_DEEP || modeTriageDeep || '')
   if (triageDeep) {
     const triageStart = prompt.indexOf('## 3. TRIAGE')
     const infoStart = prompt.indexOf('## 4. INFO COLLECTION')

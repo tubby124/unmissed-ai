@@ -302,9 +302,33 @@ describe('Null / missing field defaults', () => {
   })
 })
 
-// ── 5. Throws on missing client ───────────────────────────────────────────────
+// ── 5. Niche hyphen normalization ────────────────────────────────────────────
+// DB niches use hyphens (auto-glass, property-management); NICHE_DEFAULTS keys
+// use underscores. clientToSyntheticIntake must normalize before writing.
 
-describe('Error handling', () => {
+describe('Niche hyphen normalization', () => {
+  test('auto-glass → auto_glass', async () => {
+    const svc = mockSvc({ ...FULL_ROW, niche: 'auto-glass' })
+    const { payload } = await clientToSyntheticIntake(svc as never, 'abc-123')
+    assert.equal(payload.niche, 'auto_glass')
+  })
+
+  test('property-management → property_management', async () => {
+    const svc = mockSvc({ ...FULL_ROW, niche: 'property-management' })
+    const { payload } = await clientToSyntheticIntake(svc as never, 'abc-123')
+    assert.equal(payload.niche, 'property_management')
+  })
+
+  test('real_estate unchanged (no hyphens)', async () => {
+    const svc = mockSvc({ ...FULL_ROW, niche: 'real_estate' })
+    const { payload } = await clientToSyntheticIntake(svc as never, 'abc-123')
+    assert.equal(payload.niche, 'real_estate')
+  })
+})
+
+// ── 6. Throws on missing client ───────────────────────────────────────────────
+
+describe('Error handling — missing client', () => {
   test('throws when client not found', async () => {
     const svc = mockSvc(null)
     await assert.rejects(

@@ -9,7 +9,7 @@
  * S6f: Intake fallback — if no intake exists, refreshes tools/voice from current prompt + settings
  *
  * Body: { clientId: string, agentModeOverride?: AgentMode }
- *   agentModeOverride: admin-only — forces a full Phase 2b deep-mode rebuild with this mode.
+ *   agentModeOverride: admin or owner (scoped) — forces a full Phase 2b deep-mode rebuild with this mode.
  *   When provided: S6f fallback is SUPPRESSED (fail loudly if no intake exists).
  *   When absent: existing behavior is unchanged.
  *
@@ -48,15 +48,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // agentModeOverride is admin-only — owners cannot trigger a deep-mode rebuild
+  // agentModeOverride: owners can pass this for their own client (deep-mode rebuild)
   const agentModeOverride = body.agentModeOverride as AgentMode | undefined
-  if (agentModeOverride !== undefined) {
-    if (cu.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: agentModeOverride requires admin role' }, { status: 403 })
-    }
-    if (!AGENT_MODE_VALUES.includes(agentModeOverride)) {
-      return NextResponse.json({ error: `Invalid agentModeOverride: ${agentModeOverride}` }, { status: 400 })
-    }
+  if (agentModeOverride !== undefined && !AGENT_MODE_VALUES.includes(agentModeOverride)) {
+    return NextResponse.json({ error: `Invalid agentModeOverride: ${agentModeOverride}` }, { status: 400 })
   }
 
   const svc = createServiceClient()

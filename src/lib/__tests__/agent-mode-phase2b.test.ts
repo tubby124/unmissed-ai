@@ -77,35 +77,32 @@ describe('1. voicemail_replacement + other niche', () => {
   })
 })
 
-// ── 2. voicemail_replacement + auto_glass (niche wins) ───────────────────────
+// ── 2. voicemail_replacement + auto_glass (Phase 5c: mode wins) ──────────────
+// Phase 5c flipped this: voicemail_replacement is intent-redefining, so mode wins
+// on TRIAGE_DEEP and COMPLETION_FIELDS even when the niche has its own values.
 
-describe('2. voicemail_replacement + auto_glass — niche wins over mode for TRIAGE_DEEP', () => {
-  test('TRIAGE section uses auto_glass TRIAGE_DEEP, NOT mode voicemail text', () => {
+describe('2. voicemail_replacement + auto_glass — mode wins on TRIAGE_DEEP and COMPLETION_FIELDS', () => {
+  test('TRIAGE section uses mode voicemail text, NOT auto_glass niche TRIAGE_DEEP', () => {
     const prompt = buildPromptFromIntake(intake('auto_glass', 'voicemail_replacement'))
-    // auto_glass has its own TRIAGE_DEEP with specific windshield language
     assert.ok(
-      prompt.includes('TRIAGE (Windshield)'),
-      'Expected auto_glass TRIAGE_DEEP text (niche wins)',
+      prompt.includes('Do not ask about services, schedules, or urgency'),
+      'Mode TRIAGE_DEEP must fire for voicemail_replacement (Phase 5c: mode wins)',
     )
     assert.ok(
-      !prompt.includes('Do not ask about services, schedules, or urgency'),
-      'Mode TRIAGE_DEEP must NOT fire when niche provides its own',
+      !prompt.includes('TRIAGE (Windshield)'),
+      'auto_glass niche TRIAGE_DEEP must NOT appear when voicemail_replacement is active',
     )
   })
 
-  test('COMPLETION_FIELDS uses auto_glass niche value, NOT mode override', () => {
+  test('COMPLETION_FIELDS uses mode value (name/phone/message), NOT auto_glass niche value', () => {
     const prompt = buildPromptFromIntake(intake('auto_glass', 'voicemail_replacement'))
-    // auto_glass sets COMPLETION_FIELDS to 'vehicle year, make, model, and preferred timing'
     assert.ok(
-      prompt.includes('vehicle year, make, model'),
-      'Expected auto_glass COMPLETION_FIELDS (niche wins over mode)',
+      prompt.includes("caller's name, phone number, and a brief message"),
+      'COMPLETION_FIELDS must be mode value for voicemail_replacement (Phase 5c)',
     )
-    // "brief message" legitimately appears in the ## CALL HANDLING MODE voicemail instruction —
-    // that is expected. What must NOT happen is the COMPLETION_FIELDS substitution using the
-    // mode value. Verify rule 7 / COMPLETION CHECK uses the niche value, not the mode value.
     assert.ok(
-      prompt.includes('collected vehicle year, make, model'),
-      'Rule 7 COMPLETION CHECK must use auto_glass COMPLETION_FIELDS, not voicemail_replacement override',
+      !prompt.includes('vehicle year, make, model, and preferred timing'),
+      'niche COMPLETION_FIELDS must not appear when voicemail_replacement is active',
     )
   })
 

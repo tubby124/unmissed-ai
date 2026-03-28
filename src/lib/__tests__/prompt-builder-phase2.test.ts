@@ -204,3 +204,104 @@ describe('Phase 2 — no {{VARIABLE}} leakage in any registered niche', () => {
     })
   }
 })
+
+// ── Phase 5c — mode-vs-niche precedence ──────────────────────────────────────
+// No-ship matrix: mode intent must win on behavioral fields for intent-redefining modes.
+// lead_capture must continue to defer to niche (regression).
+
+describe('Phase 5c — auto_glass + voicemail_replacement: mode wins on behavioral fields', () => {
+  const prompt = buildPromptFromIntake(baseIntake('auto_glass', {
+    agent_mode: 'voicemail_replacement',
+  }))
+
+  test('COMPLETION_FIELDS is mode value (name/phone/message), not niche value (vehicle info)', () => {
+    assert.ok(
+      prompt.includes("caller's name, phone number, and a brief message"),
+      'COMPLETION_FIELDS must be mode value for voicemail_replacement',
+    )
+    assert.ok(
+      !prompt.includes('vehicle year, make, model, and preferred timing'),
+      'niche COMPLETION_FIELDS must not appear when voicemail_replacement is active',
+    )
+  })
+
+  test('TRIAGE_DEEP (section 3) is message-taking script, not windshield triage', () => {
+    assert.ok(
+      prompt.includes('Do not ask about services, schedules, or urgency'),
+      'mode TRIAGE_DEEP must appear in prompt for voicemail_replacement',
+    )
+  })
+
+  test('no {{VARIABLE}} leakage', () => {
+    const remaining = prompt.match(/\{\{[A-Z_]+\}\}/g)
+    assert.strictEqual(remaining, null, `unfilled variables: ${JSON.stringify(remaining)}`)
+  })
+})
+
+describe('Phase 5c — auto_glass + lead_capture: niche still wins (regression)', () => {
+  const prompt = buildPromptFromIntake(baseIntake('auto_glass', {
+    agent_mode: 'lead_capture',
+    call_handling_mode: 'triage',
+  }))
+
+  test('COMPLETION_FIELDS is niche value (vehicle info)', () => {
+    assert.ok(
+      prompt.includes('vehicle year, make, model, and preferred timing'),
+      'niche COMPLETION_FIELDS must still win for lead_capture mode',
+    )
+  })
+
+  test('TRIAGE_DEEP (section 3) is windshield triage, not message-taking', () => {
+    assert.ok(
+      prompt.includes('gotcha, just a chip'),
+      'niche TRIAGE_DEEP must still win for lead_capture mode',
+    )
+    assert.ok(
+      !prompt.includes('Do not ask about services, schedules, or urgency'),
+      'mode TRIAGE_DEEP must not appear for lead_capture',
+    )
+  })
+})
+
+describe('Phase 5c — auto_glass + appointment_booking: booking fields win on COMPLETION_FIELDS and TRIAGE_DEEP', () => {
+  const prompt = buildPromptFromIntake(baseIntake('auto_glass', {
+    agent_mode: 'appointment_booking',
+  }))
+
+  test('COMPLETION_FIELDS is booking fields (not vehicle info)', () => {
+    assert.ok(
+      prompt.includes('service type, and preferred date/time'),
+      'COMPLETION_FIELDS must be booking fields for appointment_booking',
+    )
+    assert.ok(
+      !prompt.includes('vehicle year, make, model, and preferred timing'),
+      'niche COMPLETION_FIELDS must not appear for appointment_booking',
+    )
+  })
+
+  test('TRIAGE_DEEP leads with booking, not windshield diagnosis', () => {
+    assert.ok(
+      prompt.includes('I can check availability and book you right now'),
+      'mode TRIAGE_DEEP must win for appointment_booking (leads with booking)',
+    )
+  })
+})
+
+describe('Phase 5c — real_estate + voicemail_replacement: bespoke builder unaffected', () => {
+  // real_estate uses a bespoke builder that returns before mode variable overrides run.
+  // Verify: no crash, output is still valid, no variable leakage.
+  const prompt = buildPromptFromIntake(baseIntake('real_estate', {
+    agent_mode: 'voicemail_replacement',
+    owner_name: 'Hasan Sharif',
+    callback_phone: '+13068507687',
+  }))
+
+  test('bespoke builder still produces a valid prompt', () => {
+    assert.ok(prompt.length > 100, 'prompt must not be empty')
+  })
+
+  test('no {{VARIABLE}} leakage from bespoke builder', () => {
+    const remaining = prompt.match(/\{\{[A-Z_]+\}\}/g)
+    assert.strictEqual(remaining, null, `unfilled variables: ${JSON.stringify(remaining)}`)
+  })
+})

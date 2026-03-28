@@ -110,7 +110,7 @@ export async function clientToSyntheticIntake(
 
   const payload: SyntheticIntakePayload = {
     business_name: row.business_name,
-    niche: row.niche || 'other',
+    niche: (row.niche || 'other').replace(/-/g, '_'),
     agent_name: row.agent_name || '',
     city: row.city || '',
     timezone: row.timezone || 'America/Edmonton',
