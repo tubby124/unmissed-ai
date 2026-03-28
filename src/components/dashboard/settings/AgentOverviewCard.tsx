@@ -11,6 +11,7 @@ import VoicePicker from './VoicePicker'
 import QuickInject from './QuickInject'
 import ContextDataCard from './ContextDataCard'
 import type { CardMode } from './usePatchSettings'
+import { usePatchSettings } from './usePatchSettings'
 import { useDirtyGuard } from './useDirtyGuard'
 
 interface AgentOverviewCardProps {
@@ -39,10 +40,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
     else markClean()
   }, [nameDirty, markDirty, markClean])
 
-  // Footer save
-  const [footerSaving, setFooterSaving] = useState(false)
-  const [footerSaved, setFooterSaved] = useState(false)
-  const [footerError, setFooterError] = useState<string | null>(null)
+  const { saving: footerSaving, saved: footerSaved, error: footerError, warnings, patch } = usePatchSettings(client.id, isAdmin, { onSave, onPromptChange })
 
   // SMS chip
   const [localSmsEnabled, setLocalSmsEnabled] = useState(client.sms_enabled ?? false)
@@ -58,39 +56,11 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  function patch(body: Record<string, unknown>) {
-    const payload = { ...body, ...(isAdmin ? { client_id: client.id } : {}) }
-    return fetch('/api/dashboard/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-  }
-
   async function saveFooter() {
     if (!nameDirty) return
-    setFooterSaving(true)
-    setFooterSaved(false)
-    setFooterError(null)
     const trimmed = agentName.trim()
     const res = await patch({ agent_name: trimmed })
-    setFooterSaving(false)
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}))
-      if (typeof data.system_prompt === 'string') {
-        onPromptChange?.(data.system_prompt)
-      }
-      setSavedName(trimmed)
-      setFooterSaved(true)
-      // Surface patcher warning if name wasn't found in prompt
-      const w = (data.warnings ?? []).find((w: { field?: string; message?: string }) => w.field === 'agent_name_not_patched')
-      if (w?.message) setFooterError(w.message)
-      onSave?.()
-      setTimeout(() => setFooterSaved(false), 3000)
-    } else {
-      const data = await res.json().catch(() => ({}))
-      setFooterError(data.error || `Save failed (${res.status})`)
-    }
+    if (res?.ok) setSavedName(trimmed)
   }
 
   async function toggleSms() {
@@ -315,6 +285,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
             <div>
               <p className="text-[11px] t3">{mode === 'onboarding' ? 'Set your agent identity' : 'Unsaved changes to agent identity'}</p>
               {footerError && <p className="text-[11px] text-red-400 mt-1">{footerError}</p>}
+              {warnings.length > 0 && <p className="text-[11px] text-amber-400 mt-1">{warnings[0]}</p>}
             </div>
             <button
               onClick={saveFooter}

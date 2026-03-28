@@ -37,6 +37,8 @@ export default function HoursSheet({
 
   const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave })
 
+  const hasCustomMessage = initialAfterHoursBehavior === 'custom_message'
+
   const isDirty =
     weekday !== initialWeekday ||
     weekend !== initialWeekend ||
@@ -95,36 +97,52 @@ export default function HoursSheet({
 
       <div className="space-y-2">
         <label className="block text-[11px] font-semibold tracking-[0.12em] uppercase t3">After Hours Behavior</label>
-        <div className="space-y-1.5">
-          {BEHAVIOR_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { setBehavior(opt.value); markDirty() }}
-              className="w-full flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm text-left transition-colors"
-              style={{
-                backgroundColor: behavior === opt.value ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'var(--color-hover)',
-                border: `1px solid ${behavior === opt.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                color: behavior === opt.value ? 'var(--color-primary)' : 'var(--color-text-1)',
-              }}
+        {hasCustomMessage ? (
+          <div
+            className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm"
+            style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+          >
+            <span style={{ color: 'var(--color-text-2)' }}>Custom message set</span>
+            <a
+              href="/dashboard/agent"
+              className="text-xs font-semibold hover:opacity-75 transition-opacity"
+              style={{ color: 'var(--color-primary)' }}
             >
-              <span
-                className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center"
+              Edit in Hours settings →
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {BEHAVIOR_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { setBehavior(opt.value); markDirty() }}
+                className="w-full flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm text-left transition-colors"
                 style={{
-                  border: `1.5px solid ${behavior === opt.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  backgroundColor: behavior === opt.value ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'var(--color-hover)',
+                  border: `1px solid ${behavior === opt.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  color: behavior === opt.value ? 'var(--color-primary)' : 'var(--color-text-1)',
                 }}
               >
-                {behavior === opt.value && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
-                  />
-                )}
-              </span>
-              {opt.label}
-            </button>
-          ))}
-        </div>
+                <span
+                  className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center"
+                  style={{
+                    border: `1.5px solid ${behavior === opt.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  }}
+                >
+                  {behavior === opt.value && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
+                    />
+                  )}
+                </span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {behavior === 'route_emergency' && (
