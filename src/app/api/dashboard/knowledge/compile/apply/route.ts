@@ -22,14 +22,14 @@ import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 const COMPILER_MODEL = 'claude-haiku-4-5-20251001'
 
-const BLOCKED_KINDS = new Set([
+export const BLOCKED_KINDS = new Set([
   'call_behavior_instruction',
   'unsupported_or_ambiguous',
   'conflict_flag',
 ])
 
 // High-risk kinds get trustTier='medium' — content is time-sensitive or easily stale
-const HIGH_RISK_KINDS = new Set([
+export const HIGH_RISK_KINDS = new Set([
   'pricing_or_offer',
   'hours_or_availability',
   'location_or_service_area',
@@ -201,6 +201,8 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('[compile/apply] tools sync failed:', err)
     }
+
+    console.log(`[compile/apply] complete client_id=${clientId} model=${body.model_used ?? COMPILER_MODEL} faqs_added=${faqsAdded} chunks_created=${chunksCreated} compile_run_id=${compileRunId ?? 'none'}`)
   }
 
   return NextResponse.json({ ok: true, faqsAdded, chunksCreated })

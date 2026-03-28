@@ -157,6 +157,7 @@ function ReviewStep({
   const approvedCount = approved.filter(Boolean).length
   const approvableItems = items.filter((item) => KIND_META[item.kind].approvable)
   const flaggedItems = items.filter((item) => !KIND_META[item.kind].approvable)
+  const hasFaqItems = items.some(item => item.kind === 'faq_pair')
 
   // Block apply if any approved high-risk item hasn't been verified
   const unverifiedHighRisk = items.filter((item, i) =>
@@ -199,6 +200,15 @@ function ReviewStep({
           {warnings.map((w, i) => (
             <p key={i} className="text-[11px] text-amber-400">{w}</p>
           ))}
+        </div>
+      )}
+
+      {hasFaqItems && (
+        <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20">
+          <p className="text-[11px] text-blue-400 leading-snug">
+            <span className="font-semibold">Note:</span> FAQs approved here cannot be individually removed — manage them in{' '}
+            <a href="/dashboard/settings?tab=knowledge" className="underline underline-offset-2 hover:opacity-75">Settings → FAQ</a>.
+          </p>
         </div>
       )}
 

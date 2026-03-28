@@ -215,3 +215,57 @@ describe('knowledge presence flags', () => {
     assert.equal(vm.hasForwardingNumber, true)
   })
 })
+
+// ── hasGbp ────────────────────────────────────────────────────────────────────
+
+describe('hasGbp', () => {
+  test('no gbp_place_id → false', () => {
+    const vm = buildVm({ ...base(), gbp_place_id: null }, true)
+    assert.equal(vm.hasGbp, false)
+  })
+
+  test('gbp_place_id set → true', () => {
+    const vm = buildVm({
+      ...base(),
+      gbp_place_id: 'ChIJ_abc123',
+      gbp_rating: 4.7,
+      gbp_review_count: 82,
+    }, true)
+    assert.equal(vm.hasGbp, true)
+  })
+})
+
+// ── hasFacts ──────────────────────────────────────────────────────────────────
+
+describe('hasFacts', () => {
+  test('no business_facts → false', () => {
+    const vm = buildVm({ ...base(), business_facts: null }, true)
+    assert.equal(vm.hasFacts, false)
+  })
+
+  test('whitespace-only business_facts → false', () => {
+    const vm = buildVm({ ...base(), business_facts: '   ' }, true)
+    assert.equal(vm.hasFacts, false)
+  })
+
+  test('non-empty business_facts → true', () => {
+    const vm = buildVm({ ...base(), business_facts: 'We offer free estimates.' }, true)
+    assert.equal(vm.hasFacts, true)
+  })
+})
+
+// ── compiledChunkCount ────────────────────────────────────────────────────────
+
+describe('compiledChunkCount', () => {
+  test('defaults to 0 when not passed', () => {
+    const config = buildClientAgentConfig(base())
+    const vm = buildTrialWelcomeViewModel(config, true)
+    assert.equal(vm.compiledChunkCount, 0)
+  })
+
+  test('passes through the supplied count', () => {
+    const config = buildClientAgentConfig(base())
+    const vm = buildTrialWelcomeViewModel(config, true, new Date(), 14)
+    assert.equal(vm.compiledChunkCount, 14)
+  })
+})

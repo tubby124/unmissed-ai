@@ -12,7 +12,6 @@ interface WelcomeViewProps {
   trialWelcome: TrialWelcomeViewModel
   clientStatus: string | null
   hasAgent: boolean
-  hasFacts: boolean
   hasBooking: boolean
 }
 
@@ -33,10 +32,9 @@ export default function WelcomeView({
   trialWelcome,
   clientStatus,
   hasAgent,
-  hasFacts,
   hasBooking,
 }: WelcomeViewProps) {
-  const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber, hasGbp, compiledChunkCount } = trialWelcome
+  const { agentName, businessName, daysLeft, provisioningState, hasHours, hasFaqs, hasWebsite, hasForwardingNumber, hasGbp, hasFacts, compiledChunkCount } = trialWelcome
   const { openUpgradeModal } = useUpgradeModal()
 
   // Mark welcome as seen (per-client) and fire view event — deduped to once per session per client
@@ -121,16 +119,12 @@ export default function WelcomeView({
         <div className="space-y-2.5">
           <KnowledgeRow label="Hours" active={hasHours} activeText="Configured" inactiveText="Not set" />
           <KnowledgeRow label="FAQs" active={hasFaqs} activeText="Configured" inactiveText="None added yet" />
-          <KnowledgeRow
-            label="Knowledge"
-            active={hasWebsite || hasFacts || hasGbp || compiledChunkCount > 0}
-            activeText={hasWebsite ? 'Website loaded' : hasGbp ? 'Google data loaded' : compiledChunkCount > 0 ? `${compiledChunkCount} AI-compiled` : 'Facts added'}
-            inactiveText="Basic only"
-            neutral={!hasWebsite && !hasGbp && compiledChunkCount === 0 && hasFacts}
-          />
+          <KnowledgeRow label="Google" active={hasGbp} activeText="Imported" inactiveText="Not imported" neutral />
+          <KnowledgeRow label="Website" active={hasWebsite} activeText="Loaded" inactiveText="Not added" neutral />
+          <KnowledgeRow label="AI Compiler" active={compiledChunkCount > 0} activeText={`${compiledChunkCount} item${compiledChunkCount !== 1 ? 's' : ''}`} inactiveText="None yet" neutral />
+          <KnowledgeRow label="Quick-teach" active={hasFacts} activeText="Added" inactiveText="None added" neutral />
           <KnowledgeRow label="Booking" active={hasBooking} activeText="Calendar connected" inactiveText="Not connected" neutral={!hasBooking} />
           <KnowledgeRow label="Forwarding" active={hasForwardingNumber} activeText="Configured" inactiveText="Not set" />
-          <KnowledgeRow label="Website" active={hasWebsite} activeText="Added" inactiveText="Not added" />
         </div>
       </div>
 

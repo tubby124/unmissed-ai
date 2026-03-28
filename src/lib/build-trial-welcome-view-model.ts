@@ -23,6 +23,8 @@ export type TrialWelcomeViewModel = {
   hasWebsite: boolean
   hasForwardingNumber: boolean
   hasGbp: boolean
+  /** True when clients.business_facts is non-empty — quick-teach raw text path */
+  hasFacts: boolean
   compiledChunkCount: number
   /**
    * ready     — agent exists + forwarding is configured (setup_complete)
@@ -75,6 +77,7 @@ export function buildTrialWelcomeViewModel(
     hasWebsite: config.knowledge.scrapeStatus === 'complete',
     hasForwardingNumber: config.routing.callForwardingEnabled,
     hasGbp: config.gbp.hasGbp,
+    hasFacts: !!config.knowledge.businessFacts?.trim(),
     compiledChunkCount,
     provisioningState,
   }

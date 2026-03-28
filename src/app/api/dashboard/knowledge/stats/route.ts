@@ -56,8 +56,11 @@ export async function GET(req: NextRequest) {
     const t = row.chunk_type ?? 'unknown'
     byType[t] = (byType[t] ?? 0) + 1
 
-    const s = row.source ?? 'unknown'
-    bySource[s] = (bySource[s] ?? 0) + 1
+    // Gate 3: bySource counts only approved chunks — must match getCompiledChunkCount()
+    if (row.status === 'approved') {
+      const s = row.source ?? 'unknown'
+      bySource[s] = (bySource[s] ?? 0) + 1
+    }
   }
 
   // Derive plan source limits

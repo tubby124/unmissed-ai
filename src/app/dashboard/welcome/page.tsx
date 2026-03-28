@@ -77,7 +77,6 @@ export default async function WelcomePage() {
       trialWelcome={trialWelcome}
       clientStatus={c.status as string | null}
       hasAgent={!!c.ultravox_agent_id}
-      hasFacts={!!c.business_facts}
       hasBooking={!!(client.booking_enabled && c.calendar_auth_status === 'connected')}
     />
   )
