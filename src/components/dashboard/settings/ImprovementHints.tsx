@@ -24,6 +24,7 @@
  */
 
 import type { CallInsight, FeatureSuggestion } from '@/lib/transcript-analysis'
+import { analyzeQualityMetrics } from '@/lib/quality-metrics'
 import type { AgentKnowledge } from './AgentVoiceTest'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,6 +49,8 @@ interface ImprovementHintsProps {
   knowledge: AgentKnowledge
   /** Transcript analysis results (null if no analysis ran) */
   callInsight?: CallInsight | null
+  /** Raw final transcripts for quality metric computation */
+  transcripts?: Array<{ speaker: string; text: string; isFinal: boolean }>
   /** Scroll to a settings section by ID */
   onScrollTo?: (section: string) => void
 }
@@ -152,10 +155,30 @@ function mergeHints(transcriptHints: HintItem[], configHints: HintItem[]): HintI
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ImprovementHints({ knowledge, callInsight, onScrollTo }: ImprovementHintsProps) {
+export default function ImprovementHints({ knowledge, callInsight, transcripts, onScrollTo }: ImprovementHintsProps) {
   const transcriptHints = callInsight ? getTranscriptHints(callInsight) : []
   const configHints = getConfigHints(knowledge)
-  const hints = mergeHints(transcriptHints, configHints)
+
+  // 8o quality signal: if agent confidence is low, inject a hint toward the prompt editor
+  const qualityHints: HintItem[] = []
+  if (transcripts && transcripts.length > 0) {
+    const messages = transcripts
+      .filter(t => t.isFinal)
+      .map(t => ({ role: t.speaker === 'agent' ? 'agent' as const : 'user' as const, text: t.text }))
+    if (messages.length > 0) {
+      const metrics = analyzeQualityMetrics(messages)
+      if (metrics.agent_confidence < 0.6) {
+        qualityHints.push({
+          icon: '🧠',
+          label: `Agent confidence was low (${Math.round(metrics.agent_confidence * 100)}%) — review your knowledge base`,
+          section: 'knowledge',
+          source: 'transcript',
+        })
+      }
+    }
+  }
+
+  const hints = mergeHints([...transcriptHints, ...qualityHints], configHints)
 
   if (hints.length === 0) return null
 

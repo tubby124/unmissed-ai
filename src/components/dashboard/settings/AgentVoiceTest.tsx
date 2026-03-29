@@ -479,7 +479,7 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, 
 
             {/* Post-call improvement hints (L5: transcript-aware + config-aware) */}
             {knowledge && (
-              <ImprovementHints knowledge={knowledge} callInsight={callInsight} onScrollTo={onScrollTo} />
+              <ImprovementHints knowledge={knowledge} callInsight={callInsight} transcripts={finalTranscripts} onScrollTo={onScrollTo} />
             )}
 
             {/* Trial upgrade CTA — appears only for trial users after first call */}

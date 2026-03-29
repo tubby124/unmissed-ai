@@ -24,6 +24,7 @@ import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import SetupCard from '@/components/dashboard/settings/SetupCard'
 import GodModeCard from '@/components/dashboard/settings/GodModeCard'
 import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
+import PromptSuggestionsCard from '@/components/dashboard/settings/PromptSuggestionsCard'
 import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard'
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
@@ -366,6 +367,9 @@ export default function AgentTab({
           isAdmin={isAdmin}
           onRequestImprovement={isAdmin ? handleRequestImprovement : undefined}
         />
+      </PlanGate>
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
+        <PromptSuggestionsCard clientId={client.id} isAdmin={isAdmin} onScrollTo={handleScrollTo} />
       </PlanGate>
     </SettingsSection>
 

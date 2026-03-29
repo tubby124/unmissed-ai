@@ -81,7 +81,29 @@ export async function GET(req: NextRequest) {
 
   if (filterClientId) prevQ = prevQ.eq('client_id', filterClientId)
 
-  const [{ data: currentCalls }, { data: prevCalls }] = await Promise.all([currentQ, prevQ])
+  // Fetch call_insights for quality metrics (current period only)
+  let insightsQ = supabase
+    .from('call_insights')
+    .select('caller_frustrated, unanswered_questions, feature_suggestions, agent_confidence, talk_ratio_agent, created_at, call_id')
+    .gte('created_at', currentStart)
+    .limit(2000)
+
+  if (filterClientId) insightsQ = insightsQ.eq('client_id', filterClientId)
+
+  // Fetch pending suggestion count
+  let suggestionsCountQ = supabase
+    .from('prompt_improvement_suggestions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
+
+  if (filterClientId) suggestionsCountQ = suggestionsCountQ.eq('client_id', filterClientId)
+
+  const [{ data: currentCalls }, { data: prevCalls }, { data: insightsRaw }, { count: pendingSuggestions }] = await Promise.all([
+    currentQ,
+    prevQ,
+    insightsQ,
+    suggestionsCountQ,
+  ])
 
   const calls = (currentCalls ?? []) as RawCall[]
   const prev = (prevCalls ?? []) as Pick<RawCall, 'call_status' | 'started_at' | 'duration_seconds' | 'quality_score'>[]
@@ -196,6 +218,66 @@ export async function GET(req: NextRequest) {
     .map(([date, { sum, count }]) => ({ date, avg: Math.round((sum / count) * 10) / 10 }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
+  // --- Agent Quality (from call_insights — 8o/8m) ---
+  interface RawInsight {
+    caller_frustrated: boolean | null
+    unanswered_questions: unknown[] | null
+    feature_suggestions: unknown[] | null
+    agent_confidence: number | null
+    talk_ratio_agent: number | null
+    created_at: string
+    call_id: string | null
+  }
+  const insights = (insightsRaw ?? []) as RawInsight[]
+
+  const insightTotal = insights.length
+
+  const avgConfidence = insightTotal > 0
+    ? Math.round(insights.reduce((s, r) => s + (r.agent_confidence ?? 0), 0) / insightTotal * 100) / 100
+    : null
+
+  const frustrationRate = insightTotal > 0
+    ? Math.round(insights.filter(r => r.caller_frustrated).length / insightTotal * 100) / 100
+    : null
+
+  const unansweredRate = insightTotal > 0
+    ? Math.round(insights.filter(r => Array.isArray(r.unanswered_questions) && r.unanswered_questions.length > 0).length / insightTotal * 100) / 100
+    : null
+
+  const talkRatios = insights.filter(r => r.talk_ratio_agent != null).map(r => r.talk_ratio_agent!)
+  const avgTalkRatioAgent = talkRatios.length > 0
+    ? Math.round(talkRatios.reduce((a, b) => a + b, 0) / talkRatios.length * 100) / 100
+    : null
+
+  // Feature gap breakdown: count each feature type mentioned
+  const featureGapMap = new Map<string, number>()
+  for (const r of insights) {
+    if (Array.isArray(r.feature_suggestions)) {
+      for (const fs of r.feature_suggestions as Array<{ feature?: string }>) {
+        const feat = fs?.feature
+        if (feat) featureGapMap.set(feat, (featureGapMap.get(feat) ?? 0) + 1)
+      }
+    }
+  }
+  const featureGapBreakdown = Array.from(featureGapMap.entries())
+    .map(([feature, count]) => ({ feature, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // Confidence trend — daily average agent_confidence from call_insights
+  const confidenceByDay = new Map<string, { sum: number; count: number }>()
+  for (const r of insights) {
+    if (r.agent_confidence != null) {
+      const day = r.created_at.slice(0, 10)
+      const entry = confidenceByDay.get(day) ?? { sum: 0, count: 0 }
+      entry.sum += r.agent_confidence
+      entry.count++
+      confidenceByDay.set(day, entry)
+    }
+  }
+  const confidenceTrend = Array.from(confidenceByDay.entries())
+    .map(([date, { sum, count }]) => ({ date, avg: Math.round((sum / count) * 100) / 100 }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
   return NextResponse.json({
     summary: {
       totalCalls: calls.length,
@@ -216,6 +298,15 @@ export async function GET(req: NextRequest) {
     topTopics,
     sentiment: sentimentMap,
     qualityTrend,
+    agentQuality: {
+      avgConfidence,
+      frustrationRate,
+      unansweredRate,
+      avgTalkRatioAgent,
+      featureGapBreakdown,
+      confidenceTrend,
+      pendingSuggestions: pendingSuggestions ?? 0,
+    },
     range,
     totalDays: days,
   })

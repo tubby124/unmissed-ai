@@ -38,6 +38,15 @@ interface InsightsData {
   topTopics: Array<{ topic: string; count: number }>
   sentiment: Record<string, number>
   qualityTrend?: Array<{ date: string; avg: number }>
+  agentQuality?: {
+    avgConfidence: number | null
+    frustrationRate: number | null
+    unansweredRate: number | null
+    avgTalkRatioAgent: number | null
+    featureGapBreakdown: Array<{ feature: string; count: number }>
+    confidenceTrend: Array<{ date: string; avg: number }>
+    pendingSuggestions: number
+  }
   range: Range
   totalDays: number
 }
@@ -487,6 +496,107 @@ function Skeleton() {
   )
 }
 
+// ─── Agent Quality Section (8o + 8m) ─────────────────────────────────────────
+
+function AgentQualitySection({ aq, delay }: {
+  aq: NonNullable<InsightsData['agentQuality']>
+  delay: number
+}) {
+  const fmt0 = (n: number | null, unit = '') => n == null ? '--' : `${Math.round(n * 100)}${unit}`
+  const fmtPct = (n: number | null) => fmt0(n, '%')
+  const fmtRatio = (n: number | null) => n == null ? '--' : `${Math.round(n * 100)}%`
+
+  const pills = [
+    { label: 'Agent Confidence', value: fmtPct(aq.avgConfidence), accent: '#22c55e', sub: 'avg score' },
+    { label: 'Frustration Rate', value: fmtPct(aq.frustrationRate), accent: '#ef4444', sub: 'of calls' },
+    { label: 'Unanswered Rate', value: fmtPct(aq.unansweredRate), accent: '#f59e0b', sub: 'of calls' },
+    { label: 'Agent Talk Ratio', value: fmtRatio(aq.avgTalkRatioAgent), accent: '#60a5fa', sub: 'of words' },
+  ]
+
+  const hasConfidenceTrend = aq.confidenceTrend.length >= 2
+  const hasFeatureGaps = aq.featureGapBreakdown.length > 0
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+      className="space-y-3"
+    >
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Agent Quality</p>
+        {aq.pendingSuggestions > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold border"
+            style={{ borderColor: '#a5b4fc55', background: '#a5b4fc15', color: '#a5b4fc' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#a5b4fc] animate-pulse" />
+            {aq.pendingSuggestions} improvement{aq.pendingSuggestions !== 1 ? 's' : ''} ready
+          </span>
+        )}
+      </div>
+
+      {/* Metric pills */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {pills.map((p) => (
+          <div key={p.label} className="rounded-2xl border b-theme bg-surface p-4 relative overflow-hidden">
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-20 pointer-events-none"
+              style={{ background: `radial-gradient(circle, ${p.accent}55 0%, transparent 70%)` }} />
+            <p className="text-[9px] font-semibold tracking-[0.15em] uppercase mb-2 t3">{p.label}</p>
+            <p className="text-2xl font-bold font-mono tabular-nums" style={{ color: p.accent }}>{p.value}</p>
+            <p className="text-[10px] mt-0.5 t3">{p.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts row */}
+      {(hasConfidenceTrend || hasFeatureGaps) && (
+        <div className={`grid grid-cols-1 ${hasConfidenceTrend && hasFeatureGaps ? 'lg:grid-cols-2' : ''} gap-3`}>
+          {hasConfidenceTrend && (
+            <div className="rounded-2xl border b-theme bg-surface p-5">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">Confidence Trend</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <AreaChart data={aq.confidenceTrend} margin={{ top: 4, right: 4, left: -32, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 1]} tick={{ fontSize: 9, fill: 'var(--color-text-3)' }} tickFormatter={(v) => `${Math.round(v * 100)}%`} />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div className="rounded-xl px-3 py-2 text-[11px] shadow-2xl border b-theme bg-raised">
+                        <p className="mb-1 font-mono text-[9px] uppercase tracking-wider t3">{label}</p>
+                        <p className="font-mono font-semibold" style={{ color: '#22c55e' }}>{Math.round((payload[0].value as number) * 100)}% confidence</p>
+                      </div>
+                    )
+                  }} />
+                  <Area type="monotone" dataKey="avg" stroke="#22c55e" strokeWidth={2} fill="url(#confGrad)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          {hasFeatureGaps && (
+            <div className="rounded-2xl border b-theme bg-surface p-5">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4 t3">Feature Gaps</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={aq.featureGapBreakdown} layout="vertical" margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 9, fill: 'var(--color-text-3)' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="feature" tick={{ fontSize: 10, fill: 'var(--color-text-2)' }} axisLine={false} tickLine={false} width={72} />
+                  <Tooltip content={<DarkTooltip />} />
+                  <Bar dataKey="count" name="calls" fill="#f59e0b" radius={[0, 4, 4, 0]} maxBarSize={18} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 // ─── Card Wrapper ────────────────────────────────────────────────────────────
 
 function Card({ title, delay, children, className = '' }: { title: string; delay: number; children: React.ReactNode; className?: string }) {
@@ -648,6 +758,11 @@ export default function InsightsView({ clientId, isAdmin, adminClients }: Insigh
             <Card title="Quality Over Time" delay={0.47}>
               <QualityTrendChart qualityTrend={data.qualityTrend} range={data.range as Range} />
             </Card>
+          )}
+
+          {/* Agent Quality (8o + 8m) */}
+          {data.agentQuality && (
+            <AgentQualitySection aq={data.agentQuality} delay={0.48} />
           )}
 
           {/* Top Callers + Topics */}

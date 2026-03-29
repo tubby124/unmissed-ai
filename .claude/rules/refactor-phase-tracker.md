@@ -76,9 +76,9 @@
 | 8j | Intent Confidence / Containment Rate | LOW | NOT STARTED |
 | 8k | Cost-Per-Call Dashboard Widget | LOW | NOT STARTED |
 | 8l | A/B Prompt Testing | LOW | NOT STARTED |
-| 8m | Failure-to-Refine Pipeline | MEDIUM | NOT STARTED |
+| 8m | Failure-to-Refine Pipeline | MEDIUM | **DONE** 2026-03-28 |
 | 8n | Conversation Flow Visualization | LOW | NOT STARTED |
-| 8o | Frustration/Interruption Metrics | MEDIUM | NOT STARTED |
+| 8o | Frustration/Interruption Metrics | MEDIUM | **DONE** 2026-03-28 |
 | 8p | Prompt Coherence Guard | LOW | NOT STARTED |
 | 8q | Live Call Duration Timer | LOW | NOT STARTED |
 
@@ -178,12 +178,12 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          D60 (booking confirmation SMS — 2026-03-28),
          D61 (SMS opt-out list for owners — 2026-03-28),
          D63 (sms_logs tracking for booking confirmation — 2026-03-28),
-         D64 (bookings dashboard /dashboard/bookings — 2026-03-28)
+         D64 (bookings dashboard /dashboard/bookings — 2026-03-28),
+         SLICE-8m (failure-to-refine pipeline — 2026-03-28),
+         SLICE-8o (frustration/interruption metrics — 2026-03-28)
 
 NEXT:
   STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
-  SLICE-8m -> Failure-to-Refine Pipeline (MEDIUM)
-  SLICE-8o -> Frustration/Interruption Metrics (MEDIUM)
   GATE-1   -> Domain migration (BLOCKED on domain purchase)
 
 DEFERRED -> S11, S12 advanced, S13 LOW, S16a-d (recording consent + SMS consent + PIPEDA — not a priority), S17-S20

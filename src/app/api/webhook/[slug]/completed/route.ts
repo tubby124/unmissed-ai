@@ -13,8 +13,10 @@ import {
   type CompletedClient,
 } from '@/lib/completed-notifications'
 import { getSignedRecordingUrl } from '@/lib/recording-url'
-import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig } from '@/lib/transcript-analysis'
+import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig, type AnalysisMessage } from '@/lib/transcript-analysis'
 import { embedText } from '@/lib/embeddings'
+import { analyzeQualityMetrics } from '@/lib/quality-metrics'
+import { tryAcquireSuggestionLock, fetchRecentInsights, isFailedCall, generateAndStoreSuggestions } from '@/lib/prompt-suggestions'
 
 export const maxDuration = 120
 
@@ -151,7 +153,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt')
         .eq('slug', slug)
         .single()
 
@@ -365,6 +367,14 @@ export async function POST(
       if (transcript.length > 0 && callLogId && !skipClassification) {
         try {
           const insight = analyzeTranscriptServer(transcript, client as unknown as ServerClientConfig)
+
+          // 8o: quality metrics from same transcript (heuristic, $0, browser-safe)
+          const normalizedMessages: AnalysisMessage[] = transcript.map(t => ({
+            role: t.role === 'user' ? 'user' as const : 'agent' as const,
+            text: t.text || '',
+          }))
+          const qualityMetrics = analyzeQualityMetrics(normalizedMessages)
+
           if (!isEmptyInsight(insight)) {
             const { error: insightError } = await supabase
               .from('call_insights')
@@ -377,6 +387,12 @@ export async function POST(
                 repeated_questions: insight.repeatedQuestions,
                 agent_confused_moments: insight.agentConfusedMoments,
                 source: insight.source,
+                // 8o quality metrics
+                talk_ratio_agent:     qualityMetrics.talk_ratio_agent,
+                agent_confidence:     qualityMetrics.agent_confidence,
+                short_turn_count:     qualityMetrics.short_turn_count,
+                loop_rate:            qualityMetrics.loop_rate,
+                avg_agent_turn_chars: qualityMetrics.avg_agent_turn_chars,
               }, { onConflict: 'call_id' })
 
             if (insightError) console.error(`[completed] L5 insight write failed for callId=${callId}: ${insightError.message}`)
@@ -444,6 +460,25 @@ export async function POST(
           }
         } catch (analysisErr) {
           console.error('[completed] L5 analysis error (non-fatal):', analysisErr)
+        }
+
+        // ── 8m: Atomic suggestion generation trigger ─────────────────────────
+        try {
+          const lockAcquired = await tryAcquireSuggestionLock(supabase, client.id)
+          if (lockAcquired) {
+            const recentInsights = await fetchRecentInsights(supabase, client.id, 7)
+            const failureCount = recentInsights.filter(isFailedCall).length
+            if (failureCount >= 3) {
+              // Fire-and-forget — never block the webhook
+              generateAndStoreSuggestions(supabase, client.id, recentInsights, client.system_prompt ?? '')
+                .catch((err) => console.error('[8m] suggestion generation failed (non-fatal):', err))
+              console.log(`[completed] 8m: lock acquired, triggering suggestions for slug=${slug} failureCount=${failureCount}`)
+            } else {
+              console.log(`[completed] 8m: lock acquired but failureCount=${failureCount} < 3 — skipping`)
+            }
+          }
+        } catch (suggErr) {
+          console.error('[completed] 8m suggestion trigger error (non-fatal):', suggErr)
         }
       }
 
