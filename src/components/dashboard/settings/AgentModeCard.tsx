@@ -3,6 +3,12 @@
 import { useState } from 'react'
 import { AGENT_MODE_VALUES, AGENT_MODE_LABELS, type AgentMode } from '@/lib/agent-mode-rebuild'
 
+const CALL_HANDLING_DISPLAY: Record<string, string> = {
+  message_only: 'Message Taking',
+  triage: 'AI Receptionist',
+  full_service: 'Receptionist + Booking',
+}
+
 const MODE_TAGLINES: Record<AgentMode, string> = {
   lead_capture: 'Collect name, problem, and callback info on every call.',
   voicemail_replacement: 'Take a message and hang up — no triage, no service discussion.',
@@ -139,9 +145,14 @@ export default function AgentModeCard({
       <div className="mb-1">
         <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Agent Personality</p>
       </div>
-      <p className="text-[11px] t3 mb-4">
+      <p className="text-[11px] t3 mb-2">
         Choose what your agent focuses on. Switching modes rebuilds your agent&apos;s full script — a backup is saved automatically.
       </p>
+      {currentCallHandlingMode && (
+        <p className="text-[10px] t3 mb-4">
+          Active call mode: <span className="font-medium t1">{CALL_HANDLING_DISPLAY[currentCallHandlingMode] ?? currentCallHandlingMode}</span> — switching also updates it to match.
+        </p>
+      )}
 
       {/* Mode selector */}
       <div className="space-y-2 mb-4">
@@ -174,7 +185,11 @@ export default function AgentModeCard({
       {/* Done state */}
       {step === 'done' && (
         <div className="rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2 text-xs text-green-400">
-          ✓ Agent mode updated. Your agent now runs as <strong>{AGENT_MODE_LABELS[selectedMode]}</strong>. Reload to see updated config.
+          ✓ Agent mode updated to <strong>{AGENT_MODE_LABELS[selectedMode]}</strong>
+          {previewData && (
+            <span className="opacity-80"> — call mode synced to <strong>{CALL_HANDLING_DISPLAY[previewData.effectiveCallHandlingMode] ?? previewData.effectiveCallHandlingMode}</strong></span>
+          )}
+          . Reload to see updated config.
           <button onClick={reset} className="ml-3 underline opacity-70 hover:opacity-100">Reset</button>
         </div>
       )}

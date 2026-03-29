@@ -236,7 +236,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Add business facts or Q&A to enable',
       enabled: hasQA,
       dotType: 'always',
-      link: '/dashboard/settings?tab=knowledge',
+      link: '/dashboard/knowledge?tab=add&source=manual',
     },
     {
       id: 'knowledge',
@@ -245,7 +245,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Upload documents to enable',
       enabled: capabilities.hasKnowledge,
       dotType: 'search',
-      link: '/dashboard/settings?tab=knowledge',
+      link: '/dashboard/knowledge',
     },
     {
       id: 'transfer',
@@ -254,7 +254,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Set a forwarding number to enable',
       enabled: capabilities.hasTransfer,
       dotType: 'always',
-      link: '/dashboard/settings?tab=actions',
+      link: '/dashboard/settings?tab=general',
       tooltip: 'Transfer works on live phone calls only. Browser test calls cannot transfer.',
     },
     {
@@ -264,7 +264,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Set your hours to enable',
       enabled: capabilities.hasHours,
       dotType: 'always',
-      link: '/dashboard/settings?tab=knowledge',
+      link: '/dashboard/settings?tab=general',
     },
     {
       id: 'sms',
@@ -293,7 +293,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Connect your calendar to enable',
       enabled: capabilities.hasBooking,
       dotType: 'always',
-      link: '/dashboard/settings?tab=booking',
+      link: '/dashboard/settings?tab=general',
       upgradeRequired: true,
     },
     {
@@ -303,7 +303,7 @@ export default function CapabilitiesCard({
       disabledDesc: 'Add reference data to enable',
       enabled: hasContextData,
       dotType: 'search',
-      link: '/dashboard/settings?tab=knowledge',
+      link: '/dashboard/knowledge?tab=add&source=text',
     },
     {
       id: 'ivr',

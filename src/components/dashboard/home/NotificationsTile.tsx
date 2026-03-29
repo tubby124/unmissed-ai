@@ -8,11 +8,12 @@
 
 interface Props {
   telegramConnected: boolean
+  emailEnabled: boolean
   agentName: string
   onOpenSheet: () => void
 }
 
-export default function NotificationsTile({ telegramConnected, agentName, onOpenSheet }: Props) {
+export default function NotificationsTile({ telegramConnected, emailEnabled, agentName, onOpenSheet }: Props) {
   return (
     <button
       onClick={onOpenSheet}
@@ -47,14 +48,18 @@ export default function NotificationsTile({ telegramConnected, agentName, onOpen
           )}
         </div>
 
-        {/* Email — always enabled */}
+        {/* Email */}
         <div className="flex items-center gap-2">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: emailEnabled ? 'var(--color-primary)' : 'var(--color-text-3)' }}>
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2"/>
             <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <span className="text-xs t2 flex-1">Email alerts</span>
-          <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">On</span>
+          {emailEnabled ? (
+            <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">On</span>
+          ) : (
+            <span className="text-[10px] font-semibold t3 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-hover)' }}>Off</span>
+          )}
         </div>
       </div>
 

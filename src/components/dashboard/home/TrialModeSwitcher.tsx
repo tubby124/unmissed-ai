@@ -181,7 +181,7 @@ export default function TrialModeSwitcher({
           <p className="text-[11px] text-amber-300/90 leading-relaxed">
             Calendar not connected — your agent runs as AI Receptionist until you{' '}
             <Link
-              href="/dashboard/settings?tab=integrations"
+              href="/dashboard/actions"
               className="underline underline-offset-2 hover:opacity-75 transition-opacity"
             >
               connect Google Calendar

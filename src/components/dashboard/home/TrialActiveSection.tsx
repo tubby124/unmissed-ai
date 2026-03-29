@@ -72,7 +72,7 @@ function formatTimeSaved(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-// ── isFirstVisit helpers (unchanged) ────────────────────────────
+// ── isFirstVisit helpers ─────────────────────────────────────────
 function provisioningHeadline(state: HomeData['trialWelcome']['provisioningState'], agentName: string): string {
   if (state === 'ready') return `${agentName} is ready to test`
   if (state === 'pending') return `${agentName} is almost ready`
@@ -83,35 +83,6 @@ function provisioningSubtext(state: HomeData['trialWelcome']['provisioningState'
   if (state === 'ready') return "Everything's configured. Start a test call to hear how your agent handles real callers."
   if (state === 'pending') return "We're still setting up part of your account. You can start testing now."
   return 'Your agent is still being provisioned. This usually takes a minute — check back shortly.'
-}
-
-function KnowledgeRow({
-  label,
-  active,
-  activeText,
-  inactiveText,
-  neutral = false,
-}: {
-  label: string
-  active: boolean
-  activeText: string
-  inactiveText: string
-  neutral?: boolean
-}) {
-  const pillClass = active
-    ? 'bg-green-500/10 text-green-400'
-    : neutral
-    ? 'bg-blue-500/10 text-blue-400'
-    : 'bg-amber-500/10 text-amber-400'
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-medium t3 w-20 shrink-0">{label}</span>
-      <span className={`text-[11px] px-2 py-0.5 rounded-full leading-none ${pillClass}`}>
-        {active ? activeText : inactiveText}
-      </span>
-    </div>
-  )
 }
 
 // ── Props ────────────────────────────────────────────────────────
@@ -157,7 +128,7 @@ export default function TrialActiveSection({
 
   // ── isFirstVisit branch (DO NOT TOUCH) ──────────────────────
   if (isFirstVisit) {
-    const { provisioningState, hasHours, hasFaqs, hasGbp, hasWebsite, compiledChunkCount, hasFacts, hasForwardingNumber } = data.trialWelcome
+    const { provisioningState } = data.trialWelcome
 
     return (
       <>
@@ -236,29 +207,17 @@ export default function TrialActiveSection({
           </div>
         )}
 
-        {/* What callers experience summary */}
-        <div className="rounded-2xl p-4 card-surface">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3">What callers experience</p>
-            <Link
-              href="/dashboard/settings?tab=knowledge"
-              className="text-[12px] font-medium hover:opacity-75 transition-opacity"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              Improve →
-            </Link>
-          </div>
-          <div className="space-y-2.5">
-            <KnowledgeRow label="Hours" active={hasHours} activeText="Configured" inactiveText="Not set" />
-            <KnowledgeRow label="FAQs" active={hasFaqs} activeText="Configured" inactiveText="None added yet" />
-            <KnowledgeRow label="Google" active={hasGbp} activeText="Imported" inactiveText="Not imported" neutral />
-            <KnowledgeRow label="Website" active={hasWebsite} activeText="Loaded" inactiveText="Not added" neutral />
-            <KnowledgeRow label="AI Compiler" active={compiledChunkCount > 0} activeText={`${compiledChunkCount} item${compiledChunkCount !== 1 ? 's' : ''}`} inactiveText="None yet" neutral />
-            <KnowledgeRow label="Quick-teach" active={hasFacts} activeText="Added" inactiveText="None added" neutral />
-            <KnowledgeRow label="Booking" active={capabilities.hasBooking} activeText="Calendar connected" inactiveText="Not connected" neutral={!capabilities.hasBooking} />
-            <KnowledgeRow label="Forwarding" active={hasForwardingNumber} activeText="Configured" inactiveText="Not set" />
-          </div>
-        </div>
+        {/* Capabilities — same component as return branch */}
+        <CapabilitiesCard
+          capabilities={capabilities}
+          agentName={agent.name}
+          voiceStylePreset={agent.voiceStylePreset}
+          isTrial={isTrial}
+          clientId={data.clientId}
+          hasPhoneNumber={onboarding.hasPhoneNumber}
+          hasIvr={data.editableFields.ivrEnabled}
+          hasContextData={data.editableFields.hasContextData}
+        />
 
         {/* Teach your agent */}
         <TeachAgentCard clientId={data.clientId ?? ''} agentName={agent.name} />
@@ -331,13 +290,13 @@ export default function TrialActiveSection({
   // Next best action (single most important nudge)
   const nextAction: { text: string; cta: string; href: string | null } | null = (() => {
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
-      return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/settings?tab=knowledge' }
+      return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/knowledge?tab=add&source=manual' }
     }
     if (!capabilities.hasHours) {
-      return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/settings?tab=general' }
+      return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/actions#hours' }
     }
     if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
-      return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/settings?tab=knowledge' }
+      return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/knowledge' }
     }
     if (!onboarding.hasPhoneNumber) {
       return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade →', href: null }
@@ -462,19 +421,7 @@ export default function TrialActiveSection({
         </Link>
       )}
 
-      {/* ── 3. CapabilitiesCard ─────────────────────────────────── */}
-      <CapabilitiesCard
-        capabilities={capabilities}
-        agentName={agent.name}
-        voiceStylePreset={agent.voiceStylePreset}
-        isTrial={isTrial}
-        clientId={data.clientId}
-        hasPhoneNumber={onboarding.hasPhoneNumber}
-        hasIvr={data.editableFields.ivrEnabled}
-        hasContextData={data.editableFields.hasContextData}
-      />
-
-      {/* ── 4. 2-col grid: TestCallCard + TodayUpdateCard ─────── */}
+      {/* ── 3. 2-col grid: TestCallCard + TodayUpdateCard (hero) ─ */}
       {onboarding.hasAgent && data.clientId && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <TestCallCard
@@ -499,6 +446,18 @@ export default function TrialActiveSection({
           />
         </div>
       )}
+
+      {/* ── 4. CapabilitiesCard ─────────────────────────────────── */}
+      <CapabilitiesCard
+        capabilities={capabilities}
+        agentName={agent.name}
+        voiceStylePreset={agent.voiceStylePreset}
+        isTrial={isTrial}
+        clientId={data.clientId}
+        hasPhoneNumber={onboarding.hasPhoneNumber}
+        hasIvr={data.editableFields.ivrEnabled}
+        hasContextData={data.editableFields.hasContextData}
+      />
 
       {/* ── 5. Post-call nudge ──────────────────────────────────── */}
       {callState === 'ended' && !postCallDismissed && data.clientId && (
@@ -650,7 +609,7 @@ export default function TrialActiveSection({
                   Your agent answers from its base training only. Add business facts, FAQs, or a website to make it specific to you.
                 </p>
                 <Link
-                  href="/dashboard/settings?tab=knowledge"
+                  href="/dashboard/knowledge"
                   className="inline-block text-[12px] font-semibold mt-1 cursor-pointer hover:opacity-75 transition-opacity"
                   style={{ color: 'var(--color-primary)' }}
                 >
@@ -731,7 +690,7 @@ export default function TrialActiveSection({
 
             <div className="pt-1 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <Link
-                href="/dashboard/settings?tab=knowledge"
+                href="/dashboard/knowledge"
                 className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
                 style={{ color: 'var(--color-primary)' }}
               >
@@ -826,6 +785,7 @@ export default function TrialActiveSection({
       {/* ── 10. NotificationsTile ───────────────────────────────── */}
       <NotificationsTile
         telegramConnected={onboarding.telegramConnected}
+        emailEnabled={onboarding.emailNotificationsEnabled}
         agentName={agent.name}
         onOpenSheet={() => sheet.open('notifications')}
       />
