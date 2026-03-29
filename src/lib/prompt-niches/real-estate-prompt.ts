@@ -164,7 +164,7 @@ Step 4 — Confirm and close:
 "Perfect... I'll get this to ${recipientName} right away. ${pronSubCap}'ll get back to you soon. You can also ${contactInstructionVoice} if you need ${pronObj} faster. Thanks for calling!"
 Then IMMEDIATELY use the hangUp tool.
 
-[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]${bookingEnabled ? '\n[BOOKING CHECK — when the caller wants to book a showing or schedule time with the owner, and you have confirmed their name and what property/service they need, call transitionToBookingStage immediately. Do NOT route to message-taking for bookings when calendar is available.]' : ''}
+[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]${bookingEnabled ? '\n[BOOKING CHECK — when the caller wants to book a showing or schedule time with the owner, and you have confirmed their name and what they need, call transitionToBookingStage with: callerPhone (copy from CALLER PHONE exactly), callerName (confirmed name), serviceType (e.g. "showing at 123 Main St"). Do NOT route to message-taking for bookings when calendar is available.]' : ''}
 ${callMode === 'message_and_questions' ? `
 COMMON QUESTIONS
 

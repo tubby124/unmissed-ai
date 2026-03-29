@@ -270,8 +270,28 @@ function buildBookingTransitionTool(slug: string): UltravoxTool {
   return {
     temporaryTool: {
       modelToolName: 'transitionToBookingStage',
-      description: 'Activate the booking stage. Call this tool once you have CONFIRMED both: (1) the caller\'s name, and (2) their service need or appointment type. Do NOT call until both are confirmed. This switches to a focused booking mode where you will check availability and confirm the appointment.',
+      description: 'Activate the booking stage. Call ONLY after confirming (1) caller\'s name and (2) their service need. Pass all three parameters so the booking agent can proceed without re-asking the caller.',
       timeout: '10s',
+      dynamicParameters: [
+        {
+          name: 'callerPhone',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Caller's phone number — copy exactly from CALLER PHONE in context." },
+          required: true,
+        },
+        {
+          name: 'callerName',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Caller's name as confirmed during triage." },
+          required: true,
+        },
+        {
+          name: 'serviceType',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "The service or appointment type (e.g. 'showing', 'consultation', 'windshield replacement')." },
+          required: true,
+        },
+      ],
       ...(secret ? {
         staticParameters: [
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
