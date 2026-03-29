@@ -24,13 +24,13 @@ export async function POST(
 
   const supabase = createServiceClient()
 
-  const { data: client } = await supabase
+  const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('agent_name, business_name, agent_tone, booking_enabled, selected_plan, subscription_status')
+    .select('agent_name, business_name, booking_enabled, selected_plan, subscription_status')
     .eq('slug', slug)
     .single()
 
-  if (!client) {
+  if (!client || clientError) {
     return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   }
 
@@ -48,8 +48,7 @@ export async function POST(
   }
 
   const name = client.agent_name || 'Sam'
-  const tone = client.agent_tone || 'casual'
-  const isFormal = tone === 'formal' || tone === 'professional'
+  const isFormal = false // agent_tone not yet in DB — default casual
 
   // Build context lines from triage-passed values. These replace the templateContext
   // injection the triage stage had — the booking stage gets a fresh system prompt so
