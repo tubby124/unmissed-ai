@@ -4,6 +4,7 @@ import { getAccessToken, listSlots, createEvent } from '@/lib/google-calendar'
 import { parseCallState, setStateUpdate, bookingInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { normalizeTime, toPreferredTime } from '@/lib/calendar-time'
 import { BRAND_NAME } from '@/lib/brand'
+import { sendSmsTracked } from '@/lib/twilio'
 
 export async function POST(
   req: NextRequest,
@@ -40,7 +41,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client } = await supabase
     .from('clients')
-    .select('id, google_refresh_token, google_calendar_id, booking_service_duration_minutes, booking_buffer_minutes, timezone, booking_enabled, business_name')
+    .select('id, google_refresh_token, google_calendar_id, booking_service_duration_minutes, booking_buffer_minutes, timezone, booking_enabled, business_name, sms_enabled, twilio_number')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -135,6 +136,25 @@ export async function POST(
     }
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
+
+    // Send booking confirmation SMS if SMS is enabled and caller has a phone number
+    if (client.sms_enabled && client.twilio_number && callerPhone) {
+      const { data: optOut } = await supabase
+        .from('sms_opt_outs')
+        .select('id, opted_back_in_at')
+        .eq('phone_number', callerPhone)
+        .eq('client_id', client.id)
+        .maybeSingle()
+
+      const isOptedOut = optOut && !optOut.opted_back_in_at
+      if (!isOptedOut) {
+        const businessName = (client.business_name as string) || BRAND_NAME
+        const smsBody = `Your ${service || 'appointment'} is confirmed for ${date} at ${matchedSlot.displayTime} with ${businessName}. Reply STOP to opt out.`
+        sendSmsTracked(callerPhone, client.twilio_number as string, smsBody).catch((err: unknown) => {
+          console.error(`[calendar/book] Booking confirmation SMS failed: slug=${slug}`, err)
+        })
+      }
+    }
 
     const newAttempts = (callState?.bookingAttempts ?? 0) + 1
     const response = NextResponse.json({

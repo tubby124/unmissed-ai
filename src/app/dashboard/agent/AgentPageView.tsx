@@ -13,6 +13,7 @@ import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettin
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import QuickInject from '@/components/dashboard/settings/QuickInject'
+import AgentAnswerabilityCard from '@/components/dashboard/agent/AgentAnswerabilityCard'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 
 // ─── Bot animation keyframes (required by AgentIdentityHeader CSS classes) ────
@@ -392,6 +393,19 @@ function AgentCards({
             previewMode={previewMode}
           />
         </div>
+      </div>
+
+      {/* ── 5.5. What Your Agent Can Answer ────────────────── */}
+      <div className="sm:col-span-2">
+        <SectionLabel>What It Can Answer</SectionLabel>
+        <AgentAnswerabilityCard
+          businessFacts={client.business_facts ?? null}
+          extraQa={client.extra_qa ?? []}
+          businessHoursWeekday={client.business_hours_weekday ?? null}
+          city={client.city ?? null}
+          state={client.state ?? null}
+          bookingEnabled={!!client.booking_enabled}
+        />
       </div>
 
       {/* ── 6. What It Can Do ──────────────────────────────── */}

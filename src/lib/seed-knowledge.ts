@@ -10,6 +10,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { WebsiteScrapeResult } from '@/types/onboarding'
 import { embedChunks, deleteClientChunks, prepareFactChunks, prepareQaChunks, prepareServiceTagChunks } from '@/lib/embeddings'
+import type { ChunkInput } from '@/lib/embeddings'
 import { validateScrapeResult } from '@/lib/scrape-validation'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import type { scrapeWebsite } from '@/lib/website-scraper'
@@ -132,6 +133,79 @@ export async function seedKnowledgeFromScrape(
   console.log(`[${routeLabel}] Knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`)
 
   // Rebuild tools so queryKnowledge is registered
+  await syncClientTools(svc, clientId)
+
+  return {
+    seeded: true,
+    chunkCount: embedResult.stored,
+    stored: embedResult.stored,
+    failed: embedResult.failed,
+    errors: embedResult.errors,
+  }
+}
+
+// ── GBP ingestion ─────────────────────────────────────────────────────────────
+
+export interface SeedGBPParams {
+  clientId: string
+  clientSlug: string
+  businessName: string
+  gbpSummary: string | null
+  gbpRating: number | null
+  gbpReviewCount: number | null
+  city: string | null
+  state: string | null
+}
+
+/**
+ * Seeds knowledge chunks from stored GBP (Google Business Profile) data.
+ * Seeded as source='gbp', status='approved', trust_tier='medium'.
+ * Does NOT overwrite manual/settings_edit chunks — only replaces prior 'gbp' source chunks.
+ */
+export async function seedKnowledgeFromGBP(
+  svc: SupabaseClient,
+  params: SeedGBPParams,
+): Promise<SeedKnowledgeResult> {
+  const { clientId, clientSlug, businessName, gbpSummary, gbpRating, gbpReviewCount, city, state } = params
+  const empty: SeedKnowledgeResult = { seeded: false, chunkCount: 0, stored: 0, failed: 0, errors: [] }
+
+  const factLines: string[] = []
+
+  if (gbpSummary?.trim()) {
+    factLines.push(gbpSummary.trim())
+  }
+  if (city || state) {
+    const location = [city, state].filter(Boolean).join(', ')
+    factLines.push(`${businessName} is located in ${location}.`)
+  }
+  if (gbpRating != null && gbpReviewCount != null && gbpReviewCount > 0) {
+    factLines.push(`${businessName} has a ${gbpRating} star rating based on ${gbpReviewCount} customer reviews on Google.`)
+  }
+
+  if (factLines.length === 0) return empty
+
+  const chunks: ChunkInput[] = factLines.map(content => ({
+    content,
+    chunkType: 'fact' as const,
+    source: 'gbp',
+    status: 'approved',
+    trustTier: 'medium',
+  }))
+
+  try {
+    const deleted = await deleteClientChunks(clientId, 'gbp')
+    if (deleted > 0) {
+      console.log(`[seed-knowledge/gbp] Cleared ${deleted} stale gbp chunks for ${clientSlug}`)
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`[seed-knowledge/gbp] Stale chunk cleanup failed for ${clientSlug} — aborting: ${msg}`)
+    return { seeded: false, chunkCount: 0, stored: 0, failed: 0, errors: [`Stale chunk cleanup failed: ${msg}`] }
+  }
+
+  const embedResult = await embedChunks(clientId, chunks, `gbp-seed-${Date.now()}`)
+  console.log(`[seed-knowledge/gbp] GBP knowledge seeded: ${embedResult.stored} chunks for ${clientSlug}`)
+
   await syncClientTools(svc, clientId)
 
   return {

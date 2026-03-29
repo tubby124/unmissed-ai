@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
@@ -50,6 +50,17 @@ export default function SmsTab({
   const [testSmsPhone, setTestSmsPhone] = useState('')
   const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [testSmsError, setTestSmsError] = useState('')
+  const [optOuts, setOptOuts] = useState<{ phone_number: string; opted_out_at: string; opted_back_in_at: string | null }[]>([])
+  const [optOutsLoaded, setOptOutsLoaded] = useState(false)
+  const [showOptOuts, setShowOptOuts] = useState(false)
+
+  useEffect(() => {
+    if (!showOptOuts || optOutsLoaded) return
+    fetch('/api/dashboard/sms-opt-outs')
+      .then(r => r.json())
+      .then(d => { setOptOuts(d.opt_outs ?? []); setOptOutsLoaded(true) })
+      .catch(() => setOptOutsLoaded(true))
+  }, [showOptOuts, optOutsLoaded])
 
   async function saveSms() {
     await patch({
@@ -224,6 +235,62 @@ export default function SmsTab({
           </div>
         )}
       </div>
+    </div>
+    </motion.div>
+
+    {/* Opt-out list — read-only, compliance view */}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.05 }}
+    >
+    <div className="rounded-2xl border b-theme bg-surface p-5 mt-4">
+      <button
+        onClick={() => setShowOptOuts(v => !v)}
+        className="flex items-center justify-between w-full text-left"
+      >
+        <div>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Opt-Out List</p>
+          <p className="text-[11px] t3 mt-0.5">Callers who replied STOP — SMS is permanently blocked for these numbers.</p>
+        </div>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none"
+          className={`t3 shrink-0 transition-transform ${showOptOuts ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {showOptOuts && (
+        <div className="mt-3">
+          {!optOutsLoaded ? (
+            <p className="text-[11px] t3">Loading…</p>
+          ) : optOuts.length === 0 ? (
+            <p className="text-[11px] t3">No opt-outs on record.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {optOuts.map((o) => (
+                <div
+                  key={o.phone_number}
+                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-black/20 border b-theme"
+                >
+                  <span className="text-xs font-mono t2">{o.phone_number}</span>
+                  <div className="flex items-center gap-3">
+                    {o.opted_back_in_at ? (
+                      <span className="text-[10px] text-green-400/80">Re-opted in</span>
+                    ) : (
+                      <span className="text-[10px] text-red-400/80">Blocked</span>
+                    )}
+                    <span className="text-[10px] t3">
+                      {new Date(o.opted_out_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
     </motion.div>
   </>)

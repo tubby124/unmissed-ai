@@ -78,6 +78,19 @@ const SOURCE_DEFS: SourceDef[] = [
       </svg>
     ),
   },
+  {
+    id: 'gbp',
+    label: 'Google Profile',
+    sources: ['gbp'],
+    actionHref: knowledgeRoutes.browse(),
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M4.93 4.93l14.14 14.14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function KnowledgeSourceRegistry({
