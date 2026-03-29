@@ -38,12 +38,13 @@ export async function GET(request: Request) {
   // Parallel fetch: client info, this month's calls, bookings, last call
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode, injected_note, ivr_enabled, context_data')
       .eq('id', clientId)
       .single(),
 
@@ -110,6 +111,14 @@ export async function GET(request: Request) {
       .not('faq_suggestions', 'is', null)
       .order('started_at', { ascending: false })
       .limit(3),
+
+    // Today's calls — for live activity counter
+    supabase
+      .from('call_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .gte('started_at', todayStart)
+      .neq('call_status', 'test'),
   ])
 
   const client = clientRes.data
@@ -183,6 +192,11 @@ export async function GET(request: Request) {
     ? Math.round(qualities.reduce((a, b) => a + b, 0) / qualities.length * 10) / 10
     : null
 
+  const missedThisMonth = calls.filter(call => call.call_status === 'VOICEMAIL' || call.call_status === 'MISSED').length
+  const lastCallAt = recentCalls.length > 0 ? recentCalls[0].started_at : null
+  const timeSavedMinutes = Math.ceil(calls.reduce((sum, call) => sum + (call.duration_seconds ?? 0), 0) / 60)
+  const todayCalls = todayCallsRes.count ?? 0
+
   const minutesUsed = Math.ceil((client.seconds_used_this_month ?? 0) / 60)
   const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const bonusMinutes = client.bonus_minutes ?? 0
@@ -198,6 +212,10 @@ export async function GET(request: Request) {
 
   // Build normalized config → trial welcome view model
   const c = client as Record<string, unknown>
+  const agentHealth: 'healthy' | 'degraded' | 'offline' =
+    activation !== 'ready' ? 'offline' :
+    (c.last_agent_sync_status as string | null) === 'error' ? 'degraded' : 'healthy'
+
   const config = buildClientAgentConfig({
     id: client.id,
     slug: c.slug as string ?? client.id,
@@ -239,6 +257,10 @@ export async function GET(request: Request) {
       hotLeads,
       bookings: bookings.length,
       avgQuality,
+      todayCalls,
+      missedThisMonth,
+      lastCallAt,
+      timeSavedMinutes,
       trends: {
         callsChange: prevTotalCalls > 0 ? Math.round(((totalCalls - prevTotalCalls) / prevTotalCalls) * 100) : totalCalls > 0 ? 100 : null,
         hotChange: prevHotLeads > 0 ? Math.round(((hotLeads - prevHotLeads) / prevHotLeads) * 100) : hotLeads > 0 ? 100 : null,
@@ -281,6 +303,7 @@ export async function GET(request: Request) {
       twilio_number_present: !!client.twilio_number,
       setup_complete: (c.setup_complete as boolean | null) ?? null,
     },
+    agentHealth,
     agentSync: {
       last_agent_sync_at: (c.last_agent_sync_at as string | null) ?? null,
       last_agent_sync_status: (c.last_agent_sync_status as string | null) ?? null,
@@ -304,6 +327,9 @@ export async function GET(request: Request) {
       forwardingNumber: (c.forwarding_number as string | null) ?? null,
       websiteUrl: (client.website_url as string | null) ?? null,
       businessFacts: (client.business_facts as string | null) ?? null,
+      injectedNote: (c.injected_note as string | null) ?? null,
+      ivrEnabled: (c.ivr_enabled as boolean | null) ?? false,
+      hasContextData: !!((c.context_data as string | null)?.trim()),
     },
     lastCallTopics,
     lastFaqSuggestions,

@@ -24,8 +24,7 @@ import PaidReadySection from './home/PaidReadySection'
 // Shared bento-level components kept at this level
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
 import HomeSideSheet from './home/HomeSideSheet'
-import QuickAddFaq from './QuickAddFaq'
-import AutoFaqSuggestions from './AutoFaqSuggestions'
+
 
 export interface HomeData {
   admin: boolean
@@ -36,6 +35,10 @@ export interface HomeData {
     hotLeads: number
     bookings: number
     avgQuality: number | null
+    todayCalls: number
+    missedThisMonth: number
+    lastCallAt: string | null
+    timeSavedMinutes: number
     trends: { callsChange: number | null; hotChange: number | null }
   }
   usage: {
@@ -99,6 +102,9 @@ export interface HomeData {
     forwardingNumber: string | null
     websiteUrl: string | null
     businessFacts: string | null
+    injectedNote: string | null
+    ivrEnabled: boolean
+    hasContextData: boolean
   }
   // New fields added in Phase 1
   selectedPlan: string | null
@@ -129,6 +135,7 @@ export interface HomeData {
     topics: string[]
   } | null
   lastFaqSuggestions?: { q: string; a: string }[] | null
+  agentHealth?: 'healthy' | 'degraded' | 'offline'
 }
 
 
@@ -469,23 +476,6 @@ export default function ClientHome() {
             </div>
           )}
         </div>
-
-        {/* ── Auto-generated FAQ suggestions (pre-answered, one-click add) ─── */}
-        {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
-          <AutoFaqSuggestions
-            clientId={data.clientId}
-            suggestions={data.lastFaqSuggestions}
-          />
-        )}
-
-        {/* ── Teach your agent — topics from most recent call ─── */}
-        {data.lastCallTopics && data.lastCallTopics.topics.length > 0 && (
-          <QuickAddFaq
-            clientId={data.lastCallTopics.client_id}
-            topics={data.lastCallTopics.topics}
-            transcript={null}
-          />
-        )}
 
         </>)}
 

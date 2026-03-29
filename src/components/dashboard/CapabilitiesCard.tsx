@@ -20,6 +20,9 @@ interface CapabilitiesCardProps {
   voiceStylePreset: string | null
   isTrial: boolean
   clientId: string | null
+  hasPhoneNumber: boolean
+  hasIvr: boolean
+  hasContextData: boolean
 }
 
 type DotType = 'always' | 'search'
@@ -33,6 +36,8 @@ interface CapabilityItem {
   dotType: DotType
   link: string | null
   upgradeRequired?: boolean
+  goliveLocked?: boolean
+  lockReason?: string
   tooltip?: string
 }
 
@@ -47,6 +52,16 @@ const VOICE_LABELS: Record<string, string> = {
 function getVoiceLabel(preset: string | null): string {
   if (!preset) return 'professional, warm'
   return VOICE_LABELS[preset] ?? preset.replace(/_/g, ' ')
+}
+
+// Amber padlock for go-live locked items
+function GoliveLockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 ml-auto" stroke="rgb(251,191,36)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  )
 }
 
 // Check icon (green) for enabled items
@@ -83,13 +98,23 @@ function CapabilityRow({
   item,
   isTrial,
   onUpgradeClick,
+  onGoliveLockClick,
 }: {
   item: CapabilityItem
   isTrial: boolean
   onUpgradeClick: () => void
+  onGoliveLockClick: () => void
 }) {
+  const isGoliveLocked = !item.enabled && item.goliveLocked
+  const tooltipText = isGoliveLocked && item.lockReason
+    ? item.lockReason
+    : item.tooltip
+
   const inner = (
-    <div className="flex items-center gap-3 rounded-xl px-3 py-3 min-h-[52px] transition-colors duration-200 hover:bg-hover cursor-pointer" title={item.tooltip}>
+    <div
+      className={`flex items-center gap-3 rounded-xl px-3 py-3 min-h-[52px] transition-colors duration-200 hover:bg-hover cursor-pointer ${isGoliveLocked ? 'opacity-50' : ''}`}
+      title={tooltipText}
+    >
       {item.enabled ? <CheckIcon /> : <EmptyDot />}
 
       <div className="flex-1 min-w-0">
@@ -112,14 +137,14 @@ function CapabilityRow({
           )}
         </p>
         <p className="text-[11px] mt-0.5 leading-tight" style={{
-          color: item.enabled ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+          color: item.enabled ? 'rgb(34,197,94)' : isGoliveLocked ? 'rgb(251,191,36)' : 'var(--color-text-3)',
         }}>
-          {item.enabled ? item.enabledDesc : item.disabledDesc}
+          {item.enabled ? item.enabledDesc : isGoliveLocked && item.lockReason ? item.lockReason : item.disabledDesc}
         </p>
       </div>
 
-      {item.link && <ChevronRight />}
-      {!item.enabled && item.upgradeRequired && isTrial && (
+      {isGoliveLocked ? <GoliveLockIcon /> : item.link ? <ChevronRight /> : null}
+      {!item.enabled && !isGoliveLocked && item.upgradeRequired && isTrial && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0 ml-auto" style={{ color: 'var(--color-text-3)' }}>
           <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -127,6 +152,18 @@ function CapabilityRow({
       )}
     </div>
   )
+
+  // Go-live locked (amber padlock) — takes visual precedence over upgradeRequired
+  if (isGoliveLocked) {
+    return (
+      <button
+        onClick={onGoliveLockClick}
+        className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 rounded-xl"
+      >
+        {inner}
+      </button>
+    )
+  }
 
   // Upgrade-gated items for trial users
   if (!item.enabled && item.upgradeRequired && isTrial) {
@@ -174,6 +211,9 @@ export default function CapabilitiesCard({
   voiceStylePreset,
   isTrial,
   clientId,
+  hasPhoneNumber,
+  hasIvr,
+  hasContextData,
 }: CapabilitiesCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
 
@@ -255,6 +295,26 @@ export default function CapabilitiesCard({
       dotType: 'always',
       link: '/dashboard/settings?tab=booking',
       upgradeRequired: true,
+    },
+    {
+      id: 'context_data',
+      label: 'Look up reference data',
+      enabledDesc: 'Searches reference tables during calls',
+      disabledDesc: 'Add reference data to enable',
+      enabled: hasContextData,
+      dotType: 'search',
+      link: '/dashboard/settings?tab=knowledge',
+    },
+    {
+      id: 'ivr',
+      label: 'Voicemail menu / IVR',
+      enabledDesc: 'Greets callers with a key-press menu',
+      disabledDesc: 'Requires a live phone number',
+      enabled: hasIvr,
+      dotType: 'always',
+      link: '/dashboard/settings?tab=general',
+      goliveLocked: !hasPhoneNumber,
+      lockReason: 'Needs a live phone number — upgrade to go live',
     },
   ]
 
@@ -348,6 +408,7 @@ export default function CapabilitiesCard({
               item={item}
               isTrial={isTrial}
               onUpgradeClick={() => openUpgradeModal('capability_upgrade', clientId, undefined)}
+              onGoliveLockClick={() => openUpgradeModal('golive_lock', clientId)}
             />
           ))}
         </div>

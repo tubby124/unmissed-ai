@@ -1,44 +1,78 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
-import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
-import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
-import { CallInsightsHeader } from '@/components/dashboard/CallInsightsHeader'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
 import { useCallContext } from '@/contexts/CallContext'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
 import type { TrialPhase } from '@/lib/trial-display-state'
-import AgentIdentityTile from './AgentIdentityTile'
-import AgentKnowledgeTile from './AgentKnowledgeTile'
+import AutoFaqSuggestions from '../AutoFaqSuggestions'
 import BillingTile from './BillingTile'
-import BusinessHoursTile from './BusinessHoursTile'
-import CallHandlingTile from './CallHandlingTile'
+import CapabilitiesCard from '../CapabilitiesCard'
 import NotificationsTile from './NotificationsTile'
-import ProofStrip from './ProofStrip'
-import StatsHeroCard from './StatsHeroCard'
-import SuggestedTestPrompts from './SuggestedTestPrompts'
 import TeachAgentCard from './TeachAgentCard'
+import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
-interface Props {
-  data: HomeData
-  trialPhase: TrialPhase
-  daysRemaining: number | undefined
-  isTrial: boolean
-  isFirstVisit?: boolean
-  showChecklist: boolean
-  hasRealCalls: boolean
-  lastCompletedCall: HomeData['recentCalls'][0] | null
-  postCallDismissed: boolean
-  onPostCallDismiss: () => void
-  sheet: ReturnType<typeof useHomeSheet>
+// ── Inline helpers (no imports from ClientHome) ──────────────────
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return '—'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
+function formatPhone(phone: string | null): string {
+  if (!phone) return 'Unknown'
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 11 && digits[0] === '1') {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return phone
+}
+
+function formatNiche(niche: string | null): string {
+  if (!niche) return 'General'
+  return niche.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
+}
+
+const VOICE_PRESET_LABELS: Record<string, string> = {
+  casual_friendly: 'Casual & friendly',
+  professional_warm: 'Professional & warm',
+  formal: 'Formal',
+  energetic: 'Energetic',
+  empathetic: 'Empathetic',
+}
+function formatVoicePreset(preset: string | null): string {
+  if (!preset) return 'Professional & warm'
+  return VOICE_PRESET_LABELS[preset] ?? preset.replace(/_/g, ' ')
+}
+
+function formatTimeSaved(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+// ── isFirstVisit helpers (unchanged) ────────────────────────────
 function provisioningHeadline(state: HomeData['trialWelcome']['provisioningState'], agentName: string): string {
   if (state === 'ready') return `${agentName} is ready to test`
   if (state === 'pending') return `${agentName} is almost ready`
@@ -80,15 +114,28 @@ function KnowledgeRow({
   )
 }
 
+// ── Props ────────────────────────────────────────────────────────
+interface Props {
+  data: HomeData
+  trialPhase: TrialPhase
+  daysRemaining: number | undefined
+  isTrial: boolean
+  isFirstVisit?: boolean
+  showChecklist: boolean
+  hasRealCalls: boolean
+  lastCompletedCall: HomeData['recentCalls'][0] | null
+  postCallDismissed: boolean
+  onPostCallDismiss: () => void
+  sheet: ReturnType<typeof useHomeSheet>
+}
+
+// ── Component ────────────────────────────────────────────────────
 export default function TrialActiveSection({
   data,
   trialPhase,
   daysRemaining,
   isTrial,
   isFirstVisit = false,
-  showChecklist,
-  hasRealCalls,
-  lastCompletedCall,
   postCallDismissed,
   onPostCallDismiss,
   sheet,
@@ -96,6 +143,8 @@ export default function TrialActiveSection({
   const { agent, capabilities, onboarding } = data
   const { callState, resetCall } = useCallContext()
   const { openUpgradeModal } = useUpgradeModal()
+  const [knowOpen, setKnowOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
 
   useEffect(() => {
     if (!isFirstVisit) return
@@ -106,6 +155,7 @@ export default function TrialActiveSection({
     }
   }, [isFirstVisit, data.clientId, data.trialWelcome.provisioningState])
 
+  // ── isFirstVisit branch (DO NOT TOUCH) ──────────────────────
   if (isFirstVisit) {
     const { provisioningState, hasHours, hasFaqs, hasGbp, hasWebsite, compiledChunkCount, hasFacts, hasForwardingNumber } = data.trialWelcome
 
@@ -246,21 +296,233 @@ export default function TrialActiveSection({
     )
   }
 
+  // ── Return branch (rebuilt) ──────────────────────────────────
+
+  // Derived summary values
+  const knowledgeSources = data.knowledge.source_types
+  const faqCount = data.editableFields.faqs.length
+  const knowledgeItemCount = data.knowledge.approved_chunk_count + faqCount
+  const knowledgeSummaryText = (() => {
+    if (knowledgeItemCount === 0 && !data.editableFields.businessFacts) return 'Nothing added yet'
+    const parts: string[] = []
+    if (knowledgeItemCount > 0) parts.push(`${knowledgeItemCount} item${knowledgeItemCount !== 1 ? 's' : ''}`)
+    if (knowledgeSources.length > 0) {
+      const srcLabels: Record<string, string> = {
+        website_scrape: 'website', settings_edit: 'FAQs',
+        compiled_import: 'AI compiler', pdf_upload: 'docs',
+      }
+      parts.push(knowledgeSources.slice(0, 2).map(s => srcLabels[s] ?? s).join(' + '))
+    }
+    return parts.join(' · ')
+  })()
+
+  const mostRecentCall = data.recentCalls[0] ?? null
+  const missedCount = data.recentCalls.filter(
+    c => c.call_status === 'missed' || c.call_status === 'VOICEMAIL' || c.call_status === 'voicemail'
+  ).length
+  const activitySummaryText = (() => {
+    if (data.recentCalls.length === 0) return 'No calls yet'
+    const parts: string[] = [`${data.recentCalls.length} call${data.recentCalls.length !== 1 ? 's' : ''}`]
+    if (mostRecentCall) parts.push(`last ${timeAgo(mostRecentCall.started_at)}`)
+    if (missedCount > 0) parts.push(`${missedCount} missed`)
+    return parts.join(' · ')
+  })()
+
+  // Next best action (single most important nudge)
+  const nextAction: { text: string; cta: string; href: string | null } | null = (() => {
+    if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
+      return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/settings?tab=knowledge' }
+    }
+    if (!capabilities.hasHours) {
+      return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/settings?tab=general' }
+    }
+    if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
+      return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/settings?tab=knowledge' }
+    }
+    if (!onboarding.hasPhoneNumber) {
+      return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade →', href: null }
+    }
+    return null
+  })()
+
+  const usagePct = data.usage.totalAvailable > 0
+    ? Math.min(100, Math.round((data.usage.minutesUsed / data.usage.totalAvailable) * 100))
+    : 0
+
   return (
     <>
-      {/* Trial label above orb */}
-      {onboarding.hasAgent && (
-        <p
-          className="text-[11px] font-semibold tracking-[0.12em] uppercase -mb-1"
-          style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
+      {/* ── 1. Header strip ────────────────────────────────────── */}
+      <div
+        className="rounded-2xl border p-4 space-y-2.5"
+        style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-[11px] font-semibold tracking-[0.12em] uppercase"
+            style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
+          >
+            Trial
+          </span>
+          {daysRemaining !== undefined && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
+              {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
+            </span>
+          )}
+          <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+            {data.usage.minutesUsed}m used · {data.usage.totalAvailable}m total
+          </span>
+          <button
+            onClick={() => openUpgradeModal('home_header_upgrade', data.clientId, daysRemaining)}
+            className="ml-auto text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Upgrade →
+          </button>
+        </div>
+        <div
+          className="h-1.5 rounded-full overflow-hidden"
+          style={{ backgroundColor: 'var(--color-hover)' }}
         >
-          {(trialPhase === 'active_urgent' || trialPhase === 'active_final')
-            ? 'Test before your trial ends'
-            : 'Your AI receptionist is ready — call it now'}
-        </p>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${usagePct}%`,
+              backgroundColor: usagePct >= 80 ? 'rgb(245,158,11)' : 'var(--color-primary)',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── 1b. Stats secondary strip ──────────────────────────── */}
+      {(data.stats.todayCalls > 0 || data.stats.lastCallAt || data.stats.timeSavedMinutes > 0) && (
+        <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl flex-wrap" style={{ backgroundColor: 'var(--color-hover)' }}>
+          {data.stats.todayCalls > 0 && (
+            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
+              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{data.stats.todayCalls}</span>{' '}call{data.stats.todayCalls !== 1 ? 's' : ''} today
+            </span>
+          )}
+          {data.stats.lastCallAt && (
+            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
+              last call <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{timeAgo(data.stats.lastCallAt)}</span>
+            </span>
+          )}
+          {data.stats.timeSavedMinutes > 0 && (
+            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
+              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{formatTimeSaved(data.stats.timeSavedMinutes)}</span>{' '}handled this month
+            </span>
+          )}
+        </div>
       )}
 
-      {/* Mode switcher */}
+      {/* ── 2. Next best action (inline strip) ─────────────────── */}
+      {nextAction && (
+        <div
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+          style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)', flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+            <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <p className="text-[12px] flex-1" style={{ color: 'var(--color-text-2)' }}>{nextAction.text}</p>
+          {nextAction.href ? (
+            <Link
+              href={nextAction.href}
+              className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              {nextAction.cta}
+            </Link>
+          ) : (
+            <button
+              onClick={() => openUpgradeModal('nba_strip', data.clientId, daysRemaining)}
+              className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              {nextAction.cta}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 2b. HOT lead banner ────────────────────────────────── */}
+      {data.stats.hotLeads > 0 && (
+        <Link
+          href="/dashboard/calls"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:opacity-75 transition-opacity"
+          style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <span className="text-[13px] shrink-0">🔥</span>
+          <p className="text-[12px] flex-1 font-medium" style={{ color: 'rgb(239,68,68)' }}>
+            {data.stats.hotLeads} HOT lead{data.stats.hotLeads !== 1 ? 's' : ''} this month — view now
+          </p>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)', flexShrink: 0 }}>
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      )}
+
+      {/* ── 3. CapabilitiesCard ─────────────────────────────────── */}
+      <CapabilitiesCard
+        capabilities={capabilities}
+        agentName={agent.name}
+        voiceStylePreset={agent.voiceStylePreset}
+        isTrial={isTrial}
+        clientId={data.clientId}
+        hasPhoneNumber={onboarding.hasPhoneNumber}
+        hasIvr={data.editableFields.ivrEnabled}
+        hasContextData={data.editableFields.hasContextData}
+      />
+
+      {/* ── 4. 2-col grid: TestCallCard + TodayUpdateCard ─────── */}
+      {onboarding.hasAgent && data.clientId && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <TestCallCard
+            clientId={data.clientId}
+            isAdmin={false}
+            isTrial={isTrial}
+            knowledge={{
+              agentName: agent.name || undefined,
+              hasFacts: !!(data.editableFields.businessFacts?.trim()),
+              hasFaqs: faqCount > 0,
+              hasHours: !!data.editableFields.hoursWeekday,
+              hasBooking: capabilities.hasBooking,
+              hasTransfer: capabilities.hasTransfer,
+              hasSms: capabilities.hasSms,
+              hasKnowledge: capabilities.hasKnowledge,
+              hasWebsite: capabilities.hasWebsite,
+            }}
+          />
+          <TodayUpdateCard
+            clientId={data.clientId}
+            currentNote={data.editableFields.injectedNote}
+          />
+        </div>
+      )}
+
+      {/* ── 5. Post-call nudge ──────────────────────────────────── */}
+      {callState === 'ended' && !postCallDismissed && data.clientId && (
+        <div
+          className="rounded-2xl border p-4 space-y-3"
+          style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+              After your call — teach your agent
+            </p>
+            <button
+              onClick={() => { trackEvent('post_call_improvement_dismissed'); onPostCallDismiss() }}
+              className="text-[11px] cursor-pointer hover:opacity-75 transition-opacity"
+              style={{ color: 'var(--color-text-3)' }}
+            >
+              Dismiss
+            </button>
+          </div>
+          <TeachAgentCard clientId={data.clientId} agentName={agent.name} />
+        </div>
+      )}
+
+      {/* ── 6. TrialModeSwitcher ────────────────────────────────── */}
       {onboarding.hasAgent && data.clientId && (
         <TrialModeSwitcher
           clientId={data.clientId}
@@ -272,166 +534,308 @@ export default function TrialActiveSection({
         />
       )}
 
-      {/* Post-call improvement loop */}
-      {callState === 'ended' && !postCallDismissed && data.trialWelcome && (
-        <PostCallImprovementPanel
-          hasHours={data.trialWelcome.hasHours}
-          hasFaqs={data.trialWelcome.hasFaqs}
-          hasForwardingNumber={data.trialWelcome.hasForwardingNumber}
-          existingFaqs={data.editableFields.faqs}
-          onDismiss={() => { trackEvent('post_call_improvement_dismissed'); onPostCallDismiss() }}
-          onRetest={resetCall}
-          clientId={data.clientId}
-          daysRemaining={daysRemaining}
-        />
-      )}
+      {/* ── 7. Identity strip ───────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Agent name chip */}
+        <button
+          onClick={() => sheet.open('identity')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
+        >
+          {agent.name}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
-      {/* Suggested test prompts */}
-      {callState === 'idle' && !postCallDismissed && (
-        <SuggestedTestPrompts
-          hasHours={!!data.editableFields.hoursWeekday}
-          hasFaqs={data.editableFields.faqs.length > 0}
-          hasTransfer={capabilities.hasTransfer}
-          firstFaqQuestion={data.editableFields.faqs[0]?.q ?? null}
-          onPromptClick={() => {}}
-        />
-      )}
+        {/* Niche chip */}
+        {agent.niche && (
+          <Link
+            href="/dashboard/settings?tab=general"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
+          >
+            {formatNiche(agent.niche)}
+          </Link>
+        )}
 
-      {/* Proof strip */}
-      {lastCompletedCall && (
-        <ProofStrip
-          call={lastCompletedCall}
-          hasHours={capabilities.hasHours}
-          hasFaqs={capabilities.hasFaqs}
-          hasForwardingNumber={!!data.editableFields.forwardingNumber}
-          onRetest={resetCall}
-        />
-      )}
+        {/* Voice chip */}
+        <Link
+          href="/dashboard/settings?tab=voice"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {formatVoicePreset(agent.voiceStylePreset)}
+        </Link>
 
-      {/* Onboarding checklist */}
-      {showChecklist && (
-        <OnboardingChecklist
-          hasPhoneNumber={onboarding.hasPhoneNumber}
-          hasReceivedCall={hasRealCalls}
-          telegramConnected={onboarding.telegramConnected}
-          hasKnowledge={capabilities.hasKnowledge}
-          isTrial={isTrial}
-        />
-      )}
+        {/* Telegram pill */}
+        <button
+          onClick={() => sheet.open('notifications')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{
+            backgroundColor: onboarding.telegramConnected ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+            color: onboarding.telegramConnected ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+          }}
+        >
+          {onboarding.telegramConnected ? 'Telegram ✓' : 'Connect Telegram →'}
+        </button>
 
-      {/* Call insights header (trial users only see when they have real calls) */}
-      {data.insights && hasRealCalls && (
-        <CallInsightsHeader
-          totalCalls={data.stats.totalCalls}
-          avgQuality={data.stats.avgQuality}
-          knowledgeCoverage={data.insights.knowledgeCoverage}
-          openGaps={data.insights.openGaps}
-        />
-      )}
+        {/* SMS pill */}
+        <Link
+          href="/dashboard/settings?tab=sms"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{
+            backgroundColor: capabilities.hasSms ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+            color: capabilities.hasSms ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+          }}
+        >
+          {capabilities.hasSms ? 'SMS on' : 'Enable SMS →'}
+        </Link>
 
-      {/* Stats hero (trial users only see when they have real calls) */}
-      {hasRealCalls && (
-        <StatsHeroCard
-          agentName={agent.name}
-          agentStatus={agent.status}
-          isTrial={isTrial}
-          isExpired={false}
-          totalCalls={data.stats.totalCalls}
-          callsTrend={data.stats.trends.callsChange}
-          minutesUsed={data.usage.minutesUsed}
-          totalAvailable={data.usage.totalAvailable}
-          bonusMinutes={data.usage.bonusMinutes}
-          onUpgrade={() => openUpgradeModal('home_stats_usage', data.clientId, daysRemaining)}
-        />
-      )}
+        {/* Agent sync badge */}
+        {data.agentSync && (
+          <AgentSyncBadge
+            lastSyncAt={data.agentSync.last_agent_sync_at}
+            lastSyncStatus={data.agentSync.last_agent_sync_status}
+          />
+        )}
+      </div>
 
-      {/* Bento grid */}
-      {onboarding.hasAgent && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Test call card — full width */}
-          <div className="sm:col-span-2">
-            <TestCallCard
-              clientId={data.clientId ?? ''}
-              isAdmin={false}
-              isTrial={isTrial}
-              knowledge={{
-                agentName: agent.name || undefined,
-                hasFacts: !!(data.editableFields.businessFacts?.trim()),
-                hasFaqs: data.editableFields.faqs.length > 0,
-                hasHours: !!data.editableFields.hoursWeekday,
-                hasBooking: capabilities.hasBooking,
-                hasTransfer: capabilities.hasTransfer,
-                hasSms: capabilities.hasSms,
-                hasKnowledge: capabilities.hasKnowledge,
-                hasWebsite: capabilities.hasWebsite,
-              }}
-            />
+      {/* ── 8. "WHAT IT KNOWS" collapsible ─────────────────────── */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+      >
+        <button
+          onClick={() => setKnowOpen(o => !o)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-hover transition-colors text-left"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+                What it knows
+              </p>
+              <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+                {knowledgeSummaryText}
+              </span>
+              {data.knowledge.last_updated_at && (
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-3)' }}
+                >
+                  updated {timeAgo(data.knowledge.last_updated_at)}
+                </span>
+              )}
+            </div>
           </div>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            className={`shrink-0 transition-transform duration-200 ${knowOpen ? 'rotate-180' : ''}`}
+            style={{ color: 'var(--color-text-3)' }}
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
-          <AgentKnowledgeTile
-            clientId={data.clientId}
-            selectedPlan={data.selectedPlan}
-            subscriptionStatus={onboarding.subscriptionStatus}
-            websiteScrapeStatus={data.websiteScrapeStatus}
-            knowledge={data.knowledge}
-            editableFields={data.editableFields}
-            onOpenSheet={() => sheet.open('knowledge')}
-          />
-
-          <CallHandlingTile
-            selectedPlan={data.selectedPlan}
-            subscriptionStatus={onboarding.subscriptionStatus}
-            capabilities={capabilities}
-            knowledge={data.knowledge}
-            onOpenSheet={sheet.open}
-          />
-
-          <div className="space-y-2">
-            <AgentIdentityTile
-              agentName={agent.name}
-              niche={agent.niche}
-              voiceStylePreset={agent.voiceStylePreset}
-              onOpenSheet={() => sheet.open('identity')}
-            />
-            {data.agentSync && (
-              <div className="px-1">
-                <AgentSyncBadge
-                  lastSyncAt={data.agentSync.last_agent_sync_at}
-                  lastSyncStatus={data.agentSync.last_agent_sync_status}
-                />
+        {knowOpen && (
+          <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            {knowledgeItemCount === 0 && !data.editableFields.businessFacts ? (
+              /* Empty state */
+              <div className="py-6 text-center space-y-2">
+                <p className="text-sm t2">Nothing added yet</p>
+                <p className="text-[12px] t3 leading-relaxed max-w-xs mx-auto">
+                  Your agent answers from its base training only. Add business facts, FAQs, or a website to make it specific to you.
+                </p>
+                <Link
+                  href="/dashboard/settings?tab=knowledge"
+                  className="inline-block text-[12px] font-semibold mt-1 cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Add knowledge →
+                </Link>
               </div>
+            ) : (
+              <>
+                {/* Business facts preview */}
+                {data.editableFields.businessFacts && (
+                  <div className="pt-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
+                      Business facts
+                    </p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
+                      {data.editableFields.businessFacts.slice(0, 200)}{data.editableFields.businessFacts.length > 200 ? '…' : ''}
+                    </p>
+                  </div>
+                )}
+
+                {/* FAQ preview (first 2) */}
+                {faqCount > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
+                      FAQs ({faqCount})
+                    </p>
+                    <div className="space-y-1.5">
+                      {data.editableFields.faqs.slice(0, 2).map((faq, i) => (
+                        <div key={i} className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--color-hover)' }}>
+                          <p className="text-[12px] font-medium t1">{faq.q}</p>
+                          <p className="text-[11px] t3 truncate">{faq.a}</p>
+                        </div>
+                      ))}
+                      {faqCount > 2 && (
+                        <p className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+                          +{faqCount - 2} more
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Source pills */}
+                {knowledgeSources.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {knowledgeSources.map(src => {
+                      const srcLabels: Record<string, string> = {
+                        website_scrape: 'Website', settings_edit: 'FAQs',
+                        compiled_import: 'AI Compiler', pdf_upload: 'Docs',
+                      }
+                      return (
+                        <span
+                          key={src}
+                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'rgb(129,140,248)' }}
+                        >
+                          {srcLabels[src] ?? src}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Auto FAQ suggestions */}
+                {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
+                  <AutoFaqSuggestions
+                    clientId={data.clientId}
+                    suggestions={data.lastFaqSuggestions}
+                  />
+                )}
+
+                {/* Teach agent card */}
+                {data.clientId && (
+                  <TeachAgentCard clientId={data.clientId} agentName={agent.name} />
+                )}
+              </>
             )}
+
+            <div className="pt-1 border-t" style={{ borderColor: 'var(--color-border)' }}>
+              <Link
+                href="/dashboard/settings?tab=knowledge"
+                className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                Manage knowledge →
+              </Link>
+            </div>
           </div>
+        )}
+      </div>
 
-          <NotificationsTile
-            telegramConnected={onboarding.telegramConnected}
-            agentName={agent.name}
-            onOpenSheet={() => sheet.open('notifications')}
-          />
+      {/* ── 9. "RECENT ACTIVITY" collapsible ───────────────────── */}
+      {data.recentCalls.length > 0 && (
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
+          <button
+            onClick={() => setActivityOpen(o => !o)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-hover transition-colors text-left"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+                  Recent activity
+                </p>
+                <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+                  {activitySummaryText}
+                </span>
+                {data.stats.missedThisMonth > 0 && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
+                    {data.stats.missedThisMonth} voicemail{data.stats.missedThisMonth !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              className={`shrink-0 transition-transform duration-200 ${activityOpen ? 'rotate-180' : ''}`}
+              style={{ color: 'var(--color-text-3)' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
-          <BusinessHoursTile
-            hoursWeekday={data.editableFields.hoursWeekday}
-            hoursWeekend={data.editableFields.hoursWeekend}
-            onOpenSheet={() => sheet.open('hours')}
-          />
-
-          <BillingTile
-            selectedPlan={data.selectedPlan}
-            subscriptionStatus={onboarding.subscriptionStatus}
-            onOpenSheet={() => sheet.open('billing')}
-          />
+          {activityOpen && (
+            <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+              {data.recentCalls.slice(0, 3).map(call => {
+                const isTestCall = call.call_status === 'test'
+                const row = (
+                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium t1">
+                        {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
+                      </p>
+                      <p className="text-[11px] t3 capitalize">
+                        {call.call_status.toLowerCase().replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                      <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
+                    </div>
+                  </div>
+                )
+                return isTestCall ? (
+                  <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{row}</div>
+                ) : (
+                  <Link
+                    key={call.id}
+                    href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
+                    className="block cursor-pointer border-b last:border-b-0"
+                    style={{ borderColor: 'var(--color-border)' }}
+                  >
+                    {row}
+                  </Link>
+                )
+              })}
+              <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <Link
+                  href="/dashboard/calls"
+                  className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  View all calls →
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Quiet upgrade nudge */}
-      <div className="text-center pb-1">
-        <button
-          onClick={() => openUpgradeModal('home_quiet_nudge', data.clientId, daysRemaining)}
-          className="text-xs t3 hover:opacity-75 transition-opacity cursor-pointer"
-        >
-          Ready to take real calls? Get a phone number →
-        </button>
-      </div>
+      {/* ── 10. NotificationsTile ───────────────────────────────── */}
+      <NotificationsTile
+        telegramConnected={onboarding.telegramConnected}
+        agentName={agent.name}
+        onOpenSheet={() => sheet.open('notifications')}
+      />
+
+      {/* ── 11. BillingTile ─────────────────────────────────────── */}
+      <BillingTile
+        selectedPlan={data.selectedPlan}
+        subscriptionStatus={onboarding.subscriptionStatus}
+        onOpenSheet={() => sheet.open('billing')}
+      />
     </>
   )
 }
