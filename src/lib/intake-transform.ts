@@ -169,7 +169,7 @@ export function toIntakePayload(data: OnboardingData) {
     callback_phone: data.callbackPhone,
     after_hours_behavior: data.afterHoursBehavior || "take_message",
     emergency_phone: data.emergencyPhone || "",
-    agent_tone: data.agentTone || "casual",
+    // voice_style_preset is written directly by provision/trial/route.ts — agent_tone is dead
     caller_faq: data.callerFAQ || "",
     agent_restrictions: data.agentRestrictions || "",
     services_offered: data.servicesOffered?.trim() ||

@@ -145,8 +145,8 @@ export async function POST(req: NextRequest) {
       knowledge_backend: 'pgvector',
       // Gate-11+13: Write forwarding_number only when plan entitlement allows it
       forwarding_number: effectiveEmergencyPhone,
-      // Phase 5: Map onboarding agentTone to voice_style_preset so VoiceStyleCard shows correct state
-      voice_style_preset: data.agentTone === 'professional' ? 'professional_warm' : 'casual_friendly',
+      // Use agentTone directly as voice_style_preset (types now aligned)
+      voice_style_preset: data.agentTone || 'casual_friendly',
       // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
       telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
       email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,

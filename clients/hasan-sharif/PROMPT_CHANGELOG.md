@@ -266,3 +266,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 7542 | **Hash:** 12782db78026aca8
 **Supabase version_id:** 8223d2ab-4ebb-4bfc-87d6-117e2cb50c95
 **Ultravox revision:** 34c6c652-b05b-4e54-8b7d-6a91449f5ae9
+
+## v59 — 2026-03-29 23:29 UTC
+**Change:** Tighten not-available trigger; add proactive real estate booking steering to MESSAGE FLOW
+**Chars:** 7803 | **Hash:** d9ed166b49e9313d
+**Supabase version_id:** 0e707e6f-30e9-44f2-98b1-b5fceac02280
+**Ultravox revision:** efb5a18b-ae1f-411f-a412-179e2494e7a6

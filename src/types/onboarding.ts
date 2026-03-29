@@ -19,7 +19,7 @@ export type NotificationMethod = "telegram" | "sms" | "email" | "both";
 
 export type AfterHoursBehavior = "take_message" | "route_emergency" | "standard";
 
-export type AgentTone = "casual" | "professional" | "match_industry";
+export type AgentTone = "casual_friendly" | "professional_warm" | "direct_efficient" | "empathetic_care";
 
 export type PrimaryGoal = 'capture_info' | 'book_appointment' | 'faq_only' | '';
 
@@ -195,7 +195,7 @@ export const defaultOnboardingData: OnboardingData = {
   callerAutoTextMessage: "",
   callerFAQ: "",
   agentRestrictions: "",
-  agentTone: "casual",
+  agentTone: "casual_friendly",
   primaryGoal: "",
   completionFields: "",
   pricingPolicy: "",

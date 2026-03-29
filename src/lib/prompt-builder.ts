@@ -454,7 +454,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // service_catalog — override TRIAGE_DEEP + FIRST_INFO_QUESTION for appointment_booking with catalog
   if (effectiveMode === 'appointment_booking' && catalogServiceNames.length > 0) {
     const nameList = catalogServiceNames.join(', ')
-    modeTriageDeep = `Lead with booking. Ask which service they need: ${nameList}. Call checkCalendarAvailability right away. Do not push through a long triage script.`
+    modeTriageDeep = `Lead with booking. Ask which service they need: ${nameList}. Once you have their name and service, call transitionToBookingStage to check availability and book directly. Do not push through a long triage script.`
     if (catalogServiceNames.length <= 3) {
       const last = catalogServiceNames[catalogServiceNames.length - 1]
       const rest = catalogServiceNames.slice(0, -1)

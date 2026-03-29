@@ -238,6 +238,40 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
           onUpdate({ voiceId, voiceName })
         }}
       />
+
+      {/* Personality / tone picker */}
+      <div>
+        <p className="text-sm font-semibold text-foreground mb-1">Agent personality</p>
+        <p className="text-xs text-muted-foreground mb-3">How your agent sounds on calls. You can change this any time.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { id: 'casual_friendly', label: 'Casual & Friendly', desc: 'Warm, natural, great for trades and small shops' },
+            { id: 'professional_warm', label: 'Professional & Warm', desc: 'Polished but friendly — real estate, law, medical' },
+            { id: 'direct_efficient', label: 'Direct & Efficient', desc: 'Straight to the point — busy offices' },
+            { id: 'empathetic_care', label: 'Empathetic & Patient', desc: 'Gentle tone — healthcare and senior services' },
+          ] as const).map((p) => {
+            const selected = (data.agentTone || 'casual_friendly') === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onUpdate({ agentTone: p.id })}
+                className={`text-left rounded-xl border-2 p-3 transition-all ${
+                  selected
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                    : 'border-border hover:border-indigo-300 dark:hover:border-indigo-700'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${selected ? 'bg-indigo-500' : 'bg-muted-foreground/30'}`} />
+                  <span className="text-xs font-semibold text-foreground">{p.label}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground ml-3.5">{p.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   );
 }
