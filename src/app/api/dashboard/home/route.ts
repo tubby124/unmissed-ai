@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -92,6 +92,15 @@ export async function GET(request: Request) {
       .eq('client_id', clientId)
       .eq('result_count', 0)
       .is('resolved_at', null),
+
+    // Last call with topics — for home dashboard "teach your agent" panel
+    supabase
+      .from('call_logs')
+      .select('id, client_id, key_topics')
+      .eq('client_id', clientId)
+      .not('key_topics', 'is', null)
+      .order('started_at', { ascending: false })
+      .limit(1),
   ])
 
   const client = clientRes.data
@@ -104,6 +113,12 @@ export async function GET(request: Request) {
   const bookings = bookingsRes.data ?? []
   const recentCalls = recentRes.data ?? []
   const knowledgeChunks = knowledgeRes.data ?? []
+
+  // Last call topics for home "teach your agent" panel
+  const lastTopicsRow = lastTopicsRes.data?.[0] ?? null
+  const lastCallTopics = lastTopicsRow && Array.isArray(lastTopicsRow.key_topics) && lastTopicsRow.key_topics.length > 0
+    ? { id: lastTopicsRow.id as string, client_id: lastTopicsRow.client_id as string, topics: lastTopicsRow.key_topics as string[] }
+    : null
 
   // Knowledge tile data
   const approvedChunks = knowledgeChunks.filter(k => k.status === 'approved')
@@ -260,5 +275,6 @@ export async function GET(request: Request) {
       websiteUrl: (client.website_url as string | null) ?? null,
       businessFacts: (client.business_facts as string | null) ?? null,
     },
+    lastCallTopics,
   })
 }

@@ -24,6 +24,7 @@ import PaidReadySection from './home/PaidReadySection'
 // Shared bento-level components kept at this level
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
 import HomeSideSheet from './home/HomeSideSheet'
+import QuickAddFaq from './QuickAddFaq'
 
 export interface HomeData {
   admin: boolean
@@ -121,6 +122,11 @@ export interface HomeData {
     knowledgeCoverage: number | null
     openGaps: number
   }
+  lastCallTopics?: {
+    id: string
+    client_id: string
+    topics: string[]
+  } | null
 }
 
 
@@ -461,6 +467,15 @@ export default function ClientHome() {
             </div>
           )}
         </div>
+
+        {/* ── Teach your agent — topics from most recent call ─── */}
+        {data.lastCallTopics && data.lastCallTopics.topics.length > 0 && (
+          <QuickAddFaq
+            clientId={data.lastCallTopics.client_id}
+            topics={data.lastCallTopics.topics}
+            transcript={null}
+          />
+        )}
 
         </>)}
 

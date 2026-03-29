@@ -38,23 +38,77 @@ function findRelevantQuestion(topic: string, transcript: Array<{ role: string; t
   return topic
 }
 
+function buildTranscriptContext(topic: string, transcript: Array<{ role: string; text: string }> | null): string {
+  if (!transcript || transcript.length === 0) return ''
+  const topicLower = topic.toLowerCase()
+  const words = topicLower.split(/\s+/).filter(w => w.length > 3)
+  // Find up to 4 lines near where the topic was discussed
+  const lines: string[] = []
+  for (let i = 0; i < transcript.length; i++) {
+    const msg = transcript[i]
+    const text = msg.text.toLowerCase()
+    if (text.includes(topicLower) || words.some(w => text.includes(w))) {
+      // Include 1 line before and after for context
+      const start = Math.max(0, i - 1)
+      const end = Math.min(transcript.length - 1, i + 1)
+      for (let j = start; j <= end; j++) {
+        const label = transcript[j].role === 'user' ? 'Caller' : 'Agent'
+        const line = `${label}: ${transcript[j].text.slice(0, 150)}`
+        if (!lines.includes(line)) lines.push(line)
+      }
+      if (lines.length >= 6) break
+    }
+  }
+  return lines.join('\n')
+}
+
 export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFaqProps) {
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
+  const [suggesting, setSuggesting] = useState(false)
+  const [aiSuggested, setAiSuggested] = useState(false)
   const [saving, setSaving] = useState(false)
   const [addedTopics, setAddedTopics] = useState<Set<string>>(new Set())
 
-  function handleExpand(topic: string) {
+  async function handleExpand(topic: string) {
     if (expandedTopic === topic) {
       setExpandedTopic(null)
       setQuestion('')
       setAnswer('')
+      setAiSuggested(false)
       return
     }
     setExpandedTopic(topic)
     setQuestion(findRelevantQuestion(topic, transcript))
     setAnswer('')
+    setAiSuggested(false)
+
+    // Fire AI suggestion immediately
+    setSuggesting(true)
+    try {
+      const transcriptContext = buildTranscriptContext(topic, transcript)
+      const res = await fetch('/api/dashboard/knowledge/suggest-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          client_id: clientId,
+          transcript_context: transcriptContext || undefined,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json() as { answer?: string }
+        if (data.answer) {
+          setAnswer(data.answer)
+          setAiSuggested(true)
+        }
+      }
+    } catch {
+      // Non-fatal — user can still type their own answer
+    } finally {
+      setSuggesting(false)
+    }
   }
 
   async function handleSave() {
@@ -92,6 +146,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
       setExpandedTopic(null)
       setQuestion('')
       setAnswer('')
+      setAiSuggested(false)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save FAQ'
       toast.error(msg)
@@ -198,25 +253,42 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold block mb-1" style={{ color: 'var(--color-text-3)' }}>
-                      Answer
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] font-semibold" style={{ color: 'var(--color-text-3)' }}>
+                        Answer
+                      </label>
+                      {suggesting && (
+                        <span className="text-[10px] flex items-center gap-1" style={{ color: 'rgb(129,140,248)' }}>
+                          <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
+                          AI writing suggestion…
+                        </span>
+                      )}
+                      {!suggesting && aiSuggested && (
+                        <span className="text-[10px]" style={{ color: 'rgb(129,140,248)' }}>
+                          AI suggested · edit if needed
+                        </span>
+                      )}
+                    </div>
                     <textarea
-                      value={answer}
-                      onChange={e => setAnswer(e.target.value)}
-                      placeholder="Type the answer your agent should give..."
-                      rows={2}
-                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
+                      value={suggesting ? '' : answer}
+                      onChange={e => { setAnswer(e.target.value); setAiSuggested(false) }}
+                      placeholder={suggesting ? 'Generating suggestion…' : 'Type the answer your agent should give...'}
+                      disabled={suggesting}
+                      rows={3}
+                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500/50 resize-none transition-colors disabled:opacity-50"
                       style={{
                         backgroundColor: 'transparent',
-                        borderColor: 'var(--color-border)',
+                        borderColor: aiSuggested && !suggesting ? 'rgba(99,102,241,0.3)' : 'var(--color-border)',
                         color: 'var(--color-text-1)',
                       }}
                     />
                   </div>
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => { setExpandedTopic(null); setQuestion(''); setAnswer('') }}
+                      onClick={() => { setExpandedTopic(null); setQuestion(''); setAnswer(''); setAiSuggested(false) }}
                       className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                       style={{ color: 'var(--color-text-3)' }}
                     >
@@ -224,7 +296,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                     </button>
                     <button
                       onClick={handleSave}
-                      disabled={saving || !question.trim() || !answer.trim()}
+                      disabled={saving || suggesting || !question.trim() || !answer.trim()}
                       className="px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40 cursor-pointer"
                     >
                       {saving ? 'Saving...' : 'Save as FAQ'}
