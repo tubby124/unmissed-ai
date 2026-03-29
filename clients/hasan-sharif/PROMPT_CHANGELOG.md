@@ -254,3 +254,15 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 7958 | **Hash:** 66eab2d38add673b
 **Supabase version_id:** 3cdd3836-5623-48be-bdbe-5969e091667c
 **Ultravox revision:** b36494ae-a271-4405-8599-465166fc9c98
+
+## v57 — 2026-03-29 22:47 UTC
+**Change:** fix: remove bad CALL HANDLING MODE section, add SMS FOLLOW-UP, align with templateContext architecture
+**Chars:** 8310 | **Hash:** 696c4fe3c8afcc5d
+**Supabase version_id:** 9c602a04-63de-4a4b-8783-91a6b70eeb5d
+**Ultravox revision:** cafb0597-69f0-48f7-bebf-5743e9215532
+
+## v58 — 2026-03-29 22:57 UTC
+**Change:** v58: stage transition booking (transitionToBookingStage replaces direct BOOKING FLOW)
+**Chars:** 7542 | **Hash:** 12782db78026aca8
+**Supabase version_id:** 8223d2ab-4ebb-4bfc-87d6-117e2cb50c95
+**Ultravox revision:** 34c6c652-b05b-4e54-8b7d-6a91449f5ae9

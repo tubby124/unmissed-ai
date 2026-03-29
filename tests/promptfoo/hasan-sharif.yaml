@@ -135,26 +135,36 @@ tests:
           - "message"
           - "Hasan"
 
-  # ── Test 4: Closes referencing existing number (not asking for it) ─────────
-  # Note: Aisha's closing is "text this same number" / "He'll get back to you soon"
-  # — she does not say "at the number you called from" but NEVER asks for their number either.
-  - description: "Closing references caller's existing number without asking for it"
+  # ── Test 4: Never asks for phone number when caller gives name + reason ────
+  # Aisha may ask one follow-up question (listing soon? property address?) — that's fine.
+  # The invariant is: she NEVER asks for their phone number. She either closes or gathers
+  # relevant real-estate info (timeline, property) — not contact info she already has.
+  - description: "Never asks for phone number — seller inquiry with name + reason"
     vars:
       caller_message: "Great, my name is Sarah and I'm interested in selling my house in Saskatoon."
     assert:
-      - type: icontains-any
-        value:
-          - "this number"
-          - "get back to you"
-          - "Hasan"
-          - "right away"
-          - "call you back"
+      # Must not ask for phone — that's the invariant
       - type: not-icontains
         value: "what is your number"
       - type: not-icontains
         value: "what's your number"
       - type: not-icontains
         value: "best number"
+      - type: not-icontains
+        value: "phone number"
+      - type: not-icontains
+        value: "reach you"
+      # Must engage with the selling topic — not deflect or stay silent
+      - type: icontains-any
+        value:
+          - "Sarah"
+          - "Hasan"
+          - "sell"
+          - "listing"
+          - "Saskatoon"
+          - "property"
+          - "get back"
+          - "right away"
 
   # ── Core Niche Logic Tests ─────────────────────────────────────────────────
 
@@ -247,22 +257,25 @@ tests:
           - "sure!"
 
   # ── Calendar Booking Tests ────────────────────────────────────────────────
+  # NOTE: Aisha uses transitionToBookingStage (not direct checkCalendarAvailability).
+  # She collects name + service type (property for showings), then hands off to the booking stage.
+  # Tool call verification requires a live test (D82) — these tests cover Aisha's response text only.
 
-  - description: "Calendar offer — agent offers book OR message for showing request"
+  - description: "Calendar offer — agent moves toward booking, asks for property"
     vars:
       caller_message: "Hi, I'd like to schedule a showing for a condo in Saskatoon."
     assert:
       - type: icontains-any
         value:
           - "book"
-          - "showing slot"
-          - "30-minute"
-          - "take a message"
+          - "property"
+          - "address"
+          - "which"
           - "right now"
-          - "check"
-      # Must offer the choice (book vs message) — not just default to message
+          - "sure"
+      # Must ask for property or move toward booking — not just default to message taking
       - type: llm-rubric
-        value: "The response offers to book a showing slot directly OR to take a message for Hasan — it does not just default to taking a message without offering the live booking option."
+        value: "The response moves toward booking the showing — it asks for the property address or condo details. It does NOT just take a message without offering to book."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "what is your phone number"
@@ -273,7 +286,7 @@ tests:
     vars:
       caller_message: "Yes please book me in for the showing, I want to do it now."
     assert:
-      # Agent correctly asks for property FIRST (Step 1 in booking flow), then day (Step 2)
+      # Agent asks for property FIRST before transitioning to booking stage
       - type: icontains-any
         value:
           - "property"
@@ -287,27 +300,29 @@ tests:
       - type: not-icontains
         value: "callback number"
 
-  - description: "Calendar flow — does not ask for phone when callerContext has it"
+  - description: "Calendar flow — collects property then confirms before booking handoff"
     vars:
-      # Simulates callerContext with date injection (as Railway webhook injects at call time)
-      caller_message: "[TODAY: 2026-03-16 (Monday)\nCURRENT TIME: 2:30 PM (America/Regina)\nCALLER PHONE: 306-555-4321]\n\nI want to book a showing. Can I come in this Wednesday?"
+      # Simulates caller providing name + property in one shot — Aisha should proceed to book
+      caller_message: "[TODAY: 2026-03-16 (Monday)\nCURRENT TIME: 2:30 PM (America/Regina)\nCALLER PHONE: 306-555-4321]\n\nHi I'm Sarah, I want to book a showing for 456 Elm Street. Can we set something up?"
     assert:
-      # Agent should move toward booking — ask for property or confirm the day
+      # Agent has name (Sarah) + property (456 Elm Street) + callerPhone — should proceed to booking
       - type: icontains-any
         value:
-          - "property"
-          - "address"
-          - "which"
-          - "right now"
-          - "sure"
-          - "for sure"
-          - "Wednesday"
-          - "got it"
-      # Must not ask for callback number (already have it from callerContext)
+          - "sec"
+          - "set that up"
+          - "get that"
+          - "Sarah"
+          - "456"
+          - "Elm"
+          - "book"
+      # Must not ask for phone (already in callerContext)
       - type: not-icontains
         value: "phone number"
       - type: not-icontains
         value: "what's your number"
+      - type: llm-rubric
+        value: "The response acknowledges Sarah's booking request and moves toward completing it — either confirming the details or indicating it will set things up. It does NOT ask for her phone number."
+        provider: openrouter:anthropic/claude-haiku-4.5
 
   - description: "Full closing — Hasan will get back to caller via known number"
     vars:
