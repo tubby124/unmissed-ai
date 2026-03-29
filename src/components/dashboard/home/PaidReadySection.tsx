@@ -12,6 +12,8 @@ import NotificationsTile from './NotificationsTile'
 import StatsHeroCard from './StatsHeroCard'
 import TeachAgentCard from './TeachAgentCard'
 import TodayUpdateCard from './TodayUpdateCard'
+import KnowledgeSourcesTile from './KnowledgeSourcesTile'
+import NicheInsightsTile from './NicheInsightsTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -123,13 +125,13 @@ const [knowOpen, setKnowOpen] = useState(false)
   // Next best action — paid users: no upgrade nudge, focus on quality gaps
   const nextAction: { text: string; cta: string; href: string | null } | null = (() => {
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
-      return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/settings?tab=knowledge' }
+      return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/knowledge?tab=add&source=manual' }
     }
     if (!capabilities.hasHours) {
-      return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/settings?tab=general' }
+      return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/actions#hours' }
     }
     if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
-      return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/settings?tab=knowledge' }
+      return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/knowledge' }
     }
     if (!onboarding.telegramConnected) {
       return { text: 'Get instant call alerts on Telegram', cta: 'Connect →', href: '/dashboard/settings?tab=notifications' }
@@ -152,7 +154,7 @@ const [knowOpen, setKnowOpen] = useState(false)
           </svg>
           <p className="text-[12px] flex-1" style={{ color: 'rgb(239,68,68)' }}>Agent sync failed — your latest settings may not be live</p>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings?tab=general"
             className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0"
             style={{ color: 'rgb(239,68,68)' }}
           >
@@ -256,19 +258,7 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 3. CapabilitiesCard ─────────────────────────────────── */}
-      <CapabilitiesCard
-        capabilities={capabilities}
-        agentName={agent.name}
-        voiceStylePreset={agent.voiceStylePreset}
-        isTrial={false}
-        clientId={data.clientId}
-        hasPhoneNumber={onboarding.hasPhoneNumber}
-        hasIvr={data.editableFields.ivrEnabled}
-        hasContextData={data.editableFields.hasContextData}
-      />
-
-      {/* ── 4. 2-col grid: TestCallCard + TodayUpdateCard ─────── */}
+      {/* ── 3. 2-col grid: TestCallCard + TodayUpdateCard (hero) ─ */}
       {onboarding.hasAgent && data.clientId && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <TestCallCard
@@ -293,6 +283,18 @@ const [knowOpen, setKnowOpen] = useState(false)
           />
         </div>
       )}
+
+      {/* ── 4. CapabilitiesCard ─────────────────────────────────── */}
+      <CapabilitiesCard
+        capabilities={capabilities}
+        agentName={agent.name}
+        voiceStylePreset={agent.voiceStylePreset}
+        isTrial={false}
+        clientId={data.clientId}
+        hasPhoneNumber={onboarding.hasPhoneNumber}
+        hasIvr={data.editableFields.ivrEnabled}
+        hasContextData={data.editableFields.hasContextData}
+      />
 
       {/* ── 5. Identity strip ───────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -440,7 +442,7 @@ const [knowOpen, setKnowOpen] = useState(false)
                   Your agent answers from its base training only. Add business facts, FAQs, or a website to make it specific to you.
                 </p>
                 <Link
-                  href="/dashboard/settings?tab=knowledge"
+                  href="/dashboard/knowledge"
                   className="inline-block text-[12px] font-semibold mt-1 cursor-pointer hover:opacity-75 transition-opacity"
                   style={{ color: 'var(--color-primary)' }}
                 >
@@ -521,7 +523,7 @@ const [knowOpen, setKnowOpen] = useState(false)
 
             <div className="pt-1 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <Link
-                href="/dashboard/settings?tab=knowledge"
+                href="/dashboard/knowledge"
                 className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
                 style={{ color: 'var(--color-primary)' }}
               >
@@ -532,7 +534,17 @@ const [knowOpen, setKnowOpen] = useState(false)
         )}
       </div>
 
-      {/* ── 7. "RECENT ACTIVITY" collapsible ───────────────────── */}
+      {/* ── 7. KnowledgeSourcesTile — GBP + business facts editor ── */}
+      {data.clientId && (
+        <KnowledgeSourcesTile
+          gbpData={data.gbpData}
+          editableFields={data.editableFields}
+          websiteScrapeStatus={data.websiteScrapeStatus}
+          clientId={data.clientId}
+        />
+      )}
+
+      {/* ── 8. "RECENT ACTIVITY" collapsible ───────────────────── */}
       {data.recentCalls.length > 0 && (
         <div
           className="rounded-2xl overflow-hidden"
@@ -613,18 +625,28 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 8. NotificationsTile ────────────────────────────────── */}
+      {/* ── 9. NotificationsTile ────────────────────────────────── */}
       <NotificationsTile
         telegramConnected={onboarding.telegramConnected}
+        emailEnabled={onboarding.emailNotificationsEnabled}
         agentName={agent.name}
         onOpenSheet={() => sheet.open('notifications')}
       />
 
-      {/* ── 9. BillingTile ──────────────────────────────────────── */}
+      {/* ── 10. BillingTile ──────────────────────────────────────── */}
       <BillingTile
         selectedPlan={data.selectedPlan}
         subscriptionStatus={onboarding.subscriptionStatus}
         onOpenSheet={() => sheet.open('billing')}
+      />
+
+      {/* ── 11. NicheInsightsTile ────────────────────────────────── */}
+      <NicheInsightsTile
+        niche={agent.niche}
+        capabilities={capabilities}
+        knowledge={data.knowledge}
+        onboarding={onboarding}
+        sheet={sheet}
       />
     </>
   )

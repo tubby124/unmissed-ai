@@ -20,7 +20,23 @@ interface Props {
   subscriptionStatus: string | null
   capabilities: Capabilities
   knowledge: { approved_chunk_count: number }
+  callHandlingMode?: string | null
   onOpenSheet?: (sheet: 'forwarding' | 'notifications') => void
+}
+
+const MODE_MAP: Record<string, { label: string; desc: string }> = {
+  voicemail_replacement: {
+    label: 'Smart Voicemail',
+    desc: 'Takes messages and handles calls when you\'re busy.',
+  },
+  receptionist: {
+    label: 'Receptionist',
+    desc: 'Answers calls, qualifies leads, and connects them to you.',
+  },
+  full_service: {
+    label: 'Receptionist + Booking',
+    desc: 'Books appointments and manages inquiries end to end.',
+  },
 }
 
 type RowState = 'not-on-plan' | 'not-configured' | 'partial' | 'active'
@@ -71,8 +87,12 @@ export default function CallHandlingTile({
   subscriptionStatus,
   capabilities,
   knowledge,
+  callHandlingMode,
   onOpenSheet,
 }: Props) {
+  const modeInfo = callHandlingMode ? (MODE_MAP[callHandlingMode] ?? null) : null
+  const modeLabel = modeInfo?.label ?? 'Basic Answering'
+  const modeDesc = modeInfo?.desc ?? 'Answers calls and provides information about your business.'
   const planId: Parameters<typeof getPlanEntitlements>[0] = subscriptionStatus === 'trialing' ? 'trial'
     : subscriptionStatus ? (selectedPlan ?? null)
     : null
@@ -99,7 +119,7 @@ export default function CallHandlingTile({
         ? 'Calendar connected'
         : 'Connect your calendar',
       actionLabel: !plan.bookingEnabled ? undefined : capabilities.hasBooking ? undefined : 'Connect',
-      actionHref: capabilities.hasBooking ? undefined : '/dashboard/settings?tab=integrations',
+      actionHref: capabilities.hasBooking ? undefined : '/dashboard/settings?tab=general',
     },
     // Transfer
     {
@@ -139,6 +159,29 @@ export default function CallHandlingTile({
           <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         <p className="text-[11px] font-semibold tracking-[0.12em] uppercase t3">Call Handling</p>
+      </div>
+
+      {/* Mode pill */}
+      <div className="pb-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' }}
+          >
+            {modeLabel}
+          </span>
+          <a
+            href="/dashboard/settings?tab=general"
+            className="flex items-center gap-0.5 text-[10px] font-medium hover:opacity-75 transition-opacity shrink-0"
+            style={{ color: 'var(--color-text-3)' }}
+          >
+            Change
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </div>
+        <p className="text-[11px] t3 mt-1 leading-relaxed">{modeDesc}</p>
       </div>
 
       {/* Rows */}

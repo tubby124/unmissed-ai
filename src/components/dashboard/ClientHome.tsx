@@ -77,6 +77,7 @@ export interface HomeData {
     hasPhoneNumber: boolean
     hasAgent: boolean
     telegramConnected: boolean
+    emailNotificationsEnabled: boolean
   }
   trialWelcome: {
     businessName: string
@@ -136,6 +137,13 @@ export interface HomeData {
   } | null
   lastFaqSuggestions?: { q: string; a: string }[] | null
   agentHealth?: 'healthy' | 'degraded' | 'offline'
+  gbpData?: {
+    placeId: string | null
+    summary: string | null
+    rating: number | null
+    reviewCount: number | null
+    photoUrl: string | null
+  } | null
 }
 
 

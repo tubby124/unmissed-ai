@@ -6,9 +6,11 @@ import ActivationTile from './ActivationTile'
 import AgentIdentityTile from './AgentIdentityTile'
 import AgentKnowledgeTile from './AgentKnowledgeTile'
 import BillingTile from './BillingTile'
+import KnowledgeSourcesTile from './KnowledgeSourcesTile'
 import BusinessHoursTile from './BusinessHoursTile'
 import CallHandlingTile from './CallHandlingTile'
 import NotificationsTile from './NotificationsTile'
+import NicheInsightsTile from './NicheInsightsTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -52,11 +54,19 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
             onOpenSheet={() => sheet.open('knowledge')}
           />
 
+          <KnowledgeSourcesTile
+            gbpData={data.gbpData}
+            editableFields={data.editableFields}
+            websiteScrapeStatus={data.websiteScrapeStatus}
+            clientId={data.clientId ?? ''}
+          />
+
           <CallHandlingTile
             selectedPlan={data.selectedPlan}
             subscriptionStatus={onboarding.subscriptionStatus}
             capabilities={capabilities}
             knowledge={data.knowledge}
+            callHandlingMode={data.callHandlingMode}
             onOpenSheet={sheet.open}
           />
 
@@ -79,6 +89,7 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
 
           <NotificationsTile
             telegramConnected={onboarding.telegramConnected}
+            emailEnabled={onboarding.emailNotificationsEnabled}
             agentName={agent.name}
             onOpenSheet={() => sheet.open('notifications')}
           />
@@ -94,6 +105,16 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
             subscriptionStatus={onboarding.subscriptionStatus}
             onOpenSheet={() => sheet.open('billing')}
           />
+
+          <div className="sm:col-span-2">
+            <NicheInsightsTile
+              niche={agent.niche}
+              capabilities={capabilities}
+              knowledge={data.knowledge}
+              onboarding={onboarding}
+              sheet={sheet}
+            />
+          </div>
         </div>
       )}
     </>

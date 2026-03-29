@@ -127,9 +127,29 @@
 | D66 | **UX** | Triple capability redundancy on home overview. TestCallCard "WHAT YOUR AGENT KNOWS" tiles + AgentKnowledgeTile + CallHandlingTile all show overlapping capability/knowledge status on the same screen. User sees the same info 3 times. Fix: TestCallCard tiles are the hero — drop one of the other two (AgentKnowledgeTile is weaker, consider replacing with something more actionable). | MEDIUM | **DONE** 2026-03-28 |
 | D67 | **UX** | isFirstVisit branch in TrialActiveSection is a completely different UI from the return branch. First visit: custom welcome layout with its own knowledge pill rows. Every visit after: bento grid. Same user, same product, wildly different screen. Either unify them (show bento on first visit too) or make the first-visit screen clearly a one-time onboarding moment that feels intentional. | MEDIUM | NOT STARTED |
 | D68 | **UX** | TrialModeSwitcher floats orphaned above the bento grid in the trial return branch — outside the visual system, disconnected from the TestCallCard it affects. Belongs either inside the bento grid as a tile, or merged into CallHandlingTile. | LOW | **DONE** 2026-03-28 |
+| D69 | **GAP** | GBP fields (`gbp_place_id`, `gbp_summary`, `gbp_rating`, `gbp_review_count`, `gbp_photo_url`) were written to `clients` at provision time but never surfaced anywhere in the dashboard. Home API was not selecting them. Owners couldn't see the GBP data their agent was trained on. Fixed in Dashboard Control Center Phase 1 — `KnowledgeSourcesTile` surfaces GBP summary + star rating + photo, and `business_facts` is now editable per-line inline. | MEDIUM | **DONE** 2026-03-28 |
+| D70 | **RESOLVED** | `call_handling_mode` is `DB_PLUS_PROMPT`, `triggersSync: true` (confirmed via `lib/settings-schema.ts` FIELD_REGISTRY + SYNC_TRIGGER_FIELDS). Mode label display is read-only — "Change mode" CTA links to `/dashboard/settings?tab=general` (no inline patch, no sync spinner in the tile). | MEDIUM | **DONE** 2026-03-28 |
 | D62 | UX | IVR settings currently in Agent tab only. User suggested IVR could live in a "notifications / call handling" area. Deferred — IVR is more "call routing" than "notifications"; keep in Agent tab for now. Revisit during S12 Ph2c (IVR multi-route). | LOW | DEFERRED |
 | D63 | **GAP** | Booking confirmation SMS (D60) is completely untracked — fires `sendSmsTracked` but never writes to `sms_logs`. Sid is dropped. No delivery status, no owner visibility, no record a confirmation was sent for a given booking. All other outbound SMS paths log to `sms_logs`. Use `direction: 'booking_confirmation'` to avoid unique constraint collision with post-call follow-up (`direction: 'outbound'`). | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` logs to `sms_logs` with `direction: 'booking_confirmation'` + `message_sid` after successful send) |
 | D64 | **GAP** | No bookings dashboard view — `bookings` table has all appointment records but there is no `/dashboard/bookings` route, no bookings tab, no upcoming appointments widget. Owners only see bookings via Telegram notification. Flying blind on their own appointment schedule from inside the product. | HIGH | **DONE** 2026-03-28 (`/dashboard/bookings` route + `BookingsView.tsx`: stats strip, upcoming cards with status pills + calendar links, past table, empty state; nav item `calendar-check` in Group 3 `trialLocked`) |
+
+---
+
+## Dashboard Control Center Initiative (Paid Dashboard UX — 2026-03-28)
+
+Spec: `.claude/commands/dashboard-control-build.md` | Audit: `.claude/commands/dashboard-control-audit.md`
+
+| Phase | Name | What | Gate | Status |
+|-------|------|------|------|--------|
+| DCC-1 | GBP + Business Facts Surfacing | `KnowledgeSourcesTile` — GBP summary (star/photo/review), per-line `business_facts` editor, "what your agent says" preview. Home API selects GBP fields. Wired into PaidReadySection + PaidAwaitingSection. | Build ✅ green, 7 files | **DONE** 2026-03-28 (uncommitted — commit first next session) |
+| DCC-2 | CallHandlingTile Mode Label | Add `call_handling_mode` pill at top of tile: `voicemail_replacement`→"Smart Voicemail", `receptionist`→"Receptionist", `full_service`→"Receptionist + Booking", `null`→"Basic Answering". Large pill badge (bg=primary/10, text=primary). MODE_MAP + modeLabel/modeDesc logic. "Change →" CTA links to `/dashboard/settings?tab=general`. | D70 resolved: DB_PLUS_PROMPT triggersSync — CTA links, no inline patch. Build ✅ green. | **DONE** 2026-03-28 |
+| DCC-3 | NicheInsightsTile | Niche-aware config nudges per `clients.niche` (real_estate, auto_glass, restaurant, generic fallback). Check done-state from capabilities + knowledge. Tile returns null when all done. Wired into PaidReadySection (section 11) + PaidAwaitingSection (sm:col-span-2 full-width). | Build ✅ green after wiring. | **DONE** 2026-03-28 |
+
+**Verification gates (run after each phase before committing):**
+- `npm run build` — 0 errors, 0 warnings
+- Visually confirm tile renders in PaidReadySection AND PaidAwaitingSection
+- Confirm empty state renders correctly when no GBP data / no `call_handling_mode` set
+- No new `console.log` in changed files
 
 ---
 
@@ -187,6 +207,9 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          SLICE-8o (frustration/interruption metrics — 2026-03-28)
 
 NEXT:
+  DCC-COMMIT  -> git commit Phase 1 (7 files — KnowledgeSourcesTile + GBP home API)
+  DCC-2       -> CallHandlingTile mode label pill (read settings/route.ts needsAgentSync first — D70)
+  DCC-3       -> NicheInsightsTile (run /dashboard-control-audit first)
   STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
   GATE-1   -> Domain migration (BLOCKED on domain purchase)
 
