@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { buildCalendarTools } from '@/lib/ultravox'
+import { buildCalendarBookingTools } from '@/lib/ultravox'
 
 export async function POST(
   req: NextRequest,
@@ -55,9 +55,8 @@ RULES:
 - ${isFormal ? 'keep your tone professional and concise' : 'keep it natural — brief, warm, no filler'}
 - do not re-ask for the caller\'s name or service type (you have it from the conversation)`
 
-  // Stage response: explicitly set tools so booking stage only has calendar + hangUp
-  // (do NOT include transitionToBookingStage here — prevents re-triggering)
-  const calendarTools = buildCalendarTools(slug)
+  // Stage response: only hangUp + booking tools (no transitionToBookingStage — prevents loop)
+  const calendarTools = buildCalendarBookingTools(slug)
   const selectedTools = [
     { toolName: 'hangUp' },
     ...calendarTools,
