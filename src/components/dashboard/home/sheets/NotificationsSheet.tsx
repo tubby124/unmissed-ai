@@ -143,7 +143,7 @@ export default function NotificationsSheet({
       </div>
 
       <a
-        href="/dashboard/settings"
+        href="/dashboard/settings?tab=notifications"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >
