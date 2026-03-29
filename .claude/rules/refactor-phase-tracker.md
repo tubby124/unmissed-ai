@@ -124,6 +124,8 @@
 | D60 | **GAP** | No SMS confirmation to caller after agent books an appointment. `bookAppointment` tool fires + calendar event created, but no confirmation text sent. Implement via `sendTextMessage` in the tool response instruction block, only when `sms_enabled=true`. Booking confirmation is a distinct SMS from the post-call follow-up. | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` fires `sendSmsTracked` after successful booking, gated on sms_enabled + twilio_number + callerPhone, opt-out checked) |
 | D61 | **GAP** | SMS opt-out list invisible to owners — only admins can see who's opted out via DB. Owners flying blind on why SMS isn't reaching certain callers. Add read-only opt-out list to the SMS settings tab (no removal — opt-out is permanent per compliance). | LOW | **DONE** 2026-03-28 (GET `/api/dashboard/sms-opt-outs` + collapsible read-only list in `SmsTab.tsx`) |
 | D62 | UX | IVR settings currently in Agent tab only. User suggested IVR could live in a "notifications / call handling" area. Deferred — IVR is more "call routing" than "notifications"; keep in Agent tab for now. Revisit during S12 Ph2c (IVR multi-route). | LOW | DEFERRED |
+| D63 | **GAP** | Booking confirmation SMS (D60) is completely untracked — fires `sendSmsTracked` but never writes to `sms_logs`. Sid is dropped. No delivery status, no owner visibility, no record a confirmation was sent for a given booking. All other outbound SMS paths log to `sms_logs`. Use `direction: 'booking_confirmation'` to avoid unique constraint collision with post-call follow-up (`direction: 'outbound'`). | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` logs to `sms_logs` with `direction: 'booking_confirmation'` + `message_sid` after successful send) |
+| D64 | **GAP** | No bookings dashboard view — `bookings` table has all appointment records but there is no `/dashboard/bookings` route, no bookings tab, no upcoming appointments widget. Owners only see bookings via Telegram notification. Flying blind on their own appointment schedule from inside the product. | HIGH | **DONE** 2026-03-28 (`/dashboard/bookings` route + `BookingsView.tsx`: stats strip, upcoming cards with status pills + calendar links, past table, empty state; nav item `calendar-check` in Group 3 `trialLocked`) |
 
 ---
 
@@ -169,7 +171,14 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          PHASE0-P1b (SmsTab serialization — 2026-03-24),
          DB-MIG (weekly_digest_enabled migration — applied 2026-03-24),
          SLICE-2e (inline mini-editors: voice preview + hours panel + quick FAQ add — 2026-03-24),
-         SLICE-2f (website scrape nudge in AgentKnowledgeCard — 2026-03-24)
+         SLICE-2f (website scrape nudge in AgentKnowledgeCard — 2026-03-24),
+         D52 (standard regen queries client_services — 2026-03-28),
+         D54+D55 (settings default tab + ?tab=agent alias — 2026-03-28),
+         D58+D59 (Alerts tab ungated + notifications deep-link — 2026-03-28),
+         D60 (booking confirmation SMS — 2026-03-28),
+         D61 (SMS opt-out list for owners — 2026-03-28),
+         D63 (sms_logs tracking for booking confirmation — 2026-03-28),
+         D64 (bookings dashboard /dashboard/bookings — 2026-03-28)
 
 NEXT:
   STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
