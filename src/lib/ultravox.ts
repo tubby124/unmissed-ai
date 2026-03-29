@@ -264,10 +264,34 @@ interface UltravoxTool {
   parameterOverrides?: Record<string, unknown>
 }
 
+function buildBookingTransitionTool(slug: string): UltravoxTool {
+  const appUrl = APP_URL
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return {
+    temporaryTool: {
+      modelToolName: 'transitionToBookingStage',
+      description: 'Activate the booking stage. Call this tool once you have CONFIRMED both: (1) the caller\'s name, and (2) their service need or appointment type. Do NOT call until both are confirmed. This switches to a focused booking mode where you will check availability and confirm the appointment.',
+      timeout: '10s',
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/stages/${slug}/booking`,
+        httpMethod: 'POST',
+      },
+    },
+  }
+}
+
 export function buildCalendarTools(slug: string): UltravoxTool[] {
   const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
+  const stageTools: UltravoxTool[] = [buildBookingTransitionTool(slug)]
+
   return [
+    ...stageTools,
     {
       temporaryTool: {
         modelToolName: 'checkCalendarAvailability',

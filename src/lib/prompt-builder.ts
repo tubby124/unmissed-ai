@@ -611,6 +611,11 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     }
   }
 
+  // Inject stage transition trigger when booking is enabled (D81 — Phase 5 Call Stages)
+  if (intake.booking_enabled === true && caps.bookAppointments && triageDeep) {
+    triageDeep += '\nOnce you have confirmed the caller\'s name AND their service need, call transitionToBookingStage. Do NOT call until both are confirmed.'
+  }
+
   if (triageDeep) {
     const triageStart = prompt.indexOf('## 3. TRIAGE')
     const infoStart = prompt.indexOf('## 4. INFO COLLECTION')

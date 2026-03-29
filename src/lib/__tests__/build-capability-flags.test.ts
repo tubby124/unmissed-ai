@@ -178,9 +178,9 @@ describe('hasWebsite — website_scrape_status must be approved', () => {
 // A UI badge claiming "Active" when the agent tool won't fire is a fake-control bug.
 
 describe('plan gates — SMS requires plan.smsEnabled', () => {
-  test('LITE plan + sms_enabled + twilio_number → false (not on plan)', () => {
+  test('LITE plan + sms_enabled + twilio_number → true (LITE includes SMS)', () => {
     const f = buildCapabilityFlags({ ...base(), selected_plan: 'lite', sms_enabled: true, twilio_number: '+15551234567' })
-    assert.equal(f.hasSms, false)
+    assert.equal(f.hasSms, true)
   })
 
   test('CORE plan + sms_enabled + twilio_number → true', () => {

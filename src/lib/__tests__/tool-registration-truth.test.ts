@@ -137,8 +137,8 @@ describe('Tool composition: all flags ON', () => {
     assert.ok(names.includes('checkForCoaching'), 'must include checkForCoaching')
   })
 
-  test('total tool count = 7 (hangUp + 2 calendar + transfer + sms + knowledge + coaching)', () => {
-    assert.equal(tools.length, 7, `expected 7 tools, got ${tools.length}: ${names.join(', ')}`)
+  test('total tool count = 8 (hangUp + 3 calendar + transfer + sms + knowledge + coaching)', () => {
+    assert.equal(tools.length, 8, `expected 8 tools, got ${tools.length}: ${names.join(', ')}`)
   })
 })
 

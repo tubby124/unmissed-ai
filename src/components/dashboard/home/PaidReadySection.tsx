@@ -14,6 +14,7 @@ import TeachAgentCard from './TeachAgentCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import KnowledgeSourcesTile from './KnowledgeSourcesTile'
 import NicheInsightsTile from './NicheInsightsTile'
+import AgentContextPreviewTile from './AgentContextPreviewTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -294,6 +295,12 @@ const [knowOpen, setKnowOpen] = useState(false)
         hasPhoneNumber={onboarding.hasPhoneNumber}
         hasIvr={data.editableFields.ivrEnabled}
         hasContextData={data.editableFields.hasContextData}
+      />
+
+      {/* ── 4b. AgentContextPreviewTile ─────────────────────────── */}
+      <AgentContextPreviewTile
+        editableFields={data.editableFields}
+        knowledge={data.knowledge}
       />
 
       {/* ── 5. Identity strip ───────────────────────────────────── */}

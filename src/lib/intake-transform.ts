@@ -178,7 +178,7 @@ export function toIntakePayload(data: OnboardingData) {
         : (data.nicheAnswers?.services as string) || ''),
     call_handling_mode: effectiveMode,
     agent_mode: data.agentMode ?? 'lead_capture',
-    booking_enabled: effectiveMode === 'full_service',
+    booking_enabled: effectiveMode === 'full_service' || agentModeVal === 'appointment_booking',
     owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,
 

@@ -11,6 +11,7 @@ import BusinessHoursTile from './BusinessHoursTile'
 import CallHandlingTile from './CallHandlingTile'
 import NotificationsTile from './NotificationsTile'
 import NicheInsightsTile from './NicheInsightsTile'
+import AgentContextPreviewTile from './AgentContextPreviewTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -68,6 +69,11 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
             knowledge={data.knowledge}
             callHandlingMode={data.callHandlingMode}
             onOpenSheet={sheet.open}
+          />
+
+          <AgentContextPreviewTile
+            editableFields={data.editableFields}
+            knowledge={data.knowledge}
           />
 
           <div className="space-y-2">

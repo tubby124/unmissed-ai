@@ -5,7 +5,8 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AgentOverviewCard from '@/components/dashboard/settings/AgentOverviewCard'
 import { NICHE_CONFIG } from '@/lib/niche-config'
 import { hasCapability } from '@/lib/niche-capabilities'
-import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import { buildCapabilityFlags } from '@/lib/capability-flags'
 import RuntimeCard from '@/components/dashboard/settings/RuntimeCard'
 import KnowledgeEngineCard from '@/components/dashboard/settings/KnowledgeEngineCard'
 import HoursCard from '@/components/dashboard/settings/HoursCard'
@@ -317,9 +318,14 @@ export default function AgentTab({
 
     {/* ── CAPABILITIES OVERVIEW (always visible, all users) ────────── */}
     <CapabilitiesCard
-      client={client}
-      isAdmin={isAdmin}
-      onConfigure={isAdmin ? handleConfigure : undefined}
+      capabilities={buildCapabilityFlags(client)}
+      agentName={client.agent_name ?? client.business_name}
+      voiceStylePreset={client.voice_style_preset ?? null}
+      isTrial={client.subscription_status === 'trialing'}
+      clientId={client.id}
+      hasPhoneNumber={!!client.twilio_number}
+      hasIvr={!!client.ivr_enabled}
+      hasContextData={!!(client.context_data?.trim())}
     />
 
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}

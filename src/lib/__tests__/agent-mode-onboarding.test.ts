@@ -140,14 +140,14 @@ describe('2. agent_mode pass-through to payload', () => {
   })
 })
 
-// ── 3. booking_enabled isolation ──────────────────────────────────────────────
+// ── 3. booking_enabled — appointment_booking enables it; others do not ────────
 
-describe('3. booking_enabled is NOT auto-enabled by agent_mode', () => {
-  test('appointment_booking does not set booking_enabled=true', () => {
+describe('3. booking_enabled isolation by agent_mode', () => {
+  test('appointment_booking sets booking_enabled=true (D78 fix)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = toIntakePayload(baseIntake({ agentMode: 'appointment_booking' }) as any)
-    assert.equal(payload.booking_enabled, false,
-      'appointment_booking must NOT auto-enable booking_enabled — user must connect calendar separately')
+    assert.equal(payload.booking_enabled, true,
+      'appointment_booking must auto-enable booking_enabled — mode implies booking intent')
   })
 
   test('voicemail_replacement does not set booking_enabled=true', () => {

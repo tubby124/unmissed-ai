@@ -15,11 +15,11 @@ describe('buildDemoTools — browser path (WebRTC, no phone)', () => {
     transferEnabled: false,
   })
 
-  it('includes calendar tools (2)', () => {
+  it('includes calendar tools (3)', () => {
     const calendarTools = tools.filter(
-      (t: any) => t.temporaryTool?.modelToolName?.includes('Calendar') || t.temporaryTool?.modelToolName?.includes('Appointment') || t.temporaryTool?.modelToolName === 'checkCalendarAvailability' || t.temporaryTool?.modelToolName === 'bookAppointment'
+      (t: any) => t.temporaryTool?.modelToolName?.includes('Calendar') || t.temporaryTool?.modelToolName?.includes('Appointment') || t.temporaryTool?.modelToolName === 'checkCalendarAvailability' || t.temporaryTool?.modelToolName === 'bookAppointment' || t.temporaryTool?.modelToolName === 'transitionToBookingStage'
     )
-    assert.equal(calendarTools.length, 2, `Expected 2 calendar tools, got ${calendarTools.length}`)
+    assert.equal(calendarTools.length, 3, `Expected 3 calendar tools, got ${calendarTools.length}`)
   })
 
   it('does NOT include SMS (no phone number)', () => {
@@ -32,8 +32,8 @@ describe('buildDemoTools — browser path (WebRTC, no phone)', () => {
     assert.equal(transferTools.length, 0, 'Transfer tool should not be present — WebRTC has no Twilio SID')
   })
 
-  it('total tool count is exactly 2 (calendar only)', () => {
-    assert.equal(tools.length, 2, `Expected 2 tools (calendar pair), got ${tools.length}`)
+  it('total tool count is exactly 3 (calendar only)', () => {
+    assert.equal(tools.length, 3, `Expected 3 tools (calendar set), got ${tools.length}`)
   })
 })
 
@@ -45,11 +45,11 @@ describe('buildDemoTools — call-me path (Twilio, known phone)', () => {
     transferEnabled: true,
   })
 
-  it('includes calendar tools (2)', () => {
+  it('includes calendar tools (3)', () => {
     const calendarTools = tools.filter(
-      (t: any) => t.temporaryTool?.modelToolName === 'checkCalendarAvailability' || t.temporaryTool?.modelToolName === 'bookAppointment'
+      (t: any) => t.temporaryTool?.modelToolName === 'checkCalendarAvailability' || t.temporaryTool?.modelToolName === 'bookAppointment' || t.temporaryTool?.modelToolName === 'transitionToBookingStage'
     )
-    assert.equal(calendarTools.length, 2)
+    assert.equal(calendarTools.length, 3)
   })
 
   it('includes SMS tool (1)', () => {
@@ -62,8 +62,8 @@ describe('buildDemoTools — call-me path (Twilio, known phone)', () => {
     assert.equal(transferTools.length, 1)
   })
 
-  it('total tool count is exactly 4 (calendar + SMS + transfer)', () => {
-    assert.equal(tools.length, 4, `Expected 4 tools, got ${tools.length}`)
+  it('total tool count is exactly 5 (calendar + SMS + transfer)', () => {
+    assert.equal(tools.length, 5, `Expected 5 tools, got ${tools.length}`)
   })
 })
 

@@ -39,8 +39,9 @@ describe('Canary: hasan-sharif (real_estate) — full capability', () => {
 
   test('booking_enabled=true → calendar tools + prompt patch', () => {
     const tools = buildCalendarTools('hasan-sharif')
-    assert.equal(tools.length, 2, 'checkCalendarAvailability + bookAppointment')
+    assert.equal(tools.length, 3, 'transitionToBookingStage + checkCalendarAvailability + bookAppointment')
     const names = tools.map(t => (t as Record<string, any>).temporaryTool?.modelToolName)
+    assert.ok(names.includes('transitionToBookingStage'))
     assert.ok(names.includes('checkCalendarAvailability'))
     assert.ok(names.includes('bookAppointment'))
 
@@ -92,7 +93,7 @@ describe('Canary: windshield-hub (auto_glass)', () => {
   test('booking tools CAN be built even if niche defaults to no booking', () => {
     // booking_enabled is a per-client flag, not niche-locked
     const tools = buildCalendarTools('windshield-hub')
-    assert.equal(tools.length, 2, 'tools are buildable regardless of niche default')
+    assert.equal(tools.length, 3, 'tools are buildable regardless of niche default')
   })
 })
 
@@ -169,7 +170,7 @@ describe('Registry vs runtime consistency', () => {
   test('all bookable niches produce calendar tools when booking_enabled=true', () => {
     for (const niche of bookableNiches) {
       const tools = buildCalendarTools(niche)
-      assert.equal(tools.length, 2, `${niche}: should produce 2 calendar tools`)
+      assert.equal(tools.length, 3, `${niche}: should produce 3 calendar tools (transition + check + book)`)
       const names = tools.map(t => (t as Record<string, any>).temporaryTool?.modelToolName)
       assert.ok(
         names.includes('checkCalendarAvailability'),

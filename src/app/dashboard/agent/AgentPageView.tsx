@@ -7,7 +7,8 @@ import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AgentIdentityHeader from '@/components/dashboard/settings/AgentIdentityHeader'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicePicker from '@/components/dashboard/settings/VoicePicker'
-import CapabilitiesCard from '@/components/dashboard/settings/CapabilitiesCard'
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import { buildCapabilityFlags } from '@/lib/capability-flags'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
@@ -412,9 +413,14 @@ function AgentCards({
       <div className="sm:col-span-2">
         <SectionLabel>What It Can Do</SectionLabel>
         <CapabilitiesCard
-          client={client}
-          isAdmin={isAdmin}
-          onConfigure={handleConfigure}
+          capabilities={buildCapabilityFlags(client)}
+          agentName={client.agent_name ?? client.business_name}
+          voiceStylePreset={client.voice_style_preset ?? null}
+          isTrial={client.subscription_status === 'trialing'}
+          clientId={client.id}
+          hasPhoneNumber={!!client.twilio_number}
+          hasIvr={!!client.ivr_enabled}
+          hasContextData={!!(client.context_data?.trim())}
         />
       </div>
 
