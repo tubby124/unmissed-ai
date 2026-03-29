@@ -23,11 +23,24 @@ echo "  No module-level SDK init found."
 
 # ── S18o: Full build check ───────────────────────────────────────────────────
 echo "[2/4] Running full build (npm run build)..."
-npm run build 2>&1
-
-if [ $? -ne 0 ]; then
+BUILD_ATTEMPTS=0
+BUILD_SUCCESS=0
+while [ $BUILD_ATTEMPTS -lt 3 ]; do
+  BUILD_ATTEMPTS=$((BUILD_ATTEMPTS + 1))
+  rm -rf .next
+  npm run build 2>&1
+  if [ $? -eq 0 ]; then
+    BUILD_SUCCESS=1
+    break
+  fi
   echo ""
-  echo "Build failed. Push aborted. Fix build errors and try again."
+  echo "Build attempt $BUILD_ATTEMPTS/3 failed (possible Turbopack race condition). Retrying..."
+  echo ""
+done
+
+if [ $BUILD_SUCCESS -eq 0 ]; then
+  echo ""
+  echo "Build failed after $BUILD_ATTEMPTS attempts. Push aborted. Fix build errors and try again."
   exit 1
 fi
 
