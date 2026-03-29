@@ -119,6 +119,11 @@
 | D55 | **BUG** | `?tab=agent` URL param doesn't map to any valid `SettingsTab` — silently falls back to `billing` for owners. Valid tabs are `general/sms/voice/notifications/billing/knowledge`. Fix: normalize `agent` → `general` in tab resolution. | LOW | **DONE** 2026-03-28 (D55: `normalizedInitialTab` alias in `SettingsView.tsx`) |
 | D56 | **VERIFY** | Transfer recovery path never live-tested with a real Twilio call — built and committed but unverified: AI reconnect after human drops, `parent_call_log_id` FK, Telegram alert. Needs manual smoke test with a real phone call to an unanswered forwarding number. | MEDIUM | NOT STARTED |
 | D57 | **HOUSEKEEPING** | `MEMORY.md` is 222 lines, exceeding the 200-line load limit — 22 lines silently dropped every session. Topic pointers for later entries may not load. Fix: move stale/done entries to archive or compress multi-line entries. | LOW | NOT STARTED |
+| D58 | **BUG** | Alerts tab in Settings was `adminOnly: true` — owners couldn't manage their own Telegram/email/digest preferences from `/dashboard/settings`. Fixed alongside SMS tab ungating. | MEDIUM | **DONE** 2026-03-28 |
+| D59 | **UX** | Home notifications sheet "All notification settings →" linked to `/dashboard/settings` without a tab param — landed on default tab instead of notifications. Fixed to deep-link `?tab=notifications`. | LOW | **DONE** 2026-03-28 |
+| D60 | **GAP** | No SMS confirmation to caller after agent books an appointment. `bookAppointment` tool fires + calendar event created, but no confirmation text sent. Implement via `sendTextMessage` in the tool response instruction block, only when `sms_enabled=true`. Booking confirmation is a distinct SMS from the post-call follow-up. | MEDIUM | NOT STARTED |
+| D61 | **GAP** | SMS opt-out list invisible to owners — only admins can see who's opted out via DB. Owners flying blind on why SMS isn't reaching certain callers. Add read-only opt-out list to the SMS settings tab (no removal — opt-out is permanent per compliance). | LOW | NOT STARTED |
+| D62 | UX | IVR settings currently in Agent tab only. User suggested IVR could live in a "notifications / call handling" area. Deferred — IVR is more "call routing" than "notifications"; keep in Agent tab for now. Revisit during S12 Ph2c (IVR multi-route). | LOW | DEFERRED |
 
 ---
 
