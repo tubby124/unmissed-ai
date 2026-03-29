@@ -272,3 +272,9 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 7803 | **Hash:** d9ed166b49e9313d
 **Supabase version_id:** 0e707e6f-30e9-44f2-98b1-b5fceac02280
 **Ultravox revision:** efb5a18b-ae1f-411f-a412-179e2494e7a6
+
+## v60 — 2026-03-29 23:36 UTC
+**Change:** Gather date/time before transitioning to booking stage; booking stage: ask if missing, confirm exact time without alternatives
+**Chars:** 8056 | **Hash:** 482cda25b4f56edb
+**Supabase version_id:** 17fe1c41-1955-4adb-8fad-ebd6500bb40a
+**Ultravox revision:** 016c6cbd-fda6-4ca2-9d51-ac1dc3165a0d

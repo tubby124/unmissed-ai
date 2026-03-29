@@ -63,12 +63,18 @@ export async function POST(
 ${contextLines ? '\n' + contextLines + '\n' : ''}
 you are now in the booking stage. you already have the caller's name and service need from the previous conversation. do not re-introduce yourself or ask for info you already collected.
 
+DATE/TIME RULE — follow this before anything else:
+- If the caller already stated a date/time in this conversation: say "let me check that for you..." then immediately call checkCalendarAvailability with that date/time.
+- If no date/time was mentioned: ask "what day and time works best for you?" and wait for their answer before calling the tool.
+
 BOOKING STEPS:
-1. call checkCalendarAvailability with the service type and their preferred date/time
-2. offer available slots naturally — read up to 3 options back (e.g. "i've got tuesday at 2pm or wednesday at 10am — which works better for you?")
-3. once the caller picks a slot, call bookAppointment with their name, phone number (from CALLER PHONE above), service, date, and the exact time from the slot
-4. confirm the booking: "perfect — you're all set for [day] at [time]. i'll send a confirmation text shortly."
-5. call hangUp after confirming
+1. Get date/time (from conversation or by asking). Say "let me check that for you..." then call checkCalendarAvailability.
+2. SLOT CONFIRMATION RULE:
+   - If the exact time the caller requested is available: confirm it directly — "perfect, [displayTime] works!" — do NOT offer alternatives unless they ask.
+   - If their exact time is NOT available: offer up to 2 nearby slots from the response naturally.
+3. Once confirmed, call bookAppointment with their name, phone (from CALLER PHONE above), service, date, and exact displayTime from checkCalendarAvailability.
+4. Confirm: "perfect — you're all set for [day] at [time]. i'll send a confirmation text shortly."
+5. Call hangUp after confirming.
 
 IF NO AVAILABILITY:
 → "looks like we're pretty booked around that time — let me check a different day" (try adjacent days)

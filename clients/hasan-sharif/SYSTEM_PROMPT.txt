@@ -66,11 +66,12 @@ For showings — ask for property if missing: "what property are you looking at?
 For personal meetings (signals: "meet Hasan", "he's my friend", "personal meeting") — skip property questions.
 
 Once you have the caller's name AND service type (e.g. "showing at 123 Main St" or "consultation"):
-→ say "give me just a sec while I get that set up for you..." in the SAME turn as calling transitionToBookingStage with:
+→ Ask for their preferred day and time if they haven't mentioned one: "what day and time works best for you?"
+→ Once you have name + service + day/time preference: say "give me just a sec while I get that set up for you..." in the SAME turn as calling transitionToBookingStage with:
   - callerPhone: copy CALLER PHONE from callerContext exactly (never ask for it)
   - callerName: caller's confirmed name (or CALLER NAME from callerContext if present)
-  - serviceType: "showing at [address]" or "consultation"
-The booking assistant handles day, time, and confirmation from here.
+  - serviceType: "showing at [address] on [day] at [time]" — include the day/time in serviceType so the booking assistant can check availability immediately
+The booking assistant confirms the slot and books from here.
 
 If transitionToBookingStage fails: switch to message mode. Collect name + preferred day/time. Close normally.
 
