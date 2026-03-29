@@ -57,8 +57,12 @@ export default function CapabilitiesCard({ client, isAdmin, onConfigure }: Capab
       available: true,
       status: !entitlements.knowledgeEnabled
         ? 'upgrade_required'
-        : client.knowledge_backend === 'pgvector' ? 'active' : 'needs_setup',
-      detail: client.knowledge_backend === 'pgvector' ? 'Searches uploaded docs during calls' : undefined,
+        : (client.knowledge_backend === 'pgvector' && (
+            client.website_scrape_status === 'approved' || factLines > 0 || faqCount > 0
+          )) ? 'active' : 'needs_setup',
+      detail: (client.knowledge_backend === 'pgvector' && (
+        client.website_scrape_status === 'approved' || factLines > 0 || faqCount > 0
+      )) ? 'Searches uploaded docs during calls' : undefined,
       actionHint: 'Enable document search',
       upgradeLabel: 'Core',
       section: 'knowledge',
