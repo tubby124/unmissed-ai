@@ -150,9 +150,10 @@ export async function POST(
       if (!isOptedOut) {
         const businessName = (client.business_name as string) || BRAND_NAME
         const smsBody = `Your ${service || 'appointment'} is confirmed for ${date} at ${matchedSlot.displayTime} with ${businessName}. Reply STOP to opt out.`
-        sendSmsTracked(callerPhone, client.twilio_number as string, smsBody)
-          .then(({ sid }) => {
-            supabase.from('sms_logs').insert({
+        void (async () => {
+          try {
+            const { sid } = await sendSmsTracked(callerPhone, client.twilio_number as string, smsBody)
+            const { error: logErr } = await supabase.from('sms_logs').insert({
               client_id: client.id,
               related_call_id: bookingCallLogId,
               direction: 'booking_confirmation',
@@ -162,13 +163,12 @@ export async function POST(
               status: 'sent',
               message_sid: sid,
               attempted_at: new Date().toISOString(),
-            }).then(({ error: logErr }) => {
-              if (logErr) console.error(`[calendar/book] sms_logs insert failed: ${logErr.message}`)
             })
-          })
-          .catch((err: unknown) => {
+            if (logErr) console.error(`[calendar/book] sms_logs insert failed: ${logErr.message}`)
+          } catch (err: unknown) {
             console.error(`[calendar/book] Booking confirmation SMS failed: slug=${slug}`, err)
-          })
+          }
+        })()
       }
     }
 
