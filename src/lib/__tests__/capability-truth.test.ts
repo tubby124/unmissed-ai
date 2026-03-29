@@ -39,11 +39,11 @@ describe('Canary: hasan-sharif (real_estate) — full capability', () => {
 
   test('booking_enabled=true → calendar tools + prompt patch', () => {
     const tools = buildCalendarTools('hasan-sharif')
-    assert.equal(tools.length, 3, 'transitionToBookingStage + checkCalendarAvailability + bookAppointment')
+    assert.equal(tools.length, 1, 'triage stage: transitionToBookingStage only (direct tools live in booking stage)')
     const names = tools.map(t => (t as Record<string, any>).temporaryTool?.modelToolName)
     assert.ok(names.includes('transitionToBookingStage'))
-    assert.ok(names.includes('checkCalendarAvailability'))
-    assert.ok(names.includes('bookAppointment'))
+    assert.ok(!names.includes('checkCalendarAvailability'), 'direct calendar tool must not be in triage stage')
+    assert.ok(!names.includes('bookAppointment'), 'direct booking tool must not be in triage stage')
 
     const prompt = patchCalendarBlock('# Test prompt', true, 'consultation', 'Hasan')
     assert.ok(prompt.includes(CALENDAR_HEADING))
@@ -93,7 +93,7 @@ describe('Canary: windshield-hub (auto_glass)', () => {
   test('booking tools CAN be built even if niche defaults to no booking', () => {
     // booking_enabled is a per-client flag, not niche-locked
     const tools = buildCalendarTools('windshield-hub')
-    assert.equal(tools.length, 3, 'tools are buildable regardless of niche default')
+    assert.equal(tools.length, 1, 'triage stage produces transitionToBookingStage regardless of niche default')
   })
 })
 
@@ -167,19 +167,14 @@ describe('Registry vs runtime consistency', () => {
     .filter(([, caps]) => caps.bookAppointments)
     .map(([niche]) => niche)
 
-  test('all bookable niches produce calendar tools when booking_enabled=true', () => {
+  test('all bookable niches produce transitionToBookingStage (triage stage tool)', () => {
     for (const niche of bookableNiches) {
       const tools = buildCalendarTools(niche)
-      assert.equal(tools.length, 3, `${niche}: should produce 3 calendar tools (transition + check + book)`)
+      assert.equal(tools.length, 1, `${niche}: triage should produce 1 tool (transitionToBookingStage only)`)
       const names = tools.map(t => (t as Record<string, any>).temporaryTool?.modelToolName)
-      assert.ok(
-        names.includes('checkCalendarAvailability'),
-        `${niche}: missing checkCalendarAvailability`,
-      )
-      assert.ok(
-        names.includes('bookAppointment'),
-        `${niche}: missing bookAppointment`,
-      )
+      assert.ok(names.includes('transitionToBookingStage'), `${niche}: missing transitionToBookingStage`)
+      assert.ok(!names.includes('checkCalendarAvailability'), `${niche}: checkCalendarAvailability must not be in triage stage`)
+      assert.ok(!names.includes('bookAppointment'), `${niche}: bookAppointment must not be in triage stage`)
     }
   })
 

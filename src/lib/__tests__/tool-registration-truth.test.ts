@@ -116,9 +116,10 @@ describe('Tool composition: all flags ON', () => {
     assert.ok(names.includes('hangUp'), `must include hangUp, got: ${names.join(', ')}`)
   })
 
-  test('includes calendar tools', () => {
-    assert.ok(names.includes('checkCalendarAvailability'), 'must include checkCalendarAvailability')
-    assert.ok(names.includes('bookAppointment'), 'must include bookAppointment')
+  test('includes booking transition tool (triage stage — not direct calendar tools)', () => {
+    assert.ok(names.includes('transitionToBookingStage'), 'must include transitionToBookingStage')
+    assert.ok(!names.includes('checkCalendarAvailability'), 'triage must NOT include checkCalendarAvailability (booking stage only)')
+    assert.ok(!names.includes('bookAppointment'), 'triage must NOT include bookAppointment (booking stage only)')
   })
 
   test('includes transferCall', () => {
@@ -137,8 +138,8 @@ describe('Tool composition: all flags ON', () => {
     assert.ok(names.includes('checkForCoaching'), 'must include checkForCoaching')
   })
 
-  test('total tool count = 8 (hangUp + 3 calendar + transfer + sms + knowledge + coaching)', () => {
-    assert.equal(tools.length, 8, `expected 8 tools, got ${tools.length}: ${names.join(', ')}`)
+  test('total tool count = 6 (hangUp + transitionToBookingStage + transfer + sms + knowledge + coaching)', () => {
+    assert.equal(tools.length, 6, `expected 6 tools, got ${tools.length}: ${names.join(', ')}`)
   })
 })
 
@@ -153,6 +154,7 @@ describe('Tool composition: minimal flags (slug only)', () => {
   })
 
   test('does NOT include optional tools', () => {
+    assert.ok(!names.includes('transitionToBookingStage'), 'no booking transition')
     assert.ok(!names.includes('checkCalendarAvailability'), 'no calendar')
     assert.ok(!names.includes('bookAppointment'), 'no booking')
     assert.ok(!names.includes('transferCall'), 'no transfer')
@@ -177,9 +179,10 @@ describe('Flag isolation: booking_enabled only', () => {
   const tools = buildAgentTools({ slug: 'test', booking_enabled: true })
   const names = toolNames(tools)
 
-  test('adds calendar tools but not transfer/sms/knowledge', () => {
-    assert.ok(names.includes('checkCalendarAvailability'))
-    assert.ok(names.includes('bookAppointment'))
+  test('adds transitionToBookingStage (not direct calendar tools) but not transfer/sms/knowledge', () => {
+    assert.ok(names.includes('transitionToBookingStage'))
+    assert.ok(!names.includes('checkCalendarAvailability'), 'direct calendar tool must not be in triage stage')
+    assert.ok(!names.includes('bookAppointment'), 'direct booking tool must not be in triage stage')
     assert.ok(!names.includes('transferCall'))
     assert.ok(!names.includes('sendTextMessage'))
     assert.ok(!names.includes('queryKnowledge'))
@@ -203,6 +206,7 @@ describe('Flag isolation: sms_enabled + twilio_number', () => {
 
   test('adds SMS tool but not calendar/transfer/knowledge', () => {
     assert.ok(names.includes('sendTextMessage'))
+    assert.ok(!names.includes('transitionToBookingStage'))
     assert.ok(!names.includes('checkCalendarAvailability'))
     assert.ok(!names.includes('bookAppointment'))
     assert.ok(!names.includes('transferCall'))
@@ -216,6 +220,7 @@ describe('Flag isolation: forwarding_number only', () => {
 
   test('adds transfer tool but not calendar/sms/knowledge', () => {
     assert.ok(names.includes('transferCall'))
+    assert.ok(!names.includes('transitionToBookingStage'))
     assert.ok(!names.includes('checkCalendarAvailability'))
     assert.ok(!names.includes('bookAppointment'))
     assert.ok(!names.includes('sendTextMessage'))

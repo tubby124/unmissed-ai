@@ -47,7 +47,7 @@ function makeClient(overrides: Partial<ClientRow> = {}): ClientRow {
 // ── booking_enabled=true + calendar connected → prompt + tools ──────────────
 
 describe('booking_enabled=true + google_calendar_connected → prompt + tools', () => {
-  test('prompt contains CALENDAR BOOKING FLOW + tools include calendar tools', () => {
+  test('prompt contains CALENDAR BOOKING FLOW + triage tools include transitionToBookingStage', () => {
     const serviceType = getServiceType('auto_glass')
     const prompt = patchCalendarBlock(basePrompt, true, serviceType, 'Mark')
     assert.ok(prompt.includes(CALENDAR_HEADING), 'prompt must have calendar heading')
@@ -55,8 +55,9 @@ describe('booking_enabled=true + google_calendar_connected → prompt + tools', 
 
     const tools = buildCalendarTools('test-client')
     const toolNames = tools.map(t => (t as Record<string, any>).temporaryTool?.modelToolName)
-    assert.ok(toolNames.includes('checkCalendarAvailability'), 'must have checkCalendarAvailability')
-    assert.ok(toolNames.includes('bookAppointment'), 'must have bookAppointment')
+    assert.ok(toolNames.includes('transitionToBookingStage'), 'triage must have transitionToBookingStage')
+    assert.ok(!toolNames.includes('checkCalendarAvailability'), 'checkCalendarAvailability is booking-stage only')
+    assert.ok(!toolNames.includes('bookAppointment'), 'bookAppointment is booking-stage only')
   })
 
   test('calendar tool URLs include correct slug', () => {

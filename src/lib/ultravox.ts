@@ -381,11 +381,13 @@ export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
 }
 
 /**
- * Calendar tools for the triage stage — includes the stage-transition trigger tool.
- * Do NOT use this inside the booking stage route (causes infinite loop).
+ * Calendar tools for the triage stage — only the stage-transition trigger.
+ * The triage agent calls transitionToBookingStage; the booking stage provides
+ * checkCalendarAvailability + bookAppointment independently via buildCalendarBookingTools().
+ * Do NOT add the direct booking tools here (would give triage agent wrong path).
  */
 export function buildCalendarTools(slug: string): UltravoxTool[] {
-  return [buildBookingTransitionTool(slug), ...buildCalendarBookingTools(slug)]
+  return [buildBookingTransitionTool(slug)]
 }
 
 interface AgentConfig {
