@@ -132,6 +132,8 @@
 | D62 | UX | IVR settings currently in Agent tab only. User suggested IVR could live in a "notifications / call handling" area. Deferred — IVR is more "call routing" than "notifications"; keep in Agent tab for now. Revisit during S12 Ph2c (IVR multi-route). | LOW | DEFERRED |
 | D63 | **GAP** | Booking confirmation SMS (D60) is completely untracked — fires `sendSmsTracked` but never writes to `sms_logs`. Sid is dropped. No delivery status, no owner visibility, no record a confirmation was sent for a given booking. All other outbound SMS paths log to `sms_logs`. Use `direction: 'booking_confirmation'` to avoid unique constraint collision with post-call follow-up (`direction: 'outbound'`). | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` logs to `sms_logs` with `direction: 'booking_confirmation'` + `message_sid` after successful send) |
 | D64 | **GAP** | No bookings dashboard view — `bookings` table has all appointment records but there is no `/dashboard/bookings` route, no bookings tab, no upcoming appointments widget. Owners only see bookings via Telegram notification. Flying blind on their own appointment schedule from inside the product. | HIGH | **DONE** 2026-03-28 (`/dashboard/bookings` route + `BookingsView.tsx`: stats strip, upcoming cards with status pills + calendar links, past table, empty state; nav item `calendar-check` in Group 3 `trialLocked`) |
+| D71 | **BUG — fake-control** | `buildCapabilityFlags().hasTransfer` only checks `forwarding_number` (no plan gate), but `buildAgentTools()` also requires `plan.transferEnabled`. Core/Lite plan users with a forwarding number configured see "Transfer calls: ✅ Configured" in home CapabilitiesCard, but the tool never fires (Core/Lite have `transferEnabled: false`). Settings `CapabilitiesCard` was already correct (uses `getPlanEntitlements()`). Fix: post-process `capabilities.hasTransfer = false` in home route when plan doesn't include transfer, matching the existing `hasKnowledge` correction pattern. | MEDIUM | **DONE** 2026-03-28 (`home/route.ts` — import `getPlanEntitlements`, add plan check after `hasKnowledge` correction lines 207-208) |
+| D72 | **UX — minor** | Settings `CapabilitiesCard` (`settings/CapabilitiesCard.tsx:58-60`) shows `knowledge` as `active` when `knowledge_backend='pgvector'` but zero approved chunks exist. The home route correctly post-processes this (lines 207-208), but settings card uses raw client object. Low impact — user would see accurate chunk count on the Knowledge tab. | LOW | NOT STARTED |
 
 ---
 
@@ -204,7 +206,8 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
          D63 (sms_logs tracking for booking confirmation — 2026-03-28),
          D64 (bookings dashboard /dashboard/bookings — 2026-03-28),
          SLICE-8m (failure-to-refine pipeline — 2026-03-28),
-         SLICE-8o (frustration/interruption metrics — 2026-03-28)
+         SLICE-8o (frustration/interruption metrics — 2026-03-28),
+         D71 (hasTransfer fake-control in home route — 2026-03-28)
 
 NEXT:
   DCC-COMMIT  -> git commit Phase 1 (7 files — KnowledgeSourcesTile + GBP home API)
