@@ -21,6 +21,7 @@ interface CallLog {
   started_at: string | null
   created_at: string
   next_steps: string | null
+  follow_up_status: 'contacted' | 'booked' | 'dead' | null
   client_id?: string | null
 }
 
@@ -71,7 +72,7 @@ export default async function LeadsPage() {
 
   const { data: callsRaw } = await supabase
     .from('call_logs')
-    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, key_topics, started_at, created_at, next_steps, client_id')
+    .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, key_topics, started_at, created_at, next_steps, follow_up_status, client_id')
     .in('call_status', ['HOT', 'WARM'])
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })

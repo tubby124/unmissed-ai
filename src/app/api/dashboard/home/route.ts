@@ -102,15 +102,14 @@ export async function GET(request: Request) {
       .order('started_at', { ascending: false })
       .limit(1),
 
-    // Last call with auto-generated FAQ suggestions (excludes test calls)
+    // Last 3 calls with auto-generated FAQ suggestions (all call types — trial users see learning in action)
     supabase
       .from('call_logs')
       .select('id, client_id, faq_suggestions')
       .eq('client_id', clientId)
       .not('faq_suggestions', 'is', null)
-      .neq('call_status', 'test')
       .order('started_at', { ascending: false })
-      .limit(1),
+      .limit(3),
   ])
 
   const client = clientRes.data
@@ -130,11 +129,26 @@ export async function GET(request: Request) {
     ? { id: lastTopicsRow.id as string, client_id: lastTopicsRow.client_id as string, topics: lastTopicsRow.key_topics as string[] }
     : null
 
-  // Auto-generated FAQ suggestions from last call
-  const lastFaqRow = lastFaqRes.data?.[0] ?? null
-  const lastFaqSuggestions = lastFaqRow && Array.isArray(lastFaqRow.faq_suggestions) && lastFaqRow.faq_suggestions.length > 0
-    ? (lastFaqRow.faq_suggestions as { q: string; a: string }[])
-    : null
+  // Auto-generated FAQ suggestions — aggregate last 3 calls, dedup against existing extra_qa
+  const existingQs = new Set(
+    (Array.isArray(client.extra_qa) ? (client.extra_qa as { q: string; a: string }[]) : [])
+      .map(f => f.q.trim().toLowerCase())
+  )
+  const seenQs = new Set<string>()
+  const aggregatedFaqs: { q: string; a: string }[] = []
+  for (const row of (lastFaqRes.data ?? [])) {
+    if (!Array.isArray(row.faq_suggestions)) continue
+    for (const s of (row.faq_suggestions as { q: string; a: string }[])) {
+      if (!s.q?.trim() || !s.a?.trim()) continue
+      const key = s.q.trim().toLowerCase()
+      if (existingQs.has(key) || seenQs.has(key)) continue
+      seenQs.add(key)
+      aggregatedFaqs.push(s)
+      if (aggregatedFaqs.length >= 6) break
+    }
+    if (aggregatedFaqs.length >= 6) break
+  }
+  const lastFaqSuggestions = aggregatedFaqs.length > 0 ? aggregatedFaqs : null
 
   // Knowledge tile data
   const approvedChunks = knowledgeChunks.filter(k => k.status === 'approved')

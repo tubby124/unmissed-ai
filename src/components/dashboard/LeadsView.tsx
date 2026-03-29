@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { slaTag } from '@/lib/utils/sla'
 
+type FollowUpStatus = 'contacted' | 'booked' | 'dead' | null
+
 interface CallLog {
   id: string
   ultravox_call_id: string
@@ -16,6 +18,7 @@ interface CallLog {
   started_at: string | null
   created_at: string
   next_steps: string | null
+  follow_up_status: FollowUpStatus
   client_id?: string | null
 }
 
@@ -71,11 +74,35 @@ interface LeadsViewProps {
   clientId: string
 }
 
+const FOLLOW_UP_OPTIONS: { status: FollowUpStatus; label: string; cls: string }[] = [
+  { status: 'contacted', label: 'Contacted', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+  { status: 'booked', label: 'Booked', cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
+  { status: 'dead', label: 'Dead', cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' },
+]
+
 export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [savingFollowUp, setSavingFollowUp] = useState<string | null>(null)
   const supabase = createBrowserClient()
+
+  async function updateFollowUp(callId: string, status: FollowUpStatus) {
+    if (savingFollowUp) return
+    setSavingFollowUp(callId)
+    try {
+      const res = await fetch('/api/dashboard/leads/follow-up', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callLogId: callId, status }),
+      })
+      if (res.ok) {
+        setCalls(prev => prev.map(c => c.id === callId ? { ...c, follow_up_status: status } : c))
+      }
+    } finally {
+      setSavingFollowUp(null)
+    }
+  }
 
   // Realtime subscription
   useEffect(() => {
@@ -241,6 +268,13 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                         }`}>
                           {call.call_status}
                         </span>
+                        {call.follow_up_status && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                            FOLLOW_UP_OPTIONS.find(o => o.status === call.follow_up_status)?.cls ?? ''
+                          }`}>
+                            {call.follow_up_status}
+                          </span>
+                        )}
                         <span className="font-mono text-[13px] font-medium" style={{ color: 'var(--color-text-1)' }}>
                           {call.caller_phone ?? 'Unknown'}
                         </span>
@@ -320,6 +354,27 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                                 </div>
                               </div>
                             )}
+                            {/* Follow-up status */}
+                            <div>
+                              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1.5" style={{ color: 'var(--color-text-3)' }}>Mark as</p>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {FOLLOW_UP_OPTIONS.map(opt => (
+                                  <button
+                                    key={opt.status}
+                                    onClick={(e) => { e.stopPropagation(); updateFollowUp(call.id, call.follow_up_status === opt.status ? null : opt.status) }}
+                                    disabled={savingFollowUp === call.id}
+                                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer disabled:opacity-40 ${
+                                      call.follow_up_status === opt.status
+                                        ? opt.cls
+                                        : 'border-[var(--color-border)] text-[var(--color-text-3)] hover:border-current'
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
                             <div className="flex justify-end">
                               <Link
                                 href={`/dashboard/calls/${call.ultravox_call_id}`}

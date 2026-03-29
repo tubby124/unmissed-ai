@@ -45,8 +45,24 @@ export default function AutoFaqSuggestions({ clientId, suggestions }: AutoFaqSug
   const [addedIndices, setAddedIndices] = useState<Set<number>>(new Set())
   const [savingIndex, setSavingIndex] = useState<number | null>(null)
   const [addingAll, setAddingAll] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const [dismissing, setDismissing] = useState(false)
 
   const remaining = suggestions.filter((_, i) => !addedIndices.has(i))
+
+  async function handleDismiss() {
+    if (dismissing) return
+    setDismissing(true)
+    try {
+      await fetch('/api/dashboard/faq-suggestions', { method: 'DELETE' })
+      setDismissed(true)
+    } catch {
+      // silent — dismiss is best-effort
+      setDismissed(true)
+    } finally {
+      setDismissing(false)
+    }
+  }
 
   async function handleAdd(suggestion: FaqSuggestion, index: number) {
     if (savingIndex !== null || addedIndices.has(index)) return
@@ -98,6 +114,8 @@ export default function AutoFaqSuggestions({ clientId, suggestions }: AutoFaqSug
     }
   }
 
+  if (dismissed) return null
+
   if (remaining.length === 0 && addedIndices.size > 0) {
     return (
       <div
@@ -132,20 +150,30 @@ export default function AutoFaqSuggestions({ clientId, suggestions }: AutoFaqSug
             Questions your agent struggled to answer. Add them so it knows next time.
           </p>
         </div>
-        {remaining.length > 1 && (
+        <div className="flex items-center gap-2 shrink-0">
+          {remaining.length > 1 && (
+            <button
+              onClick={handleAddAll}
+              disabled={addingAll || dismissing}
+              className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              style={{
+                backgroundColor: 'rgba(99,102,241,0.1)',
+                color: 'rgb(129,140,248)',
+                border: '1px solid rgba(99,102,241,0.2)',
+              }}
+            >
+              {addingAll ? 'Adding…' : `Add all ${remaining.length}`}
+            </button>
+          )}
           <button
-            onClick={handleAddAll}
-            disabled={addingAll}
-            className="shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-            style={{
-              backgroundColor: 'rgba(99,102,241,0.1)',
-              color: 'rgb(129,140,248)',
-              border: '1px solid rgba(99,102,241,0.2)',
-            }}
+            onClick={handleDismiss}
+            disabled={dismissing || addingAll}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+            style={{ color: 'var(--color-text-3)', border: '1px solid var(--color-border)' }}
           >
-            {addingAll ? 'Adding…' : `Add all ${remaining.length}`}
+            {dismissing ? '…' : 'Dismiss'}
           </button>
-        )}
+        </div>
       </div>
 
       {/* Suggestion cards */}
