@@ -27,7 +27,11 @@ BUILD_ATTEMPTS=0
 BUILD_SUCCESS=0
 while [ $BUILD_ATTEMPTS -lt 3 ]; do
   BUILD_ATTEMPTS=$((BUILD_ATTEMPTS + 1))
-  rm -rf .next
+  # Only wipe .next on first attempt — retries reuse cache to avoid Turbopack
+  # race condition where .tmp optimization files are written then immediately read
+  if [ $BUILD_ATTEMPTS -eq 1 ]; then
+    rm -rf .next
+  fi
   npm run build 2>&1
   if [ $? -eq 0 ]; then
     BUILD_SUCCESS=1
