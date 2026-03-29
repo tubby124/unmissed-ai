@@ -28,6 +28,9 @@ function base() {
     forwarding_number: null,
     website_url: null,
     website_scrape_status: null,
+    // PRO plan — all entitlements enabled so tests focus on field-level logic, not plan gates
+    selected_plan: 'pro',
+    subscription_status: 'active',
   }
 }
 
@@ -167,6 +170,68 @@ describe('hasWebsite — website_scrape_status must be approved', () => {
   test('no url, scrape_status=approved (corrupted state) → true (status is authoritative)', () => {
     const f = buildCapabilityFlags({ ...base(), website_url: null, website_scrape_status: 'approved' })
     assert.equal(f.hasWebsite, true)
+  })
+})
+
+// ── plan entitlement gates ────────────────────────────────────────────────
+// buildCapabilityFlags must apply the same plan gates as buildAgentTools().
+// A UI badge claiming "Active" when the agent tool won't fire is a fake-control bug.
+
+describe('plan gates — SMS requires plan.smsEnabled', () => {
+  test('LITE plan + sms_enabled + twilio_number → false (not on plan)', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'lite', sms_enabled: true, twilio_number: '+15551234567' })
+    assert.equal(f.hasSms, false)
+  })
+
+  test('CORE plan + sms_enabled + twilio_number → true', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', sms_enabled: true, twilio_number: '+15551234567' })
+    assert.equal(f.hasSms, true)
+  })
+
+  test('trialing + sms_enabled + twilio_number → true', () => {
+    const f = buildCapabilityFlags({ ...base(), subscription_status: 'trialing', selected_plan: null, sms_enabled: true, twilio_number: '+15551234567' })
+    assert.equal(f.hasSms, true)
+  })
+})
+
+describe('plan gates — Booking requires plan.bookingEnabled', () => {
+  test('CORE plan + booking_enabled + calendar connected → false (not on plan)', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', booking_enabled: true, calendar_auth_status: 'connected' })
+    assert.equal(f.hasBooking, false)
+  })
+
+  test('PRO plan + booking_enabled + calendar connected → true', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'pro', booking_enabled: true, calendar_auth_status: 'connected' })
+    assert.equal(f.hasBooking, true)
+  })
+})
+
+describe('plan gates — Transfer requires plan.transferEnabled', () => {
+  test('CORE plan + forwarding_number set → false (not on plan)', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', forwarding_number: '+15559876543' })
+    assert.equal(f.hasTransfer, false)
+  })
+
+  test('LITE plan + forwarding_number set → false (not on plan)', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'lite', forwarding_number: '+15559876543' })
+    assert.equal(f.hasTransfer, false)
+  })
+
+  test('PRO plan + forwarding_number set → true', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'pro', forwarding_number: '+15559876543' })
+    assert.equal(f.hasTransfer, true)
+  })
+})
+
+describe('plan gates — Knowledge requires plan.knowledgeEnabled', () => {
+  test('LITE plan + pgvector backend → false (not on plan)', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'lite', knowledge_backend: 'pgvector' })
+    assert.equal(f.hasKnowledge, false)
+  })
+
+  test('CORE plan + pgvector backend → true', () => {
+    const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', knowledge_backend: 'pgvector' })
+    assert.equal(f.hasKnowledge, true)
   })
 })
 

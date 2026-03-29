@@ -5,7 +5,7 @@ import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
 import { buildCapabilityFlags } from '@/lib/capability-flags'
 import { deriveActivationState } from '@/lib/derive-activation-state'
-import { getPlanEntitlements } from '@/lib/plan-entitlements'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -217,15 +217,6 @@ export async function GET(request: Request) {
   // Build normalized config → trial welcome view model
   const c = client as Record<string, unknown>
 
-  // Transfer badge requires plan entitlement — Core/Lite users with forwarding_number set will see Active
-  // but buildAgentTools() gates on plan.transferEnabled, so the tool never fires on these plans
-  const capPlanId: Parameters<typeof getPlanEntitlements>[0] =
-    (c.subscription_status as string) === 'trialing' ? 'trial'
-    : c.subscription_status ? ((c.selected_plan as string | null) ?? null)
-    : null
-  if (capabilities.hasTransfer && !getPlanEntitlements(capPlanId).transferEnabled) {
-    capabilities.hasTransfer = false
-  }
   const agentHealth: 'healthy' | 'degraded' | 'offline' =
     activation !== 'ready' ? 'offline' :
     (c.last_agent_sync_status as string | null) === 'error' ? 'degraded' : 'healthy'
