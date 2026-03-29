@@ -285,13 +285,15 @@ function buildBookingTransitionTool(slug: string): UltravoxTool {
   }
 }
 
-export function buildCalendarTools(slug: string): UltravoxTool[] {
+/**
+ * Calendar tools used INSIDE the booking stage — no transition tool
+ * (prevents re-triggering the stage transition in a loop).
+ */
+export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
   const appUrl = APP_URL
   const secret = process.env.WEBHOOK_SIGNING_SECRET
-  const stageTools: UltravoxTool[] = [buildBookingTransitionTool(slug)]
 
   return [
-    ...stageTools,
     {
       temporaryTool: {
         modelToolName: 'checkCalendarAvailability',
@@ -356,6 +358,14 @@ export function buildCalendarTools(slug: string): UltravoxTool[] {
       },
     },
   ]
+}
+
+/**
+ * Calendar tools for the triage stage — includes the stage-transition trigger tool.
+ * Do NOT use this inside the booking stage route (causes infinite loop).
+ */
+export function buildCalendarTools(slug: string): UltravoxTool[] {
+  return [buildBookingTransitionTool(slug), ...buildCalendarBookingTools(slug)]
 }
 
 interface AgentConfig {

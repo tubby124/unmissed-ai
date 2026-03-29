@@ -41,6 +41,8 @@ TOOL ERROR (fallback=true or no response): fall back to message mode — collect
 
 /**
  * Patch a system prompt to add or remove the CALENDAR BOOKING FLOW block.
+ * Also injects the transitionToBookingStage trigger when enabling, so existing
+ * prompts don't need a full regeneration when booking is toggled on.
  * Returns the patched prompt, or the original if no change needed.
  */
 export function patchCalendarBlock(
@@ -50,23 +52,36 @@ export function patchCalendarBlock(
   closePerson = 'the team',
 ): string {
   const hasBlock = prompt.includes(CALENDAR_HEADING)
+  const stageTriggerLine = "Once you have confirmed the caller's name AND their service need, call transitionToBookingStage. Do NOT call until both are confirmed."
+  const hasStageTrigger = prompt.includes('transitionToBookingStage')
 
   if (enabled && !hasBlock) {
-    // Append calendar block at the end (before any trailing whitespace)
-    return prompt.trimEnd() + '\n\n' + calendarBlock(serviceType, closePerson)
+    // Append calendar block; also prepend stage trigger line if missing
+    let patched = prompt.trimEnd() + '\n\n' + calendarBlock(serviceType, closePerson)
+    if (!hasStageTrigger) {
+      const insertAt = patched.lastIndexOf(CALENDAR_HEADING)
+      patched = patched.slice(0, insertAt) + stageTriggerLine + '\n\n' + patched.slice(insertAt)
+    }
+    return patched
   }
 
   if (!enabled && hasBlock) {
     // Remove the calendar block: from "# CALENDAR BOOKING FLOW" to the next top-level heading or end
     const startIdx = prompt.indexOf(CALENDAR_HEADING)
     const afterStart = prompt.indexOf('\n#', startIdx + CALENDAR_HEADING.length)
+    let patched: string
     if (afterStart === -1) {
-      // Calendar block is the last section
-      return prompt.substring(0, startIdx).trimEnd()
+      patched = prompt.substring(0, startIdx).trimEnd()
+    } else {
+      patched = (prompt.substring(0, startIdx) + prompt.substring(afterStart))
+        .replace(/\n{3,}/g, '\n\n')
+        .trimEnd()
     }
-    return (prompt.substring(0, startIdx) + prompt.substring(afterStart))
-      .replace(/\n{3,}/g, '\n\n')
-      .trimEnd()
+    // Also remove stage trigger line if present
+    if (hasStageTrigger) {
+      patched = patched.replace(stageTriggerLine + '\n\n', '').replace('\n' + stageTriggerLine, '')
+    }
+    return patched
   }
 
   return prompt

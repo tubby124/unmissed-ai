@@ -62,11 +62,9 @@ RULES:
     ...calendarTools,
   ]
 
-  const response = NextResponse.json({
-    systemPrompt,
-    selectedTools,
-    toolResultText: 'Booking stage active. Check availability and book the appointment.',
-  })
+  // Response body must be a subset of call creation schema only.
+  // toolResultText is not a valid field — Ultravox would serialize it as part of the tool result.
+  const response = NextResponse.json({ systemPrompt, selectedTools })
   response.headers.set('X-Ultravox-Response-Type', 'new-stage')
   return response
 }

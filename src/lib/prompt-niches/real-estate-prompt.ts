@@ -43,6 +43,7 @@ export function buildRealEstatePrompt(intake: Record<string, unknown>): string {
   const customNotes   = ((intake.niche_customNotes      as string) || '').trim()
   const callbackPhone = ((intake.callback_phone         as string) || '').trim()
   const callerFaq     = ((intake.caller_faq             as string) || '').trim()
+  const bookingEnabled = intake.booking_enabled === true
 
   // Expand province abbreviations so the AI says "Calgary, Alberta" not "Calgary, AB"
   const expandedAreas = serviceAreas.map(area => {
@@ -163,7 +164,7 @@ Step 4 — Confirm and close:
 "Perfect... I'll get this to ${recipientName} right away. ${pronSubCap}'ll get back to you soon. You can also ${contactInstructionVoice} if you need ${pronObj} faster. Thanks for calling!"
 Then IMMEDIATELY use the hangUp tool.
 
-[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]
+[COMPLETION CHECK — before closing, verify: have you collected the caller's name and reason for the call? If either is missing, ask before closing.]${bookingEnabled ? '\n[BOOKING CHECK — when the caller wants to book a showing or schedule time with the owner, and you have confirmed their name and what property/service they need, call transitionToBookingStage immediately. Do NOT route to message-taking for bookings when calendar is available.]' : ''}
 ${callMode === 'message_and_questions' ? `
 COMMON QUESTIONS
 
@@ -171,8 +172,12 @@ COMMON QUESTIONS
 -> "${pronSubCap}'s just tied up right now but ${pronSub}'s really good about getting back to people. If you ${contactInstructionVoice}, that's usually the fastest way."
 
 "Can I schedule a showing?" / "I want to see a property"
--> "For sure! Let me grab some details for ${ownerName}... What property are you looking at?"
-(Collect: property address or area, preferred date/time, number of people. Then route to message taking flow.)
+${bookingEnabled
+  ? `-> "For sure! Let me grab your name and what property you're interested in — then I'll check availability and book you in right now."
+(Collect: name, property/area. Then call transitionToBookingStage to book the showing directly.)`
+  : `-> "For sure! Let me grab some details for ${ownerName}... What property are you looking at?"
+(Collect: property address or area, preferred date/time, number of people. Then route to message taking flow.)`
+}
 
 "What areas does ${pronSub} cover?"
 -> "${ownerName} covers ${serviceAreasStr}."
@@ -195,8 +200,12 @@ INLINE EXAMPLES
 
 Example A — Caller wants a showing:
 Caller: "I saw a listing on Realtor.ca and I'd love to book a showing"
-You: "For sure! Let me grab a couple details for ${ownerFirst}... what property are you looking at?"
-[Collect property + preferred date/time. Then route to message taking flow.]
+${bookingEnabled
+  ? `You: "For sure! Can I get your name and which property you're interested in?"
+[Collect name + property. Then call transitionToBookingStage to book directly on the call.]`
+  : `You: "For sure! Let me grab a couple details for ${ownerFirst}... what property are you looking at?"
+[Collect property + preferred date/time. Then route to message taking flow.]`
+}
 
 Example B — Caller asks home value:
 Caller: "I'm thinking of selling — what's my home worth?"
