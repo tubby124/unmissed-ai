@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import AgentTestCard from '@/components/dashboard/AgentTestCard'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import PostCallImprovementPanel from '@/components/dashboard/PostCallImprovementPanel'
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist'
 import { CallInsightsHeader } from '@/components/dashboard/CallInsightsHeader'
@@ -148,13 +148,21 @@ export default function TrialActiveSection({
         {/* Agent test card */}
         {onboarding.hasAgent ? (
           <div onClick={() => trackEvent('test_call_started_from_welcome', { client_id: data.clientId ?? '' })}>
-            <AgentTestCard
-              agentName={agent.name}
-              businessName={onboarding.businessName}
-              clientStatus={onboarding.clientStatus}
+            <TestCallCard
+              clientId={data.clientId ?? ''}
+              isAdmin={false}
               isTrial={true}
-              clientId={data.clientId}
-              daysRemaining={daysRemaining}
+              knowledge={{
+                agentName: agent.name || undefined,
+                hasFacts: !!(data.editableFields.businessFacts?.trim()),
+                hasFaqs: data.editableFields.faqs.length > 0,
+                hasHours: !!data.editableFields.hoursWeekday,
+                hasBooking: capabilities.hasBooking,
+                hasTransfer: capabilities.hasTransfer,
+                hasSms: capabilities.hasSms,
+                hasKnowledge: capabilities.hasKnowledge,
+                hasWebsite: capabilities.hasWebsite,
+              }}
             />
           </div>
         ) : (
@@ -264,18 +272,6 @@ export default function TrialActiveSection({
         />
       )}
 
-      {/* Agent test card */}
-      {onboarding.hasAgent && (
-        <AgentTestCard
-          agentName={agent.name}
-          businessName={onboarding.businessName}
-          clientStatus={onboarding.clientStatus}
-          isTrial={isTrial}
-          clientId={data.clientId}
-          daysRemaining={daysRemaining}
-        />
-      )}
-
       {/* Post-call improvement loop */}
       {callState === 'ended' && !postCallDismissed && data.trialWelcome && (
         <PostCallImprovementPanel
@@ -352,6 +348,26 @@ export default function TrialActiveSection({
       {/* Bento grid */}
       {onboarding.hasAgent && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Test call card — full width */}
+          <div className="sm:col-span-2">
+            <TestCallCard
+              clientId={data.clientId ?? ''}
+              isAdmin={false}
+              isTrial={isTrial}
+              knowledge={{
+                agentName: agent.name || undefined,
+                hasFacts: !!(data.editableFields.businessFacts?.trim()),
+                hasFaqs: data.editableFields.faqs.length > 0,
+                hasHours: !!data.editableFields.hoursWeekday,
+                hasBooking: capabilities.hasBooking,
+                hasTransfer: capabilities.hasTransfer,
+                hasSms: capabilities.hasSms,
+                hasKnowledge: capabilities.hasKnowledge,
+                hasWebsite: capabilities.hasWebsite,
+              }}
+            />
+          </div>
+
           <AgentKnowledgeTile
             clientId={data.clientId}
             selectedPlan={data.selectedPlan}

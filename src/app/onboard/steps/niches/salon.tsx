@@ -123,6 +123,49 @@ export default function SalonNiche({ data, onChange }: Props) {
           </p>
         )}
       </div>
+
+      {/* Named stylists */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Stylist names <span className="text-gray-400 font-normal text-xs">(optional)</span>
+        </Label>
+        <p className="text-xs text-gray-500">
+          List your stylists by name. Your agent can mention them when callers ask who's available or want to book with someone specific.
+        </p>
+        <input
+          type="text"
+          value={(answers.namedStylists as string) ?? ''}
+          onChange={e => onChange('namedStylists', e.target.value)}
+          placeholder="e.g. Jess, Marco, Tanya"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+        />
+      </div>
+
+      {/* Deposit policy */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Deposit required? <span className="text-gray-400 font-normal text-xs">(optional)</span>
+        </Label>
+        <div className="space-y-2">
+          {[
+            { value: "no", label: "No deposit required" },
+            { value: "new_clients", label: "New clients only" },
+            { value: "yes", label: "Yes — required for all bookings" },
+          ].map(opt => (
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="depositPolicy"
+                value={opt.value}
+                checked={(answers.depositPolicy as string || 'no') === opt.value}
+                onChange={() => onChange('depositPolicy', opt.value)}
+                className="accent-blue-600"
+              />
+              <span className="text-sm text-gray-700">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

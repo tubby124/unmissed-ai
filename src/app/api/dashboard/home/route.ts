@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -101,6 +101,16 @@ export async function GET(request: Request) {
       .not('key_topics', 'is', null)
       .order('started_at', { ascending: false })
       .limit(1),
+
+    // Last call with auto-generated FAQ suggestions (excludes test calls)
+    supabase
+      .from('call_logs')
+      .select('id, client_id, faq_suggestions')
+      .eq('client_id', clientId)
+      .not('faq_suggestions', 'is', null)
+      .neq('call_status', 'test')
+      .order('started_at', { ascending: false })
+      .limit(1),
   ])
 
   const client = clientRes.data
@@ -118,6 +128,12 @@ export async function GET(request: Request) {
   const lastTopicsRow = lastTopicsRes.data?.[0] ?? null
   const lastCallTopics = lastTopicsRow && Array.isArray(lastTopicsRow.key_topics) && lastTopicsRow.key_topics.length > 0
     ? { id: lastTopicsRow.id as string, client_id: lastTopicsRow.client_id as string, topics: lastTopicsRow.key_topics as string[] }
+    : null
+
+  // Auto-generated FAQ suggestions from last call
+  const lastFaqRow = lastFaqRes.data?.[0] ?? null
+  const lastFaqSuggestions = lastFaqRow && Array.isArray(lastFaqRow.faq_suggestions) && lastFaqRow.faq_suggestions.length > 0
+    ? (lastFaqRow.faq_suggestions as { q: string; a: string }[])
     : null
 
   // Knowledge tile data
@@ -276,5 +292,6 @@ export async function GET(request: Request) {
       businessFacts: (client.business_facts as string | null) ?? null,
     },
     lastCallTopics,
+    lastFaqSuggestions,
   })
 }

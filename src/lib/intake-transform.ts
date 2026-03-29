@@ -190,6 +190,12 @@ export function toIntakePayload(data: OnboardingData) {
 
     hours_weekend: hoursWeekend,
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
+    // Niche-specific context_data wiring (only one niche active at a time)
+    ...(data.niche === 'restaurant' && data.nicheAnswers?.menuData
+      ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }
+      : data.niche === 'property_management' && data.nicheAnswers?.tenantRoster
+      ? { context_data: String(data.nicheAnswers.tenantRoster), context_data_label: 'TENANTS' }
+      : {}),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>
         [`niche_${k}`, Array.isArray(v) ? (v as string[]).join(", ") : String(v)]

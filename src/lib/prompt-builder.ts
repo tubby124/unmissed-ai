@@ -157,6 +157,197 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     if (walkInPolicy) variables.WALK_IN_POLICY = walkInPolicy
   }
 
+  // Restaurant niche-specific field handling
+  if (niche === 'restaurant') {
+    const cuisineType = (intake.niche_cuisineType as string)?.trim()
+    if (cuisineType) variables.INDUSTRY = cuisineType
+    const orderTypes = (intake.niche_orderTypes as string) || ''
+    if (orderTypes.includes('delivery') || orderTypes.includes('takeout')) {
+      const deliveryNote = 'NEVER take delivery or takeout orders over the phone — direct to online ordering.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + deliveryNote
+        : deliveryNote
+    }
+    const cancelPolicy = (intake.niche_cancelPolicy as string) || ''
+    if (cancelPolicy === '24h') {
+      const cancelNote = 'Cancellation policy: 24 hours notice required — inform callers who try to cancel same-day.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + cancelNote
+        : cancelNote
+    } else if (cancelPolicy === 'no_cancel') {
+      const cancelNote = 'Cancellations not accepted — deposits are non-refundable. Inform callers politely.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + cancelNote
+        : cancelNote
+    }
+    const partySize = (intake.niche_partySize as string)?.trim()
+    if (partySize && partySize !== 'No limit') {
+      const partySizeNote = `Maximum party size for reservations is ${partySize} — for larger groups, take a message for a callback.`
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + partySizeNote
+        : partySizeNote
+    }
+  }
+
+  // HVAC niche-specific field handling
+  if (niche === 'hvac') {
+    const hvacEmergency = (intake.niche_emergency as string) || ''
+    if (hvacEmergency === 'yes_premium') {
+      variables.WEEKEND_POLICY = 'we handle after-hours calls at a premium rate'
+    } else if (hvacEmergency === 'business_hours') {
+      variables.WEEKEND_POLICY = 'no after-hours calls — business hours only'
+      const noEmergencyNote = 'NEVER accept emergency or after-hours service requests — tell caller we only work during business hours.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noEmergencyNote
+        : noEmergencyNote
+    } else if (hvacEmergency === 'no') {
+      variables.WEEKEND_POLICY = 'no emergency service — call back during business hours'
+      const noEmergencyNote = 'NEVER accept emergency or after-hours service requests — tell caller we only work during business hours.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noEmergencyNote
+        : noEmergencyNote
+    }
+    const hvacServiceArea = (intake.niche_serviceArea as string)?.trim()
+    if (hvacServiceArea) variables.CITY = hvacServiceArea
+    const hvacBrands = (intake.niche_brands as string)?.trim()
+    if (hvacBrands) {
+      const brandsLine = `Brands we service: ${hvacBrands}`
+      variables.SERVICES_OFFERED = variables.SERVICES_OFFERED
+        ? `${variables.SERVICES_OFFERED}\n${brandsLine}`
+        : brandsLine
+    }
+    const hvacPricingModel = (intake.niche_pricingModel as string) || ''
+    if (hvacPricingModel === 'free_estimate') {
+      variables.INSURANCE_DETAIL = 'we offer free estimates — we come out and assess before any work starts'
+    } else if (hvacPricingModel === 'flat_rate') {
+      variables.INSURANCE_DETAIL = 'flat-rate pricing — fixed price per service type, no surprises'
+    } else if (hvacPricingModel === 'hourly') {
+      variables.INSURANCE_DETAIL = 'time and materials pricing — billed hourly plus parts'
+    } else if (hvacPricingModel === 'diagnostic_fee') {
+      variables.INSURANCE_DETAIL = 'we charge a diagnostic fee for the initial assessment, then quote from there'
+    }
+  }
+
+  // Plumbing niche-specific field handling
+  if (niche === 'plumbing') {
+    const plumbingEmergency = (intake.niche_emergency as string) || ''
+    if (plumbingEmergency === 'yes_24_7') {
+      variables.WEEKEND_POLICY = 'we handle emergency calls 24/7 — flooding, burst pipes, no water'
+    } else if (plumbingEmergency === 'yes_business_hours') {
+      variables.WEEKEND_POLICY = 'we handle emergency calls during business hours only'
+    } else if (plumbingEmergency === 'no') {
+      variables.WEEKEND_POLICY = 'no emergency service — call back during business hours'
+      const noEmergencyNote = 'NEVER accept emergency calls — redirect caller to business hours.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noEmergencyNote
+        : noEmergencyNote
+    }
+    const plumbingServiceArea = (intake.niche_serviceArea as string)?.trim()
+    if (plumbingServiceArea) variables.CITY = plumbingServiceArea
+    const plumbingClientType = (intake.niche_clientType as string) || ''
+    if (plumbingClientType === 'residential') {
+      variables.INDUSTRY = 'residential plumbing company'
+    } else if (plumbingClientType === 'commercial') {
+      variables.INDUSTRY = 'commercial plumbing company'
+    }
+  }
+
+  // Dental niche-specific field handling
+  if (niche === 'dental') {
+    const newPatients = (intake.niche_newPatients as string) || ''
+    if (newPatients === 'waitlist') {
+      const waitlistNote = "For new patients: add to waitlist only — do NOT confirm a booking. Say 'we\\'re currently on a waitlist for new patients — I\\'ll add your name and have the team call ya back.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + waitlistNote
+        : waitlistNote
+    } else if (newPatients === 'no') {
+      const closedNote = "NEVER book a new patient — we are not accepting new patients. Tell caller: 'we\\'re not taking new patients right now — I can take your info and have the team call ya back.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + closedNote
+        : closedNote
+    }
+    const dentalInsurance = (intake.niche_insurance as string)?.trim()
+    if (dentalInsurance) {
+      variables.INSURANCE_DETAIL = `we accept: ${dentalInsurance} — bring your card and we'll sort it out`
+    }
+    const emergencyAppts = (intake.niche_emergencyAppts as string) || ''
+    if (emergencyAppts === 'no') {
+      const noSameDayNote = 'NEVER promise a same-day or emergency appointment — we schedule ahead only. Collect info and route to callback for earliest available slot.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noSameDayNote
+        : noSameDayNote
+    }
+  }
+
+  // Legal niche-specific field handling
+  if (niche === 'legal') {
+    const practiceAreas = (intake.niche_practiceAreas as string)?.trim()
+    if (practiceAreas) {
+      variables.SERVICES_OFFERED = `law firm specializing in: ${practiceAreas}`
+    }
+    const consultations = (intake.niche_consultations as string) || ''
+    if (consultations === 'yes_paid') {
+      const paidConsultNote = "Consultations are paid — NEVER offer a free consult. Tell caller: 'consultations are paid — I\\'ll have someone call ya back with the details and fee.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + paidConsultNote
+        : paidConsultNote
+    } else if (consultations === 'referral_only') {
+      const referralNote = "NEVER book a cold inquiry — referrals only. Tell caller: 'we work by referral only — I can take your name and the team will let ya know if we\\'re able to help.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + referralNote
+        : referralNote
+    }
+    const urgentRouting = (intake.niche_urgentRouting as string)
+    if (urgentRouting === 'false') {
+      const noUrgentNote = 'Do NOT flag any matter as [URGENT] — treat all inquiries the same regardless of urgency.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noUrgentNote
+        : noUrgentNote
+    }
+  }
+
+  // Property management niche-specific field handling
+  if (niche === 'property_management') {
+    const propertyType = (intake.niche_propertyType as string) || ''
+    if (propertyType === 'residential') {
+      variables.INDUSTRY = 'residential property management company'
+    } else if (propertyType === 'commercial') {
+      variables.INDUSTRY = 'commercial property management company'
+    } else if (propertyType === 'both') {
+      variables.INDUSTRY = 'property management company (residential + commercial)'
+    }
+    const hasEmergencyLine = (intake.niche_hasEmergencyLine as string)
+    if (hasEmergencyLine === 'false') {
+      const noEmergencyNote = 'NEVER imply there is a 24/7 emergency line — take a message and flag [URGENT] for the team to call back.'
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + noEmergencyNote
+        : noEmergencyNote
+    }
+  }
+
+  // Salon niche-specific field handling
+  if (niche === 'salon') {
+    const namedStylists = (intake.niche_namedStylists as string)?.trim()
+    if (namedStylists) {
+      const stylistLine = `Stylists: ${namedStylists}`
+      variables.SERVICES_OFFERED = variables.SERVICES_OFFERED
+        ? `${variables.SERVICES_OFFERED}\n${stylistLine}`
+        : stylistLine
+    }
+    const depositPolicy = (intake.niche_depositPolicy as string) || ''
+    if (depositPolicy === 'new_clients') {
+      const depositNote = "New clients require a deposit to book — say: 'we do ask for a small deposit for new clients — the team will call ya back to sort that out.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + depositNote
+        : depositNote
+    } else if (depositPolicy === 'yes') {
+      const depositNote = "All bookings require a deposit — say: 'we do require a deposit to hold your spot — the team will call ya back to collect that and confirm.'"
+      variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+        ? variables.FORBIDDEN_EXTRA + '\n' + depositNote
+        : depositNote
+    }
+  }
+
   // Universal: if owner provided their name, personalise CLOSE_PERSON to first name (all niches)
   const ownerNameGlobal = (intake.owner_name as string)?.trim()
   if (ownerNameGlobal) {
@@ -375,7 +566,51 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Replace shallow triage with deep version.
   // Mode wins when it explicitly redefines call intent (modeForcesTriageDeep);
   // otherwise niche wins and mode is a fallback for niches without a TRIAGE_DEEP.
-  const triageDeep = modeForcesTriageDeep ? modeTriageDeep : (nicheDefaults.TRIAGE_DEEP || modeTriageDeep || '')
+  let triageDeep = modeForcesTriageDeep ? modeTriageDeep : (nicheDefaults.TRIAGE_DEEP || modeTriageDeep || '')
+
+  // Niche-specific triageDeep modifiers
+  if (niche === 'restaurant' && triageDeep) {
+    const takesPhoneOrders = (intake.niche_takesPhoneOrders as string) || ''
+    if (takesPhoneOrders === 'yes') {
+      triageDeep += '\nPHONE ORDERS: We do take phone orders — collect the full order, name, pickup/delivery preference, and phone number.'
+    } else if (takesPhoneOrders === 'no') {
+      triageDeep += '\nNO PHONE ORDERS: We do NOT take phone orders — direct callers to order online or in-person.'
+    }
+  }
+
+  if (niche === 'hvac' && triageDeep) {
+    const hvacEmergency = (intake.niche_emergency as string) || ''
+    if (hvacEmergency === 'business_hours' || hvacEmergency === 'no') {
+      triageDeep += '\nNO EMERGENCY SERVICE: If caller has an urgent/after-hours need, let them know we only work during business hours and take a message for callback.'
+    }
+  }
+
+  if (niche === 'plumbing' && triageDeep) {
+    const plumbingEmergency = (intake.niche_emergency as string) || ''
+    if (plumbingEmergency === 'yes_business_hours') {
+      triageDeep += '\nIMPORTANT: Emergency service is business hours only — for after-hours calls, take a message and flag [URGENT] so the team can call first thing.'
+    } else if (plumbingEmergency === 'no') {
+      triageDeep += '\nNO EMERGENCY SERVICE: We do not offer emergency service. Take a message and route to next available appointment.'
+    }
+  }
+
+  if (niche === 'property_management' && triageDeep) {
+    const maintenanceContacts = (intake.niche_maintenanceContacts as string)?.trim()
+    if (maintenanceContacts) {
+      triageDeep += `\nMAINTENANCE ROUTING: When a tenant has an emergency or urgent repair, give them the direct contact from this list based on the issue type:\n${maintenanceContacts}\nMatch the issue to the right person (plumbing issue → plumber, electrical → electrician, general/locks/appliances → general maintenance) and give their name + number directly: "for that you'll want to reach [Name] at [number] — they handle [issue type]."`
+    }
+  }
+
+  if (niche === 'dental' && triageDeep) {
+    const emergencyAppts = (intake.niche_emergencyAppts as string) || ''
+    if (emergencyAppts === 'no') {
+      triageDeep = triageDeep.replace(
+        /flag \[URGENT\] → "I'm flagging this urgent[^"]*"/,
+        '"we don\'t have same-day appointments — I\'ll flag this as urgent and have the team call ya back right away to get you in asap"'
+      )
+    }
+  }
+
   if (triageDeep) {
     const triageStart = prompt.indexOf('## 3. TRIAGE')
     const infoStart = prompt.indexOf('## 4. INFO COLLECTION')

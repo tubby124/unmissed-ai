@@ -78,6 +78,30 @@ export default function HvacNiche({ data, onChange }: Props) {
           ))}
         </div>
       </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">How do you price your service?</Label>
+        <div className="space-y-2">
+          {[
+            { value: "free_estimate", label: "Free estimate — we come out and quote before any work" },
+            { value: "flat_rate", label: "Flat rate — fixed price per service type" },
+            { value: "hourly", label: "Hourly — time + materials" },
+            { value: "diagnostic_fee", label: "Diagnostic fee — paid visit to assess, then quote" },
+          ].map(opt => (
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="radio"
+                name="pricingModel"
+                value={opt.value}
+                checked={(answers.pricingModel as string) === opt.value}
+                onChange={() => onChange("pricingModel", opt.value)}
+                className="accent-blue-600"
+              />
+              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

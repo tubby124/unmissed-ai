@@ -88,6 +88,25 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
         </label>
       </div>
 
+      {/* Maintenance contacts */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium t1">
+          Maintenance contacts <span className="text-xs t3 font-normal">(optional)</span>
+        </label>
+        <p className="text-xs t3">
+          List your maintenance staff or contractors with their name, phone, and what they handle. Your agent will route emergency calls to the right person directly.
+        </p>
+        <textarea
+          value={(data.nicheAnswers.maintenanceContacts as string) ?? ''}
+          onChange={e => onChange("maintenanceContacts", e.target.value)}
+          placeholder={"Plumbing: Mike (416-555-1234) — leaks, burst pipes, no water\nElectrical: Bob (416-555-5678) — power outage, sparks, outlets\nGeneral: Pedro (416-555-9012) — appliances, doors, locks"}
+          rows={5}
+          className="w-full bg-hover border b-theme rounded-xl p-3 text-xs t1 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors leading-relaxed"
+          maxLength={3000}
+        />
+        <p className="text-[10px] t3">{((data.nicheAnswers.maintenanceContacts as string) ?? '').length.toLocaleString()} / 3,000 chars</p>
+      </div>
+
       {/* Tenant / Unit Roster (optional) */}
       <div className="space-y-2">
         <label className="block text-sm font-medium t1">

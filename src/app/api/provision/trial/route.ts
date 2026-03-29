@@ -212,21 +212,38 @@ export async function POST(req: NextRequest) {
     knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join("\n\n---\n\n");
   }
 
-  let prompt: string;
-  try {
-    prompt = buildPromptFromIntake(intakeData, websiteContent, knowledgeDocs);
-  } catch (err) {
-    console.error("[provision/trial] buildPromptFromIntake failed:", err);
-    return NextResponse.json({ error: "Prompt generation failed", detail: String(err) }, { status: 500 });
+  // 3-tier prompt size guard: full → no websiteContent → no knowledgeDocs → fail 422
+  let prompt = '';
+  let promptCharCount = 0;
+  const promptAttempts: Array<{ websiteContent: string | null; knowledgeDocs: string | null }> = [
+    { websiteContent, knowledgeDocs },
+    { websiteContent: null, knowledgeDocs },
+    { websiteContent: null, knowledgeDocs: null },
+  ];
+  let promptBuilt = false;
+  for (const attempt of promptAttempts) {
+    try {
+      prompt = buildPromptFromIntake(intakeData, attempt.websiteContent ?? '', attempt.knowledgeDocs ?? '');
+    } catch (err) {
+      console.error("[provision/trial] buildPromptFromIntake failed:", err);
+      await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
+      await supa.from("clients").delete().eq("id", clientId);
+      return NextResponse.json({ error: "Prompt generation failed", detail: String(err) }, { status: 500 });
+    }
+    const v = validatePrompt(prompt);
+    promptCharCount = v.charCount;
+    if (v.valid) {
+      if (!attempt.websiteContent && websiteContent) console.warn(`[provision/trial] Dropped websiteContent to fit prompt (niche=${data.niche})`);
+      if (!attempt.knowledgeDocs && knowledgeDocs) console.warn(`[provision/trial] Dropped knowledgeDocs to fit prompt (niche=${data.niche})`);
+      promptBuilt = true;
+      break;
+    }
   }
-
-  const validation = validatePrompt(prompt);
-  if (!validation.valid) {
-    console.error(`[provision/trial] Prompt validation failed for niche=${data.niche} charCount=${validation.charCount}:`, validation.errors);
-    // Rollback orphaned rows (S12-V18: was missing — left dangling intake + client rows)
+  if (!promptBuilt) {
+    console.error(`[provision/trial] Prompt too large after all retries (niche=${data.niche})`);
     await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
     await supa.from("clients").delete().eq("id", clientId);
-    return NextResponse.json({ error: "Prompt failed validation", errors: validation.errors, charCount: validation.charCount }, { status: 422 });
+    return NextResponse.json({ error: "prompt_too_large", chars: promptCharCount, hard_limit: 12000 }, { status: 422 });
   }
 
   // Voice ID: direct picker selection > gender fallback > niche default
@@ -283,14 +300,14 @@ export async function POST(req: NextRequest) {
   await insertPromptVersion(supa, {
     clientId,
     content: prompt,
-    changeDescription: `Auto-generated at trial signup (niche: ${niche}, ${validation.charCount} chars)`,
+    changeDescription: `Auto-generated at trial signup (niche: ${niche}, ${promptCharCount} chars)`,
     triggeredByUserId: null,
     triggeredByRole: "system",
     prevCharCount: null,
     version: 1,
   });
 
-  console.log(`[provision/trial] Agent created: slug=${clientSlug} agentId=${agentId} voice=${voiceId} prompt=${validation.charCount} chars`);
+  console.log(`[provision/trial] Agent created: slug=${clientSlug} agentId=${agentId} voice=${voiceId} prompt=${promptCharCount} chars`);
 
   // Run activation chain in trial mode
   // S12-CODE4: activateClient() sets sms_enabled + calls syncClientTools() which rebuilds

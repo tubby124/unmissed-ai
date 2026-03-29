@@ -109,6 +109,57 @@ export default function RestaurantStep({ data, onChange }: Props) {
         </div>
       </div>
 
+      {/* Max party size */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium t1">
+          Max party size for reservations <span className="text-xs t3 font-normal">(optional)</span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {["4", "6", "8", "10", "12+", "No limit"].map(size => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => onChange("partySize", size)}
+              className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+                data.nicheAnswers.partySize === size
+                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                  : 'bg-hover border-white/10 t2 hover:border-white/20'
+              }`}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Cancellation policy */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium t1">
+          Reservation cancellation policy <span className="text-xs t3 font-normal">(optional)</span>
+        </label>
+        <div className="grid grid-cols-1 gap-2">
+          {[
+            { value: "24h", label: "24 hours notice required" },
+            { value: "same_day", label: "Same-day cancellations okay" },
+            { value: "no_cancel", label: "No cancellations — deposits non-refundable" },
+            { value: "none", label: "We don't take reservations" },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange("cancelPolicy", opt.value)}
+              className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left ${
+                data.nicheAnswers.cancelPolicy === opt.value
+                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                  : 'bg-hover border-white/10 t2 hover:border-white/20'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
     </div>
   )
 }

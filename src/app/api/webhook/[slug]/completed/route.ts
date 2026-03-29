@@ -17,6 +17,7 @@ import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig, type 
 import { embedText } from '@/lib/embeddings'
 import { analyzeQualityMetrics } from '@/lib/quality-metrics'
 import { tryAcquireSuggestionLock, fetchRecentInsights, isFailedCall, generateAndStoreSuggestions } from '@/lib/prompt-suggestions'
+import { generateFaqSuggestions } from '@/lib/faq-suggestion-generator'
 
 export const maxDuration = 120
 
@@ -479,6 +480,19 @@ export async function POST(
           }
         } catch (suggErr) {
           console.error('[completed] 8m suggestion trigger error (non-fatal):', suggErr)
+        }
+
+        // ── Auto FAQ suggestion generation (fire-and-forget, non-blocking) ───
+        if (callLogId) {
+          generateFaqSuggestions({
+            supabase,
+            callLogId,
+            transcript,
+            businessName: (client.business_name as string | null) ?? '',
+            niche: (client.niche as string | null) ?? '',
+            businessFacts: (client.business_facts as string | null) ?? null,
+            extraQa: Array.isArray(client.extra_qa) ? (client.extra_qa as { q: string; a: string }[]) : null,
+          }).catch(err => console.warn('[completed] Auto FAQ generation failed (non-fatal):', err))
         }
       }
 

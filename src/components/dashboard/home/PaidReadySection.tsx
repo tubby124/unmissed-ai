@@ -13,6 +13,7 @@ import CallHandlingTile from './CallHandlingTile'
 import NotificationsTile from './NotificationsTile'
 import ProofStrip from './ProofStrip'
 import StatsHeroCard from './StatsHeroCard'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -86,6 +87,28 @@ export default function PaidReadySection({
       {/* Bento grid */}
       {onboarding.hasAgent && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Test call card — full width */}
+          {data.clientId && (
+            <div className="sm:col-span-2">
+              <TestCallCard
+                clientId={data.clientId}
+                isAdmin={false}
+                isTrial={false}
+                knowledge={{
+                  agentName: agent.name || undefined,
+                  hasFacts: !!(data.editableFields.businessFacts?.trim()),
+                  hasFaqs: data.editableFields.faqs.length > 0,
+                  hasHours: !!data.editableFields.hoursWeekday,
+                  hasBooking: capabilities.hasBooking,
+                  hasTransfer: capabilities.hasTransfer,
+                  hasSms: capabilities.hasSms,
+                  hasKnowledge: capabilities.hasKnowledge,
+                  hasWebsite: capabilities.hasWebsite,
+                }}
+              />
+            </div>
+          )}
+
           <AgentKnowledgeTile
             clientId={data.clientId}
             selectedPlan={data.selectedPlan}

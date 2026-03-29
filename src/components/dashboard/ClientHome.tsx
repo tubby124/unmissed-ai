@@ -25,6 +25,7 @@ import PaidReadySection from './home/PaidReadySection'
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
 import HomeSideSheet from './home/HomeSideSheet'
 import QuickAddFaq from './QuickAddFaq'
+import AutoFaqSuggestions from './AutoFaqSuggestions'
 
 export interface HomeData {
   admin: boolean
@@ -127,6 +128,7 @@ export interface HomeData {
     client_id: string
     topics: string[]
   } | null
+  lastFaqSuggestions?: { q: string; a: string }[] | null
 }
 
 
@@ -467,6 +469,14 @@ export default function ClientHome() {
             </div>
           )}
         </div>
+
+        {/* ── Auto-generated FAQ suggestions (pre-answered, one-click add) ─── */}
+        {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
+          <AutoFaqSuggestions
+            clientId={data.clientId}
+            suggestions={data.lastFaqSuggestions}
+          />
+        )}
 
         {/* ── Teach your agent — topics from most recent call ─── */}
         {data.lastCallTopics && data.lastCallTopics.topics.length > 0 && (

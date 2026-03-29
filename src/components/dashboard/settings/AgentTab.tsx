@@ -350,17 +350,7 @@ export default function AgentTab({
         }}
         onScrollTo={handleScrollTo}
       />
-      {isAdmin ? (
-        <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
-      ) : (
-        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium t1">Agent knowledge summary</p>
-            <p className="text-[11px] t3">Facts, FAQs and knowledge base status</p>
-          </div>
-          <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Knowledge →</a>
-        </div>
-      )}
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
       <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
         <LearningLoopCard
           clientId={client.id}

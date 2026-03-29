@@ -2,8 +2,13 @@
  * POST /api/dashboard/knowledge/suggest-answer
  *
  * Uses Haiku 4.5 (via OpenRouter) to generate a suggested FAQ answer for a
- * caller topic the agent couldn't answer. Provides business context (name, niche,
- * existing facts + FAQs) so suggestions are specific to the client.
+ * caller topic the agent couldn't answer.
+ *
+ * Context priority (richest first):
+ *   1. knowledge_chunks (pgvector hybrid search) — website scrape, PDFs, AI compiler
+ *   2. business_facts — manual facts text block
+ *   3. extra_qa — existing FAQ pairs
+ *   4. transcript_context — relevant call lines (when available)
  *
  * No plan gate — available to all users.
  *
@@ -17,6 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import { embedText } from '@/lib/embeddings'
 
 export async function POST(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -53,7 +59,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client } = await svc
     .from('clients')
-    .select('business_name, niche, business_facts, extra_qa')
+    .select('business_name, niche, business_facts, extra_qa, knowledge_backend')
     .eq('id', clientId)
     .maybeSingle()
 
@@ -62,17 +68,47 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'AI suggestions not configured' }, { status: 503 })
 
-  // ── Build context blocks ──────────────────────────────────────────────────────
+  // ── Knowledge chunk retrieval (pgvector hybrid search) ────────────────────────
+  // Pull up to 5 approved chunks most relevant to the topic — this is the richest
+  // source and includes website scrape data, PDF uploads, and AI compiler results.
+  let knowledgeBlock = ''
+  if (client.knowledge_backend === 'pgvector') {
+    try {
+      const embedding = await embedText(topic)
+      if (embedding) {
+        const { data: chunks } = await svc.rpc('hybrid_match_knowledge', {
+          query_text: topic,
+          query_embedding: JSON.stringify(embedding),
+          match_client_id: clientId,
+          match_count: 5,
+          full_text_weight: 1.0,
+          semantic_weight: 1.0,
+          rrf_k: 50,
+        })
+        const relevant = (chunks ?? []) as Array<{ content: string; status: string }>
+        const approved = relevant.filter(c => c.status === 'approved').slice(0, 5)
+        if (approved.length > 0) {
+          knowledgeBlock = '\nRelevant knowledge from the business:\n' +
+            approved.map(c => `- ${c.content.slice(0, 300)}`).join('\n').slice(0, 1200)
+        }
+      }
+    } catch (err) {
+      // Non-fatal — fall back to business_facts + extra_qa
+      console.warn('[suggest-answer] knowledge chunk lookup failed (non-fatal):', err instanceof Error ? err.message : err)
+    }
+  }
+
+  // ── Remaining context blocks ──────────────────────────────────────────────────
   const businessName = (client.business_name ?? 'this business').slice(0, 100)
   const niche = (client.niche ?? 'general').slice(0, 60)
 
   const factsBlock = typeof client.business_facts === 'string' && client.business_facts.trim()
-    ? `\nWhat the agent already knows:\n${client.business_facts.slice(0, 800)}`
+    ? `\nAdditional facts:\n${client.business_facts.slice(0, 600)}`
     : ''
 
   const existingFaqs = Array.isArray(client.extra_qa) ? client.extra_qa as { q: string; a: string }[] : []
   const faqsBlock = existingFaqs.length > 0
-    ? `\nExisting FAQs:\n${existingFaqs.slice(0, 8).map(f => `Q: ${f.q}\nA: ${f.a}`).join('\n\n').slice(0, 600)}`
+    ? `\nExisting FAQs:\n${existingFaqs.slice(0, 6).map(f => `Q: ${f.q}\nA: ${f.a}`).join('\n\n').slice(0, 500)}`
     : ''
 
   const transcriptBlock = typeof body.transcript_context === 'string' && body.transcript_context.trim()
@@ -82,15 +118,16 @@ export async function POST(req: NextRequest) {
   // ── OpenRouter / Haiku call ───────────────────────────────────────────────────
   const systemPrompt = `You are helping a business owner teach their voice AI receptionist how to answer caller questions.
 
-Business: ${businessName} (${niche})${factsBlock}${faqsBlock}
+Business: ${businessName} (${niche})${knowledgeBlock}${factsBlock}${faqsBlock}
 
 Your job: write a short, natural answer the AI agent should speak when a caller asks about the given topic.
 
 Rules:
 - 2-3 sentences max — it will be spoken aloud, not read
 - Conversational and helpful, not robotic
-- If specific details (prices, exact hours, staff names) aren't in the context above, use [YOUR ANSWER HERE] as a placeholder so the owner knows to fill it in
-- Never invent facts — only use what's in the context or use placeholders
+- If specific details (prices, exact hours, staff names) ARE in the context above, use them
+- If details are NOT in the context, use [YOUR ANSWER HERE] as a placeholder so the owner knows to fill it in
+- Never invent information that isn't in the context
 - Start directly with the answer — no "Sure!" or "Great question!" preamble
 - Output ONLY the answer text, nothing else`
 
