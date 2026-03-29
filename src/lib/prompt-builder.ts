@@ -31,10 +31,11 @@ import { buildNicheFaqDefaults, buildPrintShopFaq, buildKnowledgeBase, buildAfte
 // Extracted to avoid pulling the entire prompt-builder into lightweight consumers.
 export { VOICE_PRESETS, type VoicePreset } from './voice-presets'
 
-import { type NicheDefaults, NICHE_DEFAULTS } from './prompt-config/niche-defaults'
+import { NICHE_DEFAULTS } from './prompt-config/niche-defaults'
 export { NICHE_DEFAULTS }
 
 import { NICHE_CLASSIFICATION_RULES } from './prompt-config/niche-classification'
+export { NICHE_CLASSIFICATION_RULES }
 
 import { buildVoicemailPrompt } from './prompt-niches/voicemail-prompt'
 import { buildRealEstatePrompt } from './prompt-niches/real-estate-prompt'
