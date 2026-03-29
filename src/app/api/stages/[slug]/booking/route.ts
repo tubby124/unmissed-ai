@@ -26,7 +26,7 @@ export async function POST(
 
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('agent_name, business_name, booking_enabled, selected_plan, subscription_status')
+    .select('agent_name, business_name, booking_enabled, selected_plan, subscription_status, timezone')
     .eq('slug', slug)
     .single()
 
@@ -50,10 +50,19 @@ export async function POST(
   const name = client.agent_name || 'Sam'
   const isFormal = false // agent_tone not yet in DB — default casual
 
+  // Compute today's date in the client's timezone so the booking stage knows
+  // what "tomorrow", "next Monday", etc. means when resolving relative dates.
+  const tz = (client.timezone as string | null) || 'America/Edmonton'
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()) // YYYY-MM-DD
+
   // Build context lines from triage-passed values. These replace the templateContext
   // injection the triage stage had — the booking stage gets a fresh system prompt so
   // we must re-inject anything the agent needs to know.
   const contextLines = [
+    `TODAY: ${todayStr}`,
     callerPhone ? `CALLER PHONE: ${callerPhone}` : null,
     callerName  ? `CALLER NAME: ${callerName}`   : null,
     serviceType ? `SERVICE REQUESTED: ${serviceType}` : null,

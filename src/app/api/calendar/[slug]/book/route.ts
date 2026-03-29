@@ -149,7 +149,8 @@ export async function POST(
       const isOptedOut = optOut && !optOut.opted_back_in_at
       if (!isOptedOut) {
         const businessName = (client.business_name as string) || BRAND_NAME
-        const smsBody = `Your ${service || 'appointment'} is confirmed for ${date} at ${matchedSlot.displayTime} with ${businessName}. Reply STOP to opt out.`
+        const calendarLink = event.htmlLink ? `\nAdd to your calendar: ${event.htmlLink}` : ''
+        const smsBody = `Your ${service || 'appointment'} is confirmed for ${matchedSlot.displayTime} with ${businessName}.${calendarLink} Reply STOP to opt out.`
         void (async () => {
           try {
             const { sid } = await sendSmsTracked(callerPhone, client.twilio_number as string, smsBody)
