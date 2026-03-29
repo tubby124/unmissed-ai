@@ -1,22 +1,54 @@
 'use client'
 
 /**
- * NotificationsSheet — Telegram + email notification settings.
- * Shows connection status and links to full notification settings.
+ * NotificationsSheet — Telegram + email + SMS notification settings.
+ * Shows connection status and live toggles for all notification channels.
  */
+
+import { useState } from 'react'
 
 interface Props {
   clientId: string
   isAdmin: boolean
   telegramConnected: boolean
+  smsEnabled: boolean
+  hasTwilioNumber: boolean
   markDirty: () => void
   markClean: () => void
   onSave: () => void
 }
 
-export default function NotificationsSheet({ telegramConnected, onSave: _onSave }: Props) {
+export default function NotificationsSheet({
+  clientId,
+  telegramConnected,
+  smsEnabled: initialSmsEnabled,
+  hasTwilioNumber,
+  onSave,
+}: Props) {
+  const [smsEnabled, setSmsEnabled] = useState(initialSmsEnabled)
+  const [toggling, setToggling] = useState(false)
+
+  async function toggleSms() {
+    if (!hasTwilioNumber || toggling) return
+    setToggling(true)
+    const next = !smsEnabled
+    setSmsEnabled(next)
+    try {
+      await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, sms_enabled: next }),
+      })
+      onSave()
+    } catch {
+      setSmsEnabled(!next)
+    } finally {
+      setToggling(false)
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <p className="text-xs t3 leading-relaxed">
         Get notified after every call so you never miss a hot lead.
       </p>
@@ -71,8 +103,47 @@ export default function NotificationsSheet({ telegramConnected, onSave: _onSave 
         <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Active</span>
       </div>
 
+      {/* SMS Follow-up */}
+      <div
+        className="rounded-xl p-4 space-y-2"
+        style={{ border: '1px solid var(--color-border)' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: smsEnabled ? 'rgba(34,197,94,0.12)' : 'var(--color-hover)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={smsEnabled ? 'text-green-400' : 't3'}>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold t1">SMS Follow-up</p>
+            <p className="text-[11px] t3">
+              {!hasTwilioNumber
+                ? 'Requires a phone number — contact support'
+                : smsEnabled
+                  ? 'Sent to caller after each call'
+                  : 'Off — callers won\'t receive a follow-up text'}
+            </p>
+          </div>
+          {/* Toggle */}
+          <button
+            onClick={toggleSms}
+            disabled={!hasTwilioNumber || toggling}
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
+              smsEnabled ? 'bg-green-500' : 'bg-zinc-600'
+            }`}
+            aria-label={smsEnabled ? 'Disable SMS follow-up' : 'Enable SMS follow-up'}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 translate-y-0.5 rounded-full bg-white shadow transition-transform duration-200 ${
+                smsEnabled ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       <a
-        href="/dashboard/notifications"
+        href="/dashboard/settings"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >

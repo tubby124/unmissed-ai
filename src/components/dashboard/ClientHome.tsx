@@ -481,6 +481,8 @@ export default function ClientHome() {
         selectedPlan={data.selectedPlan}
         subscriptionStatus={onboarding.subscriptionStatus}
         telegramConnected={onboarding.telegramConnected}
+        smsEnabled={data.capabilities.hasSms}
+        hasTwilioNumber={data.activation.twilio_number_present}
         onDataRefresh={fetchData}
       />
     </>

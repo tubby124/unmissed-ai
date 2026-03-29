@@ -44,6 +44,8 @@ interface Props {
   selectedPlan: string | null
   subscriptionStatus: string | null
   telegramConnected: boolean
+  smsEnabled: boolean
+  hasTwilioNumber: boolean
   onDataRefresh: () => void
 }
 
@@ -70,6 +72,8 @@ export default function HomeSideSheet({
   selectedPlan,
   subscriptionStatus,
   telegramConnected,
+  smsEnabled,
+  hasTwilioNumber,
   onDataRefresh,
 }: Props) {
   const isOpen = openSheet !== null
@@ -177,6 +181,8 @@ export default function HomeSideSheet({
               clientId={clientId}
               isAdmin={isAdmin}
               telegramConnected={telegramConnected}
+              smsEnabled={smsEnabled}
+              hasTwilioNumber={hasTwilioNumber}
               markDirty={markDirty}
               markClean={markClean}
               onSave={onDataRefresh}
