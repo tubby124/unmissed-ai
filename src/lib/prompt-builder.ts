@@ -750,9 +750,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     prompt += '\n\n' + getSmsBlock((intake.agent_mode as string) || null)
   }
 
-  // Append VIP caller protocol block if a forwarding number is configured
-  // Requires forwarding_number so agents can offer transferCall to VIP callers
-  const forwardingNumber = (intake.forwarding_number as string)?.trim() || (intake.owner_phone as string)?.trim()
+  // Append VIP caller protocol block when forwarding_number is set at provision time.
+  // Only forwarding_number (not owner_phone) — pageOwner SMS sends TO the forwarding number.
+  // patchVipSection() handles post-provision additions when forwarding_number is set later.
+  const forwardingNumber = (intake.forwarding_number as string)?.trim()
   if (forwardingNumber) {
     prompt += '\n\n' + getVipBlock()
   }
