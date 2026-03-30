@@ -15,6 +15,7 @@ interface Props {
   onActivate: (mode: "trial" | "paid") => void;
   isSubmitting: boolean;
   error: string | null;
+  canActivate: boolean;
 }
 
 function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName: string }) {
@@ -34,12 +35,17 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   const hasWebsite = !!(data.websiteUrl?.trim())
   const totalKnowledge = faqCount + scrapedFactCount + scrapedQaCount
 
+  // Calendar booking is active when mode is full_service OR agent picked the booking mode
+  const bookingActive = mode === 'full_service' || data.agentMode === 'appointment_booking'
+  // Warn when booking is expected but the selected plan won't include it after trial
+  const bookingPlanMismatch = bookingActive && !!data.selectedPlan && data.selectedPlan !== 'pro'
+
   // Capability status
   const caps = [
     { label: 'Call summaries', on: true },
     { label: 'SMS follow-up', on: data.callerAutoText !== false },
     { label: 'Website knowledge', on: hasWebsite },
-    { label: 'Calendar booking', on: mode === 'full_service' },
+    { label: 'Calendar booking', on: bookingActive },
     { label: 'Call forwarding', on: !!(data.callForwardingEnabled && data.emergencyPhone?.trim()) },
     { label: 'IVR pre-filter', on: data.ivrEnabled === true },
   ]
@@ -82,6 +88,16 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
         ))}
       </div>
 
+      {/* Plan mismatch warning — booking mode selected but plan won't include it post-trial */}
+      {bookingPlanMismatch && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
+          <span className="text-amber-500 text-sm shrink-0">⚡</span>
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+            Calendar booking is active during your 7-day trial. After trial, it requires <strong>Pro plan</strong> — your current selection won&apos;t include it.
+          </p>
+        </div>
+      )}
+
       <p className="text-xs t3">
         You can teach {agentName} more from your dashboard after launch.
       </p>
@@ -89,7 +105,7 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   )
 }
 
-export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting, error }: Props) {
+export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting, error, canActivate }: Props) {
   const agentName = data.agentName || "your agent";
   const businessName = data.businessName || "your business";
   const planData = PLANS.find((p) => p.id === data.selectedPlan) ?? PLANS[1]; // default Core
@@ -267,13 +283,20 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         </p>
       )}
 
+      {/* Required fields hint — only shown when Launch button is blocked */}
+      {!canActivate && !isSubmitting && (
+        <p className="text-xs text-center text-muted-foreground">
+          Fill in business name, phone, and email above to launch.
+        </p>
+      )}
+
       {/* Activate button */}
       <motion.button
         type="button"
         onClick={() => onActivate("trial")}
-        disabled={isSubmitting}
+        disabled={isSubmitting || !canActivate}
         whileTap={{ scale: 0.97 }}
-        whileHover={{ scale: 1.01 }}
+        whileHover={{ scale: canActivate ? 1.01 : 1 }}
         className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 hover:shadow-xl hover:shadow-indigo-600/30 transition-shadow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isSubmitting ? (

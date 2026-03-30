@@ -2,25 +2,59 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ArrowRight, X, CheckCircle2 } from 'lucide-react'
+import { X, Check } from 'lucide-react'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
 import { PLANS } from '@/lib/pricing'
 
+// ── Per-plan short highlights for the modal (3 lines max) ────────────
+// Edit these to change what shows inside the upgrade modal.
+// Full feature lists live in lib/pricing.ts → PLANS[x].features.
+const PLAN_MODAL_HIGHLIGHTS: Record<string, string[]> = {
+  lite: [
+    'Answers every call, 24/7',
+    '100 minutes/month included',
+    'Call summary texted to you',
+  ],
+  core: [
+    'Full AI receptionist — live call handling',
+    '400 minutes/month included',
+    'Website & Google Business knowledge',
+  ],
+  pro: [
+    'Calendar booking + live call transfer',
+    '1,000 minutes/month included',
+    'Everything in AI Receptionist',
+  ],
+}
+
+const VALID_PLANS = PLANS.map(p => p.id)
+type PlanId = typeof VALID_PLANS[number]
+
+function isValidPlan(id: string | null | undefined): id is PlanId {
+  return !!id && VALID_PLANS.includes(id as PlanId)
+}
+
 export default function UpgradeModal() {
-  const { isOpen, source, clientId, daysRemaining, closeUpgradeModal } = useUpgradeModal()
+  const { isOpen, source, clientId, daysRemaining, selectedPlan: contextPlan, closeUpgradeModal } = useUpgradeModal()
+  const defaultPlan: PlanId = isValidPlan(contextPlan) ? contextPlan : 'core'
+  const [activePlan, setActivePlan] = useState<PlanId>(defaultPlan)
   const [loading, setLoading] = useState(false)
+
+  // Sync activePlan when modal opens with a different context plan
+  // (handles multiple open/close cycles)
+  const resolvedDefault = isValidPlan(contextPlan) ? contextPlan : 'core'
 
   async function handleUpgrade() {
     if (loading) return
     setLoading(true)
-    trackEvent('upgrade_modal_cta_clicked', { source })
-    trackEvent('checkout_started', { source, planId: 'core' })
+    trackEvent('upgrade_modal_cta_clicked', { source, planId: activePlan })
+    trackEvent('checkout_started', { source, planId: activePlan })
     try {
       const res = await fetch('/api/billing/upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: 'core', billing: 'monthly', clientId }),
+        body: JSON.stringify({ planId: activePlan, billing: 'monthly', clientId }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
@@ -34,14 +68,15 @@ export default function UpgradeModal() {
     closeUpgradeModal()
   }
 
-  const bullets = [
-    'Your own dedicated business phone number',
-    'Live inbound call handling — real callers, real conversations',
-    "Everything you've set up carries over — hours, FAQs, forwarding",
-  ]
+  function handleOpen() {
+    // Reset to the context-provided plan whenever the modal opens
+    setActivePlan(resolvedDefault)
+  }
+
+  const plan = PLANS.find(p => p.id === activePlan) ?? PLANS[1]
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={handleOpen}>
       {isOpen && (
         <>
           {/* Backdrop */}
@@ -53,7 +88,7 @@ export default function UpgradeModal() {
             onClick={handleDismiss}
           />
 
-          {/* Modal container */}
+          {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -73,55 +108,94 @@ export default function UpgradeModal() {
               </button>
 
               {/* Header */}
-              <div className="flex items-start gap-4 mb-5 pr-8">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: 'var(--color-accent-tint)' }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-                    <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="currentColor"/>
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="font-semibold text-base t1 leading-snug">
-                    Turn your test agent into a live receptionist
-                  </h2>
-                  <p className="text-xs t3 mt-1 leading-relaxed">
-                    You&apos;ve tested it. Give it a real number and let it handle calls.
-                  </p>
-                </div>
+              <div className="mb-5 pr-8">
+                <h2 className="font-semibold text-base t1 leading-snug">
+                  Ready to go live?
+                </h2>
+                <p className="text-xs t3 mt-1 leading-relaxed">
+                  Pick a plan. You get a real phone number and everything you set up carries over.
+                </p>
               </div>
 
-              {/* Value bullets */}
-              <div className="space-y-2.5 mb-6">
-                {bullets.map((bullet, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <CheckCircle2
-                      className="w-4 h-4 shrink-0 mt-0.5"
-                      style={{ color: 'var(--color-primary)' }}
-                    />
-                    <span className="text-sm t2 leading-relaxed">{bullet}</span>
-                  </div>
-                ))}
+              {/* Plan picker */}
+              <div className="space-y-2 mb-5">
+                {PLANS.map((p) => {
+                  const isActive = activePlan === p.id
+                  const highlights = PLAN_MODAL_HIGHLIGHTS[p.id] ?? []
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setActivePlan(p.id)}
+                      className={[
+                        'w-full text-left rounded-xl border-2 px-3.5 py-3 transition-all cursor-pointer',
+                        isActive
+                          ? 'border-[var(--color-primary)] bg-[var(--color-accent-tint,rgba(37,99,235,0.07))]'
+                          : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/50',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          {/* Radio dot */}
+                          <div className={[
+                            'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                            isActive
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]'
+                              : 'border-[var(--color-border)]',
+                          ].join(' ')}>
+                            {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                          <span className="text-sm font-semibold t1">{p.name}</span>
+                          {p.isPopular && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--color-primary)] text-white leading-none">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold t1 shrink-0">
+                          ${p.monthly}
+                          <span className="text-[11px] font-normal t3">/mo</span>
+                        </span>
+                      </div>
+
+                      {/* Highlights — only visible when selected */}
+                      <AnimatePresence initial={false}>
+                        {isActive && (
+                          <motion.ul
+                            key="highlights"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className="overflow-hidden mt-2 space-y-1 pl-6"
+                          >
+                            {highlights.map((h) => (
+                              <li key={h} className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-green-400 shrink-0 mt-0.5" />
+                                <span className="text-[11px] t2">{h}</span>
+                              </li>
+                            ))}
+                          </motion.ul>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  )
+                })}
               </div>
 
-              {/* Price line */}
-              <p className="text-xs t3 mb-4 text-center">
-                Core plan · ${PLANS[1].monthly}/mo CAD · cancel anytime
-              </p>
-
-              {/* Primary CTA */}
+              {/* CTA */}
               <button
                 onClick={handleUpgrade}
                 disabled={loading}
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer mb-2"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                {loading ? 'Setting up…' : 'Get Your Phone Number'}
-                {!loading && <ArrowRight className="w-4 h-4" />}
+                {loading
+                  ? 'Setting up…'
+                  : `Continue with ${plan.name} — $${plan.monthly}/mo`}
               </button>
 
-              {/* Secondary dismiss */}
+              {/* Dismiss */}
               <button
                 onClick={handleDismiss}
                 className="w-full py-2.5 rounded-xl text-sm cursor-pointer transition-colors hover:bg-hover t3"
@@ -129,10 +203,9 @@ export default function UpgradeModal() {
                 Keep testing for now
               </button>
 
-              {/* Reassurance */}
               {daysRemaining !== undefined && daysRemaining > 0 && (
                 <p className="text-[11px] text-center t3 mt-3">
-                  You can keep testing for {daysRemaining} more day{daysRemaining !== 1 ? 's' : ''}.
+                  {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left in your trial.
                 </p>
               )}
             </motion.div>

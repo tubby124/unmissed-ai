@@ -23,6 +23,7 @@ interface CapabilitiesCardProps {
   hasPhoneNumber: boolean
   hasIvr: boolean
   hasContextData: boolean
+  selectedPlan?: string | null
 }
 
 type DotType = 'always' | 'search'
@@ -214,6 +215,7 @@ export default function CapabilitiesCard({
   hasPhoneNumber,
   hasIvr,
   hasContextData,
+  selectedPlan,
 }: CapabilitiesCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
 
@@ -409,8 +411,8 @@ export default function CapabilitiesCard({
               key={item.id}
               item={item}
               isTrial={isTrial}
-              onUpgradeClick={() => openUpgradeModal('capability_upgrade', clientId, undefined)}
-              onGoliveLockClick={() => openUpgradeModal('golive_lock', clientId)}
+              onUpgradeClick={() => openUpgradeModal('capability_upgrade', clientId, undefined, selectedPlan)}
+              onGoliveLockClick={() => openUpgradeModal('golive_lock', clientId, undefined, selectedPlan)}
             />
           ))}
         </div>

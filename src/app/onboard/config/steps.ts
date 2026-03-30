@@ -36,6 +36,7 @@ export interface ActivationContext {
   onActivate: (mode: 'trial' | 'paid') => void
   isSubmitting: boolean
   error: string | null
+  canActivate: boolean
 }
 
 export interface StepDef {
@@ -105,7 +106,7 @@ export const STEP_DEFS: StepDef[] = [
   {
     label: 'Launch',
     component: Step6Activate,
-    canAdvance: () => true,
+    canAdvance: (d) => !!d.businessName?.trim() && !!d.contactEmail?.trim() && !!d.callbackPhone?.trim(),
     hideFooterCta: true,
     activationProps: true,
   },

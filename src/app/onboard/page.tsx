@@ -212,6 +212,7 @@ export default function OnboardPage() {
     onActivate: handleActivate,
     isSubmitting,
     error,
+    canActivate: canGoNext,
   };
 
   return (

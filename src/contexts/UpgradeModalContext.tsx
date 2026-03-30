@@ -8,10 +8,11 @@ interface UpgradeModalState {
   source: string
   clientId: string | null
   daysRemaining: number | undefined
+  selectedPlan: string | null
 }
 
 interface UpgradeModalContextValue extends UpgradeModalState {
-  openUpgradeModal: (source: string, clientId?: string | null, daysRemaining?: number) => void
+  openUpgradeModal: (source: string, clientId?: string | null, daysRemaining?: number, selectedPlan?: string | null) => void
   closeUpgradeModal: () => void
 }
 
@@ -23,11 +24,12 @@ export function UpgradeModalProvider({ children }: { children: ReactNode }) {
     source: '',
     clientId: null,
     daysRemaining: undefined,
+    selectedPlan: null,
   })
 
-  function openUpgradeModal(source: string, clientId?: string | null, daysRemaining?: number) {
+  function openUpgradeModal(source: string, clientId?: string | null, daysRemaining?: number, selectedPlan?: string | null) {
     trackEvent('upgrade_modal_opened', { source })
-    setState({ isOpen: true, source, clientId: clientId ?? null, daysRemaining })
+    setState({ isOpen: true, source, clientId: clientId ?? null, daysRemaining, selectedPlan: selectedPlan ?? null })
   }
 
   function closeUpgradeModal() {

@@ -42,6 +42,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
   }
 
+  if (!data.callbackPhone?.trim()) {
+    return NextResponse.json({ error: "Business phone number is required" }, { status: 400 });
+  }
+
   // Email uniqueness: check intake_submissions for existing non-abandoned entries
   const { data: existingIntake } = await supa
     .from('intake_submissions')
@@ -152,6 +156,7 @@ export async function POST(req: NextRequest) {
       email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,
       // Capability flags — must be written at provision time so syncClientTools() picks them up
       booking_enabled: intakePayload.booking_enabled ?? false,
+      sms_enabled: data.callerAutoText !== false,
       // Per-call context injection fields
       timezone: intakePayload.timezone || 'America/Edmonton',
       context_data: intakePayload.context_data || null,

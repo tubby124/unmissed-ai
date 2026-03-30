@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Check, Star } from "lucide-react";
+import { Check, Star, CalendarCheck } from "lucide-react";
 import { OnboardingData } from "@/types/onboarding";
 import { PLANS } from "@/lib/pricing";
 
@@ -34,6 +34,7 @@ const PLAN_HIGHLIGHTS: Record<PlanId, string[]> = {
 
 export default function StepPlan({ data, onUpdate }: Props) {
   const selected = data.selectedPlan as PlanId | null;
+  const hasBookingMode = data.agentMode === 'appointment_booking';
 
   return (
     <div className="space-y-6">
@@ -44,11 +45,22 @@ export default function StepPlan({ data, onUpdate }: Props) {
         </p>
       </div>
 
+      {/* Booking mode nudge — only shown when user picked "Help callers book appointments" */}
+      {hasBookingMode && (
+        <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2.5">
+          <CalendarCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+            You selected <strong>Calendar Booking</strong> mode. This is included in your 7-day trial — after that, it requires <strong>Pro plan</strong> to stay active.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
         {PLANS.map((plan) => {
           const id = plan.id as PlanId;
           const isSelected = selected === id;
           const highlights = PLAN_HIGHLIGHTS[id];
+          const showBookingWarning = hasBookingMode && isSelected && id !== 'pro';
 
           return (
             <motion.button
@@ -59,7 +71,7 @@ export default function StepPlan({ data, onUpdate }: Props) {
               className={`w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer ${
                 isSelected
                   ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30"
-                  : plan.isPopular
+                  : plan.isPopular || (hasBookingMode && id === 'pro')
                   ? "border-indigo-200 dark:border-indigo-800/60 bg-card hover:border-indigo-400"
                   : "border-border bg-card hover:border-muted-foreground/40"
               }`}
@@ -79,9 +91,14 @@ export default function StepPlan({ data, onUpdate }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-foreground">{plan.name}</span>
-                    {plan.isPopular && (
+                    {plan.isPopular && !hasBookingMode && (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white">
                         <Star size={9} fill="currentColor" /> Most Popular
+                      </span>
+                    )}
+                    {hasBookingMode && id === 'pro' && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                        <CalendarCheck size={9} /> Includes booking
                       </span>
                     )}
                     <span className="ml-auto font-bold text-foreground">
@@ -100,6 +117,13 @@ export default function StepPlan({ data, onUpdate }: Props) {
                       </li>
                     ))}
                   </ul>
+
+                  {/* Plan mismatch warning — booking mode selected but this plan doesn't include it */}
+                  {showBookingWarning && (
+                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                      Calendar booking won&apos;t be active after your trial on this plan.
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.button>

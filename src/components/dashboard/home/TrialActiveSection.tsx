@@ -217,6 +217,7 @@ export default function TrialActiveSection({
           hasPhoneNumber={onboarding.hasPhoneNumber}
           hasIvr={data.editableFields.ivrEnabled}
           hasContextData={data.editableFields.hasContextData}
+          selectedPlan={data.selectedPlan}
         />
 
         {/* Teach your agent */}
@@ -241,7 +242,7 @@ export default function TrialActiveSection({
             ))}
           </div>
           <button
-            onClick={() => openUpgradeModal('welcome_upgrade_cta', data.clientId, daysRemaining)}
+            onClick={() => openUpgradeModal('welcome_upgrade_cta', data.clientId, daysRemaining, data.selectedPlan)}
             className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
@@ -331,7 +332,7 @@ export default function TrialActiveSection({
             {data.usage.minutesUsed}m used · {data.usage.totalAvailable}m total
           </span>
           <button
-            onClick={() => openUpgradeModal('home_header_upgrade', data.clientId, daysRemaining)}
+            onClick={() => openUpgradeModal('home_header_upgrade', data.clientId, daysRemaining, data.selectedPlan)}
             className="ml-auto text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity"
             style={{ color: 'var(--color-primary)' }}
           >
@@ -394,7 +395,7 @@ export default function TrialActiveSection({
             </Link>
           ) : (
             <button
-              onClick={() => openUpgradeModal('nba_strip', data.clientId, daysRemaining)}
+              onClick={() => openUpgradeModal('nba_strip', data.clientId, daysRemaining, data.selectedPlan)}
               className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
               style={{ color: 'var(--color-primary)' }}
             >
@@ -457,6 +458,7 @@ export default function TrialActiveSection({
         hasPhoneNumber={onboarding.hasPhoneNumber}
         hasIvr={data.editableFields.ivrEnabled}
         hasContextData={data.editableFields.hasContextData}
+        selectedPlan={data.selectedPlan}
       />
 
       {/* ── 5. Post-call nudge ──────────────────────────────────── */}
