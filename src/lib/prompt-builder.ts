@@ -1,7 +1,7 @@
 import { wrapSection } from '@/lib/prompt-sections'
 import { getCapabilities } from '@/lib/niche-capabilities'
 import { VOICE_PRESETS } from './voice-presets'
-import { MODE_INSTRUCTIONS, getSmsBlock } from './prompt-patcher'
+import { MODE_INSTRUCTIONS, getSmsBlock, getVipBlock } from './prompt-patcher'
 import { type ServiceCatalogItem, parseServiceCatalog, formatServiceCatalog, buildBookingNotesBlock } from './service-catalog'
 
 /**
@@ -748,6 +748,13 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Append SMS follow-up block if sms_enabled — mode-aware so instructions match agent behavior
   if (intake.sms_enabled === true) {
     prompt += '\n\n' + getSmsBlock((intake.agent_mode as string) || null)
+  }
+
+  // Append VIP caller protocol block if a forwarding number is configured
+  // Requires forwarding_number so agents can offer transferCall to VIP callers
+  const forwardingNumber = (intake.forwarding_number as string)?.trim() || (intake.owner_phone as string)?.trim()
+  if (forwardingNumber) {
+    prompt += '\n\n' + getVipBlock()
   }
 
   // B4 — Wrap named sections in markers so clients can edit them via the settings UI.

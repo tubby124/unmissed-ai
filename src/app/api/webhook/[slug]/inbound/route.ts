@@ -173,6 +173,17 @@ export async function POST(
     }
   }
 
+  // ── VIP roster — inject ALL VIP names into callerContext for agent awareness ──
+  let vipRoster: Array<{ name: string; relationship: string | null }> = []
+  const { data: vipRosterData } = await supabase
+    .from('client_vip_contacts')
+    .select('name, relationship')
+    .eq('client_id', client.id)
+    .order('name')
+  if (vipRosterData && vipRosterData.length > 0) {
+    vipRoster = vipRosterData
+  }
+
   // ── SMS opt-out check — prevents agent from verbally promising SMS to opted-out callers ──
   let smsCallerOptedOut = false
   if (client.sms_enabled && callerPhone !== 'unknown') {
@@ -207,7 +218,7 @@ export async function POST(
   // Phase 4: retrieval available — pgvector is the only active backend
   const knowledgeBackend = (client.knowledge_backend as string | null)
   const corpusAvailable = knowledgeBackend === 'pgvector'
-  const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
+  const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable, vipRoster)
 
   if (ctx.caller.isReturningCaller) {
     console.log(

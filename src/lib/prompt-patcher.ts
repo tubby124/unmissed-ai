@@ -459,3 +459,51 @@ export function patchCallHandlingMode(
     prompt.substring(sectionEnd).trimStart()
   ).replace(/\n{3,}/g, '\n\n').trimEnd()
 }
+
+// ── VIP caller protocol patcher ──────────────────────────────────────────────
+
+export const VIP_HEADING = '# VIP CALLER PROTOCOL'
+
+/**
+ * Build the standalone VIP caller protocol block.
+ * Instructs the agent how to handle callers identified as VIPs via callerContext injection.
+ */
+export function getVipBlock(): string {
+  return `# VIP CALLER PROTOCOL
+When callerContext includes a "VIP CONTACTS:" line, these are the owner's priority contacts.
+When callerContext includes a "VIP CALLER:" line, the current caller is one of these priority contacts.
+
+For VIP callers:
+1. Greet them warmly by first name immediately: "Hi [Name]! Great to hear from you."
+2. Treat their request as highest priority — do not make them wait or repeat information.
+3. If "Transfer: enabled" appears in the VIP CALLER line, offer to connect them to the owner directly. Use transferCall if available.
+4. If the transfer is unavailable or they prefer a callback, call pageOwner to send an urgent alert SMS to the owner.
+5. Never treat a VIP like a cold caller. Reference their relationship naturally if helpful.
+6. If pageOwner is not available (not a Pro plan feature), take a thorough message and promise the owner will be personally notified.`
+}
+
+/**
+ * Patch a system prompt to add or remove the VIP CALLER PROTOCOL block.
+ * Idempotent: calling twice with the same args produces no change.
+ * Returns the patched prompt, or the original if no change needed.
+ */
+export function patchVipSection(prompt: string, enabled: boolean): string {
+  const hasSection = prompt.includes(VIP_HEADING)
+
+  if (enabled && !hasSection) {
+    return prompt.trimEnd() + '\n\n' + getVipBlock()
+  }
+
+  if (!enabled && hasSection) {
+    const startIdx = prompt.indexOf(VIP_HEADING)
+    const afterStart = prompt.indexOf('\n#', startIdx + VIP_HEADING.length)
+    if (afterStart === -1) {
+      return prompt.substring(0, startIdx).trimEnd()
+    }
+    return (prompt.substring(0, startIdx) + prompt.substring(afterStart))
+      .replace(/\n{3,}/g, '\n\n')
+      .trimEnd()
+  }
+
+  return prompt
+}

@@ -19,6 +19,7 @@ import {
   patchBusinessName,
   patchServicesOffered,
   patchCallHandlingMode,
+  patchVipSection,
   getServiceType,
   getClosePerson,
 } from './prompt-patcher'
@@ -49,6 +50,7 @@ interface PatcherContext {
   currentCallHandlingMode: string | null
   currentAgentMode: string | null
   currentSmsEnabled: boolean
+  currentForwardingNumber: string | null
 }
 
 /**
@@ -58,6 +60,7 @@ interface PatcherContext {
 const PATCH_TRIGGER_FIELDS = [
   'section_id', 'booking_enabled', 'sms_enabled', 'voice_style_preset',
   'agent_name', 'business_name', 'services_offered', 'call_handling_mode', 'agent_mode',
+  'forwarding_number',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {
@@ -77,7 +80,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled')
+    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number')
     .eq('id', clientId)
     .single()
 
@@ -93,6 +96,7 @@ async function fetchPatcherContext(
     currentCallHandlingMode: (data?.call_handling_mode as string) ?? null,
     currentAgentMode: (data?.agent_mode as string) ?? null,
     currentSmsEnabled: (data?.sms_enabled as boolean) ?? false,
+    currentForwardingNumber: (data?.forwarding_number as string | null) ?? null,
   }
 }
 
@@ -245,6 +249,20 @@ export async function applyPromptPatches(
       if (err) return { warnings, error: err }
       prompt = patched
       console.log(`[settings] Calendar block ${body.booking_enabled ? 'added to' : 'removed from'} prompt for client=${clientId}`)
+    }
+  }
+
+  if ('forwarding_number' in body) {
+    // Resolve effective forwarding number: body value (may be null to clear) or current DB value
+    const effectiveForwardingNumber = body.forwarding_number !== undefined
+      ? body.forwarding_number
+      : ctx.currentForwardingNumber
+    const patched = patchVipSection(prompt, !!effectiveForwardingNumber)
+    if (patched !== prompt) {
+      const err = applyPatch(patched, prompt, updates, warnings)
+      if (err) return { warnings, error: err }
+      prompt = patched
+      console.log(`[settings] VIP section ${effectiveForwardingNumber ? 'added to' : 'removed from'} prompt for client=${clientId}`)
     }
   }
 

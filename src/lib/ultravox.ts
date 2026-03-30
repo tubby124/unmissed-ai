@@ -530,6 +530,12 @@ export function buildPageOwnerTool(slug: string): UltravoxTool {
           required: true,
         },
         {
+          name: 'vipPhone',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "The VIP caller's phone number from CALLER PHONE in callerContext (E.164 format)" },
+          required: false,
+        },
+        {
           name: 'message',
           location: 'PARAMETER_LOCATION_BODY',
           schema: { type: 'string', description: 'Optional extra context for the owner (e.g. what the caller wanted)' },

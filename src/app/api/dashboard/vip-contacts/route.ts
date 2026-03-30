@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'client_id, name, and phone are required' }, { status: 400 })
   }
 
-  // E.164 NANP validation
-  if (!/^\+1[2-9]\d{9}$/.test(phone)) {
-    return NextResponse.json({ error: 'Phone must be E.164 format (+1XXXXXXXXXX)' }, { status: 400 })
+  // E.164 validation (international)
+  if (!/^\+\d{7,15}$/.test(phone)) {
+    return NextResponse.json({ error: 'Phone must be E.164 format (e.g. +14035551234)' }, { status: 400 })
   }
 
   // Verify user belongs to this client

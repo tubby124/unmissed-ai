@@ -15,8 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  if (body.phone !== undefined && !/^\+1[2-9]\d{9}$/.test(body.phone)) {
-    return NextResponse.json({ error: 'Phone must be E.164 format (+1XXXXXXXXXX)' }, { status: 400 })
+  if (body.phone !== undefined && !/^\+\d{7,15}$/.test(body.phone)) {
+    return NextResponse.json({ error: 'Phone must be E.164 format (e.g. +14035551234)' }, { status: 400 })
   }
 
   // Verify user owns the contact's client (RLS also enforces, but belt-and-suspenders)

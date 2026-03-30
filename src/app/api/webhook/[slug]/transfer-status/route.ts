@@ -155,6 +155,24 @@ export async function POST(
       priorCallRows = (priorData ?? []) as PriorCall[]
     }
 
+    // VIP lookup — restore VIP context lost when Ultravox call was replaced
+    let vipLine = ''
+    if (callerPhone !== 'unknown') {
+      const { data: vipRow } = await supabase
+        .from('client_vip_contacts')
+        .select('name, relationship, notes, transfer_enabled')
+        .eq('client_id', client.id)
+        .eq('phone', callerPhone)
+        .maybeSingle()
+      if (vipRow) {
+        const parts = [`VIP CALLER: ${vipRow.name}`]
+        if (vipRow.relationship) parts.push(`Relationship: ${vipRow.relationship}`)
+        if (vipRow.notes) parts.push(`Notes: ${vipRow.notes}`)
+        if (vipRow.transfer_enabled) parts.push('Transfer: enabled')
+        vipLine = parts.join(' | ')
+      }
+    }
+
     const clientRow: ClientRow = {
       id: client.id,
       slug,
@@ -196,8 +214,8 @@ export async function POST(
     // Include transfer failure context so the agent knows to offer "take a message"
     const transferFailureNote = `TRANSFER FAILED: The caller was being transferred to the business owner but they did not answer (${dialStatus}). Resume the conversation naturally — say something like "Hey, looks like they're tied up right now. Would you like to leave a message and I'll make sure they get it?" Do NOT re-attempt the transfer.`
     const callerContextWithFailure = callerContextRaw
-      ? `${callerContextRaw}\n${transferFailureNote}`
-      : transferFailureNote
+      ? `${callerContextRaw}${vipLine ? `\n${vipLine}` : ''}\n${transferFailureNote}`
+      : `${vipLine ? `${vipLine}\n` : ''}${transferFailureNote}`
 
     const callMeta = {
       caller_phone: callerPhone,

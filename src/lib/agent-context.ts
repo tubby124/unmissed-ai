@@ -215,6 +215,8 @@ export function buildAfterHoursBehaviorNote(
  * @param callerPhone - E.164 phone or 'unknown' (from Twilio body.From)
  * @param priorCalls  - Prior call_logs rows for this caller+client (default [])
  * @param now         - Current time (default: new Date())
+ * @param corpusAvailable - Whether pgvector corpus is available (default false)
+ * @param vipContacts - Full VIP roster for the client — injected as VIP CONTACTS line (default [])
  */
 export function buildAgentContext(
   client: ClientRow,
@@ -222,6 +224,7 @@ export function buildAgentContext(
   priorCalls: PriorCall[] = [],
   now: Date = new Date(),
   corpusAvailable: boolean = false,
+  vipContacts: Array<{ name: string; relationship: string | null }> = [],
 ): AgentContext {
   // ── Business config ──────────────────────────────────────────────────────
   const niche = (client.niche as string | null) || 'other'
@@ -328,6 +331,14 @@ export function buildAgentContext(
   const injectedNote = (client.injected_note as string | null)?.trim()
   if (injectedNote) {
     callerContextStr += `\nRIGHT NOW: ${injectedNote}`
+  }
+
+  // VIP roster — all VIP contacts for this client injected for agent awareness
+  if (vipContacts.length > 0) {
+    const rosterStr = vipContacts
+      .map((c) => (c.relationship ? `${c.name} (${c.relationship})` : c.name))
+      .join(', ')
+    callerContextStr += `\nVIP CONTACTS: ${rosterStr}`
   }
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')

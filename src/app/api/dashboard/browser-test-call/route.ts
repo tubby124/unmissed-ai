@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   }
   const knowledgeBackend = (client?.knowledge_backend as string | null)
   const corpusAvailable = knowledgeBackend === 'pgvector'
-  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
+  const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable, [])
 
   // Strip brackets from callerContextBlock — production inbound does the same for Agents API
   const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)

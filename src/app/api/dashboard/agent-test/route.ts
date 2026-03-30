@@ -97,7 +97,14 @@ export async function POST(req: NextRequest) {
     .limit(5)
   const priorCalls = (priorData ?? []) as PriorCall[]
 
-  const ctx = buildAgentContext(clientRow, '+15555550100', priorCalls, new Date(), corpusAvailable)
+  const { data: vipRosterData } = await svc
+    .from('client_vip_contacts')
+    .select('name, relationship')
+    .eq('client_id', targetClientId)
+    .order('name')
+  const vipRoster = (vipRosterData ?? []) as Array<{ name: string; relationship: string | null }>
+
+  const ctx = buildAgentContext(clientRow, '+15555550100', priorCalls, new Date(), corpusAvailable, vipRoster)
 
   const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
   let knowledgeBlockStr = ctx.knowledge.block

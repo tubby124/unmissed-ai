@@ -23,10 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  let vipName: string, message: string | undefined, call_id: string | undefined
+  let vipName: string, vipPhone: string | undefined, message: string | undefined, call_id: string | undefined
   try {
     const body = await req.json()
     vipName = body.vipName
+    vipPhone = body.vipPhone
     message = body.message
     call_id = body.call_id
   } catch {
@@ -58,9 +59,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const ownerPhone = client.forwarding_number
   const fromPhone = client.twilio_number
 
+  const phoneStr = vipPhone ? ` (${vipPhone})` : ''
   const smsBody = message
-    ? `📲 ${vipName} tried to reach you just now — give them a call back. Note: ${message}`
-    : `📲 ${vipName} tried to reach you just now — give them a call back.`
+    ? `📲 ${vipName}${phoneStr} tried to reach you just now — give them a call back. Note: ${message}`
+    : `📲 ${vipName}${phoneStr} tried to reach you just now — give them a call back.`
 
   // Resolve call_logs row id for linking
   let relatedCallId: string | null = null
