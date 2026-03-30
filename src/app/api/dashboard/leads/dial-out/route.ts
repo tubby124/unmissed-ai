@@ -163,21 +163,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Twilio dial failed: ${String(err)}` }, { status: 500 })
   }
 
-  // Fire-and-forget: update lead status + insert call_log
   const svc = createServiceClient()
   const now = new Date().toISOString()
 
   // Update status + increment call_count in one SQL expression
-  svc.rpc('dial_out_update_lead', { p_lead_id: lead.id, p_now: now })
-    .then(({ error }) => { if (error) console.error(`[dial-out] lead update failed: ${error.message}`) })
+  const { error: leadErr } = await svc.rpc('dial_out_update_lead', { p_lead_id: lead.id, p_now: now })
+  if (leadErr) console.error(`[dial-out] lead update failed: ${leadErr.message}`)
 
-  svc.from('call_logs').insert({
+  const { error: logErr } = await svc.from('call_logs').insert({
     ultravox_call_id: ultravoxCall.callId,
     client_id: clientId,
     caller_phone: toPhone,
     call_status: 'live',
     started_at: now,
-  }).then(({ error }) => { if (error) console.error(`[dial-out] call_logs insert failed: ${error.message}`) })
+  })
+  if (logErr) console.error(`[dial-out] call_logs insert failed: ${logErr.message}`)
 
   return NextResponse.json({ ok: true, callId: ultravoxCall.callId, twilio_sid })
 }
