@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { formatPhone } from '@/lib/format-phone'
+import { createBrowserClient } from '@/lib/supabase/client'
+import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import { useSearchParams } from 'next/navigation'
 import { parseDashboardTab, type DashboardTab } from '@/lib/dashboard-routes'
 import { useCallContext } from '@/contexts/CallContext'
@@ -187,6 +189,7 @@ export default function ClientHome() {
   const [fetchError, setFetchError] = useState(false)
   const [welcomeDismissed, setWelcomeDismissed] = useState(true)
   const [postCallDismissed, setPostCallDismissed] = useState(false)
+  const [liveCalls, setLiveCalls] = useState<{ id: string; ultravox_call_id: string; caller_phone: string | null; started_at: string; business_name?: string | null; transfer_status?: string | null }[]>([])
   const hasTrackedCallEnd = useRef(false)
   const hasAutoOpenedUpgrade = useRef(false)
   const searchParams = useSearchParams()
@@ -249,6 +252,54 @@ export default function ClientHome() {
   }, [adminClientId])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Sync liveCalls from initial home data load
+  useEffect(() => {
+    if (!data) return
+    setLiveCalls(data.recentCalls.filter(c => c.call_status === 'live').map(c => ({
+      id: c.id,
+      ultravox_call_id: c.ultravox_call_id,
+      caller_phone: c.caller_phone,
+      started_at: c.started_at,
+      business_name: null,
+      transfer_status: null,
+    })))
+  }, [data])
+
+  // Realtime subscription — live calls for this client appear/disappear instantly
+  useEffect(() => {
+    if (!data?.clientId) return
+    const clientId = data.clientId
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel(`live-calls-${clientId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'call_logs',
+        filter: `client_id=eq.${clientId}`,
+      }, () => {
+        // Re-fetch live calls when any call_log changes for this client
+        supabase
+          .from('call_logs')
+          .select('id, ultravox_call_id, caller_phone, started_at, transfer_status')
+          .eq('client_id', clientId)
+          .eq('call_status', 'live')
+          .order('started_at', { ascending: false })
+          .then(({ data: rows }) => {
+            setLiveCalls((rows ?? []).map(r => ({
+              id: r.id,
+              ultravox_call_id: r.ultravox_call_id,
+              caller_phone: r.caller_phone,
+              started_at: r.started_at,
+              business_name: null,
+              transfer_status: r.transfer_status ?? null,
+            })))
+          })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [data?.clientId])
 
   if (loading) {
     return (
@@ -316,6 +367,9 @@ export default function ClientHome() {
   return (
     <>
       <div className="p-3 sm:p-6 space-y-4">
+
+        {/* ── Live call banner — realtime, appears when a call is active ── */}
+        <LiveCallBanner calls={liveCalls} />
 
         {/* ── Upgrade success banner ─────────────────────────────── */}
         {justUpgraded && (

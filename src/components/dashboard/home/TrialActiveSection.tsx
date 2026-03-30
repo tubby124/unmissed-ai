@@ -17,6 +17,9 @@ import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
 import KnowledgeInlineTile from './KnowledgeInlineTile'
+import UnansweredQuestionsTile from './UnansweredQuestionsTile'
+import IvrVoicemailTile from './IvrVoicemailTile'
+import PostCallActionsTile from './PostCallActionsTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -475,6 +478,34 @@ export default function TrialActiveSection({
 
       {/* ── 4c. Knowledge inline tile ──────────────────────────────── */}
       <KnowledgeInlineTile knowledgeStats={data.knowledge} />
+
+      {/* ── 4d. Unanswered questions tile ─────────────────────────── */}
+      {data.clientId && (
+        <UnansweredQuestionsTile clientId={data.clientId} />
+      )}
+
+      {/* ── 4e+4f. 2-col bento: IVR+Voicemail + Post-Call SMS ──────── */}
+      {data.clientId && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <IvrVoicemailTile
+            clientId={data.clientId}
+            isAdmin={false}
+            ivrEnabled={data.editableFields.ivrEnabled}
+            ivrPrompt={data.editableFields.ivrPrompt}
+            voicemailGreetingText={data.editableFields.voicemailGreetingText}
+            businessName={onboarding.businessName}
+            agentName={agent.name}
+          />
+          <PostCallActionsTile
+            clientId={data.clientId}
+            isAdmin={false}
+            smsEnabled={data.editableFields.smsEnabled}
+            smsTemplate={data.editableFields.smsTemplate}
+            hasSms={capabilities.hasSms}
+            agentName={agent.name}
+          />
+        </div>
+      )}
 
       {/* ── 5. Post-call nudge ──────────────────────────────────── */}
       {callState === 'ended' && !postCallDismissed && data.clientId && (

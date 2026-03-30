@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { motion } from 'motion/react'
 import { Star, Phone, Clock, TrendingUp, X, Plus, ChevronDown } from 'lucide-react'
 import {
@@ -390,6 +391,25 @@ function ContactDialog({
         <div>
           <p className="text-[11px] font-semibold t1 mb-2">Call History</p>
           <CallHistory phone={contact.phone} clientId={clientId} />
+        </div>
+
+        {/* VIP settings link */}
+        <div className="pt-1 border-t b-theme">
+          {contact.is_vip ? (
+            <Link
+              href="/dashboard/settings?tab=general#vip"
+              className="text-[11px] font-medium text-green-500 hover:text-green-400 transition-colors"
+            >
+              VIP Contact ✓ — manage in settings
+            </Link>
+          ) : (
+            <Link
+              href={`/dashboard/settings?tab=general&vip_phone=${encodeURIComponent(contact.phone)}`}
+              className="text-[11px] t3 hover:t2 transition-colors"
+            >
+              + Add as VIP →
+            </Link>
+          )}
         </div>
       </DialogContent>
     </Dialog>
