@@ -15,6 +15,7 @@ import NotificationsTile from './NotificationsTile'
 import TeachAgentCard from './TeachAgentCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
+import BookingCalendarTile from './BookingCalendarTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -460,6 +461,9 @@ export default function TrialActiveSection({
         hasContextData={data.editableFields.hasContextData}
         selectedPlan={data.selectedPlan}
       />
+
+      {/* ── 4b. BookingCalendarTile (bento) ─────────────────────── */}
+      <BookingCalendarTile hasBooking={capabilities.hasBooking} />
 
       {/* ── 5. Post-call nudge ──────────────────────────────────── */}
       {callState === 'ended' && !postCallDismissed && data.clientId && (
