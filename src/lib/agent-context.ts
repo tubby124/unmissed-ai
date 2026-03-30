@@ -33,7 +33,7 @@ export type ClientRow = {
   business_hours_weekend?: string | null
   after_hours_behavior?: string | null
   after_hours_emergency_phone?: string | null
-  business_facts?: string | null
+  business_facts?: string | string[] | null
   extra_qa?: { q: string; a: string }[] | null
   context_data?: string | null
   context_data_label?: string | null
