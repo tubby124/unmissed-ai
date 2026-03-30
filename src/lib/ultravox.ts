@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { stripPromptMarkers } from '@/lib/prompt-sections'
 import { getNicheVoice } from '@/lib/niche-config'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
-import { APP_URL } from '@/lib/app-url'
+import { AGENT_WEBHOOK_BASE } from '@/lib/app-url'
 import { BRAND_NAME } from '@/lib/brand'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
@@ -287,7 +287,7 @@ interface UltravoxTool {
 }
 
 function buildBookingTransitionTool(slug: string): UltravoxTool {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return {
     temporaryTool: {
@@ -332,7 +332,7 @@ function buildBookingTransitionTool(slug: string): UltravoxTool {
  * (prevents re-triggering the stage transition in a loop).
  */
 export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
 
   return [
@@ -447,7 +447,7 @@ interface AgentConfig {
  * NOT using Ultravox built-in coldTransfer — SIP INVITE doesn't work over Twilio's WebSocket Stream.
  */
 export function buildTransferTools(slug: string, transferConditions?: string | null): UltravoxTool[] {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   const description = transferConditions
     ? `Transfer the call to the owner ONLY when ${transferConditions}. Do not use for routine questions, general inquiries, or minor requests.`
@@ -491,7 +491,7 @@ export function buildTransferTools(slug: string, transferConditions?: string | n
  * Flow: Ultravox → POST /api/webhook/{slug}/sms → Twilio sendSms → caller receives text.
  */
 export function buildSmsTools(slug: string): UltravoxTool[] {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [{
     temporaryTool: {
@@ -538,7 +538,7 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
  * Gated on forwarding_number (same gate as transferCall — Pro plan).
  */
 export function buildPageOwnerTool(slug: string): UltravoxTool {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return {
     temporaryTool: {
@@ -586,7 +586,7 @@ export function buildPageOwnerTool(slug: string): UltravoxTool {
  * Only injected when knowledge_backend='pgvector' on the client.
  */
 export function buildKnowledgeTools(slug: string): UltravoxTool[] {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return [{
     temporaryTool: {
@@ -990,7 +990,7 @@ export async function listDurableTools() {
 
 /** Build the checkForCoaching temporaryTool for live coaching during calls. */
 export function buildCoachingTool(slug: string): object {
-  const appUrl = APP_URL
+  const appUrl = AGENT_WEBHOOK_BASE
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   return {
     temporaryTool: {

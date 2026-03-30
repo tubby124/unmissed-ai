@@ -23,7 +23,6 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   const modeConfig = getAgentMode(mode)
 
   // Count knowledge items
-  const faqCount = (data.faqPairs || []).filter(p => p.question?.trim() && p.answer?.trim()).length
   const scrapeResult = data.websiteScrapeResult
   const scrapedFactCount = scrapeResult
     ? scrapeResult.businessFacts.filter((_: string, i: number) => scrapeResult.approvedFacts?.[i] !== false).length
@@ -31,9 +30,20 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   const scrapedQaCount = scrapeResult
     ? scrapeResult.extraQa.filter((_: { q: string; a: string }, i: number) => scrapeResult.approvedQa?.[i] !== false).length
     : 0
+  const gbpFactCount = data.gbpDescription ? 1 : 0
+  const nicheContextCount = Object.values(data.nicheAnswers || {}).filter(v => {
+    if (!v) return false
+    if (Array.isArray(v)) return (v as string[]).length > 0
+    if (typeof v === 'boolean') return v
+    return String(v).trim().length > 0
+  }).length
+  // Non-Q&A factual knowledge (scraped facts + GBP description + niche-specific context)
+  const factsCount = scrapedFactCount + gbpFactCount + nicheContextCount
+  // All Q&A pairs (manual FAQs + scraped Q&A)
+  const qaCount = (data.faqPairs || []).filter(p => p.question?.trim() && p.answer?.trim()).length + scrapedQaCount
   const hasHours = !!(data.businessHoursText?.trim())
   const hasWebsite = !!(data.websiteUrl?.trim())
-  const totalKnowledge = faqCount + scrapedFactCount + scrapedQaCount
+  const totalKnowledge = factsCount + qaCount
 
   // Calendar booking is active when mode is full_service OR agent picked the booking mode
   const bookingActive = mode === 'full_service' || data.agentMode === 'appointment_booking'
@@ -65,12 +75,12 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
       {/* Knowledge counts */}
       <div className="grid grid-cols-3 gap-2">
         <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-bold text-foreground">{totalKnowledge}</p>
-          <p className="text-[10px] t3">{totalKnowledge === 1 ? 'fact' : 'facts'}</p>
+          <p className="text-lg font-bold text-foreground">{factsCount}</p>
+          <p className="text-[10px] t3">{factsCount === 1 ? 'fact' : 'facts'}</p>
         </div>
         <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-bold text-foreground">{faqCount}</p>
-          <p className="text-[10px] t3">{faqCount === 1 ? 'FAQ' : 'FAQs'}</p>
+          <p className="text-lg font-bold text-foreground">{qaCount}</p>
+          <p className="text-[10px] t3">{qaCount === 1 ? 'Q&A' : 'Q&As'}</p>
         </div>
         <div className="text-center p-2 rounded-lg bg-muted/50">
           <p className="text-lg font-bold text-foreground">{hasHours ? 'Set' : '--'}</p>

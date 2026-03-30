@@ -152,7 +152,7 @@ export default function OnboardPage() {
           if (res.status === 422 && Array.isArray(json.errors) && json.errors.length > 0) {
             throw new Error(`Setup failed: ${json.errors.join(" · ")}`);
           }
-          throw new Error(json.error || "Trial signup failed");
+          throw new Error(json.detail || json.error || "Trial signup failed");
         }
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
 

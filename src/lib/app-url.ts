@@ -11,6 +11,13 @@ export const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
 ).replace(/\/$/, '')
 
+// Used for Ultravox agent tool baseUrlPattern values — must be a publicly reachable https URL.
+// Falls back to the Railway URL so that creating agents locally still registers working webhooks.
+// Set AGENT_WEBHOOK_BASE on Railway if the primary hostname ever changes (domain migration).
+export const AGENT_WEBHOOK_BASE = (
+  process.env.AGENT_WEBHOOK_BASE || 'https://unmissed-ai-production.up.railway.app'
+).replace(/\/$/, '')
+
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || 'https://unmissed.ai'
 ).replace(/\/$/, '')
