@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-async function requireAdmin() {
+async function getAuth() {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { supabase, user: null, isAdmin: false }
+  if (!user) return { supabase, user: null, isAdmin: false, ownerClientId: null as string | null }
   const { data: cu } = await supabase
     .from('client_users')
-    .select('role')
+    .select('role, client_id')
     .eq('user_id', user.id)
     .order('role').limit(1).maybeSingle()
-  return { supabase, user, isAdmin: cu?.role === 'admin' }
+  const isAdmin = cu?.role === 'admin'
+  const ownerClientId = !isAdmin ? (cu?.client_id ?? null) : null
+  return { supabase, user, isAdmin, ownerClientId }
+}
+
+// Keep old name for routes that require admin
+async function requireAdmin() {
+  const auth = await getAuth()
+  return auth
 }
 
 export async function GET(req: NextRequest) {
@@ -35,13 +43,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { supabase, isAdmin } = await requireAdmin()
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { supabase, user, isAdmin, ownerClientId } = await getAuth()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { phone, name, client_id, notes } = body
+  const { phone, name, notes } = body
+  let { client_id } = body
 
   if (!phone) return NextResponse.json({ error: 'phone is required' }, { status: 400 })
+
+  // Non-admin owners can only add leads for their own client
+  if (!isAdmin) {
+    if (!ownerClientId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    client_id = ownerClientId
+  }
 
   const { data, error } = await supabase
     .from('campaign_leads')

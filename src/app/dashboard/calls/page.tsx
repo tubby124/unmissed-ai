@@ -4,6 +4,7 @@ import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import CallsList from '@/components/dashboard/CallsList'
 import OperatorActivity from '@/components/dashboard/OperatorActivity'
 import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
+import CallsPageTabs from '@/components/dashboard/CallsPageTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,9 +129,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     }
   }
 
-  return (
-    <div className="p-3 sm:p-6 space-y-6">
-      <OperatorActivity clientId={clientId} />
+  const callLogSection = (
+    <>
       <CallsList
         initialCalls={allCalls}
         phone={clientPhone}
@@ -146,6 +146,17 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       />
       {clientId && (
         <LearningLoopCard clientId={clientId} isAdmin={isAdmin} />
+      )}
+    </>
+  )
+
+  return (
+    <div className="p-3 sm:p-6 space-y-6">
+      <OperatorActivity clientId={clientId} />
+      {clientId ? (
+        <CallsPageTabs clientId={clientId} callLogSection={callLogSection} />
+      ) : (
+        callLogSection
       )}
     </div>
   )

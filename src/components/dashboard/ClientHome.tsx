@@ -105,6 +105,10 @@ export interface HomeData {
     businessFacts: string | null
     injectedNote: string | null
     ivrEnabled: boolean
+    ivrPrompt: string | null
+    voicemailGreetingText: string | null
+    smsEnabled: boolean
+    smsTemplate: string | null
     hasContextData: boolean
   }
   // New fields added in Phase 1

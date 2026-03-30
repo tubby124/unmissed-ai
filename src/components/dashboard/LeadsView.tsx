@@ -1,10 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
+import { PhoneOutgoing, ExternalLink } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { slaTag } from '@/lib/utils/sla'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type FollowUpStatus = 'contacted' | 'booked' | 'dead' | null
 
@@ -30,6 +42,12 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'WARM', label: 'WARM' },
 ]
 
+const FOLLOW_UP_OPTIONS: { status: FollowUpStatus; label: string; cls: string }[] = [
+  { status: 'contacted', label: 'Contacted', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+  { status: 'booked', label: 'Booked', cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
+  { status: 'dead', label: 'Dead', cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' },
+]
+
 function timeAgo(iso: string | null): string {
   if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
@@ -43,17 +61,17 @@ function timeAgo(iso: string | null): string {
 }
 
 function exportLeadsCsv(calls: CallLog[]) {
-  const headers = ['Date', 'Phone', 'Name', 'Summary', 'Topics', 'Status', 'Age (hours)']
+  const headers = ['Date', 'Phone', 'Summary', 'Topics', 'Status', 'Follow-up', 'Age (hours)']
   const rows = calls.map(c => {
     const ts = c.started_at ?? c.created_at
     const age = Math.floor((Date.now() - new Date(ts).getTime()) / 3600000)
     return [
       new Date(ts).toISOString(),
       c.caller_phone ?? '',
-      '—',
       (c.ai_summary ?? '').replace(/"/g, '""'),
       (c.key_topics ?? []).join('; '),
       c.call_status ?? '',
+      c.follow_up_status ?? '',
       String(age),
     ]
   })
@@ -74,17 +92,15 @@ interface LeadsViewProps {
   clientId: string
 }
 
-const FOLLOW_UP_OPTIONS: { status: FollowUpStatus; label: string; cls: string }[] = [
-  { status: 'contacted', label: 'Contacted', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
-  { status: 'booked', label: 'Booked', cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
-  { status: 'dead', label: 'Dead', cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' },
-]
-
 export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [filter, setFilter] = useState<Filter>('all')
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [detailCall, setDetailCall] = useState<CallLog | null>(null)
   const [savingFollowUp, setSavingFollowUp] = useState<string | null>(null)
+  const [addingToQueue, setAddingToQueue] = useState<Set<string>>(new Set())
+  const [queuedIds, setQueuedIds] = useState<Set<string>>(new Set())
+  const [isPending, startTransition] = useTransition()
   const supabase = createBrowserClient()
 
   async function updateFollowUp(callId: string, status: FollowUpStatus) {
@@ -97,11 +113,39 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
         body: JSON.stringify({ callLogId: callId, status }),
       })
       if (res.ok) {
-        setCalls(prev => prev.map(c => c.id === callId ? { ...c, follow_up_status: status } : c))
+        const newStatus = status
+        setCalls(prev => prev.map(c => c.id === callId ? { ...c, follow_up_status: newStatus } : c))
+        setDetailCall(prev => prev?.id === callId ? { ...prev, follow_up_status: newStatus } : prev)
       }
     } finally {
       setSavingFollowUp(null)
     }
+  }
+
+  async function addToQueue(call: CallLog) {
+    if (!call.caller_phone) return
+    setAddingToQueue(prev => new Set(prev).add(call.id))
+    try {
+      const res = await fetch('/api/dashboard/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: call.caller_phone,
+          notes: call.ai_summary ? call.ai_summary.slice(0, 200) : null,
+        }),
+      })
+      if (res.ok) {
+        setQueuedIds(prev => new Set(prev).add(call.id))
+      }
+    } finally {
+      setAddingToQueue(prev => { const s = new Set(prev); s.delete(call.id); return s })
+    }
+  }
+
+  async function bulkAddToQueue() {
+    const toAdd = filtered.filter(c => selected.has(c.id) && c.caller_phone && !queuedIds.has(c.id))
+    await Promise.all(toAdd.map(c => addToQueue(c)))
+    setSelected(new Set())
   }
 
   // Realtime subscription
@@ -125,7 +169,6 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
           if (existing) {
             return prev.map(c => c.id === row.id ? { ...c, ...row } : c)
           }
-          // Was not HOT/WARM before, now is — insert
           if (['HOT', 'WARM'].includes(row.call_status ?? '')) {
             return [row, ...prev]
           }
@@ -133,7 +176,6 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
         })
       })
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -148,8 +190,113 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
     WARM: calls.filter(c => c.call_status === 'WARM').length,
   }
 
+  const allSelected = filtered.length > 0 && filtered.every(c => selected.has(c.id))
+  const someSelected = filtered.some(c => selected.has(c.id))
+  const selectedCount = filtered.filter(c => selected.has(c.id)).length
+
+  function toggleAll() {
+    if (allSelected) {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(c => s.delete(c.id)); return s })
+    } else {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(c => s.add(c.id)); return s })
+    }
+  }
+
+  function toggleRow(id: string) {
+    setSelected(prev => {
+      const s = new Set(prev)
+      if (s.has(id)) s.delete(id); else s.add(id)
+      return s
+    })
+  }
+
   return (
     <div className="space-y-4">
+      {/* Contact Detail Dialog */}
+      <Dialog open={!!detailCall} onOpenChange={open => { if (!open) setDetailCall(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{detailCall?.caller_phone ?? 'Unknown'}</DialogTitle>
+            <DialogDescription>
+              <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border mr-2 ${
+                detailCall?.call_status === 'HOT'
+                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+              }`}>
+                {detailCall?.call_status}
+              </span>
+              {timeAgo(detailCall?.started_at ?? null)}
+            </DialogDescription>
+          </DialogHeader>
+          {detailCall && (
+            <div className="space-y-4 text-sm mt-1">
+              {detailCall.ai_summary && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>Summary</p>
+                  <p className="text-xs italic leading-relaxed" style={{ color: 'var(--color-text-2)' }}>{detailCall.ai_summary}</p>
+                </div>
+              )}
+              {detailCall.next_steps && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>Next Steps</p>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>{detailCall.next_steps}</p>
+                </div>
+              )}
+              {(detailCall.key_topics ?? []).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--color-text-3)' }}>Topics</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(detailCall.key_topics ?? []).map(t => (
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--color-text-3)' }}>Follow-up</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {FOLLOW_UP_OPTIONS.map(opt => (
+                    <button
+                      key={opt.status}
+                      onClick={() => updateFollowUp(detailCall.id, detailCall.follow_up_status === opt.status ? null : opt.status)}
+                      disabled={savingFollowUp === detailCall.id}
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer disabled:opacity-40 ${
+                        detailCall.follow_up_status === opt.status
+                          ? opt.cls
+                          : 'border-[var(--color-border)] text-[var(--color-text-3)] hover:border-current'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            {detailCall?.caller_phone && (
+              <Button
+                variant="outline"
+                onClick={() => addToQueue(detailCall)}
+                disabled={addingToQueue.has(detailCall.id) || queuedIds.has(detailCall.id)}
+              >
+                <PhoneOutgoing className="h-3.5 w-3.5 mr-1.5" />
+                {queuedIds.has(detailCall.id) ? 'In Queue' : addingToQueue.has(detailCall.id) ? 'Adding…' : 'Add to Queue'}
+              </Button>
+            )}
+            <Link href={`/dashboard/calls/${detailCall?.ultravox_call_id}`}>
+              <Button variant="ghost">
+                View Call
+                <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -159,16 +306,14 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span
-            className="text-[11px] font-mono px-2 py-0.5 rounded-full border"
-            style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-          >
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full border"
+            style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
             {filtered.length}
           </span>
           {filtered.length > 0 && (
             <button
               onClick={() => exportLeadsCsv(filtered)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold hover:bg-[var(--color-hover)] transition-all"
               style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -180,14 +325,14 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
         </div>
       </div>
 
-      {/* Filter pills + list container */}
+      {/* Table container */}
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-        {/* Filter pills */}
+        {/* Filter tabs */}
         <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
           {FILTERS.map(f => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => { setFilter(f.value); setSelected(new Set()) }}
               style={{ touchAction: 'manipulation' }}
               className="relative flex-1 min-h-[44px] px-4 py-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
             >
@@ -199,8 +344,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                 />
               )}
               <span className={`relative flex items-center justify-center gap-1.5 ${filter === f.value ? 'text-blue-400' : ''}`}
-                style={filter === f.value ? undefined : { color: 'var(--color-text-3)' }}
-              >
+                style={filter === f.value ? undefined : { color: 'var(--color-text-3)' }}>
                 {f.label}
                 {counts[f.value] > 0 && (
                   <span className={`text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
@@ -217,7 +361,29 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
           ))}
         </div>
 
-        {/* Rows */}
+        {/* Bulk action bar */}
+        {someSelected && (
+          <div className="flex items-center gap-3 px-4 py-2 border-b text-xs"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-hover)' }}>
+            <span style={{ color: 'var(--color-text-2)' }}>{selectedCount} selected</span>
+            <button
+              onClick={bulkAddToQueue}
+              disabled={isPending}
+              className="font-medium text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
+            >
+              Add to Outbound Queue
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="ml-auto font-medium transition-colors"
+              style={{ color: 'var(--color-text-3)' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
         {filtered.length === 0 ? (
           <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-3)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="opacity-30">
@@ -229,171 +395,124 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
             </p>
           </div>
         ) : (
-          <div>
-            <AnimatePresence>
-              {filtered.map((call, i) => {
-                const isExpanded = expanded === call.id
-                const topics = call.key_topics ?? []
-                const sla = slaTag(call.started_at)
-                const ts = call.started_at ?? call.created_at
-                const borderCls = call.call_status === 'HOT'
-                  ? 'border-l-4 border-l-red-500'
-                  : 'border-l-4 border-l-amber-400'
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10 pr-0">
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
+                  </TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Summary</TableHead>
+                  <TableHead>Topics</TableHead>
+                  <TableHead>SLA</TableHead>
+                  <TableHead>Follow-up</TableHead>
+                  <TableHead className="text-right pr-4">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(call => {
+                  const sla = slaTag(call.started_at)
+                  const ts = call.started_at ?? call.created_at
+                  const topics = call.key_topics ?? []
+                  const isChecked = selected.has(call.id)
+                  const inQueue = queuedIds.has(call.id)
+                  const adding = addingToQueue.has(call.id)
+                  const followUp = FOLLOW_UP_OPTIONS.find(o => o.status === call.follow_up_status)
 
-                return (
-                  <motion.div
-                    key={call.id}
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: Math.min(i * 0.03, 0.5), duration: 0.2, ease: 'easeOut' }}
-                    className={`${borderCls} border-b transition-colors hover:bg-[var(--color-hover)] last:border-b-0`}
-                    style={{ borderBottomColor: 'var(--color-border)' }}
-                  >
-                    {/* Row summary — always visible */}
-                    <button
-                      onClick={() => setExpanded(isExpanded ? null : call.id)}
-                      className="w-full text-left px-4 py-3 min-h-[44px]"
+                  return (
+                    <TableRow
+                      key={call.id}
+                      className={`transition-colors ${isChecked ? 'bg-blue-500/5' : ''}`}
                     >
-                      {/* Line 1: SLA badge + status badge + phone + time */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {sla && (
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${sla.cls}`}>
-                            {sla.label}
-                          </span>
-                        )}
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                      <TableCell className="w-10 pr-0">
+                        <Checkbox checked={isChecked} onCheckedChange={() => toggleRow(call.id)} />
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                           call.call_status === 'HOT'
                             ? 'bg-red-500/10 text-red-400 border-red-500/30'
                             : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                         }`}>
                           {call.call_status}
                         </span>
-                        {call.follow_up_status && (
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
-                            FOLLOW_UP_OPTIONS.find(o => o.status === call.follow_up_status)?.cls ?? ''
-                          }`}>
-                            {call.follow_up_status}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="font-mono text-[13px] font-medium" style={{ color: 'var(--color-text-1)' }}>
+                            {call.caller_phone ?? 'Unknown'}
                           </span>
-                        )}
-                        <span className="font-mono text-[13px] font-medium" style={{ color: 'var(--color-text-1)' }}>
-                          {call.caller_phone ?? 'Unknown'}
-                        </span>
-                        <span className="ml-auto text-[11px] font-mono shrink-0" style={{ color: 'var(--color-text-3)' }}>
-                          {timeAgo(ts)}
-                        </span>
-                      </div>
-
-                      {/* Line 2: summary snippet */}
-                      {call.ai_summary && (
-                        <p className="mt-1 text-[12px] italic truncate" style={{ color: 'var(--color-text-3)', maxWidth: '100%' }}>
-                          {call.ai_summary.slice(0, 100)}{call.ai_summary.length > 100 ? '…' : ''}
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>{timeAgo(ts)}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-[12px] italic truncate max-w-[200px]" style={{ color: 'var(--color-text-3)' }}>
+                          {call.ai_summary ? call.ai_summary.slice(0, 80) + (call.ai_summary.length > 80 ? '…' : '') : '—'}
                         </p>
-                      )}
-
-                      {/* Line 3: topic pills */}
-                      {topics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {topics.slice(0, 4).map(t => (
-                            <span
-                              key={t}
-                              className="text-[10px] px-2 py-0.5 rounded-full border"
-                              style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                            >
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {topics.slice(0, 2).map(t => (
+                            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full border"
+                              style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
                               {t}
                             </span>
                           ))}
-                          {topics.length > 4 && (
-                            <span className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>
-                              +{topics.length - 4} more
-                            </span>
+                          {topics.length > 2 && (
+                            <span className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>+{topics.length - 2}</span>
                           )}
                         </div>
-                      )}
-                    </button>
-
-                    {/* Expanded detail */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          key="expanded"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: 'easeOut' }}
-                          className="overflow-hidden"
-                        >
-                          <div
-                            className="px-4 pb-4 pt-0 space-y-3 border-t"
-                            style={{ borderColor: 'var(--color-border)' }}
+                      </TableCell>
+                      <TableCell>
+                        {sla ? (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${sla.cls}`}>
+                            {sla.label}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {followUp ? (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${followUp.cls}`}>
+                            {followUp.label}
+                          </span>
+                        ) : (
+                          <span className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex items-center gap-1 justify-end">
+                          {call.caller_phone && (
+                            <button
+                              onClick={() => addToQueue(call)}
+                              disabled={adding || inQueue}
+                              title={inQueue ? 'Already in outbound queue' : 'Add to outbound queue'}
+                              className={`p-1.5 rounded-lg transition-colors text-[10px] font-semibold ${
+                                inQueue
+                                  ? 'text-green-400 bg-green-500/10'
+                                  : 'hover:bg-blue-500/10 text-blue-400'
+                              } disabled:opacity-50`}
+                            >
+                              <PhoneOutgoing className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDetailCall(call)}
+                            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
+                            style={{ color: 'var(--color-text-3)' }}
+                            title="View details"
                           >
-                            {call.ai_summary && (
-                              <div>
-                                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>Summary</p>
-                                <p className="text-xs italic" style={{ color: 'var(--color-text-2)' }}>{call.ai_summary}</p>
-                              </div>
-                            )}
-                            {call.next_steps && (
-                              <div>
-                                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>Next Steps</p>
-                                <p className="text-xs" style={{ color: 'var(--color-text-2)' }}>{call.next_steps}</p>
-                              </div>
-                            )}
-                            {topics.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1.5" style={{ color: 'var(--color-text-3)' }}>Topics</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {topics.map(t => (
-                                    <span
-                                      key={t}
-                                      className="text-[10px] px-2 py-0.5 rounded-full border"
-                                      style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                                    >
-                                      {t}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {/* Follow-up status */}
-                            <div>
-                              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1.5" style={{ color: 'var(--color-text-3)' }}>Mark as</p>
-                              <div className="flex gap-1.5 flex-wrap">
-                                {FOLLOW_UP_OPTIONS.map(opt => (
-                                  <button
-                                    key={opt.status}
-                                    onClick={(e) => { e.stopPropagation(); updateFollowUp(call.id, call.follow_up_status === opt.status ? null : opt.status) }}
-                                    disabled={savingFollowUp === call.id}
-                                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer disabled:opacity-40 ${
-                                      call.follow_up_status === opt.status
-                                        ? opt.cls
-                                        : 'border-[var(--color-border)] text-[var(--color-text-3)] hover:border-current'
-                                    }`}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end">
-                              <Link
-                                href={`/dashboard/calls/${call.ultravox_call_id}`}
-                                className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 flex items-center gap-1"
-                              >
-                                View full call
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </Link>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )
-              })}
-            </AnimatePresence>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

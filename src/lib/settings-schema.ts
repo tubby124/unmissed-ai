@@ -201,6 +201,9 @@ export const settingsBodySchema = z.object({
   section_id: z.string().optional(),
   section_content: z.string().optional(),
 
+  // Outbound calling
+  outbound_prompt: z.union([z.string(), z.null()]).optional(),
+
   // Admin-only: God Mode
   telegram_bot_token: z.string().min(1).optional(),
   telegram_chat_id: z.string().min(1).optional(),
@@ -330,6 +333,12 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     if (body[key] !== undefined) {
       updates[key] = body[key]
     }
+  }
+
+  // outbound_prompt — separate from inbound; nullable to clear
+  if (body.outbound_prompt !== undefined) {
+    const val = typeof body.outbound_prompt === 'string' ? body.outbound_prompt.trim() : null
+    updates.outbound_prompt = val || null
   }
 
   // system_prompt — validated separately (may be overwritten by prompt patchers)

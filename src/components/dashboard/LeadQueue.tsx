@@ -1,9 +1,20 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
+import { Phone, Plus, ExternalLink, CalendarCheck, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
-import DialModal from './DialModal'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { slaTag } from '@/lib/utils/sla'
 
 interface Lead {
@@ -32,13 +43,14 @@ const STATUS_LABEL: Record<Tab, string> = {
   dnc: 'DNC',
 }
 
-const STATUS_STYLE: Record<Tab, string> = {
-  queued: 'bg-[var(--color-hover)] text-[var(--color-text-2)] border-[var(--color-border)]',
-  called: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+const STATUS_CLS: Record<Tab, string> = {
+  queued: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  called: 'bg-green-500/10 text-green-400 border-green-500/20',
   dnc: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string | null) {
+  if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
   const hrs = Math.floor(mins / 60)
@@ -49,7 +61,6 @@ function timeAgo(iso: string) {
   return 'just now'
 }
 
-
 interface LeadQueueProps {
   initialLeads: Lead[]
   clients: ClientInfo[]
@@ -58,15 +69,20 @@ interface LeadQueueProps {
 export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [tab, setTab] = useState<Tab>('queued')
-  const [dialPhone, setDialPhone] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [dialing, setDialing] = useState<Set<string>>(new Set())
+  const [detailLead, setDetailLead] = useState<Lead | null>(null)
+  const [editNotes, setEditNotes] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [addPhone, setAddPhone] = useState('')
   const [addName, setAddName] = useState('')
+  const [addNotes, setAddNotes] = useState('')
   const [addClientId, setAddClientId] = useState('')
   const [addError, setAddError] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // Realtime: refresh when campaign_leads change
+  // Realtime subscription
   useEffect(() => {
     const supabase = createBrowserClient()
     const channel = supabase
@@ -75,12 +91,14 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
         const row = payload.new as Lead
         setLeads(prev => {
           if (prev.some(l => l.id === row.id)) return prev
-          return [{ ...row, clients: clients.find(c => c.id === row.client_id) ? { business_name: clients.find(c => c.id === row.client_id)!.business_name } : null }, ...prev]
+          const client = clients.find(c => c.id === row.client_id)
+          return [{ ...row, clients: client ? { business_name: client.business_name } : null }, ...prev]
         })
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_leads' }, (payload) => {
         const row = payload.new as Lead
         setLeads(prev => prev.map(l => l.id === row.id ? { ...l, ...row } : l))
+        setDetailLead(prev => prev?.id === row.id ? { ...prev, ...row } : prev)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -88,6 +106,31 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
   }, [])
 
   const filtered = leads.filter(l => l.status === tab)
+  const allSelected = filtered.length > 0 && filtered.every(l => selected.has(l.id))
+  const someSelected = filtered.some(l => selected.has(l.id))
+  const selectedCount = filtered.filter(l => selected.has(l.id)).length
+
+  const counts: Record<Tab, number> = {
+    queued: leads.filter(l => l.status === 'queued').length,
+    called: leads.filter(l => l.status === 'called').length,
+    dnc: leads.filter(l => l.status === 'dnc').length,
+  }
+
+  function toggleAll() {
+    if (allSelected) {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(l => s.delete(l.id)); return s })
+    } else {
+      setSelected(prev => { const s = new Set(prev); filtered.forEach(l => s.add(l.id)); return s })
+    }
+  }
+
+  function toggleRow(id: string) {
+    setSelected(prev => {
+      const s = new Set(prev)
+      if (s.has(id)) s.delete(id); else s.add(id)
+      return s
+    })
+  }
 
   async function updateStatus(id: string, status: Tab) {
     const res = await fetch('/api/dashboard/leads', {
@@ -98,6 +141,49 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
     if (res.ok) {
       const { lead } = await res.json()
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
+    }
+  }
+
+  async function saveNotes() {
+    if (!detailLead) return
+    setSavingNotes(true)
+    try {
+      const res = await fetch('/api/dashboard/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: detailLead.id, notes: editNotes }),
+      })
+      if (res.ok) {
+        const { lead } = await res.json()
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...lead } : l))
+        setDetailLead(prev => prev ? { ...prev, notes: lead.notes } : prev)
+      }
+    } finally {
+      setSavingNotes(false)
+    }
+  }
+
+  async function bulkUpdateStatus(status: Tab) {
+    const ids = filtered.filter(l => selected.has(l.id)).map(l => l.id)
+    await Promise.all(ids.map(id => updateStatus(id, status)))
+    setSelected(new Set())
+  }
+
+  async function dialLead(lead: Lead) {
+    setDialing(prev => new Set(prev).add(lead.id))
+    try {
+      const res = await fetch('/api/dashboard/leads/dial-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: lead.id }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Dial failed' }))
+        alert(error ?? 'Dial failed')
+      }
+      // Realtime subscription will update lead status
+    } finally {
+      setDialing(prev => { const s = new Set(prev); s.delete(lead.id); return s })
     }
   }
 
@@ -112,247 +198,372 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
         body: JSON.stringify({
           phone: addPhone.trim(),
           name: addName.trim() || null,
+          notes: addNotes.trim() || null,
           client_id: addClientId || null,
         }),
       })
       if (res.ok) {
         const { lead } = await res.json()
-        setLeads(prev => [{ ...lead, clients: clients.find(c => c.id === lead.client_id) ? { business_name: clients.find(c => c.id === lead.client_id)!.business_name } : null }, ...prev])
-        setAddPhone('')
-        setAddName('')
-        setAddClientId('')
+        const client = clients.find(c => c.id === lead.client_id)
+        setLeads(prev => [{ ...lead, clients: client ? { business_name: client.business_name } : null }, ...prev])
+        setAddPhone(''); setAddName(''); setAddNotes(''); setAddClientId('')
         setShowAdd(false)
         setTab('queued')
       } else {
         const { error } = await res.json()
-        setAddError(error ?? 'Failed to add lead')
+        setAddError(error ?? 'Failed to add contact')
       }
     })
   }
 
-  const counts: Record<Tab, number> = {
-    queued: leads.filter(l => l.status === 'queued').length,
-    called: leads.filter(l => l.status === 'called').length,
-    dnc: leads.filter(l => l.status === 'dnc').length,
-  }
-
   return (
     <div className="space-y-4">
-      {/* Dial modal */}
-      {dialPhone && (
-        <DialModal
-          clients={clients}
-          defaultPhone={dialPhone}
-          onClose={() => setDialPhone(null)}
-          onDialed={() => setDialPhone(null)}
-        />
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text-1)" }}>Lead Queue</h1>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-3)" }}>Outbound call targets — manage and dial from here</p>
-        </div>
-        <button
-          onClick={() => setShowAdd(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Add Lead
-        </button>
-      </div>
-
-      {/* Add lead form */}
-      {showAdd && (
-        <div className="rounded-2xl border border-blue-500/15 bg-blue-500/[0.04] p-4">
-          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-blue-400/70 mb-3">New Lead</p>
-          <form onSubmit={addLead} className="flex flex-wrap gap-2 items-end">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Phone *</label>
+      {/* Add Contact Dialog */}
+      <Dialog open={showAdd} onOpenChange={open => { setShowAdd(open); if (!open) setAddError('') }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Contact</DialogTitle>
+            <DialogDescription>Add a contact to the outbound call queue.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={addLead} className="space-y-3 mt-1">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Phone *</label>
               <input
                 type="tel"
                 placeholder="+1 (555) 000-0000"
                 value={addPhone}
                 onChange={e => setAddPhone(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-44 transition-colors"
-                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
+                className="w-full border rounded-lg px-3 py-2 text-sm placeholder-zinc-600 focus:outline-none transition-colors"
+                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Name</label>
-              <input
-                type="text"
-                placeholder="Optional"
-                value={addName}
-                onChange={e => setAddName(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 w-36 transition-colors"
-                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Name</label>
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  value={addName}
+                  onChange={e => setAddName(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm placeholder-zinc-600 focus:outline-none transition-colors"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Assign to</label>
+                <select
+                  value={addClientId}
+                  onChange={e => setAddClientId(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+                >
+                  <option value="">— any —</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.business_name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Notes</label>
+              <textarea
+                placeholder="Optional — context, source, talking points…"
+                value={addNotes}
+                onChange={e => setAddNotes(e.target.value)}
+                rows={2}
+                className="w-full border rounded-lg px-3 py-2 text-sm placeholder-zinc-600 focus:outline-none transition-colors resize-none"
+                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px]" style={{ color: "var(--color-text-3)" }}>Client</label>
-              <select
-                value={addClientId}
-                onChange={e => setAddClientId(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500/40 w-40 transition-colors"
-                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
-              >
-                <option value="">— none —</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.business_name}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors"
-              style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-1)" }}
-            >
-              {isPending ? 'Adding…' : 'Add'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAdd(false)}
-              className="px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-              style={{ color: "var(--color-text-3)" }}
-            >
-              Cancel
-            </button>
-            {addError && <p className="w-full text-xs text-red-400 mt-1">{addError}</p>}
+            {addError && <p className="text-xs text-red-400">{addError}</p>}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
+              <Button type="submit" disabled={isPending}>{isPending ? 'Adding…' : 'Add Contact'}</Button>
+            </DialogFooter>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Tab list */}
-      <div className="rounded-2xl card-surface overflow-hidden">
-        <div className="flex border-b" style={{ borderColor: "var(--color-border)" }}>
+      {/* Contact Detail Dialog */}
+      <Dialog open={!!detailLead} onOpenChange={open => { if (!open) setDetailLead(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{detailLead?.name ?? detailLead?.phone}</DialogTitle>
+            <DialogDescription>
+              {detailLead?.phone}
+              {detailLead?.clients ? ` · ${detailLead.clients.business_name}` : ''}
+              {' · Added '}{timeAgo(detailLead?.added_at ?? null)}
+            </DialogDescription>
+          </DialogHeader>
+          {detailLead && (
+            <div className="space-y-4 text-sm mt-1">
+              {/* Status badges */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_CLS[detailLead.status]}`}>
+                  {STATUS_LABEL[detailLead.status]}
+                </span>
+                {detailLead.last_called_at && (
+                  <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                    Last called {timeAgo(detailLead.last_called_at)}
+                  </span>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--color-text-3)' }}>
+                  Notes
+                </label>
+                <textarea
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Add context, talking points, next steps…"
+                  className="w-full border rounded-lg px-3 py-2 text-sm placeholder-zinc-600 focus:outline-none transition-colors resize-none"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+                />
+              </div>
+
+              {/* Move to */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--color-text-3)' }}>Move to</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {(['queued', 'called', 'dnc'] as Tab[])
+                    .filter(s => s !== detailLead.status)
+                    .map(s => (
+                      <button
+                        key={s}
+                        onClick={() => updateStatus(detailLead.id, s)}
+                        className="text-[11px] font-semibold px-3 py-1 rounded-lg border transition-all hover:border-blue-500/40"
+                        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)', backgroundColor: 'var(--color-surface)' }}
+                      >
+                        {STATUS_LABEL[s]}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              disabled={!!(detailLead && dialing.has(detailLead.id))}
+              onClick={() => { if (detailLead) { dialLead(detailLead); setDetailLead(null) } }}
+            >
+              {detailLead && dialing.has(detailLead.id)
+                ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                : <Phone className="h-4 w-4 mr-1.5" />
+              }
+              Dial
+            </Button>
+            <Button onClick={saveNotes} disabled={savingNotes}>
+              {savingNotes ? 'Saving…' : 'Save Notes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-1)' }}>Outbound Queue</h1>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>
+            {counts.queued} to call · {counts.called} called · {counts.dnc} DNC
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowAdd(true)}>
+          <Plus className="h-4 w-4" />Add Contact
+        </Button>
+      </div>
+
+      {/* Tabs + Table */}
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+        {/* Tab bar */}
+        <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
           {(['queued', 'called', 'dnc'] as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => { setTab(t); setSelected(new Set()) }}
               className="relative flex-1 px-4 py-3 text-xs font-medium transition-colors"
-              style={tab !== t ? { color: "var(--color-text-3)" } : undefined}
+              style={tab !== t ? { color: 'var(--color-text-3)' } : undefined}
             >
               {tab === t && (
                 <motion.div
-                  layoutId="lead-tab-indicator"
+                  layoutId="lq-tab-indicator"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                 />
               )}
               <span className={tab === t ? 'text-blue-400' : ''}>
                 {STATUS_LABEL[t]}
-                <span className="ml-1.5 font-mono" style={{ color: "var(--color-text-3)" }}>{counts[t]}</span>
+                <span className="ml-1.5 font-mono tabular-nums" style={{ color: 'var(--color-text-3)' }}>
+                  {counts[t]}
+                </span>
               </span>
             </button>
           ))}
         </div>
 
-        {/* Rows */}
+        {/* Bulk action bar */}
+        {someSelected && (
+          <div
+            className="flex items-center gap-3 px-4 py-2 border-b text-xs"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-hover)' }}
+          >
+            <span style={{ color: 'var(--color-text-2)' }}>{selectedCount} selected</span>
+            {tab !== 'called' && (
+              <button
+                onClick={() => bulkUpdateStatus('called')}
+                className="font-medium text-green-400 hover:text-green-300 transition-colors"
+              >
+                Mark Called
+              </button>
+            )}
+            {tab !== 'dnc' && (
+              <button
+                onClick={() => bulkUpdateStatus('dnc')}
+                className="font-medium text-red-400 hover:text-red-300 transition-colors"
+              >
+                Mark DNC
+              </button>
+            )}
+            {tab !== 'queued' && (
+              <button
+                onClick={() => bulkUpdateStatus('queued')}
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Re-queue
+              </button>
+            )}
+            <button
+              onClick={() => setSelected(new Set())}
+              className="ml-auto font-medium transition-colors"
+              style={{ color: 'var(--color-text-3)' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
         {filtered.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3" style={{ color: "var(--color-text-3)" }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="opacity-30">
-              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-sm">No {STATUS_LABEL[tab].toLowerCase()} leads</p>
+          <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-3)' }}>
+            <CalendarCheck className="h-8 w-8 opacity-20" />
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-2)' }}>
+              No {STATUS_LABEL[tab].toLowerCase()} contacts
+            </p>
             {tab === 'queued' && (
-              <button onClick={() => setShowAdd(true)} className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200 cursor-pointer">
-                Add your first lead
+              <button
+                onClick={() => setShowAdd(true)}
+                className="text-[12px] font-medium transition-colors"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                Add your first contact
               </button>
             )}
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
-          {filtered.map((lead, i) => (
-            <motion.div
-              key={lead.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20, height: 0 }}
-              transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 24 }}
-              className={`flex items-center gap-4 px-5 py-3.5 border-b hover:bg-[var(--color-hover)] transition-colors ${i === filtered.length - 1 ? 'border-b-0' : ''}`}
-              style={{ borderBottomColor: "var(--color-border)" }}
-            >
-              {/* Status pill */}
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_STYLE[lead.status]}`}>
-                {STATUS_LABEL[lead.status]}
-              </span>
-              {/* SLA timer — queued only */}
-              {lead.status === 'queued' && (() => {
-                const tag = slaTag(lead.added_at)
-                if (!tag) return null
-                return (
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${tag.cls}`}>
-                    {tag.label}
-                  </span>
-                )
-              })()}
-
-              {/* Phone + name */}
-              <div className="min-w-0 w-44 shrink-0">
-                <p className="font-mono text-[13px] font-medium truncate" style={{ color: "var(--color-text-1)" }}>{lead.phone}</p>
-                {lead.name && <p className="text-xs truncate" style={{ color: "var(--color-text-3)" }}>{lead.name}</p>}
-              </div>
-
-              {/* Client */}
-              <span className="text-xs w-32 truncate hidden md:block" style={{ color: "var(--color-text-3)" }}>
-                {lead.clients?.business_name ?? '—'}
-              </span>
-
-              {/* Added */}
-              <span className="text-xs font-mono hidden sm:block flex-1" style={{ color: "var(--color-text-3)" }}>
-                {timeAgo(lead.added_at)}
-              </span>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0">
-                {lead.status === 'queued' && (
-                  <>
-                    <button
-                      onClick={() => setDialPhone(lead.phone)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all"
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10 pr-0">
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
+                  </TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Added</TableHead>
+                  {tab === 'called' && <TableHead>Last Called</TableHead>}
+                  <TableHead>SLA</TableHead>
+                  <TableHead className="text-right pr-4">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(lead => {
+                  const tag = slaTag(lead.added_at)
+                  const isChecked = selected.has(lead.id)
+                  return (
+                    <TableRow
+                      key={lead.id}
+                      className={`transition-colors ${isChecked ? 'bg-blue-500/5' : ''}`}
                     >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.77 9.84 19.79 19.79 0 01.7 1.23a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 6.54a16 16 0 006.29 6.29l.86-.86a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Dial
-                    </button>
-                    <button
-                      onClick={() => updateStatus(lead.id, 'called')}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-[var(--color-hover)] transition-all"
-                      style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
-                    >
-                      Called
-                    </button>
-                    <button
-                      onClick={() => updateStatus(lead.id, 'dnc')}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:text-red-400 hover:border-red-500/20 transition-all"
-                      style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
-                    >
-                      DNC
-                    </button>
-                  </>
-                )}
-                {lead.status === 'called' && (
-                  <button
-                    onClick={() => updateStatus(lead.id, 'queued')}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-[var(--color-hover)] transition-all"
-                    style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
-                  >
-                    Requeue
-                  </button>
-                )}
-                {lead.status === 'dnc' && (
-                  <span className="text-[11px] text-red-400/60">Do Not Call</span>
-                )}
-              </div>
-            </motion.div>
-          ))}
-          </AnimatePresence>
+                      <TableCell className="w-10 pr-0">
+                        <Checkbox checked={isChecked} onCheckedChange={() => toggleRow(lead.id)} />
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium text-sm" style={{ color: 'var(--color-text-1)' }}>
+                          {lead.name ?? <span style={{ color: 'var(--color-text-3)' }}>—</span>}
+                        </span>
+                        {lead.notes && (
+                          <p
+                            className="text-[11px] mt-0.5 truncate max-w-[180px]"
+                            style={{ color: 'var(--color-text-3)' }}
+                          >
+                            {lead.notes}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-[13px]" style={{ color: 'var(--color-text-2)' }}>
+                          {lead.phone}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                          {lead.clients?.business_name ?? '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                          {timeAgo(lead.added_at)}
+                        </span>
+                      </TableCell>
+                      {tab === 'called' && (
+                        <TableCell>
+                          <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                            {timeAgo(lead.last_called_at)}
+                          </span>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        {tag ? (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${tag.cls}`}>
+                            {tag.label}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button
+                            onClick={() => dialLead(lead)}
+                            disabled={dialing.has(lead.id)}
+                            className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 transition-colors disabled:opacity-40"
+                            title="Dial with agent"
+                          >
+                            {dialing.has(lead.id)
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Phone className="h-3.5 w-3.5" />
+                            }
+                          </button>
+                          <button
+                            onClick={() => { setDetailLead(lead); setEditNotes(lead.notes ?? '') }}
+                            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
+                            style={{ color: 'var(--color-text-3)' }}
+                            title="View / edit"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>

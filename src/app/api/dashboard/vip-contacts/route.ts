@@ -83,3 +83,32 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json(data, { status: 201 })
 }
+
+// DELETE /api/dashboard/vip-contacts?id=...&client_id=... — remove a VIP contact
+export async function DELETE(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const id = req.nextUrl.searchParams.get('id')
+  const clientId = req.nextUrl.searchParams.get('client_id')
+  if (!id || !clientId) return NextResponse.json({ error: 'id and client_id required' }, { status: 400 })
+
+  // Verify user belongs to this client
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id')
+    .eq('user_id', user.id)
+    .eq('client_id', clientId)
+    .maybeSingle()
+  if (!cu) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { error } = await supabase
+    .from('client_vip_contacts')
+    .delete()
+    .eq('id', id)
+    .eq('client_id', clientId)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}

@@ -16,6 +16,7 @@ import TeachAgentCard from './TeachAgentCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
+import KnowledgeInlineTile from './KnowledgeInlineTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -449,21 +450,31 @@ export default function TrialActiveSection({
         </div>
       )}
 
-      {/* ── 4. CapabilitiesCard ─────────────────────────────────── */}
-      <CapabilitiesCard
-        capabilities={capabilities}
-        agentName={agent.name}
-        voiceStylePreset={agent.voiceStylePreset}
-        isTrial={isTrial}
-        clientId={data.clientId}
-        hasPhoneNumber={onboarding.hasPhoneNumber}
-        hasIvr={data.editableFields.ivrEnabled}
-        hasContextData={data.editableFields.hasContextData}
-        selectedPlan={data.selectedPlan}
-      />
+      {/* ── 4. Bento: CapabilitiesCard + BillingTile ─────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        <CapabilitiesCard
+          capabilities={capabilities}
+          agentName={agent.name}
+          voiceStylePreset={agent.voiceStylePreset}
+          isTrial={isTrial}
+          clientId={data.clientId}
+          hasPhoneNumber={onboarding.hasPhoneNumber}
+          hasIvr={data.editableFields.ivrEnabled}
+          hasContextData={data.editableFields.hasContextData}
+          selectedPlan={data.selectedPlan}
+        />
+        <BillingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          onOpenSheet={() => sheet.open('billing')}
+        />
+      </div>
 
       {/* ── 4b. BookingCalendarTile (bento) ─────────────────────── */}
       <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+
+      {/* ── 4c. Knowledge inline tile ──────────────────────────────── */}
+      <KnowledgeInlineTile knowledgeStats={data.knowledge} />
 
       {/* ── 5. Post-call nudge ──────────────────────────────────── */}
       {callState === 'ended' && !postCallDismissed && data.clientId && (
@@ -796,12 +807,6 @@ export default function TrialActiveSection({
         onOpenSheet={() => sheet.open('notifications')}
       />
 
-      {/* ── 11. BillingTile ─────────────────────────────────────── */}
-      <BillingTile
-        selectedPlan={data.selectedPlan}
-        subscriptionStatus={onboarding.subscriptionStatus}
-        onOpenSheet={() => sheet.open('billing')}
-      />
     </>
   )
 }

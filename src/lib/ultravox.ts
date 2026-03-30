@@ -136,11 +136,13 @@ interface CreateCallOptions {
   tools?: object[]
   languageHint?: string
   firstSpeakerText?: string
+  /** If true, agent stays silent until human speaks (required for outbound calls). */
+  waitForUser?: boolean
   /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
   initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, initialState }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, initialState }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -157,7 +159,11 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (tools?.length) body.selectedTools = tools
   if (languageHint) body.languageHint = languageHint
-  if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  if (waitForUser) {
+    body.firstSpeakerSettings = { user: {} }
+  } else if (firstSpeakerText) {
+    body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  }
   if (initialState) body.initialState = initialState
 
   // S9.6c: 10s timeout prevents caller hearing silence if Ultravox hangs
@@ -780,6 +786,8 @@ interface CallViaAgentOptions {
   contextData?: string
   /** Override the agent's default first speaker text (used for transfer recovery). */
   firstSpeakerText?: string
+  /** If true, human speaks first (outbound calls). Overrides firstSpeakerText. */
+  waitForUser?: boolean
   /** Hidden context messages injected before the call starts. Used for returning caller context. */
   initialMessages?: Array<{ role: string; text: string; medium: string }>
   /** Override agent's stored tools — needed to inject X-Tool-Secret at call time.
@@ -790,7 +798,7 @@ interface CallViaAgentOptions {
 /** Start a call via a persistent agent (lightweight — no full payload rebuild). */
 export async function callViaAgent(
   agentId: string,
-  { callbackUrl, metadata, maxDuration, medium, callerContext, businessFacts, contextData, firstSpeakerText, initialMessages, overrideTools }: CallViaAgentOptions
+  { callbackUrl, metadata, maxDuration, medium, callerContext, businessFacts, contextData, firstSpeakerText, waitForUser, initialMessages, overrideTools }: CallViaAgentOptions
 ) {
   const body: Record<string, unknown> = {
     medium: medium === 'webrtc' ? { webRtc: {} } : { twilio: {} },
@@ -806,7 +814,11 @@ export async function callViaAgent(
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
   if (maxDuration) body.maxDuration = maxDuration
-  if (firstSpeakerText) body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  if (waitForUser) {
+    body.firstSpeakerSettings = { user: {} }
+  } else if (firstSpeakerText) {
+    body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
+  }
   if (initialMessages?.length) body.initialMessages = initialMessages
   // toolOverrides is { removeAll, remove, add } — NOT a raw array (causes 400 "unhashable type: dict")
   if (overrideTools?.length) body.toolOverrides = { removeAll: true, add: overrideTools }

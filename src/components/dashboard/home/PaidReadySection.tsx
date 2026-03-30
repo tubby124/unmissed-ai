@@ -16,6 +16,10 @@ import KnowledgeSourcesTile from './KnowledgeSourcesTile'
 import NicheInsightsTile from './NicheInsightsTile'
 import AgentContextPreviewTile from './AgentContextPreviewTile'
 import BookingCalendarTile from './BookingCalendarTile'
+import KnowledgeInlineTile from './KnowledgeInlineTile'
+import UnansweredQuestionsTile from './UnansweredQuestionsTile'
+import IvrVoicemailTile from './IvrVoicemailTile'
+import PostCallActionsTile from './PostCallActionsTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -286,17 +290,24 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 4. CapabilitiesCard ─────────────────────────────────── */}
-      <CapabilitiesCard
-        capabilities={capabilities}
-        agentName={agent.name}
-        voiceStylePreset={agent.voiceStylePreset}
-        isTrial={false}
-        clientId={data.clientId}
-        hasPhoneNumber={onboarding.hasPhoneNumber}
-        hasIvr={data.editableFields.ivrEnabled}
-        hasContextData={data.editableFields.hasContextData}
-      />
+      {/* ── 4. Bento: CapabilitiesCard + BillingTile ─────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        <CapabilitiesCard
+          capabilities={capabilities}
+          agentName={agent.name}
+          voiceStylePreset={agent.voiceStylePreset}
+          isTrial={false}
+          clientId={data.clientId}
+          hasPhoneNumber={onboarding.hasPhoneNumber}
+          hasIvr={data.editableFields.ivrEnabled}
+          hasContextData={data.editableFields.hasContextData}
+        />
+        <BillingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          onOpenSheet={() => sheet.open('billing')}
+        />
+      </div>
 
       {/* ── 4b+4c. 2-col bento: AgentContextPreview + BookingCalendar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
@@ -306,6 +317,37 @@ const [knowOpen, setKnowOpen] = useState(false)
         />
         <BookingCalendarTile hasBooking={capabilities.hasBooking} />
       </div>
+
+      {/* ── 4d. Knowledge inline tile ──────────────────────────────── */}
+      <KnowledgeInlineTile knowledgeStats={data.knowledge} />
+
+      {/* ── 4e. Unanswered questions tile ─────────────────────────── */}
+      {data.clientId && (
+        <UnansweredQuestionsTile clientId={data.clientId} />
+      )}
+
+      {/* ── 4f. 2-col bento: IVR+Voicemail + Post-Call SMS ─────────── */}
+      {data.clientId && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <IvrVoicemailTile
+            clientId={data.clientId}
+            isAdmin={false}
+            ivrEnabled={data.editableFields.ivrEnabled}
+            ivrPrompt={data.editableFields.ivrPrompt}
+            voicemailGreetingText={data.editableFields.voicemailGreetingText}
+            businessName={onboarding.businessName}
+            agentName={agent.name}
+          />
+          <PostCallActionsTile
+            clientId={data.clientId}
+            isAdmin={false}
+            smsEnabled={data.editableFields.smsEnabled}
+            smsTemplate={data.editableFields.smsTemplate}
+            hasSms={capabilities.hasSms}
+            agentName={agent.name}
+          />
+        </div>
+      )}
 
       {/* ── 5. Identity strip ───────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -642,13 +684,6 @@ const [knowOpen, setKnowOpen] = useState(false)
         emailEnabled={onboarding.emailNotificationsEnabled}
         agentName={agent.name}
         onOpenSheet={() => sheet.open('notifications')}
-      />
-
-      {/* ── 10. BillingTile ──────────────────────────────────────── */}
-      <BillingTile
-        selectedPlan={data.selectedPlan}
-        subscriptionStatus={onboarding.subscriptionStatus}
-        onOpenSheet={() => sheet.open('billing')}
       />
 
       {/* ── 11. NicheInsightsTile ────────────────────────────────── */}
