@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   // Fetch active clients that have an Ultravox agent
   let query = supabase
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, booking_enabled, ultravox_agent_id, transfer_conditions, sms_enabled, twilio_number, knowledge_backend')
+    .select('id, slug, system_prompt, agent_voice_id, forwarding_number, booking_enabled, ultravox_agent_id, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
     .eq('status', 'active')
     .not('ultravox_agent_id', 'is', null)
 
@@ -106,6 +106,8 @@ export async function POST(req: NextRequest) {
         twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
+        selectedPlan: (client.selected_plan as string | null) || undefined,
+        subscriptionStatus: (client.subscription_status as string | null) || undefined,
       }
 
       await updateAgent(client.ultravox_agent_id, agentFlags)
