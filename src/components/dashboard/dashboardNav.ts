@@ -29,8 +29,8 @@ export const NAV_ITEMS: NavItem[] = [
   // ── Group 3 — SECONDARY (trialLocked) ────────────────────────────────────
   { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 3, iconName: 'broadcast', trialLocked: true },
   { href: '/dashboard/leads', label: 'Leads', adminLabel: 'Outbound Queue', adminOnly: false, group: 3, iconName: 'list', trialLocked: true },
-  { href: '/dashboard/calendar', label: 'Calendar', adminOnly: false, group: 3, iconName: 'calendar', trialLocked: true },
-  { href: '/dashboard/bookings', label: 'Bookings', adminOnly: false, group: 3, iconName: 'calendar-check', trialLocked: true },
+  { href: '/dashboard/calendar', label: 'Calendar', adminOnly: false, group: 3, iconName: 'calendar' },
+  { href: '/dashboard/bookings', label: 'Bookings', adminOnly: false, group: 3, iconName: 'calendar-check' },
   // ── Group 4 — ADMIN ONLY ──────────────────────────────────────────────────
   { href: '/dashboard/clients', label: 'Clients', adminOnly: true, group: 4, iconName: 'users' },
   { href: '/dashboard/campaigns', label: 'Performance', adminOnly: true, group: 4, iconName: 'chart-columns' },

@@ -15,6 +15,7 @@ import TodayUpdateCard from './TodayUpdateCard'
 import KnowledgeSourcesTile from './KnowledgeSourcesTile'
 import NicheInsightsTile from './NicheInsightsTile'
 import AgentContextPreviewTile from './AgentContextPreviewTile'
+import BookingCalendarTile from './BookingCalendarTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -297,11 +298,14 @@ const [knowOpen, setKnowOpen] = useState(false)
         hasContextData={data.editableFields.hasContextData}
       />
 
-      {/* ── 4b. AgentContextPreviewTile ─────────────────────────── */}
-      <AgentContextPreviewTile
-        editableFields={data.editableFields}
-        knowledge={data.knowledge}
-      />
+      {/* ── 4b+4c. 2-col bento: AgentContextPreview + BookingCalendar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <AgentContextPreviewTile
+          editableFields={data.editableFields}
+          knowledge={data.knowledge}
+        />
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+      </div>
 
       {/* ── 5. Identity strip ───────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 items-center">
