@@ -35,20 +35,35 @@
 ## Execution Order
 
 ```
-DONE → see docs/refactor-completed-phases.md (all D1–D96 completed items)
-       D92 (calling dedup guard — confirmed in cron 2026-03-30)
-       D94 (phantom statuses — 'calling' now real via D92; 'completed' pre-guard, 2026-03-30)
-       D95 (Telegram summary — confirmed in cron 2026-03-30)
-       D99 (retry cap — confirmed in cron 2026-03-30)
-       D100 (vm_script max 500 + char counter — 2026-03-30)
-       D101 DB migration (call_direction col + index applied, types updated — 2026-03-30)
-       D109 NEW (outbound_connect_tokens cleanup cron hourly — 2026-03-30)
+DONE → see docs/refactor-completed-phases.md (D1–D96 + D97-D101, D109 — 2026-03-30)
 
-NEXT (in order):
-  D97  → Lead lifecycle: auto-advance status='completed' after disposition='answered'
-  D101 code → Write call_direction='inbound'/'outbound' at insert in inbound + dial-out routes
-  D93  → Add "Scheduled" sub-filter/badge row to lead queue Queued tab
-  D101 UI → Outbound filter tab on calls page
+NEXT (in order — priority tier):
+
+  [SECURITY — do first]
+  D124 → Fix QWERTY123 hardcoded default password → magic link post-provision
+
+  [Onboarding intelligence — highest user impact]
+  D125 → Niche-aware service pre-seeding (infer-niche returns suggested services)
+  D126 → Freeform→structured service intake (paste text → Haiku parses services)
+  D127 → FAQ capture during onboarding ("what do callers ask you most?")
+  D117 → Empty agent name gate in step 1 canAdvance
+
+  [Dashboard agent readiness]
+  D129 → Knowledge pending approval in nextAction strip
+  D131 → One-click gap closing from home (TeachAgentCard / nextAction)
+  D113 → Mode-aware nextAction nudges (booking vs voicemail vs info-hub)
+  D128 → Agent setup score / readiness row on home
+
+  [Google Calendar UX]
+  D121 → OAuth redirect → /dashboard with success toast (not /settings generic)
+
+  [Agent smarts]
+  D110 → Service catalog inline in onboarding capabilities step
+  D112 → Wire client_services into standard prompt regen + provision path
+
+  [Lower priority]
+  D98  → VIP contacts outbound path (LOW)
+  D56  → Transfer recovery smoke test (manual)
   STRIPE-PORTAL → Configure Stripe Customer Portal (manual — Stripe Dashboard step)
   GATE-1 → Domain migration (BLOCKED on domain purchase)
 
@@ -59,18 +74,22 @@ DEFERRED → S11, S12 advanced phases, S13 LOW, S16a-d, S17-S20
 
 ## Active Discovery Items (NOT STARTED / BLOCKED only)
 
-### Outbound / Scheduled Callbacks (highest priority cluster)
+### Outbound / Scheduled Callbacks
 | # | Type | Fix | Priority |
 |---|------|-----|----------|
-| D92 | BUG | No dedup guard — same lead can be dialed twice if cron overlaps. Atomically set `status='calling'` before dial loop, rollback on Twilio fail. | HIGH |
-| D93 | UX | No "Scheduled" filter in lead queue. Add sub-filter for `scheduled_callback_at IS NOT NULL`, sorted by time. | MEDIUM |
-| D94 | DEBT | Phantom statuses 'calling'/'completed' in cron filter — dead conditions. Fix when D92 adds 'calling' for real. | LOW |
-| D95 | GAP | No Telegram summary from scheduled-callbacks cron. Send per-client summary after each run. | MEDIUM |
-| D97 | GAP | Lead `status` never advances past 'called' after answered call. After `disposition='answered'`, set `status='completed'`. | MEDIUM |
 | D98 | GAP | VIP contacts siloed from outbound dialing — no "dial this VIP" button or auto-escalation path. | LOW |
-| D99 | GAP | No retry cap on scheduled-callbacks — bad numbers dialed forever. Cap at 3 → auto-set 'dnc'. | MEDIUM |
-| D100 | GAP | `outbound_vm_script` has no char limit. Add `z.string().max(500)` in settings-schema + char counter in UI textarea. | LOW |
-| D101 | GAP | No `call_direction` column in `call_logs`. Add 'inbound'/'outbound' at insert time + Outbound filter tab on calls page. | MEDIUM |
+
+### Onboarding UX
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D117 | BUG | Empty agent name slips past `canAdvance` on step 1 — add `!!d.agentName?.trim()` gate. Agent would say "Hi, I'm " on calls. | HIGH |
+| D118 | BUG | DOCX accepted in UI (step 5 file upload) but backend knowledge pipeline doesn't handle it. User uploads Word doc, gets silent failure. Drop `.docx` from accepted types until fixed. | HIGH |
+| D119 | UX | GBP hours pasted verbatim as long ugly string in schedule input — `"Monday: 8:00 AM – 6:00 PM, Tuesday: 8:00 AM – 6:00 PM, ..."`. Should condense to `Mon–Fri 8am–6pm` format. | MEDIUM |
+| D120 | UX | Booking mode picks step 3 but no calendar connection path exists during onboarding → silent drop-off post-activation. Add post-activation nudge or inline "connect after signup" CTA. | HIGH |
+| D121 | UX | FAQ defaults (step 5) show pre-filled questions but blank answer fields. Blank boxes are demotivating. Add placeholder example answers so users see what a good answer looks like. | MEDIUM |
+| D122 | UX | No "progress is saved" signal anywhere in the onboarding flow. Users who close the tab think they'll lose everything. One line of copy fixes this. | MEDIUM |
+| D123 | UX | Left sidebar value props (`hidden lg:flex`) invisible on mobile. Small business owners filling this on their phone see zero reason to keep going. Show value props on mobile. | MEDIUM |
+| D124 | SECURITY | `QWERTY123` hardcoded as default password for auto-login after trial provision (`page.tsx:165`). Wide-open account between provision and user setting their own password. Replace with short-lived magic link. | HIGH |
 
 ### Dashboard / UX
 | # | Type | Fix | Priority |
@@ -79,6 +98,26 @@ DEFERRED → S11, S12 advanced phases, S13 LOW, S16a-d, S17-S20
 | D56 | VERIFY | Transfer recovery never live-tested. Smoke test: real call to unanswered forwarding number. | MEDIUM |
 | D80 | UX | `info_hub` / restaurant mode onboards with empty `context_data`. Add menu input nudge or post-activation card. | LOW |
 | D84 | GAP | No UI visibility of call stage transitions. `call_logs` has no `current_stage`. | LOW |
+| D113 | UX | Mode-aware agent readiness nudges — nextAction strip + home tiles don't differentiate by `call_handling_mode`. Booking mode clients see generic "add facts" nudge instead of "connect calendar". | HIGH |
+| D116 | **DONE 2026-03-30** | `BookingCalendarTile` 3-state + `calendarConnected` prop + nextAction calendar nudge. | HIGH |
+
+### Agent Intelligence
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D110 | UX | Service catalog onboarding gap — `info_hub`/`appointment_booking` modes onboard with no structured services. Need lightweight inline service entry in onboarding (not a new step — inline addition to capabilities step) so agent knows what it offers from day one. | HIGH |
+| D111 | BUG | `.docx` upload fails in knowledge pipeline — mammoth or file type handling missing. Only PDF works reliably. | MEDIUM |
+| D112 | GAP | `client_services` table populated by deep-mode rebuild only. Standard prompt regen and first provision at onboarding skip it. Agent is dumb at launch even if services were added post-onboarding. Wire into ALL prompt build paths. | HIGH |
+| D114 | FEATURE | Staff/team roster for booking businesses — new `client_staff` DB table (name, role, availability), dashboard editor, prompt injection so agent knows who to book with. | MEDIUM |
+| D115 | GAP | Duration-aware calendar booking — `checkCalendarAvailability` doesn't accept service duration; defaults to 1hr slots. Should pass service duration from `client_services` so plumbers don't get 1hr for a 30min job. | MEDIUM |
+| D125 | UX | No niche-aware service pre-seeding. Blank form in onboarding → nobody fills it. When niche is detected, `infer-niche` should also return 5-8 suggested services as checkboxes. Owner ticks what applies + adds extras. Zero typing for most cases. | HIGH |
+| D126 | UX | No freeform→structured service intake. Owner should paste "We do oil changes, brakes, tires, $30-$400" and Haiku parses it into `client_services` rows. Asking for structured input on 10 services one at a time = they don't. Add a "Paste a description of your services" textarea → parse on blur. | HIGH |
+| D127 | UX | Onboarding never asks "what questions do callers ask you most?" — highest-signal FAQ data, lowest friction. Single textarea in step 3/5 → Haiku extracts FAQ pairs → seeds `extra_qa` at provision. Agent goes live knowing the top 5 things callers want to know. | HIGH |
+| D128 | UX | No agent setup score or readiness indicator on home. Owner can't tell if agent is 30% or 90% ready. Add compact "Agent readiness" row to home: hours ✓/✗, services ✓/✗, FAQs (N) ◐, calendar ✓/✗, knowledge ✓/✗. Each item links to the fix. Drives action better than generic nudges. | MEDIUM |
+| D129 | UX | Knowledge pending approval invisible until owner finds the tile. After website scrape, N pending chunks should appear in `nextAction` strip at same priority as calendar connection. Currently only shows as amber badge on knowledge tile. | HIGH |
+| D130 | UX | No "share your number" widget post-activation. Owner gets a Twilio number but no clear path to tell customers about it. Need: number display + copy button + carrier forwarding codes + QR code. Welcome wizard covers forwarding instructions but it's dismissible and one-time. Add persistent card until calls start flowing. | MEDIUM |
+| D131 | UX | Gap-closing flow broken. `knowledge_gaps` are captured but closing requires navigating Knowledge > Gaps tab. Add one-click resolution from home: "Caller asked: 'do you offer emergency callouts?' [Add answer]" → single textarea → saves to `extra_qa` + seeds knowledge chunk. Should be in `nextAction` strip or TeachAgentCard. | HIGH |
+| D132 | UX | After-hours behavior invisible to owner. Agent tells callers "we're closed" but owner has never heard the exact script. No preview of after-hours handling from the Hours card. First time they hear it is from a confused caller. Add "Preview after-hours message" expand in HoursCard. | MEDIUM |
+| D133 | UX | No "simulate a caller question" preview. Owner can test call (full WebRTC), but can't type "what do you charge for a drain cleaning?" and get a response without picking up the phone. Chat-style question preview (queries `business_facts` + `knowledge_chunks` inline) makes agent transparent and builds trust before going live. | MEDIUM |
 
 ### Performance / Optimization
 | # | Type | Fix | Priority |
