@@ -126,7 +126,12 @@ export async function POST(req: NextRequest) {
   if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
 
   // Build tools (use client.tools for same capability set as inbound)
-  const tools = Array.isArray(client.tools) ? (client.tools as object[]) : undefined
+  // hangUp MUST be first — without it Ultravox cannot end calls (Gotcha #55)
+  const HANGUP_TOOL = { toolName: 'hangUp', parameterOverrides: { strict: true } }
+  const tools = [
+    HANGUP_TOOL,
+    ...(Array.isArray(client.tools) ? (client.tools as object[]) : []),
+  ]
 
   const callbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 
