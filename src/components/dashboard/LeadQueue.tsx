@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
-import { Phone, Plus, ExternalLink, CalendarCheck, Loader2, PhoneCall, PhoneOff, Voicemail } from 'lucide-react'
+import { Phone, Plus, ExternalLink, CalendarCheck, Loader2, PhoneCall, PhoneOff, Voicemail, Clock } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -25,7 +25,7 @@ interface Lead {
   client_id: string | null
   phone: string
   name: string | null
-  status: 'queued' | 'called' | 'dnc'
+  status: 'queued' | 'called' | 'calling' | 'completed' | 'dnc'
   notes: string | null
   added_at: string
   last_called_at: string | null
@@ -44,15 +44,21 @@ interface ClientInfo {
 
 type Tab = 'queued' | 'called' | 'dnc'
 
-const STATUS_LABEL: Record<Tab, string> = {
+type LeadStatus = Tab | 'calling' | 'completed'
+
+const STATUS_LABEL: Record<LeadStatus, string> = {
   queued: 'Queued',
   called: 'Called',
+  calling: 'Dialing…',
+  completed: 'Completed',
   dnc: 'DNC',
 }
 
-const STATUS_CLS: Record<Tab, string> = {
+const STATUS_CLS: Record<LeadStatus, string> = {
   queued: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   called: 'bg-green-500/10 text-green-400 border-green-500/20',
+  calling: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   dnc: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
@@ -97,6 +103,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
   const [editCallback, setEditCallback] = useState('')
   const [callSummary, setCallSummary] = useState<string | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(false)
+  const [showScheduledOnly, setShowScheduledOnly] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [addPhone, setAddPhone] = useState('')
   const [addName, setAddName] = useState('')
@@ -140,7 +147,16 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       .finally(() => setLoadingSummary(false))
   }, [detailLead?.last_call_log_id])
 
-  const filtered = leads.filter(l => l.status === tab)
+  const filtered = leads.filter(l => {
+    if (tab === 'queued' && showScheduledOnly) return l.status === 'queued' && l.scheduled_callback_at !== null
+    return l.status === tab
+  }).sort((a, b) => {
+    // D93: when showing scheduled-only in queued, sort by callback time ascending
+    if (tab === 'queued' && showScheduledOnly && a.scheduled_callback_at && b.scheduled_callback_at) {
+      return new Date(a.scheduled_callback_at).getTime() - new Date(b.scheduled_callback_at).getTime()
+    }
+    return 0
+  })
   const allSelected = filtered.length > 0 && filtered.every(l => selected.has(l.id))
   const someSelected = filtered.some(l => selected.has(l.id))
   const selectedCount = filtered.filter(l => selected.has(l.id)).length
@@ -509,7 +525,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
           {(['queued', 'called', 'dnc'] as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelected(new Set()) }}
+              onClick={() => { setTab(t); setSelected(new Set()); if (t !== 'queued') setShowScheduledOnly(false) }}
               className="relative flex-1 px-4 py-3 text-xs font-medium transition-colors"
               style={tab !== t ? { color: 'var(--color-text-3)' } : undefined}
             >
@@ -529,6 +545,25 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             </button>
           ))}
         </div>
+        {/* D93: Scheduled sub-filter toggle — only visible on Queued tab */}
+        {tab === 'queued' && leads.some(l => l.status === 'queued' && l.scheduled_callback_at !== null) && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b text-xs" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <button
+              onClick={() => setShowScheduledOnly(v => !v)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${showScheduledOnly ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'border border-transparent hover:text-[var(--color-text-2)]'}`}
+              style={showScheduledOnly ? undefined : { color: 'var(--color-text-3)' }}
+            >
+              <Clock className="h-3 w-3" />
+              Scheduled
+              <span className="font-mono tabular-nums">
+                {leads.filter(l => l.status === 'queued' && l.scheduled_callback_at !== null).length}
+              </span>
+            </button>
+            {showScheduledOnly && (
+              <span style={{ color: 'var(--color-text-3)' }}>sorted by time</span>
+            )}
+          </div>
+        )}
 
         {/* Bulk action bar */}
         {someSelected && (

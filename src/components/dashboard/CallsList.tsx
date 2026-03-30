@@ -27,6 +27,7 @@ interface CallLog {
   ultravox_call_id: string
   caller_phone: string | null
   call_status: string | null
+  call_direction?: string | null
   ai_summary: string | null
   service_type: string | null
   duration_seconds: number | null
@@ -54,7 +55,7 @@ interface ClientInfo {
   bonus_minutes?: number | null
 }
 
-type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK' | 'UNKNOWN' | 'MISSED'
+type Filter = 'all' | 'HOT' | 'WARM' | 'COLD' | 'JUNK' | 'UNKNOWN' | 'MISSED' | 'outbound'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -64,6 +65,7 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'JUNK', label: 'JUNK' },
   { value: 'UNKNOWN', label: 'Unclassified' },
   { value: 'MISSED', label: 'MISSED' },
+  { value: 'outbound', label: 'Outbound' },
 ]
 
 const STATUS_BORDER: Record<string, string> = {
@@ -202,7 +204,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
     const poll = async () => {
       let q = supabase
         .from('call_logs')
-        .select('id, ultravox_call_id, caller_phone, call_status, ai_summary, service_type, duration_seconds, started_at, client_id, transfer_status, sms_outcome, clients(business_name)')
+        .select('id, ultravox_call_id, caller_phone, call_status, call_direction, ai_summary, service_type, duration_seconds, started_at, client_id, transfer_status, sms_outcome, clients(business_name)')
         .in('call_status', ['live', 'processing'])
         .order('started_at', { ascending: false })
       if (!isAdmin && clientId) q = q.eq('client_id', clientId)
@@ -276,7 +278,9 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
 
   const filtered = useMemo(() => calls.filter(c => {
     if (c.call_status === 'live') return false
-    if (c.call_status === 'processing') {
+    if (filter === 'outbound') {
+      if (c.call_direction !== 'outbound') return false
+    } else if (c.call_status === 'processing') {
       if (filter !== 'all') return false
     } else {
       if (filter !== 'all' && c.call_status !== filter) return false

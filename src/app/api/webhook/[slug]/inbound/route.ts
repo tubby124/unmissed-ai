@@ -368,6 +368,7 @@ export async function POST(
       caller_phone: callerPhone,
       twilio_call_sid: callSid,
       call_status: 'VOICEMAIL',
+      call_direction: 'inbound',
       started_at: new Date().toISOString(),
       ai_summary: 'Voicemail fallback — AI agent unavailable',
     }).then(({ error: vmLogErr }) => {
@@ -395,6 +396,7 @@ export async function POST(
     caller_phone: callerPhone,
     twilio_call_sid: body.CallSid || null,
     call_status: 'live',
+    call_direction: 'inbound',
     started_at: new Date().toISOString(),
     is_overage: isOverLimit,
     call_state: initialCallState,

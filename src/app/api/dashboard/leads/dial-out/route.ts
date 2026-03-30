@@ -161,14 +161,28 @@ export async function POST(req: NextRequest) {
   // If the client has a voicemail script configured, enable AMD so we can play it instead
   // of connecting the AI agent to an answering machine.
   const vmScript = (client.outbound_vm_script as string | null) ?? null
+  const svc = createServiceClient()
   let twilio_sid: string
   try {
     const twilioClient = twilio(accountSid, authToken)
     let call
     if (vmScript) {
-      // AMD path: use a statusCallback URL that decides whether to connect AI or play VM script
+      // AMD path: store joinUrl+vmScript in a short-lived token row to keep the callback URL short (D91)
+      const { data: tokenRow, error: tokenErr } = await svc
+        .from('outbound_connect_tokens')
+        .insert({
+          join_url: ultravoxCall.joinUrl,
+          vm_script: vmScript,
+          ultravox_call_id: ultravoxCall.callId,
+          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        })
+        .select('id')
+        .single()
+      if (tokenErr || !tokenRow) {
+        return NextResponse.json({ error: `Token insert failed: ${tokenErr?.message}` }, { status: 500 })
+      }
       const connectUrl = signCallbackUrl(
-        `${APP_URL}/api/webhook/${slug}/outbound-connect?j=${encodeURIComponent(ultravoxCall.joinUrl)}&v=${encodeURIComponent(vmScript)}`,
+        `${APP_URL}/api/webhook/${slug}/outbound-connect?t=${tokenRow.id}`,
         slug,
       )
       call = await twilioClient.calls.create({
@@ -187,7 +201,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Twilio dial failed: ${String(err)}` }, { status: 500 })
   }
 
-  const svc = createServiceClient()
   const now = new Date().toISOString()
 
   // Update status + increment call_count in one SQL expression
@@ -199,6 +212,7 @@ export async function POST(req: NextRequest) {
     client_id: clientId,
     caller_phone: toPhone,
     call_status: 'live',
+    call_direction: 'outbound',
     started_at: now,
   })
   if (logErr) console.error(`[dial-out] call_logs insert failed: ${logErr.message}`)

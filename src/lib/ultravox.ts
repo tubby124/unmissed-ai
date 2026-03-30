@@ -183,6 +183,22 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   return { joinUrl: data.joinUrl as string, callId: data.callId as string }
 }
 
+// ── End a live call immediately (used by AMD voicemail path to stop billing) ─
+export async function endCall(callId: string): Promise<void> {
+  try {
+    const res = await fetch(`${ULTRAVOX_BASE}/calls/${callId}`, {
+      method: 'DELETE',
+      headers: ultravoxHeaders(),
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!res.ok && res.status !== 404) {
+      console.error(`[endCall] Failed to end call ${callId}: ${res.status}`)
+    }
+  } catch (err) {
+    console.error(`[endCall] Exception ending call ${callId}:`, err)
+  }
+}
+
 // ── Demo call creation (browser WebRTC — no Twilio medium) ──────────────────
 
 interface CreateDemoCallOptions {

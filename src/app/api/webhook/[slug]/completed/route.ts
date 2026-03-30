@@ -241,20 +241,20 @@ export async function POST(
       const callLogId = updatedRows?.[0]?.id ?? null
 
       // ── Outbound lead disposition write-back ────────────────────────────────
-      if (metadata.source === 'outbound' && metadata.lead_id) {
+      if (['outbound', 'scheduled_callback'].includes(metadata.source as string) && metadata.lead_id) {
         const rawStatus = classification.status as string
         const disposition =
           rawStatus === 'MISSED' || endReason === 'unjoined' ? 'no-answer'
           : rawStatus === 'VOICEMAIL' ? 'vm'
           : 'answered'
+        // D97: auto-advance to 'completed' when answered
+        const leadUpdates: Record<string, unknown> = { disposition, last_call_log_id: callLogId }
+        if (disposition === 'answered') leadUpdates.status = 'completed'
         await supabase
           .from('campaign_leads')
-          .update({
-            disposition,
-            last_call_log_id: callLogId,
-          })
+          .update(leadUpdates)
           .eq('id', metadata.lead_id)
-        console.log(`[completed] outbound lead ${metadata.lead_id} disposition=${disposition}`)
+        console.log(`[completed] outbound lead ${metadata.lead_id} disposition=${disposition}${disposition === 'answered' ? ' status=completed' : ''}`)
       }
 
       // ── Ops alert for system failures (skip for test calls) ──────────────────
