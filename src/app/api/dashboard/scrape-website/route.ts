@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { normalizeExtraction } from '@/lib/knowledge-extractor'
-import type { NormalizedKnowledge } from '@/lib/knowledge-extractor'
+import { getPlanEntitlements } from '@/lib/plan-entitlements'
 
 const SCRAPE_TIMEOUT_MS = 45_000
 
@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
 
   const svc = createServiceClient()
 
-  // ── Get client niche ──────────────────────────────────────────────────────
+  // ── Get client niche + plan ───────────────────────────────────────────────
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('niche')
+    .select('niche, selected_plan, subscription_status')
     .eq('id', clientId)
     .single()
 
@@ -58,7 +58,41 @@ export async function POST(req: NextRequest) {
 
   const niche = client.niche || 'other'
 
-  // ── Mark as scraping ──────────────────────────────────────────────────────
+  // ── D85: Enforce plan URL limit ───────────────────────────────────────────
+  const plan = getPlanEntitlements(
+    (client.subscription_status as string | null) === 'trialing'
+      ? 'trial'
+      : (client.selected_plan as string | null)
+  )
+
+  // Count existing sources (exclude the URL being re-scraped — it's an update)
+  const { count: existingCount } = await svc
+    .from('client_website_sources')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+    .neq('url', url)
+
+  if ((existingCount ?? 0) >= plan.maxWebsiteUrls) {
+    return NextResponse.json(
+      {
+        error: `Website URL limit reached for your plan (${plan.maxWebsiteUrls} URL${plan.maxWebsiteUrls === 1 ? '' : 's'}). Upgrade to add more.`,
+        upgrade: true,
+        currentPlan: client.selected_plan ?? 'lite',
+        limit: plan.maxWebsiteUrls,
+      },
+      { status: 403 }
+    )
+  }
+
+  // ── Upsert source record + mark scraping ──────────────────────────────────
+  await svc
+    .from('client_website_sources')
+    .upsert(
+      { client_id: clientId, url, scrape_status: 'scraping', scrape_error: null },
+      { onConflict: 'client_id,url' }
+    )
+
+  // Keep clients.website_url in sync for the first/primary URL (backward compat)
   await svc
     .from('clients')
     .update({
@@ -80,14 +114,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Scrape failed'
     console.warn(`[scrape-website] Timeout or crash | bucket=timeout | url=${url} | error=${errorMsg}`)
-    await svc
-      .from('clients')
-      .update({
-        website_scrape_status: 'failed',
-        website_scrape_error: errorMsg,
-        website_last_scraped_at: new Date().toISOString(),
-      })
-      .eq('id', clientId)
+
+    const failedAt = new Date().toISOString()
+    await Promise.all([
+      svc.from('client_website_sources')
+        .update({ scrape_status: 'failed', scrape_error: errorMsg, last_scraped_at: failedAt })
+        .eq('client_id', clientId).eq('url', url),
+      svc.from('clients')
+        .update({ website_scrape_status: 'failed', website_scrape_error: errorMsg, website_last_scraped_at: failedAt })
+        .eq('id', clientId),
+    ])
 
     return NextResponse.json({ error: errorMsg, failureBucket: 'timeout' }, { status: 502 })
   }
@@ -105,20 +141,23 @@ export async function POST(req: NextRequest) {
 
   if (isEmpty) {
     const bucket = scrapeResult.failureBucket !== 'success' ? scrapeResult.failureBucket : 'empty_content'
-    await svc
-      .from('clients')
-      .update({
-        website_scrape_status: 'failed',
-        website_scrape_error: `Scrape returned no extractable content (${bucket})`,
-        website_last_scraped_at: new Date().toISOString(),
-      })
-      .eq('id', clientId)
+    const errorMsg = `Scrape returned no extractable content (${bucket})`
+    const failedAt = new Date().toISOString()
+
+    await Promise.all([
+      svc.from('client_website_sources')
+        .update({ scrape_status: 'failed', scrape_error: errorMsg, last_scraped_at: failedAt })
+        .eq('client_id', clientId).eq('url', url),
+      svc.from('clients')
+        .update({ website_scrape_status: 'failed', website_scrape_error: errorMsg, website_last_scraped_at: failedAt })
+        .eq('id', clientId),
+    ])
 
     return NextResponse.json(
       {
         preview: null,
         url,
-        scrapedAt: new Date().toISOString(),
+        scrapedAt: failedAt,
         status: 'failed' as const,
         failureBucket: bucket,
       },
@@ -152,17 +191,22 @@ export async function POST(req: NextRequest) {
 
   const scrapedAt = new Date().toISOString()
 
-  // ── Store preview in client row ───────────────────────────────────────────
-  await svc
-    .from('clients')
-    .update({
-      website_knowledge_preview: preview as unknown as Record<string, unknown>,
-      website_scrape_status: 'extracted',
-      website_last_scraped_at: scrapedAt,
-      website_scrape_pages: [url],
-      website_scrape_error: null,
-    })
-    .eq('id', clientId)
+  // ── Update source record to extracted ────────────────────────────────────
+  await Promise.all([
+    svc.from('client_website_sources')
+      .update({ scrape_status: 'extracted', scrape_error: null, last_scraped_at: scrapedAt })
+      .eq('client_id', clientId).eq('url', url),
+    // Backward compat: keep clients row in sync
+    svc.from('clients')
+      .update({
+        website_knowledge_preview: preview as unknown as Record<string, unknown>,
+        website_scrape_status: 'extracted',
+        website_last_scraped_at: scrapedAt,
+        website_scrape_pages: [url],
+        website_scrape_error: null,
+      })
+      .eq('id', clientId),
+  ])
 
   return NextResponse.json({
     preview,

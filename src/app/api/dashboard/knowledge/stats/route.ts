@@ -63,13 +63,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Derive plan source limits
+  // D86: PDF/doc upload limit (maxKnowledgeDocs) — separate from website URL limit
   const sourceCount = sourceCountResult.count ?? 0
-  let maxSources = 3
+  let maxSources = 5 // core default
   if (clientResult.data) {
     const isTrialing = clientResult.data.subscription_status === 'trialing'
     const plan = getPlanEntitlements(isTrialing ? 'trial' : clientResult.data.selected_plan)
-    maxSources = plan.maxKnowledgeSources
+    maxSources = plan.maxKnowledgeDocs
   }
 
   // G5: Knowledge coverage = approved / (approved + pending + open gaps)

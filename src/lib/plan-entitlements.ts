@@ -34,8 +34,12 @@ export interface PlanEntitlements {
   leadScoringEnabled: boolean
   /** Max knowledge sources (websites, GBP, files) */
   maxKnowledgeSources: number
+  /** D85 — Max website URLs for scraping (separate from PDF/doc limit) */
+  maxWebsiteUrls: number
   /** File upload for knowledge */
   fileUploadEnabled: boolean
+  /** D86 — Max PDF/doc uploads (separate from website URL limit) */
+  maxKnowledgeDocs: number
 }
 
 // ── Per-plan entitlements ───────────────────────────────────────────
@@ -50,7 +54,9 @@ const LITE: PlanEntitlements = {
   learningLoopEnabled: false,
   leadScoringEnabled: false,
   maxKnowledgeSources: 1, // 1 website + GBP + manual facts
+  maxWebsiteUrls: 1,
   fileUploadEnabled: false,
+  maxKnowledgeDocs: 1,
 }
 
 const CORE: PlanEntitlements = {
@@ -63,7 +69,9 @@ const CORE: PlanEntitlements = {
   learningLoopEnabled: true,
   leadScoringEnabled: true,
   maxKnowledgeSources: 3,
+  maxWebsiteUrls: 3,
   fileUploadEnabled: true,
+  maxKnowledgeDocs: 5,
 }
 
 const PRO: PlanEntitlements = {
@@ -76,7 +84,9 @@ const PRO: PlanEntitlements = {
   learningLoopEnabled: true,
   leadScoringEnabled: true,
   maxKnowledgeSources: 10,
+  maxWebsiteUrls: 10,
   fileUploadEnabled: true,
+  maxKnowledgeDocs: 20,
 }
 
 /** Trial entitlements — all features unlocked for evaluation */
@@ -90,7 +100,9 @@ const TRIAL_ENTITLEMENTS: PlanEntitlements = {
   learningLoopEnabled: true,
   leadScoringEnabled: true,
   maxKnowledgeSources: 3,
+  maxWebsiteUrls: 3,
   fileUploadEnabled: true,
+  maxKnowledgeDocs: 5,
 }
 
 export const PLAN_ENTITLEMENTS: Record<PlanIdOrTrial, PlanEntitlements> = {

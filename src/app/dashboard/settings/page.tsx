@@ -109,6 +109,8 @@ export interface ClientConfig {
   selected_plan: string | null
   trial_expires_at: string | null
   trial_converted: boolean | null
+  // D76 — Knowledge chunk count (not a DB column — injected by settings/page.tsx server query)
+  approved_knowledge_chunk_count?: number
 }
 
 export default async function SettingsPage({
@@ -161,9 +163,18 @@ export default async function SettingsPage({
 
   if (!client) redirect('/login')
 
+  // D76 — inject chunk count so AgentTab/CapabilitiesCard can correct hasKnowledge badge
+  const { count: chunkCount } = await supabase
+    .from('knowledge_chunks')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', cu.client_id)
+    .eq('status', 'approved')
+
+  const clientWithCount = { ...client, approved_knowledge_chunk_count: chunkCount ?? 0 } as ClientConfig
+
   return (
     <SettingsView
-      clients={[client as ClientConfig]}
+      clients={[clientWithCount]}
       isAdmin={false}
       appUrl={appUrl}
       initialClientId={initialClientId}

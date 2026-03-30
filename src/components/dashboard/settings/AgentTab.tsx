@@ -32,6 +32,8 @@ import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCa
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import ServicesOfferedCard from '@/components/dashboard/settings/ServicesOfferedCard'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
+import WebsiteSourcesList from '@/components/dashboard/settings/WebsiteSourcesList'
+import QuickSetupStrip from '@/components/dashboard/settings/QuickSetupStrip'
 import SetupProgressRing from '@/components/dashboard/settings/SetupProgressRing'
 import SettingsSection from '@/components/dashboard/settings/SettingsSection'
 import ActivityLog from '@/components/dashboard/settings/ActivityLog'
@@ -328,6 +330,11 @@ export default function AgentTab({
       hasContextData={!!(client.context_data?.trim())}
     />
 
+    {/* ── QUICK SETUP STRIP (non-admin, disappears when fully configured) ── */}
+    {!isAdmin && (
+      <QuickSetupStrip client={client} onScrollTo={handleScrollTo} />
+    )}
+
     {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
     <SettingsSection
       id="talk"
@@ -351,7 +358,8 @@ export default function AgentTab({
           hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
           hasTransfer: !!(client.forwarding_number),
           hasSms: !!(client.sms_enabled && client.twilio_number),
-          hasKnowledge: client.knowledge_backend === 'pgvector',
+          hasKnowledge: client.knowledge_backend === 'pgvector'
+            && (client.approved_knowledge_chunk_count == null || client.approved_knowledge_chunk_count > 0),
           hasWebsite: client.website_scrape_status === 'approved',
         }}
         onScrollTo={handleScrollTo}
@@ -485,6 +493,10 @@ export default function AgentTab({
             />
           </div>
           <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+            <WebsiteSourcesList
+              client={client}
+              isAdmin={isAdmin}
+            />
             <WebsiteKnowledgeCard
               client={client}
               isAdmin={isAdmin}

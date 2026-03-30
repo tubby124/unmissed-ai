@@ -30,6 +30,9 @@ export interface ClientCapabilityInput {
   // Plan fields — used to gate capabilities to plan entitlements (same logic as buildAgentTools)
   selected_plan?: string | null
   subscription_status?: string | null
+  // Knowledge chunk count — when explicitly 0, hasKnowledge is false even if backend='pgvector'
+  // null/undefined = unknown (don't gate — preserves behavior for callers that don't provide it)
+  approved_knowledge_chunk_count?: number | null
 }
 
 export interface CapabilityFlags {
@@ -50,8 +53,10 @@ export function buildCapabilityFlags(client: ClientCapabilityInput): CapabilityF
   const plan = getPlanEntitlements(planId)
 
   return {
-    // pgvector flag alone is insufficient — chunk count is checked separately in home/route.ts
-    hasKnowledge: client.knowledge_backend === 'pgvector' && plan.knowledgeEnabled,
+    // pgvector flag + plan gate + chunk count: only show active when chunks actually exist
+    // count=null/undefined → unknown → default to active (backwards-compatible for callers that omit it)
+    hasKnowledge: client.knowledge_backend === 'pgvector' && plan.knowledgeEnabled
+      && (client.approved_knowledge_chunk_count == null || client.approved_knowledge_chunk_count > 0),
     hasFacts: !!client.business_facts,
     hasFaqs: Array.isArray(client.extra_qa) && client.extra_qa.length > 0,
     hasHours: !!client.business_hours_weekday,

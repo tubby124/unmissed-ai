@@ -108,6 +108,11 @@ export default function HoursCard({
                   <option value="route_emergency">Route emergencies to a phone number</option>
                   <option value="custom_message">Custom message only</option>
                 </select>
+                {behavior === 'route_emergency' && !phone && (
+                  <p className="text-amber-400/80 text-xs mt-2 leading-relaxed">
+                    Emergency routing requires a phone number — add one below or after-hours calls will fail to route.
+                  </p>
+                )}
               </div>
               {behavior === 'route_emergency' && (
                 <div>

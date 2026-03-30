@@ -107,20 +107,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Phase 4.5 GAP-B: Enforce plan-based knowledge source limits
+    // D86: Enforce plan-based PDF/doc upload limits (separate from website URL limit)
     const uploadPlan = getPlanEntitlements(
       (client.subscription_status as string | null) === 'trialing' ? 'trial' : (client.selected_plan as string | null)
     )
     if (!uploadPlan.fileUploadEnabled) {
       return NextResponse.json({ error: 'File upload is not available on your current plan.' }, { status: 403 })
     }
-    const { count: sourceCount } = await svc
+    const { count: docCount } = await svc
       .from('client_knowledge_docs')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', clientId)
-    if ((sourceCount ?? 0) >= uploadPlan.maxKnowledgeSources) {
+    if ((docCount ?? 0) >= uploadPlan.maxKnowledgeDocs) {
       return NextResponse.json(
-        { error: `Source limit reached for your plan (${sourceCount}/${uploadPlan.maxKnowledgeSources}). Upgrade to add more.` },
+        {
+          error: `Document limit reached for your plan (${docCount}/${uploadPlan.maxKnowledgeDocs}). Upgrade to add more.`,
+          upgrade: true,
+          currentPlan: client.selected_plan ?? 'lite',
+          limit: uploadPlan.maxKnowledgeDocs,
+        },
         { status: 403 },
       )
     }

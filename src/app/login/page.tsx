@@ -273,6 +273,10 @@ function LoginContent() {
     }
   }
 
+  // D44: Google OAuth — requires two redirect URIs in Google Console:
+  // 1. https://unmissed-ai-production.up.railway.app/auth/callback
+  // 2. Future custom domain /auth/callback
+  // See memory/google-oauth-pattern.md
   async function handleGoogleSignIn() {
     setError('')
     setLoading(true)
