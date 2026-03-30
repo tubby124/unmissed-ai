@@ -246,6 +246,75 @@ export type Database = {
           },
         ]
       }
+      call_insights: {
+        Row: {
+          agent_confidence: number | null
+          agent_confused_moments: number
+          avg_agent_turn_chars: number | null
+          call_id: string
+          caller_frustrated: boolean
+          client_id: string
+          created_at: string
+          feature_suggestions: Json
+          id: string
+          loop_rate: number | null
+          repeated_questions: number
+          short_turn_count: number | null
+          source: string
+          talk_ratio_agent: number | null
+          unanswered_questions: Json
+        }
+        Insert: {
+          agent_confidence?: number | null
+          agent_confused_moments?: number
+          avg_agent_turn_chars?: number | null
+          call_id: string
+          caller_frustrated?: boolean
+          client_id: string
+          created_at?: string
+          feature_suggestions?: Json
+          id?: string
+          loop_rate?: number | null
+          repeated_questions?: number
+          short_turn_count?: number | null
+          source?: string
+          talk_ratio_agent?: number | null
+          unanswered_questions?: Json
+        }
+        Update: {
+          agent_confidence?: number | null
+          agent_confused_moments?: number
+          avg_agent_turn_chars?: number | null
+          call_id?: string
+          caller_frustrated?: boolean
+          client_id?: string
+          created_at?: string
+          feature_suggestions?: Json
+          id?: string
+          loop_rate?: number | null
+          repeated_questions?: number
+          short_turn_count?: number | null
+          source?: string
+          talk_ratio_agent?: number | null
+          unanswered_questions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_insights_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_insights_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_logs: {
         Row: {
           ai_summary: string | null
@@ -262,6 +331,8 @@ export type Database = {
           duration_seconds: number | null
           end_reason: string | null
           ended_at: string | null
+          faq_suggestions: Json | null
+          follow_up_status: string | null
           followup_reminded_at: string | null
           id: string
           in_call_sms_sent: boolean | null
@@ -274,13 +345,14 @@ export type Database = {
           seconds_counted: boolean | null
           sentiment: string | null
           service_type: string | null
+          sms_outcome: string | null
           started_at: string | null
           transcript: Json | null
           transfer_started_at: string | null
           transfer_status: string | null
           transfer_updated_at: string | null
           twilio_call_sid: string | null
-          ultravox_call_id: string
+          ultravox_call_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -298,6 +370,8 @@ export type Database = {
           duration_seconds?: number | null
           end_reason?: string | null
           ended_at?: string | null
+          faq_suggestions?: Json | null
+          follow_up_status?: string | null
           followup_reminded_at?: string | null
           id?: string
           in_call_sms_sent?: boolean | null
@@ -310,13 +384,14 @@ export type Database = {
           seconds_counted?: boolean | null
           sentiment?: string | null
           service_type?: string | null
+          sms_outcome?: string | null
           started_at?: string | null
           transcript?: Json | null
           transfer_started_at?: string | null
           transfer_status?: string | null
           transfer_updated_at?: string | null
           twilio_call_sid?: string | null
-          ultravox_call_id: string
+          ultravox_call_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -334,6 +409,8 @@ export type Database = {
           duration_seconds?: number | null
           end_reason?: string | null
           ended_at?: string | null
+          faq_suggestions?: Json | null
+          follow_up_status?: string | null
           followup_reminded_at?: string | null
           id?: string
           in_call_sms_sent?: boolean | null
@@ -346,13 +423,14 @@ export type Database = {
           seconds_counted?: boolean | null
           sentiment?: string | null
           service_type?: string | null
+          sms_outcome?: string | null
           started_at?: string | null
           transcript?: Json | null
           transfer_started_at?: string | null
           transfer_status?: string | null
           transfer_updated_at?: string | null
           twilio_call_sid?: string | null
-          ultravox_call_id?: string
+          ultravox_call_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -413,32 +491,47 @@ export type Database = {
       campaign_leads: {
         Row: {
           added_at: string | null
+          call_count: number | null
           client_id: string | null
+          disposition: string | null
           id: string
+          last_call_log_id: string | null
           last_called_at: string | null
           name: string | null
           notes: string | null
           phone: string
+          scheduled_callback_at: string | null
+          source: string | null
           status: string
         }
         Insert: {
           added_at?: string | null
+          call_count?: number | null
           client_id?: string | null
+          disposition?: string | null
           id?: string
+          last_call_log_id?: string | null
           last_called_at?: string | null
           name?: string | null
           notes?: string | null
           phone: string
+          scheduled_callback_at?: string | null
+          source?: string | null
           status?: string
         }
         Update: {
           added_at?: string | null
+          call_count?: number | null
           client_id?: string | null
+          disposition?: string | null
           id?: string
+          last_call_log_id?: string | null
           last_called_at?: string | null
           name?: string | null
           notes?: string | null
           phone?: string
+          scheduled_callback_at?: string | null
+          source?: string | null
           status?: string
         }
         Relationships: [
@@ -447,6 +540,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_leads_last_call_log_id_fkey"
+            columns: ["last_call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -511,11 +611,65 @@ export type Database = {
           },
         ]
       }
+      client_services: {
+        Row: {
+          active: boolean
+          booking_notes: string
+          category: string
+          client_id: string
+          created_at: string
+          description: string
+          duration_mins: number | null
+          id: string
+          name: string
+          price: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          booking_notes?: string
+          category?: string
+          client_id: string
+          created_at?: string
+          description?: string
+          duration_mins?: number | null
+          id?: string
+          name: string
+          price?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          booking_notes?: string
+          category?: string
+          client_id?: string
+          created_at?: string
+          description?: string
+          duration_mins?: number | null
+          id?: string
+          name?: string
+          price?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_services_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_users: {
         Row: {
           client_id: string | null
           created_at: string | null
           id: string
+          onboarding_state: Json | null
           role: string | null
           user_id: string | null
         }
@@ -523,6 +677,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           id?: string
+          onboarding_state?: Json | null
           role?: string | null
           user_id?: string | null
         }
@@ -530,6 +685,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           id?: string
+          onboarding_state?: Json | null
           role?: string | null
           user_id?: string | null
         }
@@ -543,24 +699,114 @@ export type Database = {
           },
         ]
       }
+      client_vip_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          document_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          relationship: string | null
+          transfer_enabled: boolean
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          relationship?: string | null
+          transfer_enabled?: boolean
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          relationship?: string | null
+          transfer_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_vip_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_website_sources: {
+        Row: {
+          chunk_count: number | null
+          client_id: string
+          created_at: string
+          id: string
+          last_scraped_at: string | null
+          scrape_error: string | null
+          scrape_status: string
+          url: string
+        }
+        Insert: {
+          chunk_count?: number | null
+          client_id: string
+          created_at?: string
+          id?: string
+          last_scraped_at?: string | null
+          scrape_error?: string | null
+          scrape_status?: string
+          url: string
+        }
+        Update: {
+          chunk_count?: number | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          last_scraped_at?: string | null
+          scrape_error?: string | null
+          scrape_status?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_website_sources_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activation_log: Json | null
           active_prompt_version_id: string | null
           after_hours_behavior: string | null
           after_hours_emergency_phone: string | null
+          agent_mode: string
           agent_name: string | null
           agent_voice_id: string | null
           bonus_minutes: number
           booking_buffer_minutes: number | null
           booking_enabled: boolean | null
           booking_service_duration_minutes: number | null
-          business_facts: string | null
+          business_facts: string[] | null
           business_hours_weekday: string | null
           business_hours_weekend: string | null
           business_name: string
           calendar_auth_status: string | null
           calendar_beta_enabled: boolean | null
+          call_handling_mode: string
+          callback_phone: string | null
+          cancel_at: string | null
+          city: string | null
           classification_rules: string | null
           claude_knowledge_path: string | null
           contact_email: string | null
@@ -571,26 +817,48 @@ export type Database = {
           email_notifications_enabled: boolean | null
           extra_qa: Json | null
           forwarding_number: string | null
+          gbp_photo_url: string | null
+          gbp_place_id: string | null
+          gbp_rating: number | null
+          gbp_review_count: number | null
+          gbp_summary: string | null
           google_calendar_id: string | null
           google_refresh_token: string | null
           grace_period_end: string | null
           hours: string | null
           id: string
           injected_note: string | null
+          ivr_enabled: boolean | null
+          ivr_prompt: string | null
           knowledge_backend: string | null
+          last_agent_sync_at: string | null
+          last_agent_sync_error: string | null
+          last_agent_sync_status: string | null
+          last_agent_synced_at: string | null
           last_minute_reset_at: string | null
+          minute_warning_100_sent_at: string | null
+          minute_warning_80_sent_at: string | null
           minutes_used_this_month: number | null
           monthly_minute_limit: number | null
           niche: string | null
+          outbound_goal: string | null
+          outbound_opening: string | null
+          outbound_prompt: string | null
+          outbound_tone: string | null
+          outbound_vm_script: string | null
+          owner_name: string | null
           pending_loop_suggestion: Json | null
           previous_agent_voice_id: string | null
           seconds_used_this_month: number | null
           selected_plan: string | null
+          service_catalog: Json
           services_offered: string | null
+          settings_revision: number
           setup_complete: boolean | null
           slug: string
           sms_enabled: boolean | null
           sms_template: string | null
+          state: string | null
           status: string | null
           stripe_customer_id: string | null
           stripe_discount_name: string | null
@@ -615,6 +883,8 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           voice_style_preset: string | null
+          voicemail_greeting_audio_url: string | null
+          voicemail_greeting_text: string | null
           website_knowledge_approved: Json | null
           website_knowledge_preview: Json | null
           website_last_scraped_at: string | null
@@ -622,24 +892,30 @@ export type Database = {
           website_scrape_pages: Json | null
           website_scrape_status: string | null
           website_url: string | null
+          weekly_digest_enabled: boolean | null
         }
         Insert: {
           activation_log?: Json | null
           active_prompt_version_id?: string | null
           after_hours_behavior?: string | null
           after_hours_emergency_phone?: string | null
+          agent_mode?: string
           agent_name?: string | null
           agent_voice_id?: string | null
           bonus_minutes?: number
           booking_buffer_minutes?: number | null
           booking_enabled?: boolean | null
           booking_service_duration_minutes?: number | null
-          business_facts?: string | null
+          business_facts?: string[] | null
           business_hours_weekday?: string | null
           business_hours_weekend?: string | null
           business_name: string
           calendar_auth_status?: string | null
           calendar_beta_enabled?: boolean | null
+          call_handling_mode?: string
+          callback_phone?: string | null
+          cancel_at?: string | null
+          city?: string | null
           classification_rules?: string | null
           claude_knowledge_path?: string | null
           contact_email?: string | null
@@ -650,26 +926,48 @@ export type Database = {
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
           forwarding_number?: string | null
+          gbp_photo_url?: string | null
+          gbp_place_id?: string | null
+          gbp_rating?: number | null
+          gbp_review_count?: number | null
+          gbp_summary?: string | null
           google_calendar_id?: string | null
           google_refresh_token?: string | null
           grace_period_end?: string | null
           hours?: string | null
           id?: string
           injected_note?: string | null
+          ivr_enabled?: boolean | null
+          ivr_prompt?: string | null
           knowledge_backend?: string | null
+          last_agent_sync_at?: string | null
+          last_agent_sync_error?: string | null
+          last_agent_sync_status?: string | null
+          last_agent_synced_at?: string | null
           last_minute_reset_at?: string | null
+          minute_warning_100_sent_at?: string | null
+          minute_warning_80_sent_at?: string | null
           minutes_used_this_month?: number | null
           monthly_minute_limit?: number | null
           niche?: string | null
+          outbound_goal?: string | null
+          outbound_opening?: string | null
+          outbound_prompt?: string | null
+          outbound_tone?: string | null
+          outbound_vm_script?: string | null
+          owner_name?: string | null
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
           seconds_used_this_month?: number | null
           selected_plan?: string | null
+          service_catalog?: Json
           services_offered?: string | null
+          settings_revision?: number
           setup_complete?: boolean | null
           slug: string
           sms_enabled?: boolean | null
           sms_template?: string | null
+          state?: string | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_discount_name?: string | null
@@ -694,6 +992,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           voice_style_preset?: string | null
+          voicemail_greeting_audio_url?: string | null
+          voicemail_greeting_text?: string | null
           website_knowledge_approved?: Json | null
           website_knowledge_preview?: Json | null
           website_last_scraped_at?: string | null
@@ -701,24 +1001,30 @@ export type Database = {
           website_scrape_pages?: Json | null
           website_scrape_status?: string | null
           website_url?: string | null
+          weekly_digest_enabled?: boolean | null
         }
         Update: {
           activation_log?: Json | null
           active_prompt_version_id?: string | null
           after_hours_behavior?: string | null
           after_hours_emergency_phone?: string | null
+          agent_mode?: string
           agent_name?: string | null
           agent_voice_id?: string | null
           bonus_minutes?: number
           booking_buffer_minutes?: number | null
           booking_enabled?: boolean | null
           booking_service_duration_minutes?: number | null
-          business_facts?: string | null
+          business_facts?: string[] | null
           business_hours_weekday?: string | null
           business_hours_weekend?: string | null
           business_name?: string
           calendar_auth_status?: string | null
           calendar_beta_enabled?: boolean | null
+          call_handling_mode?: string
+          callback_phone?: string | null
+          cancel_at?: string | null
+          city?: string | null
           classification_rules?: string | null
           claude_knowledge_path?: string | null
           contact_email?: string | null
@@ -729,26 +1035,48 @@ export type Database = {
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
           forwarding_number?: string | null
+          gbp_photo_url?: string | null
+          gbp_place_id?: string | null
+          gbp_rating?: number | null
+          gbp_review_count?: number | null
+          gbp_summary?: string | null
           google_calendar_id?: string | null
           google_refresh_token?: string | null
           grace_period_end?: string | null
           hours?: string | null
           id?: string
           injected_note?: string | null
+          ivr_enabled?: boolean | null
+          ivr_prompt?: string | null
           knowledge_backend?: string | null
+          last_agent_sync_at?: string | null
+          last_agent_sync_error?: string | null
+          last_agent_sync_status?: string | null
+          last_agent_synced_at?: string | null
           last_minute_reset_at?: string | null
+          minute_warning_100_sent_at?: string | null
+          minute_warning_80_sent_at?: string | null
           minutes_used_this_month?: number | null
           monthly_minute_limit?: number | null
           niche?: string | null
+          outbound_goal?: string | null
+          outbound_opening?: string | null
+          outbound_prompt?: string | null
+          outbound_tone?: string | null
+          outbound_vm_script?: string | null
+          owner_name?: string | null
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
           seconds_used_this_month?: number | null
           selected_plan?: string | null
+          service_catalog?: Json
           services_offered?: string | null
+          settings_revision?: number
           setup_complete?: boolean | null
           slug?: string
           sms_enabled?: boolean | null
           sms_template?: string | null
+          state?: string | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_discount_name?: string | null
@@ -773,6 +1101,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           voice_style_preset?: string | null
+          voicemail_greeting_audio_url?: string | null
+          voicemail_greeting_text?: string | null
           website_knowledge_approved?: Json | null
           website_knowledge_preview?: Json | null
           website_last_scraped_at?: string | null
@@ -780,6 +1110,7 @@ export type Database = {
           website_scrape_pages?: Json | null
           website_scrape_status?: string | null
           website_url?: string | null
+          weekly_digest_enabled?: boolean | null
         }
         Relationships: [
           {
@@ -839,9 +1170,64 @@ export type Database = {
           },
         ]
       }
+      compiler_runs: {
+        Row: {
+          approved_count: number
+          chunk_count: number
+          client_id: string
+          created_at: string
+          created_by_user_id: string | null
+          faq_count: number
+          high_risk_count: number
+          id: string
+          model_used: string
+          raw_input_hash: string
+          rejected_count: number
+          total_extracted: number
+        }
+        Insert: {
+          approved_count?: number
+          chunk_count?: number
+          client_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          faq_count?: number
+          high_risk_count?: number
+          id?: string
+          model_used: string
+          raw_input_hash: string
+          rejected_count?: number
+          total_extracted?: number
+        }
+        Update: {
+          approved_count?: number
+          chunk_count?: number
+          client_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          faq_count?: number
+          high_risk_count?: number
+          id?: string
+          model_used?: string
+          raw_input_hash?: string
+          rejected_count?: number
+          total_extracted?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compiler_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_calls: {
         Row: {
+          caller_email: string | null
           caller_name: string | null
+          caller_phone: string | null
           converted: boolean
           demo_id: string
           duration_seconds: number | null
@@ -854,7 +1240,9 @@ export type Database = {
           ultravox_call_id: string | null
         }
         Insert: {
+          caller_email?: string | null
           caller_name?: string | null
+          caller_phone?: string | null
           converted?: boolean
           demo_id: string
           duration_seconds?: number | null
@@ -867,7 +1255,9 @@ export type Database = {
           ultravox_call_id?: string | null
         }
         Update: {
+          caller_email?: string | null
           caller_name?: string | null
+          caller_phone?: string | null
           converted?: boolean
           demo_id?: string
           duration_seconds?: number | null
@@ -979,6 +1369,7 @@ export type Database = {
         Row: {
           chunk_type: string
           client_id: string
+          compile_run_id: string | null
           content: string
           content_hash: string | null
           created_at: string | null
@@ -990,6 +1381,7 @@ export type Database = {
           metadata: Json | null
           source: string
           source_run_id: string | null
+          source_url: string | null
           status: string | null
           trust_tier: string | null
           updated_at: string | null
@@ -997,6 +1389,7 @@ export type Database = {
         Insert: {
           chunk_type: string
           client_id: string
+          compile_run_id?: string | null
           content: string
           content_hash?: string | null
           created_at?: string | null
@@ -1008,6 +1401,7 @@ export type Database = {
           metadata?: Json | null
           source?: string
           source_run_id?: string | null
+          source_url?: string | null
           status?: string | null
           trust_tier?: string | null
           updated_at?: string | null
@@ -1015,6 +1409,7 @@ export type Database = {
         Update: {
           chunk_type?: string
           client_id?: string
+          compile_run_id?: string | null
           content?: string
           content_hash?: string | null
           created_at?: string | null
@@ -1026,6 +1421,7 @@ export type Database = {
           metadata?: Json | null
           source?: string
           source_run_id?: string | null
+          source_url?: string | null
           status?: string | null
           trust_tier?: string | null
           updated_at?: string | null
@@ -1038,6 +1434,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "knowledge_chunks_compile_run_id_fkey"
+            columns: ["compile_run_id"]
+            isOneToOne: false
+            referencedRelation: "compiler_runs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       knowledge_query_log: {
@@ -1046,9 +1449,13 @@ export type Database = {
           created_at: string | null
           id: string
           latency_ms: number
+          query_embedding: string | null
           query_text: string
+          resolution_type: string | null
+          resolved_at: string | null
           result_count: number
           slug: string
+          source: string | null
           threshold_used: number
           top_similarity: number | null
         }
@@ -1057,9 +1464,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           latency_ms: number
+          query_embedding?: string | null
           query_text: string
+          resolution_type?: string | null
+          resolved_at?: string | null
           result_count?: number
           slug: string
+          source?: string | null
           threshold_used: number
           top_similarity?: number | null
         }
@@ -1068,9 +1479,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           latency_ms?: number
+          query_embedding?: string | null
           query_text?: string
+          resolution_type?: string | null
+          resolved_at?: string | null
           result_count?: number
           slug?: string
+          source?: string | null
           threshold_used?: number
           top_similarity?: number | null
         }
@@ -1223,6 +1638,53 @@ export type Database = {
           },
         ]
       }
+      prompt_improvement_suggestions: {
+        Row: {
+          applied_at: string | null
+          call_log_ids: string[]
+          client_id: string
+          created_at: string
+          evidence_count: number
+          id: string
+          section_id: string
+          status: string
+          suggestion_text: string
+          trigger_type: string
+        }
+        Insert: {
+          applied_at?: string | null
+          call_log_ids?: string[]
+          client_id: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          section_id: string
+          status?: string
+          suggestion_text: string
+          trigger_type: string
+        }
+        Update: {
+          applied_at?: string | null
+          call_log_ids?: string[]
+          client_id?: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          section_id?: string
+          status?: string
+          suggestion_text?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_improvement_suggestions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prompt_versions: {
         Row: {
           change_description: string | null
@@ -1287,48 +1749,60 @@ export type Database = {
       }
       sms_logs: {
         Row: {
+          attempted_at: string | null
           body: string | null
           client_id: string
           created_at: string | null
           delivery_error_code: string | null
           delivery_status: string | null
           direction: string
+          error_code: string | null
+          error_message: string | null
           from_number: string
           id: string
           message_sid: string
           opt_out: boolean | null
+          provider_message_sid: string | null
           related_call_id: string | null
           status: string | null
           to_number: string
           updated_at: string | null
         }
         Insert: {
+          attempted_at?: string | null
           body?: string | null
           client_id: string
           created_at?: string | null
           delivery_error_code?: string | null
           delivery_status?: string | null
           direction: string
+          error_code?: string | null
+          error_message?: string | null
           from_number: string
           id?: string
           message_sid: string
           opt_out?: boolean | null
+          provider_message_sid?: string | null
           related_call_id?: string | null
           status?: string | null
           to_number: string
           updated_at?: string | null
         }
         Update: {
+          attempted_at?: string | null
           body?: string | null
           client_id?: string
           created_at?: string | null
           delivery_error_code?: string | null
           delivery_status?: string | null
           direction?: string
+          error_code?: string | null
+          error_message?: string | null
           from_number?: string
           id?: string
           message_sid?: string
           opt_out?: boolean | null
+          provider_message_sid?: string | null
           related_call_id?: string | null
           status?: string | null
           to_number?: string
@@ -1403,6 +1877,32 @@ export type Database = {
           processed_at?: string
         }
         Relationships: []
+      }
+      suggestion_generation_lock: {
+        Row: {
+          client_id: string
+          expires_at: string
+          locked_at: string
+        }
+        Insert: {
+          client_id: string
+          expires_at?: string
+          locked_at?: string
+        }
+        Update: {
+          client_id?: string
+          expires_at?: string
+          locked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_generation_lock_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       test_runs: {
         Row: {
@@ -1544,9 +2044,26 @@ export type Database = {
         Args: { p_amount_cents: number; p_user_id: string }
         Returns: undefined
       }
+      auto_resolve_similar_gaps: {
+        Args: {
+          p_client_id: string
+          p_max_resolve?: number
+          p_query_embedding: string
+          p_similarity_threshold?: number
+          p_source_query: string
+        }
+        Returns: {
+          resolved_count: number
+          resolved_queries: string[]
+        }[]
+      }
       deduct_advisor_credits: {
         Args: { p_amount_cents: number; p_user_id: string }
         Returns: boolean
+      }
+      dial_out_update_lead: {
+        Args: { p_lead_id: string; p_now: string }
+        Returns: undefined
       }
       hybrid_match_knowledge: {
         Args: {
@@ -1597,6 +2114,15 @@ export type Database = {
           source: string
           source_run_id: string
         }[]
+      }
+      try_preemptive_gap_resolve: {
+        Args: {
+          p_client_id: string
+          p_query_embedding: string
+          p_query_log_id: string
+          p_similarity_threshold?: number
+        }
+        Returns: boolean
       }
     }
     Enums: {
