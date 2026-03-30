@@ -154,6 +154,25 @@ export async function POST(
     priorCallRows = (priorData ?? []) as PriorCall[]
   }
 
+  // ── VIP contacts lookup — identify priority callers for VIP greeting + owner alert flow ──
+  let vipLine: string | null = null
+  if (callerPhone !== 'unknown') {
+    const { data: vipContact } = await supabase
+      .from('client_vip_contacts')
+      .select('name, relationship, notes, transfer_enabled')
+      .eq('client_id', client.id)
+      .eq('phone', callerPhone)
+      .maybeSingle()
+    if (vipContact) {
+      const parts: string[] = [`VIP CALLER: ${vipContact.name}`]
+      if (vipContact.relationship) parts.push(vipContact.relationship)
+      if (vipContact.notes) parts.push(`Note: ${vipContact.notes}`)
+      parts.push(`Transfer: ${vipContact.transfer_enabled ? 'enabled' : 'disabled'}`)
+      vipLine = parts.join(' | ')
+      console.log(`[inbound] VIP caller detected: slug=${slug} name=${vipContact.name}`)
+    }
+  }
+
   // ── SMS opt-out check — prevents agent from verbally promising SMS to opted-out callers ──
   let smsCallerOptedOut = false
   if (client.sms_enabled && callerPhone !== 'unknown') {
@@ -205,6 +224,9 @@ export async function POST(
   let callerContextRaw   = ctx.assembled.callerContextBlock.slice(1, -1)
   if (smsCallerOptedOut) {
     callerContextRaw += '\nSMS STATUS: Caller has opted out. Do not offer or send a text.'
+  }
+  if (vipLine) {
+    callerContextRaw += `\n${vipLine}`
   }
   const callerContextBlock = `[${callerContextRaw}]`
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa

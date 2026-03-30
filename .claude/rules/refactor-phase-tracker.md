@@ -146,6 +146,10 @@
 | D82 | **GAP — call stages live test** | v58 deployed (2026-03-29): BOOKING FLOW → transitionToBookingStage. `clients.tools` updated (removed checkCalendarAvailability/bookAppointment from triage stage; booking stage provides them independently). 16/16 promptfoo pass. **READY TO LIVE TEST:** call hasan-sharif's number, say name + "I want to book a showing for [property]", confirm Aisha calls transitionToBookingStage (not checkCalendarAvailability directly), confirm booking stage fires + appointment booked. Run `/review-call [call-id]`. | HIGH | READY — pending manual live test |
 | D83 | **GAP — stages route plan gate** | `POST /api/stages/[slug]/booking` route now checks both `booking_enabled` AND `getPlanEntitlements(selected_plan).bookingEnabled` (with trialing bypass). | LOW | **DONE** 2026-03-29 (`stages/[slug]/booking/route.ts` — plan gate added) |
 | D84 | **GAP — no UI visibility of stage transitions** | When a call transitions to the booking stage mid-call, there is no indication in the dashboard call log or live call view. `call_logs` has no `current_stage` column. If the booking stage fails (bad calendar config, tool error), the owner has no visibility — they'll only find out from Telegram post-call. Consider: (1) logging stage transitions to `call_logs.call_state` or a new `call_stages` table, (2) showing "📅 Booking stage active" in the live call card. | LOW | NOT STARTED |
+| D85 | **FEATURE — multi-URL website scraping (plan-gated)** | Only 1 website URL can be added/scraped today. Expand to plan-gated multi-source: Lite=1, Core=3, Pro=10 URLs. DB: new `client_website_sources` table (id, client_id, url, scrape_status, last_scraped_at, chunk_count, created_at). Plan entitlements: add `maxWebsiteUrls: number`. API: `POST /api/dashboard/scrape-website` accepts `url` param + enforces plan limit. Knowledge chunks tagged with `source_url`. UI: Knowledge card → URL list with per-URL status badge (pending/scraping/approved), add button (locked at limit with upgrade CTA), remove button. GBP counts as a separate implicit source (not in the URL list). | HIGH | NOT STARTED |
+| D86 | **FEATURE — plan-gated PDF/doc uploads** | Currently no limit enforced on PDF uploads. Add plan gates: Lite=1, Core=5, Pro=20. Plan entitlements: add `maxKnowledgeDocs: number`. API: `POST /api/client/knowledge/upload` counts existing `client_knowledge_docs` rows and returns 403 with upgrade nudge at limit. UI: Knowledge card shows "X of N docs used" bar, upload button locked at limit with inline upgrade CTA showing next tier. Show limit inline BEFORE upload (not after). | MEDIUM | NOT STARTED |
+| D87 | **UX — settings visual hierarchy / quick-start** | Settings has 19 cards with no priority signal. New users see a wall. Fix: add a pinned "Quick setup" row at the top (3-4 cards: Voice, Notifications, Hours, Knowledge) with a progress-style completion indicator. Secondary cards stay but are grouped under collapsible `SettingsSection` headers that start collapsed for new users. No card removal. No breaking changes. | MEDIUM | NOT STARTED |
+| D88 | **FEATURE — post-upgrade setup wizard** | After Stripe checkout completes, user lands back in the dashboard with no guidance. They have a real Twilio number now but don't know: (1) what it is, (2) how to forward their existing business line to it, (3) how to test it. Fix: `/dashboard/welcome` route (already exists) — detect first post-upgrade visit (`subscription_status` just changed to `active` + `twilio_number` newly set), show 3-step guide: "Your agent's number is [X]" → "Forward your current number to it" (carrier-specific instructions) → "Call it now to test." One-time dismissible. | HIGH | NOT STARTED |
 
 ---
 
@@ -228,7 +232,12 @@ DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
 
 NEXT:
   STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
-  D44           -> Google OAuth for trial users (no login path if email undelivered — no domain yet)
+  D44           -> Google OAuth — add to main login page for ALL users. Supabase signInWithOAuth({ provider: 'google' }) + two redirect URIs in Google Console (Railway URL + future domain URL). Works without domain. Unblocks testing immediately.
+  D76           -> Knowledge badge parity — 30 min fix, zero risk
+  D85           -> Multi-URL scraping — DB migration + plan entitlements + API + UI
+  D86           -> PDF plan gating — entitlements + upload route + UI
+  D87           -> Settings quick-start hierarchy — visual only, no breaking changes
+  D88           -> Post-upgrade wizard — /dashboard/welcome first-visit detection
   GATE-1        -> Domain migration (BLOCKED on domain purchase)
 
 DEFERRED -> S11, S12 advanced, S13 LOW, S16a-d (recording consent + SMS consent + PIPEDA — not a priority), S17-S20

@@ -511,6 +511,48 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
 }
 
 /**
+ * Build pageOwner HTTP tool — sends an SMS to the business owner when a VIP tries to reach them.
+ * Fires when a VIP transfer fails or the caller just wants a callback.
+ * Gated on forwarding_number (same gate as transferCall — Pro plan).
+ */
+export function buildPageOwnerTool(slug: string): UltravoxTool {
+  const appUrl = APP_URL
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return {
+    temporaryTool: {
+      modelToolName: 'pageOwner',
+      description: "Send an urgent alert SMS to the business owner letting them know a VIP caller tried to reach them. Use this ONLY for VIP callers (when callerContext includes 'VIP CALLER'). Always include the VIP's name. Call this in the same turn as transferCall (VIP flow) or before hangUp when the VIP just wants a callback.",
+      dynamicParameters: [
+        {
+          name: 'vipName',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "The VIP caller's name from the VIP CALLER line in callerContext" },
+          required: true,
+        },
+        {
+          name: 'message',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: 'Optional extra context for the owner (e.g. what the caller wanted)' },
+          required: false,
+        },
+      ],
+      automaticParameters: [
+        { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/webhook/${slug}/page-owner`,
+        httpMethod: 'POST',
+      },
+    },
+  }
+}
+
+/**
  * Build queryKnowledge HTTP tool for pgvector RAG retrieval.
  * Points to our Railway endpoint /api/knowledge/{slug}/query.
  * Only injected when knowledge_backend='pgvector' on the client.
@@ -640,6 +682,8 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
     && (opts.knowledge_chunk_count !== undefined && opts.knowledge_chunk_count > 0)
   const knowledgeTools: object[] = (hasKnowledge && plan.knowledgeEnabled) ? buildKnowledgeTools(opts.slug!) : []
   const coachingTools: object[] = (opts.slug && plan.learningLoopEnabled) ? [buildCoachingTool(opts.slug)] : []
+  // pageOwner: alerts owner via SMS when a VIP caller tried to reach them — same gate as transfer
+  const pageOwnerTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? [buildPageOwnerTool(opts.slug)] : []
 
   // Phase 4.5 GAP-I: Log plan-gated tools for observability
   if (opts.slug) {
@@ -654,7 +698,7 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
     }
   }
 
-  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools]
+  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools]
 }
 
 /** Update an existing agent's config (call after saving a new system prompt). */

@@ -13,6 +13,7 @@ import HoursCard from '@/components/dashboard/settings/HoursCard'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
+import VIPContactsCard from '@/components/dashboard/settings/VIPContactsCard'
 import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import SectionEditorCard from '@/components/dashboard/settings/SectionEditorCard'
 import { findExistingSectionHeader } from '@/lib/prompt-sections'
@@ -594,6 +595,15 @@ export default function AgentTab({
         </PlanGate>
       )}
       {/* IVR card lives in the right-side panel — opened via CapabilitiesCard */}
+
+      {/* VIP Contacts — Pro plan feature (same gate as transfer) */}
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="transfer">
+        <VIPContactsCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          forwardingNumber={client.forwarding_number ?? null}
+        />
+      </PlanGate>
     </SettingsSection>
 
     {/* ── 5. AGENT SCRIPT (admin only) ─────────────────────────────── */}
