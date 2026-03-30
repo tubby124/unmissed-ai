@@ -105,7 +105,7 @@ export default function KnowledgeSourcesTile({ gbpData, editableFields, websiteS
       await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_facts: lines.join('\n') }),
+        body: JSON.stringify({ business_facts: lines }),
       })
       setSavedFlash(true)
       setTimeout(() => setSavedFlash(false), 1500)

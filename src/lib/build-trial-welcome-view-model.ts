@@ -78,7 +78,7 @@ export function buildTrialWelcomeViewModel(
     hasWebsite: config.knowledge.scrapeStatus === 'complete',
     hasForwardingNumber: config.routing.callForwardingEnabled,
     hasGbp: config.gbp.hasGbp,
-    hasFacts: !!config.knowledge.businessFacts?.trim(),
+    hasFacts: Array.isArray(config.knowledge.businessFacts) ? config.knowledge.businessFacts.length > 0 : !!((config.knowledge.businessFacts as string | null)?.trim()),
     compiledChunkCount,
     provisioningState,
   }

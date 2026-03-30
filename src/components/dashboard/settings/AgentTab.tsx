@@ -357,7 +357,7 @@ export default function AgentTab({
         isTrial={client.status === 'trial'}
         knowledge={{
           agentName: client.agent_name || undefined,
-          hasFacts: !!(client.business_facts),
+          hasFacts: Array.isArray(client.business_facts) ? client.business_facts.length > 0 : !!(client.business_facts),
           hasFaqs: !!(client.extra_qa && client.extra_qa.length > 0),
           hasHours: !!(client.business_hours_weekday),
           hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),

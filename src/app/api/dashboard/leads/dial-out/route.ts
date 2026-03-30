@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche')
     .eq('id', clientId)
     .single()
 
@@ -158,11 +158,30 @@ export async function POST(req: NextRequest) {
   }
 
   // Twilio outbound dial → Ultravox stream
-  const twiml = `<Response><Connect><Stream url="${ultravoxCall.joinUrl}"/></Connect></Response>`
+  // If the client has a voicemail script configured, enable AMD so we can play it instead
+  // of connecting the AI agent to an answering machine.
+  const vmScript = (client.outbound_vm_script as string | null) ?? null
   let twilio_sid: string
   try {
     const twilioClient = twilio(accountSid, authToken)
-    const call = await twilioClient.calls.create({ to: toPhone, from: fromNumber, twiml })
+    let call
+    if (vmScript) {
+      // AMD path: use a statusCallback URL that decides whether to connect AI or play VM script
+      const connectUrl = signCallbackUrl(
+        `${APP_URL}/api/webhook/${slug}/outbound-connect?j=${encodeURIComponent(ultravoxCall.joinUrl)}&v=${encodeURIComponent(vmScript)}`,
+        slug,
+      )
+      call = await twilioClient.calls.create({
+        to: toPhone,
+        from: fromNumber,
+        url: connectUrl,
+        machineDetection: 'Enable',
+      })
+    } else {
+      // No VM script — connect directly (no AMD delay)
+      const twiml = `<Response><Connect><Stream url="${ultravoxCall.joinUrl}"/></Connect></Response>`
+      call = await twilioClient.calls.create({ to: toPhone, from: fromNumber, twiml })
+    }
     twilio_sid = call.sid
   } catch (err) {
     return NextResponse.json({ error: `Twilio dial failed: ${String(err)}` }, { status: 500 })

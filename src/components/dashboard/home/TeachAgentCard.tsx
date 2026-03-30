@@ -19,7 +19,7 @@ export default function TeachAgentCard({ clientId, agentName }: { clientId: stri
       const res = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_facts: text.trim() }),
+        body: JSON.stringify({ business_facts: text.split('\n').map(l => l.trim()).filter(l => l.length > 0) }),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))

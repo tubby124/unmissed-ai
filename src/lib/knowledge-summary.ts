@@ -45,8 +45,8 @@ export type KnowledgeSummary = {
   block: string
   /** Total character count of the block */
   charCount: number
-  /** Original full businessFacts text — preserved for Phase 4 retrieval */
-  fullBusinessFacts: string | null
+  /** Original full businessFacts array — preserved for Phase 4 retrieval */
+  fullBusinessFacts: string[] | null
   /** Original full extraQa pairs — preserved for Phase 4 retrieval */
   fullExtraQa: { q: string; a: string }[]
 }
@@ -58,8 +58,12 @@ export type KnowledgeSummary = {
  * Splits on newlines, filters empty/whitespace lines, trims each fact.
  * Facts written by clients are assumed to be in priority order (top = most important).
  */
-export function extractFactsFromText(text: string | null): string[] {
-  if (!text?.trim()) return []
+export function extractFactsFromText(text: string | string[] | null): string[] {
+  if (!text) return []
+  if (Array.isArray(text)) {
+    return text.map(f => f.trim()).filter(f => f.length > 0 && !f.startsWith('#'))
+  }
+  if (!text.trim()) return []
   return text
     .split('\n')
     .map(line => line.trim())

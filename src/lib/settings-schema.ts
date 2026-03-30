@@ -137,7 +137,7 @@ export const settingsBodySchema = z.object({
   sms_template: z.string().optional(),
 
   // Knowledge pipeline
-  business_facts: z.string().optional(),
+  business_facts: z.array(z.string()).optional(),
   extra_qa: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
 
   // Per-call context

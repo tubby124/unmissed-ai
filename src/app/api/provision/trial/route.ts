@@ -386,13 +386,13 @@ export async function POST(req: NextRequest) {
   // If no scraped facts, fall back to GBP description formatted as a fact line
   const gbpFact = (data.gbpDescription && scrapedFacts.length === 0)
     ? `About this business: ${data.gbpDescription}` : '';
-  const factsText = scrapedFacts.join('\n') || gbpFact;
-  if (factsText || allQa.length > 0) {
+  const factsArr = scrapedFacts.length > 0 ? scrapedFacts : (gbpFact ? [gbpFact] : []);
+  if (factsArr.length > 0 || allQa.length > 0) {
     await supa.from('clients').update({
-      ...(factsText ? { business_facts: factsText } : {}),
+      ...(factsArr.length > 0 ? { business_facts: factsArr } : {}),
       ...(allQa.length > 0 ? { extra_qa: allQa } : {}),
     }).eq('id', clientId);
-    console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
+    console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsArr.length} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
   }
 
   // Persist GBP provenance snapshot so the knowledge page can show "Imported from Google"

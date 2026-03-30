@@ -84,7 +84,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     Object.fromEntries(clients.map(c => [c.id, c.system_prompt ? parsePromptSections(c.system_prompt) : {}]))
   )
   const [businessFacts, setBusinessFacts] = useState<Record<string, string>>(() =>
-    Object.fromEntries(clients.map(c => [c.id, c.business_facts ?? '']))
+    Object.fromEntries(clients.map(c => [c.id, Array.isArray(c.business_facts) ? c.business_facts.join('\n') : (c.business_facts ?? '')]))
   )
   const [extraQA, setExtraQA] = useState<Record<string, { q: string; a: string }[]>>(() =>
     Object.fromEntries(clients.map(c => [c.id, c.extra_qa ?? []]))

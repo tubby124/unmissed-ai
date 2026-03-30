@@ -136,13 +136,13 @@ describe('call-time KnowledgeSummary availability', () => {
   test('KnowledgeSummary respects char limit even with many facts', () => {
     const manyFacts = Array.from({ length: 50 }, (_, i) =>
       `Important business detail #${i + 1} about our operations`
-    ).join('\n')
+    )
     const client = makeClientRow({ business_facts: manyFacts })
     const ctx = buildAgentContext(client, '+13065551234')
     assert.ok(ctx.knowledge.charCount <= SUMMARY_CHAR_LIMIT,
       `KnowledgeSummary is ${ctx.knowledge.charCount} chars — must be under ${SUMMARY_CHAR_LIMIT}`)
     // Full facts preserved for retrieval
-    assert.strictEqual(ctx.knowledge.fullBusinessFacts, manyFacts)
+    assert.deepStrictEqual(ctx.knowledge.fullBusinessFacts, manyFacts)
   })
 })
 

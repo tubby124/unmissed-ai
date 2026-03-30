@@ -301,14 +301,14 @@ describe('measurePromptLength', () => {
 describe('AgentContext.knowledge', () => {
   test('buildAgentContext includes knowledge field', () => {
     const client = makeClientRow({
-      business_facts: 'We do chip repair\nFull replacement available',
+      business_facts: ['We do chip repair', 'Full replacement available'],
       extra_qa: [{ q: 'SGI?', a: 'Yes we bill SGI' }],
     })
     const ctx = buildAgentContext(client, '+13065551234')
     assert.ok(ctx.knowledge, 'knowledge field should exist')
     assert.strictEqual(ctx.knowledge.facts.length, 3)
     assert.ok(ctx.knowledge.block.includes('## Key Business Facts'))
-    assert.strictEqual(ctx.knowledge.fullBusinessFacts, 'We do chip repair\nFull replacement available')
+    assert.deepStrictEqual(ctx.knowledge.fullBusinessFacts, ['We do chip repair', 'Full replacement available'])
   })
 
   test('knowledge is empty when no businessFacts or extraQa', () => {
@@ -322,11 +322,11 @@ describe('AgentContext.knowledge', () => {
   test('knowledge summary respects char limit even with large input', () => {
     const bigFacts = Array.from({ length: 50 }, (_, i) =>
       `Detailed business fact #${i + 1}: we provide excellent service in this specific area`
-    ).join('\n')
+    )
     const client = makeClientRow({ business_facts: bigFacts })
     const ctx = buildAgentContext(client, '+13065551234')
     assert.ok(ctx.knowledge.charCount <= SUMMARY_CHAR_LIMIT, `expected <= ${SUMMARY_CHAR_LIMIT}, got ${ctx.knowledge.charCount}`)
-    assert.strictEqual(ctx.knowledge.fullBusinessFacts, bigFacts)
+    assert.deepStrictEqual(ctx.knowledge.fullBusinessFacts, bigFacts)
   })
 })
 

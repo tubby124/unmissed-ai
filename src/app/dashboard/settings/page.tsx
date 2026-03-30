@@ -26,7 +26,7 @@ export interface ClientConfig {
   bonus_minutes: number
   sms_enabled: boolean | null
   sms_template: string | null
-  business_facts: string | null
+  business_facts: string[] | null
   extra_qa: { q: string; a: string }[] | null
   forwarding_number: string | null
   setup_complete: boolean | null

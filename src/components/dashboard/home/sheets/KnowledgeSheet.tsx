@@ -54,7 +54,7 @@ export default function KnowledgeSheet({
 
   async function save() {
     const res = await patch({
-      business_facts: facts,
+      business_facts: facts.split('\n').map(l => l.trim()).filter(l => l.length > 0),
       extra_qa: faqs,
     })
     if (res?.ok) {

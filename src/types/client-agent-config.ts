@@ -74,7 +74,7 @@ export type AgentCapabilities = {
 }
 
 export type AgentKnowledge = {
-  businessFacts: string | null
+  businessFacts: string[] | null
   extraQa: { q: string; a: string }[]
   servicesOffered: string | null
   scrapeStatus: ScrapeStatus

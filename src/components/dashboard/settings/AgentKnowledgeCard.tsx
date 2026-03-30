@@ -23,8 +23,8 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
   const [newA, setNewA] = useState('')
   const { saving, knowledgeReseeded, patch } = usePatchSettings(id, isAdmin)
 
-  const factCount = (config?.knowledge.businessFacts ?? client.business_facts)
-    ?.split('\n').filter(l => l.trim()).length ?? 0
+  const _rawFacts = config?.knowledge.businessFacts ?? client.business_facts
+  const factCount = Array.isArray(_rawFacts) ? _rawFacts.filter(l => l.trim()).length : ((_rawFacts as string | null)?.split('\n').filter(l => l.trim()).length ?? 0)
   const faqCount = config ? config.knowledge.extraQa.length : qa.filter(p => p.q?.trim() && p.a?.trim()).length
   const hoursSet = !!(config?.hours.hoursWeekday ?? client.business_hours_weekday)
   const bookingConnected = !!(client.booking_enabled && client.calendar_auth_status === 'connected')

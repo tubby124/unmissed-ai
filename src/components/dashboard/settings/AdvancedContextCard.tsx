@@ -46,7 +46,7 @@ export default function AdvancedContextCard({
 
   async function save() {
     const res = await patch({
-      business_facts: facts,
+      business_facts: facts.split('\n').map(l => l.trim()).filter(l => l.length > 0),
       extra_qa: qa,
       context_data: initialContextData,
       context_data_label: initialContextDataLabel,

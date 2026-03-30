@@ -405,13 +405,12 @@ export async function POST(req: NextRequest) {
       .map((p: { question: string; answer: string }) => ({ q: p.question.trim(), a: p.answer.trim() }));
     const allQa = [...scrapedQa, ...manualQa];
 
-    const factsText = scrapedFacts.join('\n');
-    if (factsText || allQa.length > 0) {
+    if (scrapedFacts.length > 0 || allQa.length > 0) {
       await svc.from('clients').update({
-        ...(factsText ? { business_facts: factsText } : {}),
+        ...(scrapedFacts.length > 0 ? { business_facts: scrapedFacts } : {}),
         ...(allQa.length > 0 ? { extra_qa: allQa } : {}),
       }).eq('id', clientId);
-      console.log(`[create-public-checkout] Saved knowledge to client columns: facts=${factsText ? factsText.split('\n').length : 0} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
+      console.log(`[create-public-checkout] Saved knowledge to client columns: facts=${scrapedFacts.length} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
     }
 
     // Gate-17: Set website_scrape_status to reflect actual scrape data.

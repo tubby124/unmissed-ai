@@ -216,7 +216,7 @@ export async function PATCH(req: NextRequest) {
       .eq('id', targetClientId)
       .single()
     if (freshClient?.knowledge_backend === 'pgvector') {
-      const facts = typeof freshClient.business_facts === 'string' ? freshClient.business_facts : null
+      const facts = (freshClient.business_facts as string[] | string | null) ?? null
       const qa: { q: string; a: string }[] = Array.isArray(freshClient.extra_qa) ? freshClient.extra_qa : []
       try {
         const r = await reseedKnowledgeFromSettings(targetClientId, facts, qa)

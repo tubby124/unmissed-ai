@@ -149,7 +149,7 @@ function AgentCards({
     : undefined
 
   // ── Needs Attention ──────────────────────────────────────────────────────────
-  const factLines = client.business_facts?.split('\n').filter(l => l.trim()).length ?? 0
+  const factLines = Array.isArray(client.business_facts) ? client.business_facts.filter(l => l.trim()).length : ((client.business_facts as string | null)?.split('\n').filter(l => l.trim()).length ?? 0)
   const faqCount = client.extra_qa?.filter(p => p.q?.trim() && p.a?.trim()).length ?? 0
 
   type AttentionItem = { label: string; href: string; urgency: 'high' | 'medium' | 'low' }
@@ -400,7 +400,7 @@ function AgentCards({
       <div className="sm:col-span-2">
         <SectionLabel>What It Can Answer</SectionLabel>
         <AgentAnswerabilityCard
-          businessFacts={client.business_facts ?? null}
+          businessFacts={Array.isArray(client.business_facts) ? client.business_facts.join('\n') : (client.business_facts ?? null)}
           extraQa={client.extra_qa ?? []}
           businessHoursWeekday={client.business_hours_weekday ?? null}
           city={client.city ?? null}

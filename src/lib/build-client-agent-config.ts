@@ -61,7 +61,7 @@ export type ClientsRow = {
   call_handling_mode?: string | null
   agent_mode?: string | null
   knowledge_backend?: string | null
-  business_facts?: string | null
+  business_facts?: string[] | null
   extra_qa?: { q: string; a: string }[] | null
   services_offered?: string | null
   website_scrape_status?: string | null

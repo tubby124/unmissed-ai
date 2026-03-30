@@ -174,10 +174,10 @@ export async function deleteClientChunks(clientId: string, source?: string): Pro
  * Convert business_facts text into ChunkInputs (one per non-empty line).
  * @param source — chunk source tag. 'website_scrape' for scrape-derived, 'settings_edit' for dashboard edits.
  */
-export function prepareFactChunks(businessFacts: string | null, source: string = 'website_scrape'): ChunkInput[] {
+export function prepareFactChunks(businessFacts: string | string[] | null, source: string = 'website_scrape'): ChunkInput[] {
   if (!businessFacts) return []
-  return businessFacts
-    .split('\n')
+  const lines = Array.isArray(businessFacts) ? businessFacts : businessFacts.split('\n')
+  return lines
     .map(line => line.trim())
     .filter(line => line.length > 0 && !line.startsWith('#') && !line.startsWith('---'))
     .map(line => ({
@@ -223,7 +223,7 @@ export function prepareServiceTagChunks(serviceTags: string[]): ChunkInput[] {
  */
 export async function reseedKnowledgeFromSettings(
   clientId: string,
-  businessFacts: string | null,
+  businessFacts: string | string[] | null,
   extraQa: { q: string; a: string }[],
 ): Promise<{ stored: number; failed: number }> {
   try {

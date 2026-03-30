@@ -121,7 +121,7 @@ function BrowseTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean
       <KnowledgeSourceRegistry clientId={client.id} />
       {/* Call-time context preview — what the agent sees on every call */}
       <CallContextPreview
-        facts={client.business_facts ?? ''}
+        facts={Array.isArray(client.business_facts) ? client.business_facts.join('\n') : (client.business_facts ?? '')}
         qa={client.extra_qa ?? []}
         injectedNote={client.injected_note ?? ''}
         contextData={client.context_data ?? ''}
@@ -169,7 +169,7 @@ function AddTab({
         <AdvancedContextCard
           clientId={client.id}
           isAdmin={isAdmin}
-          initialFacts={client.business_facts ?? ''}
+          initialFacts={Array.isArray(client.business_facts) ? client.business_facts.join('\n') : (client.business_facts ?? '')}
           initialQA={client.extra_qa ?? []}
           initialContextData={client.context_data ?? ''}
           initialContextDataLabel={client.context_data_label ?? ''}

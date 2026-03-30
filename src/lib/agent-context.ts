@@ -69,8 +69,8 @@ export type BusinessConfig = {
   afterHoursBehavior: string
   /** Phone number to transfer to on after-hours emergencies */
   afterHoursEmergencyPhone: string | null
-  /** Free-text business facts block */
-  businessFacts: string | null
+  /** Business facts array */
+  businessFacts: string[] | null
   /** Filtered (non-empty) Q&A pairs */
   extraQa: { q: string; a: string }[]
   /** Arbitrary reference data (e.g. tenant table) */
@@ -240,7 +240,9 @@ export function buildAgentContext(
     hoursWeekend: (client.business_hours_weekend as string | null) ?? null,
     afterHoursBehavior: (client.after_hours_behavior as string | null) || 'take_message',
     afterHoursEmergencyPhone: (client.after_hours_emergency_phone as string | null) ?? null,
-    businessFacts: (client.business_facts as string | null) ?? null,
+    businessFacts: Array.isArray(client.business_facts)
+      ? (client.business_facts as string[])
+      : ((client.business_facts as string | null)?.split('\n').filter(l => l.trim()) ?? null),
     extraQa: ((client.extra_qa as { q: string; a: string }[] | null) ?? []).filter(
       (p) => p.q?.trim() && p.a?.trim(),
     ),
@@ -345,8 +347,8 @@ export function buildAgentContext(
 
   const assembled: AssembledContextBlocks = {
     callerContextBlock: `[${callerContextStr}]`,
-    businessFactsBlock: business.businessFacts
-      ? buildContextBlock('Business Facts', business.businessFacts)
+    businessFactsBlock: business.businessFacts && business.businessFacts.length > 0
+      ? buildContextBlock('Business Facts', business.businessFacts.join('\n'))
       : '',
     extraQaBlock: extraQaFormatted ? buildContextBlock('Q&A', extraQaFormatted) : '',
     contextDataBlock: business.contextData

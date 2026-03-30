@@ -15,7 +15,7 @@ import { getPlanEntitlements } from './plan-entitlements'
 
 export interface ClientCapabilityInput {
   knowledge_backend: string | null | undefined
-  business_facts: string | null | undefined
+  business_facts: string | string[] | null | undefined
   extra_qa: unknown[] | null | undefined
   business_hours_weekday: string | null | undefined
   booking_enabled: boolean | null | undefined
@@ -57,7 +57,7 @@ export function buildCapabilityFlags(client: ClientCapabilityInput): CapabilityF
     // count=null/undefined → unknown → default to active (backwards-compatible for callers that omit it)
     hasKnowledge: client.knowledge_backend === 'pgvector' && plan.knowledgeEnabled
       && (client.approved_knowledge_chunk_count == null || client.approved_knowledge_chunk_count > 0),
-    hasFacts: !!client.business_facts,
+    hasFacts: Array.isArray(client.business_facts) ? client.business_facts.length > 0 : !!client.business_facts,
     hasFaqs: Array.isArray(client.extra_qa) && client.extra_qa.length > 0,
     hasHours: !!client.business_hours_weekday,
     // Calendar must actually be connected — booking_enabled alone is insufficient

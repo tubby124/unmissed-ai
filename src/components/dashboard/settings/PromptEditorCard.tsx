@@ -347,7 +347,7 @@ export default function PromptEditorCard({
                         <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
                         Collects callback details and takes messages
                       </li>
-                      {(client.business_facts || (client.extra_qa && client.extra_qa.length > 0)) && (
+                      {((Array.isArray(client.business_facts) ? client.business_facts.length > 0 : !!client.business_facts) || (client.extra_qa && client.extra_qa.length > 0)) && (
                         <li className="flex items-start gap-2 text-[11px] t2 leading-relaxed">
                           <span className="text-blue-400 mt-0.5 shrink-0">&#10003;</span>
                           Answers common business questions

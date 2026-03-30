@@ -11,7 +11,7 @@ export default function SetupProgressRing({ client, isAdmin }: SetupProgressRing
   if (isAdmin) return null
 
   const checks = [
-    { weight: 15, met: !!(client.business_facts?.trim()) },
+    { weight: 15, met: Array.isArray(client.business_facts) ? client.business_facts.length > 0 : !!((client.business_facts as string | null)?.trim()) },
     { weight: 15, met: !!(client.extra_qa && client.extra_qa.filter(p => p.q?.trim() && p.a?.trim()).length > 0) },
     { weight: 10, met: !!client.business_hours_weekday },
     { weight: 10, met: !!(client.booking_enabled && client.calendar_auth_status === 'connected') },

@@ -80,6 +80,7 @@ export interface HomeData {
     hasAgent: boolean
     telegramConnected: boolean
     emailNotificationsEnabled: boolean
+    telegramNotificationsEnabled: boolean
   }
   trialWelcome: {
     businessName: string
