@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
       opening: (client.outbound_opening as string | null) ?? "Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. I'm trying to reach {{LEAD_NAME}} — do you have a quick minute?",
       vmScript: (client.outbound_vm_script as string | null) ?? 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out — give us a call back when you get a chance. Thanks!',
     })
-    // Backfill so subsequent dials skip this assembly step
-    createServiceClient().from('clients').update({ outbound_prompt: outboundPrompt }).eq('id', clientId).then(() => {})
+    // Backfill so subsequent dials skip this assembly step (fire-and-forget, non-blocking)
+    void createServiceClient().from('clients').update({ outbound_prompt: outboundPrompt }).eq('id', clientId)
   }
 
   if (!outboundPrompt) {
