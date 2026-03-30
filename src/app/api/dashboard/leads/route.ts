@@ -22,8 +22,8 @@ async function requireAdmin() {
 }
 
 export async function GET(req: NextRequest) {
-  const { supabase, isAdmin } = await requireAdmin()
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { supabase, user, isAdmin, ownerClientId } = await getAuth()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
@@ -34,8 +34,14 @@ export async function GET(req: NextRequest) {
     .select('id, client_id, phone, name, status, notes, added_at, last_called_at, clients(business_name)')
     .order('added_at', { ascending: false })
 
+  if (!isAdmin) {
+    if (!ownerClientId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    query = query.eq('client_id', ownerClientId)
+  } else {
+    if (clientId) query = query.eq('client_id', clientId)
+  }
+
   if (status) query = query.eq('status', status)
-  if (clientId) query = query.eq('client_id', clientId)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -69,13 +75,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { supabase, isAdmin } = await requireAdmin()
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { supabase, user, isAdmin, ownerClientId } = await getAuth()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
   const { id, status, notes } = body
 
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  if (!isAdmin) {
+    if (!ownerClientId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const { data: lead } = await supabase
+      .from('campaign_leads')
+      .select('client_id')
+      .eq('id', id)
+      .limit(1)
+      .maybeSingle()
+    if (!lead || lead.client_id !== ownerClientId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const updates: Record<string, unknown> = {}
   if (status) updates.status = status
