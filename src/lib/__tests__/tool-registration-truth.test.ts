@@ -138,8 +138,12 @@ describe('Tool composition: all flags ON', () => {
     assert.ok(names.includes('checkForCoaching'), 'must include checkForCoaching')
   })
 
-  test('total tool count = 6 (hangUp + transitionToBookingStage + transfer + sms + knowledge + coaching)', () => {
-    assert.equal(tools.length, 6, `expected 6 tools, got ${tools.length}: ${names.join(', ')}`)
+  test('includes pageOwner (VIP alert — same gate as transferCall)', () => {
+    assert.ok(names.includes('pageOwner'), 'must include pageOwner when forwarding_number set')
+  })
+
+  test('total tool count = 7 (hangUp + transitionToBookingStage + transfer + sms + knowledge + coaching + pageOwner)', () => {
+    assert.equal(tools.length, 7, `expected 7 tools, got ${tools.length}: ${names.join(', ')}`)
   })
 })
 
