@@ -20,6 +20,8 @@ export type ChunkInput = {
   status?: string
   /** Optional trust tier (e.g. 'low', 'medium', 'high'). If omitted, DB default applies. */
   trustTier?: string
+  /** Optional source URL — written to knowledge_chunks.source_url for per-URL chunk cleanup. */
+  source_url?: string
 }
 
 export type EmbedResult = {
@@ -126,6 +128,7 @@ export async function embedChunks(
     }
     if (chunk.status) row.status = chunk.status
     if (chunk.trustTier) row.trust_tier = chunk.trustTier
+    if (chunk.source_url) row.source_url = chunk.source_url
     if (compileRunId) row.compile_run_id = compileRunId
 
     const { error } = await supabase

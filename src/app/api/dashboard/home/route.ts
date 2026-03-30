@@ -202,12 +202,9 @@ export async function GET(request: Request) {
   const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const bonusMinutes = client.bonus_minutes ?? 0
 
-  // Capability flags — truthful runtime readiness, not just DB flag state
-  const capabilities = buildCapabilityFlags(client)
-  // Knowledge badge requires approved chunks — pgvector flag alone is a fake-control without content
-  if (capabilities.hasKnowledge && approvedChunks.length === 0) {
-    capabilities.hasKnowledge = false
-  }
+  // Capability flags — pass approved chunk count so buildCapabilityFlags gates knowledge correctly
+  // (count=0 → hasKnowledge=false, no manual override needed)
+  const capabilities = buildCapabilityFlags({ ...client, approved_knowledge_chunk_count: approvedChunks.length })
   // hasInteracted: true when user has made at least one call (including test calls)
   const hasInteracted = recentCalls.length > 0
 

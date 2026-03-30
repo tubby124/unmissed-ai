@@ -187,6 +187,9 @@ export default function AgentTab({
   useDirtyGuardEffect()
   const { patch: patchSettings } = usePatchSettings(client.id, isAdmin)
 
+  // Compute once — used by CapabilitiesCard and TestCallCard (avoids duplicate inline logic)
+  const capabilities = buildCapabilityFlags(client)
+
   // ─── Section open/close state ─────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     talk: true,
@@ -322,7 +325,7 @@ export default function AgentTab({
 
     {/* ── CAPABILITIES OVERVIEW (always visible, all users) ────────── */}
     <CapabilitiesCard
-      capabilities={buildCapabilityFlags(client)}
+      capabilities={capabilities}
       agentName={client.agent_name ?? client.business_name}
       voiceStylePreset={client.voice_style_preset ?? null}
       isTrial={client.subscription_status === 'trialing'}
@@ -360,8 +363,7 @@ export default function AgentTab({
           hasBooking: !!(client.booking_enabled && client.calendar_auth_status === 'connected'),
           hasTransfer: !!(client.forwarding_number),
           hasSms: !!(client.sms_enabled && client.twilio_number),
-          hasKnowledge: client.knowledge_backend === 'pgvector'
-            && (client.approved_knowledge_chunk_count == null || client.approved_knowledge_chunk_count > 0),
+          hasKnowledge: capabilities.hasKnowledge,
           hasWebsite: client.website_scrape_status === 'approved',
         }}
         onScrollTo={handleScrollTo}

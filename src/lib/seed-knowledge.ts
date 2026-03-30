@@ -35,6 +35,8 @@ export interface SeedKnowledgeParams {
   chunkStatus?: string
   /** Optional trust tier (e.g. 'medium'). If omitted, DB default applies. */
   trustTier?: string
+  /** Optional source URL — written to knowledge_chunks.source_url so per-URL delete works. */
+  sourceUrl?: string
 }
 
 export interface SeedKnowledgeResult {
@@ -57,7 +59,7 @@ export async function seedKnowledgeFromScrape(
   svc: SupabaseClient,
   params: SeedKnowledgeParams,
 ): Promise<SeedKnowledgeResult> {
-  const { clientId, clientSlug, scrapeData, rawScrapeResult, approvedPackage, runId, routeLabel, chunkStatus, trustTier } = params
+  const { clientId, clientSlug, scrapeData, rawScrapeResult, approvedPackage, runId, routeLabel, chunkStatus, trustTier, sourceUrl } = params
   const empty: SeedKnowledgeResult = { seeded: false, chunkCount: 0, stored: 0, failed: 0, errors: [] }
 
   let factsToSeed: string[] = []
@@ -106,11 +108,12 @@ export async function seedKnowledgeFromScrape(
     return empty
   }
 
-  // Apply optional status/trustTier to all chunks
-  if (chunkStatus || trustTier) {
+  // Apply optional status/trustTier/sourceUrl to all chunks
+  if (chunkStatus || trustTier || sourceUrl) {
     for (const chunk of chunks) {
       if (chunkStatus) chunk.status = chunkStatus
       if (trustTier) chunk.trustTier = trustTier
+      if (sourceUrl) chunk.source_url = sourceUrl
     }
   }
 

@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
     routeLabel: 'approve-website-knowledge',
     chunkStatus,
     trustTier: 'medium',
+    sourceUrl: client.website_url ?? undefined,
   })
 
   // ── Also merge into business_facts/extra_qa for prompt injection ──────────
