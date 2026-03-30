@@ -275,6 +275,44 @@ export default function Step4({ data, onUpdate }: Props) {
   const NicheComponent = NICHE_COMPONENTS[niche as Niche] || null;
   const showFaqEditor = !NicheComponent;
 
+  // Compute live preview of what the agent will know from current data
+  const na = data.nicheAnswers;
+  const knowledgeItems: string[] = [];
+
+  if (Array.isArray(na.services) && na.services.length > 0) {
+    const svc = na.services as string[];
+    knowledgeItems.push(`${svc.length} service${svc.length > 1 ? 's' : ''}: ${svc.slice(0, 3).join(', ')}${svc.length > 3 ? '…' : ''}`);
+  }
+  if (Array.isArray(na.practiceAreas) && na.practiceAreas.length > 0) {
+    knowledgeItems.push(`Practice areas: ${(na.practiceAreas as string[]).join(', ')}`);
+  }
+  if (na.cuisineType) knowledgeItems.push(`Cuisine type: ${na.cuisineType}`);
+  if (na.menuData) knowledgeItems.push('Your full menu');
+  if (na.propertyType) knowledgeItems.push(`Property type: ${na.propertyType}`);
+  if (na.tenantRoster) knowledgeItems.push('Tenant / unit roster');
+  if (na.maintenanceContacts) knowledgeItems.push('Maintenance contact list');
+  if (na.namedStylists) knowledgeItems.push(`Your team: ${na.namedStylists}`);
+  if (na.serviceArea) knowledgeItems.push(`Service area: ${na.serviceArea}`);
+  if (na.emergency === 'yes' || na.emergency === '24_7') knowledgeItems.push('Emergency / after-hours availability');
+  if (na.mobileService === 'yes') knowledgeItems.push('Mobile service available');
+  if (na.insurance && niche === 'auto_glass') knowledgeItems.push(`Insurance claims: ${na.insurance === 'yes' ? 'accepted' : 'not accepted'}`);
+  if (na.insurance && niche === 'dental') knowledgeItems.push(`Insurance accepted: ${na.insurance}`);
+  if (na.newPatients) knowledgeItems.push(`New patients: ${na.newPatients}`);
+  if (na.consultations === 'yes') knowledgeItems.push('Free consultations offered');
+
+  const answeredFaqs = data.faqPairs.filter(p => p.question?.trim() && p.answer?.trim());
+  if (answeredFaqs.length > 0) {
+    const ex = answeredFaqs[0].question.replace(/\?$/, '').toLowerCase();
+    knowledgeItems.push(`${answeredFaqs.length} FAQ answer${answeredFaqs.length > 1 ? 's' : ''} — e.g. "${ex}"`);
+  }
+  if (data.websiteUrl) {
+    const domain = data.websiteUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+    knowledgeItems.push(`Website content from ${domain}`);
+  }
+  if (data.knowledgeDocs?.length > 0) {
+    knowledgeItems.push(`${data.knowledgeDocs.length} uploaded document${data.knowledgeDocs.length > 1 ? 's' : ''}`);
+  }
+
   return (
     <div className="space-y-8">
       {/* Section A: Knowledge Base Upload */}
@@ -463,8 +501,25 @@ export default function Step4({ data, onUpdate }: Props) {
         </div>
       ) : null}
 
+      {/* "What your agent will know" — live preview card */}
+      {knowledgeItems.length > 0 && niche !== 'voicemail' && (
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-4">
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-3">
+            Your agent will know
+          </p>
+          <ul className="space-y-1.5">
+            {knowledgeItems.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* No-knowledge warning — show when agent has nothing to work with */}
-      {niche !== 'voicemail' && !data.websiteUrl && !data.knowledgeDocs?.length && !data.faqPairs?.some((p: { question: string; answer: string }) => p.question?.trim() && p.answer?.trim()) && (
+      {niche !== 'voicemail' && knowledgeItems.length === 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4">
           <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
