@@ -1,10 +1,18 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import WelcomeWizard from './WelcomeWizard'
+import ProvisioningWait from './ProvisioningWait'
 
 export const dynamic = 'force-dynamic'
 
-export default async function WelcomePage() {
+export default async function WelcomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
+  const params = await searchParams
+  const isNewActivation = params.new === '1'
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -23,16 +31,22 @@ export default async function WelcomePage() {
     .eq('id', cu.client_id)
     .single()
 
-  // Only show wizard for newly activated paid clients with a Twilio number
-  if (!client || client.subscription_status !== 'active' || !client.twilio_number) {
-    redirect('/dashboard')
+  // Still provisioning — webhook hasn't fired yet. Show a wait screen that
+  // auto-reloads until the Twilio number appears.
+  if (isNewActivation && client && !client.twilio_number) {
+    return <ProvisioningWait />
   }
 
-  return (
-    <WelcomeWizard
-      twilioNumber={client.twilio_number}
-      agentName={client.agent_name ?? client.business_name ?? 'your agent'}
-      selectedPlan={client.selected_plan ?? 'core'}
-    />
-  )
+  // Ready: show the wizard
+  if (client && client.subscription_status === 'active' && client.twilio_number) {
+    return (
+      <WelcomeWizard
+        twilioNumber={client.twilio_number}
+        agentName={client.agent_name ?? client.business_name ?? 'your agent'}
+        selectedPlan={client.selected_plan ?? 'core'}
+      />
+    )
+  }
+
+  redirect('/dashboard')
 }

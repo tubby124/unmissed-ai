@@ -51,11 +51,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Post-onboarding destination helper:
-  // twilio_number is the real signal — trial users have none, so they need
-  // the Go Live activation page; users with an existing number go to overview.
+  // twilio_number is the real signal — trial users have none and need the
+  // welcome wizard (provisioning happens in the webhook, wizard handles the race).
+  // Users already on a paid plan (re-upgrading) just go back to the dashboard.
   const successDest = (client as Record<string, unknown>).twilio_number
     ? `${APP_URL}/dashboard?upgraded=true&plan=${planId}`
-    : `${APP_URL}/dashboard/setup?upgraded=true&plan=${planId}`
+    : `${APP_URL}/dashboard/welcome?new=1`
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
