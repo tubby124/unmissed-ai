@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface FileUploadPanelProps {
   clientId: string
@@ -11,6 +11,20 @@ interface FileUploadPanelProps {
 export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }: FileUploadPanelProps) {
   const [fileDragging, setFileDragging] = useState(false)
   const docFileInputRef = useRef<HTMLInputElement>(null)
+  const [quota, setQuota] = useState<{ used: number; max: number } | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/dashboard/knowledge/stats?client_id=${clientId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && typeof data.sourceCount === 'number' && typeof data.maxSources === 'number') {
+          setQuota({ used: data.sourceCount, max: data.maxSources })
+        }
+      })
+      .catch(() => {})
+  }, [clientId])
+
+  const atLimit = quota !== null && quota.used >= quota.max
   const [status, setStatus] = useState<'idle' | 'loading' | 'preview' | 'approving' | 'done'>('idle')
   const [previewData, setPreviewData] = useState<{
     filename: string
@@ -124,20 +138,54 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
     <div className="space-y-3">
       {status === 'idle' && (
         <>
+          {/* D86 — doc quota indicator */}
+          {quota !== null && (
+            <div className="rounded-lg border px-3 py-2.5 space-y-1.5"
+              style={{ borderColor: atLimit ? 'rgba(239,68,68,0.3)' : 'var(--color-border)', backgroundColor: atLimit ? 'rgba(239,68,68,0.05)' : 'var(--color-hover)' }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium" style={{ color: atLimit ? 'rgb(239,68,68)' : 'var(--color-text-2)' }}>
+                  {quota.used} of {quota.max} document{quota.max !== 1 ? 's' : ''} used
+                </span>
+                {atLimit && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgb(239,68,68)' }}>
+                    Limit reached
+                  </span>
+                )}
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, (quota.used / quota.max) * 100)}%`,
+                    backgroundColor: atLimit ? 'rgb(239,68,68)' : quota.used / quota.max > 0.8 ? 'rgb(234,179,8)' : 'rgb(34,197,94)',
+                  }}
+                />
+              </div>
+              {atLimit && (
+                <p className="text-[11px]" style={{ color: 'rgb(239,68,68)' }}>
+                  Upgrade your plan to upload more documents.
+                </p>
+              )}
+            </div>
+          )}
           <p className="text-xs t3">
             Upload a PDF, TXT, DOCX, or CSV file. We&apos;ll extract the content and let you review it before it goes into the knowledge base.
           </p>
           <div
-            onDragOver={e => { e.preventDefault(); setFileDragging(true) }}
+            onDragOver={e => { if (!atLimit) { e.preventDefault(); setFileDragging(true) } }}
             onDragLeave={e => { e.preventDefault(); setFileDragging(false) }}
             onDrop={e => {
               e.preventDefault()
               setFileDragging(false)
+              if (atLimit) return
               const file = e.dataTransfer.files[0]
               if (file) handleDocFileUpload(file)
             }}
-            onClick={() => docFileInputRef.current?.click()}
-            className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 cursor-pointer transition-all ${
+            onClick={() => { if (!atLimit) docFileInputRef.current?.click() }}
+            className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-all ${
+              atLimit ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+            } ${
               fileDragging ? 'border-emerald-500 bg-emerald-500/5' : 'b-theme bg-surface hover:border-emerald-500/50'
             }`}
           >
@@ -151,6 +199,7 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
               type="file"
               accept=".pdf,.txt,.docx,.csv"
               className="hidden"
+              disabled={atLimit}
               onChange={e => {
                 const file = e.target.files?.[0]
                 if (file) handleDocFileUpload(file)

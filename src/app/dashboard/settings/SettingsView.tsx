@@ -241,6 +241,102 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </>
       )}
 
+      {/* ─── Quick Setup Strip (non-admin, non-trial, hides when all done) ─── */}
+      {!isAdmin && client.subscription_status !== 'trialing' && (() => {
+        const qsItems = [
+          {
+            key: 'voice',
+            label: 'Voice',
+            done: !!client.agent_voice_id,
+            tab: 'voice' as const,
+            icon: (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+              </svg>
+            ),
+          },
+          {
+            key: 'hours',
+            label: 'Hours',
+            done: !!(client.business_hours_weekday),
+            tab: 'general' as const,
+            icon: (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            ),
+          },
+          {
+            key: 'notifications',
+            label: 'Alerts',
+            done: !!(client.telegram_notifications_enabled || client.email_notifications_enabled),
+            tab: 'notifications' as const,
+            icon: (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            ),
+          },
+          {
+            key: 'knowledge',
+            label: 'Knowledge',
+            done: !!(client.knowledge_backend === 'pgvector' && (client.approved_knowledge_chunk_count ?? 0) > 0),
+            tab: 'knowledge' as const,
+            icon: (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            ),
+          },
+        ]
+        const doneCount = qsItems.filter(i => i.done).length
+        if (doneCount === qsItems.length) return null
+        return (
+          <div className="rounded-2xl border b-theme bg-surface p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Quick Setup</p>
+              <span className="text-[10px] t3 font-mono">{doneCount}/{qsItems.length} done</span>
+            </div>
+            <div className="h-1 rounded-full bg-hover mb-3 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(doneCount / qsItems.length) * 100}%`, backgroundColor: 'var(--color-primary)', opacity: 0.7 }}
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {qsItems.map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setActiveTab(item.tab)}
+                  className={`flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer ${
+                    item.done
+                      ? 'border-green-500/20 bg-green-500/[0.04]'
+                      : 'b-theme bg-hover hover:bg-surface'
+                  }`}
+                >
+                  <span className={`flex items-center justify-center w-6 h-6 rounded-full ${item.done ? 'bg-green-500/15' : 'bg-hover border b-theme'}`}>
+                    {item.done ? (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    ) : (
+                      <span className="t3">{item.icon}</span>
+                    )}
+                  </span>
+                  <span className={`text-[9px] font-medium text-center leading-tight ${item.done ? 'text-green-400/80' : 't3'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ─── Tab bar ─────────────────────────────────────────────────── */}
       <div className="border-b b-theme">
         <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
