@@ -124,9 +124,10 @@ function MiniCalendar({ bookedDates }: { bookedDates: Set<string> }) {
 
 interface Props {
   hasBooking: boolean
+  calendarConnected: boolean
 }
 
-export default function BookingCalendarTile({ hasBooking }: Props) {
+export default function BookingCalendarTile({ hasBooking, calendarConnected }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(hasBooking)
   const [tableVisible, setTableVisible] = useState(true)
@@ -210,7 +211,7 @@ export default function BookingCalendarTile({ hasBooking }: Props) {
         {/* Mini calendar — always visible; dots only when booking is live */}
         <MiniCalendar bookedDates={bookedDates} />
 
-        {/* Teaser state: booking not set up */}
+        {/* State: booking disabled */}
         {!hasBooking ? (
           <div className="flex flex-col items-center justify-center py-4 text-center gap-2">
             <p className="text-[12px] t2 font-medium">Let your agent book appointments</p>
@@ -223,6 +224,31 @@ export default function BookingCalendarTile({ hasBooking }: Props) {
               style={{ color: 'var(--color-primary)' }}
             >
               Set up booking →
+            </Link>
+          </div>
+        ) : !calendarConnected ? (
+          /* State: booking enabled but calendar not connected */
+          <div className="flex flex-col items-center justify-center py-4 text-center gap-2">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center mb-1"
+              style={{ backgroundColor: 'rgba(245,158,11,0.12)' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(245,158,11)' }}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <p className="text-[12px] t2 font-medium">Google Calendar not connected</p>
+            <p className="text-[11px] t3 max-w-[200px] leading-relaxed">
+              Your agent is ready to book — connect your calendar to activate it.
+            </p>
+            <Link
+              href="/dashboard/settings?tab=general"
+              className="mt-1 text-[11px] font-semibold hover:opacity-70 transition-opacity"
+              style={{ color: 'rgb(245,158,11)' }}
+            >
+              Connect Google Calendar →
             </Link>
           </div>
         ) : (

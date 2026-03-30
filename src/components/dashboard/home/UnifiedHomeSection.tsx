@@ -102,7 +102,7 @@ export default function UnifiedHomeSection({
   sheet,
   fetchData,
 }: Props) {
-  const { agent, capabilities, onboarding } = data
+  const { agent, capabilities, onboarding, calendarConnected } = data
   const { openUpgradeModal } = useUpgradeModal()
   const { resetCall } = useCallContext()
   const [activityOpen, setActivityOpen] = useState(data.recentCalls.length > 0)
@@ -136,6 +136,9 @@ export default function UnifiedHomeSection({
     }
     if (isTrial && !onboarding.hasPhoneNumber) {
       return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade →', href: null, onUpgrade: true }
+    }
+    if (capabilities.hasBooking && !calendarConnected) {
+      return { text: 'Connect Google Calendar so your agent can book appointments', cta: 'Connect →', href: '/dashboard/settings?tab=general' }
     }
     if (!onboarding.telegramConnected) {
       return { text: 'Get instant call alerts on Telegram', cta: 'Connect →', href: '/dashboard/settings?tab=notifications' }
@@ -454,7 +457,7 @@ export default function UnifiedHomeSection({
             />
           </div>
         ) : <div />}
-        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
       </div>
 
       {/* ── 2-col: CallHandling + BusinessHours ─────────────────── */}

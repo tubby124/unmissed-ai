@@ -508,7 +508,7 @@ export default function TrialActiveSection({
             />
           </div>
         ) : <div />}
-        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={data.calendarConnected} />
       </div>
 
       {/* ── 6. Compact 4-stat row ─────────────────────────────── */}

@@ -142,6 +142,7 @@ export interface HomeData {
     topics: string[]
   } | null
   lastFaqSuggestions?: { q: string; a: string }[] | null
+  calendarConnected: boolean
   agentHealth?: 'healthy' | 'degraded' | 'offline'
   gbpData?: {
     placeId: string | null

@@ -141,14 +141,6 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     };
   }, [data.businessName, data.niche]);
 
-  // Derive predicted agent name from pending place for the CTA button
-  const getPendingAgentName = (): string => {
-    if (!pendingPlace) return data.agentName || "your agent";
-    const detected = detectNicheFromTypes(pendingPlace.types);
-    if (detected && NICHE_PRODUCTION_READY[detected]) return defaultAgentNames[detected];
-    return defaultAgentNames["other"];
-  };
-
   const handleConfirm = () => {
     if (!pendingPlace) return;
     const updates: Partial<OnboardingData> = {};
@@ -206,8 +198,6 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     onUpdate(updates);
     trackEvent("onboard_manual_fallback", { niche: data.niche || "none" });
   };
-
-  const pendingAgentName = getPendingAgentName();
 
   return (
     <div className="space-y-5">
@@ -295,7 +285,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                   whileTap={{ scale: 0.97 }}
                   className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors cursor-pointer"
                 >
-                  Train {pendingAgentName} ✨
+                  Use this business ✨
                 </motion.button>
                 <button
                   type="button"

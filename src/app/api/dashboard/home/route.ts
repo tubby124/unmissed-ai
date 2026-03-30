@@ -341,6 +341,7 @@ export async function GET(request: Request) {
     },
     lastCallTopics,
     lastFaqSuggestions,
+    calendarConnected: (c.calendar_auth_status as string | null) === 'connected',
     gbpData: {
       placeId: (c.gbp_place_id as string | null) ?? null,
       summary: (c.gbp_summary as string | null) ?? null,
