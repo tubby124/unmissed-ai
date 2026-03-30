@@ -66,10 +66,10 @@ import Step2VoicePreview from '../steps/step2-voice-preview'
 import StepPlan from '../steps/step-plan'
 import Step3Capabilities from '../steps/step3-capabilities'
 import Step4Schedule from '../steps/step4-schedule'
+import Step4Knowledge from '../steps/step4'
 import Step6Activate from '../steps/step6-activate'
 // Inactive steps (not currently in the flow):
 // import Step2Job from '../steps/step2-job'         ← merged into Step3Capabilities (same question)
-// import Step4Knowledge from '../steps/step4'        ← knowledge upload (removed from trial flow)
 
 export const STEP_DEFS: StepDef[] = [
   {
@@ -90,6 +90,11 @@ export const STEP_DEFS: StepDef[] = [
   {
     label: 'Schedule',
     component: Step4Schedule,
+    canAdvance: () => true,
+  },
+  {
+    label: 'Train your agent',
+    component: Step4Knowledge,
     canAdvance: () => true,
   },
   {

@@ -8,6 +8,13 @@ import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 import RealEstateNiche from "./niches/real-estate";
 import VoicemailNiche from "./niches/voicemail";
 import RestaurantNiche from "./niches/restaurant";
+import PropertyManagementNiche from "./niches/property-management";
+import SalonNiche from "./niches/salon";
+import PlumbingNiche from "./niches/plumbing";
+import DentalNiche from "./niches/dental";
+import HvacNiche from "./niches/hvac";
+import LegalNiche from "./niches/legal";
+import AutoGlassNiche from "./niches/auto-glass";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 interface Props {
@@ -19,6 +26,13 @@ const NICHE_COMPONENTS: Partial<Record<Niche, React.ComponentType<{ data: Onboar
   real_estate: RealEstateNiche,
   voicemail: VoicemailNiche,
   restaurant: RestaurantNiche,
+  property_management: PropertyManagementNiche,
+  salon: SalonNiche,
+  plumbing: PlumbingNiche,
+  dental: DentalNiche,
+  hvac: HvacNiche,
+  legal: LegalNiche,
+  auto_glass: AutoGlassNiche,
 };
 
 const ACCEPTED_TYPES = [

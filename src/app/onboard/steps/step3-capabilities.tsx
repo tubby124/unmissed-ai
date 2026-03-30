@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { OnboardingData } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Inbox, HelpCircle, CalendarCheck, PhoneForwarded, Check, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Inbox, HelpCircle, CalendarCheck, PhoneForwarded, Check, MessageSquare, PhoneCall } from "lucide-react";
 
 type AgentModeId = 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking';
 
@@ -65,6 +66,7 @@ interface Props {
 export default function Step3Capabilities({ data, onUpdate }: Props) {
   const currentMode: AgentModeId = data.agentMode ?? 'lead_capture';
   const forwardingEnabled = data.callForwardingEnabled ?? false;
+  const ivrEnabled = data.ivrEnabled ?? false;
   // Pro plan or no plan selected yet (trial/pre-selection) — both get full access
   const isPro = data.selectedPlan === "pro" || data.selectedPlan === null;
 
@@ -252,6 +254,76 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                   />
                   <p className="text-xs text-muted-foreground">
                     Urgent calls will be transferred here.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* IVR phone menu toggle */}
+        <div
+          className={[
+            "mt-3 rounded-xl border p-4 transition-all",
+            ivrEnabled
+              ? "border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20"
+              : "border-border bg-card",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <PhoneCall className="w-4 h-4 text-indigo-500" />
+                  Phone Menu (IVR)
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Callers hear a short menu first: press 1 to leave a voicemail, press 2 to speak with your agent.
+              </p>
+            </div>
+            {/* Toggle */}
+            <button
+              type="button"
+              onClick={() => onUpdate({ ivrEnabled: !ivrEnabled })}
+              className={[
+                "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors cursor-pointer",
+                ivrEnabled ? "bg-indigo-600" : "bg-muted",
+              ].join(" ")}
+              aria-checked={ivrEnabled}
+              role="switch"
+            >
+              <span
+                className={[
+                  "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200",
+                  ivrEnabled ? "translate-x-4" : "translate-x-0",
+                ].join(" ")}
+              />
+            </button>
+          </div>
+
+          {/* Custom IVR prompt — slides in when toggled */}
+          <AnimatePresence>
+            {ivrEnabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 space-y-1.5">
+                  <Label htmlFor="ivrPrompt">Menu message <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Textarea
+                    id="ivrPrompt"
+                    value={data.ivrPrompt}
+                    onChange={(e) => onUpdate({ ivrPrompt: e.target.value })}
+                    placeholder="Thanks for calling! Press 1 to leave a voicemail, or press 2 to speak with our assistant."
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to use the default message. You can edit this any time from your dashboard.
                   </p>
                 </div>
               </motion.div>
