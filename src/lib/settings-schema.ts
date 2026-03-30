@@ -96,6 +96,12 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
+  // ── Outbound calling structured fields ───────────────────────────────────
+  outbound_goal:       { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_opening:    { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_vm_script:  { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_tone:       { mutationClass: 'DB_ONLY', triggersSync: false },
+
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
   telegram_bot_token:      { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -203,6 +209,10 @@ export const settingsBodySchema = z.object({
 
   // Outbound calling
   outbound_prompt: z.union([z.string(), z.null()]).optional(),
+  outbound_goal: z.union([z.string(), z.null()]).optional(),
+  outbound_opening: z.union([z.string(), z.null()]).optional(),
+  outbound_vm_script: z.union([z.string(), z.null()]).optional(),
+  outbound_tone: z.enum(['warm', 'professional', 'direct']).optional(),
 
   // Admin-only: God Mode
   telegram_bot_token: z.string().min(1).optional(),
@@ -339,6 +349,23 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   if (body.outbound_prompt !== undefined) {
     const val = typeof body.outbound_prompt === 'string' ? body.outbound_prompt.trim() : null
     updates.outbound_prompt = val || null
+  }
+
+  // Outbound structured fields — assembled into outbound_prompt by OutboundAgentConfigCard
+  if (body.outbound_goal !== undefined) {
+    const val = typeof body.outbound_goal === 'string' ? body.outbound_goal.trim() : null
+    updates.outbound_goal = val || null
+  }
+  if (body.outbound_opening !== undefined) {
+    const val = typeof body.outbound_opening === 'string' ? body.outbound_opening.trim() : null
+    updates.outbound_opening = val || null
+  }
+  if (body.outbound_vm_script !== undefined) {
+    const val = typeof body.outbound_vm_script === 'string' ? body.outbound_vm_script.trim() : null
+    updates.outbound_vm_script = val || null
+  }
+  if (body.outbound_tone !== undefined) {
+    updates.outbound_tone = body.outbound_tone
   }
 
   // system_prompt — validated separately (may be overwritten by prompt patchers)

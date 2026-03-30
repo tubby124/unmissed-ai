@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { id, status, notes } = body
+  const { id, status, notes, scheduled_callback_at } = body
 
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
 
@@ -100,6 +100,7 @@ export async function PATCH(req: NextRequest) {
   if (status) updates.status = status
   if (status === 'called') updates.last_called_at = new Date().toISOString()
   if (notes !== undefined) updates.notes = notes
+  if (scheduled_callback_at !== undefined) updates.scheduled_callback_at = scheduled_callback_at
 
   const { data, error } = await supabase
     .from('campaign_leads')

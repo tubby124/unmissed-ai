@@ -50,7 +50,7 @@ export default async function LeadsPage() {
 
     const { data: leadsRaw } = await supabase
       .from('campaign_leads')
-      .select('id, client_id, phone, name, status, notes, added_at, last_called_at, clients(business_name)')
+      .select('id, client_id, phone, name, status, notes, added_at, last_called_at, call_count, disposition, last_call_log_id, scheduled_callback_at, clients(business_name)')
       .order('added_at', { ascending: false })
 
     const leads = (leadsRaw ?? []).map(l => ({
@@ -76,13 +76,13 @@ export default async function LeadsPage() {
   const [{ data: clientRow }, { data: leadsRaw }, { data: callsRaw }] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, slug, business_name, outbound_prompt, twilio_number')
+      .select('id, slug, business_name, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number')
       .eq('id', clientId)
       .single(),
 
     supabase
       .from('campaign_leads')
-      .select('id, client_id, phone, name, status, notes, added_at, last_called_at')
+      .select('id, client_id, phone, name, status, notes, added_at, last_called_at, call_count, disposition, last_call_log_id, scheduled_callback_at')
       .eq('client_id', clientId)
       .order('added_at', { ascending: false }),
 
@@ -110,7 +110,12 @@ export default async function LeadsPage() {
       {/* Outbound agent configuration */}
       <OutboundConfigWrapper
         initialOutboundPrompt={(clientRow?.outbound_prompt as string | null) ?? null}
+        initialOutboundGoal={(clientRow?.outbound_goal as string | null) ?? null}
+        initialOutboundOpening={(clientRow?.outbound_opening as string | null) ?? null}
+        initialOutboundVmScript={(clientRow?.outbound_vm_script as string | null) ?? null}
+        initialOutboundTone={((clientRow?.outbound_tone as string | null) ?? 'warm') as 'warm' | 'professional' | 'direct'}
         hasPhoneNumber={!!(clientRow?.twilio_number)}
+        clientId={clientRow?.id as string}
       />
 
       {/* Outbound call queue */}

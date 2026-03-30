@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
-import { Phone, Plus, ExternalLink, CalendarCheck, Loader2 } from 'lucide-react'
+import { Phone, Plus, ExternalLink, CalendarCheck, Loader2, PhoneCall, PhoneOff, Voicemail } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog'
 import { slaTag } from '@/lib/utils/sla'
 
+type Disposition = 'answered' | 'vm' | 'no-answer' | null
+
 interface Lead {
   id: string
   client_id: string | null
@@ -27,6 +29,10 @@ interface Lead {
   notes: string | null
   added_at: string
   last_called_at: string | null
+  call_count: number | null
+  disposition: Disposition
+  last_call_log_id: string | null
+  scheduled_callback_at: string | null
   clients: { business_name: string } | null
 }
 
@@ -50,6 +56,12 @@ const STATUS_CLS: Record<Tab, string> = {
   dnc: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
+const DISPOSITION_CONFIG: Record<NonNullable<Disposition>, { label: string; cls: string; Icon: React.FC<{ className?: string }> }> = {
+  answered: { label: 'Answered', cls: 'bg-green-500/10 text-green-400 border-green-500/20', Icon: PhoneCall },
+  vm: { label: 'Voicemail', cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', Icon: Voicemail },
+  'no-answer': { label: 'No answer', cls: 'bg-red-500/10 text-red-400 border-red-500/20', Icon: PhoneOff },
+}
+
 function timeAgo(iso: string | null) {
   if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
@@ -62,6 +74,12 @@ function timeAgo(iso: string | null) {
   return 'just now'
 }
 
+// Format datetime-local value from ISO string
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return ''
+  return new Date(iso).toISOString().slice(0, 16)
+}
+
 interface LeadQueueProps {
   initialLeads: Lead[]
   clients: ClientInfo[]
@@ -72,8 +90,13 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
   const [tab, setTab] = useState<Tab>('queued')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialing, setDialing] = useState<Set<string>>(new Set())
+  const [bulkDialing, setBulkDialing] = useState(false)
+  const [bulkDialProgress, setBulkDialProgress] = useState<{ current: number; total: number } | null>(null)
   const [detailLead, setDetailLead] = useState<Lead | null>(null)
   const [editNotes, setEditNotes] = useState('')
+  const [editCallback, setEditCallback] = useState('')
+  const [callSummary, setCallSummary] = useState<string | null>(null)
+  const [loadingSummary, setLoadingSummary] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [addPhone, setAddPhone] = useState('')
   const [addName, setAddName] = useState('')
@@ -105,6 +128,17 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Load call summary when detail dialog opens and lead has a last_call_log_id
+  useEffect(() => {
+    if (!detailLead?.last_call_log_id) { setCallSummary(null); return }
+    setLoadingSummary(true)
+    fetch(`/api/dashboard/leads/call-summary?call_log_id=${detailLead.last_call_log_id}`)
+      .then(r => r.json())
+      .then(d => setCallSummary(d.ai_summary ?? null))
+      .catch(() => setCallSummary(null))
+      .finally(() => setLoadingSummary(false))
+  }, [detailLead?.last_call_log_id])
 
   const filtered = leads.filter(l => l.status === tab)
   const allSelected = filtered.length > 0 && filtered.every(l => selected.has(l.id))
@@ -152,12 +186,17 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       const res = await fetch('/api/dashboard/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: detailLead.id, notes: editNotes }),
+        body: JSON.stringify({
+          id: detailLead.id,
+          notes: editNotes,
+          scheduled_callback_at: editCallback ? new Date(editCallback).toISOString() : null,
+        }),
       })
       if (res.ok) {
         const { lead } = await res.json()
         setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...lead } : l))
-        setDetailLead(prev => prev ? { ...prev, notes: lead.notes } : prev)
+        setDetailLead(prev => prev ? { ...prev, notes: lead.notes, scheduled_callback_at: lead.scheduled_callback_at } : prev)
+        toast.success('Saved')
       }
     } finally {
       setSavingNotes(false)
@@ -184,10 +223,42 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       } else {
         toast.success('Dialing…')
       }
-      // Realtime subscription will update lead status
     } finally {
       setDialing(prev => { const s = new Set(prev); s.delete(lead.id); return s })
     }
+  }
+
+  async function bulkDial() {
+    const ids = filtered.filter(l => selected.has(l.id)).map(l => l.id)
+    if (ids.length === 0) return
+    setBulkDialing(true)
+    setBulkDialProgress({ current: 0, total: ids.length })
+    setSelected(new Set())
+    let done = 0
+    for (const id of ids) {
+      const lead = leads.find(l => l.id === id)
+      if (!lead) { done++; continue }
+      setBulkDialProgress({ current: done + 1, total: ids.length })
+      toast.loading(`Dialing ${lead.name ?? lead.phone} (${done + 1} of ${ids.length})…`, { id: 'bulk-dial' })
+      setDialing(prev => new Set(prev).add(id))
+      const res = await fetch('/api/dashboard/leads/dial-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: id }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Failed' }))
+        toast.error(`${lead.name ?? lead.phone}: ${error ?? 'Failed'}`)
+      }
+      setDialing(prev => { const s = new Set(prev); s.delete(id); return s })
+      done++
+      // Small pause between dials to avoid hammering
+      if (done < ids.length) await new Promise(r => setTimeout(r, 1500))
+    }
+    toast.dismiss('bulk-dial')
+    toast.success(`Queued ${ids.length} call${ids.length === 1 ? '' : 's'}`)
+    setBulkDialing(false)
+    setBulkDialProgress(null)
   }
 
   async function addLead(e: React.FormEvent) {
@@ -252,20 +323,22 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                   style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Assign to</label>
-                <select
-                  value={addClientId}
-                  onChange={e => setAddClientId(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
-                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
-                >
-                  <option value="">— any —</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.business_name}</option>
-                  ))}
-                </select>
-              </div>
+              {clients.length > 1 && (
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Assign to</label>
+                  <select
+                    value={addClientId}
+                    onChange={e => setAddClientId(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
+                    style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+                  >
+                    <option value="">— any —</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.business_name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-[11px] font-medium" style={{ color: 'var(--color-text-3)' }}>Notes</label>
@@ -288,7 +361,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       </Dialog>
 
       {/* Contact Detail Dialog */}
-      <Dialog open={!!detailLead} onOpenChange={open => { if (!open) setDetailLead(null) }}>
+      <Dialog open={!!detailLead} onOpenChange={open => { if (!open) { setDetailLead(null); setCallSummary(null) } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{detailLead?.name ?? detailLead?.phone}</DialogTitle>
@@ -296,20 +369,70 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
               {detailLead?.phone}
               {detailLead?.clients ? ` · ${detailLead.clients.business_name}` : ''}
               {' · Added '}{timeAgo(detailLead?.added_at ?? null)}
+              {detailLead?.call_count ? ` · ${detailLead.call_count} call${detailLead.call_count === 1 ? '' : 's'}` : ''}
             </DialogDescription>
           </DialogHeader>
           {detailLead && (
             <div className="space-y-4 text-sm mt-1">
-              {/* Status badges */}
+              {/* Status + disposition badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_CLS[detailLead.status]}`}>
                   {STATUS_LABEL[detailLead.status]}
                 </span>
+                {detailLead.disposition && (() => {
+                  const d = DISPOSITION_CONFIG[detailLead.disposition]
+                  return (
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${d.cls}`}>
+                      <d.Icon className="h-3 w-3" />
+                      {d.label}
+                    </span>
+                  )
+                })()}
                 {detailLead.last_called_at && (
                   <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
                     Last called {timeAgo(detailLead.last_called_at)}
                   </span>
                 )}
+              </div>
+
+              {/* Call summary */}
+              {detailLead.last_call_log_id && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--color-text-3)' }}>
+                    Last Call Summary
+                  </p>
+                  {loadingSummary ? (
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-3)' }}>
+                      <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+                    </div>
+                  ) : callSummary ? (
+                    <p
+                      className="text-[12px] leading-relaxed rounded-lg p-2.5"
+                      style={{ backgroundColor: 'var(--color-surface-raised)', color: 'var(--color-text-2)' }}
+                    >
+                      {callSummary}
+                    </p>
+                  ) : (
+                    <p className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>No summary available</p>
+                  )}
+                </div>
+              )}
+
+              {/* Scheduled callback */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--color-text-3)' }}>
+                  Scheduled Callback
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editCallback}
+                  onChange={e => setEditCallback(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+                />
+                <p className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>
+                  Optional — sets a reminder to follow up at this time.
+                </p>
               </div>
 
               {/* Notes */}
@@ -360,7 +483,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
               Dial
             </Button>
             <Button onClick={saveNotes} disabled={savingNotes}>
-              {savingNotes ? 'Saving…' : 'Save Notes'}
+              {savingNotes ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -410,10 +533,22 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
         {/* Bulk action bar */}
         {someSelected && (
           <div
-            className="flex items-center gap-3 px-4 py-2 border-b text-xs"
+            className="flex items-center gap-3 px-4 py-2 border-b text-xs flex-wrap"
             style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-hover)' }}
           >
             <span style={{ color: 'var(--color-text-2)' }}>{selectedCount} selected</span>
+            {tab === 'queued' && (
+              <button
+                onClick={bulkDial}
+                disabled={bulkDialing}
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-40 flex items-center gap-1"
+              >
+                {bulkDialing
+                  ? <><Loader2 className="h-3 w-3 animate-spin" /> Dialing {bulkDialProgress?.current}/{bulkDialProgress?.total}…</>
+                  : <><Phone className="h-3 w-3" /> Dial selected</>
+                }
+              </button>
+            )}
             {tab !== 'called' && (
               <button
                 onClick={() => bulkUpdateStatus('called')}
@@ -475,9 +610,11 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                   </TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Client</TableHead>
+                  {clients.length > 1 && <TableHead>Client</TableHead>}
                   <TableHead>Added</TableHead>
                   {tab === 'called' && <TableHead>Last Called</TableHead>}
+                  {tab === 'called' && <TableHead>Disposition</TableHead>}
+                  {tab === 'queued' && <TableHead>Callback</TableHead>}
                   <TableHead>SLA</TableHead>
                   <TableHead className="text-right pr-4">Actions</TableHead>
                 </TableRow>
@@ -486,6 +623,7 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                 {filtered.map(lead => {
                   const tag = slaTag(lead.added_at)
                   const isChecked = selected.has(lead.id)
+                  const disp = lead.disposition ? DISPOSITION_CONFIG[lead.disposition] : null
                   return (
                     <TableRow
                       key={lead.id}
@@ -512,11 +650,13 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                           {lead.phone}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-                          {lead.clients?.business_name ?? '—'}
-                        </span>
-                      </TableCell>
+                      {clients.length > 1 && (
+                        <TableCell>
+                          <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                            {lead.clients?.business_name ?? '—'}
+                          </span>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
                           {timeAgo(lead.added_at)}
@@ -526,7 +666,34 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                         <TableCell>
                           <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
                             {timeAgo(lead.last_called_at)}
+                            {lead.call_count && lead.call_count > 1
+                              ? <span className="ml-1 opacity-60">×{lead.call_count}</span>
+                              : null
+                            }
                           </span>
+                        </TableCell>
+                      )}
+                      {tab === 'called' && (
+                        <TableCell>
+                          {disp ? (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 w-fit ${disp.cls}`}>
+                              <disp.Icon className="h-3 w-3" />
+                              {disp.label}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {tab === 'queued' && (
+                        <TableCell>
+                          {lead.scheduled_callback_at ? (
+                            <span className="text-[10px] font-mono text-yellow-400">
+                              {new Date(lead.scheduled_callback_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                          )}
                         </TableCell>
                       )}
                       <TableCell>
@@ -552,7 +719,11 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                             }
                           </button>
                           <button
-                            onClick={() => { setDetailLead(lead); setEditNotes(lead.notes ?? '') }}
+                            onClick={() => {
+                              setDetailLead(lead)
+                              setEditNotes(lead.notes ?? '')
+                              setEditCallback(toDatetimeLocal(lead.scheduled_callback_at))
+                            }}
                             className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
                             style={{ color: 'var(--color-text-3)' }}
                             title="View / edit"

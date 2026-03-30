@@ -29,6 +29,7 @@ import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 import PromptSuggestionsCard from '@/components/dashboard/settings/PromptSuggestionsCard'
 import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard'
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
+import OutboundAgentConfigCard from '@/components/dashboard/OutboundAgentConfigCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import ServicesOfferedCard from '@/components/dashboard/settings/ServicesOfferedCard'
@@ -637,6 +638,16 @@ export default function AgentTab({
           isAdmin={isAdmin}
           onRestore={(content) => setPrompt(prev => ({ ...prev, [client.id]: content }))}
         />
+        <OutboundAgentConfigCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          hasPhoneNumber={!!client.twilio_number}
+          initialOutboundPrompt={client.outbound_prompt ?? null}
+          initialGoal={client.outbound_goal ?? null}
+          initialOpening={client.outbound_opening ?? null}
+          initialVmScript={client.outbound_vm_script ?? null}
+          initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
+        />
       </SettingsSection>
     )}
 
@@ -658,6 +669,16 @@ export default function AgentTab({
           prompt={prompt[client.id] ?? ''}
           onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
           previewMode={previewMode}
+        />
+        <OutboundAgentConfigCard
+          clientId={client.id}
+          isAdmin={false}
+          hasPhoneNumber={!!client.twilio_number}
+          initialOutboundPrompt={client.outbound_prompt ?? null}
+          initialGoal={client.outbound_goal ?? null}
+          initialOpening={client.outbound_opening ?? null}
+          initialVmScript={client.outbound_vm_script ?? null}
+          initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
         />
       </SettingsSection>
     )}
