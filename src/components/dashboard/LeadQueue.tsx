@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { motion } from 'motion/react'
+import { toast } from 'sonner'
 import { Phone, Plus, ExternalLink, CalendarCheck, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -179,7 +180,9 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
       })
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: 'Dial failed' }))
-        alert(error ?? 'Dial failed')
+        toast.error(error ?? 'Dial failed')
+      } else {
+        toast.success('Dialing…')
       }
       // Realtime subscription will update lead status
     } finally {

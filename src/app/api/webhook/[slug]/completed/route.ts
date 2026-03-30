@@ -240,6 +240,23 @@ export async function POST(
       // Call log row ID for notification_logs FK
       const callLogId = updatedRows?.[0]?.id ?? null
 
+      // ── Outbound lead disposition write-back ────────────────────────────────
+      if (metadata.source === 'outbound' && metadata.lead_id) {
+        const rawStatus = classification.status as string
+        const disposition =
+          rawStatus === 'MISSED' || endReason === 'unjoined' ? 'no-answer'
+          : rawStatus === 'VOICEMAIL' ? 'vm'
+          : 'answered'
+        await supabase
+          .from('campaign_leads')
+          .update({
+            disposition,
+            last_call_log_id: callLogId,
+          })
+          .eq('id', metadata.lead_id)
+        console.log(`[completed] outbound lead ${metadata.lead_id} disposition=${disposition}`)
+      }
+
       // ── Ops alert for system failures (skip for test calls) ──────────────────
       if (!isTestCall && (endReason === 'connection_error' || endReason === 'system_error')) {
         if (client.telegram_bot_token && client.telegram_chat_id) {
