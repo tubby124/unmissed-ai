@@ -244,7 +244,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                       type="text"
                       value={question}
                       onChange={e => setQuestion(e.target.value)}
-                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500/50 transition-colors"
+                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[var(--color-border-focus)] transition-colors"
                       style={{
                         backgroundColor: 'transparent',
                         borderColor: 'var(--color-border)',
@@ -278,7 +278,7 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                       placeholder={suggesting ? 'Generating suggestion…' : 'Type the answer your agent should give...'}
                       disabled={suggesting}
                       rows={3}
-                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500/50 resize-none transition-colors disabled:opacity-50"
+                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[var(--color-border-focus)] resize-none transition-colors disabled:opacity-50"
                       style={{
                         backgroundColor: 'transparent',
                         borderColor: aiSuggested && !suggesting ? 'rgba(99,102,241,0.3)' : 'var(--color-border)',
@@ -297,7 +297,8 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                     <button
                       onClick={handleSave}
                       disabled={saving || suggesting || !question.trim() || !answer.trim()}
-                      className="px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40 cursor-pointer"
+                      className="px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-40 cursor-pointer"
+                      style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                     >
                       {saving ? 'Saving...' : 'Save as FAQ'}
                     </button>

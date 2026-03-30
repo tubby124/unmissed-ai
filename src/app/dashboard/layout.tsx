@@ -3,18 +3,21 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
-import MobileNav from '@/components/dashboard/MobileNav'
 import ActivityFeed from '@/components/dashboard/ActivityFeed'
 import ForwardingBanner from '@/components/dashboard/ForwardingBanner'
-import FloatingAdvisorBubble from '@/components/advisor/FloatingAdvisorBubble'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
+import TabBar from '@/components/dashboard/TabBar'
+import BottomTabBar from '@/components/dashboard/BottomTabBar'
+import ActivitySubNav from '@/components/dashboard/ActivitySubNav'
+import DashboardShellClient from '@/components/dashboard/DashboardShellClient'
+import { RouteLoadingBar } from '@/components/dashboard/RouteLoadingBar'
+import { PageTransition } from '@/components/dashboard/PageTransition'
 import { AdminClientProvider } from '@/contexts/AdminClientContext'
 import { CallProvider } from '@/contexts/CallContext'
 import { UpgradeModalProvider } from '@/contexts/UpgradeModalContext'
 import UpgradeModal from '@/components/dashboard/UpgradeModal'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
-import GuidedTour from '@/components/dashboard/GuidedTour'
 import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -33,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let twilioNumber: string | null = null
   let clientNiche: string | null = null
   let adminClients: { id: string; slug: string; business_name: string; niche: string | null; status: string | null; twilio_number: string | null }[] = []
+  let failedNotifCount = 0
 
   if (user) {
     const { data: cuRows } = await supabase
@@ -73,6 +77,18 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         twilio_number: (c as Record<string, unknown>).twilio_number as string | null ?? null,
       }))
     }
+
+    // Server-side failed notification count for TopBar bell badge
+    if (clientId && !isAdmin) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count } = await supabase
+        .from('notification_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('status', 'failed')
+        .gte('created_at', since)
+      failedNotifCount = count ?? 0
+    }
   }
 
   // Auto-redirect setup-status clients to /dashboard/setup unless they're already there
@@ -84,33 +100,67 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }
   }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-page t1">
-      {/* Mobile top bar */}
-      <MobileNav businessName={businessName} isAdmin={isAdmin} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} niche={clientNiche} />
+  const isTrialing = subscriptionStatus === 'trialing'
 
-      {!isAdmin && !setupComplete && clientStatus === 'active' && subscriptionStatus !== 'trialing' && (
-        <ForwardingBanner twilioNumber={twilioNumber} />
-      )}
+  return (
+    <div className="h-dvh flex flex-col overflow-hidden bg-page t1">
+      {/* Route loading bar — fixed at absolute top edge */}
+      <Suspense>
+        <RouteLoadingBar />
+      </Suspense>
+
+      {/* Universal top bar (all screen sizes) */}
+      <DashboardShellClient
+        businessName={businessName}
+        isAdmin={isAdmin}
+        failedNotifCount={failedNotifCount}
+        userEmail={user?.email ?? undefined}
+      />
 
       <Suspense>
         <UpgradeModalProvider>
         <CallProvider>
           <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
-            <div className="flex flex-1 relative overflow-hidden">
-              {/* Desktop sidebar */}
-              <Sidebar businessName={businessName} isAdmin={isAdmin} clientId={clientId} setupIncomplete={!isAdmin && clientStatus === 'setup'} telegramConnected={telegramConnected} niche={clientNiche} clientStatus={clientStatus} subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} initialCollapsed={false} userEmail={user?.email ?? undefined} />
+            {/* Desktop tab bar — sticky below TopBar */}
+            <TabBar isAdmin={isAdmin} clientId={clientId} failedNotifCount={failedNotifCount} />
 
-              {/* Main content */}
-              <main className="flex-1 min-w-0 overflow-y-auto">
+            {/* Forwarding banner — below TabBar so TabBar y-position stays constant */}
+            {!isAdmin && !setupComplete && clientStatus === 'active' && subscriptionStatus !== 'trialing' && (
+              <ForwardingBanner twilioNumber={twilioNumber} />
+            )}
+
+            <div className="flex flex-1 min-h-0 relative overflow-hidden">
+              {/* Sidebar — kept for safety, hidden from view */}
+              <div className="hidden" aria-hidden="true">
+              <Sidebar
+                businessName={businessName}
+                isAdmin={isAdmin}
+                clientId={clientId}
+                setupIncomplete={!isAdmin && clientStatus === 'setup'}
+                telegramConnected={telegramConnected}
+                niche={clientNiche}
+                clientStatus={clientStatus}
+                subscriptionStatus={subscriptionStatus}
+                trialExpiresAt={trialExpiresAt}
+                initialCollapsed={false}
+                userEmail={user?.email ?? undefined}
+              />
+              </div>
+
+              {/* Main content — pb-16 on mobile to clear fixed BottomTabBar */}
+              <main className="flex-1 min-w-0 overflow-y-auto pb-16 lg:pb-0 dashboard-main">
                 <AdminCommandStrip />
-                {children}
-                <FloatingAdvisorBubble isAdmin={isAdmin} />
+                {/* Activity sub-nav — only visible on Activity routes */}
+                <ActivitySubNav isTrialing={isTrialing} />
+                <PageTransition>{children}</PageTransition>
               </main>
 
               {/* Activity feed — XL+ right panel — admin only */}
               {isAdmin && <ActivityFeed isAdmin={isAdmin} clientId={clientId} />}
             </div>
+
+            {/* Mobile bottom tab bar */}
+            <BottomTabBar />
           </AdminClientProvider>
           <FloatingCallOrb />
           <UpgradeModal />
@@ -119,7 +169,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </Suspense>
       <DashboardToaster />
       <RealtimeToasts clientId={clientId} isAdmin={isAdmin} />
-      {!isAdmin && <GuidedTour />}
     </div>
   )
 }

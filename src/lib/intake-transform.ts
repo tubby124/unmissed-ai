@@ -190,6 +190,7 @@ export function toIntakePayload(data: OnboardingData) {
 
     hours_weekend: hoursWeekend,
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
+    ...(data.nicheCustomVariables ? { niche_custom_variables: data.nicheCustomVariables } : {}),
     // Niche-specific context_data wiring (only one niche active at a time)
     ...(data.niche === 'restaurant' && data.nicheAnswers?.menuData
       ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }

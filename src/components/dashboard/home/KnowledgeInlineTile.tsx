@@ -7,11 +7,6 @@ import { ChevronDown, ChevronUp, ExternalLink, X, Plus } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface StatsData {
-  approved: number
-  bySource: Record<string, number>
-}
-
 interface Chunk {
   id: string
   content: string
@@ -40,9 +35,9 @@ const SOURCE_DEFS: SourceDef[] = [
     label: 'Website',
     sources: ['website_scrape'],
     primarySource: 'website_scrape',
-    addHref: '/dashboard/knowledge?tab=add&source=website',
-    manageHref: '/dashboard/knowledge',
-    canAdd: false,
+    addHref: '/dashboard/settings?tab=knowledge',
+    manageHref: '/dashboard/settings?tab=knowledge',
+    canAdd: true,
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
@@ -278,24 +273,16 @@ interface Props {
 }
 
 export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
-  const [stats, setStats] = useState<StatsData | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/dashboard/knowledge/stats')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setStats(data) })
-      .catch(() => {})
-  }, [])
-
-  const bySource = stats?.bySource ?? {}
+  const activeSourceTypes = new Set(knowledgeStats.source_types)
 
   const entries = SOURCE_DEFS.map(def => {
-    const count = def.sources.reduce((sum, s) => sum + (bySource[s] ?? 0), 0)
-    return { ...def, count }
+    const isActive = def.sources.some(s => activeSourceTypes.has(s))
+    return { ...def, count: isActive ? 1 : 0 }
   })
 
-  const totalApproved = stats?.approved ?? knowledgeStats.approved_chunk_count
+  const totalApproved = knowledgeStats.approved_chunk_count
 
   function toggle(id: string) {
     setExpandedId(prev => prev === id ? null : id)
@@ -396,7 +383,7 @@ export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
       </div>
 
       {/* Empty state */}
-      {totalApproved === 0 && !stats && (
+      {totalApproved === 0 && (
         <div className="px-5 py-6 text-center">
           <p className="text-[12px] t3">No knowledge added yet</p>
           <Link

@@ -227,7 +227,8 @@ export default function AutoFaqSuggestions({ clientId, suggestions }: AutoFaqSug
                 <button
                   onClick={() => handleAdd(s, i)}
                   disabled={isSaving || savingIndex !== null || addingAll}
-                  className="px-3 py-1 rounded-lg text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40 cursor-pointer"
+                  className="px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-40 cursor-pointer"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                 >
                   {isSaving ? 'Adding…' : 'Add as FAQ'}
                 </button>

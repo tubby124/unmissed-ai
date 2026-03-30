@@ -221,7 +221,7 @@ export default function CallHandlingTile({
       {/* Upgrade nudge for not-on-plan items */}
       {rows.some(r => r.state === 'not-on-plan') && (
         <a
-          href="/dashboard/settings?tab=billing"
+          href="/dashboard/billing"
           className="text-[11px] font-semibold self-start"
           style={{ color: 'var(--color-primary)' }}
         >

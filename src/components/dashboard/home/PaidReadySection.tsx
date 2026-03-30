@@ -10,16 +10,16 @@ import BillingTile from './BillingTile'
 import CapabilitiesCard from '../CapabilitiesCard'
 import NotificationsTile from './NotificationsTile'
 import StatsHeroCard from './StatsHeroCard'
-import TeachAgentCard from './TeachAgentCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import KnowledgeSourcesTile from './KnowledgeSourcesTile'
 import NicheInsightsTile from './NicheInsightsTile'
-import AgentContextPreviewTile from './AgentContextPreviewTile'
 import BookingCalendarTile from './BookingCalendarTile'
 import KnowledgeInlineTile from './KnowledgeInlineTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
 import IvrVoicemailTile from './IvrVoicemailTile'
 import PostCallActionsTile from './PostCallActionsTile'
+import CallHandlingTile from './CallHandlingTile'
+import BusinessHoursTile from './BusinessHoursTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -84,37 +84,26 @@ interface Props {
   hasRealCalls: boolean
   lastCompletedCall: HomeData['recentCalls'][0] | null
   sheet: ReturnType<typeof useHomeSheet>
+  fetchData: () => void
 }
 
 // ── Component ────────────────────────────────────────────────────
 export default function PaidReadySection({
   data,
   sheet,
+  fetchData,
 }: Props) {
   const { agent, capabilities, onboarding } = data
   const { openUpgradeModal } = useUpgradeModal()
-const [knowOpen, setKnowOpen] = useState(false)
   const [activityOpen, setActivityOpen] = useState(false)
   const [syncDismissed, setSyncDismissed] = useState(false)
   const [hotDismissed, setHotDismissed] = useState(false)
 
   // ── Derived summary values ───────────────────────────────────
-  const knowledgeSources = data.knowledge.source_types
   const faqCount = data.editableFields.faqs.length
-  const knowledgeItemCount = data.knowledge.approved_chunk_count + faqCount
-  const knowledgeSummaryText = (() => {
-    if (knowledgeItemCount === 0 && !data.editableFields.businessFacts) return 'Nothing added yet'
-    const parts: string[] = []
-    if (knowledgeItemCount > 0) parts.push(`${knowledgeItemCount} item${knowledgeItemCount !== 1 ? 's' : ''}`)
-    if (knowledgeSources.length > 0) {
-      const srcLabels: Record<string, string> = {
-        website_scrape: 'website', settings_edit: 'FAQs',
-        compiled_import: 'AI compiler', pdf_upload: 'docs',
-      }
-      parts.push(knowledgeSources.slice(0, 2).map(s => srcLabels[s] ?? s).join(' + '))
-    }
-    return parts.join(' · ')
-  })()
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const callsToday = data.recentCalls.filter(c => c.started_at.slice(0, 10) === todayStr).length
 
   const mostRecentCall = data.recentCalls[0] ?? null
   const missedCount = data.recentCalls.filter(
@@ -177,41 +166,6 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 1. StatsHeroCard ────────────────────────────────────── */}
-      <StatsHeroCard
-        agentName={agent.name}
-        agentStatus={agent.status}
-        isTrial={false}
-        isExpired={false}
-        totalCalls={data.stats.totalCalls}
-        callsTrend={data.stats.trends.callsChange}
-        minutesUsed={data.usage.minutesUsed}
-        totalAvailable={data.usage.totalAvailable}
-        bonusMinutes={data.usage.bonusMinutes}
-        onUpgrade={() => openUpgradeModal('home_stats_usage', data.clientId)}
-      />
-
-      {/* ── 1b. Stats secondary strip ──────────────────────────── */}
-      {(data.stats.todayCalls > 0 || data.stats.lastCallAt || data.stats.timeSavedMinutes > 0) && (
-        <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl flex-wrap" style={{ backgroundColor: 'var(--color-hover)' }}>
-          {data.stats.todayCalls > 0 && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{data.stats.todayCalls}</span>{' '}call{data.stats.todayCalls !== 1 ? 's' : ''} today
-            </span>
-          )}
-          {data.stats.lastCallAt && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              last call <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{timeAgo(data.stats.lastCallAt)}</span>
-            </span>
-          )}
-          {data.stats.timeSavedMinutes > 0 && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{formatTimeSaved(data.stats.timeSavedMinutes)}</span>{' '}handled this month
-            </span>
-          )}
-        </div>
-      )}
-
       {/* ── 2. Next best action (inline strip) ─────────────────── */}
       {nextAction && (
         <div
@@ -264,9 +218,47 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 3. 2-col grid: TestCallCard + TodayUpdateCard (hero) ─ */}
+      {/* ── 2c. Activity stats strip ─────────────────────────────── */}
+      {data.stats.totalCalls > 0 && (
+        <div className="flex items-center gap-2 flex-wrap px-1">
+          <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+            {callsToday > 0
+              ? `${callsToday} call${callsToday !== 1 ? 's' : ''} today`
+              : `${data.stats.totalCalls} call${data.stats.totalCalls !== 1 ? 's' : ''} total`}
+          </span>
+          {data.recentCalls[0] && (
+            <>
+              <span style={{ color: 'var(--color-text-3)' }}>·</span>
+              <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+                last {timeAgo(data.recentCalls[0].started_at)}
+              </span>
+            </>
+          )}
+          {data.usage.minutesUsed > 0 && (
+            <>
+              <span style={{ color: 'var(--color-text-3)' }}>·</span>
+              <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+                {formatTimeSaved(data.usage.minutesUsed)} handled
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── 3. 3-col: [Capabilities] | [TestCall] | [TodayUpdate + Stats] ── */}
       {onboarding.hasAgent && data.clientId && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+          <CapabilitiesCard
+            capabilities={capabilities}
+            agentName={agent.name}
+            voiceStylePreset={agent.voiceStylePreset}
+            isTrial={false}
+            clientId={data.clientId}
+            hasPhoneNumber={onboarding.hasPhoneNumber}
+            hasIvr={data.editableFields.ivrEnabled}
+            hasContextData={data.editableFields.hasContextData}
+            selectedPlan={data.selectedPlan}
+          />
           <TestCallCard
             clientId={data.clientId}
             isAdmin={false}
@@ -283,71 +275,79 @@ const [knowOpen, setKnowOpen] = useState(false)
               hasWebsite: capabilities.hasWebsite,
             }}
           />
-          <TodayUpdateCard
-            clientId={data.clientId}
-            currentNote={data.editableFields.injectedNote}
-          />
+          <div className="space-y-3">
+            <TodayUpdateCard
+              clientId={data.clientId}
+              currentNote={data.editableFields.injectedNote}
+            />
+            <StatsHeroCard
+              agentName={agent.name}
+              agentStatus={agent.status}
+              isTrial={false}
+              isExpired={false}
+              totalCalls={data.stats.totalCalls}
+              callsTrend={data.stats.trends.callsChange}
+              minutesUsed={data.usage.minutesUsed}
+              totalAvailable={data.usage.totalAvailable}
+              bonusMinutes={data.usage.bonusMinutes}
+              onUpgrade={() => openUpgradeModal('home_stats_usage', data.clientId)}
+            />
+          </div>
         </div>
       )}
 
-      {/* ── 4. Bento: CapabilitiesCard + BillingTile ─────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-        <CapabilitiesCard
+      {/* ── 4. 2-col: [IVR+AfterCalls] | [Calendar] ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        {data.clientId ? (
+          <div className="space-y-3">
+            <IvrVoicemailTile
+              clientId={data.clientId}
+              isAdmin={false}
+              ivrEnabled={data.editableFields.ivrEnabled}
+              ivrPrompt={data.editableFields.ivrPrompt}
+              voicemailGreetingText={data.editableFields.voicemailGreetingText}
+              businessName={onboarding.businessName}
+              agentName={agent.name}
+            />
+            <PostCallActionsTile
+              clientId={data.clientId}
+              isAdmin={false}
+              smsEnabled={data.editableFields.smsEnabled}
+              smsTemplate={data.editableFields.smsTemplate}
+              hasSms={capabilities.hasSms}
+              agentName={agent.name}
+            />
+          </div>
+        ) : <div />}
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+      </div>
+
+      {/* ── 4b. 2-col: CallHandling + BusinessHours ──────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+        <CallHandlingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
           capabilities={capabilities}
-          agentName={agent.name}
-          voiceStylePreset={agent.voiceStylePreset}
-          isTrial={false}
-          clientId={data.clientId}
-          hasPhoneNumber={onboarding.hasPhoneNumber}
-          hasIvr={data.editableFields.ivrEnabled}
-          hasContextData={data.editableFields.hasContextData}
+          knowledge={data.knowledge}
+          callHandlingMode={data.callHandlingMode}
+          onOpenSheet={sheet.open}
         />
+        <BusinessHoursTile
+          hoursWeekday={data.editableFields.hoursWeekday}
+          hoursWeekend={data.editableFields.hoursWeekend}
+          onOpenSheet={() => sheet.open('hours')}
+        />
+      </div>
+
+      {/* ── 4c. KnowledgeInline + Billing ──────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <KnowledgeInlineTile knowledgeStats={data.knowledge} />
         <BillingTile
           selectedPlan={data.selectedPlan}
           subscriptionStatus={onboarding.subscriptionStatus}
           onOpenSheet={() => sheet.open('billing')}
         />
       </div>
-
-      {/* ── 4b+4c. 2-col bento: AgentContextPreview + BookingCalendar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-        <AgentContextPreviewTile
-          editableFields={data.editableFields}
-          knowledge={data.knowledge}
-        />
-        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
-      </div>
-
-      {/* ── 4d. Knowledge inline tile ──────────────────────────────── */}
-      <KnowledgeInlineTile knowledgeStats={data.knowledge} />
-
-      {/* ── 4e. Unanswered questions tile ─────────────────────────── */}
-      {data.clientId && (
-        <UnansweredQuestionsTile clientId={data.clientId} />
-      )}
-
-      {/* ── 4f. 2-col bento: IVR+Voicemail + Post-Call SMS ─────────── */}
-      {data.clientId && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-          <IvrVoicemailTile
-            clientId={data.clientId}
-            isAdmin={false}
-            ivrEnabled={data.editableFields.ivrEnabled}
-            ivrPrompt={data.editableFields.ivrPrompt}
-            voicemailGreetingText={data.editableFields.voicemailGreetingText}
-            businessName={onboarding.businessName}
-            agentName={agent.name}
-          />
-          <PostCallActionsTile
-            clientId={data.clientId}
-            isAdmin={false}
-            smsEnabled={data.editableFields.smsEnabled}
-            smsTemplate={data.editableFields.smsTemplate}
-            hasSms={capabilities.hasSms}
-            agentName={agent.name}
-          />
-        </div>
-      )}
 
       {/* ── 5. Identity strip ───────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -449,152 +449,28 @@ const [knowOpen, setKnowOpen] = useState(false)
         )}
       </div>
 
-      {/* ── 6. "WHAT IT KNOWS" collapsible ─────────────────────── */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-      >
-        <button
-          onClick={() => setKnowOpen(o => !o)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-hover transition-colors text-left"
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
-                What it knows
-              </p>
-              <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-                {knowledgeSummaryText}
-              </span>
-              {data.knowledge.last_updated_at && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-3)' }}
-                >
-                  updated {timeAgo(data.knowledge.last_updated_at)}
-                </span>
-              )}
-            </div>
-          </div>
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            className={`shrink-0 transition-transform duration-200 ${knowOpen ? 'rotate-180' : ''}`}
-            style={{ color: 'var(--color-text-3)' }}
-          >
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {knowOpen && (
-          <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-            {knowledgeItemCount === 0 && !data.editableFields.businessFacts ? (
-              /* Empty state */
-              <div className="py-6 text-center space-y-2">
-                <p className="text-sm t2">Nothing added yet</p>
-                <p className="text-[12px] t3 leading-relaxed max-w-xs mx-auto">
-                  Your agent answers from its base training only. Add business facts, FAQs, or a website to make it specific to you.
-                </p>
-                <Link
-                  href="/dashboard/knowledge"
-                  className="inline-block text-[12px] font-semibold mt-1 cursor-pointer hover:opacity-75 transition-opacity"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  Add knowledge →
-                </Link>
-              </div>
-            ) : (
-              <>
-                {/* Business facts preview */}
-                {data.editableFields.businessFacts && (
-                  <div className="pt-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
-                      Business facts
-                    </p>
-                    <p className="text-[12px] leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
-                      {data.editableFields.businessFacts.slice(0, 200)}{data.editableFields.businessFacts.length > 200 ? '…' : ''}
-                    </p>
-                  </div>
-                )}
-
-                {/* FAQ preview (first 2) */}
-                {faqCount > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
-                      FAQs ({faqCount})
-                    </p>
-                    <div className="space-y-1.5">
-                      {data.editableFields.faqs.slice(0, 2).map((faq, i) => (
-                        <div key={i} className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--color-hover)' }}>
-                          <p className="text-[12px] font-medium t1">{faq.q}</p>
-                          <p className="text-[11px] t3 truncate">{faq.a}</p>
-                        </div>
-                      ))}
-                      {faqCount > 2 && (
-                        <p className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-                          +{faqCount - 2} more
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Source pills */}
-                {knowledgeSources.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {knowledgeSources.map(src => {
-                      const srcLabels: Record<string, string> = {
-                        website_scrape: 'Website', settings_edit: 'FAQs',
-                        compiled_import: 'AI Compiler', pdf_upload: 'Docs',
-                      }
-                      return (
-                        <span
-                          key={src}
-                          className="text-[10px] px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'rgb(129,140,248)' }}
-                        >
-                          {srcLabels[src] ?? src}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Auto FAQ suggestions */}
-                {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
-                  <AutoFaqSuggestions
-                    clientId={data.clientId}
-                    suggestions={data.lastFaqSuggestions}
-                  />
-                )}
-
-                {/* Teach agent card */}
-                {data.clientId && (
-                  <TeachAgentCard clientId={data.clientId} agentName={agent.name} />
-                )}
-              </>
-            )}
-
-            <div className="pt-1 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <Link
-                href="/dashboard/knowledge"
-                className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                Manage knowledge →
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 7. KnowledgeSourcesTile — GBP + business facts editor ── */}
+      {/* ── 6. KnowledgeSourcesTile — GBP + business facts editor ── */}
       {data.clientId && (
         <KnowledgeSourcesTile
           gbpData={data.gbpData}
           editableFields={data.editableFields}
           websiteScrapeStatus={data.websiteScrapeStatus}
           clientId={data.clientId}
+          onMutate={fetchData}
         />
+      )}
+
+      {/* ── 6b. FAQ suggestions from recent unanswered questions ── */}
+      {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
+        <AutoFaqSuggestions
+          clientId={data.clientId}
+          suggestions={data.lastFaqSuggestions}
+        />
+      )}
+
+      {/* ── 6c. Unanswered questions from recent calls ──────────── */}
+      {data.clientId && (
+        <UnansweredQuestionsTile clientId={data.clientId} />
       )}
 
       {/* ── 8. "RECENT ACTIVITY" collapsible ───────────────────── */}
@@ -644,6 +520,9 @@ const [knowOpen, setKnowOpen] = useState(false)
                       <p className="text-[11px] t3 capitalize">
                         {call.call_status.toLowerCase().replace(/_/g, ' ')}
                       </p>
+                      {call.ai_summary && (
+                        <p className="text-[10px] t3 leading-snug line-clamp-2 mt-0.5 italic">{call.ai_summary}</p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
@@ -678,22 +557,22 @@ const [knowOpen, setKnowOpen] = useState(false)
         </div>
       )}
 
-      {/* ── 9. NotificationsTile ────────────────────────────────── */}
-      <NotificationsTile
-        telegramConnected={onboarding.telegramConnected}
-        emailEnabled={onboarding.emailNotificationsEnabled}
-        agentName={agent.name}
-        onOpenSheet={() => sheet.open('notifications')}
-      />
-
-      {/* ── 11. NicheInsightsTile ────────────────────────────────── */}
-      <NicheInsightsTile
-        niche={agent.niche}
-        capabilities={capabilities}
-        knowledge={data.knowledge}
-        onboarding={onboarding}
-        sheet={sheet}
-      />
+      {/* ── 9+11. 2-col: Notifications + Niche Insights ─────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <NotificationsTile
+          telegramConnected={onboarding.telegramConnected}
+          emailEnabled={onboarding.emailNotificationsEnabled}
+          agentName={agent.name}
+          onOpenSheet={() => sheet.open('notifications')}
+        />
+        <NicheInsightsTile
+          niche={agent.niche}
+          capabilities={capabilities}
+          knowledge={data.knowledge}
+          onboarding={onboarding}
+          sheet={sheet}
+        />
+      </div>
     </>
   )
 }

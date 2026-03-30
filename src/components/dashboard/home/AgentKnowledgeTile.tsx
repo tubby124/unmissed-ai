@@ -105,7 +105,7 @@ export default function AgentKnowledgeTile({
           Add a website, PDFs, or Q&A to make your agent smarter. Available on Core and Pro plans.
         </p>
         <a
-          href="/dashboard/settings?tab=billing"
+          href="/dashboard/billing"
           className="text-xs font-semibold self-start"
           style={{ color: 'var(--color-primary)' }}
         >

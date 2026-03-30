@@ -476,7 +476,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                       </>
                     )}
                     <Link
-                      href={`/dashboard/settings?tab=billing${previewMode && previewClient ? `&preview=true&client_id=${previewClient.id}` : ''}`}
+                      href={`/dashboard/billing${previewMode && previewClient ? `?preview=true&client_id=${previewClient.id}` : ''}`}
                       className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-hover transition-colors"
                       style={{ color: "var(--color-text-2)" }}
                     >

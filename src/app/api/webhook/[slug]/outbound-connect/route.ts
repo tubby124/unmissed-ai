@@ -74,7 +74,7 @@ export async function POST(
       vmScript = token.vm_script
       ultravoxCallId = token.ultravox_call_id
       // Clean up used token (fire-and-forget)
-      svc.from('outbound_connect_tokens').delete().eq('id', tokenId).then(() => {})
+      void svc.from('outbound_connect_tokens').delete().eq('id', tokenId)
     } else {
       console.warn(`[outbound-connect] Token ${tokenId} not found or expired for slug=${slug}`)
     }

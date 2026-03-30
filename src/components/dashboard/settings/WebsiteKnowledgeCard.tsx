@@ -400,7 +400,7 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
           atLimit ? (
             <p className="text-[10px] t3 text-center py-2 px-1">
               {sources.length}/{maxUrls} URL limit reached —{' '}
-              <a href="/dashboard/settings?tab=billing" className="text-blue-400 hover:underline">upgrade plan</a>
+              <a href="/dashboard/billing" className="text-blue-400 hover:underline">upgrade plan</a>
               {' '}to add more.
             </p>
           ) : showAddUrl ? (

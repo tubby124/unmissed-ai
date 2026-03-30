@@ -26,6 +26,19 @@ export async function POST(req: NextRequest) {
 
   const svc = createServiceClient()
 
+  // If new GBP fields were provided in the body (from the dashboard connect flow), save them first
+  if (body.gbp_place_id || body.gbp_summary) {
+    const gbpFields: Record<string, unknown> = {}
+    if (body.gbp_place_id) gbpFields.gbp_place_id = body.gbp_place_id
+    if (body.gbp_summary !== undefined) gbpFields.gbp_summary = body.gbp_summary
+    if (body.gbp_rating !== undefined) gbpFields.gbp_rating = body.gbp_rating
+    if (body.gbp_review_count !== undefined) gbpFields.gbp_review_count = body.gbp_review_count
+    if (body.gbp_photo_url !== undefined) gbpFields.gbp_photo_url = body.gbp_photo_url
+    if (body.city) gbpFields.city = body.city
+    if (body.state) gbpFields.state = body.state
+    await svc.from('clients').update(gbpFields).eq('id', targetClientId)
+  }
+
   const { data: client, error: clientErr } = await svc
     .from('clients')
     .select('id, slug, business_name, gbp_summary, gbp_rating, gbp_review_count, city, state')

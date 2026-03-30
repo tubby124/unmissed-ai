@@ -24,6 +24,7 @@ export interface CallLog {
   quality_score?: number | null
   transfer_status?: string | null
   sms_outcome?: string | null
+  call_direction?: string | null
 }
 
 export interface ExpandedData {

@@ -63,6 +63,7 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
             editableFields={data.editableFields}
             websiteScrapeStatus={data.websiteScrapeStatus}
             clientId={data.clientId ?? ''}
+            onMutate={fetchData}
           />
 
           <CallHandlingTile
@@ -115,6 +116,29 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
             onOpenSheet={() => sheet.open('billing')}
           />
 
+          {data.clientId && (
+            <IvrVoicemailTile
+              clientId={data.clientId}
+              isAdmin={false}
+              ivrEnabled={data.editableFields.ivrEnabled}
+              ivrPrompt={data.editableFields.ivrPrompt}
+              voicemailGreetingText={data.editableFields.voicemailGreetingText}
+              businessName={onboarding.businessName}
+              agentName={agent.name}
+            />
+          )}
+
+          {data.clientId && (
+            <PostCallActionsTile
+              clientId={data.clientId}
+              isAdmin={false}
+              smsEnabled={data.editableFields.smsEnabled}
+              smsTemplate={data.editableFields.smsTemplate}
+              hasSms={capabilities.hasSms}
+              agentName={agent.name}
+            />
+          )}
+
           <div className="sm:col-span-2">
             <NicheInsightsTile
               niche={agent.niche}
@@ -130,29 +154,6 @@ export default function PaidAwaitingSection({ data, sheet, fetchData }: Props) {
       {/* ── Unanswered questions ────────────────────────────────── */}
       {onboarding.hasAgent && data.clientId && (
         <UnansweredQuestionsTile clientId={data.clientId} />
-      )}
-
-      {/* ── IVR + Voicemail + Post-Call SMS ────────────────────── */}
-      {onboarding.hasAgent && data.clientId && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-          <IvrVoicemailTile
-            clientId={data.clientId}
-            isAdmin={false}
-            ivrEnabled={data.editableFields.ivrEnabled}
-            ivrPrompt={data.editableFields.ivrPrompt}
-            voicemailGreetingText={data.editableFields.voicemailGreetingText}
-            businessName={onboarding.businessName}
-            agentName={agent.name}
-          />
-          <PostCallActionsTile
-            clientId={data.clientId}
-            isAdmin={false}
-            smsEnabled={data.editableFields.smsEnabled}
-            smsTemplate={data.editableFields.smsTemplate}
-            hasSms={capabilities.hasSms}
-            agentName={agent.name}
-          />
-        </div>
       )}
     </>
   )

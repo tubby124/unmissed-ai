@@ -78,7 +78,7 @@ export default function BillingSheet({ selectedPlan, subscriptionStatus }: Props
       {/* Upgrade CTA */}
       {(isTrial || selectedPlan === 'lite' || selectedPlan === 'core') && (
         <a
-          href="/dashboard/settings?tab=billing"
+          href="/dashboard/billing"
           className="block w-full py-2.5 rounded-xl text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
@@ -87,7 +87,7 @@ export default function BillingSheet({ selectedPlan, subscriptionStatus }: Props
       )}
 
       <a
-        href="/dashboard/settings?tab=billing"
+        href="/dashboard/billing"
         className="block text-center text-xs font-semibold"
         style={{ color: 'var(--color-text-3)' }}
       >

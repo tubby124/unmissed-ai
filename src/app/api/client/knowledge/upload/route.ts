@@ -68,15 +68,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV' }, { status: 400 })
     }
 
-    // Validate intake exists
-    const { data: intake, error: intakeErr } = await adminSupa
+    // Ensure intake row exists — upsert a draft if missing (handles create-draft failures gracefully)
+    const { data: intake } = await adminSupa
       .from('intake_submissions')
       .select('id')
       .eq('id', intakeId)
       .single()
 
-    if (intakeErr || !intake) {
-      return NextResponse.json({ error: 'Intake not found' }, { status: 404 })
+    if (!intake) {
+      const { error: upsertErr } = await adminSupa
+        .from('intake_submissions')
+        .upsert({
+          id: intakeId,
+          business_name: 'Draft',
+          niche: 'other',
+          status: 'draft',
+          progress_status: 'draft',
+          intake_json: {},
+        }, { onConflict: 'id' })
+
+      if (upsertErr) {
+        console.error('[knowledge-upload] Failed to auto-create draft intake:', upsertErr.code, upsertErr.message)
+        return NextResponse.json({ error: 'Intake not found' }, { status: 404 })
+      }
     }
 
     // Extract text from file

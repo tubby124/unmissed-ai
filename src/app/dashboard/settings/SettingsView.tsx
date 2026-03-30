@@ -18,10 +18,12 @@ import ServiceCatalogCard, { type ServiceCatalogItem } from '@/components/dashbo
 import SmsTab from '@/components/dashboard/settings/SmsTab'
 import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
-import BillingTab from '@/components/dashboard/settings/BillingTab'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import PromptEditorModal from '@/components/dashboard/settings/PromptEditorModal'
+import { buildCapabilityFlags } from '@/lib/capability-flags'
 
 interface SettingsViewProps {
   clients: ClientConfig[]
@@ -123,12 +125,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const normalizedInitialTab = initialTab === ('agent' as SettingsTab) ? 'general' : initialTab
   // D54: active paid clients default to general, not billing
   const initialClient = clients.find(c => c.id === selectedId) ?? clients[0]
-  const defaultTab: SettingsTab = isAdmin ? 'general' : (initialClient?.subscription_status === 'trialing' ? 'billing' : 'general')
+  const defaultTab: SettingsTab = 'general'
   const [activeTab, setActiveTab] = useState<SettingsTab>(
     (normalizedInitialTab && validTabs.includes(normalizedInitialTab)) ? normalizedInitialTab : defaultTab
   )
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
+  const [showPromptEditor, setShowPromptEditor] = useState(false)
 
   // Fetch knowledge gap count for badge
   useEffect(() => {
@@ -337,6 +340,58 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         )
       })()}
 
+      {/* ─── Overview: Capabilities + Prompt Editor + Notifications (non-admin) ─── */}
+      {!isAdmin && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Left — capabilities card */}
+          <CapabilitiesCard
+            capabilities={buildCapabilityFlags(client)}
+            agentName={client.agent_name ?? ''}
+            voiceStylePreset={voiceStylePreset[client.id] ?? null}
+            isTrial={client.subscription_status === 'trialing'}
+            clientId={client.id}
+            hasPhoneNumber={!!client.twilio_number}
+            hasIvr={!!client.ivr_enabled && !!client.twilio_number}
+            hasContextData={!!client.context_data}
+            selectedPlan={client.selected_plan}
+          />
+
+          {/* Right — Prompt Editor entry + Notifications mini */}
+          <div className="space-y-3">
+            {/* ADVANCED: PROMPT EDITOR */}
+            <button
+              onClick={() => setShowPromptEditor(true)}
+              className="w-full text-left card-surface rounded-2xl p-5 hover:border-[var(--color-primary)]/40 transition-colors group"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Advanced</p>
+                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}>
+                  POWER USER
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold t1 mb-0.5">Prompt Editor</p>
+                  <p className="text-[11px] t3 leading-relaxed">Edit system prompt and all injected context in one place</p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 t3 group-hover:text-[var(--color-primary)] transition-colors">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </div>
+            </button>
+
+            {/* Notifications mini widget */}
+            <NotificationsWidget
+              clientId={client.id}
+              isAdmin={isAdmin}
+              telegramEnabled={!!(client.telegram_notifications_enabled)}
+              emailEnabled={!!(client.email_notifications_enabled)}
+              smsEnabled={smsEnabled[client.id] ?? false}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ─── Tab bar ─────────────────────────────────────────────────── */}
       <div className="border-b b-theme">
         <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
@@ -512,17 +567,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         )
       )}
 
-      {/* ─── Billing Tab ────────────────────────────────────────────── */}
+      {/* ─── Billing Tab — moved to /dashboard/billing ──────────────── */}
       {activeTab === 'billing' && (
-        <BillingTab
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          minutesUsed={minutesUsed}
-          minuteLimit={minuteLimit}
-          totalAvailable={totalAvailable}
-          usagePct={usagePct}
-        />
+        <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
+          <p className="text-sm font-medium t1">Billing has moved</p>
+          <p className="text-[12px] t3 max-w-xs">Plan details, usage, and invoices are now on their own page.</p>
+          <a href="/dashboard/billing" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Billing →</a>
+        </div>
       )}
 
       {/* ─── Knowledge Tab ──────────────────────────────────────────── */}
@@ -563,6 +614,126 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
         </motion.div>
       </AnimatePresence>
+
+      {/* ─── Prompt Editor Modal ─────────────────────────────────────── */}
+      {showPromptEditor && (
+        <PromptEditorModal
+          clientId={client.id}
+          isAdmin={isAdmin}
+          systemPrompt={prompt[client.id] ?? ''}
+          businessFacts={businessFacts[client.id] ?? ''}
+          extraQA={extraQA[client.id] ?? []}
+          hoursWeekday={hoursWeekday[client.id] ?? ''}
+          hoursWeekend={hoursWeekend[client.id] ?? ''}
+          contextData={contextData[client.id] ?? ''}
+          onClose={() => setShowPromptEditor(false)}
+          onSaved={(updated) => {
+            const id = client.id
+            setPrompt(prev => ({ ...prev, [id]: updated.system_prompt }))
+            setBusinessFacts(prev => ({ ...prev, [id]: updated.business_facts }))
+            setExtraQA(prev => ({ ...prev, [id]: updated.extra_qa }))
+            setHoursWeekday(prev => ({ ...prev, [id]: updated.business_hours_weekday }))
+            setHoursWeekend(prev => ({ ...prev, [id]: updated.business_hours_weekend }))
+            setContextData(prev => ({ ...prev, [id]: updated.context_data }))
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Notifications mini widget ────────────────────────────────────────────────
+function NotificationsWidget({ clientId, isAdmin, telegramEnabled, emailEnabled, smsEnabled }: {
+  clientId: string
+  isAdmin: boolean
+  telegramEnabled: boolean
+  emailEnabled: boolean
+  smsEnabled: boolean
+}) {
+  const { patch, saving } = usePatchSettings(clientId, isAdmin)
+  const [tgOn, setTgOn] = useState(telegramEnabled)
+  const [emailOn, setEmailOn] = useState(emailEnabled)
+  const [smsOn, setSmsOn] = useState(smsEnabled)
+
+  async function toggle(field: string, value: boolean) {
+    await patch({ [field]: value })
+  }
+
+  const rows = [
+    {
+      key: 'telegram',
+      label: 'Telegram',
+      value: tgOn,
+      field: 'telegram_notifications_enabled',
+      set: setTgOn,
+      iconColor: '#2CA5E0',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.203-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.829.941z"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      value: emailOn,
+      field: 'email_notifications_enabled',
+      set: setEmailOn,
+      iconColor: '#22c55e',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'sms',
+      label: 'SMS follow-up',
+      value: smsOn,
+      field: 'sms_enabled',
+      set: setSmsOn,
+      iconColor: '#f59e0b',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <div className="card-surface rounded-2xl p-5">
+      <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Notifications</p>
+      <div className="space-y-2.5">
+        {rows.map(row => (
+          <div key={row.key} className="flex items-center gap-3">
+            <span style={{ color: row.iconColor }} className="shrink-0">{row.icon}</span>
+            <span className="flex-1 text-[12px] t2">{row.label}</span>
+            <button
+              onClick={async () => {
+                const next = !row.value
+                row.set(next)
+                await toggle(row.field, next)
+              }}
+              disabled={saving}
+              className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${row.value ? 'bg-green-500' : 'bg-[var(--color-hover)] border b-theme'}`}
+            >
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${row.value ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <a
+        href="/dashboard/notifications"
+        className="flex items-center justify-between mt-3 pt-3 border-t b-theme text-[11px] font-medium transition-colors"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        All notification settings
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
     </div>
   )
 }

@@ -1,205 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
-import AdvancedContextCard from '@/components/dashboard/settings/AdvancedContextCard'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
-import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
+import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
 import ChunkBrowser from '@/components/dashboard/knowledge/ChunkBrowser'
 import KnowledgeSourceRegistry from '@/components/dashboard/knowledge/KnowledgeSourceRegistry'
-import CallContextPreview from '@/components/dashboard/knowledge/CallContextPreview'
-import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
-import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
-import KnowledgeProvenanceCard from '@/components/dashboard/knowledge/KnowledgeProvenanceCard'
-import PromptPreviewCard from '@/components/dashboard/knowledge/PromptPreviewCard'
+import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
+import InlineFactsEditor from '@/components/dashboard/knowledge/InlineFactsEditor'
+import InlineFaqEditor from '@/components/dashboard/knowledge/InlineFaqEditor'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import { useCallContext } from '@/contexts/CallContext'
 import { toast } from 'sonner'
-import {
-  parseKnowledgeTab,
-  parseAddSource,
-  type KnowledgeTab,
-  type AddSource,
-} from '@/lib/dashboard-routes'
 
-// ─── Tab bar ─────────────────────────────────────────────────────────────────
-
-function KnowledgeTabBar({
-  activeTab,
-  searchParams,
-}: {
-  activeTab: KnowledgeTab
-  searchParams: ReturnType<typeof useSearchParams>
-}) {
-  const tabs: { id: KnowledgeTab; label: string }[] = [
-    { id: 'browse', label: 'Browse' },
-    { id: 'add', label: 'Add Knowledge' },
-    { id: 'gaps', label: 'Questions & Gaps' },
-  ]
-  return (
-    <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'var(--color-hover)' }}>
-      {tabs.map(({ id, label }) => {
-        const p = new URLSearchParams(searchParams.toString())
-        p.set('tab', id)
-        p.delete('source')
-        return (
-          <Link
-            key={id}
-            href={`?${p.toString()}`}
-            replace
-            className="flex-1 py-2 text-center text-sm font-medium rounded-lg transition-colors"
-            style={
-              activeTab === id
-                ? {
-                    backgroundColor: 'var(--color-surface)',
-                    color: 'var(--color-text-1)',
-                    boxShadow: 'var(--shadow-sm)',
-                  }
-                : { color: 'var(--color-text-3)' }
-            }
-          >
-            {label}
-          </Link>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Add-source sub-tabs ──────────────────────────────────────────────────────
-
-function AddSourceTabBar({
-  activeSource,
-  searchParams,
-}: {
-  activeSource: AddSource
-  searchParams: ReturnType<typeof useSearchParams>
-}) {
-  const sources: { id: AddSource; label: string }[] = [
-    { id: 'website', label: 'Website' },
-    { id: 'manual', label: 'Manual' },
-    { id: 'text', label: 'AI Compiler' },
-  ]
-  return (
-    <div className="flex gap-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-      {sources.map(({ id, label }) => {
-        const p = new URLSearchParams(searchParams.toString())
-        p.set('tab', 'add')
-        p.set('source', id)
-        const isActive = activeSource === id
-        return (
-          <Link
-            key={id}
-            href={`?${p.toString()}`}
-            replace
-            className="px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
-            style={
-              isActive
-                ? { color: 'var(--color-primary)', borderBottomColor: 'var(--color-primary)' }
-                : { color: 'var(--color-text-3)', borderBottomColor: 'transparent' }
-            }
-          >
-            {label}
-          </Link>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Browse tab ───────────────────────────────────────────────────────────────
-
-function BrowseTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
-  const config = buildClientAgentConfig(client)
-  return (
-    <div className="space-y-3">
-      {/* Source registry — where knowledge comes from */}
-      <KnowledgeSourceRegistry clientId={client.id} />
-      {/* Call-time context preview — what the agent sees on every call */}
-      <CallContextPreview
-        facts={Array.isArray(client.business_facts) ? client.business_facts.join('\n') : (client.business_facts ?? '')}
-        qa={client.extra_qa ?? []}
-        injectedNote={client.injected_note ?? ''}
-        contextData={client.context_data ?? ''}
-        contextDataLabel={client.context_data_label ?? ''}
-        knowledgeEnabled={client.knowledge_backend === 'pgvector'}
-        timezone={client.timezone ?? 'America/Regina'}
-      />
-      {/* Provenance — where the knowledge was imported from */}
-      <KnowledgeProvenanceCard client={client} />
-      {/* Agent script — read-only prompt preview */}
-      <PromptPreviewCard systemPrompt={client.system_prompt} isAdmin={isAdmin} />
-      {/* Summary — what the agent currently knows */}
-      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} config={config} />
-      {/* All knowledge chunks — visible to all users, actions gated inside */}
-      <ChunkBrowser clientId={client.id} isAdmin={isAdmin} />
-    </div>
-  )
-}
-
-// ─── Add Knowledge tab ────────────────────────────────────────────────────────
-
-function AddTab({
-  client,
-  isAdmin,
-  previewMode,
-  activeSource,
-  searchParams,
-}: {
-  client: ClientConfig
-  isAdmin: boolean
-  previewMode?: boolean
-  activeSource: AddSource
-  searchParams: ReturnType<typeof useSearchParams>
-}) {
-  const knowledgeActive = client.knowledge_backend === 'pgvector'
-  return (
-    <div className="space-y-3">
-      <AddSourceTabBar activeSource={activeSource} searchParams={searchParams} />
-
-      {activeSource === 'website' && (
-        <WebsiteKnowledgeCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
-      )}
-
-      {activeSource === 'manual' && (
-        <AdvancedContextCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialFacts={Array.isArray(client.business_facts) ? client.business_facts.join('\n') : (client.business_facts ?? '')}
-          initialQA={client.extra_qa ?? []}
-          initialContextData={client.context_data ?? ''}
-          initialContextDataLabel={client.context_data_label ?? ''}
-          prompt={client.system_prompt ?? ''}
-          injectedNote={client.injected_note ?? ''}
-          knowledgeEnabled={knowledgeActive}
-          timezone={client.timezone ?? 'America/Regina'}
-          previewMode={previewMode}
-        />
-      )}
-
-      {activeSource === 'text' && (
-        <KnowledgeCompiler clientId={client.id} isAdmin={isAdmin} />
-      )}
-    </div>
-  )
-}
-
-// ─── Gaps tab ─────────────────────────────────────────────────────────────────
-
-function GapsTab({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
-  return (
-    <div className="space-y-3">
-      <KnowledgeGaps clientId={client.id} isAdmin={isAdmin} />
-      <PendingSuggestions clientId={client.id} />
-    </div>
-  )
-}
-
-// ─── Main view ────────────────────────────────────────────────────────────────
+type ActivePanel = 'website' | 'compiler' | 'search' | null
 
 interface KnowledgePageViewProps {
   clients: ClientConfig[]
@@ -214,15 +30,12 @@ export default function KnowledgePageView({
   previewMode,
   initialClientId,
 }: KnowledgePageViewProps) {
-  const searchParams = useSearchParams()
-  const activeTab = parseKnowledgeTab(searchParams.get('tab'))
-  const activeSource = parseAddSource(searchParams.get('source'))
-
   const [selectedId, setSelectedId] = useState(
     initialClientId && clients.find(c => c.id === initialClientId)
       ? initialClientId
       : clients[0]?.id ?? ''
   )
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [testCallLoading, setTestCallLoading] = useState(false)
   const { startCall, setMeta, callState } = useCallContext()
 
@@ -265,60 +78,162 @@ export default function KnowledgePageView({
     }
   }
 
+  function togglePanel(panel: ActivePanel) {
+    setActivePanel(prev => prev === panel ? null : panel)
+  }
+
   const callActive = callState === 'active' || callState === 'connecting'
 
+  const facts: string[] = Array.isArray(client.business_facts)
+    ? (client.business_facts as string[]).filter(Boolean)
+    : (client.business_facts ? (client.business_facts as string).split('\n').filter(Boolean) : [])
+  const qa: Array<{ q: string; a: string }> = client.extra_qa ?? []
+
+  const actions: { id: ActivePanel; label: string; icon: React.ReactNode }[] = [
+    {
+      id: 'website',
+      label: 'Scrape website',
+      icon: (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      id: 'compiler',
+      label: 'AI Compiler',
+      icon: (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      id: 'search',
+      label: 'Test search',
+      icon: (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.75" />
+          <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+  ]
+
   return (
-    <div className="p-3 sm:p-6 space-y-4 max-w-4xl">
-      {/* Header row */}
+    <div className="p-3 sm:p-6 max-w-5xl space-y-5">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
         {isAdmin && clients.length > 1 ? (
           <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
         ) : (
-          <div />
+          <div>
+            <h1 className="text-base font-semibold t1">Knowledge</h1>
+            <p className="text-[11px] t3 mt-0.5">What your agent knows and how it answers</p>
+          </div>
         )}
         <button
           onClick={handleTestCall}
           disabled={testCallLoading || callActive || previewMode}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors shrink-0"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
           </svg>
           {testCallLoading ? 'Connecting...' : callActive ? 'In Call' : 'Talk to Agent'}
         </button>
       </div>
 
-      {/* Tab bar */}
-      <KnowledgeTabBar activeTab={activeTab} searchParams={searchParams} />
+      {/* ── Action buttons ──────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2">
+        {actions.map(action => {
+          const isActive = activePanel === action.id
+          return (
+            <button
+              key={action.id as string}
+              onClick={() => togglePanel(action.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+              style={{
+                borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
+                color: isActive ? 'var(--color-primary)' : 'var(--color-text-2)',
+                backgroundColor: isActive ? 'var(--color-accent-tint)' : 'transparent',
+              }}
+            >
+              {action.icon}
+              {action.label}
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                style={{ transform: isActive ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* Tab content — keyed on client.id so state resets on admin client switch */}
-      {activeTab === 'browse' && (
-        <BrowseTab key={client.id} client={client} isAdmin={isAdmin} />
+      {/* ── Expandable panels ───────────────────────────────────────────── */}
+      {activePanel === 'website' && (
+        <WebsiteKnowledgeCard key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      )}
+      {activePanel === 'compiler' && (
+        <KnowledgeCompiler key={client.id} clientId={client.id} isAdmin={isAdmin} />
+      )}
+      {activePanel === 'search' && (
+        <ChunkBrowser key={client.id} clientId={client.id} isAdmin={isAdmin} />
       )}
 
-      {activeTab === 'add' && (
-        <AddTab
-          key={client.id}
-          client={client}
-          isAdmin={isAdmin}
-          previewMode={previewMode}
-          activeSource={activeSource}
-          searchParams={searchParams}
-        />
-      )}
+      {/* ── 2-col: What your agent knows | FAQs ────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Business facts — inline editable */}
+        <div className="card-surface rounded-2xl p-5 space-y-3">
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Your Agent Knows</p>
+          <InlineFactsEditor key={client.id} facts={facts} clientId={client.id} />
+        </div>
 
-      {activeTab === 'gaps' && (
-        <GapsTab key={client.id} client={client} isAdmin={isAdmin} />
-      )}
+        {/* FAQs — inline editable */}
+        <div className="card-surface rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">FAQs</p>
+            {qa.length > 0 && (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
+              >
+                {qa.length}
+              </span>
+            )}
+          </div>
+          <InlineFaqEditor key={client.id} qa={qa} clientId={client.id} />
+        </div>
+      </div>
+
+      {/* ── Full-width: Unanswered questions ────────────────────────────── */}
+      <KnowledgeGaps key={`gaps-${client.id}`} clientId={client.id} isAdmin={isAdmin} />
+
+      {/* ── 2-col: Auto-suggested FAQs | Teach more + Knowledge base ───── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <PendingSuggestions key={`ps-${client.id}`} clientId={client.id} />
+
+        <div className="space-y-3">
+          {/* Teach more */}
+          <div className="card-surface rounded-2xl p-5 space-y-3">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Teach More</p>
+            <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} compact />
+          </div>
+
+          {/* Knowledge sources */}
+          <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} />
+        </div>
+      </div>
     </div>
   )
 }

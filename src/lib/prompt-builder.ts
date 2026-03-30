@@ -81,10 +81,14 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   const nicheDefaults = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS.other
 
-  // Layer: common → niche → intake overrides
+  // Layer: common → niche → AI-inferred custom vars (for 'other' businesses) → intake overrides
+  const customVars = (niche === 'other' && intake.niche_custom_variables)
+    ? (intake.niche_custom_variables as Record<string, string>)
+    : {}
   const variables: Record<string, string> = {
     ...NICHE_DEFAULTS._common,
     ...nicheDefaults,
+    ...customVars,
   }
 
   // Direct intake field mappings

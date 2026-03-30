@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Niche, OnboardingData, defaultAgentNames, nicheLabels, nicheEmojis } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
@@ -77,6 +77,69 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [gbpConfirmed, setGbpConfirmed] = useState(!!(data.placeId || data.businessName));
   const [showManual, setShowManual] = useState(!!(data.businessName && !data.placeId));
   const [nichePickerDismissed, setNichePickerDismissed] = useState(false);
+  const [inferredNiche, setInferredNiche] = useState<Niche | null>(null);
+  const [inferring, setInferring] = useState(false);
+  const [inferDismissed, setInferDismissed] = useState(false);
+  const inferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inferAbortRef = useRef<AbortController | null>(null);
+
+  // Apply a niche selection — shared by AI suggestion button and grid buttons
+  function applyNiche(n: Niche) {
+    const updates: Partial<OnboardingData> = { niche: n };
+    if (agentNameIsAutoSet(data.agentName, data.niche)) {
+      updates.agentName = defaultAgentNames[n];
+    }
+    if (data.agentMode === undefined) {
+      updates.agentMode = defaultAgentModeForNiche(n);
+    }
+    onUpdate(updates);
+    setNichePickerDismissed(true);
+  }
+
+  // AI niche inference — fires when business name changes and niche is still 'other'
+  useEffect(() => {
+    const name = data.businessName?.trim();
+    if (!name || name.length < 3 || data.niche !== 'other') {
+      setInferredNiche(null);
+      return;
+    }
+    setInferredNiche(null);
+    setInferDismissed(false);
+    if (inferTimeoutRef.current) clearTimeout(inferTimeoutRef.current);
+    if (inferAbortRef.current) inferAbortRef.current.abort();
+
+    inferTimeoutRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      inferAbortRef.current = controller;
+      setInferring(true);
+      try {
+        const res = await fetch('/api/onboard/infer-niche', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessName: name }),
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.niche && json.niche !== 'other') {
+            setInferredNiche(json.niche as Niche);
+          } else if (json.customVariables) {
+            // Store AI-generated variables for 'other' businesses — wired into prompt at build time
+            onUpdate({ nicheCustomVariables: json.customVariables });
+          }
+        }
+      } catch {
+        // silent — AI inference is best-effort
+      } finally {
+        setInferring(false);
+      }
+    }, 800);
+
+    return () => {
+      if (inferTimeoutRef.current) clearTimeout(inferTimeoutRef.current);
+      if (inferAbortRef.current) inferAbortRef.current.abort();
+    };
+  }, [data.businessName, data.niche]);
 
   // Derive predicted agent name from pending place for the CTA button
   const getPendingAgentName = (): string => {
@@ -291,7 +354,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
 
       {/* Niche picker — shown when GBP niche couldn't be auto-detected */}
       <AnimatePresence>
-        {gbpConfirmed && data.niche === 'other' && !nichePickerDismissed && (
+        {(gbpConfirmed || (showManual && !!data.businessName)) && data.niche === 'other' && !nichePickerDismissed && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -303,6 +366,37 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               <p className="text-sm font-semibold text-foreground">What kind of business is this?</p>
               <p className="text-xs text-muted-foreground mt-0.5">We couldn&apos;t detect your industry automatically — pick one so we build the right agent.</p>
             </div>
+            {/* AI niche suggestion */}
+            {inferring && !inferredNiche && (
+              <p className="text-xs text-muted-foreground animate-pulse">Analyzing your business...</p>
+            )}
+            {inferredNiche && !inferDismissed && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">{nicheEmojis[inferredNiche]}</span>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">AI suggests</p>
+                    <p className="text-sm font-semibold text-foreground">{nicheLabels[inferredNiche]}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyNiche(inferredNiche)}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors cursor-pointer"
+                  >
+                    Use this
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInferDismissed(true)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    Not right
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {(Object.keys(NICHE_PRODUCTION_READY) as Niche[])
                 .filter((n) => NICHE_PRODUCTION_READY[n] && n !== 'other')
@@ -310,17 +404,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                   <button
                     key={n}
                     type="button"
-                    onClick={() => {
-                      const updates: Partial<OnboardingData> = { niche: n };
-                      if (agentNameIsAutoSet(data.agentName, data.niche)) {
-                        updates.agentName = defaultAgentNames[n];
-                      }
-                      if (data.agentMode === undefined) {
-                        updates.agentMode = defaultAgentModeForNiche(n);
-                      }
-                      onUpdate(updates);
-                      setNichePickerDismissed(true);
-                    }}
+                    onClick={() => applyNiche(n)}
                     className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-sm text-left transition-colors cursor-pointer"
                   >
                     <span className="text-base">{nicheEmojis[n]}</span>

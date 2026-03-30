@@ -261,9 +261,8 @@ export default function TrialActiveSection({
     )
   }
 
-  // ── Return branch (rebuilt) ──────────────────────────────────
+  // ── Return branch ────────────────────────────────────────────
 
-  // Derived summary values
   const knowledgeSources = data.knowledge.source_types
   const faqCount = data.editableFields.faqs.length
   const knowledgeItemCount = data.knowledge.approved_chunk_count + faqCount
@@ -281,19 +280,10 @@ export default function TrialActiveSection({
     return parts.join(' · ')
   })()
 
-  const mostRecentCall = data.recentCalls[0] ?? null
   const missedCount = data.recentCalls.filter(
     c => c.call_status === 'missed' || c.call_status === 'VOICEMAIL' || c.call_status === 'voicemail'
   ).length
-  const activitySummaryText = (() => {
-    if (data.recentCalls.length === 0) return 'No calls yet'
-    const parts: string[] = [`${data.recentCalls.length} call${data.recentCalls.length !== 1 ? 's' : ''}`]
-    if (mostRecentCall) parts.push(`last ${timeAgo(mostRecentCall.started_at)}`)
-    if (missedCount > 0) parts.push(`${missedCount} missed`)
-    return parts.join(' · ')
-  })()
 
-  // Next best action (single most important nudge)
   const nextAction: { text: string; cta: string; href: string | null } | null = (() => {
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
       return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/knowledge?tab=add&source=manual' }
@@ -316,74 +306,142 @@ export default function TrialActiveSection({
 
   return (
     <>
-      {/* ── 1. Header strip ────────────────────────────────────── */}
-      <div
-        className="rounded-2xl border p-4 space-y-2.5"
-        style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-      >
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="text-[11px] font-semibold tracking-[0.12em] uppercase"
-            style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
-          >
-            Trial
-          </span>
-          {daysRemaining !== undefined && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
-              {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
-            </span>
-          )}
-          <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-            {data.usage.minutesUsed}m used · {data.usage.totalAvailable}m total
-          </span>
-          <button
-            onClick={() => openUpgradeModal('home_header_upgrade', data.clientId, daysRemaining, data.selectedPlan)}
-            className="ml-auto text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            Upgrade →
-          </button>
-        </div>
-        <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ backgroundColor: 'var(--color-hover)' }}
-        >
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${usagePct}%`,
-              backgroundColor: usagePct >= 80 ? 'rgb(245,158,11)' : 'var(--color-primary)',
+      {/* ── 1. 3-col hero: [Capabilities] | [Talk to Agent] | [Today's Update + Agent Identity] ── */}
+      {onboarding.hasAgent && data.clientId && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+          {/* Col 1 — What your agent can do */}
+          <CapabilitiesCard
+            capabilities={capabilities}
+            agentName={agent.name}
+            voiceStylePreset={agent.voiceStylePreset}
+            isTrial={isTrial}
+            clientId={data.clientId}
+            hasPhoneNumber={onboarding.hasPhoneNumber}
+            hasIvr={data.editableFields.ivrEnabled}
+            hasContextData={data.editableFields.hasContextData}
+            selectedPlan={data.selectedPlan}
+          />
+
+          {/* Col 2 — Talk to your agent */}
+          <TestCallCard
+            clientId={data.clientId}
+            isAdmin={false}
+            isTrial={isTrial}
+            knowledge={{
+              agentName: agent.name || undefined,
+              hasFacts: !!(data.editableFields.businessFacts?.trim()),
+              hasFaqs: faqCount > 0,
+              hasHours: !!data.editableFields.hoursWeekday,
+              hasBooking: capabilities.hasBooking,
+              hasTransfer: capabilities.hasTransfer,
+              hasSms: capabilities.hasSms,
+              hasKnowledge: capabilities.hasKnowledge,
+              hasWebsite: capabilities.hasWebsite,
             }}
           />
-        </div>
-      </div>
 
-      {/* ── 1b. Stats secondary strip ──────────────────────────── */}
-      {(data.stats.todayCalls > 0 || data.stats.lastCallAt || data.stats.timeSavedMinutes > 0) && (
-        <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl flex-wrap" style={{ backgroundColor: 'var(--color-hover)' }}>
-          {data.stats.todayCalls > 0 && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{data.stats.todayCalls}</span>{' '}call{data.stats.todayCalls !== 1 ? 's' : ''} today
-            </span>
-          )}
-          {data.stats.lastCallAt && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              last call <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{timeAgo(data.stats.lastCallAt)}</span>
-            </span>
-          )}
-          {data.stats.timeSavedMinutes > 0 && (
-            <span className="text-[12px]" style={{ color: 'var(--color-text-2)' }}>
-              <span className="font-semibold" style={{ color: 'var(--color-text-1)' }}>{formatTimeSaved(data.stats.timeSavedMinutes)}</span>{' '}handled this month
-            </span>
-          )}
+          {/* Col 3 — Today's update + compact agent identity */}
+          <div className="space-y-3">
+            <TodayUpdateCard
+              clientId={data.clientId}
+              currentNote={data.editableFields.injectedNote}
+            />
+            <div className="rounded-xl p-3 card-surface space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  onClick={() => sheet.open('identity')}
+                  className="text-[13px] font-bold t1 hover:opacity-75 transition-opacity cursor-pointer text-left leading-tight"
+                >
+                  {agent.name}
+                </button>
+                {agent.niche && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-3)' }}>
+                    {formatNiche(agent.niche)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <Link
+                  href="/dashboard/settings?tab=voice"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] hover:opacity-75 transition-opacity"
+                  style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {formatVoicePreset(agent.voiceStylePreset)}
+                </Link>
+                <button
+                  onClick={() => sheet.open('notifications')}
+                  className="px-2 py-0.5 rounded-md text-[10px] cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{
+                    backgroundColor: onboarding.telegramConnected ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+                    color: onboarding.telegramConnected ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+                  }}
+                >
+                  {onboarding.telegramConnected ? 'Telegram ✓' : 'Connect alerts'}
+                </button>
+                <Link
+                  href="/dashboard/settings?tab=sms"
+                  className="px-2 py-0.5 rounded-md text-[10px] cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{
+                    backgroundColor: capabilities.hasSms ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+                    color: capabilities.hasSms ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+                  }}
+                >
+                  {capabilities.hasSms ? 'SMS ✓' : 'SMS off'}
+                </Link>
+              </div>
+              {data.agentSync && (
+                <AgentSyncBadge
+                  lastSyncAt={data.agentSync.last_agent_sync_at}
+                  lastSyncStatus={data.agentSync.last_agent_sync_status}
+                />
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── 2. Next best action (inline strip) ─────────────────── */}
+      {/* ── 2. Trial usage strip ──────────────────────────────── */}
+      <div
+        className="rounded-xl border px-4 py-2.5 flex items-center gap-3 flex-wrap"
+        style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      >
+        <span
+          className="text-[11px] font-semibold tracking-[0.12em] uppercase shrink-0"
+          style={{ color: (trialPhase === 'active_urgent' || trialPhase === 'active_final') ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
+        >
+          Trial
+        </span>
+        {daysRemaining !== undefined && (
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap shrink-0">
+            {daysRemaining}d left
+          </span>
+        )}
+        <div className="flex-1 min-w-[100px] h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-hover)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${usagePct}%`, backgroundColor: usagePct >= 80 ? 'rgb(245,158,11)' : 'var(--color-primary)' }}
+          />
+        </div>
+        <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-3)' }}>
+          {data.usage.minutesUsed}m / {data.usage.totalAvailable}m
+        </span>
+        <button
+          onClick={() => openUpgradeModal('home_header_upgrade', data.clientId, daysRemaining, data.selectedPlan)}
+          className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          Upgrade →
+        </button>
+      </div>
+
+      {/* ── 3. Next best action strip ──────────────────────────── */}
       {nextAction && (
         <div
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)' }}
+          style={{ backgroundColor: 'var(--color-accent-tint)', border: '1px solid rgba(22,163,74,0.2)' }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)', flexShrink: 0 }}>
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
@@ -410,7 +468,7 @@ export default function TrialActiveSection({
         </div>
       )}
 
-      {/* ── 2b. HOT lead banner ────────────────────────────────── */}
+      {/* ── 4. HOT lead banner ─────────────────────────────────── */}
       {data.stats.hotLeads > 0 && (
         <Link
           href="/dashboard/calls"
@@ -427,90 +485,116 @@ export default function TrialActiveSection({
         </Link>
       )}
 
-      {/* ── 3. 2-col grid: TestCallCard + TodayUpdateCard (hero) ─ */}
-      {onboarding.hasAgent && data.clientId && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <TestCallCard
-            clientId={data.clientId}
-            isAdmin={false}
-            isTrial={isTrial}
-            knowledge={{
-              agentName: agent.name || undefined,
-              hasFacts: !!(data.editableFields.businessFacts?.trim()),
-              hasFaqs: faqCount > 0,
-              hasHours: !!data.editableFields.hoursWeekday,
-              hasBooking: capabilities.hasBooking,
-              hasTransfer: capabilities.hasTransfer,
-              hasSms: capabilities.hasSms,
-              hasKnowledge: capabilities.hasKnowledge,
-              hasWebsite: capabilities.hasWebsite,
-            }}
-          />
-          <TodayUpdateCard
-            clientId={data.clientId}
-            currentNote={data.editableFields.injectedNote}
-          />
-        </div>
-      )}
-
-      {/* ── 4. Bento: CapabilitiesCard + BillingTile ─────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-        <CapabilitiesCard
-          capabilities={capabilities}
-          agentName={agent.name}
-          voiceStylePreset={agent.voiceStylePreset}
-          isTrial={isTrial}
-          clientId={data.clientId}
-          hasPhoneNumber={onboarding.hasPhoneNumber}
-          hasIvr={data.editableFields.ivrEnabled}
-          hasContextData={data.editableFields.hasContextData}
-          selectedPlan={data.selectedPlan}
-        />
-        <BillingTile
-          selectedPlan={data.selectedPlan}
-          subscriptionStatus={onboarding.subscriptionStatus}
-          onOpenSheet={() => sheet.open('billing')}
-        />
+      {/* ── 5. 2-col: [IVR+AfterCalls] | [Calendar] ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        {data.clientId ? (
+          <div className="space-y-3">
+            <IvrVoicemailTile
+              clientId={data.clientId}
+              isAdmin={false}
+              ivrEnabled={data.editableFields.ivrEnabled}
+              ivrPrompt={data.editableFields.ivrPrompt}
+              voicemailGreetingText={data.editableFields.voicemailGreetingText}
+              businessName={onboarding.businessName}
+              agentName={agent.name}
+            />
+            <PostCallActionsTile
+              clientId={data.clientId}
+              isAdmin={false}
+              smsEnabled={data.editableFields.smsEnabled}
+              smsTemplate={data.editableFields.smsTemplate}
+              hasSms={capabilities.hasSms}
+              agentName={agent.name}
+            />
+          </div>
+        ) : <div />}
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
       </div>
 
-      {/* ── 4b. BookingCalendarTile (bento) ─────────────────────── */}
-      <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+      {/* ── 6. Compact 4-stat row ─────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Calls', value: data.stats.totalCalls ?? data.recentCalls.length, suffix: '' },
+          { label: 'Time Handled', value: data.stats.timeSavedMinutes > 0 ? formatTimeSaved(data.stats.timeSavedMinutes) : '—', suffix: '' },
+          { label: 'Missed', value: missedCount > 0 ? missedCount : (data.stats.missedThisMonth ?? 0), suffix: '' },
+          { label: 'Minutes Used', value: data.usage.minutesUsed, suffix: `/ ${data.usage.totalAvailable}` },
+        ].map(({ label, value, suffix }) => (
+          <div key={label} className="rounded-xl px-4 py-3 card-surface">
+            <p className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-1" style={{ color: 'var(--color-text-3)' }}>{label}</p>
+            <p className="text-xl font-bold t1 leading-none">
+              {value}<span className="text-[12px] font-normal t3 ml-1">{suffix}</span>
+            </p>
+          </div>
+        ))}
+      </div>
 
-      {/* ── 4c. Knowledge inline tile ──────────────────────────────── */}
-      <KnowledgeInlineTile knowledgeStats={data.knowledge} />
-
-      {/* ── 4d. Unanswered questions tile ─────────────────────────── */}
-      {data.clientId && (
-        <UnansweredQuestionsTile clientId={data.clientId} />
-      )}
-
-      {/* ── 4e+4f. 2-col bento: IVR+Voicemail + Post-Call SMS ──────── */}
-      {data.clientId && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-          <IvrVoicemailTile
-            clientId={data.clientId}
-            isAdmin={false}
-            ivrEnabled={data.editableFields.ivrEnabled}
-            ivrPrompt={data.editableFields.ivrPrompt}
-            voicemailGreetingText={data.editableFields.voicemailGreetingText}
-            businessName={onboarding.businessName}
-            agentName={agent.name}
-          />
-          <PostCallActionsTile
-            clientId={data.clientId}
-            isAdmin={false}
-            smsEnabled={data.editableFields.smsEnabled}
-            smsTemplate={data.editableFields.smsTemplate}
-            hasSms={capabilities.hasSms}
-            agentName={agent.name}
-          />
+      {/* ── 7. Recent calls — flat list ───────────────────────── */}
+      {data.recentCalls.length > 0 && (
+        <div className="rounded-xl overflow-hidden card-surface">
+          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+              Recent Calls
+            </p>
+            {data.stats.missedThisMonth > 0 && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none">
+                {data.stats.missedThisMonth} voicemail{data.stats.missedThisMonth !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          {data.recentCalls.slice(0, 5).map(call => {
+            const isTestCall = call.call_status === 'test'
+            const row = (
+              <div className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium t1">
+                    {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
+                  </p>
+                  <p className="text-[11px] t3 capitalize">
+                    {call.call_status.toLowerCase().replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                  <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
+                </div>
+              </div>
+            )
+            return isTestCall ? (
+              <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{row}</div>
+            ) : (
+              <Link
+                key={call.id}
+                href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
+                className="block cursor-pointer border-b last:border-b-0"
+                style={{ borderColor: 'var(--color-border)' }}
+              >
+                {row}
+              </Link>
+            )
+          })}
+          <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            <Link
+              href="/dashboard/calls"
+              className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              View all calls →
+            </Link>
+          </div>
         </div>
       )}
 
-      {/* ── 5. Post-call nudge ──────────────────────────────────── */}
+      {/* ── 8. BillingTile — upgrade / go live strip ──────────── */}
+      <BillingTile
+        selectedPlan={data.selectedPlan}
+        subscriptionStatus={onboarding.subscriptionStatus}
+        onOpenSheet={() => sheet.open('billing')}
+      />
+
+      {/* ── 9. Post-call nudge ────────────────────────────────── */}
       {callState === 'ended' && !postCallDismissed && data.clientId && (
         <div
-          className="rounded-2xl border p-4 space-y-3"
+          className="rounded-xl border p-4 space-y-3"
           style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
         >
           <div className="flex items-center justify-between">
@@ -529,7 +613,7 @@ export default function TrialActiveSection({
         </div>
       )}
 
-      {/* ── 6. TrialModeSwitcher ────────────────────────────────── */}
+      {/* ── 10. Trial mode switcher ──────────────────────────── */}
       {onboarding.hasAgent && data.clientId && (
         <TrialModeSwitcher
           clientId={data.clientId}
@@ -541,79 +625,17 @@ export default function TrialActiveSection({
         />
       )}
 
-      {/* ── 7. Identity strip ───────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 items-center">
-        {/* Agent name chip */}
-        <button
-          onClick={() => sheet.open('identity')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
-        >
-          {agent.name}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {/* Niche chip */}
-        {agent.niche && (
-          <Link
-            href="/dashboard/settings?tab=general"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
-          >
-            {formatNiche(agent.niche)}
-          </Link>
-        )}
-
-        {/* Voice chip */}
-        <Link
-          href="/dashboard/settings?tab=voice"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {formatVoicePreset(agent.voiceStylePreset)}
-        </Link>
-
-        {/* Telegram pill */}
-        <button
-          onClick={() => sheet.open('notifications')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{
-            backgroundColor: onboarding.telegramConnected ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
-            color: onboarding.telegramConnected ? 'rgb(34,197,94)' : 'var(--color-text-3)',
-          }}
-        >
-          {onboarding.telegramConnected ? 'Telegram ✓' : 'Connect Telegram →'}
-        </button>
-
-        {/* SMS pill */}
-        <Link
-          href="/dashboard/settings?tab=sms"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{
-            backgroundColor: capabilities.hasSms ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
-            color: capabilities.hasSms ? 'rgb(34,197,94)' : 'var(--color-text-3)',
-          }}
-        >
-          {capabilities.hasSms ? 'SMS on' : 'Enable SMS →'}
-        </Link>
-
-        {/* Agent sync badge */}
-        {data.agentSync && (
-          <AgentSyncBadge
-            lastSyncAt={data.agentSync.last_agent_sync_at}
-            lastSyncStatus={data.agentSync.last_agent_sync_status}
-          />
+      {/* ── 11. 2-col: KnowledgeInline + Unanswered ──────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <KnowledgeInlineTile knowledgeStats={data.knowledge} />
+        {data.clientId && (
+          <UnansweredQuestionsTile clientId={data.clientId} />
         )}
       </div>
 
-      {/* ── 8. "WHAT IT KNOWS" collapsible ─────────────────────── */}
+      {/* ── 12. "WHAT IT KNOWS" collapsible ─────────────────── */}
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-xl overflow-hidden"
         style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
       >
         <button
@@ -650,7 +672,6 @@ export default function TrialActiveSection({
         {knowOpen && (
           <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
             {knowledgeItemCount === 0 && !data.editableFields.businessFacts ? (
-              /* Empty state */
               <div className="py-6 text-center space-y-2">
                 <p className="text-sm t2">Nothing added yet</p>
                 <p className="text-[12px] t3 leading-relaxed max-w-xs mx-auto">
@@ -666,7 +687,6 @@ export default function TrialActiveSection({
               </div>
             ) : (
               <>
-                {/* Business facts preview */}
                 {data.editableFields.businessFacts && (
                   <div className="pt-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
@@ -678,7 +698,6 @@ export default function TrialActiveSection({
                   </div>
                 )}
 
-                {/* FAQ preview (first 2) */}
                 {faqCount > 0 && (
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--color-text-3)' }}>
@@ -692,15 +711,12 @@ export default function TrialActiveSection({
                         </div>
                       ))}
                       {faqCount > 2 && (
-                        <p className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-                          +{faqCount - 2} more
-                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>+{faqCount - 2} more</p>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Source pills */}
                 {knowledgeSources.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {knowledgeSources.map(src => {
@@ -712,7 +728,7 @@ export default function TrialActiveSection({
                         <span
                           key={src}
                           className="text-[10px] px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'rgb(129,140,248)' }}
+                          style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
                         >
                           {srcLabels[src] ?? src}
                         </span>
@@ -721,7 +737,6 @@ export default function TrialActiveSection({
                   </div>
                 )}
 
-                {/* Auto FAQ suggestions */}
                 {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
                   <AutoFaqSuggestions
                     clientId={data.clientId}
@@ -729,7 +744,6 @@ export default function TrialActiveSection({
                   />
                 )}
 
-                {/* Teach agent card */}
                 {data.clientId && (
                   <TeachAgentCard clientId={data.clientId} agentName={agent.name} />
                 )}
@@ -749,88 +763,7 @@ export default function TrialActiveSection({
         )}
       </div>
 
-      {/* ── 9. "RECENT ACTIVITY" collapsible ───────────────────── */}
-      {data.recentCalls.length > 0 && (
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-        >
-          <button
-            onClick={() => setActivityOpen(o => !o)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-hover transition-colors text-left"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
-                  Recent activity
-                </p>
-                <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-                  {activitySummaryText}
-                </span>
-                {data.stats.missedThisMonth > 0 && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
-                    {data.stats.missedThisMonth} voicemail{data.stats.missedThisMonth !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            </div>
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              className={`shrink-0 transition-transform duration-200 ${activityOpen ? 'rotate-180' : ''}`}
-              style={{ color: 'var(--color-text-3)' }}
-            >
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          {activityOpen && (
-            <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-              {data.recentCalls.slice(0, 3).map(call => {
-                const isTestCall = call.call_status === 'test'
-                const row = (
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium t1">
-                        {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
-                      </p>
-                      <p className="text-[11px] t3 capitalize">
-                        {call.call_status.toLowerCase().replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
-                      <p className="text-[11px] t3">{timeAgo(call.started_at)}</p>
-                    </div>
-                  </div>
-                )
-                return isTestCall ? (
-                  <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{row}</div>
-                ) : (
-                  <Link
-                    key={call.id}
-                    href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                    className="block cursor-pointer border-b last:border-b-0"
-                    style={{ borderColor: 'var(--color-border)' }}
-                  >
-                    {row}
-                  </Link>
-                )
-              })}
-              <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                <Link
-                  href="/dashboard/calls"
-                  className="text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  View all calls →
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── 10. NotificationsTile ───────────────────────────────── */}
+      {/* ── 13. Notifications ────────────────────────────────── */}
       <NotificationsTile
         telegramConnected={onboarding.telegramConnected}
         emailEnabled={onboarding.emailNotificationsEnabled}

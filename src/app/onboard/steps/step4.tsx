@@ -124,7 +124,14 @@ export default function Step4({ data, onUpdate }: Props) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intake_id: intakeId, niche: niche || "other" }),
-    }).catch(() => {/* silent — best-effort */});
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error('[step4] create-draft failed:', res.status, body)
+      }
+    }).catch((err) => {
+      console.error('[step4] create-draft network error:', err)
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize FAQ pairs on first visit if empty and niche has defaults

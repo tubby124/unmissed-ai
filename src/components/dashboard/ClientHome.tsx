@@ -466,6 +466,7 @@ export default function ClientHome() {
               hasRealCalls={hasRealCalls}
               lastCompletedCall={lastCompletedCall}
               sheet={sheet}
+              fetchData={fetchData}
             />
           )}
         </>)}
@@ -515,7 +516,7 @@ export default function ClientHome() {
                   >
                     <span className="shrink-0">
                       {isTestCall ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-400">Test</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}>Test</span>
                       ) : (
                         <StatusBadge status={call.call_status} showDot={false} />
                       )}

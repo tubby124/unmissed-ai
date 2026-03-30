@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import StatusBadge from './StatusBadge'
@@ -184,6 +185,17 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
               {call.business_name || '—'}
             </span>
           )}
+          {/* TYPE badge — Inbound / Outbound */}
+          <span
+            className="hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0"
+            style={call.call_direction === 'outbound'
+              ? { backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.25)' }
+              : { backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderColor: 'rgba(96,165,250,0.25)' }
+            }
+          >
+            {call.call_direction === 'outbound' ? 'Outbound' : 'Inbound'}
+          </span>
+
           <div className="ml-auto flex items-center gap-2 shrink-0">
             {call.call_status === 'live' ? (
               <LiveDuration startedAt={call.started_at} className="text-[11px] font-mono text-green-400" />
@@ -191,7 +203,15 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
               <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{dur}</span>
             ) : null}
             <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{timeAgo(call.started_at)}</span>
-            {!isProcessingOrLive && (
+            {call.call_status === 'live' ? (
+              <Link
+                href={`/dashboard/calls/${call.ultravox_call_id}`}
+                onClick={e => e.stopPropagation()}
+                className="text-[10px] font-semibold text-green-400 hover:text-green-300 transition-colors shrink-0 animate-pulse"
+              >
+                Watch Live →
+              </Link>
+            ) : !isProcessingOrLive && (
               <motion.svg
                 width="12" height="12" viewBox="0 0 24 24" fill="none"
                 animate={{ rotate: expanded ? 90 : 0 }}
