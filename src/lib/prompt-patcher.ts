@@ -487,6 +487,23 @@ For VIP callers:
  * Idempotent: calling twice with the same args produces no change.
  * Returns the patched prompt, or the original if no change needed.
  */
+/**
+ * Patch a system prompt when business hours change.
+ * Replaces all literal occurrences of the old hours text with the new hours text.
+ * Fixes the baked-in HOURS/LOCATION scripted responses and after-hours instruction
+ * that were generated at provision time via {{HOURS_WEEKDAY}} variable substitution.
+ *
+ * Returns the patched prompt, or the original if no change needed.
+ */
+export function patchHoursWeekday(
+  prompt: string,
+  oldHours: string,
+  newHours: string,
+): string {
+  if (!oldHours?.trim() || !newHours?.trim() || oldHours === newHours) return prompt
+  return prompt.split(oldHours).join(newHours)
+}
+
 export function patchVipSection(prompt: string, enabled: boolean): string {
   const hasSection = prompt.includes(VIP_HEADING)
 

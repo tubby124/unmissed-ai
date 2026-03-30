@@ -90,7 +90,7 @@ const DEFAULT_FAQ: Record<string, { question: string; answer: string }[]> = {
   ],
   other: [
     { question: "What services do you offer?", answer: "" },
-    { question: "What are your hours?", answer: "" },
+    { question: "What areas do you serve?", answer: "" },
     { question: "How can I reach someone?", answer: "" },
   ],
 };

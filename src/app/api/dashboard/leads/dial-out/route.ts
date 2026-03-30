@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { assembleOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
 import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
 
@@ -57,16 +58,29 @@ export async function POST(req: NextRequest) {
   const clientId = lead.client_id ?? cu.client_id
   if (!clientId) return NextResponse.json({ error: 'No client associated with this lead' }, { status: 400 })
 
-  // Fetch client config — include outbound_prompt + all context fields
+  // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche')
     .eq('id', clientId)
     .single()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
-  if (!client.outbound_prompt) {
+  // If outbound_prompt is null but structured fields exist, assemble on the fly and backfill DB
+  let outboundPrompt = client.outbound_prompt as string | null
+  if (!outboundPrompt && (client.outbound_goal || client.outbound_opening)) {
+    outboundPrompt = assembleOutboundPrompt({
+      goal: (client.outbound_goal as string | null) ?? 'Follow up and schedule a conversation',
+      tone: ((client.outbound_tone as string | null) ?? 'warm') as OutboundTone,
+      opening: (client.outbound_opening as string | null) ?? "Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. I'm trying to reach {{LEAD_NAME}} — do you have a quick minute?",
+      vmScript: (client.outbound_vm_script as string | null) ?? 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out — give us a call back when you get a chance. Thanks!',
+    })
+    // Backfill so subsequent dials skip this assembly step
+    createServiceClient().from('clients').update({ outbound_prompt: outboundPrompt }).eq('id', clientId).then(() => {})
+  }
+
+  if (!outboundPrompt) {
     return NextResponse.json({
       error: 'Outbound agent not configured. Set an outbound prompt in the Leads page before dialing.',
     }, { status: 400 })
@@ -101,7 +115,7 @@ export async function POST(req: NextRequest) {
     business_hours_weekend: (client.business_hours_weekend as string | null) ?? undefined,
     after_hours_behavior: (client.after_hours_behavior as string | null) ?? undefined,
     after_hours_emergency_phone: (client.after_hours_emergency_phone as string | null) ?? undefined,
-    business_facts: (client.business_facts as string | null) ?? undefined,
+    business_facts: (client.business_facts as string[] | null) ?? undefined,
     extra_qa: (client.extra_qa as { q: string; a: string }[] | null) ?? undefined,
     context_data: (client.context_data as string | null) ?? undefined,
     context_data_label: (client.context_data_label as string | null) ?? undefined,
@@ -112,7 +126,7 @@ export async function POST(req: NextRequest) {
   const ctx = buildAgentContext(clientRow, toPhone, [], new Date(), corpusAvailable)
 
   // Substitute lead-specific placeholders into outbound prompt
-  const resolvedPrompt = resolveOutboundPrompt(client.outbound_prompt as string, {
+  const resolvedPrompt = resolveOutboundPrompt(outboundPrompt, {
     leadName: (lead.name as string | null) ?? 'there',
     leadPhone: toPhone,
     leadNotes: (lead.notes as string | null) ?? '',

@@ -321,6 +321,7 @@ export type Database = {
           billed_cost_cents: number | null
           billed_duration_seconds: number | null
           billing_status: string | null
+          call_direction: string | null
           call_state: Json | null
           call_status: string | null
           caller_name: string | null
@@ -360,6 +361,7 @@ export type Database = {
           billed_cost_cents?: number | null
           billed_duration_seconds?: number | null
           billing_status?: string | null
+          call_direction?: string | null
           call_state?: Json | null
           call_status?: string | null
           caller_name?: string | null
@@ -399,6 +401,7 @@ export type Database = {
           billed_cost_cents?: number | null
           billed_duration_seconds?: number | null
           billing_status?: string | null
+          call_direction?: string | null
           call_state?: Json | null
           call_status?: string | null
           caller_name?: string | null
@@ -844,6 +847,7 @@ export type Database = {
           outbound_goal: string | null
           outbound_opening: string | null
           outbound_prompt: string | null
+          outbound_notes: string | null
           outbound_tone: string | null
           outbound_vm_script: string | null
           owner_name: string | null
@@ -951,6 +955,7 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           outbound_goal?: string | null
+          outbound_notes?: string | null
           outbound_opening?: string | null
           outbound_prompt?: string | null
           outbound_tone?: string | null
@@ -1060,6 +1065,7 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           outbound_goal?: string | null
+          outbound_notes?: string | null
           outbound_opening?: string | null
           outbound_prompt?: string | null
           outbound_tone?: string | null

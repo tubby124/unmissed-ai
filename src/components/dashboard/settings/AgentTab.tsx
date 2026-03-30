@@ -649,6 +649,7 @@ export default function AgentTab({
           initialOpening={client.outbound_opening ?? null}
           initialVmScript={client.outbound_vm_script ?? null}
           initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
+          initialNotes={(client.outbound_notes as string | null) ?? null}
         />
       </SettingsSection>
     )}
@@ -681,6 +682,7 @@ export default function AgentTab({
           initialOpening={client.outbound_opening ?? null}
           initialVmScript={client.outbound_vm_script ?? null}
           initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
+          initialNotes={client.outbound_notes ?? null}
         />
       </SettingsSection>
     )}

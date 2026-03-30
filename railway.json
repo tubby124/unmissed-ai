@@ -42,6 +42,10 @@
     {
       "schedule": "*/5 * * * *",
       "command": "curl -s -X POST http://localhost:3000/api/cron/scheduled-callbacks -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
+    },
+    {
+      "schedule": "0 * * * *",
+      "command": "curl -s -X POST http://localhost:3000/api/cron/cleanup-tokens -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
     }
   ]
 }

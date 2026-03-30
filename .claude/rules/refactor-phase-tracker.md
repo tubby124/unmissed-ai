@@ -1,186 +1,116 @@
 # Refactor Phase Tracker (Active)
 
-> Full history of completed phases: `docs/refactor-completed-phases.md`
+> Completed phases + full DONE history (including all D## completed items): `docs/refactor-completed-phases.md`
 > Master operator prompt: `docs/unmissed-master-operator-prompt.md`
 
 ## Cross-Phase Gates (apply to EVERY phase)
-
-- **Sonar Pro Fact-Check:** Run 2-3 Perplexity Sonar Pro queries (via `$OPENROUTER_API_KEY`) before and after implementation.
-- **Research-First Rule:** If a research doc exists, READ IT FIRST. If none exists, run Sonar Pro BEFORE writing code.
-- **Conflicting Research:** Flag conflicts to the user before proceeding.
-
----
-
-## Research & Plans Index
-
-- **S12 Ph3c (Tour + Trial):** `docs/s12-audit/S12-PHASE3C-IMPLEMENTATION-PLAN.md` | Tour: driver.js decided (`docs/s12-audit/s12-tour-library-decision.md`) | WebRTC: `memory/ultravox-client-sdk-reference.md` + `memory/webrtc-component-architecture.md` | Conversion: `docs/s12-audit/s12-trial-conversion-research.md`
-- **S12 Ph3d (Scrape):** `docs/s12-audit/scrape-architecture-findings.md` | Plan: `~/.claude/plans/twinkly-wibbling-fountain.md`
-- **Settings Cards:** `docs/settings-card-tracker.md` + `memory/settings-card-architecture.md`
-- **Phase 0:** `docs/research-notes/phase0-tooling-research.md` | `docs/refactor-baseline/PHASE-0D-TRUTH-MAP.md`
-- **Sonar Pro (2026-03-22):** Realtime (RLS > client-side, debounce, cap arrays), Voice AI UX (sentiment, frustration, weekly digests), Prompt mgmt (surgical patching correct, identity→voice→operational order, coherence drift after 5+ patches)
+- **Sonar Pro Fact-Check:** Run 2-3 Perplexity Sonar Pro queries before and after implementation.
+- **Research-First Rule:** Read existing research doc first. If none, run Sonar Pro BEFORE writing code.
+- **Conflicting Research:** Flag conflicts to user before proceeding.
 
 ---
 
 ## P0-LAUNCH-GATE (remaining items only)
 
 ### GATE-1 — Auth + Email Deliverability (BLOCKED on domain purchase)
-| Item | Source | Status |
-|------|--------|--------|
-| S15-PRE1-7 | S15 | NOT STARTED — domain purchase + DNS + external configs |
-| S15-ENV1-4 | S15 | NOT STARTED — Railway env var updates after domain |
-| S15-CODE1-11 | S15 | NOT STARTED — brand text + legal pages + SEO metadata |
-| S12-V15 | S12 | NOT STARTED — email deliverability E2E |
-| S12-LOGIN1 | S12 | BLOCKED on S15-PRE3 |
-| S12-V22 | S12 | NOT STARTED — Supabase email template branding |
+| Item | Status |
+|------|--------|
+| S15-PRE1-7 | NOT STARTED — domain purchase + DNS + external configs |
+| S15-ENV1-4 | NOT STARTED — Railway env var updates after domain |
+| S15-CODE1-11 | NOT STARTED — brand text + legal pages + SEO metadata |
+| S12-V15 | NOT STARTED — email deliverability E2E |
+| S12-LOGIN1 | BLOCKED on S15-PRE3 |
+| S12-V22 | NOT STARTED — Supabase email template branding |
 
 ### GATE-2 — Remaining Items
-| Item | Source | Status |
-|------|--------|--------|
-| S13-REC2 | S13-REC1 | NOT STARTED — backfill recording_url values from full URLs to paths |
-| S16a | S16 | NOT STARTED — call recording consent disclosure |
+| Item | Status |
+|------|--------|
+| S13-REC2 | NOT STARTED — backfill recording_url from full URLs to paths |
+| S16a | NOT STARTED — call recording consent disclosure |
 
-> GATE-3: PASS | GATE-4: PASS | GATE-5: PASS — see `docs/refactor-completed-phases.md`
-
----
-
-## S12 Execution Slices
-
-| Slice | Name | Status |
-|-------|------|--------|
-| 1 | Prompt Variable Injection (PROMPT-TEST1+2) | NOT STARTED |
-| 2 | Talk to Your Agent (2a-2b DONE, 2c-2f below) | IN PROGRESS |
-| 3 | Scrape Verify + Harden (SCRAPE6/7/8/10) | SCRAPE6/7/8 DONE, SCRAPE10 NOT STARTED |
-| 4 | Empty States (TOUR3) | **DONE** 2026-03-22 |
-| 5 | Guided Tour (TOUR2, driver.js) | **DONE** 2026-03-22 |
-| 6 | Advanced Trial Extras | DEFERRED |
-| 7 | External Deps | BLOCKED (domain purchase) |
-
-### Slice 2 — Remaining Sub-Phases
-
-| Phase | Name | What | Status |
-|-------|------|------|--------|
-| 2c | Agent Knowledge Card | "What your agent knows" summary: facts, FAQs, hours, booking, voice, knowledge docs | **DONE** 2026-03-22 |
-| 2d | Try-Asking Prompts | Pre-call suggestions generated from client config | **DONE** 2026-03-22 |
-| 2e | Inline Mini-Editors | Quick FAQ add, hours toggle, voice preview — inline, no settings nav | **DONE** 2026-03-24 (voice preview: AgentCurrentVoiceCard; hours: SettingsPanel; FAQ add: AgentKnowledgeCard inline form) |
-| 2f | Website Scrape Hint | "Add your website to teach your agent more" — triggers SCRAPE1-3 flow | **DONE** 2026-03-24 (amber nudge + inline URL input in AgentKnowledgeCard when no website set) |
-
-### Slice 8 — Agent Intelligence Deep (remaining)
-
-| Phase | Name | Priority | Status |
-|-------|------|----------|--------|
-| 8e | Prompt-Aware Suggestions | LOW | NOT STARTED |
-| 8f | Change Impact Preview | LOW | NOT STARTED |
-| 8g | Quick-Add FAQ from Calls | MEDIUM | **DONE** 2026-03-22 |
-| 8h | Onboarding Progress Ring | MEDIUM | **DONE** 2026-03-22 |
-| 8i | Settings Search/Filter | LOW | NOT STARTED |
-| 8j | Intent Confidence / Containment Rate | LOW | NOT STARTED |
-| 8k | Cost-Per-Call Dashboard Widget | LOW | NOT STARTED |
-| 8l | A/B Prompt Testing | LOW | NOT STARTED |
-| 8m | Failure-to-Refine Pipeline | MEDIUM | **DONE** 2026-03-28 |
-| 8n | Conversation Flow Visualization | LOW | NOT STARTED |
-| 8o | Frustration/Interruption Metrics | MEDIUM | **DONE** 2026-03-28 |
-| 8p | Prompt Coherence Guard | LOW | NOT STARTED |
-| 8q | Live Call Duration Timer | LOW | NOT STARTED |
+> GATE-3: PASS | GATE-4: PASS | GATE-5: PASS
 
 ---
 
-## Session Discoveries — Pending Only
+## Execution Order
 
-| # | Type | Description | Severity | Status |
-|---|------|-------------|----------|--------|
-| D19 | TECH DEBT | Settings PATCH uses 30+ manual `typeof` checks — should be Zod schema | LOW | **DONE** 2026-03-29 (`lib/settings-schema.ts` has full `settingsBodySchema` Zod schema + `FIELD_REGISTRY`. Settings route already uses `settingsBodySchema.safeParse(rawBody)`. Nothing to implement.) |
-| D20 | WIP | Uncommitted S12 Slice 4/5 files — **resolved**: committed as part of CX-1 sprint | INFO | **DONE** 2026-03-22 |
-| D27 | **GAP** | No feedback loop for call-time injection fields — consider "preview what agent knows" | LOW | NOT STARTED |
-| D30 | OPTIMIZATION | Realtime re-render storms — debounce/batch 100-250ms for high-volume clients | LOW | NOT STARTED |
-| D31 | OPTIMIZATION | Unbounded state arrays — `.slice(0, MAX)` after prepend or virtual scrolling | LOW | NOT STARTED |
-| D32 | SECURITY | Verify RLS enabled on realtime tables (call_logs, campaign_leads, notification_logs, bookings) | MEDIUM | **DONE** 2026-03-30 — All 4 tables have `rowsecurity=true` + appropriate policies (admin ALL, owner SELECT, service_role bypasses). Verified via Supabase MCP. |
-| D33 | **PATTERN** | Multi-field prompt patch ordering — apply identity→voice→operational with validatePrompt() per step | LOW | NOT STARTED |
-| D34 | FEATURE | Call sentiment deep metrics — frustration, interruption rate, silence gaps, satisfaction score | MEDIUM | NOT STARTED |
-| D35 | FEATURE | AI-assisted prompt improvement suggestions from failure patterns | MEDIUM | NOT STARTED |
-| D36 | FEATURE | Weekly failure digest cron — recurring failure analysis + client notification | LOW | NOT STARTED |
-| D37 | FEATURE | Agent personality coherence check — warn after 5+ surgical patches without regen | LOW | NOT STARTED |
-| D38 | **BUG** | Guided tour breaks on mobile — Sidebar is `hidden lg:flex`, so `data-tour` nav elements invisible below 1024px. Fixed: tour suppressed below 1024px via `window.innerWidth` check. | MEDIUM | **DONE** 2026-03-22 |
-| D39 | FEATURE | Demo GA4 events — fire `demo_start`, `demo_complete`, `demo_agent_selected` via `lib/analytics.ts` for funnel tracking | MEDIUM | NOT STARTED |
-| D40 | FEATURE | Demo follow-up email — Brevo transactional email after demo with summary + signup link. Requires domain/Brevo setup (GATE-1) | MEDIUM | BLOCKED on domain |
-| D41 | FEATURE | Demo-to-Brevo sync — add demo visitors with email to Brevo contacts for nurture list | LOW | NOT STARTED |
-| D42 | UX | "Not {name}?" link for returning demo visitors — lets them edit saved localStorage info instead of auto-skipping form | LOW | NOT STARTED |
-| D43 | FEATURE | Onboarding UX overhaul — multiple fields non-editable, poor flow. User flagged: "onboarding still sucks" | HIGH | **DONE** 2026-03-23 (all 6 phases complete: data pipe, bugs, inline edit, consolidation, scrape UX, demo placement, field mapping) |
-| D44 | **GAP** | No login path for trial users if email not delivered (no domain yet). User closes browser = locked out. Sonar-confirmed fix: Google OAuth (works with Railway URL, no custom domain needed). Plan: Phase 5b in `lively-hopping-flurry.md`. | HIGH | **DONE** (already implemented — `login/page.tsx` has `handleGoogleSignIn` + `signInWithOAuth({ provider: 'google' })` as primary CTA, `auth/callback/route.ts` handles code exchange) |
-| D45 | **GAP** | Scraped data from Google Places + website goes into agent training without user seeing/approving it. User flagged this. Sonar confirms review gate reduces churn 25%. Plan: Phase 5c in `lively-hopping-flurry.md`. | MEDIUM | **DONE** 2026-03-30 — Fresh-scrape fallback in `provision/trial/route.ts` + `create-public-checkout/route.ts` now seeds chunks as `status='pending'` (not auto-approved). Also writes `website_knowledge_preview` + `website_scrape_status='extracted'` so KnowledgeSheet "Approve & activate" button works. UI: `AgentKnowledgeTile` amber "N pending" badge + `KnowledgeSheet` amber warning panel already existed. Build ✅ |
-| D46 | UX | TrialSuccessScreen CTA not personalized with agent name. Phase 5 plan: "Talk to [Mark] in your dashboard →". Needs `agentName` from activation response → page.tsx → TrialSuccessScreen prop. | MEDIUM | **DONE** (already implemented — provision/trial/route.ts → page.tsx → status/page.tsx → TrialSuccessScreen prop chain fully wired) |
-| D47 | FEATURE | Plan selection in onboarding — 7-step flow with plan picker at step 4. `selectedPlan` type added to OnboardingData. Capabilities (booking/forwarding) gated to Pro plan. Summary card in step 7 shows plan name + price. DB: `selected_plan` column added to `clients` via migration. | HIGH | **DONE** 2026-03-24 |
-| D48 | FEATURE | Stripe 3-tier products created (LIVE). Lite: prod_UCl8SbXQTqNhT6, Core: prod_UCl8nni05Nk9lB, Pro: prod_UCl8d1JTMthpf7. All 6 price IDs (monthly+annual) now in PLANS[]. Upgrade route: `/api/billing/upgrade`. | HIGH | **DONE** 2026-03-24 |
-| D49 | UX | VoiceStyleCard is admin-only — client owners can't see voice/style controls in settings. Need to expose voice & personality settings to all users (simplified version or full card). Currently gated behind admin check in AgentTab.tsx ~line 405. | HIGH | **DONE** (Phase 0 audit confirmed VoiceStyleCard is NOT behind isAdmin guard in current code — renders for all users) |
-| D50 | **BUG** | Mobile sidebar nav broken — Sidebar uses `hidden lg:flex`, no hamburger/bottom nav alternative. Mobile users cannot access Agent subsections (Overview, Knowledge, Actions, Voice Library). D38 only suppressed tour, didn't fix actual navigation. | HIGH | **DONE** (already implemented — MobileNav.tsx has hamburger drawer + Agent accordion, wired in layout.tsx:88. Tests in tests/mobile-nav.spec.ts. Confirmed by Phase 0 audit 2026-03-24) |
-| D51 | **DEBT** | `public-snapshot-url-exposure` — `/api/public/agent-snapshot` trusts bare `clientId` UUID, and that UUID is in the `/onboard/status?clientId=` URL (browser history, referrer, analytics). Data exposed is public business info only (services, hours, scraped facts — no prompt, no caller data). UUID is non-guessable. **Not a blocker.** Future fix: short-lived scoped token or state-based handoff instead of URL param. Do not let this become an auth redesign. | LOW | NOT STARTED |
-| D52 | **GAP — v2.1 REQUIRED** | Standard `regenerate-prompt/route.ts` path does NOT inject `client_services` rows. Only deep-mode rebuild (`agent-mode-rebuild.ts`) reads `client_services`. If a client edits their service catalog then hits standard Regenerate, the rebuilt prompt is stale. Decision required: (A) patch standard regen to query `client_services` and inject rows — ~10 lines, same as `agent-mode-rebuild.ts` lines 154–165; OR (B) gate the "Regenerate Prompt" UI to always use deep-mode rebuild when `service_catalog` rows exist, document the distinction. Option A is correct. Must resolve before any client is onboarded with a populated service catalog. See `docs/canary/service-catalog-v2-phase-close.md`. | HIGH | **DONE** 2026-03-28 (commit `40d10df` — standard regen now queries `client_services` + `rowsToCatalogItems`, mirrors agent-mode-rebuild.ts pattern) |
-| D53 | **UX** | `agent_mode` ↔ `call_handling_mode` silent drift — both cards render on settings page showing different "current" states (observed: muffin-house-cafe has `agent_mode=voicemail_replacement` but `call_handling_mode=full_service`). No sync mechanism. Client sees two conflicting "active mode" labels. Fix: when AgentModeCard deep-rebuild completes, write a matching `call_handling_mode` value; or add a UI note explaining the two systems. | MEDIUM | **DONE** 2026-03-29 (`AgentModeCard.tsx`: added context note showing active call mode + "switching also updates it to match"; done state confirms both fields synced. Backend was already atomic — `regenerate-prompt/route.ts` writes both `agent_mode` + `call_handling_mode` on deep-rebuild.) |
-| D54 | **UX** | Settings default tab is `billing` for ALL owners regardless of plan — even active paid clients land on billing first. `SettingsView.tsx:123`. Fix: default to `general` when `subscription_status !== 'trialing'`. | MEDIUM | **DONE** 2026-03-28 (active clients default to `general`; trialing owners still get `billing`) |
-| D55 | **BUG** | `?tab=agent` URL param doesn't map to any valid `SettingsTab` — silently falls back to `billing` for owners. Valid tabs are `general/sms/voice/notifications/billing/knowledge`. Fix: normalize `agent` → `general` in tab resolution. | LOW | **DONE** 2026-03-28 (D55: `normalizedInitialTab` alias in `SettingsView.tsx`) |
-| D56 | **VERIFY** | Transfer recovery path never live-tested with a real Twilio call — built and committed but unverified: AI reconnect after human drops, `parent_call_log_id` FK, Telegram alert. Needs manual smoke test with a real phone call to an unanswered forwarding number. | MEDIUM | NOT STARTED |
-| D57 | **HOUSEKEEPING** | `MEMORY.md` is 222 lines, exceeding the 200-line load limit — 22 lines silently dropped every session. Topic pointers for later entries may not load. Fix: move stale/done entries to archive or compress multi-line entries. | LOW | **DONE** 2026-03-30 — Trimmed to 199 lines: removed stale issue #15, merged GA4+deferred entries, compressed prompt-builder link. |
-| D58 | **BUG** | Alerts tab in Settings was `adminOnly: true` — owners couldn't manage their own Telegram/email/digest preferences from `/dashboard/settings`. Fixed alongside SMS tab ungating. | MEDIUM | **DONE** 2026-03-28 |
-| D59 | **UX** | Home notifications sheet "All notification settings →" linked to `/dashboard/settings` without a tab param — landed on default tab instead of notifications. Fixed to deep-link `?tab=notifications`. | LOW | **DONE** 2026-03-28 |
-| D60 | **GAP** | No SMS confirmation to caller after agent books an appointment. `bookAppointment` tool fires + calendar event created, but no confirmation text sent. Implement via `sendTextMessage` in the tool response instruction block, only when `sms_enabled=true`. Booking confirmation is a distinct SMS from the post-call follow-up. | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` fires `sendSmsTracked` after successful booking, gated on sms_enabled + twilio_number + callerPhone, opt-out checked) |
-| D61 | **GAP** | SMS opt-out list invisible to owners — only admins can see who's opted out via DB. Owners flying blind on why SMS isn't reaching certain callers. Add read-only opt-out list to the SMS settings tab (no removal — opt-out is permanent per compliance). | LOW | **DONE** 2026-03-28 (GET `/api/dashboard/sms-opt-outs` + collapsible read-only list in `SmsTab.tsx`) |
-| D65 | **UX — HIGH** | Trial home page is too layered to be useful. A new user sees: floating label → TrialModeSwitcher card → post-call panel → test prompts → proof strip → checklist → insights → stats → bento (TestCallCard + 6 tiles) → upgrade nudge. Up to 11 sections. Nobody scrolls past the orb. The page needs a clear north star: one primary action, everything else secondary. Real fix: gut the return branch to: TestCallCard (full-width) → TrialModeSwitcher (inside bento as a tile) → bento tiles. Everything else conditional/collapsed. | HIGH | **DONE** 2026-03-28 |
-| D66 | **UX** | Triple capability redundancy on home overview. TestCallCard "WHAT YOUR AGENT KNOWS" tiles + AgentKnowledgeTile + CallHandlingTile all show overlapping capability/knowledge status on the same screen. User sees the same info 3 times. Fix: TestCallCard tiles are the hero — drop one of the other two (AgentKnowledgeTile is weaker, consider replacing with something more actionable). | MEDIUM | **DONE** 2026-03-28 |
-| D67 | **UX** | isFirstVisit branch in TrialActiveSection is a completely different UI from the return branch. First visit: custom welcome layout with its own knowledge pill rows. Every visit after: bento grid. Same user, same product, wildly different screen. Either unify them (show bento on first visit too) or make the first-visit screen clearly a one-time onboarding moment that feels intentional. | MEDIUM | **DONE** 2026-03-29 (removed `KnowledgeRow` component + custom "What callers experience" card; replaced with `CapabilitiesCard` — same component as return branch. Both branches now share the same capability vocabulary.) |
-| D68 | **UX** | TrialModeSwitcher floats orphaned above the bento grid in the trial return branch — outside the visual system, disconnected from the TestCallCard it affects. Belongs either inside the bento grid as a tile, or merged into CallHandlingTile. | LOW | **DONE** 2026-03-28 |
-| D69 | **GAP** | GBP fields (`gbp_place_id`, `gbp_summary`, `gbp_rating`, `gbp_review_count`, `gbp_photo_url`) were written to `clients` at provision time but never surfaced anywhere in the dashboard. Home API was not selecting them. Owners couldn't see the GBP data their agent was trained on. Fixed in Dashboard Control Center Phase 1 — `KnowledgeSourcesTile` surfaces GBP summary + star rating + photo, and `business_facts` is now editable per-line inline. | MEDIUM | **DONE** 2026-03-28 |
-| D70 | **RESOLVED** | `call_handling_mode` is `DB_PLUS_PROMPT`, `triggersSync: true` (confirmed via `lib/settings-schema.ts` FIELD_REGISTRY + SYNC_TRIGGER_FIELDS). Mode label display is read-only — "Change mode" CTA links to `/dashboard/settings?tab=general` (no inline patch, no sync spinner in the tile). | MEDIUM | **DONE** 2026-03-28 |
-| D62 | UX | IVR settings currently in Agent tab only. User suggested IVR could live in a "notifications / call handling" area. Deferred — IVR is more "call routing" than "notifications"; keep in Agent tab for now. Revisit during S12 Ph2c (IVR multi-route). | LOW | DEFERRED |
-| D63 | **GAP** | Booking confirmation SMS (D60) is completely untracked — fires `sendSmsTracked` but never writes to `sms_logs`. Sid is dropped. No delivery status, no owner visibility, no record a confirmation was sent for a given booking. All other outbound SMS paths log to `sms_logs`. Use `direction: 'booking_confirmation'` to avoid unique constraint collision with post-call follow-up (`direction: 'outbound'`). | MEDIUM | **DONE** 2026-03-28 (`calendar/[slug]/book/route.ts` logs to `sms_logs` with `direction: 'booking_confirmation'` + `message_sid` after successful send) |
-| D64 | **GAP** | No bookings dashboard view — `bookings` table has all appointment records but there is no `/dashboard/bookings` route, no bookings tab, no upcoming appointments widget. Owners only see bookings via Telegram notification. Flying blind on their own appointment schedule from inside the product. | HIGH | **DONE** 2026-03-28 (`/dashboard/bookings` route + `BookingsView.tsx`: stats strip, upcoming cards with status pills + calendar links, past table, empty state; nav item `calendar-check` in Group 3 `trialLocked`) |
-| D71 | **BUG — fake-control** | `buildCapabilityFlags().hasTransfer` only checks `forwarding_number` (no plan gate), but `buildAgentTools()` also requires `plan.transferEnabled`. Core/Lite plan users with a forwarding number configured see "Transfer calls: ✅ Configured" in home CapabilitiesCard, but the tool never fires (Core/Lite have `transferEnabled: false`). Settings `CapabilitiesCard` was already correct (uses `getPlanEntitlements()`). Fix: post-process `capabilities.hasTransfer = false` in home route when plan doesn't include transfer, matching the existing `hasKnowledge` correction pattern. | MEDIUM | **DONE** 2026-03-28 (`home/route.ts` — import `getPlanEntitlements`, add plan check after `hasKnowledge` correction lines 207-208) |
-| D72 | **UX** | Two separate CapabilitiesCard components showed different item counts (7 vs 10) and different enabled states. Root causes: (1) settings card filtered by niche (hiding Transfer/Booking/Reference Data for restaurant), (2) voicemail always green even without phone number, (3) IVR ignored phone check. Fix: deleted `settings/CapabilitiesCard.tsx`; `AgentTab.tsx` + `AgentPageView.tsx` now import `dashboard/CapabilitiesCard` with `buildCapabilityFlags(client)`. Home card: voicemail `enabled: hasPhoneNumber`, IVR `enabled: hasIvr && hasPhoneNumber`. Both surfaces now identical. | LOW | **DONE** 2026-03-29 |
-| D73 | **REFACTOR** | `buildCapabilityFlags()` now has plan-awareness (2026-03-29) — the D71 band-aid in `home/route.ts` has been removed. Tests updated in `build-capability-flags.test.ts`: `base()` now uses PRO plan, 12 new plan-gate tests added covering LITE/CORE/PRO/trial for all 4 gated capabilities. | MEDIUM | **DONE** 2026-03-29 (`src/lib/capability-flags.ts`, `home/route.ts`, `build-capability-flags.test.ts`) |
-| D74 | **REFACTOR PLAN — next session** | `business_facts` column is stored as `text` (newline-joined string) but logically is `text[]`. Migration plan: (1) `ALTER TABLE clients ALTER COLUMN business_facts TYPE text[] USING string_to_array(trim(business_facts), E'\n')` via Supabase MCP, (2) regenerate `database.types.ts`, (3) update `ClientRow.business_facts`, `BusinessConfig.businessFacts`, `KnowledgeSummary.fullBusinessFacts` types to `string[] \| null`, (4) update `extractFactsFromText` in `knowledge-summary.ts` to accept array directly, (5) update `prepareFactChunks` in `embeddings.ts`, (6) update `settings-schema.ts` to `z.array(z.string())`, (7) update `KnowledgeSourcesTile.tsx` save path (remove `.join('\n')`), (8) update `provision/trial/route.ts` (remove `.join('\n')`, send array directly), (9) update 6 test files. **Do in a dedicated session. Run `npm run build` after each file group.** | MEDIUM | **DONE** 2026-03-30 (DB migration applied, all TypeScript types updated, runtime shim in agent-context.ts, 1180/1180 tests pass, build ✅) |
-| D75 | **FEATURE — AgentContextPreviewTile** | New home dashboard tile: "What your agent knows right now" — shows a live preview of what `buildAgentContext()` would inject on the next call. Fields to show: hours status (weekday/weekend formatted), business facts count + first 2 facts preview, FAQ count, today's note (`injected_note`) if set, knowledge base (chunk count). Read-only, no edits. Component: `src/components/dashboard/home/AgentContextPreviewTile.tsx`. Wire into `PaidReadySection` + `PaidAwaitingSection` after `CallHandlingTile`. Data already available via `HomeData`. No new API calls needed. | MEDIUM | **DONE** 2026-03-29 (`AgentContextPreviewTile.tsx`; PaidReadySection after CapabilitiesCard, PaidAwaitingSection after CallHandlingTile) |
-| D76 | **GAP** | `hasKnowledge` badge in `AgentTab` + `AgentPageView` is less accurate than the home dashboard. `buildCapabilityFlags(client)` is computed client-side without the approved chunk count — shows knowledge as active whenever `knowledge_backend='pgvector'` and plan allows it, even if zero approved chunks exist. Home route correctly post-processes via DB count query. Fix: add `approved_knowledge_chunk_count: number` to `ClientConfig` (from settings API select + count query), apply the same `if hasKnowledge && count === 0 → false` correction in AgentTab/AgentPageView after calling `buildCapabilityFlags`. | LOW | **DONE** (already implemented — `settings/page.tsx:179` injects `approved_knowledge_chunk_count` into `clientWithCount`; `buildCapabilityFlags` lines 58-59 already gates on it; `AgentPageView` is unreachable — `agent/page.tsx` redirects to `/dashboard?tab=overview&section=identity`) |
-| D77 | **UX — minor** | Settings/Agent capability card items used to scroll-to-section via `onConfigure` callback. After D72 unification, items use `link` URL navigation (page-level routing) instead of in-page scroll. Clicking "Set a forwarding number" now navigates to `/dashboard/settings?tab=general` instead of scrolling within the settings page. Acceptable, but the settings view lost fine-grained section targeting. Fix if scroll-to-section behavior is missed: pass an optional `onNavigate` prop to the shared card that overrides link navigation when provided. | LOW | NOT STARTED |
-| D78 | **BUG — agent mode** | `appointment_booking` mode silently disables booking tools. `intake-transform.ts:181` sets `booking_enabled: effectiveMode === 'full_service'`. When user picks `appointment_booking` mode in onboarding, `effectiveMode` is `triage` (intentionally decoupled), so `booking_enabled = false` and calendar tools never register. Fix: `booking_enabled: effectiveMode === 'full_service' \|\| agentModeVal === 'appointment_booking'`. One-line change in `src/lib/intake-transform.ts`. | HIGH | **DONE** 2026-03-29 (`intake-transform.ts:181` patched) |
-| D79 | **GAP — agent mode** | Non-admin owners cannot change their agent mode from the dashboard. `GodModeCard` (the mode-switcher UI with preview + deploy) is inside `{isAdmin && ...}` in `AgentTab.tsx:644`. Phase 4 of the plan called for `AgentModeCard.tsx` visible to all users — was never built as a standalone card. Owners who want to switch mode must contact admin. Fix: extract the mode-picker + rebuild flow from `GodModeCard` into a non-admin-gated card, or add the mode section to the general settings tab for owners. | MEDIUM | **DONE** (already implemented — `AgentTab.tsx:425` renders `{!isAdmin && <AgentModeCard .../>}` with full picker + preview + deploy flow for non-admin owners) |
-| D80 | **UX — agent mode** | `info_hub` + restaurant: no onboarding path to populate `context_data` (menu/reference data). The niche knowledge step (`step4.tsx` with `RestaurantNiche` and `menuData` field) is not in the active step flow. `intake-transform.ts` has wiring (`nicheAnswers.menuData` → `context_data`) but it's dead code. Restaurant owners with `info_hub` mode land with an agent that says "check context data FIRST" but context data is empty. First impressions are bad until they manually add menu via dashboard Reference Data card. Fix: re-add a lightweight menu/reference data input for `info_hub` mode in the onboarding flow, or add a post-activation nudge card. | LOW | NOT STARTED |
-| D81 | **FEATURE — agent mode** | Phase 5 (Call Stages / booking stage transition). Full implementation: (1) `stages/[slug]/booking/route.ts` — new-stage response with callerPhone/callerName/serviceType injected into booking stage system prompt. (2) `buildBookingTransitionTool` passes all 3 as dynamicParameters so callerPhone survives stage transition (critical — system prompt is replaced, only conversation history persists). (3) BOOKING CHECK lines updated in `prompt-builder.ts` + `real-estate-prompt.ts` to instruct passing params. (4) Plan gate added (D83). Works for all clients with `booking_enabled=true` + Pro/trial plan + connected calendar. **NOT YET LIVE-TESTED** (see D82). | MEDIUM | **DONE** 2026-03-29 (code complete + callerPhone gap fixed, build ✅ — live test pending) |
-| D82 | **GAP — call stages live test** | v58 deployed (2026-03-29): BOOKING FLOW → transitionToBookingStage. `clients.tools` updated (removed checkCalendarAvailability/bookAppointment from triage stage; booking stage provides them independently). 16/16 promptfoo pass. **LIVE TESTED 2026-03-29** — call `6a97c493`: Hassan (returning, 5 prior calls) → transitionToBookingStage fired at msg 8 ✅, callerPhone `+13068507687` carried through ✅, checkCalendarAvailability returned 3 slots ✅, bookAppointment created Google event `kmtf0uh86pnckumsh840s7tat4` ✅, hangUp after confirmation ✅. Minor: time passed as display string "Monday, March 30 at 3:00 PM" instead of "15:00" — cosmetic, route handles both. | HIGH | **DONE** 2026-03-29 (live call confirmed end-to-end — all 5 scoring dimensions PASS) |
-| D83 | **GAP — stages route plan gate** | `POST /api/stages/[slug]/booking` route now checks both `booking_enabled` AND `getPlanEntitlements(selected_plan).bookingEnabled` (with trialing bypass). | LOW | **DONE** 2026-03-29 (`stages/[slug]/booking/route.ts` — plan gate added) |
-| D84 | **GAP — no UI visibility of stage transitions** | When a call transitions to the booking stage mid-call, there is no indication in the dashboard call log or live call view. `call_logs` has no `current_stage` column. If the booking stage fails (bad calendar config, tool error), the owner has no visibility — they'll only find out from Telegram post-call. Consider: (1) logging stage transitions to `call_logs.call_state` or a new `call_stages` table, (2) showing "📅 Booking stage active" in the live call card. | LOW | NOT STARTED |
-| D85 | **FEATURE — multi-URL website scraping (plan-gated)** | Only 1 website URL can be added/scraped today. Expand to plan-gated multi-source: Lite=1, Core=3, Pro=10 URLs. DB: new `client_website_sources` table (id, client_id, url, scrape_status, last_scraped_at, chunk_count, created_at). Plan entitlements: add `maxWebsiteUrls: number`. API: `POST /api/dashboard/scrape-website` accepts `url` param + enforces plan limit. Knowledge chunks tagged with `source_url`. UI: Knowledge card → URL list with per-URL status badge (pending/scraping/approved), add button (locked at limit with upgrade CTA), remove button. GBP counts as a separate implicit source (not in the URL list). | HIGH | **DONE** 2026-03-30 (API + DB + plan entitlements already complete; UI: `WebsiteKnowledgeCard.tsx` rewritten — 3-mode render: empty, multi-URL list, single-URL legacy. Per-URL status badges, ↺ rescrape, × remove, at-limit upgrade CTA. Build ✅) |
-| D86 | **FEATURE — plan-gated PDF/doc uploads** | Currently no limit enforced on PDF uploads. Add plan gates: Lite=1, Core=5, Pro=20. Plan entitlements: add `maxKnowledgeDocs: number`. API: `POST /api/client/knowledge/upload` counts existing `client_knowledge_docs` rows and returns 403 with upgrade nudge at limit. UI: Knowledge card shows "X of N docs used" bar, upload button locked at limit with inline upgrade CTA showing next tier. Show limit inline BEFORE upload (not after). | MEDIUM | **DONE** 2026-03-30 (`FileUploadPanel.tsx` — quota fetch from `/api/dashboard/knowledge/stats`, progress bar "X of N docs used", at-limit lockout on drop zone + file input. Build ✅) |
-| D87 | **UX — settings visual hierarchy / quick-start** | Settings has 19 cards with no priority signal. New users see a wall. Fix: add a pinned "Quick setup" row at the top (3-4 cards: Voice, Notifications, Hours, Knowledge) with a progress-style completion indicator. Secondary cards stay but are grouped under collapsible `SettingsSection` headers that start collapsed for new users. No card removal. No breaking changes. | MEDIUM | **DONE** (already implemented — `SettingsView.tsx` lines 244-338: Quick Setup strip with 4 items (Voice, Hours, Alerts, Knowledge), progress bar, tab navigation on click, auto-hides when all items done, non-admin + non-trialing only) |
-| D88 | **FEATURE — post-upgrade setup wizard** | After Stripe checkout completes, user lands back in the dashboard with no guidance. They have a real Twilio number now but don't know: (1) what it is, (2) how to forward their existing business line to it, (3) how to test it. Fix: `/dashboard/welcome` route (already exists) — detect first post-upgrade visit (`subscription_status` just changed to `active` + `twilio_number` newly set), show 3-step guide: "Your agent's number is [X]" → "Forward your current number to it" (carrier-specific instructions) → "Call it now to test." One-time dismissible. | HIGH | **DONE** (already implemented — `src/app/dashboard/welcome/WelcomeWizard.tsx`: 3-step wizard (assigned number → carrier-specific forwarding codes → test call), skip option, dismisses to /dashboard. Note: upgrade route still points to `/dashboard/setup` for trial→paid flow — both pages cover forwarding instructions) |
-| D89 | **BUG — outbound** | Scheduled-callback calls never get disposition written back. `completed/route.ts:244` only writes disposition when `metadata.source === 'outbound'`. The scheduled-callbacks cron sets `source: 'scheduled_callback'`, so when a scheduled callback call ends, the lead's `disposition` column is never updated — no `answered/vm/no-answer` recorded. Lead stays with stale/null disposition. Fix: change check to `['outbound', 'scheduled_callback'].includes(metadata.source)`. | HIGH | **DONE** 2026-03-30 (`completed/route.ts:244` already has `['outbound', 'scheduled_callback'].includes(metadata.source as string)` — confirmed in code review) |
-| D90 | **BUG — billing** | Ultravox call leaks billing time on AMD machine-detected outbound calls. When AMD fires and `outbound-connect` returns `<Say><Hangup/>` TwiML, the Twilio call ends — but the Ultravox call was created with `waitForUser: true` and stays alive until its inactivity timeout (~30-45s). Every voicemail-detected call wastes ~30-45s of Ultravox billing. Fix: pass `callId` as a `c=` query param in the outbound-connect URL, and after returning the machine TwiML call Ultravox `DELETE /calls/{callId}` (or the end-call endpoint) to terminate it immediately. | HIGH | **DONE** 2026-03-30 (`outbound-connect/route.ts:92-94` — `endCall(ultravoxCallId).catch(() => {})` fires on machine detection, reads `ultravox_call_id` from token table) |
-| D91 | **BUG — reliability** | URL length bomb on AMD outbound path. `dial-out/route.ts:170-173` URL-encodes the full Ultravox `joinUrl` (WebSocket URL, ~120-180 chars) + VM script into the `outbound-connect` callback URL, then `signCallbackUrl` appends `sig/n/t` params. Total URL can exceed Twilio's callback URL limits for verbose VM scripts. Fix: store `{joinUrl, vmScript}` in a short-lived `outbound_connect_tokens` Supabase row (TTL=5min), pass only a short token `id` in the URL. | HIGH | **DONE** 2026-03-30 (`outbound-connect/route.ts` — token table approach implemented; `?t=` param reads from `outbound_connect_tokens`, legacy `?j=` fallback preserved) |
-| D92 | **BUG — race condition** | No deduplication guard in scheduled-callbacks cron — same lead can be dialed twice. If cron run A is awaiting Twilio API when cron run B starts 5 min later, both query the same `status='queued'` leads and dial them. `dial_out_update_lead` only fires after the dial completes. Fix: atomically set `status='calling'` (or a `dialing_at` timestamp) on matched leads immediately before the dial loop, then roll back to 'queued' on Twilio failure. This also requires adding 'calling' as a valid status in the UI type and cron filter. | HIGH | NOT STARTED |
-| D93 | **UX** | No "scheduled callbacks" filtered view in the lead queue. Leads with `scheduled_callback_at` set are buried in the "Queued" tab alongside cold undialed leads. Operators can't see at a glance what's coming up or overdue. Fix: add a "Scheduled" sub-filter or badge row at the top of the Queued tab showing leads with `scheduled_callback_at IS NOT NULL`, sorted by time ascending. | MEDIUM | NOT STARTED |
-| D94 | **DEBT** | Phantom statuses `'calling'` and `'completed'` in scheduled-callbacks cron filter. `scheduled-callbacks/route.ts` queries `NOT IN ('called', 'completed', 'calling')` but the actual DB status enum is `queued/called/dnc` — `completed` and `calling` never exist. Dead filter conditions. Harmless now but will cause confusion when D92 adds 'calling' as a real status. | LOW | NOT STARTED |
-| D95 | **GAP — observability** | No Telegram/notification from scheduled-callbacks cron. Other crons (follow-up-reminders, analyze-calls) send alerts for notable events. Scheduled callbacks dials real leads silently — operator has no "3 leads auto-dialed at 9am" summary and no alert if all dials failed. Fix: send a brief Telegram summary per client after each cron run if any leads were dialed or all attempts failed. | MEDIUM | NOT STARTED |
-| D96 | **BUG — TwiML** | Ampersand (and other XML special chars) in VM script breaks TwiML. `outbound-connect/route.ts:50` only escapes `<` and `>`. Twilio `<Say>` is XML — `&` in script text (e.g. "Jones & Sons") produces invalid XML and Twilio returns 400, leaving the outbound call dead. Fix: full XML entity escape before inserting into TwiML: `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&apos;`. | MEDIUM | **DONE** 2026-03-30 (`outbound-connect/route.ts:29-36` — `xmlEscape()` function with full entity escaping, `&` first to avoid double-escaping) |
-| D97 | **GAP — lead lifecycle** | Lead `disposition` is written on call completion but `status` never advances past `'called'`. After a successful answered call, the lead still shows `status='called'` with no distinction from an unanswered attempt. Operators must manually move leads to `dnc` to clear them from the queue. There is no auto-close flow for leads that were answered + booked (disposition='answered' + call_status='HOT'/'WARM'). Fix: after disposition write-back in `completed/route.ts`, if `disposition='answered'` set `status='completed'` (requires adding 'completed' as a valid status); surface it as a separate tab in LeadQueue. | MEDIUM | NOT STARTED |
-| D98 | **GAP** | VIP contacts (`vip_contacts` table) have no outbound dialing integration. To proactively call a VIP you must manually add them to `campaign_leads`. The two tables are completely siloed — no "dial this VIP" button, no automatic escalation from VIP contact to lead queue. | LOW | NOT STARTED |
-| D99 | **GAP — reliability** | No retry cap on scheduled-callbacks. A lead with `scheduled_callback_at` set and `status='queued'` will be re-dialed every 5 minutes indefinitely if every Twilio call fails (e.g. disconnected number). Fix: after `call_count >= 3` with no `disposition='answered'`, auto-set `status='dnc'` and clear `scheduled_callback_at`, or surface it as "unreachable" in the UI. | MEDIUM | NOT STARTED |
-| D100 | **GAP** | `outbound_vm_script` has no character limit enforced in settings schema or UI. A very long VM script (>500 chars) can cause Twilio TTS playback to exceed the TwiML execution timeout on the `outbound-connect` route. Settings schema (`settings-schema.ts`) should add `z.string().max(500)` validation, and the UI textarea should show a char counter. | LOW | NOT STARTED |
-| D101 | **GAP — observability** | `call_logs` doesn't distinguish manual dial-out vs cron-triggered scheduled callbacks. Both have `call_status='live'` and only differ by Ultravox `metadata.source`. The calls page has no way to filter "outbound calls" or "scheduled callbacks" — they're invisible among inbound calls. Fix: add a `call_direction` column to `call_logs` (`'inbound'/'outbound'`) written at insert time, and add an "Outbound" filter tab to the calls page. | MEDIUM | NOT STARTED |
+```
+DONE → see docs/refactor-completed-phases.md (all D1–D96 completed items)
+       D92 (calling dedup guard — confirmed in cron 2026-03-30)
+       D94 (phantom statuses — 'calling' now real via D92; 'completed' pre-guard, 2026-03-30)
+       D95 (Telegram summary — confirmed in cron 2026-03-30)
+       D99 (retry cap — confirmed in cron 2026-03-30)
+       D100 (vm_script max 500 + char counter — 2026-03-30)
+       D101 DB migration (call_direction col + index applied, types updated — 2026-03-30)
+       D109 NEW (outbound_connect_tokens cleanup cron hourly — 2026-03-30)
+
+NEXT (in order):
+  D97  → Lead lifecycle: auto-advance status='completed' after disposition='answered'
+  D101 code → Write call_direction='inbound'/'outbound' at insert in inbound + dial-out routes
+  D93  → Add "Scheduled" sub-filter/badge row to lead queue Queued tab
+  D101 UI → Outbound filter tab on calls page
+  STRIPE-PORTAL → Configure Stripe Customer Portal (manual — Stripe Dashboard step)
+  GATE-1 → Domain migration (BLOCKED on domain purchase)
+
+DEFERRED → S11, S12 advanced phases, S13 LOW, S16a-d, S17-S20
+```
 
 ---
 
-## Dashboard Control Center Initiative (Paid Dashboard UX — 2026-03-28)
+## Active Discovery Items (NOT STARTED / BLOCKED only)
 
-Spec: `.claude/commands/dashboard-control-build.md` | Audit: `.claude/commands/dashboard-control-audit.md`
+### Outbound / Scheduled Callbacks (highest priority cluster)
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D92 | BUG | No dedup guard — same lead can be dialed twice if cron overlaps. Atomically set `status='calling'` before dial loop, rollback on Twilio fail. | HIGH |
+| D93 | UX | No "Scheduled" filter in lead queue. Add sub-filter for `scheduled_callback_at IS NOT NULL`, sorted by time. | MEDIUM |
+| D94 | DEBT | Phantom statuses 'calling'/'completed' in cron filter — dead conditions. Fix when D92 adds 'calling' for real. | LOW |
+| D95 | GAP | No Telegram summary from scheduled-callbacks cron. Send per-client summary after each run. | MEDIUM |
+| D97 | GAP | Lead `status` never advances past 'called' after answered call. After `disposition='answered'`, set `status='completed'`. | MEDIUM |
+| D98 | GAP | VIP contacts siloed from outbound dialing — no "dial this VIP" button or auto-escalation path. | LOW |
+| D99 | GAP | No retry cap on scheduled-callbacks — bad numbers dialed forever. Cap at 3 → auto-set 'dnc'. | MEDIUM |
+| D100 | GAP | `outbound_vm_script` has no char limit. Add `z.string().max(500)` in settings-schema + char counter in UI textarea. | LOW |
+| D101 | GAP | No `call_direction` column in `call_logs`. Add 'inbound'/'outbound' at insert time + Outbound filter tab on calls page. | MEDIUM |
 
-| Phase | Name | What | Gate | Status |
-|-------|------|------|------|--------|
-| DCC-1 | GBP + Business Facts Surfacing | `KnowledgeSourcesTile` — GBP summary (star/photo/review), per-line `business_facts` editor, "what your agent says" preview. Home API selects GBP fields. Wired into PaidReadySection + PaidAwaitingSection. | Build ✅ green, 7 files | **DONE** 2026-03-28 (uncommitted — commit first next session) |
-| DCC-2 | CallHandlingTile Mode Label | Add `call_handling_mode` pill at top of tile: `voicemail_replacement`→"Smart Voicemail", `receptionist`→"Receptionist", `full_service`→"Receptionist + Booking", `null`→"Basic Answering". Large pill badge (bg=primary/10, text=primary). MODE_MAP + modeLabel/modeDesc logic. "Change →" CTA links to `/dashboard/settings?tab=general`. | D70 resolved: DB_PLUS_PROMPT triggersSync — CTA links, no inline patch. Build ✅ green. | **DONE** 2026-03-28 |
-| DCC-3 | NicheInsightsTile | Niche-aware config nudges per `clients.niche` (real_estate, auto_glass, restaurant, generic fallback). Check done-state from capabilities + knowledge. Tile returns null when all done. Wired into PaidReadySection (section 11) + PaidAwaitingSection (sm:col-span-2 full-width). | Build ✅ green after wiring. | **DONE** 2026-03-28 |
+### Dashboard / UX
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D27 | GAP | No feedback loop for call-time injection fields — consider "preview what agent knows" tile. | LOW |
+| D56 | VERIFY | Transfer recovery never live-tested. Smoke test: real call to unanswered forwarding number. | MEDIUM |
+| D80 | UX | `info_hub` / restaurant mode onboards with empty `context_data`. Add menu input nudge or post-activation card. | LOW |
+| D84 | GAP | No UI visibility of call stage transitions. `call_logs` has no `current_stage`. | LOW |
 
-**Verification gates (run after each phase before committing):**
-- `npm run build` — 0 errors, 0 warnings
-- Visually confirm tile renders in PaidReadySection AND PaidAwaitingSection
-- Confirm empty state renders correctly when no GBP data / no `call_handling_mode` set
-- No new `console.log` in changed files
+### Performance / Optimization
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D30 | OPT | Realtime re-render storms — debounce/batch 100-250ms for high-volume clients. | LOW |
+| D31 | OPT | Unbounded state arrays — `.slice(0, MAX)` after prepend or virtual scroll. | LOW |
+
+### Features (deferred, low priority)
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D33 | PATTERN | Multi-field prompt patch order: identity→voice→operational with validatePrompt() per step. | LOW |
+| D34 | FEATURE | Call sentiment deep metrics — frustration/interruption/silence/satisfaction. | MEDIUM |
+| D35 | FEATURE | AI-assisted prompt improvement suggestions from failure patterns. | MEDIUM |
+| D36 | FEATURE | Weekly failure digest cron. | LOW |
+| D37 | FEATURE | Agent personality coherence warning after 5+ patches. | LOW |
+| D39 | FEATURE | Demo GA4 events (`demo_start`, `demo_complete`, `demo_agent_selected`). | MEDIUM |
+| D40 | FEATURE | Demo follow-up email via Brevo. BLOCKED on domain. | MEDIUM |
+| D41 | FEATURE | Demo-to-Brevo contact sync for nurture list. | LOW |
+| D42 | UX | "Not {name}?" link for returning demo visitors. | LOW |
+
+### Slice 8 Intelligence UX (remaining, all LOW)
+| # | Name | Status |
+|---|------|--------|
+| 8e | Prompt-Aware Suggestions | NOT STARTED |
+| 8f | Change Impact Preview | NOT STARTED |
+| 8i | Settings Search/Filter | NOT STARTED |
+| 8j | Intent Confidence / Containment Rate | NOT STARTED |
+| 8k | Cost-Per-Call Dashboard Widget | NOT STARTED |
+| 8l | A/B Prompt Testing | NOT STARTED |
+| 8n | Conversation Flow Visualization | NOT STARTED |
+| 8p | Prompt Coherence Guard | NOT STARTED |
+| 8q | Live Call Duration Timer | NOT STARTED |
 
 ---
 
@@ -188,14 +118,11 @@ Spec: `.claude/commands/dashboard-control-build.md` | Audit: `.claude/commands/d
 
 | Phase | Summary | Status |
 |-------|---------|--------|
-| S10 remaining | S10g-w deferred dashboard observability items | DEFERRED |
-| S11 | Data retention — purge old logs, recordings, stripe_events | NOT STARTED |
+| S12 Slice 1 | Prompt Variable Injection (PROMPT-TEST1+2) | NOT STARTED |
+| S12 Slice 3 | Scrape Verify + Harden (SCRAPE10 remaining) | NOT STARTED |
 | S12 Ph2 | Setup wizards (Telegram, SMS, Calendar, Knowledge, Forwarding) | NOT STARTED |
 | S12 Ph2b | Calendar & call routing UX overhaul | NOT STARTED |
 | S12 Ph2c | IVR multi-route call handling | DEFERRED |
-| S12 Ph3b | Prompt variable injection testing system | Slice 1 |
-| S12 Ph3c | Trial dashboard experience (tour + WebRTC + gating) | Slices 2a-2d/4/5 DONE, 2e-2f remaining |
-| S12 Ph3d | Website scrape transparency hardening | Slice 3 |
 | S12 Ph4 | Post-signup communication (welcome email, first-login) | BLOCKED on domain |
 | S12 Ph5 | Dashboard visual redesign | LAST |
 | S13 remaining | c (log hygiene), d (deprecate deploy_prompt.py), j-l (timeouts), p (rate limit alerts) | Mixed |
@@ -208,126 +135,22 @@ Spec: `.claude/commands/dashboard-control-build.md` | Audit: `.claude/commands/d
 
 ---
 
-## Execution Order
-
-```
-DONE  -> S0-S9.6, S12 Ph1, S13, S13.5, S18 partial, S19a,
-         GATE-2 partial, GATE-3 PASS, GATE-4 PASS, GATE-5 PASS,
-         D1-D18/D25-D29, FND, L5 (transcript→gap pipeline),
-         Slice 2a-2d, 4, 5, 8a-8d, 8g, 8h,
-         BILLING Ph1-6 (pricing model, entitlements, tool gating, minute enforcement,
-           plan-aware UI, billing mgmt, Stripe webhook, cancel_at migration),
-         D49 (already resolved in code — confirmed by Phase 0 audit),
-         D50 (already resolved in code — MobileNav.tsx with hamburger + accordion, confirmed 2026-03-24),
-         PHASE0-P0 (voices/assign plan gating bypass — 2026-03-24),
-         PHASE0-P1c (CapabilitiesCard false-active badges — 2026-03-24),
-         PHASE0-P2b (empty-tools wipe guard in inbound — 2026-03-24),
-         PHASE0-P1a (GodModeCard serialization — 2026-03-24),
-         PHASE0-P1b (SmsTab serialization — 2026-03-24),
-         DB-MIG (weekly_digest_enabled migration — applied 2026-03-24),
-         SLICE-2e (inline mini-editors: voice preview + hours panel + quick FAQ add — 2026-03-24),
-         SLICE-2f (website scrape nudge in AgentKnowledgeCard — 2026-03-24),
-         D52 (standard regen queries client_services — 2026-03-28),
-         D54+D55 (settings default tab + ?tab=agent alias — 2026-03-28),
-         D58+D59 (Alerts tab ungated + notifications deep-link — 2026-03-28),
-         D60 (booking confirmation SMS — 2026-03-28),
-         D61 (SMS opt-out list for owners — 2026-03-28),
-         D63 (sms_logs tracking for booking confirmation — 2026-03-28),
-         D64 (bookings dashboard /dashboard/bookings — 2026-03-28),
-         SLICE-8m (failure-to-refine pipeline — 2026-03-28),
-         SLICE-8o (frustration/interruption metrics — 2026-03-28),
-         D71 (hasTransfer fake-control in home route — 2026-03-28),
-         D67 (isFirstVisit branch unified with CapabilitiesCard — 2026-03-29),
-         D53 (agent_mode ↔ call_handling_mode drift note in AgentModeCard — 2026-03-29),
-         D78 (appointment_booking mode now sets booking_enabled=true — 2026-03-29),
-         D81 (call stages booking transition — callerPhone gap fixed, build ✅, live test pending — 2026-03-29),
-         D83 (stage route plan gate — 2026-03-29),
-         D85 (multi-URL website scraping UI — WebsiteKnowledgeCard rewrite — 2026-03-30),
-         D86 (PDF plan gating — FileUploadPanel quota bar + lockout — 2026-03-30),
-         D44 (Google OAuth already wired — confirmed 2026-03-30),
-         D79 (AgentModeCard already non-admin-gated — confirmed 2026-03-30),
-         D76 (knowledge badge parity already done — settings/page.tsx injects count, buildCapabilityFlags gates on it — 2026-03-30),
-         D87 (Quick Setup strip already in SettingsView.tsx — confirmed 2026-03-30),
-         D88 (/dashboard/welcome WelcomeWizard already built — confirmed 2026-03-30),
-         D45 (fresh-scrape fallback now seeds pending chunks + writes preview for review UI — 2026-03-30),
-         D32 (RLS verified on all 4 realtime tables — 2026-03-30),
-         D57 (MEMORY.md trimmed to 199 lines — 2026-03-30),
-         D74 (business_facts text→text[] migration — DB + all TS types + tests — 2026-03-30),
-         scheduled-callbacks cron (auto-dial leads with scheduled_callback_at — 2026-03-30),
-         D89 (disposition write-back — already in completed/route.ts — confirmed 2026-03-30),
-         D90 (Ultravox billing leak — endCall on machine detection — confirmed 2026-03-30),
-         D91 (URL length bomb — token table — confirmed 2026-03-30),
-         D96 (XML entity escape in TwiML — xmlEscape() — confirmed 2026-03-30),
-         dashboard home layout — CapabilitiesCard top-left, StatsHeroCard under TodayUpdate, section 4→2-col (2026-03-30)
-
-NEXT:
-  D92  -> Add 'calling' status dedup guard to scheduled-callbacks cron
-  D101 -> Add call_direction column to call_logs + outbound filter tab
-  D97  -> Lead lifecycle: auto-advance status after answered call
-  D99  -> Add retry cap (3 attempts → dnc) to scheduled-callbacks
-  D93  -> Add "Scheduled" view/filter to lead queue UI
-  D95  -> Add Telegram summary to scheduled-callbacks cron
-  STRIPE-PORTAL -> Configure Stripe Customer Portal (manual — Dashboard step)
-  GATE-1        -> Domain migration (BLOCKED on domain purchase)
-
-DEFERRED -> S11, S12 advanced, S13 LOW, S16a-d (recording consent + SMS consent + PIPEDA — not a priority), S17-S20
-```
-
----
-
 ## Ready-to-Execute Prompts
 
-Self-contained prompts. Paste one per Claude Code session. Each is independent unless noted.
-
-### PROMPT 1 — Supabase Migration: weekly_digest_enabled (do first, 30s)
-**Tracker ref:** FND Phase 6C | **Priority:** Do before any weekly digest work
-```
-Apply the pending migration to add weekly_digest_enabled column to the clients table.
-File: supabase/migrations/20260322000000_add_weekly_digest.sql
-Use the Supabase MCP to run this migration against project qwhvblomlgeapzhnuwlb (unmissed-ai).
-After applying, verify the column exists: SELECT column_name FROM information_schema.columns WHERE table_name = 'clients' AND column_name = 'weekly_digest_enabled';
-```
-
-### PROMPT 2 — Call Recording Consent Disclosure (GATE-2 — S16a)
-**Tracker ref:** GATE-2 S16a | **Priority:** HIGH — last remaining GATE-2 item
+### PROMPT — Call Recording Consent Disclosure (GATE-2 — S16a)
+**Priority:** HIGH — last remaining GATE-2 item
 ```
 Add call recording consent disclosure to all voice agent system prompts.
 1. Read memory/glm46-prompting-rules.md (MANDATORY before any prompt edit)
 2. Read current system_prompt for each active client from Supabase
-3. Add natural disclosure line in GREETING/OPENING section — one sentence, conversational, adapted to each agent's personality
+3. Add natural disclosure line in GREETING/OPENING section — one sentence, conversational
 4. Run validatePrompt() check — no prompt exceeds 12K chars
 5. Deploy each with /prompt-deploy [client]
 6. Do NOT change any other part of the prompts
 ```
 
-### PROMPT 3 — Domain Migration (GATE-1 — S15)
-**Tracker ref:** GATE-1 | **BLOCKED on domain purchase**
+### PROMPT — Domain Migration (GATE-1 — S15) — BLOCKED
 ```
-Update lib/app-url.ts (centralized URL), Railway env vars, Supabase settings, Resend domain,
+Update lib/app-url.ts, Railway env vars, Supabase settings, Resend domain,
 Twilio webhook URLs, Ultravox webhook URL, all brand text references. Full E2E test after.
 ```
-
----
-
-## Coding Patterns (always follow)
-
-- **Shared utilities:** `buildAgentTools()` for tools, `syncClientTools()` for tool DB writes, `insertPromptVersion()` for version inserts. Never inline these.
-- **`toolOverrides` format:** `{ removeAll: true, add: tools }` — NOT a raw array. Raw array = 400 error.
-- **All DB writes awaited:** `.then()` banned except documented TwiML latency trade-off.
-- **All external fetches need `AbortSignal.timeout()`:** 10s caller-facing, 15s admin, 30s background.
-- **All Ultravox tool endpoints need `X-Tool-Secret` auth.**
-- **Public billable endpoints need global budget:** `SlidingWindowRateLimiter` on top of per-IP limits.
-- **Health endpoints must not leak IDs:** Aggregate status only, never slugs or agent IDs.
-- **deploy_prompt.py drift risk:** Parallel TS implementation. Any tool/template change needs BOTH files.
-- **Centralized URLs:** `APP_URL` + `SITE_URL` in `lib/app-url.ts`. Domain migration = 1 file + 1 env var.
-- **Callback URL max 200 chars.** Short nonces (8 bytes), single-letter param names.
-- **npm `prepare` must be Docker-safe:** Guard with `if [ -d .git ]; then ...; fi`.
-- **Recordings are PRIVATE:** Use `getSignedRecordingUrl()` from `lib/recording-url.ts`. Store paths (not URLs).
-- **"DONE" means deployed + verified,** not just committed.
-- **Multi-tenant auth:** Every dashboard API route needs `client_users` gating after session auth.
-- **Ultravox webhook `secrets[0]`** from API response = actual HMAC key. Omit secret field, use auto-generated.
-- **Prompt injection defense required:** `validatePrompt()` enforces for generated prompts. Hand-crafted prompts need manual defense rules.
-- **Prompt section patching:** `lib/prompt-patcher.ts` for feature-toggle patches (calendar, voice style, agent name). `lib/prompt-sections.ts` for marker-based replacement. Multi-field patch order: identity (name) → sensory (voice) → operational (calendar/hours).
-- **Settings card pattern:** All 19 cards in `components/dashboard/settings/`. `usePatchSettings` hook for PATCH. AgentTab.tsx (534 lines) is layout shell — logic in card components. 6 collapsible `SettingsSection` groups. Ref: `memory/settings-card-architecture.md`.
-- **Call-time injection (not prompt-time):** Ephemeral data injected via `callerContextBlock()` in `lib/agent-context.ts` at call creation. DB prompt = stable base. Call-time = dynamic overlay via `templateContext`.
-- **Call stage transitions (Pattern D):** Stage transitions replace the system prompt. `templateContext` from the previous stage does NOT carry over — any context the new stage needs (callerPhone, callerName, serviceType) must be passed as `dynamicParameters` on the transition tool and re-injected into the new stage's system prompt by the stage route handler. See `stages/[slug]/booking/route.ts` + `buildBookingTransitionTool()` in `lib/ultravox.ts`.

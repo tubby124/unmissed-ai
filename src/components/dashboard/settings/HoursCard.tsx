@@ -55,8 +55,8 @@ export default function HoursCard({
       <div className="rounded-2xl border b-theme bg-surface p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Hours & After-Hours'}</p>
-            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent uses this to tell callers when you\'re available' : 'Configure when your agent treats calls as after-hours'}</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Business Hours'}</p>
+            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent answers every call 24/7 — these hours tell it when your business is actually open' : 'Your agent answers every call 24/7. These hours tell it when you\'re open so it responds accordingly.'}</p>
           </div>
           <button
             onClick={save}
@@ -126,11 +126,11 @@ export default function HoursCard({
                   />
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">Office/visit hours — when customers can come in person. Your agent answers calls 24/7.</p>
+              <p className="text-xs text-muted-foreground mt-1">Your agent picks up every call — these hours control how it responds, not when it answers. To only receive calls at certain times, set up time-based forwarding on your phone carrier.</p>
             </>
           )}
           {mode === 'onboarding' && (
-            <p className="text-[11px] t3 mt-1">Your agent answers calls 24/7. These hours help it tell callers when you&apos;re available in person.</p>
+            <p className="text-[11px] t3 mt-1">Your agent answers every call 24/7. These hours let it tell callers when you&apos;re open vs. after-hours.</p>
           )}
         </div>
       </div>

@@ -37,7 +37,7 @@ export default function KnowledgePageView({
   )
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [testCallLoading, setTestCallLoading] = useState(false)
-  const { startCall, setMeta, callState } = useCallContext()
+  const { startCall, endCall, setMeta, callState } = useCallContext()
 
   useEffect(() => {
     if (initialClientId && clients.find(c => c.id === initialClientId)) {
@@ -133,17 +133,30 @@ export default function KnowledgePageView({
             <p className="text-[11px] t3 mt-0.5">What your agent knows and how it answers</p>
           </div>
         )}
-        <button
-          onClick={handleTestCall}
-          disabled={testCallLoading || callActive || previewMode}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors shrink-0"
-          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-          </svg>
-          {testCallLoading ? 'Connecting...' : callActive ? 'In Call' : 'Talk to Agent'}
-        </button>
+        {callActive ? (
+          <button
+            onClick={endCall}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0"
+            style={{ backgroundColor: '#DC2626', color: '#fff' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+            </svg>
+            End Call
+          </button>
+        ) : (
+          <button
+            onClick={handleTestCall}
+            disabled={testCallLoading || previewMode}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors shrink-0"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            {testCallLoading ? 'Connecting...' : 'Talk to Agent'}
+          </button>
+        )}
       </div>
 
       {/* ── Action buttons ──────────────────────────────────────────────── */}

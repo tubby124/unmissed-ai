@@ -89,9 +89,10 @@ function toDatetimeLocal(iso: string | null): string {
 interface LeadQueueProps {
   initialLeads: Lead[]
   clients: ClientInfo[]
+  hasPhoneNumber?: boolean
 }
 
-export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
+export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true }: LeadQueueProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [tab, setTab] = useState<Tab>('queued')
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -489,7 +490,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
           <DialogFooter>
             <Button
               variant="ghost"
-              disabled={!!(detailLead && dialing.has(detailLead.id))}
+              disabled={!hasPhoneNumber || !!(detailLead && dialing.has(detailLead.id))}
+              title={!hasPhoneNumber ? 'Upgrade to a paid plan to get a calling number' : undefined}
               onClick={() => { if (detailLead) { dialLead(detailLead); setDetailLead(null) } }}
             >
               {detailLead && dialing.has(detailLead.id)
@@ -575,7 +577,8 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
             {tab === 'queued' && (
               <button
                 onClick={bulkDial}
-                disabled={bulkDialing}
+                disabled={bulkDialing || !hasPhoneNumber}
+                title={!hasPhoneNumber ? 'Upgrade to a paid plan to get a calling number' : undefined}
                 className="font-medium text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-40 flex items-center gap-1"
               >
                 {bulkDialing
@@ -744,9 +747,9 @@ export default function LeadQueue({ initialLeads, clients }: LeadQueueProps) {
                         <div className="flex items-center gap-1 justify-end">
                           <button
                             onClick={() => dialLead(lead)}
-                            disabled={dialing.has(lead.id)}
+                            disabled={dialing.has(lead.id) || !hasPhoneNumber}
                             className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 transition-colors disabled:opacity-40"
-                            title="Dial with agent"
+                            title={!hasPhoneNumber ? 'Upgrade to a paid plan to get a calling number' : 'Dial with agent'}
                           >
                             {dialing.has(lead.id)
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

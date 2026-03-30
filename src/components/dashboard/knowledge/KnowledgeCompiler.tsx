@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -351,6 +351,77 @@ function DoneStep({
   )
 }
 
+// ── Step 2b — Saving animation ────────────────────────────────────────────────
+
+function SavingState({ items, approved }: { items: NormalizedItem[]; approved: boolean[] }) {
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const approvedItems = items.filter((item, i) => approved[i] && KIND_META[item.kind].approvable)
+
+  useEffect(() => {
+    if (approvedItems.length <= 1) return
+    const t = setInterval(() => setCurrentIdx(i => (i + 1) % approvedItems.length), 800)
+    return () => clearInterval(t)
+  }, [approvedItems.length])
+
+  const current = approvedItems[currentIdx]
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-8">
+      {/* Pulsing learning orb */}
+      <div className="relative flex items-center justify-center w-20 h-20">
+        <div
+          className="absolute inset-0 rounded-full bg-green-500/10 animate-ping"
+          style={{ animationDuration: '2s' }}
+        />
+        <div
+          className="absolute inset-2 rounded-full bg-green-500/15 animate-ping"
+          style={{ animationDuration: '2s', animationDelay: '0.5s' }}
+        />
+        <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="text-center space-y-1">
+        <p className="text-sm font-semibold t1">Training your agent…</p>
+        <p className="text-[11px] t3">
+          Embedding {approvedItems.length} item{approvedItems.length !== 1 ? 's' : ''} into knowledge base
+        </p>
+      </div>
+
+      {current && (
+        <div className="w-full space-y-2">
+          <p className="text-[10px] t3 text-center font-medium tracking-wide uppercase">Currently learning</p>
+          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-1.5 min-h-[60px]">
+            <KindBadge kind={current.kind} />
+            <p className="text-[11px] t2 line-clamp-2 leading-relaxed">
+              {current.kind === 'faq_pair'
+                ? `Q: ${current.question}`
+                : current.fact_text}
+            </p>
+          </div>
+          {approvedItems.length > 1 && (
+            <div className="flex justify-center gap-1 pt-1">
+              {approvedItems.map((_, i) => (
+                <div
+                  key={i}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === currentIdx
+                      ? 'w-3 h-1.5 bg-green-500'
+                      : 'w-1.5 h-1.5 bg-zinc-700'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface KnowledgeCompilerProps {
@@ -486,7 +557,7 @@ export default function KnowledgeCompiler({ clientId, isAdmin }: KnowledgeCompil
           loading={loading}
         />
       )}
-      {step === 'review' && (
+      {step === 'review' && !loading && (
         <ReviewStep
           items={items}
           warnings={warnings}
@@ -494,8 +565,11 @@ export default function KnowledgeCompiler({ clientId, isAdmin }: KnowledgeCompil
           onToggle={handleToggle}
           onApply={handleApply}
           onBack={() => setStep('input')}
-          loading={loading}
+          loading={false}
         />
+      )}
+      {step === 'review' && loading && (
+        <SavingState items={items} approved={approved} />
       )}
       {step === 'done' && result && (
         <DoneStep

@@ -16,15 +16,16 @@ export default function TeachAgentCard({ clientId, agentName }: { clientId: stri
     setError(null)
     setSaved(false)
     try {
-      const res = await fetch('/api/dashboard/settings', {
-        method: 'PATCH',
+      const res = await fetch('/api/dashboard/knowledge/ingest-text', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_facts: text.split('\n').map(l => l.trim()).filter(l => l.length > 0) }),
+        body: JSON.stringify({ text: text.trim(), title: `Quick note — ${new Date().toLocaleDateString()}` }),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         throw new Error(json.error || 'Failed to save')
       }
+      setText('')
       setSaved(true)
       trackEvent('teach_agent_saved', { client_id: clientId, char_count: text.trim().length })
       setTimeout(() => setSaved(false), 4000)

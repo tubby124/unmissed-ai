@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import LeadQueue from '@/components/dashboard/LeadQueue'
 import LeadsView from '@/components/dashboard/LeadsView'
-import OutboundConfigWrapper from '@/components/dashboard/OutboundConfigWrapper'
+import OutboundAgentConfigCard from '@/components/dashboard/OutboundAgentConfigCard'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Leads' }
@@ -76,7 +76,7 @@ export default async function LeadsPage() {
   const [{ data: clientRow }, { data: leadsRaw }, { data: callsRaw }] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, slug, business_name, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number')
+      .select('id, slug, business_name, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_notes, twilio_number')
       .eq('id', clientId)
       .single(),
 
@@ -108,20 +108,22 @@ export default async function LeadsPage() {
   return (
     <div className="p-3 sm:p-6 space-y-5">
       {/* Outbound agent configuration */}
-      <OutboundConfigWrapper
-        initialOutboundPrompt={(clientRow?.outbound_prompt as string | null) ?? null}
-        initialOutboundGoal={(clientRow?.outbound_goal as string | null) ?? null}
-        initialOutboundOpening={(clientRow?.outbound_opening as string | null) ?? null}
-        initialOutboundVmScript={(clientRow?.outbound_vm_script as string | null) ?? null}
-        initialOutboundTone={((clientRow?.outbound_tone as string | null) ?? 'warm') as 'warm' | 'professional' | 'direct'}
-        hasPhoneNumber={!!(clientRow?.twilio_number)}
+      <OutboundAgentConfigCard
         clientId={clientRow?.id as string}
+        hasPhoneNumber={!!(clientRow?.twilio_number)}
+        initialOutboundPrompt={(clientRow?.outbound_prompt as string | null) ?? null}
+        initialGoal={(clientRow?.outbound_goal as string | null) ?? null}
+        initialOpening={(clientRow?.outbound_opening as string | null) ?? null}
+        initialVmScript={(clientRow?.outbound_vm_script as string | null) ?? null}
+        initialTone={((clientRow?.outbound_tone as string | null) ?? 'warm') as 'warm' | 'professional' | 'direct'}
+        initialNotes={(clientRow?.outbound_notes as string | null) ?? null}
       />
 
       {/* Outbound call queue */}
       <LeadQueue
         initialLeads={ownerLeads}
         clients={clientInfoForQueue}
+        hasPhoneNumber={!!(clientRow?.twilio_number)}
       />
 
       {/* Inbound hot/warm leads (call-in contacts worth following up) */}

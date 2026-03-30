@@ -5,13 +5,17 @@ import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
+import { useCallContext } from '@/contexts/CallContext'
 import AutoFaqSuggestions from '../AutoFaqSuggestions'
+import ActivationTile from './ActivationTile'
 import BillingTile from './BillingTile'
 import CapabilitiesCard from '../CapabilitiesCard'
 import NotificationsTile from './NotificationsTile'
 import StatsHeroCard from './StatsHeroCard'
 import TodayUpdateCard from './TodayUpdateCard'
+import TrialModeSwitcher from './TrialModeSwitcher'
 import KnowledgeSourcesTile from './KnowledgeSourcesTile'
+import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
 import NicheInsightsTile from './NicheInsightsTile'
 import BookingCalendarTile from './BookingCalendarTile'
 import KnowledgeInlineTile from './KnowledgeInlineTile'
@@ -23,7 +27,7 @@ import BusinessHoursTile from './BusinessHoursTile'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
-// ── Inline helpers (no imports from ClientHome) ──────────────────
+// ── Inline helpers ───────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -80,31 +84,34 @@ function formatTimeSaved(minutes: number): string {
 // ── Props ────────────────────────────────────────────────────────
 interface Props {
   data: HomeData
-  showChecklist: boolean
-  hasRealCalls: boolean
-  lastCompletedCall: HomeData['recentCalls'][0] | null
+  /** true when subscription_status is trialing */
+  isTrial: boolean
+  /** true when homePhase === 'paid_awaiting' (paid but no phone number yet) */
+  isPaidAwaiting: boolean
+  daysRemaining?: number
   sheet: ReturnType<typeof useHomeSheet>
   fetchData: () => void
 }
 
 // ── Component ────────────────────────────────────────────────────
-export default function PaidReadySection({
+export default function UnifiedHomeSection({
   data,
+  isTrial,
+  isPaidAwaiting,
+  daysRemaining,
   sheet,
   fetchData,
 }: Props) {
   const { agent, capabilities, onboarding } = data
   const { openUpgradeModal } = useUpgradeModal()
-  const [activityOpen, setActivityOpen] = useState(false)
+  const { resetCall } = useCallContext()
+  const [activityOpen, setActivityOpen] = useState(data.recentCalls.length > 0)
   const [syncDismissed, setSyncDismissed] = useState(false)
   const [hotDismissed, setHotDismissed] = useState(false)
 
-  // ── Derived summary values ───────────────────────────────────
   const faqCount = data.editableFields.faqs.length
-
   const todayStr = new Date().toISOString().slice(0, 10)
   const callsToday = data.recentCalls.filter(c => c.started_at.slice(0, 10) === todayStr).length
-
   const mostRecentCall = data.recentCalls[0] ?? null
   const missedCount = data.recentCalls.filter(
     c => c.call_status === 'missed' || c.call_status === 'VOICEMAIL' || c.call_status === 'voicemail'
@@ -117,8 +124,7 @@ export default function PaidReadySection({
     return parts.join(' · ')
   })()
 
-  // Next best action — paid users: no upgrade nudge, focus on quality gaps
-  const nextAction: { text: string; cta: string; href: string | null } | null = (() => {
+  const nextAction: { text: string; cta: string; href: string | null; onUpgrade?: boolean } | null = (() => {
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
       return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/knowledge?tab=add&source=manual' }
     }
@@ -128,6 +134,9 @@ export default function PaidReadySection({
     if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
       return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/knowledge' }
     }
+    if (isTrial && !onboarding.hasPhoneNumber) {
+      return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade →', href: null, onUpgrade: true }
+    }
     if (!onboarding.telegramConnected) {
       return { text: 'Get instant call alerts on Telegram', cta: 'Connect →', href: '/dashboard/settings?tab=notifications' }
     }
@@ -136,7 +145,30 @@ export default function PaidReadySection({
 
   return (
     <>
-      {/* ── 0. Sync error banner ─────────────────────────────────── */}
+      {/* ── Trial countdown pill ─────────────────────────────────── */}
+      {isTrial && (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--color-primary)' }}>
+            Trial
+          </span>
+          {daysRemaining !== undefined && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
+              {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Paid awaiting — activation setup tile ───────────────── */}
+      {isPaidAwaiting && data.activation && (
+        <ActivationTile
+          state={data.activation.state}
+          onOpenForwardingSheet={() => sheet.open('forwarding')}
+          onRefreshClick={fetchData}
+        />
+      )}
+
+      {/* ── Sync error banner ─────────────────────────────────────── */}
       {!syncDismissed && data.agentSync?.last_agent_sync_status === 'error' && (
         <div
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
@@ -166,7 +198,7 @@ export default function PaidReadySection({
         </div>
       )}
 
-      {/* ── 2. Next best action (inline strip) ─────────────────── */}
+      {/* ── Next best action strip ───────────────────────────────── */}
       {nextAction && (
         <div
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
@@ -177,7 +209,15 @@ export default function PaidReadySection({
             <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           <p className="text-[12px] flex-1" style={{ color: 'var(--color-text-2)' }}>{nextAction.text}</p>
-          {nextAction.href && (
+          {nextAction.onUpgrade ? (
+            <button
+              onClick={() => openUpgradeModal('next_action_strip', data.clientId, daysRemaining, data.selectedPlan)}
+              className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              {nextAction.cta}
+            </button>
+          ) : nextAction.href ? (
             <Link
               href={nextAction.href}
               className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
@@ -185,11 +225,11 @@ export default function PaidReadySection({
             >
               {nextAction.cta}
             </Link>
-          )}
+          ) : null}
         </div>
       )}
 
-      {/* ── 2b. HOT lead banner ────────────────────────────────── */}
+      {/* ── HOT lead banner ─────────────────────────────────────── */}
       {!hotDismissed && data.stats.hotLeads > 0 && (
         <div
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
@@ -218,7 +258,7 @@ export default function PaidReadySection({
         </div>
       )}
 
-      {/* ── 2c. Activity stats strip ─────────────────────────────── */}
+      {/* ── Activity stats strip ─────────────────────────────────── */}
       {data.stats.totalCalls > 0 && (
         <div className="flex items-center gap-2 flex-wrap px-1">
           <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
@@ -245,14 +285,14 @@ export default function PaidReadySection({
         </div>
       )}
 
-      {/* ── 3. 3-col: [Capabilities] | [TestCall] | [TodayUpdate + Stats] ── */}
+      {/* ── 3-col hero: Capabilities | TestCall | TodayUpdate + Stats ── */}
       {onboarding.hasAgent && data.clientId && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
           <CapabilitiesCard
             capabilities={capabilities}
             agentName={agent.name}
             voiceStylePreset={agent.voiceStylePreset}
-            isTrial={false}
+            isTrial={isTrial}
             clientId={data.clientId}
             hasPhoneNumber={onboarding.hasPhoneNumber}
             hasIvr={data.editableFields.ivrEnabled}
@@ -262,7 +302,7 @@ export default function PaidReadySection({
           <TestCallCard
             clientId={data.clientId}
             isAdmin={false}
-            isTrial={false}
+            isTrial={isTrial}
             knowledge={{
               agentName: agent.name || undefined,
               hasFacts: !!(data.editableFields.businessFacts?.trim()),
@@ -276,6 +316,17 @@ export default function PaidReadySection({
             }}
           />
           <div className="space-y-3">
+            {/* Trial: show mode switcher so they can configure before go-live */}
+            {isTrial && (
+              <TrialModeSwitcher
+                clientId={data.clientId}
+                subscriptionStatus={onboarding.subscriptionStatus}
+                selectedPlan={data.selectedPlan}
+                currentMode={data.callHandlingMode}
+                hasBooking={capabilities.hasBooking}
+                onRetest={resetCall}
+              />
+            )}
             <TodayUpdateCard
               clientId={data.clientId}
               currentNote={data.editableFields.injectedNote}
@@ -283,7 +334,7 @@ export default function PaidReadySection({
             <StatsHeroCard
               agentName={agent.name}
               agentStatus={agent.status}
-              isTrial={false}
+              isTrial={isTrial}
               isExpired={false}
               totalCalls={data.stats.totalCalls}
               callsTrend={data.stats.trends.callsChange}
@@ -296,184 +347,7 @@ export default function PaidReadySection({
         </div>
       )}
 
-      {/* ── 4. 2-col: [IVR+AfterCalls] | [Calendar] ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-        {data.clientId ? (
-          <div className="space-y-3">
-            <IvrVoicemailTile
-              clientId={data.clientId}
-              isAdmin={false}
-              ivrEnabled={data.editableFields.ivrEnabled}
-              ivrPrompt={data.editableFields.ivrPrompt}
-              voicemailGreetingText={data.editableFields.voicemailGreetingText}
-              businessName={onboarding.businessName}
-              agentName={agent.name}
-            />
-            <PostCallActionsTile
-              clientId={data.clientId}
-              isAdmin={false}
-              smsEnabled={data.editableFields.smsEnabled}
-              smsTemplate={data.editableFields.smsTemplate}
-              hasSms={capabilities.hasSms}
-              agentName={agent.name}
-            />
-          </div>
-        ) : <div />}
-        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
-      </div>
-
-      {/* ── 4b. 2-col: CallHandling + BusinessHours ──────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
-        <CallHandlingTile
-          selectedPlan={data.selectedPlan}
-          subscriptionStatus={onboarding.subscriptionStatus}
-          capabilities={capabilities}
-          knowledge={data.knowledge}
-          callHandlingMode={data.callHandlingMode}
-          onOpenSheet={sheet.open}
-        />
-        <BusinessHoursTile
-          hoursWeekday={data.editableFields.hoursWeekday}
-          hoursWeekend={data.editableFields.hoursWeekend}
-          onOpenSheet={() => sheet.open('hours')}
-        />
-      </div>
-
-      {/* ── 4c. KnowledgeInline + Billing ──────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-        <KnowledgeInlineTile knowledgeStats={data.knowledge} />
-        <BillingTile
-          selectedPlan={data.selectedPlan}
-          subscriptionStatus={onboarding.subscriptionStatus}
-          onOpenSheet={() => sheet.open('billing')}
-        />
-      </div>
-
-      {/* ── 5. Identity strip ───────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 items-center">
-        {/* Agent name chip */}
-        <button
-          onClick={() => sheet.open('identity')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
-        >
-          <div
-            className="relative group flex items-center shrink-0"
-            role="status"
-            aria-label={`Agent status: ${data.agentHealth ?? 'unknown'}`}
-          >
-            <span
-              className={['w-2 h-2 rounded-full', data.agentHealth === 'healthy' ? 'animate-pulse' : ''].join(' ')}
-              style={{
-                backgroundColor: data.agentHealth === 'healthy' ? 'rgb(34,197,94)' :
-                  data.agentHealth === 'degraded' ? 'rgb(245,158,11)' : 'rgb(239,68,68)',
-              }}
-            />
-            <span className="sr-only">Agent status: {data.agentHealth ?? 'unknown'}</span>
-            <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 hidden group-hover:block z-20">
-              <span
-                className="text-[10px] px-2 py-1 rounded-md font-medium whitespace-nowrap shadow-md"
-                style={{
-                  backgroundColor: 'var(--color-surface-2)',
-                  color: 'var(--color-text-2)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                {data.agentHealth === 'healthy'
-                  ? 'Agent is live'
-                  : data.agentHealth === 'degraded'
-                  ? 'Sync failed — settings may be stale'
-                  : 'Agent offline'}
-              </span>
-            </div>
-          </div>
-          {agent.name}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {/* Niche chip */}
-        {agent.niche && (
-          <Link
-            href="/dashboard/settings?tab=general"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
-          >
-            {formatNiche(agent.niche)}
-          </Link>
-        )}
-
-        {/* Voice chip */}
-        <Link
-          href="/dashboard/settings?tab=voice"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {formatVoicePreset(agent.voiceStylePreset)}
-        </Link>
-
-        {/* Telegram pill */}
-        <button
-          onClick={() => sheet.open('notifications')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{
-            backgroundColor: onboarding.telegramConnected ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
-            color: onboarding.telegramConnected ? 'rgb(34,197,94)' : 'var(--color-text-3)',
-          }}
-        >
-          {onboarding.telegramConnected ? 'Telegram ✓' : 'Connect Telegram →'}
-        </button>
-
-        {/* SMS pill */}
-        <Link
-          href="/dashboard/settings?tab=sms"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
-          style={{
-            backgroundColor: capabilities.hasSms ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
-            color: capabilities.hasSms ? 'rgb(34,197,94)' : 'var(--color-text-3)',
-          }}
-        >
-          {capabilities.hasSms ? 'SMS on' : 'Enable SMS →'}
-        </Link>
-
-        {/* Agent sync badge */}
-        {data.agentSync && (
-          <AgentSyncBadge
-            lastSyncAt={data.agentSync.last_agent_sync_at}
-            lastSyncStatus={data.agentSync.last_agent_sync_status}
-          />
-        )}
-      </div>
-
-      {/* ── 6. KnowledgeSourcesTile — GBP + business facts editor ── */}
-      {data.clientId && (
-        <KnowledgeSourcesTile
-          gbpData={data.gbpData}
-          editableFields={data.editableFields}
-          websiteScrapeStatus={data.websiteScrapeStatus}
-          clientId={data.clientId}
-          onMutate={fetchData}
-        />
-      )}
-
-      {/* ── 6b. FAQ suggestions from recent unanswered questions ── */}
-      {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
-        <AutoFaqSuggestions
-          clientId={data.clientId}
-          suggestions={data.lastFaqSuggestions}
-        />
-      )}
-
-      {/* ── 6c. Unanswered questions from recent calls ──────────── */}
-      {data.clientId && (
-        <UnansweredQuestionsTile clientId={data.clientId} />
-      )}
-
-      {/* ── 8. "RECENT ACTIVITY" collapsible ───────────────────── */}
+      {/* ── Recent calls accordion ───────────────────────────────── */}
       {data.recentCalls.length > 0 && (
         <div
           className="rounded-2xl overflow-hidden"
@@ -486,7 +360,7 @@ export default function PaidReadySection({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
-                  Recent activity
+                  Recent calls
                 </p>
                 <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
                   {activitySummaryText}
@@ -509,7 +383,7 @@ export default function PaidReadySection({
 
           {activityOpen && (
             <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-              {data.recentCalls.slice(0, 3).map(call => {
+              {data.recentCalls.slice(0, 5).map(call => {
                 const isTestCall = call.call_status === 'test'
                 const row = (
                   <div className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors">
@@ -557,7 +431,222 @@ export default function PaidReadySection({
         </div>
       )}
 
-      {/* ── 9+11. 2-col: Notifications + Niche Insights ─────────────── */}
+      {/* ── 2-col: IVR + PostCall | Calendar ────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        {data.clientId ? (
+          <div className="space-y-3">
+            <IvrVoicemailTile
+              clientId={data.clientId}
+              isAdmin={false}
+              ivrEnabled={data.editableFields.ivrEnabled}
+              ivrPrompt={data.editableFields.ivrPrompt}
+              voicemailGreetingText={data.editableFields.voicemailGreetingText}
+              businessName={onboarding.businessName}
+              agentName={agent.name}
+            />
+            <PostCallActionsTile
+              clientId={data.clientId}
+              isAdmin={false}
+              smsEnabled={data.editableFields.smsEnabled}
+              smsTemplate={data.editableFields.smsTemplate}
+              hasSms={capabilities.hasSms}
+              agentName={agent.name}
+            />
+          </div>
+        ) : <div />}
+        <BookingCalendarTile hasBooking={capabilities.hasBooking} />
+      </div>
+
+      {/* ── 2-col: CallHandling + BusinessHours ─────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+        <CallHandlingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          capabilities={capabilities}
+          knowledge={data.knowledge}
+          callHandlingMode={data.callHandlingMode}
+          onOpenSheet={sheet.open}
+        />
+        <BusinessHoursTile
+          hoursWeekday={data.editableFields.hoursWeekday}
+          hoursWeekend={data.editableFields.hoursWeekend}
+          onOpenSheet={() => sheet.open('hours')}
+        />
+      </div>
+
+      {/* ── 2-col: KnowledgeInline + Billing ────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <KnowledgeInlineTile knowledgeStats={data.knowledge} />
+        <BillingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          onOpenSheet={() => sheet.open('billing')}
+        />
+      </div>
+
+      {/* ── Identity strip ───────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <button
+          onClick={() => sheet.open('identity')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-1)' }}
+        >
+          <div
+            className="relative group flex items-center shrink-0"
+            role="status"
+            aria-label={`Agent status: ${data.agentHealth ?? 'unknown'}`}
+          >
+            <span
+              className={['w-2 h-2 rounded-full', data.agentHealth === 'healthy' ? 'animate-pulse' : ''].join(' ')}
+              style={{
+                backgroundColor: data.agentHealth === 'healthy' ? 'rgb(34,197,94)' :
+                  data.agentHealth === 'degraded' ? 'rgb(245,158,11)' : 'rgb(239,68,68)',
+              }}
+            />
+            <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 hidden group-hover:block z-20">
+              <span
+                className="text-[10px] px-2 py-1 rounded-md font-medium whitespace-nowrap shadow-md"
+                style={{
+                  backgroundColor: 'var(--color-surface-2)',
+                  color: 'var(--color-text-2)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                {data.agentHealth === 'healthy'
+                  ? 'Agent is live'
+                  : data.agentHealth === 'degraded'
+                  ? 'Sync failed — settings may be stale'
+                  : 'Agent offline'}
+              </span>
+            </div>
+          </div>
+          {agent.name}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        {agent.niche && (
+          <Link
+            href="/dashboard/settings?tab=general"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+            style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
+          >
+            {formatNiche(agent.niche)}
+          </Link>
+        )}
+
+        <Link
+          href="/dashboard/settings?tab=voice"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{ backgroundColor: 'var(--color-hover)', color: 'var(--color-text-2)' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {formatVoicePreset(agent.voiceStylePreset)}
+        </Link>
+
+        <button
+          onClick={() => sheet.open('notifications')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{
+            backgroundColor: onboarding.telegramConnected ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+            color: onboarding.telegramConnected ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+          }}
+        >
+          {onboarding.telegramConnected ? 'Telegram ✓' : 'Connect Telegram →'}
+        </button>
+
+        <Link
+          href="/dashboard/settings?tab=sms"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] cursor-pointer hover:opacity-75 transition-opacity"
+          style={{
+            backgroundColor: capabilities.hasSms ? 'rgba(34,197,94,0.1)' : 'var(--color-hover)',
+            color: capabilities.hasSms ? 'rgb(34,197,94)' : 'var(--color-text-3)',
+          }}
+        >
+          {capabilities.hasSms ? 'SMS on' : 'Enable SMS →'}
+        </Link>
+
+        {data.agentSync && (
+          <AgentSyncBadge
+            lastSyncAt={data.agentSync.last_agent_sync_at}
+            lastSyncStatus={data.agentSync.last_agent_sync_status}
+          />
+        )}
+      </div>
+
+      {/* ── Knowledge sources (GBP + business facts editor) ──────── */}
+      {data.clientId && (
+        <KnowledgeSourcesTile
+          gbpData={data.gbpData}
+          editableFields={data.editableFields}
+          websiteScrapeStatus={data.websiteScrapeStatus}
+          clientId={data.clientId}
+          onMutate={fetchData}
+        />
+      )}
+
+      {/* ── Teach more ──────────────────────────────────────────── */}
+      {data.clientId && (
+        <div className="rounded-2xl border b-theme bg-surface p-4 space-y-2">
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
+            TEACH {agent.name?.toUpperCase() || 'YOUR AGENT'} MORE
+          </p>
+          <p className="text-[11px] t3">
+            Paste anything — services, pricing, team bios, policies, FAQs. {agent.name || 'Your agent'} will learn it and use it on calls.
+          </p>
+          <KnowledgeTextInput clientId={data.clientId} isAdmin={false} compact />
+        </div>
+      )}
+
+      {/* ── FAQ suggestions ──────────────────────────────────────── */}
+      {data.clientId && data.lastFaqSuggestions && data.lastFaqSuggestions.length > 0 && (
+        <AutoFaqSuggestions
+          clientId={data.clientId}
+          suggestions={data.lastFaqSuggestions}
+        />
+      )}
+
+      {/* ── Unanswered questions ─────────────────────────────────── */}
+      {data.clientId && (
+        <UnansweredQuestionsTile clientId={data.clientId} />
+      )}
+
+      {/* ── Trial: upgrade CTA ───────────────────────────────────── */}
+      {isTrial && (
+        <div className="rounded-2xl p-4 card-surface">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-3">When you&apos;re ready to go live</p>
+          <div className="space-y-1.5 mb-4">
+            {[
+              'Your own business phone number',
+              'Real call forwarding from your existing line',
+              'Live call dashboard + hot lead tracking',
+              'Instant Telegram, email & SMS alerts',
+            ].map((feat, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="text-xs t2">{feat}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => openUpgradeModal('unified_upgrade_cta', data.clientId, daysRemaining, data.selectedPlan)}
+            className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            Get a real phone number — upgrade to go live
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ── 2-col: Notifications + Niche Insights ────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
         <NotificationsTile
           telegramConnected={onboarding.telegramConnected}

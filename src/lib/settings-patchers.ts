@@ -20,6 +20,7 @@ import {
   patchServicesOffered,
   patchCallHandlingMode,
   patchVipSection,
+  patchHoursWeekday,
   getServiceType,
   getClosePerson,
 } from './prompt-patcher'
@@ -51,6 +52,7 @@ interface PatcherContext {
   currentAgentMode: string | null
   currentSmsEnabled: boolean
   currentForwardingNumber: string | null
+  currentBusinessHoursWeekday: string | null
 }
 
 /**
@@ -60,7 +62,7 @@ interface PatcherContext {
 const PATCH_TRIGGER_FIELDS = [
   'section_id', 'booking_enabled', 'sms_enabled', 'voice_style_preset',
   'agent_name', 'business_name', 'services_offered', 'call_handling_mode', 'agent_mode',
-  'forwarding_number',
+  'forwarding_number', 'business_hours_weekday',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {
@@ -80,7 +82,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number')
+    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number, business_hours_weekday')
     .eq('id', clientId)
     .single()
 
@@ -97,6 +99,7 @@ async function fetchPatcherContext(
     currentAgentMode: (data?.agent_mode as string) ?? null,
     currentSmsEnabled: (data?.sms_enabled as boolean) ?? false,
     currentForwardingNumber: (data?.forwarding_number as string | null) ?? null,
+    currentBusinessHoursWeekday: (data?.business_hours_weekday as string | null) ?? null,
   }
 }
 
@@ -197,7 +200,24 @@ export async function applyPromptPatches(
     }
   }
 
-  // ── 3. Sensory patches (voice_style_preset) ─────────────────────────────
+  // ── 3. Hours patch (business_hours_weekday) ─────────────────────────────
+  // Replaces old literal hours text baked into the static prompt at provision time
+  // ({{HOURS_WEEKDAY}} was substituted during buildPromptFromIntake).
+  if (typeof body.business_hours_weekday === 'string' && body.business_hours_weekday.trim()) {
+    const oldHours = ctx.currentBusinessHoursWeekday
+    const newHours = body.business_hours_weekday.trim()
+    if (oldHours && oldHours !== newHours) {
+      const patched = patchHoursWeekday(prompt, oldHours, newHours)
+      if (patched !== prompt) {
+        const err = applyPatch(patched, prompt, updates, warnings)
+        if (err) return { warnings, error: err }
+        prompt = patched
+        console.log(`[settings] Hours weekday patched '${oldHours}' → '${newHours}' in prompt for client=${clientId}`)
+      }
+    }
+  }
+
+  // ── 4. Sensory patches (voice_style_preset) ─────────────────────────────
   if (typeof body.voice_style_preset === 'string' && body.voice_style_preset) {
     const preset = VOICE_PRESETS[body.voice_style_preset]
     if (preset) {

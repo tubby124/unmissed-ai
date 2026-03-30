@@ -400,7 +400,7 @@ export default function AgentConfigCard({
                 style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text-1)' }}
                 placeholder="Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out — call us back. Thanks!"
               />
-              <span className="text-[10px] t3">{vmScript.length}/500</span>
+              <span className={`text-[10px] ${vmScript.length >= 400 ? 'text-red-500' : 'text-[var(--color-text-3)]'}`}>{vmScript.length} / 500 characters</span>
             </div>
 
             {/* Save button */}

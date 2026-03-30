@@ -66,8 +66,12 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   business_facts:       { mutationClass: 'DB_PLUS_KNOWLEDGE_PIPELINE', triggersSync: false },
   extra_qa:             { mutationClass: 'DB_PLUS_KNOWLEDGE_PIPELINE', triggersSync: false },
 
-  // ── Per-call context (injected fresh each call, no sync needed) ───────────
-  business_hours_weekday:     { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
+  // ── Per-call context (injected fresh each call via callerContextBlock) ───
+  // business_hours_weekday is ALSO baked into the static system_prompt at provision time
+  // via {{HOURS_WEEKDAY}} substitution. Changing it triggers a prompt patch (literal replace)
+  // so the scripted HOURS/LOCATION responses stay in sync. Prompt patch → system_prompt changes
+  // → computeNeedsSync returns true → Ultravox agent resynced automatically.
+  business_hours_weekday:     { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false },
   business_hours_weekend:     { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
   after_hours_behavior:       { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
   after_hours_emergency_phone:{ mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
@@ -101,6 +105,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   outbound_opening:    { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_vm_script:  { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_tone:       { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_notes:      { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -211,8 +216,9 @@ export const settingsBodySchema = z.object({
   outbound_prompt: z.union([z.string(), z.null()]).optional(),
   outbound_goal: z.union([z.string(), z.null()]).optional(),
   outbound_opening: z.union([z.string(), z.null()]).optional(),
-  outbound_vm_script: z.union([z.string(), z.null()]).optional(),
+  outbound_vm_script: z.union([z.string().max(500), z.null()]).optional(),
   outbound_tone: z.enum(['warm', 'professional', 'direct']).optional(),
+  outbound_notes: z.union([z.string(), z.null()]).optional(),
 
   // Admin-only: God Mode
   telegram_bot_token: z.string().min(1).optional(),
@@ -366,6 +372,10 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   }
   if (body.outbound_tone !== undefined) {
     updates.outbound_tone = body.outbound_tone
+  }
+  if (body.outbound_notes !== undefined) {
+    const val = typeof body.outbound_notes === 'string' ? body.outbound_notes.trim() : null
+    updates.outbound_notes = val || null
   }
 
   // system_prompt — validated separately (may be overwritten by prompt patchers)

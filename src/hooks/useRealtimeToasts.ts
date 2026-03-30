@@ -65,6 +65,41 @@ export function useRealtimeToasts(clientId: string | null, isAdmin: boolean) {
           })
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'call_logs' },
+        (payload) => {
+          const row = payload.new as {
+            id: string
+            client_id: string | null
+            call_status: string | null
+            caller_phone: string | null
+          }
+          if (!isAdmin && clientId && row.client_id !== clientId) return
+          // HOT has its own dedicated toast above
+          if (!row.call_status || row.call_status === 'HOT') return
+          // Only fire on terminal statuses
+          const terminal = ['WARM', 'COLD', 'VOICEMAIL', 'voicemail', 'missed', 'completed', 'BUSY']
+          if (!terminal.includes(row.call_status)) return
+          if (shownRef.current.has(`completed:${row.id}`)) return
+          shownRef.current.add(`completed:${row.id}`)
+
+          const isTestCall = row.caller_phone === 'webrtc-test'
+          if (isTestCall) return
+          const raw = row.caller_phone || ''
+          const digits = raw.replace(/\D/g, '')
+          const phone = digits.length === 11 && digits[0] === '1'
+            ? `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+            : digits.length === 10
+            ? `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+            : raw || 'Unknown caller'
+          toast('New call recorded', {
+            description: phone,
+            action: { label: 'View', onClick: () => { window.location.href = '/dashboard/calls' } },
+            duration: 8000,
+          })
+        }
+      )
       .subscribe()
 
     return () => {

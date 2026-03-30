@@ -16,6 +16,7 @@ export interface OutboundPromptFields {
   tone: OutboundTone
   opening: string
   vmScript: string
+  callNotes?: string | null
   specialInstructions?: string | null
 }
 
@@ -33,8 +34,12 @@ const TONE_DESCRIPTIONS: Record<OutboundTone, string> = {
  * - hangUp instructions at every exit point prevent dead air
  */
 export function assembleOutboundPrompt(fields: OutboundPromptFields): string {
-  const { goal, tone, opening, vmScript, specialInstructions } = fields
+  const { goal, tone, opening, vmScript, callNotes, specialInstructions } = fields
   const toneDesc = TONE_DESCRIPTIONS[tone] ?? TONE_DESCRIPTIONS.warm
+
+  const callNotesBlock = callNotes?.trim()
+    ? `\nCALL NOTES (read before proceeding):\n${callNotes.trim()}\n`
+    : ''
 
   let prompt = `You are {{AGENT_NAME}}, an outbound calling agent for {{BUSINESS_NAME}}.
 Goal: ${goal}
@@ -44,7 +49,7 @@ CALLER CONTEXT:
 Name: {{LEAD_NAME}}
 Phone: {{LEAD_PHONE}}
 Notes: {{LEAD_NOTES}}
-
+${callNotesBlock}
 ---
 ## LIVE CALL
 
@@ -93,5 +98,6 @@ export const DEFAULT_OUTBOUND_FIELDS: OutboundPromptFields = {
   tone: 'warm',
   opening: 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. I\'m trying to reach {{LEAD_NAME}} — do you have a quick minute?',
   vmScript: 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out to connect — give us a call back when you get a chance. Thanks!',
+  callNotes: null,
   specialInstructions: null,
 }

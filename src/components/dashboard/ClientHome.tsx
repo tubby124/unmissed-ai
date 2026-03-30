@@ -21,8 +21,7 @@ import { useHomeSheet } from '@/hooks/useHomeSheet'
 // Phase section components (Wave 2 decomposition)
 import TrialExpiredSection from './home/TrialExpiredSection'
 import TrialActiveSection from './home/TrialActiveSection'
-import PaidAwaitingSection from './home/PaidAwaitingSection'
-import PaidReadySection from './home/PaidReadySection'
+import UnifiedHomeSection from './home/UnifiedHomeSection'
 // Shared bento-level components kept at this level
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
 import HomeSideSheet from './home/HomeSideSheet'
@@ -441,13 +440,14 @@ export default function ClientHome() {
               onUpgradeClick={() => openUpgradeModal('trial_expired_hero', homeClientId)}
             />
           )}
-          {homePhase === 'trial_active' && (
+          {/* First-visit welcome screen — intentionally distinct one-time onboarding moment */}
+          {homePhase === 'trial_active' && data.trialWelcome.isFirstVisit && (
             <TrialActiveSection
               data={data}
               trialPhase={trialPhase}
               daysRemaining={daysRemaining}
               isTrial={isTrial}
-              isFirstVisit={data.trialWelcome.isFirstVisit}
+              isFirstVisit={true}
               showChecklist={showChecklist}
               hasRealCalls={hasRealCalls}
               lastCompletedCall={lastCompletedCall}
@@ -456,15 +456,15 @@ export default function ClientHome() {
               sheet={sheet}
             />
           )}
-          {homePhase === 'paid_awaiting' && (
-            <PaidAwaitingSection data={data} sheet={sheet} fetchData={fetchData} />
-          )}
-          {homePhase === 'paid_ready' && (
-            <PaidReadySection
+          {/* Unified layout for returning trial users, paid-awaiting, and paid-ready */}
+          {(homePhase === 'paid_ready' ||
+            homePhase === 'paid_awaiting' ||
+            (homePhase === 'trial_active' && !data.trialWelcome.isFirstVisit)) && (
+            <UnifiedHomeSection
               data={data}
-              showChecklist={showChecklist}
-              hasRealCalls={hasRealCalls}
-              lastCompletedCall={lastCompletedCall}
+              isTrial={isTrial}
+              isPaidAwaiting={homePhase === 'paid_awaiting'}
+              daysRemaining={daysRemaining}
               sheet={sheet}
               fetchData={fetchData}
             />
