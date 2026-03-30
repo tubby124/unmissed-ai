@@ -150,6 +150,12 @@ export async function POST(req: NextRequest) {
       // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
       telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
       email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,
+      // Capability flags — must be written at provision time so syncClientTools() picks them up
+      booking_enabled: intakePayload.booking_enabled ?? false,
+      // Per-call context injection fields
+      timezone: intakePayload.timezone || 'America/Edmonton',
+      context_data: intakePayload.context_data || null,
+      context_data_label: intakePayload.context_data_label || null,
     })
     .select("id")
     .single();
