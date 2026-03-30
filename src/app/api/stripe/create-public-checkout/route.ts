@@ -371,6 +371,9 @@ export async function POST(req: NextRequest) {
         rawScrapeResult,
         runId: `checkout-${intakeId}`,
         routeLabel: 'create-public-checkout',
+        // D45: Only auto-approve when user explicitly reviewed during onboarding.
+        // Fresh-scrape fallback (no websiteScrapeResult) goes to pending for dashboard review.
+        ...(!intakeData.websiteScrapeResult && rawScrapeResult ? { chunkStatus: 'pending' as const } : {}),
       });
     } catch (seedErr) {
       // Chunk seeding failure should NOT block checkout
@@ -416,7 +419,15 @@ export async function POST(req: NextRequest) {
     if (scrapePreview) {
       await svc.from('clients').update({ website_scrape_status: 'approved' }).eq('id', clientId)
     } else if (rawScrapeResult?.rawContent) {
-      await svc.from('clients').update({ website_scrape_status: 'extracted' }).eq('id', clientId)
+      // D45: Store preview so approve-website-knowledge route can bulk-approve from KnowledgeSheet
+      await svc.from('clients').update({
+        website_scrape_status: 'extracted',
+        website_knowledge_preview: {
+          businessFacts: rawScrapeResult.businessFacts,
+          extraQa: rawScrapeResult.extraQa,
+          serviceTags: rawScrapeResult.serviceTags ?? [],
+        },
+      }).eq('id', clientId)
     }
   }
 

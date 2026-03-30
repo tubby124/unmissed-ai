@@ -349,6 +349,9 @@ export async function POST(req: NextRequest) {
       rawScrapeResult,
       runId: `trial-${intakeId}`,
       routeLabel: 'provision/trial',
+      // D45: Only auto-approve when user explicitly reviewed during onboarding.
+      // Fresh-scrape fallback (no websiteScrapeResult) goes to pending for dashboard review.
+      ...(!data.websiteScrapeResult && rawScrapeResult ? { chunkStatus: 'pending' as const } : {}),
     });
     knowledgeCount = seedResult?.chunkCount ?? 0;
   } catch (seedErr) {
@@ -417,7 +420,15 @@ export async function POST(req: NextRequest) {
       },
     }).eq('id', clientId)
   } else if (rawScrapeResult?.rawContent) {
-    await supa.from('clients').update({ website_scrape_status: 'extracted' }).eq('id', clientId)
+    // D45: Store preview so approve-website-knowledge route can bulk-approve from KnowledgeSheet
+    await supa.from('clients').update({
+      website_scrape_status: 'extracted',
+      website_knowledge_preview: {
+        businessFacts: rawScrapeResult.businessFacts,
+        extraQa: rawScrapeResult.extraQa,
+        serviceTags: rawScrapeResult.serviceTags ?? [],
+      },
+    }).eq('id', clientId)
   }
 
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
