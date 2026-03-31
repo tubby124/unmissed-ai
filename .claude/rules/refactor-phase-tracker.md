@@ -36,19 +36,17 @@
 ## Execution Order
 
 ```
-DONE through D221 — see docs/refactor-completed-phases.md
+DONE through D235 — see docs/refactor-completed-phases.md
   Notable recent: D160 wow-first, D168 first_call_at, D178 gotcha ban,
   D180 mode section fix, D183/D184 PRIMARY GOAL + voicemail routing,
-  D192/D196 SMS follow-ups, D207/D211 pricing names + copy, D221 drift-check cron.
+  D192/D196 SMS follow-ups, D207/D211 pricing names + copy, D221 drift-check cron,
+  D231 commit all untracked files + 6 test fixes, D216 apply 4 migrations,
+  D232 verify last_agent_sync_status, D234 unmissed-demo Ultravox sync.
 
 NEXT (in priority order):
 
-  [CRITICAL — verify before shipping anything]
-  D231 → Commit all untracked files — drift-check, staff-roster, knowledge routes, shell components, 6 migrations NEVER committed → Railway has none of them (CRITICAL — prerequisite for D221/D114/D156/D225-D228 to work in prod)
-  D216 → Verify 4 March 30 migrations applied to live DB (lead_status, conflicts, staff_roster)
-  D232 → Verify `last_agent_sync_status` column exists on `clients` table — drift-check writes to it; no migration file; cron throws on every run if missing (CRITICAL)
-  D233 → Verify `CRON_SECRET` env var set in Railway — all 10 cron jobs silently fail without it (CRITICAL — ops)
-  D234 → Deploy unmissed-demo — SYSTEM_PROMPT.txt + domain-knowledge.md modified but never committed; Zara demo agent running stale prompt (HIGH)
+  [CRITICAL — ops check]
+  D233 → Verify `CRON_SECRET` env var set in Railway — all 10 cron jobs silently fail without it (CRITICAL — ops) [CHECK MANUALLY in Railway dashboard — CLI login not available in this session]
 
   [Trial activation — do before marketing push]
   D171 → Wow-first template update — buildPromptFromIntake() + PROMPT_TEMPLATE + deploy_prompt.py (MEDIUM)
@@ -118,21 +116,21 @@ NEXT (in priority order):
 
 ## Active Discovery Items (open only)
 
-### Deployment & Git Hygiene — CRITICAL (discovered 2026-03-31)
-> Root finding: ALL `??` untracked files in git status have NEVER been committed. They don't exist in Railway production. Multiple "DONE" items (D114, D156, D221, D225-D228) are locally implemented but silently not running.
+### Deployment & Git Hygiene — RESOLVED (2026-03-31)
+> D231 committed 2eff9e5 — all untracked files now in Railway. D216 migrations applied. D232/D234 verified.
 
 | # | Type | Fix | Priority |
 |---|------|-----|----------|
-| D231 | CRITICAL | **Commit all untracked working files** — Files never committed = not in Railway. Untracked list: `/api/cron/drift-check/` (D221 "done" but 404 on every cron run), `lib/staff-roster.ts` + `StaffRosterCard.tsx` (D114 "done" but never deployed), `/api/dashboard/knowledge/suggest-from-summary/` (D156), `/api/dashboard/knowledge/conflicts/`, `/api/dashboard/knowledge/docs/`, `/api/dashboard/knowledge/top-queries/`, `/api/dashboard/preview-question/` (D133), `/api/dashboard/telegram-link/` (D225), `/api/onboard/parse-services/` (D226), `AgentReadinessRow.tsx` + `ShareNumberCard.tsx` + `SoftTestGateCard.tsx` + `DocumentList.tsx` (D227/D228), all 6 migration SQL files, `docs/architecture/knowledge-three-store-consolidation.md`. Commit all in one pass. | CRITICAL |
-| D232 | CRITICAL | **Verify `last_agent_sync_status` column on `clients`** — `drift-check/route.ts` writes `last_agent_sync_status` on every run. No migration file exists for this column. If missing, the cron throws on every execution. Check: `SELECT column_name FROM information_schema.columns WHERE table_name='clients' AND column_name='last_agent_sync_status'`. Create migration if absent. | CRITICAL |
-| D233 | OPS | **Verify `CRON_SECRET` env var in Railway** — All 10 scheduled cron jobs auth with `Bearer $CRON_SECRET`. If unset, every cron (drift-check, analyze-calls, daily-digest, reset-minutes, trial-expiry, follow-up-reminders, etc.) silently returns 401 on every schedule. Check Railway dashboard env vars. | CRITICAL |
-| D234 | DEPLOY | **Deploy unmissed-demo prompt** — `clients/unmissed-demo/SYSTEM_PROMPT.txt` + `domain-knowledge.md` modified but never committed. Zara demo agent is running the stale version. Run `/prompt-deploy unmissed-demo` after D231 commit. | HIGH |
+| D231 | ✅ DONE | All untracked files committed (commit `2eff9e5`) and pushed to Railway. Build passes. | — |
+| D232 | ✅ DONE | `last_agent_sync_status` column confirmed present on `clients` (default `'unknown'`). `first_call_at` also present. | — |
+| D233 | OPS | **Verify `CRON_SECRET` env var in Railway** — Railway CLI not authenticated in this session. Check Railway dashboard manually. `CRON_SECRET` is set in `.env.local` (`983d6f36...`). | CRITICAL |
+| D234 | ✅ DONE | unmissed-demo deployed v12 — Ultravox synced (revision `c53ba68f`). Tools drift fixed (hangUp restored). | — |
 | D235 | QUICK | **D157 Phase 1 reseed gate removal** — `reseedKnowledgeFromSettings()` has a guard that skips reseeding when knowledge_chunks already exist (to avoid duplication). But this means updated `business_facts`/`extra_qa` don't propagate to pgvector until next full wipe. 3-line change in `lib/embeddings.ts`: always delete `settings_edit` source chunks before re-embedding, not just on first seed. Architecture doc at `docs/architecture/knowledge-three-store-consolidation.md`. | MEDIUM |
 
 ### Infrastructure & Ops
 | # | Type | Fix | Priority |
 |---|------|-----|----------|
-| D216 | CRITICAL | **Verify 4 March 30 migrations applied to live DB** — `add_lead_status_to_call_logs`, `add_lead_status_to_campaign_leads`, `add_conflicts_to_compiler_runs`, `add_staff_roster` were never committed (untracked in git). Status in Supabase unknown. Any code referencing `lead_status`, `conflicts` on `compiler_runs`, or `staff_roster` column may fail at runtime. Verify: `SELECT column_name FROM information_schema.columns WHERE table_name='call_logs' AND column_name='lead_status'`. Apply if missing. | CRITICAL |
+| D216 | ✅ DONE | All 4 migrations applied to live DB (2026-03-31): `call_logs.lead_status`, `campaign_leads.lead_status`, `compiler_runs.conflicts`+`conflicts_dismissed`, `clients.staff_roster`. | — |
 | D218 | FEATURE | **Minutes usage warning banner** — At 75%+ of monthly minute limit, show dashboard banner: "You've used X% of your [limit] monthly minutes. [Upgrade or buy more]." At 90%+ urgent variant. Data already in home API (`secondsUsedThisMonth`, `effectiveMinuteLimit`). | HIGH |
 | D230 | FEATURE | **Activation smoke test** — When `activateClient()` runs after upgrade, auto-trigger a 10-second WebRTC test call to verify agent answers. If fails, send Telegram alert to operator. Zero automated verification today. | HIGH |
 | D222 | UX | **Trial mid-point nudge** — Day 3-4 of 7 trial, no Telegram/forwarding set up → nudge banner: "Day 3 of your trial — connect Telegram to get live call alerts." Condition: `isTrial && daysRemaining < 5 && daysRemaining > 2 && !hasTelegramAlerts`. | MEDIUM |

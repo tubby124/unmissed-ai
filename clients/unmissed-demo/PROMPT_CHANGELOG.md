@@ -63,3 +63,9 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 12359 | **Hash:** cb6722ec3366437b
 **Supabase version_id:** 6b1efa5a-329d-4352-8908-106be2841887
 **Ultravox revision:** ff5a9da4-5048-49b4-8df2-e4fb257038fb
+
+## v12 — 2026-03-31 05:47 UTC
+**Change:** sync Ultravox — tools drift fix (hangUp missing, prompt hash mismatch)
+**Chars:** 12359 | **Hash:** cb6722ec3366437b
+**Supabase version_id:** b76a3bf9-aff6-42fc-bf80-1316aec04748
+**Ultravox revision:** c53ba68f-627d-4a11-bd64-c78433bc153a
