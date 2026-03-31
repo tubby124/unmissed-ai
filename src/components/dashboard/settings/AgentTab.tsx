@@ -21,6 +21,7 @@ import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
 import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
 import BookingCard from '@/components/dashboard/settings/BookingCard'
 import StaffRosterCard from '@/components/dashboard/settings/StaffRosterCard'
+import CallRoutingCard from '@/components/dashboard/settings/CallRoutingCard'
 import CallHandlingModeCard from '@/components/dashboard/settings/CallHandlingModeCard'
 import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
@@ -571,6 +572,13 @@ export default function AgentTab({
           </a>
         </div>
       )}
+      {/* D254 — Call routing: why people call → custom TRIAGE_DEEP */}
+      <CallRoutingCard
+        client={client}
+        isAdmin={isAdmin}
+        previewMode={previewMode}
+      />
+
       {hasCapability(niche, 'bookAppointments') && (
         <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
           <div id="section-booking">

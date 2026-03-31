@@ -69,6 +69,7 @@ export default function WebsiteScrapePreview({ data, onUpdate }: WebsiteScrapePr
           warnings: body.warnings,
           scrapedAt: body.scrapedAt,
           scrapedUrl: body.scrapedUrl,
+          contextData: body.contextData ?? null,
           approvedFacts: Array(body.businessFacts.length).fill(true),
           approvedQa: Array(body.extraQa.length).fill(true),
         },

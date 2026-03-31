@@ -2,11 +2,17 @@
  * Telegram message format templates.
  *
  * Three styles selectable per client via `clients.telegram_style`:
- *   - compact:     Minimal — status + phone + summary + action (one glance)
- *   - standard:    Balanced — summary, contact, next steps separated (DEFAULT)
- *   - action_card: Structured — date/time header, summary, booking, contact, action
+ *   - compact:     Minimal — action line + key detail (one glance)
+ *   - standard:    Balanced — action + context separated (DEFAULT)
+ *   - action_card: Structured — divider lines, action front, all details below
  *
- * Auto-glass niche keeps its own dedicated format (vehicle/ADAS/VIN).
+ * Design rule (D248): action drives the first 2 lines for HOT/WARM.
+ *   HOT  → "📞 Call [Name] NOW: [phone]" on line 2
+ *   WARM → "📞 Follow up: [phone]" on line 2
+ *   COLD → summary only, no action line
+ *   JUNK → returns empty string (caller must skip sendAlert)
+ *
+ * Auto-glass niche keeps its own dedicated format in completed-notifications.ts.
  */
 
 export type TelegramStyle = 'compact' | 'standard' | 'action_card'
@@ -35,7 +41,7 @@ interface FormatInput {
 }
 
 const STATUS_EMOJI: Record<string, string> = {
-  HOT: '🔥', WARM: '🌤', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
+  HOT: '🔥', WARM: '🟡', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
 }
 
 function formatPhone(p: string): string {
@@ -60,55 +66,85 @@ function formatDateTime(iso: string, tz: string): { date: string; time: string }
   }
 }
 
-// ── Style C — Compact ──────────────────────────────────────────────────────
+/** Build the action line — the most important line in the message. */
+function buildActionLine(status: string, callerName: string | null, phone: string): string {
+  const fmtPhone = formatPhone(phone)
+  if (status === 'HOT') {
+    return callerName
+      ? `📞 Call <b>${callerName}</b> NOW: ${fmtPhone}`
+      : `📞 Call back NOW: ${fmtPhone}`
+  }
+  if (status === 'WARM') {
+    return callerName
+      ? `📞 Follow up with <b>${callerName}</b>: ${fmtPhone}`
+      : `📞 Follow up: ${fmtPhone}`
+  }
+  return ''
+}
+
+/** Build the header line — status + service label. */
+function buildHeader(status: string, serviceType: string, serviceRequested: string | null): string {
+  const emoji = STATUS_EMOJI[status] || '📞'
+  const label = serviceRequested || serviceType || ''
+  const labelStr = label && label !== 'other' ? ` — ${label}` : ''
+  return `${emoji} <b>${status} LEAD${labelStr}</b>`
+}
+
+// ── Style: Compact ─────────────────────────────────────────────────────────
 function formatCompact(input: FormatInput): string {
-  const emoji = STATUS_EMOJI[input.status] || '📞'
-  const dur = formatDuration(input.durationSeconds)
-  const phone = formatPhone(input.callerPhone)
-  const nameLabel = input.callerData?.callerName ? ` — ${input.callerData.callerName}` : ''
+  if (input.status === 'JUNK') return ''
 
-  const lines = [
-    `${emoji} <b>${input.status}${nameLabel}</b> · ${phone} · ${dur}`,
-  ]
+  const callerName = input.callerData?.callerName ?? null
+  const lines: string[] = []
 
-  if (input.callerData?.serviceRequested) lines.push(`🏷 ${input.callerData.serviceRequested}`)
-  lines.push(input.summary)
+  lines.push(buildHeader(input.status, input.serviceType, input.callerData?.serviceRequested ?? null))
+
+  const actionLine = buildActionLine(input.status, callerName, input.callerPhone)
+  if (actionLine) lines.push(actionLine)
+
+  if (input.summary) lines.push(input.summary)
 
   if (input.booking) {
     lines.push(`📅 Booked: ${input.booking.appointmentTime}`)
   }
 
-  if (input.nextSteps) {
-    lines.push(`↳ ${input.nextSteps}`)
-  }
-
   if (input.callbackPreference) {
-    lines.push(`📅 Callback: ${input.callbackPreference}`)
+    lines.push(`⏰ Callback pref: ${input.callbackPreference}`)
   }
 
   if (input.recordingUrl) {
-    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
+    lines.push(`🎧 <a href="${input.recordingUrl}">Recording</a>`)
+  }
+
+  if (input.status === 'COLD') {
+    lines.push(`ℹ️ No action needed.`)
   }
 
   return lines.join('\n')
 }
 
-// ── Style B — Standard (DEFAULT) ───────────────────────────────────────────
+// ── Style: Standard (DEFAULT) ──────────────────────────────────────────────
 function formatStandard(input: FormatInput): string {
-  const emoji = STATUS_EMOJI[input.status] || '📞'
+  if (input.status === 'JUNK') return ''
+
+  const callerName = input.callerData?.callerName ?? null
   const { date, time } = formatDateTime(input.endedAt, input.timezone)
-  const phone = formatPhone(input.callerPhone)
   const dur = formatDuration(input.durationSeconds)
-  const nameLabel = input.callerData?.callerName ? ` — ${input.callerData.callerName}` : ''
+  const lines: string[] = []
 
-  const lines = [
-    `${emoji} <b>${input.status} LEAD${nameLabel}</b> — ${input.businessName}`,
-    `📅 ${date} · ${time}`,
-  ]
+  lines.push(buildHeader(input.status, input.serviceType, input.callerData?.serviceRequested ?? null))
+  lines.push(`📅 ${date} · ${time} · ${dur}`)
 
-  if (input.callerData?.serviceRequested) lines.push(`🏷 ${input.callerData.serviceRequested}`)
-  lines.push('')
-  lines.push(input.summary)
+  const actionLine = buildActionLine(input.status, callerName, input.callerPhone)
+  if (actionLine) {
+    lines.push('')
+    lines.push(actionLine)
+  }
+
+  if (input.summary) {
+    lines.push('')
+    lines.push(input.summary)
+  }
 
   if (input.booking) {
     lines.push('')
@@ -118,65 +154,74 @@ function formatStandard(input: FormatInput): string {
     }
   }
 
-  lines.push('')
-  lines.push(`👤 ${phone} · ${dur}`)
-
-  if (input.nextSteps) {
-    lines.push(`📋 ${input.nextSteps}`)
-  }
-
   if (input.callbackPreference) {
-    lines.push(`📅 Callback: ${input.callbackPreference}`)
+    lines.push(`⏰ Callback pref: ${input.callbackPreference}`)
   }
 
   if (input.recordingUrl) {
-    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
+    lines.push(`🎧 <a href="${input.recordingUrl}">Recording</a>`)
+  }
+
+  if (input.status === 'COLD') {
+    lines.push('')
+    lines.push(`ℹ️ No action needed.`)
   }
 
   return lines.join('\n')
 }
 
-// ── Style A — Action Card ──────────────────────────────────────────────────
+// ── Style: Action Card ─────────────────────────────────────────────────────
+const DIVIDER = '━━━━━━━━━━━━━━━━━'
+
 function formatActionCard(input: FormatInput): string {
-  const emoji = STATUS_EMOJI[input.status] || '📞'
+  if (input.status === 'JUNK') return ''
+
+  const callerName = input.callerData?.callerName ?? null
   const { date, time } = formatDateTime(input.endedAt, input.timezone)
-  const phone = formatPhone(input.callerPhone)
   const dur = formatDuration(input.durationSeconds)
-  const nameLabel = input.callerData?.callerName ? ` — ${input.callerData.callerName}` : ''
+  const lines: string[] = []
 
-  const lines = [
-    `${emoji} <b>${input.status} LEAD${nameLabel}</b> — ${input.businessName}`,
-    `📅 ${date} · ${time} · ${dur}`,
-  ]
+  lines.push(buildHeader(input.status, input.serviceType, input.callerData?.serviceRequested ?? null))
+  lines.push(DIVIDER)
 
-  if (input.callerData?.serviceRequested) lines.push(`🏷 ${input.callerData.serviceRequested}`)
-  lines.push('')
-  lines.push(input.summary)
+  const actionLine = buildActionLine(input.status, callerName, input.callerPhone)
+  if (actionLine) {
+    lines.push(actionLine)
+  }
+
+  if (input.summary) lines.push(input.summary)
 
   if (input.booking) {
-    lines.push('')
-    lines.push(`📅 <b>BOOKED:</b> ${input.booking.appointmentTime}`)
+    lines.push(`📅 Booked: <b>${input.booking.appointmentTime}</b>`)
     if (input.booking.calendarUrl) {
       lines.push(`🔗 <a href="${input.booking.calendarUrl}">View in Google Calendar</a>`)
     }
-    const name = input.booking.callerName && input.booking.callerName !== 'Caller' ? input.booking.callerName : null
-    lines.push(`↳ Call${name ? ` ${name}` : ''} at ${phone} to confirm`)
-  } else {
-    lines.push(`↳ Call ${phone}`)
   }
 
   if (input.callbackPreference) {
-    lines.push(`📅 Callback: ${input.callbackPreference}`)
+    lines.push(`⏰ ${input.callbackPreference}`)
   }
 
+  lines.push(DIVIDER)
+  lines.push(`📅 ${date} · ${time} · ${dur}`)
+
   if (input.recordingUrl) {
-    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
+    lines.push(`🎧 <a href="${input.recordingUrl}">Recording</a>`)
+  }
+
+  if (input.status === 'COLD') {
+    lines.push(`ℹ️ No action needed.`)
   }
 
   return lines.join('\n')
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
+
+/**
+ * Format a call summary for Telegram.
+ * Returns empty string for JUNK — callers must check before sending.
+ */
 export function formatTelegramMessage(style: TelegramStyle, input: FormatInput): string {
   switch (style) {
     case 'action_card': return formatActionCard(input)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { OnboardingData, Niche } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
@@ -147,7 +147,61 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
   }, [freeformText, data.selectedServices, data.parsedServiceDrafts, nicheSuggestions, onUpdate]);
 
   // D127: FAQ text
-  const callerFaqText = data.callerFaqText ?? '';
+  const callerFaqText = data.callerFaqText ?? ''
+
+  // D247: Caller reasons — drives custom TRIAGE_DEEP generation
+  const callerReasons: string[] = data.callerReasons ?? ['', '', '']
+  const [isGeneratingTriage, setIsGeneratingTriage] = useState(false)
+  const [triageGenerated, setTriageGenerated] = useState(false)
+
+  const updateCallerReason = useCallback((index: number, value: string) => {
+    const next = [...callerReasons]
+    next[index] = value
+    onUpdate({ callerReasons: next })
+  }, [callerReasons, onUpdate])
+
+  const generateTriage = useCallback(async () => {
+    const filled = (data.callerReasons ?? []).map(r => r.trim()).filter(r => r.length > 0)
+    if (filled.length === 0 || !data.businessName || !data.niche) return
+    setIsGeneratingTriage(true)
+    try {
+      const res = await fetch('/api/onboard/infer-niche', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: data.businessName,
+          knownNiche: data.niche,
+          callerReasons: filled,
+        }),
+      })
+      if (!res.ok) return
+      const json = await res.json() as { niche?: string; customVariables?: Record<string, string> }
+      const triage = json.customVariables?.TRIAGE_DEEP
+      if (triage) {
+        onUpdate({ nicheCustomVariables: { ...(data.nicheCustomVariables ?? {}), TRIAGE_DEEP: triage } })
+        setTriageGenerated(true)
+      }
+    } catch { /* silently ignore */ } finally {
+      setIsGeneratingTriage(false)
+    }
+  }, [data.callerReasons, data.businessName, data.niche, data.nicheCustomVariables, onUpdate]);
+
+  // Debounced auto-trigger: fire generateTriage 800ms after callerReasons settles.
+  // This ensures TRIAGE_DEEP is generated even if the user clicks Continue without
+  // blurring the last input field first.
+  const triageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const filled = (data.callerReasons ?? []).map(r => r.trim()).filter(r => r.length > 0)
+    // Only run when there are filled reasons and TRIAGE_DEEP hasn't been generated yet
+    if (filled.length === 0 || data.nicheCustomVariables?.TRIAGE_DEEP) return
+    if (triageTimerRef.current) clearTimeout(triageTimerRef.current)
+    triageTimerRef.current = setTimeout(() => {
+      void generateTriage()
+    }, 800)
+    return () => {
+      if (triageTimerRef.current) clearTimeout(triageTimerRef.current)
+    }
+  }, [data.callerReasons, data.nicheCustomVariables?.TRIAGE_DEEP, generateTriage])
 
   return (
     <div className="space-y-6">
@@ -382,6 +436,56 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
               <p className="text-xs text-muted-foreground">
                 Your agent will know the answers — and be ready the moment it goes live.
               </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── D247: Caller intent capture — drives custom TRIAGE_DEEP ── */}
+      <AnimatePresence>
+        {currentMode !== 'voicemail_replacement' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 border-t border-border space-y-3">
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Why do people call you?
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  The top reasons callers reach out — your agent will route each one properly.
+                </p>
+              </div>
+              {[0, 1, 2].map((i) => (
+                <Input
+                  key={i}
+                  value={callerReasons[i] ?? ''}
+                  onChange={(e) => updateCallerReason(i, e.target.value)}
+                  onBlur={generateTriage}
+                  placeholder={
+                    i === 0 ? 'e.g. "Need a windshield replaced"' :
+                    i === 1 ? 'e.g. "Rock chip — want a price"' :
+                               'e.g. "Insurance claim question"'
+                  }
+                  className="text-sm"
+                />
+              ))}
+              {isGeneratingTriage && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Setting up your agent&apos;s call routing…
+                </p>
+              )}
+              {triageGenerated && !isGeneratingTriage && (
+                <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                  <Check className="w-3 h-3" />
+                  Call routing ready — your agent knows how to handle each caller type.
+                </p>
+              )}
             </div>
           </motion.div>
         )}

@@ -191,11 +191,14 @@ export function toIntakePayload(data: OnboardingData) {
     hours_weekend: hoursWeekend,
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
     ...(data.nicheCustomVariables ? { niche_custom_variables: data.nicheCustomVariables } : {}),
-    // Niche-specific context_data wiring (only one niche active at a time)
+    // Niche-specific context_data wiring (explicit niche data takes priority)
+    // Fallback: use Haiku-extracted contextData from website scrape (D246)
     ...(data.niche === 'restaurant' && data.nicheAnswers?.menuData
       ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }
       : data.niche === 'property_management' && data.nicheAnswers?.tenantRoster
       ? { context_data: String(data.nicheAnswers.tenantRoster), context_data_label: 'TENANTS' }
+      : data.websiteScrapeResult?.contextData
+      ? { context_data: String(data.websiteScrapeResult.contextData), context_data_label: 'BUSINESS INFO' }
       : {}),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>

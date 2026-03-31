@@ -34,6 +34,7 @@ const SECTION_HEADER_ALIASES: Record<string, string[]> = {
   knowledge:   ['KNOWLEDGE', 'KNOWLEDGE BASE', 'KNOWLEDGE LOOKUP'],
   after_hours: ['AFTER HOURS', 'AFTER-HOURS'],
   tone:        ['TONE', 'TONE AND STYLE', 'TONE & STYLE'],
+  triage:      ['TRIAGE', '3. TRIAGE'],
 }
 
 /**

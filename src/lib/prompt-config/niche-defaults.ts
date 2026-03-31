@@ -571,6 +571,33 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
     INSURANCE_STATUS: 'N/A',
     INSURANCE_DETAIL: 'N/A',
     WEEKEND_POLICY: "yeah we work weekends too — real estate doesn't stop on saturdays",
+    TRIAGE_DEEP: `TRIAGE (Outbound ISA)
+You called them — keep it light. You're following up, not pitching.
+
+OPENING:
+"hey, is this [name]? this is {{AGENT_NAME}} from {{BUSINESS_NAME}} — you had reached out about real estate and I was just following up. did I catch you at an okay time?"
+
+INTERESTED — BUYING:
+"awesome — are you looking for something specific? like a condo, townhouse, or house?"
+→ Get: area + rough price range + timeline
+→ "I'll have our agent give you a quick call. when's the best time?"
+
+INTERESTED — SELLING:
+"great — are you thinking of listing soon, or more planning ahead for later?"
+→ Get: rough timeline + general area
+→ "our agent will call you back — what time works best?"
+
+NOT READY / JUST BROWSING:
+"totally get it — no rush at all. should I have our agent follow up in a few weeks, or would you rather reach out when you're ready?"
+→ Follow-up OK: get best time → confirm → close.
+→ Will reach out themselves: "perfect, sounds good. have a great day." then use hangUp tool.
+
+NOT INTERESTED / WRONG PERSON:
+"sorry to bother you — I'll take you off our list right now. have a great day." then use hangUp tool immediately. Note: [REMOVE FROM LIST]
+
+WANTS CALLBACK AT DIFFERENT TIME:
+"of course — when's a better time, and is this the best number?"
+→ Get: time + confirm number → "perfect, our agent will reach out then." then use hangUp tool.`,
   },
   voicemail: {
     INDUSTRY: 'professional practice',
@@ -615,6 +642,37 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
     INSURANCE_DETAIL: "pay when you pick up — easy as that",
     WEEKEND_POLICY: "we're closed weekends — leave a message and we'll call ya back first thing Monday",
     URGENCY_KEYWORDS: '"deadline today", "event tomorrow", "i need it today", "same-day rush", "it\'s for this weekend", "need it printed today", "event is tomorrow"',
+    TRIAGE_DEEP: `TRIAGE (Print)
+Listen to what they say and route naturally.
+
+QUOTE / NEW ORDER:
+"for sure — what are you looking to get printed?"
+→ Product type: cards, flyers, banners, signs, labels, etc.
+→ Quantity: "roughly how many?"
+→ Artwork: "do you have a file ready, or need design help too?"
+→ Collect name → "the team will call ya back with a quote."
+
+REORDER:
+"easy — same job as before. what was it, roughly — cards, flyers, something else?"
+→ Get: product + approx quantity
+→ "I'll have the team pull up the old file and call ya back."
+
+ORDER STATUS / IS IT READY:
+"I can't check orders from here — what's your name and what was the order? I'll have someone check and call ya back."
+→ Get: name + order description → close immediately.
+
+RUSH / URGENT ("today", "tomorrow", "event", "deadline"):
+"okay — flagging this urgent. what do you need and when do you need it by?"
+→ Get: product + quantity + deadline → "I'll have the team call you right back."
+
+DESIGN QUESTION:
+"yeah, we've got design support — do you have artwork already, or starting from scratch?"
+→ Have artwork: "great — I'll have someone call you to sort out the file transfer."
+→ From scratch: "no problem — our designer will call ya back to talk through what you're going for."
+
+ASKING FOR STAFF BY NAME:
+"they're not at the desk right now — let me grab your info and make sure they get the message."
+→ Get: name + brief reason → close.`,
     sms_template: "Thanks for calling {{business}}! Place your order https://{{niche_websiteUrl}}/ online or send your files anytime: {{niche_emailAddress}} — the team will call you back shortly.",
   },
   barbershop: {
@@ -808,5 +866,27 @@ You: "talk soon!" [use hangUp immediately]`,
     INSURANCE_STATUS: 'cash or card',
     INSURANCE_DETAIL: 'we keep it simple',
     WEEKEND_POLICY: "we're open most weekends — call back and we'll see what we can do",
+    TRIAGE_DEEP: `TRIAGE ({{INDUSTRY}})
+Listen to what they say and route naturally.
+
+MAIN INQUIRY ({{PRIMARY_CALL_REASON}}):
+"gotcha — let me grab a couple details."
+→ Ask: {{FIRST_INFO_QUESTION}}
+→ Collect: {{INFO_TO_COLLECT}}
+→ Get name → "our team will call you back. talk soon." then use hangUp tool.
+
+UNCLEAR / NOT SURE WHAT THEY NEED:
+"no worries — tell me a bit about what you're after and we'll sort it out."
+→ Listen, briefly confirm what they said → collect name + their need → close.
+
+URGENT ("right now", "today", "emergency", "urgent", "asap"):
+"okay — let me flag this urgent. what's happening?"
+→ Get core details fast → close immediately with [URGENT] flag.
+
+WRONG NUMBER / NOT INTERESTED:
+"no problem at all — sorry to bother you." then use hangUp tool immediately.
+
+SPAM / ROBOCALL:
+"thanks, not interested. have a good day." then use hangUp tool immediately.`,
   },
 }

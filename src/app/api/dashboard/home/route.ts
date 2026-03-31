@@ -42,8 +42,9 @@ export async function GET(request: Request) {
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes, servicesRes, returningCallerRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes, servicesRes, returningCallerRes, weekCallsRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -138,6 +139,14 @@ export async function GET(request: Request) {
       .not('caller_name', 'is', null)
       .gte('started_at', thirtyDaysAgo)
       .neq('call_status', 'test'),
+
+    // Last 7 days calls — for D250 ROI card
+    supabase
+      .from('call_logs')
+      .select('call_status, duration_seconds, lead_status')
+      .eq('client_id', clientId)
+      .gte('started_at', weekStart)
+      .neq('call_status', 'test'),
   ])
 
   const client = clientRes.data
@@ -152,6 +161,7 @@ export async function GET(request: Request) {
   const knowledgeChunks = knowledgeRes.data ?? []
   const activeServicesCount = servicesRes.count ?? 0
   const returningCallerCount = returningCallerRes.count ?? 0
+  const weekCalls = weekCallsRes.data ?? []
 
   // Last call topics for home "teach your agent" panel
   const lastTopicsRow = lastTopicsRes.data?.[0] ?? null
@@ -221,6 +231,17 @@ export async function GET(request: Request) {
   const minutesUsed = Math.ceil((client.seconds_used_this_month ?? 0) / 60)
   const minuteLimit = client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT
   const bonusMinutes = client.bonus_minutes ?? 0
+
+  // D250 — weekly ROI stats
+  const weeklyStats = {
+    callsAnswered: weekCalls.length,
+    hotLeadsCaptured: weekCalls.filter(c => c.call_status === 'HOT').length,
+    callbacksMade: weekCalls.filter(c => (c as { lead_status?: string | null }).lead_status === 'called_back').length,
+    hoursSaved: Math.round(weekCalls.reduce((sum, c) => sum + (c.duration_seconds ?? 0), 0) / 3600 * 10) / 10,
+    monthCallsAnswered: calls.length,
+    monthHotLeads: hotLeads,
+    monthHoursSaved: Math.round(calls.reduce((sum, c) => sum + (c.duration_seconds ?? 0), 0) / 3600 * 10) / 10,
+  }
 
   // Capability flags — pass approved chunk count so buildCapabilityFlags gates knowledge correctly
   // (count=0 → hasKnowledge=false, no manual override needed)
@@ -373,5 +394,6 @@ export async function GET(request: Request) {
       reviewCount: (c.gbp_review_count as number | null) ?? null,
       photoUrl: (c.gbp_photo_url as string | null) ?? null,
     },
+    weeklyStats,
   })
 }

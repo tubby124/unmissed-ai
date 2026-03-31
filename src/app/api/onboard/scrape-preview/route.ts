@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       extraQa: normalized.result.extraQa,
       serviceTags: normalized.result.serviceTags,
       warnings: normalized.result.warnings,
+      contextData: scrapeResult.contextData ?? null,
       scrapedUrl: websiteUrl,
       scrapedAt: new Date().toISOString(),
     });

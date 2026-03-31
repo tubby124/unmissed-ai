@@ -168,6 +168,12 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
     })
   }
 
+  // D248: empty message = JUNK classification — skip sending
+  if (!message) {
+    console.log(`[completed] Telegram SKIPPED for slug=${slug} callId=${callId}: JUNK classification`)
+    return
+  }
+
   const sent = await sendAlert(client.telegram_bot_token, client.telegram_chat_id, message, client.telegram_chat_id_2 ?? undefined)
   if (!sent) console.error(`[completed] Telegram send FAILED for slug=${slug} callId=${callId}`)
 
@@ -221,31 +227,54 @@ function buildAutoGlassMessage(params: {
     return p
   }
 
-  return [
-    `🌡️ WINDSHIELD HUB LEAD: ${classification.status}`,
-    ``,
-    `📅 Date: ${dateStr}`,
-    `🕐 Time: ${timeStr}`,
-    ``,
-    `📝 SUMMARY:`,
-    fullSummary || 'No summary available.',
-    ``,
-    `🚗 VEHICLE DETAILS:`,
-    `• Car: ${vehicleStr}`,
-    `• ADAS: ${adasStr}`,
-    `• VIN: ${vinStr}`,
-    ``,
-    `🔥 LEAD INFO:`,
-    `• Urgency: ${urgencyStr}`,
-    `• Requested: ${requestedStr}`,
-    ``,
-    `👤 CONTACT:`,
-    `• Name: ${nameStr}`,
-    `• Phone: ${fmtPhone(callerPhone)}`,
-    `• Duration: ${dur}`,
-    ...(callbackPreference ? [``, `📅 Callback: ${callbackPreference}`] : []),
-    ...(recordingUrl ? [``, `🎧 Recording: ${recordingUrl}`] : []),
-  ].join('\n')
+  // D248: action-first format — HOT leads with "Call NOW", others with context
+  const STATUS_EMOJI: Record<string, string> = { HOT: '🔥', WARM: '🟡', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️' }
+  const emoji = STATUS_EMOJI[classification.status] || '📞'
+  const serviceLabelMap: Record<string, string> = {
+    HOT: 'chip repair / replacement',
+    WARM: 'quote request',
+    COLD: 'inquiry',
+    UNKNOWN: 'glass service',
+  }
+  const serviceLabel = nd?.requested_service || serviceLabelMap[classification.status] || 'glass service'
+  const DIVIDER = '━━━━━━━━━━━━━━━━━'
+
+  const lines: string[] = [
+    `${emoji} <b>${classification.status} LEAD — ${serviceLabel}</b>`,
+    DIVIDER,
+  ]
+
+  // Action line — call to action first
+  if (classification.status === 'HOT') {
+    lines.push(nameStr !== 'Unknown'
+      ? `📞 Call <b>${nameStr}</b> NOW: ${fmtPhone(callerPhone)}`
+      : `📞 Call back NOW: ${fmtPhone(callerPhone)}`)
+  } else if (classification.status === 'WARM') {
+    lines.push(nameStr !== 'Unknown'
+      ? `📞 Follow up with <b>${nameStr}</b>: ${fmtPhone(callerPhone)}`
+      : `📞 Follow up: ${fmtPhone(callerPhone)}`)
+  } else {
+    lines.push(`📞 ${fmtPhone(callerPhone)}`)
+  }
+
+  // Vehicle details
+  if (vehicleStr !== 'Unknown') lines.push(`🚗 ${vehicleStr}${adasStr !== 'Unknown' ? ` · ADAS: ${adasStr}` : ''}`)
+  if (urgencyStr && urgencyStr !== 'MEDIUM') lines.push(`⚡ Urgency: ${urgencyStr}`)
+
+  if (callbackPreference) lines.push(`⏰ ${callbackPreference}`)
+
+  // Summary below the fold
+  if (fullSummary) {
+    lines.push(DIVIDER)
+    lines.push(fullSummary)
+  }
+
+  lines.push(DIVIDER)
+  lines.push(`📅 ${dateStr} · ${timeStr} · ${dur}`)
+  if (vinStr !== 'Not Provided') lines.push(`VIN: ${vinStr}`)
+  if (recordingUrl) lines.push(`🎧 <a href="${recordingUrl}">Recording</a>`)
+
+  return lines.join('\n')
 }
 
 // ── SMS Follow-Up ────────────────────────────────────────────────────────────

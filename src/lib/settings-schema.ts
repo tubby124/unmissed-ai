@@ -110,6 +110,9 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   outbound_tone:       { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_notes:      { mutationClass: 'DB_ONLY', triggersSync: false },
 
+  // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche) ───────────────
+  niche_custom_variables:  { mutationClass: 'DB_ONLY', triggersSync: false },
+
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
   telegram_bot_token:      { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -231,6 +234,9 @@ export const settingsBodySchema = z.object({
 
   // Knowledge backend (admin-only)
   knowledge_backend: z.union([z.literal('pgvector'), z.null()]).optional(),
+
+  // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
+  niche_custom_variables: z.record(z.string()).optional(),
 
   // Staff roster (PER_CALL_CONTEXT_ONLY — booking-mode clients only)
   staff_roster: z.array(z.object({

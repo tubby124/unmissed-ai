@@ -155,6 +155,15 @@ export interface HomeData {
     reviewCount: number | null
     photoUrl: string | null
   } | null
+  weeklyStats?: {
+    callsAnswered: number
+    hotLeadsCaptured: number
+    callbacksMade: number
+    hoursSaved: number
+    monthCallsAnswered: number
+    monthHotLeads: number
+    monthHoursSaved: number
+  } | null
 }
 
 

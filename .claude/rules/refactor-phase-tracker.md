@@ -39,14 +39,43 @@
 DONE through D235 — see docs/refactor-completed-phases.md
   Notable recent: D160 wow-first, D168 first_call_at, D178 gotcha ban,
   D180 mode section fix, D183/D184 PRIMARY GOAL + voicemail routing,
+  D240-D245 added 2026-03-31 — purpose-driven agent architecture gap identified.
+  D240 partial ✅ (TRIAGE_DEEP added to print_shop + outbound_isa_realtor + other; prompt-builder.ts bug fixed — was reading nicheDefaults.TRIAGE_DEEP, customVars silently dropped).
+  D241 ✅ (infer-niche generates TRIAGE_DEEP for 'other'; max_tokens 250→600; CUSTOM_VAR_KEYS expanded).
+  D248 ✅ telegram-formats.ts rewritten — action-first HOT/WARM cards, JUNK guard, auto_glass niche updated.
+  D249 ✅ / D228 ✅ AgentReadinessRow already wired in UnifiedHomeSection — verified complete.
+  D250 ✅ weeklyStats added to home API + WeeklyRoiCard inline in UnifiedHomeSection.
+  D253 ✅ working-agent-patterns.md created — 9 patterns from 4 live agents documented.
   D192/D196 SMS follow-ups, D207/D211 pricing names + copy, D221 drift-check cron,
   D231 commit all untracked files + 6 test fixes, D216 apply 4 migrations,
   D232 verify last_agent_sync_status, D234 unmissed-demo Ultravox sync.
 
 NEXT (in priority order):
 
+  ══════════════════════════════════════════════════
+  🔴 ROOT FIX — OUT-OF-BOX AGENT QUALITY (D246-D253)
+  These 8 items are the reason only 4 manually-tuned agents work.
+  Every new client provisions a broken agent until these are done.
+  Do these before any marketing push, any new client, anything.
+  Full diagnosis: memory/project_purpose_driven_agents.md
+  ══════════════════════════════════════════════════
+
+  D246 ✅ DONE → Haiku context extractor — website scraper extracts PRICES/POLICIES/URGENCY WORDS via Haiku → contextData → clients.context_data (label: BUSINESS INFO). Bug fix: WebsiteScrapePreview.tsx was dropping contextData (2026-03-31)
+  D247 → Owner intent → outcome mapping in onboarding — "why do people call / what do you need from them / what's urgent" → Haiku generates client-specific TRIAGE_DEEP (CRITICAL)
+  D248 → Telegram card with explicit owner action — 🔥 HOT "chip repair TODAY" → CALL NOW: 604-xxx | [✅Called][❌Missed] (CRITICAL — was D194)
+  D249 → Agent readiness gate — score before first live call, wire AgentReadinessRow, block/warn if <3/5 call types covered (CRITICAL — was D228)
+  D250 → "Your agent this week" ROI card — "12 calls, 4 HOT leads, saved ~3hrs" — proof point that prevents churn (CRITICAL)
+  D251 → Per-section prompt editor UI — owners self-serve fixes, backend already done (CRITICAL — was D213)
+  D252 → Knowledge gap → one-click fix CTA — "missed pricing 3x this week → [Add price range]" (HIGH — was D244)
+  D253 → Extract working patterns from 4 live agents → Haiku → niche defaults — systematize the manual magic (HIGH)
+
   [CRITICAL — ops check]
   D233 → Verify `CRON_SECRET` env var set in Railway — all 10 cron jobs silently fail without it (CRITICAL — ops) [CHECK MANUALLY in Railway dashboard — CLI login not available in this session]
+
+  [D240/D241 next steps]
+  D240-DEPLOY → Run `/prompt-deploy` on all 4 active clients to pick up new TRIAGE_DEEP for print_shop/outbound_isa/other (D240 final step)
+  D242 → Onboarding "top 3 reasons" question → feed into D247 intent mapping (HIGH — do as part of D247)
+  D243 → Intent coverage UI — replace capability badges with intent readiness gaps (HIGH — do as part of D249)
 
   [Trial activation — do before marketing push]
   D171 → Wow-first template update — buildPromptFromIntake() + PROMPT_TEMPLATE + deploy_prompt.py (MEDIUM)
@@ -200,6 +229,36 @@ NEXT (in priority order):
 | D124 | SECURITY | `QWERTY123` hardcoded as default password — DEFERRED (no email platform yet). | HIGH |
 | D176 | BUG | **GBP hours 24h format** — Google Places API returns `8am–17pm`. Convert to 12h at import in `step1-gbp.tsx`. | LOW |
 | D177 | UX | **GBP website URL UTM params** — Strip to base URL (`new URL(url).origin + pathname`) at import. | LOW |
+
+### 🔴 Out-of-Box Agent Quality — ROOT FIX (2026-03-31)
+> **Why only 4 agents work:** Hasan manually answered these questions for each: what do callers want, what info does the owner need, what does success look like. The product never asks. Fix this and every new client gets a working agent on day 1.
+> Full diagnosis + implementation notes: `memory/project_purpose_driven_agents.md`
+> Dependency order: D246 → D247 → D248 → D249 → D250 → D251 → D252 → D253
+
+| # | Type | Fix | Priority | Key Files |
+|---|------|-----|----------|-----------|
+| D246 | ✅ DONE | **Haiku context data extractor** — Website scraper extracts PRICES/POLICIES/URGENCY WORDS block via Haiku → `contextData` field on scrape result → `intake-transform.ts` maps to `clients.context_data` with label `'BUSINESS INFO'`. Bug fixed 2026-03-31: `WebsiteScrapePreview.tsx` was dropping `contextData` field when writing scrape result to `OnboardingData`. Now passes through. contextData schema: plain-text string, `PRICES\n...\n\nPOLICIES\n...\n\nURGENCY WORDS: ...` injected at call time via `{{contextData}}` under `## Reference Data`. | CRITICAL | `src/components/onboard/WebsiteScrapePreview.tsx` (fixed), `src/lib/website-scraper.ts`, `src/lib/intake-transform.ts` |
+| D247 | ✅ DONE | **Owner intent → outcome mapping in onboarding** — 3-reason "why do people call?" UI in step3-capabilities.tsx → POST `/api/onboard/infer-niche` with `{businessName, knownNiche, callerReasons}` → Haiku generates custom `TRIAGE_DEEP` → stored in `nicheCustomVariables.TRIAGE_DEEP` → flows via `intake-transform.ts` `niche_custom_variables` → `buildPromptFromIntake()`. Bug fixed: prompt-builder.ts was only applying custom vars for `niche='other'`; now applies for ANY niche. D242 merged here. | CRITICAL | `src/app/onboard/steps/step3-capabilities.tsx`, `src/app/api/onboard/infer-niche/route.ts`, `src/lib/prompt-builder.ts` (niche guard removed), `src/types/onboarding.ts` |
+| D254 | DONE | **Post-onboarding call routing editor (dashboard)** — `CallRoutingCard.tsx` in settings "What It Can Do" section. Owner edits 3 reasons → Haiku regenerates TRIAGE_DEEP → saved to `niche_custom_variables` via PATCH `/api/dashboard/settings`. Schema wired. Dashboard complement to D247 onboarding step. | HIGH | `src/components/dashboard/settings/CallRoutingCard.tsx` (new), `src/lib/settings-schema.ts`, `src/app/dashboard/settings/page.tsx` (ClientConfig + SELECT) |
+| D248 | ✅ DONE | **Telegram card with explicit owner action** — Current format dumps a text summary. Owner reads it and still has to decide what to do. New format: 🔥 **HOT** / 🟡 **WARM** / ℹ️ INFO → intent label ("chip repair TODAY") → **ACTION** ("Call John NOW") → caller phone clickable → key info (vehicle, timing) → [✅ Called back] [❌ No answer] reply buttons. The action line is the whole product. Owner should be able to act in 3 seconds without opening the app. Classification (`lead_status`) already exists — just needs the notification formatter rewritten. Was D194 at MEDIUM priority — this is CRITICAL. | CRITICAL | `src/lib/telegram.ts` (notification formatter), `src/app/api/webhook/[slug]/completed/route.ts` |
+| D249 | FEATURE | **Agent readiness gate before first live call** — Before forwarding number activates, compute a readiness score: (1) has intent routing (TRIAGE_DEEP populated), (2) has context data / price range, (3) has forwarding number for escalations, (4) has hours set, (5) has at least 1 FAQ. Score: X/5. Show on dashboard home prominently. If <3/5: "Your agent isn't ready yet — here's what's missing" with one-click fixes. `AgentReadinessRow.tsx` exists at `src/components/dashboard/home/AgentReadinessRow.tsx` but is NOT rendered anywhere (D228). Wire it. Add score to `/api/dashboard/home` response. Consider blocking trial activation if score = 0/5. | CRITICAL | `src/components/dashboard/home/AgentReadinessRow.tsx` (wire to UnifiedHomeSection), `src/app/api/dashboard/home/route.ts` (add readiness score), `src/app/api/provision/trial/route.ts` |
+| D250 | FEATURE | **"Your agent this week" ROI card** — Home dashboard card: "12 calls answered · 4 HOT leads captured · 2 callbacks made · ~3 hrs saved." This is the proof point that prevents churn after trial and drives upgrades. Data already in `call_logs` (classification, duration, lead_status). Needs: weekly summary query in `/api/dashboard/home`, ROI card component in `UnifiedHomeSection.tsx`. Hours-saved estimate: `total_duration_mins / 6` (assume 6 min avg call = 1 hr saved per 10 calls). Show "last 7 days" and "this month." | CRITICAL | `src/app/api/dashboard/home/route.ts`, `src/components/dashboard/home/UnifiedHomeSection.tsx` |
+| D255 | FEATURE | **Guided context data entry at onboarding** — When website scrape returns no `contextData` (or owner skips scrape), show a structured form: "What's your pricing range?", "What are your main policies?", "What phrases signal urgency?" → assembles into the same `PRICES\n...\nPOLICIES\n...\nURGENCY WORDS:` format as D246 Haiku extractor → stored in `websiteScrapeResult.contextData` → flows via `intake-transform.ts` to `clients.context_data`. Dashboard equivalent already exists in `ContextDataCard.tsx`. This is the onboarding entry point. | MEDIUM | `src/components/onboard/WebsiteScrapePreview.tsx`, `src/app/onboard/steps/` |
+| D251 | FEATURE | **Per-section prompt editor UI** — Backend fully done: `replacePromptSection()` in `lib/prompt-sections.ts`, `PATCH /api/dashboard/settings` accepts `section_id + content`. Missing: UI that renders each section (OPENING, TRIAGE, CALL HANDLING MODE, INFO COLLECTION, AFTER HOURS, ESCALATION, EDGE CASES) as expandable edit blocks with Save + Reset-to-default. Without this, owners can't fix a bad agent without Hasan doing it manually via `/prompt-deploy`. This is the self-improvement loop. When D248 Telegram card says "missed pricing 3x" → owner clicks → opens TRIAGE section. Was D213 at HIGH — CRITICAL. | CRITICAL | `src/components/dashboard/settings/AgentTab.tsx`, new `PromptSectionEditor.tsx` component, `src/lib/prompt-sections.ts` (already done) |
+| D252 | LOOP | **Knowledge gap → one-click fix CTA** — After 3+ calls have the same unanswered question (from `knowledge_query_log` where `result_count=0`, grouped by normalized query text): surface on dashboard home: "Your agent couldn't answer 'pricing' 3 times this week. [Add price range to context] [Add FAQ answer]." One-click opens the right settings card. This closes the learning loop without needing Claude Code. Haiku can classify: should this be a FAQ entry, a context_data field, or a TRIAGE route? Was D244 at MEDIUM — HIGH. | HIGH | `src/app/api/dashboard/home/route.ts` (add gap summary), `src/components/dashboard/home/UnifiedHomeSection.tsx`, `knowledge_query_log` table (already populated) |
+| D253 | ✅ DONE | **Extract working patterns from 4 live agents** — Run Haiku on the prompts of the 4 working agents (hasan-sharif, exp-realty, windshield-hub, urban-vibe) and extract: what makes their TRIAGE sections work, what questions they ask that generic agents don't, what edge case handling is baked in. Convert findings to: (1) updates to niche defaults for `real_estate` and `auto_glass`, (2) new onboarding question ideas for D247, (3) a "what good looks like" doc. This is "systematize the manual magic." Use Haiku via `$OPENROUTER_API_KEY`. | HIGH | `clients/{slug}/config.json` + `clients.system_prompt` in Supabase, output to `memory/working-agent-patterns.md` |
+
+### Purpose-Driven Agent Architecture (CRITICAL GAP — 2026-03-31)
+> Root cause: auto-generated agents are information bots, not problem solvers. No intent classification → no purpose-driven routing → no specific outcomes. Every call ends in "I'll have our team call ya back" regardless of why the caller called. Full doc: `memory/project_purpose_driven_agents.md`
+
+| # | Type | Fix | Priority |
+|---|------|-----|----------|
+| D240 | ✅ PARTIAL | **Per-niche intent taxonomy** — `TRIAGE_DEEP` added to `print_shop`, `outbound_isa_realtor`, `other` (2026-03-31). **Bug fixed:** `prompt-builder.ts` line 613 now reads `variables.TRIAGE_DEEP` instead of `nicheDefaults.TRIAGE_DEEP` — Haiku-generated triage was silently dropped before. Remaining: run `/prompt-deploy` on active clients to pick up niche changes. | CRITICAL |
+| D241 | ✅ DONE | **Unknown niche AI inference** — `infer-niche/route.ts` now generates `TRIAGE_DEEP` via Haiku for `niche='other'` businesses. `CUSTOM_VAR_KEYS` expanded, `max_tokens` bumped 250→600. Propagation bug in `prompt-builder.ts` fixed simultaneously. `memory/project_purpose_driven_agents.md` created. | CRITICAL |
+| D242 | ONBOARD | **Onboarding "caller problems" question** — Add to step 3: "What are the top 3 reasons people call your business?" Maps answers to intent taxonomy, feeds into triage script generation. | HIGH |
+| D243 | DASHBOARD | **Intent coverage view** — Replace capability ON/OFF badges with intent readiness: "Service requests: ✅ | Price questions: ⚠️ no range set | Emergencies: ❌ no forwarding number." Show GAPS with links to fix them. Extends AgentReadinessRow.tsx (D228). | HIGH |
+| D244 | LOOP | **Knowledge gap → triage improvement pipeline** — When 3+ calls ask same unanswered question: surface as "your agent missed this 3 times → add to FAQ / add to triage routing." Auto-classify: should this be a FAQ entry or a new intent route? | MEDIUM |
+| D245 | NICHE | **New niche additions** — Add `tech_services` (IT/web/design companies), `professional_services` (lawyers, accountants), `healthcare_clinic` (clinics, physio, dental). Each with full intent taxonomy from day 1. Pixel Calyx → would use `tech_services`. | HIGH |
 
 ### Missing Capabilities
 | # | Type | Fix | Priority |

@@ -51,6 +51,8 @@ export interface WebsiteScrapeResult {
   scrapedUrl: string;
   approvedFacts: boolean[];
   approvedQa: boolean[];
+  /** Haiku-extracted prices/policies/urgency block for context_data (D246) */
+  contextData?: string | null;
 }
 
 export interface OnboardingData {
@@ -143,6 +145,9 @@ export interface OnboardingData {
 
   // D127: Raw FAQ text entered during onboarding — parsed to extra_qa at provision time
   callerFaqText?: string;
+
+  // D247: Owner's top reasons people call — used to generate custom TRIAGE_DEEP via Haiku
+  callerReasons?: string[];
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────

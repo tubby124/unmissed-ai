@@ -324,6 +324,40 @@ export default function UnifiedHomeSection({
         </div>
       )}
 
+      {/* ── D218 — Minutes usage warning banner ─────────────────── */}
+      {!isTrial && data.usage.totalAvailable > 0 && (() => {
+        const pct = (data.usage.minutesUsed / data.usage.totalAvailable) * 100
+        if (pct < 75) return null
+        const isUrgent = pct >= 90
+        return (
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-xl"
+            style={{
+              backgroundColor: isUrgent ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+              border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)', flexShrink: 0 }}>
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <p className="text-[12px] flex-1 leading-snug" style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)' }}>
+              {isUrgent
+                ? `You've used ${Math.round(pct)}% of your ${data.usage.totalAvailable} monthly minutes — upgrade or buy more to stay live`
+                : `You've used ${Math.round(pct)}% of your ${data.usage.totalAvailable} monthly minutes`}
+            </p>
+            <button
+              onClick={() => openUpgradeModal('minutes_warning_banner', data.clientId, undefined, data.selectedPlan)}
+              className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0"
+              style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)' }}
+            >
+              Buy minutes →
+            </button>
+          </div>
+        )
+      })()}
+
       {/* ── D167 — Trial upgrade CTA card ────────────────────────── */}
       {isTrial && !onboarding.hasPhoneNumber && (typeof daysRemaining === 'undefined' || daysRemaining > 3) && (
         <div
@@ -474,6 +508,17 @@ export default function UnifiedHomeSection({
           </button>
         </div>
       )}
+
+      {/* ── D249 — Agent readiness gate ─────────────────────────── */}
+      <AgentReadinessRow
+        hoursWeekday={data.editableFields.hoursWeekday}
+        activeServicesCount={data.activeServicesCount ?? 0}
+        faqCount={faqCount}
+        calendarConnected={calendarConnected}
+        callHandlingMode={callHandlingMode}
+        approvedKnowledgeCount={data.knowledge.approved_chunk_count}
+        pendingKnowledgeCount={pendingKnowledgeCount}
+      />
 
       {/* ── Activity stats strip ─────────────────────────────────── */}
       {data.stats.totalCalls > 0 ? (
@@ -699,22 +744,39 @@ export default function UnifiedHomeSection({
         </div>
       )}
 
-      {/* ── D128 — Agent readiness row ───────────────────────────── */}
-      {onboarding.hasAgent && (
-        <AgentReadinessRow
-          hoursWeekday={data.editableFields.hoursWeekday}
-          activeServicesCount={data.activeServicesCount ?? 0}
-          faqCount={faqCount}
-          calendarConnected={calendarConnected}
-          callHandlingMode={data.callHandlingMode}
-          approvedKnowledgeCount={data.knowledge?.approved_chunk_count ?? 0}
-          pendingKnowledgeCount={data.knowledge?.pending_review_count ?? 0}
-        />
-      )}
 
       {/* ── D130 — Share number card ─────────────────────────────── */}
       {showShareNumber && data.twilioNumber && (
         <ShareNumberCard twilioNumber={data.twilioNumber} />
+      )}
+
+      {/* ── D250 — Weekly ROI card ────────────────────────────────── */}
+      {data.weeklyStats && data.weeklyStats.callsAnswered > 0 && (
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+        >
+          <p className="text-[11px] font-semibold t3 uppercase tracking-wide mb-2">Your agent this week</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <span className="text-[12px] t1 font-medium">{data.weeklyStats.callsAnswered} calls answered</span>
+            {data.weeklyStats.hotLeadsCaptured > 0 && (
+              <Link href="/dashboard/calls?status=HOT" className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300">
+                {data.weeklyStats.hotLeadsCaptured} HOT {data.weeklyStats.hotLeadsCaptured === 1 ? 'lead' : 'leads'} →
+              </Link>
+            )}
+            {data.weeklyStats.callbacksMade > 0 && (
+              <span className="text-[12px] t2">{data.weeklyStats.callbacksMade} called back</span>
+            )}
+            {data.weeklyStats.hoursSaved > 0 && (
+              <span className="text-[12px] t2">~{data.weeklyStats.hoursSaved}h saved</span>
+            )}
+          </div>
+          {data.weeklyStats.monthCallsAnswered > data.weeklyStats.callsAnswered && (
+            <p className="text-[11px] t3 mt-1">
+              This month: {data.weeklyStats.monthCallsAnswered} calls · {data.weeklyStats.monthHotLeads} leads · ~{data.weeklyStats.monthHoursSaved}h saved
+            </p>
+          )}
+        </div>
       )}
 
       {/* ── 3-col hero: Capabilities | TestCall | TodayUpdate + Stats ── */}

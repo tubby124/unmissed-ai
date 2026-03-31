@@ -84,8 +84,8 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   const nicheDefaults = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS.other
 
-  // Layer: common → niche → AI-inferred custom vars (for 'other' businesses) → intake overrides
-  const customVars = (niche === 'other' && intake.niche_custom_variables)
+  // Layer: common → niche → AI-inferred custom vars (any niche — D247 generates TRIAGE_DEEP per owner intent) → intake overrides
+  const customVars = intake.niche_custom_variables
     ? (intake.niche_custom_variables as Record<string, string>)
     : {}
   const variables: Record<string, string> = {
@@ -610,7 +610,8 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Replace shallow triage with deep version.
   // Mode wins when it explicitly redefines call intent (modeForcesTriageDeep);
   // otherwise niche wins and mode is a fallback for niches without a TRIAGE_DEEP.
-  let triageDeep = modeForcesTriageDeep ? modeTriageDeep : (nicheDefaults.TRIAGE_DEEP || modeTriageDeep || '')
+  // variables.TRIAGE_DEEP is preferred: it includes customVars (Haiku-generated) for 'other' businesses.
+  let triageDeep = modeForcesTriageDeep ? modeTriageDeep : (variables.TRIAGE_DEEP || modeTriageDeep || '')
 
   // Niche-specific triageDeep modifiers
   if (niche === 'restaurant' && triageDeep) {

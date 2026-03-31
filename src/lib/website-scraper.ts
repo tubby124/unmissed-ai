@@ -48,6 +48,13 @@ export type WebsiteScrapeResult = {
   failureBucket: FailureBucket
   /** Whether extraction used actual page content (true) vs search index (false) */
   citedTargetUrl?: boolean
+  /**
+   * Pre-formatted plain-text block for clients.context_data.
+   * Contains PRICES / POLICIES / URGENCY WORDS sections extracted from the site.
+   * Null if the site has no pricing or policy information.
+   * Injected at call time as {{contextData}} under "## Reference Data".
+   */
+  contextData?: string | null
 }
 
 const EMPTY_RESULT: Omit<WebsiteScrapeResult, 'failureBucket'> = {
@@ -199,7 +206,8 @@ Extract the following as structured JSON. Only include facts explicitly stated i
     { "q": "Do you handle chip repairs as well?", "a": "..." }
   ],
   "serviceTags": ["windshield replacement", "chip repair", "ADAS calibration", "...only tags confirmed in the text"],
-  "warnings": ["List anything that looks like a legal guarantee, insurer-specific promise, or speculative turnaround time that should NOT be put in a voice agent prompt."]
+  "warnings": ["List anything that looks like a legal guarantee, insurer-specific promise, or speculative turnaround time that should NOT be put in a voice agent prompt."],
+  "contextData": "A voice-agent reference block. Only include sections where the website has real data. Use this exact format (omit any section with no data, return null if nothing applies):\n\nPRICES\nChip repair: $75–$120\nWindshield replacement: $250–$400 (most sedans)\n\nPOLICIES\nPayment: Cash, credit card, SGI/ICBC/MPI direct billing\nService area: Saskatoon and surrounding area\nSame-day/Emergency: Available for urgent repairs\nWarranty: Lifetime warranty on workmanship\n\nURGENCY WORDS: emergency, cracked, urgent, today, broken, leaking\n\nReplace the example values with facts from this specific website only. Return null if the site has no pricing or policy information."
 }
 
 IMPORTANT RULES:
@@ -238,7 +246,8 @@ Extract the following as structured JSON. Only include facts explicitly stated i
     { "q": "What makes you different from competitors?", "a": "..." }
   ],
   "serviceTags": ["...only service/product tags confirmed in the text"],
-  "warnings": ["List anything that looks like a legal guarantee, exact quote, or speculative claim that should NOT be put in a voice agent prompt."]
+  "warnings": ["List anything that looks like a legal guarantee, exact quote, or speculative claim that should NOT be put in a voice agent prompt."],
+  "contextData": "A voice-agent reference block. Only include sections where the website has real data. Use this exact format (omit any section with no data, return null if nothing applies):\n\nPRICES\n[service name]: [price range or starting price]\n\nPOLICIES\nPayment: [accepted methods]\nService area: [geographic coverage]\nSame-day/Emergency: [availability]\nWarranty: [terms]\n\nURGENCY WORDS: [comma-separated trigger words from the content, e.g. emergency, urgent, today, same-day]\n\nReplace with facts from this specific website only. Return null if the site has no pricing or policy information."
 }
 
 IMPORTANT RULES:
@@ -364,6 +373,12 @@ export async function scrapeWebsite(
       return fail('shape_validation_error')
     }
 
+    // Extract optional contextData (prices/policies/urgency block for call-time injection)
+    const parsedObj = parsed as Record<string, unknown>
+    const rawContextData = typeof parsedObj.contextData === 'string' && parsedObj.contextData.trim().length > 20
+      ? parsedObj.contextData.trim()
+      : null
+
     const result: WebsiteScrapeResult = {
       rawContent: parsed.rawContent.slice(0, 1500),
       businessFacts: parsed.businessFacts.filter(
@@ -381,6 +396,7 @@ export async function scrapeWebsite(
       ),
       failureBucket: 'success',
       citedTargetUrl: true, // Always true — we fetched the actual page
+      contextData: rawContextData,
     }
 
     console.log(
