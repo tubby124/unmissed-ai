@@ -34,7 +34,7 @@ export interface FieldDef {
    * If set, changing this field triggers an auto-patch on system_prompt.
    * The patcher name maps to an orchestrator step in settings-patchers.ts.
    */
-  triggersPatch?: 'calendar' | 'sms' | 'voice_style' | 'agent_name' | 'business_name' | 'services' | 'call_handling_mode' | 'agent_mode' | 'section_edit'
+  triggersPatch?: 'calendar' | 'sms' | 'voice_style' | 'agent_name' | 'business_name' | 'owner_name' | 'services' | 'call_handling_mode' | 'agent_mode' | 'section_edit' | 'slot_regen'
 }
 
 /**
@@ -99,7 +99,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   ivr_enabled:                   { mutationClass: 'DB_ONLY', triggersSync: false },
   ivr_prompt:                    { mutationClass: 'DB_ONLY', triggersSync: false },
   service_catalog:               { mutationClass: 'DB_ONLY', triggersSync: false },
-  owner_name:                    { mutationClass: 'DB_ONLY', triggersSync: false },
+  owner_name:                    { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'owner_name' },
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
@@ -110,8 +110,9 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   outbound_tone:       { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_notes:      { mutationClass: 'DB_ONLY', triggersSync: false },
 
-  // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche) ───────────────
-  niche_custom_variables:  { mutationClass: 'DB_ONLY', triggersSync: false },
+  // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
+  // D283c: was DB_ONLY (fake-control). Now triggers slot regeneration → prompt rebuild → sync.
+  niche_custom_variables:  { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
 
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },

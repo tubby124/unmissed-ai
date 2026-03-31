@@ -28,13 +28,38 @@ export function parsePromptSections(prompt: string): Record<string, string> {
   return sections
 }
 
-/** Map sectionId to common header variations found in hand-crafted prompts. */
+/** Map sectionId to common header variations found in hand-crafted prompts.
+ *  Phase 2 (D274): Extended with all 19 sandwich-spec slot IDs.
+ *  Old IDs kept for backward compat with existing client prompts.
+ */
 const SECTION_HEADER_ALIASES: Record<string, string[]> = {
+  // Original IDs (backward compat)
   identity:    ['IDENTITY', 'AGENT IDENTITY'],
-  knowledge:   ['KNOWLEDGE', 'KNOWLEDGE BASE', 'KNOWLEDGE LOOKUP'],
+  knowledge:   ['KNOWLEDGE', 'KNOWLEDGE BASE', 'KNOWLEDGE LOOKUP', 'PRODUCT KNOWLEDGE BASE'],
   after_hours: ['AFTER HOURS', 'AFTER-HOURS'],
   tone:        ['TONE', 'TONE AND STYLE', 'TONE & STYLE'],
   triage:      ['TRIAGE', '3. TRIAGE'],
+
+  // Phase 2 slot IDs (D274 — sandwich spec)
+  safety_preamble:      ['LIFE SAFETY EMERGENCY OVERRIDE'],
+  forbidden_actions:    ['ABSOLUTE FORBIDDEN ACTIONS', 'FORBIDDEN ACTIONS'],
+  voice_naturalness:    ['VOICE NATURALNESS'],
+  grammar:              ['GRAMMAR AND SPEECH', 'GRAMMAR'],
+  // identity already above
+  tone_and_style:       ['TONE AND STYLE', 'TONE & STYLE'],
+  goal:                 ['GOAL'],
+  conversation_flow:    ['DYNAMIC CONVERSATION FLOW', 'CONVERSATION FLOW'],
+  // after_hours already above
+  escalation_transfer:  ['ESCALATION AND TRANSFER', 'ESCALATION'],
+  returning_caller:     ['RETURNING CALLER HANDLING', 'RETURNING CALLER'],
+  inline_examples:      ['INLINE EXAMPLES'],
+  call_handling_mode:   ['CALL HANDLING MODE'],
+  faq_pairs:            ['FREQUENTLY ASKED QUESTIONS', 'FAQ'],
+  objection_handling:   ['OBJECTION HANDLING'],
+  // knowledge already above
+  calendar_booking:     ['CALENDAR BOOKING FLOW'],
+  sms_followup:         ['SMS FOLLOW-UP', 'SMS FOLLOWUP'],
+  vip_protocol:         ['VIP CALLER', 'VIP PROTOCOL'],
 }
 
 /**
@@ -117,6 +142,17 @@ export const CLIENT_EDITABLE_SECTIONS = ['identity', 'knowledge', 'after_hours']
 
 /** Section IDs that are locked to admin-only editing. */
 export const ADMIN_ONLY_SECTIONS = ['tone', 'flow', 'technical'] as const
+
+/** All 19 sandwich-spec slot IDs (D274). */
+export const SLOT_IDS = [
+  'safety_preamble', 'forbidden_actions', 'voice_naturalness', 'grammar',
+  'identity', 'tone_and_style', 'goal', 'conversation_flow',
+  'after_hours', 'escalation_transfer', 'returning_caller', 'inline_examples',
+  'call_handling_mode', 'faq_pairs', 'objection_handling', 'knowledge',
+  'calendar_booking', 'sms_followup', 'vip_protocol',
+] as const
+
+export type SlotId = (typeof SLOT_IDS)[number]
 
 export type SectionId =
   | (typeof CLIENT_EDITABLE_SECTIONS)[number]

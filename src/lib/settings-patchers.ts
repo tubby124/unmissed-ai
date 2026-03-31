@@ -49,6 +49,7 @@ interface PatcherContext {
   currentNiche: string | null
   currentAgentName: string | null
   currentBusinessName: string | null
+  currentOwnerName: string | null
   currentCallHandlingMode: string | null
   currentAgentMode: string | null
   currentSmsEnabled: boolean
@@ -62,8 +63,10 @@ interface PatcherContext {
  */
 const PATCH_TRIGGER_FIELDS = [
   'section_id', 'booking_enabled', 'sms_enabled', 'voice_style_preset',
-  'agent_name', 'business_name', 'services_offered', 'call_handling_mode', 'agent_mode',
+  'agent_name', 'business_name', 'owner_name', 'services_offered', 'call_handling_mode', 'agent_mode',
   'forwarding_number', 'business_hours_weekday',
+  // D283c: triggers slot regeneration instead of individual patcher
+  'niche_custom_variables',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {
@@ -83,7 +86,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number, business_hours_weekday')
+    .select('system_prompt, niche, agent_name, business_name, owner_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number, business_hours_weekday')
     .eq('id', clientId)
     .single()
 
@@ -96,6 +99,7 @@ async function fetchPatcherContext(
     // Use OLD names from DB — needed for replacement patching
     currentAgentName: (data?.agent_name as string) ?? null,
     currentBusinessName: (data?.business_name as string) ?? null,
+    currentOwnerName: (data?.owner_name as string) ?? null,
     currentCallHandlingMode: (data?.call_handling_mode as string) ?? null,
     currentAgentMode: (data?.agent_mode as string) ?? null,
     currentSmsEnabled: (data?.sms_enabled as boolean) ?? false,
@@ -197,6 +201,30 @@ export async function applyPromptPatches(
         console.log(`[settings] Business name patched '${oldName}' → '${newName}' in prompt for client=${clientId}`)
       } else {
         warnings.push({ field: 'business_name_not_patched', message: `Business name saved — but "${oldName}" wasn't found in your agent's prompt. Run /prompt-deploy to update the prompt.` })
+      }
+    }
+  }
+
+  // ── 2b. Owner name (CLOSE_PERSON) patch ─────────────────────────────────
+  // D281: owner_name → CLOSE_PERSON (first name). Word-boundary replace throughout prompt.
+  if (typeof body.owner_name === 'string' && body.owner_name.trim()) {
+    const oldOwnerName = ctx.currentOwnerName
+    const newOwnerName = body.owner_name.trim()
+
+    if (oldOwnerName && oldOwnerName !== newOwnerName) {
+      const oldFirst = oldOwnerName.split(' ')[0]
+      const newFirst = newOwnerName.split(' ')[0]
+
+      if (oldFirst && newFirst && oldFirst.toLowerCase() !== newFirst.toLowerCase()) {
+        const patched = patchAgentName(prompt, oldFirst, newFirst)
+        if (patched !== prompt) {
+          const err = applyPatch(patched, prompt, updates, warnings)
+          if (err) return { warnings, error: err }
+          prompt = patched
+          console.log(`[settings] Owner name (CLOSE_PERSON) patched '${oldFirst}' → '${newFirst}' in prompt for client=${clientId}`)
+        } else {
+          warnings.push({ field: 'owner_name_not_patched', message: `Owner name saved — but "${oldFirst}" wasn't found in your agent's prompt. Run /prompt-deploy to update the prompt.` })
+        }
       }
     }
   }

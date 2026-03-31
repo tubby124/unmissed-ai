@@ -13,6 +13,8 @@ import {
   type PromptWarning,
 } from '@/lib/settings-schema'
 import { applyPromptPatches } from '@/lib/settings-patchers'
+import { regenerateSlots, type RegenerateSlotResult } from '@/lib/slot-regenerator'
+import { SLOT_IDS } from '@/lib/prompt-sections'
 
 // ── Agent sync helper ────────────────────────────────────────────────────────────
 
@@ -228,11 +230,40 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // 8b — Slot regeneration for niche_custom_variables (D283c)
+  // niche_custom_variables can affect ANY slot (TRIAGE_DEEP, FORBIDDEN_EXTRA, etc.)
+  // so we regenerate ALL slots from current DB state (which now has the new values).
+  // Only fires on slot-composed prompts (new clients). Old clients use patchers.
+  let slotRegenResult: RegenerateSlotResult | null = null
+  if ('niche_custom_variables' in updates) {
+    try {
+      slotRegenResult = await regenerateSlots(
+        targetClientId,
+        [...SLOT_IDS],
+        user.id,
+      )
+      if (slotRegenResult.promptChanged) {
+        console.log(`[settings] Slot regeneration after niche_custom_variables change: client=${targetClientId} chars=${slotRegenResult.charCount}`)
+        // Prompt was saved by regenerateSlots — mark updates so computeNeedsSync detects it
+        updates.system_prompt = '__regenerated__'
+      } else if (slotRegenResult.error) {
+        // Not a fatal error — old-format prompts will get this and it's fine
+        console.log(`[settings] Slot regen skipped: ${slotRegenResult.error}`)
+      }
+    } catch (err) {
+      console.warn(`[settings] Slot regeneration failed: ${err}`)
+    }
+  }
+
   // 9 — Sync to Ultravox Agent (derived from field registry, not manual boolean)
   let ultravox_synced = false
   let ultravox_error: string | undefined
 
-  if (computeNeedsSync(updates, knowledgeReseeded)) {
+  // If slot regen already synced to Ultravox, skip the duplicate sync
+  const regenAlreadySynced = slotRegenResult?.promptChanged === true
+  if (regenAlreadySynced) {
+    ultravox_synced = true
+  } else if (computeNeedsSync(updates, knowledgeReseeded)) {
     const syncResult = await syncToUltravox(supabase, targetClientId, updates)
     ultravox_synced = syncResult.synced
     ultravox_error = syncResult.error

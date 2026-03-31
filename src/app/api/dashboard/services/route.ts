@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { validateServiceWrite } from '@/lib/service-catalog'
+import { syncServiceCatalogToPrompt } from '@/lib/service-catalog-sync'
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,11 @@ export async function POST(req: NextRequest) {
     console.error('[services POST] insert error:', error.message)
     return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
   }
+
+  // D260: Sync service catalog to prompt + Ultravox (fire-and-forget)
+  syncServiceCatalogToPrompt(clientId).catch(err =>
+    console.error('[services POST] Service sync failed:', err)
+  )
 
   return NextResponse.json({ service }, { status: 201 })
 }

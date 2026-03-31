@@ -29,9 +29,9 @@ function baseIntake(niche: string, overrides: Record<string, unknown> = {}): Rec
 
 // ── Transfer gating ───────────────────────────────────────────────────────────
 // OWNER_PHONE is never embedded in the template body — it's passed to the transferCall tool.
-// The observable gate is the TRANSFER_ENABLED value that flows into instruction text:
-//   - TRANSFER_ENABLED=true  → post-processing produces "when transfer is enabled"
-//   - TRANSFER_ENABLED=false → post-processing produces "unless transfer is enabled"
+// Phase 3 (slot composition): transfer gating produces clean conditional text:
+//   - transferEnabled=true  → "transfer is enabled" in ESCALATION heading + TRANSFER FLOW section
+//   - transferEnabled=false → "TRANSFER NOT AVAILABLE" heading + callback route instructions
 
 describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
 
@@ -40,7 +40,7 @@ describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
       owner_name: 'Sabbir',
       owner_phone: '+13061234567',
     }))
-    assert.ok(prompt.includes('when transfer is enabled'), 'should say "when transfer is enabled" when TRANSFER_ENABLED=true')
+    assert.ok(prompt.includes('transfer is enabled'), 'should indicate transfer is enabled when TRANSFER_ENABLED=true')
     assert.ok(!prompt.includes('TRANSFER_ENABLED'), 'TRANSFER_ENABLED variable must not leak')
   })
 
@@ -49,7 +49,7 @@ describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
       owner_name: 'Manager',
       owner_phone: '+13061234567',
     }))
-    assert.ok(prompt.includes('unless transfer is enabled'), 'should say "unless transfer is enabled" when blocked by capability')
+    assert.ok(prompt.includes('TRANSFER NOT AVAILABLE'), 'should say "TRANSFER NOT AVAILABLE" when blocked by capability')
     assert.ok(!prompt.includes('TRANSFER_ENABLED'), 'raw variable must not leak')
   })
 
@@ -58,7 +58,7 @@ describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
       owner_name: 'Chef',
       owner_phone: '+13061234567',
     }))
-    assert.ok(prompt.includes('unless transfer is enabled'), 'transfer should be disabled for restaurant (transferCalls=false)')
+    assert.ok(prompt.includes('TRANSFER NOT AVAILABLE'), 'transfer should be disabled for restaurant (transferCalls=false)')
   })
 
   test('dental with owner_phone: transfer instructionally enabled (transferCalls=true)', () => {
@@ -67,7 +67,7 @@ describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
       owner_phone: '+13061234567',
       booking_enabled: false,
     }))
-    assert.ok(prompt.includes('when transfer is enabled'), '"when transfer is enabled" should appear for dental (transferCalls=true)')
+    assert.ok(prompt.includes('transfer is enabled'), 'transfer should be enabled for dental (transferCalls=true)')
   })
 
   test('print_shop with owner_phone: transfer instructionally enabled (transferCalls=true)', () => {
@@ -77,12 +77,12 @@ describe('Phase 2 — TRANSFER_ENABLED capability gating', () => {
       niche_websiteUrl: 'testprint.ca',
       niche_emailAddress: 'test@testprint.ca',
     }))
-    assert.ok(prompt.includes('when transfer is enabled'), '"when transfer is enabled" should appear for print_shop (transferCalls=true)')
+    assert.ok(prompt.includes('transfer is enabled'), 'transfer should be enabled for print_shop (transferCalls=true)')
   })
 
   test('no owner_phone: transfer stays disabled regardless of niche', () => {
     const prompt = buildPromptFromIntake(baseIntake('auto_glass'))
-    assert.ok(prompt.includes('unless transfer is enabled'), 'no owner_phone = transfer disabled instruction')
+    assert.ok(prompt.includes('TRANSFER NOT AVAILABLE'), 'no owner_phone = transfer disabled instruction')
     assert.ok(!prompt.includes('TRANSFER_ENABLED'), 'TRANSFER_ENABLED must not leak')
   })
 })

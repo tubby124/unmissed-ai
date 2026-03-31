@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { validateServiceWrite } from '@/lib/service-catalog'
+import { syncServiceCatalogToPrompt } from '@/lib/service-catalog-sync'
 
 // ── PATCH ─────────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update service' }, { status: 500 })
   }
 
+  // D260: Sync service catalog to prompt + Ultravox (fire-and-forget)
+  syncServiceCatalogToPrompt(existing.client_id).catch(err =>
+    console.error('[services PATCH] Service sync failed:', err)
+  )
+
   return NextResponse.json({ service })
 }
 
@@ -122,6 +128,11 @@ export async function DELETE(
     console.error('[services DELETE] delete error:', error.message)
     return NextResponse.json({ error: 'Failed to delete service' }, { status: 500 })
   }
+
+  // D260: Sync service catalog to prompt + Ultravox (fire-and-forget)
+  syncServiceCatalogToPrompt(existing.client_id).catch(err =>
+    console.error('[services DELETE] Service sync failed:', err)
+  )
 
   return NextResponse.json({ ok: true })
 }
