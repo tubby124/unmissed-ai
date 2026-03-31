@@ -164,6 +164,7 @@ export interface HomeData {
     monthHotLeads: number
     monthHoursSaved: number
   } | null
+  hasTriage?: boolean
 }
 
 

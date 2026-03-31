@@ -518,6 +518,7 @@ export default function UnifiedHomeSection({
         callHandlingMode={callHandlingMode}
         approvedKnowledgeCount={data.knowledge.approved_chunk_count}
         pendingKnowledgeCount={pendingKnowledgeCount}
+        hasTriage={data.hasTriage ?? false}
       />
 
       {/* ── Activity stats strip ─────────────────────────────────── */}

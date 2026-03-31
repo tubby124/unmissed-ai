@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * D128 — Agent Readiness Row
- * Compact 5-dimension readiness strip shown on home.
- * Dimensions: Hours, Services, FAQs, Calendar (booking mode only), Knowledge.
+ * D128/D249 — Agent Readiness Row
+ * Compact 6-dimension readiness strip shown on home.
+ * Dimensions: Hours, Routing (TRIAGE_DEEP), Services, FAQs, Calendar (booking mode only), Knowledge.
  * Blockers (red/amber if missing): Hours, Calendar (booking mode).
  * Enhancers (blue/gray if missing): Services, FAQs, Knowledge.
  * Shows a single "Fix this first" CTA for highest-priority incomplete item.
@@ -29,6 +29,7 @@ interface Props {
   callHandlingMode: string | null
   approvedKnowledgeCount: number
   pendingKnowledgeCount: number
+  hasTriage: boolean
 }
 
 function CheckIcon() {
@@ -56,6 +57,7 @@ export default function AgentReadinessRow({
   callHandlingMode,
   approvedKnowledgeCount,
   pendingKnowledgeCount,
+  hasTriage,
 }: Props) {
   const isBookingMode = callHandlingMode === 'appointment_booking'
 
@@ -66,6 +68,13 @@ export default function AgentReadinessRow({
       done: !!hoursWeekday,
       href: '/dashboard/actions#hours',
       isBlocker: true,
+    },
+    {
+      key: 'routing',
+      label: 'Routing',
+      done: hasTriage,
+      href: '/dashboard/settings?tab=agent#call-routing',
+      isBlocker: false,
     },
     {
       key: 'services',
@@ -110,6 +119,7 @@ export default function AgentReadinessRow({
 
   const ctaText: Record<string, string> = {
     hours: 'Set business hours',
+    routing: 'Set up call routing',
     calendar: 'Connect Google Calendar',
     services: 'Add your services',
     faqs: 'Add FAQs',
