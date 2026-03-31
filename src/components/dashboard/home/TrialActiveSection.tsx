@@ -103,6 +103,7 @@ interface Props {
   postCallDismissed: boolean
   onPostCallDismiss: () => void
   sheet: ReturnType<typeof useHomeSheet>
+  fetchData?: () => void
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ export default function TrialActiveSection({
   postCallDismissed,
   onPostCallDismiss,
   sheet,
+  fetchData,
 }: Props) {
   const { agent, capabilities, onboarding } = data
   const { callState, resetCall } = useCallContext()
@@ -178,6 +180,7 @@ export default function TrialActiveSection({
               clientId={data.clientId ?? ''}
               isAdmin={false}
               isTrial={true}
+              onCallEnded={fetchData}
               knowledge={{
                 agentName: agent.name || undefined,
                 hasFacts: !!(data.editableFields.businessFacts?.trim()),
@@ -223,6 +226,7 @@ export default function TrialActiveSection({
           hasIvr={data.editableFields.ivrEnabled}
           hasContextData={data.editableFields.hasContextData}
           selectedPlan={data.selectedPlan}
+          hasTelegramAlerts={onboarding.telegramConnected}
         />
 
         {/* Teach your agent */}
@@ -320,6 +324,7 @@ export default function TrialActiveSection({
             hasIvr={data.editableFields.ivrEnabled}
             hasContextData={data.editableFields.hasContextData}
             selectedPlan={data.selectedPlan}
+            hasTelegramAlerts={onboarding.telegramConnected}
           />
 
           {/* Col 2 — Talk to your agent */}
@@ -327,6 +332,7 @@ export default function TrialActiveSection({
             clientId={data.clientId}
             isAdmin={false}
             isTrial={isTrial}
+            onCallEnded={fetchData}
             knowledge={{
               agentName: agent.name || undefined,
               hasFacts: !!(data.editableFields.businessFacts?.trim()),

@@ -20,6 +20,7 @@ import { findExistingSectionHeader } from '@/lib/prompt-sections'
 import WebhooksCard from '@/components/dashboard/settings/WebhooksCard'
 import AgentConfigCard from '@/components/dashboard/settings/AgentConfigCard'
 import BookingCard from '@/components/dashboard/settings/BookingCard'
+import StaffRosterCard from '@/components/dashboard/settings/StaffRosterCard'
 import CallHandlingModeCard from '@/components/dashboard/settings/CallHandlingModeCard'
 import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
@@ -597,7 +598,28 @@ export default function AgentTab({
           </div>
         </PlanGate>
       )}
-      {/* IVR card lives in the right-side panel — opened via CapabilitiesCard */}
+      {hasCapability(niche, 'bookAppointments') && isAdmin && (
+        <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
+          <StaffRosterCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            bookingEnabled={client.booking_enabled ?? false}
+            initialRoster={Array.isArray(client.staff_roster) ? client.staff_roster : []}
+            previewMode={previewMode}
+          />
+        </PlanGate>
+      )}
+      <div id="section-ivr">
+        <IvrMenuCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialEnabled={client.ivr_enabled ?? false}
+          initialPrompt={client.ivr_prompt ?? ''}
+          businessName={client.business_name}
+          agentName={client.agent_name}
+          previewMode={previewMode}
+        />
+      </div>
 
       {/* VIP Contacts — Pro plan feature (same gate as transfer) */}
       <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="transfer">
@@ -772,7 +794,6 @@ export default function AgentTab({
       onClose={() => setActivePanel(null)}
       title={
         activePanel === 'hours' ? 'Answering Schedule'
-        : activePanel === 'ivr' ? 'Voicemail Menu (IVR)'
         : ''
       }
     >
@@ -784,17 +805,6 @@ export default function AgentTab({
           initialWeekend={hoursWeekend[client.id] ?? ''}
           initialBehavior={afterHoursBehavior[client.id] ?? 'take_message'}
           initialPhone={afterHoursPhone[client.id] ?? ''}
-          previewMode={previewMode}
-        />
-      )}
-      {activePanel === 'ivr' && (
-        <IvrMenuCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          initialEnabled={client.ivr_enabled ?? false}
-          initialPrompt={client.ivr_prompt ?? ''}
-          businessName={client.business_name}
-          agentName={client.agent_name}
           previewMode={previewMode}
         />
       )}

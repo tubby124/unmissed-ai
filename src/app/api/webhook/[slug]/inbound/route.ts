@@ -52,7 +52,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, ivr_enabled, ivr_prompt, selected_plan, subscription_status, sms_enabled')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, ivr_enabled, ivr_prompt, selected_plan, subscription_status, sms_enabled, staff_roster')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -213,6 +213,7 @@ export async function POST(
     context_data_label: client.context_data_label as string | null,
     knowledge_backend: client.knowledge_backend as string | null,
     injected_note: client.injected_note as string | null,
+    staff_roster: (client as Record<string, unknown>).staff_roster ?? null,
   }
 
   // Phase 4: retrieval available — pgvector is the only active backend

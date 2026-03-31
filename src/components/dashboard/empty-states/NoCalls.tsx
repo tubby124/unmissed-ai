@@ -19,9 +19,9 @@ export default function NoCalls() {
     <EmptyStateBase
       icon={PhoneIcon}
       title="No calls yet"
-      description="When your agent handles calls, they'll appear here with transcripts and AI analysis."
+      description="Your agent is ready. Forward your calls to your unmissed number and your first call will show here."
       accentColor="rgba(59,130,246,0.12)"
-      cta={{ label: "Test your agent", href: "/dashboard/settings" }}
+      cta={{ label: "Set up call forwarding →", href: "/dashboard" }}
     />
   )
 }

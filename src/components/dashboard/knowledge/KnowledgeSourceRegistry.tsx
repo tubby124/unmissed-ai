@@ -8,6 +8,7 @@ interface StatsResponse {
   approved: number
   pending: number
   bySource: Record<string, number>
+  lastUpdatedBySource: Record<string, string>
   coverage: number | null
 }
 
@@ -93,25 +94,74 @@ const SOURCE_DEFS: SourceDef[] = [
   },
 ]
 
+function formatLastUpdated(iso: string): string {
+  const d = new Date(iso)
+  const now = Date.now()
+  const diffMs = now - d.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 export default function KnowledgeSourceRegistry({
   clientId,
+  websiteUrl,
 }: {
   clientId: string
+  websiteUrl?: string
 }) {
   const [stats, setStats] = useState<StatsResponse | null>(null)
+  const [rescrapeStatus, setRescrapeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [rescrapeMsg, setRescrapeMsg] = useState('')
 
-  useEffect(() => {
+  function refreshStats() {
     fetch(`/api/dashboard/knowledge/stats?client_id=${clientId}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setStats(data) })
       .catch(() => {})
-  }, [clientId])
+  }
+
+  useEffect(() => {
+    refreshStats()
+  }, [clientId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleRescrape() {
+    if (!websiteUrl || rescrapeStatus === 'loading') return
+    setRescrapeStatus('loading')
+    setRescrapeMsg('')
+    try {
+      const res = await fetch('/api/dashboard/scrape-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, url: websiteUrl }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Scrape failed')
+      if ((data as { status?: string }).status === 'failed') throw new Error('Could not extract content from that URL')
+      setRescrapeStatus('done')
+      setRescrapeMsg('Website re-scraped — review and approve new chunks')
+      refreshStats()
+    } catch (err) {
+      setRescrapeStatus('error')
+      setRescrapeMsg(err instanceof Error ? err.message : 'Scrape failed')
+    }
+  }
 
   const bySource = stats?.bySource ?? {}
+  const lastUpdatedBySource = stats?.lastUpdatedBySource ?? {}
 
   const entries = SOURCE_DEFS.map(def => {
     const count = def.sources.reduce((sum, s) => sum + (bySource[s] ?? 0), 0)
-    return { ...def, count }
+    // D152: most recent update timestamp across all source keys for this def
+    const lastUpdated = def.sources.reduce<string | null>((best, s) => {
+      const ts = lastUpdatedBySource[s]
+      if (!ts) return best
+      if (!best || ts > best) return ts
+      return best
+    }, null)
+    return { ...def, count, lastUpdated }
   })
 
   const activeCount = entries.filter(e => e.count > 0).length
@@ -158,9 +208,16 @@ export default function KnowledgeSourceRegistry({
                   {entry.label}
                 </p>
                 {isActive ? (
-                  <p className="text-[10px] text-green-400/70 truncate">
-                    {entry.count} chunk{entry.count !== 1 ? 's' : ''} active
-                  </p>
+                  <>
+                    <p className="text-[10px] text-green-400/70 truncate">
+                      {entry.count} chunk{entry.count !== 1 ? 's' : ''} active
+                    </p>
+                    {entry.lastUpdated && (
+                      <p className="text-[9px] t3 truncate">
+                        Updated {formatLastUpdated(entry.lastUpdated)}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="text-[10px] text-amber-400/70 truncate">Not added yet</p>
                 )}
@@ -179,6 +236,43 @@ export default function KnowledgeSourceRegistry({
           )
         })}
       </div>
+
+      {/* D153: Re-scrape button for website source */}
+      {websiteUrl && (
+        <div className="mt-3 pt-3 border-t b-theme">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] t3 truncate font-mono">{websiteUrl}</p>
+            <button
+              onClick={handleRescrape}
+              disabled={rescrapeStatus === 'loading'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border b-theme t2 hover:t1 transition-colors disabled:opacity-40 shrink-0"
+            >
+              {rescrapeStatus === 'loading' ? (
+                <>
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+                  </svg>
+                  Scraping...
+                </>
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                    <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Re-scrape
+                </>
+              )}
+            </button>
+          </div>
+          {rescrapeStatus === 'done' && (
+            <p className="mt-1.5 text-[10px] text-green-400">{rescrapeMsg}</p>
+          )}
+          {rescrapeStatus === 'error' && (
+            <p className="mt-1.5 text-[10px] text-red-400">{rescrapeMsg}</p>
+          )}
+        </div>
+      )}
 
       {activeCount === 0 && (
         <p className="mt-3 text-[10px] t3 text-center">

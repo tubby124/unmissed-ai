@@ -66,6 +66,9 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   business_facts:       { mutationClass: 'DB_PLUS_KNOWLEDGE_PIPELINE', triggersSync: false },
   extra_qa:             { mutationClass: 'DB_PLUS_KNOWLEDGE_PIPELINE', triggersSync: false },
 
+  // ── Staff roster (PER_CALL_CONTEXT_ONLY — injected at call time, no agent sync) ──
+  staff_roster:               { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
+
   // ── Per-call context (injected fresh each call via callerContextBlock) ───
   // business_hours_weekday is ALSO baked into the static system_prompt at provision time
   // via {{HOURS_WEEKDAY}} substitution. Changing it triggers a prompt patch (literal replace)
@@ -228,6 +231,13 @@ export const settingsBodySchema = z.object({
 
   // Knowledge backend (admin-only)
   knowledge_backend: z.union([z.literal('pgvector'), z.null()]).optional(),
+
+  // Staff roster (PER_CALL_CONTEXT_ONLY — booking-mode clients only)
+  staff_roster: z.array(z.object({
+    name: z.string().min(1),
+    role: z.string().min(1),
+    availability_note: z.string().optional(),
+  })).optional(),
 
   // Audit trail (not a DB field, passed for prompt versioning)
   change_description: z.string().optional(),
@@ -417,6 +427,18 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   // pending_loop_suggestion — any (nullable)
   if ('pending_loop_suggestion' in body) {
     updates.pending_loop_suggestion = body.pending_loop_suggestion ?? null
+  }
+
+  // staff_roster — filter out entries with empty names (parseStaffRoster validation)
+  if (body.staff_roster !== undefined) {
+    updates.staff_roster = body.staff_roster.filter(
+      s => typeof s.name === 'string' && s.name.trim() !== '' &&
+           typeof s.role === 'string'
+    ).map(s => ({
+      name: s.name.trim(),
+      role: s.role.trim(),
+      ...(s.availability_note?.trim() ? { availability_note: s.availability_note.trim() } : {}),
+    }))
   }
 
   // Admin-only fields — filtered by role

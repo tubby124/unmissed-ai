@@ -6,6 +6,13 @@ import { AnimatePresence, motion } from 'motion/react'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
 import { buildCalendarUrl } from '@/lib/calendar-url'
 
+interface FactSuggestion {
+  content: string
+  kind: string
+}
+
+type ExtractState = 'idle' | 'loading' | 'done' | 'saving'
+
 export interface CallLog {
   id: string
   ultravox_call_id: string
@@ -25,6 +32,7 @@ export interface CallLog {
   transfer_status?: string | null
   sms_outcome?: string | null
   call_direction?: string | null
+  callback_preference?: string | null
 }
 
 export interface ExpandedData {
@@ -70,6 +78,10 @@ export default function CallRowExpanded({
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const [smsOptOut, setSmsOptOut] = useState<{ opted_out: boolean; opted_out_at: string | null } | null>(null)
+  const [extractState, setExtractState] = useState<ExtractState>('idle')
+  const [suggestions, setSuggestions] = useState<FactSuggestion[]>([])
+  const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set())
+  const [savingIndex, setSavingIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (expanded && call.sms_outcome != null && smsOptOut === null) {
@@ -85,6 +97,49 @@ export default function CallRowExpanded({
       setCopied(key)
       setTimeout(() => setCopied(null), 2000)
     }).catch(() => {})
+  }
+
+  async function handleExtractFacts() {
+    if (extractState === 'loading') return
+    setExtractState('loading')
+    setSuggestions([])
+    setSavedIndices(new Set())
+    try {
+      const res = await fetch('/api/dashboard/knowledge/suggest-from-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_log_id: call.id }),
+      })
+      if (!res.ok) { setExtractState('done'); return }
+      const data = await res.json() as { suggestions?: FactSuggestion[] }
+      setSuggestions(data.suggestions ?? [])
+    } catch {
+      // silent — non-critical feature
+    } finally {
+      setExtractState('done')
+    }
+  }
+
+  async function handleSaveSuggestion(index: number, content: string) {
+    if (savingIndex !== null) return
+    setSavingIndex(index)
+    try {
+      const res = await fetch('/api/dashboard/knowledge/ingest-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: content,
+          title: `Fact from call ${new Date(call.started_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}`,
+        }),
+      })
+      if (res.ok) {
+        setSavedIndices(prev => new Set(prev).add(index))
+      }
+    } catch {
+      // silent — non-critical
+    } finally {
+      setSavingIndex(null)
+    }
   }
 
   const nextSteps = call.next_steps ?? expandData?.next_steps ?? null
@@ -285,6 +340,46 @@ export default function CallRowExpanded({
                         {copied === 'summary' ? 'Copied!' : 'Copy Summary'}
                       </button>
                     )}
+
+                    {/* Extract facts — only for calls with a real summary */}
+                    {call.ai_summary && call.ai_summary !== 'Call transcript unavailable or too short to classify.' && (
+                      <button
+                        onClick={e => { e.stopPropagation(); void handleExtractFacts() }}
+                        disabled={extractState === 'loading'}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--color-hover)',
+                          borderColor: extractState === 'done' && suggestions.length > 0
+                            ? 'rgba(99,102,241,0.4)'
+                            : 'var(--color-border)',
+                          color: extractState === 'done' && suggestions.length > 0
+                            ? 'rgb(165,180,252)'
+                            : 'var(--color-text-2)',
+                          opacity: extractState === 'loading' ? 0.6 : 1,
+                        }}
+                      >
+                        {extractState === 'loading' ? (
+                          <svg className="w-[10px] h-[10px] animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                          </svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            <path d="M11 8v6M8 11h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                        {extractState === 'loading'
+                          ? 'Extracting…'
+                          : extractState === 'done' && suggestions.length > 0
+                          ? `${suggestions.length} fact${suggestions.length !== 1 ? 's' : ''} found`
+                          : extractState === 'done'
+                          ? 'No new facts'
+                          : 'Extract facts'}
+                      </button>
+                    )}
+
                     <Link
                       href={`/dashboard/calls/${call.ultravox_call_id}`}
                       onClick={e => e.stopPropagation()}
@@ -298,6 +393,53 @@ export default function CallRowExpanded({
                     </Link>
                   </div>
                 </div>
+
+                {/* Extracted fact suggestions */}
+                <AnimatePresence>
+                  {extractState === 'done' && suggestions.length > 0 && (
+                    <motion.div
+                      key="suggestions"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-1 px-3 py-2.5 rounded-xl border space-y-2"
+                        style={{ backgroundColor: 'rgba(99,102,241,0.04)', borderColor: 'rgba(99,102,241,0.2)' }}
+                      >
+                        <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'rgb(165,180,252)' }}>
+                          Suggested knowledge additions
+                        </p>
+                        {suggestions.map((s, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <p className="flex-1 text-[11px] leading-snug" style={{ color: 'var(--color-text-1)' }}>
+                              {s.content}
+                              <span className="ml-1.5 text-[9px] font-mono uppercase" style={{ color: 'var(--color-text-3)' }}>
+                                {s.kind}
+                              </span>
+                            </p>
+                            <button
+                              onClick={e => { e.stopPropagation(); void handleSaveSuggestion(i, s.content) }}
+                              disabled={savedIndices.has(i) || savingIndex === i}
+                              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-colors"
+                              style={savedIndices.has(i)
+                                ? { backgroundColor: 'rgba(34,197,94,0.12)', color: 'rgb(134,239,172)', border: '1px solid rgba(34,197,94,0.25)', cursor: 'default' }
+                                : { backgroundColor: 'rgba(99,102,241,0.12)', color: 'rgb(165,180,252)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer' }
+                              }
+                            >
+                              {savingIndex === i
+                                ? '…'
+                                : savedIndices.has(i)
+                                ? 'Saved'
+                                : 'Save'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>

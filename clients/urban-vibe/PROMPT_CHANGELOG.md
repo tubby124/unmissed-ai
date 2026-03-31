@@ -140,3 +140,9 @@ To roll back: `python3 scripts/deploy_prompt.py urban-vibe "rollback to vN" --ve
 **Chars:** 9816 | **Hash:** 76234cce30f9b51a
 **Supabase version_id:** 05986963-52bc-4f8f-acc9-475289fea237
 **Ultravox revision:** 6977da07-7812-452c-ae4d-d955df196628
+
+## v26 — 2026-03-31 02:08 UTC
+**Change:** re-sync Ultravox drift + wow-first
+**Chars:** 9989 | **Hash:** bc3ddc61f65ae6d1
+**Supabase version_id:** ac7c406b-6105-4502-9363-05c92ad0e727
+**Ultravox revision:** ab756b4c-e66b-4304-827c-a0fdec07c13a

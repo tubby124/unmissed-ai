@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   // Parallel: chunks + source count + client plan + open gaps + last compiler run
   const [chunksResult, sourceCountResult, clientResult, gapsResult, lastRunResult] = await Promise.all([
-    svc.from('knowledge_chunks').select('status, chunk_type, source').eq('client_id', clientId),
+    svc.from('knowledge_chunks').select('status, chunk_type, source, created_at').eq('client_id', clientId),
     svc.from('client_knowledge_docs').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
     svc.from('clients').select('selected_plan, subscription_status').eq('id', clientId).single(),
     svc.from('knowledge_query_log').select('id', { count: 'exact', head: true })
@@ -47,6 +47,8 @@ export async function GET(req: NextRequest) {
   let approved = 0, pending = 0, rejected = 0
   const byType: Record<string, number> = {}
   const bySource: Record<string, number> = {}
+  // D152: track most recent chunk created_at per source (all statuses)
+  const lastUpdatedBySource: Record<string, string> = {}
 
   for (const row of rows) {
     if (row.status === 'approved') approved++
@@ -60,6 +62,14 @@ export async function GET(req: NextRequest) {
     if (row.status === 'approved') {
       const s = row.source ?? 'unknown'
       bySource[s] = (bySource[s] ?? 0) + 1
+    }
+
+    // D152: track last updated timestamp per source regardless of approval status
+    if (row.created_at) {
+      const s = row.source ?? 'unknown'
+      if (!lastUpdatedBySource[s] || row.created_at > lastUpdatedBySource[s]) {
+        lastUpdatedBySource[s] = row.created_at
+      }
     }
   }
 
@@ -87,6 +97,7 @@ export async function GET(req: NextRequest) {
     rejected,
     byType,
     bySource,
+    lastUpdatedBySource,
     sourceCount,
     maxSources,
     openGaps,

@@ -2007,3 +2007,21 @@ All items found and fixed during GATE-4 implementation session.
 | 8b | Knowledge vs Memory Explainer | Blue "Always knows" banner in AdvancedContextCard, purple "Searched when needed" in KnowledgeEngineCard | **DONE** |
 | 8c | Agent Name → Prompt Sync | `patchAgentName()` in prompt-patcher.ts, word-boundary regex, `validatePrompt()` gate, Ultravox sync | **DONE** |
 | 8d | Settings Page Reorganization | 6 SettingsSection groups, 19 cards standalone, AgentTab 1502→534 lines | **DONE** |
+
+---
+
+## Completed: D92-D101, D109 — Outbound Calling Reliability (2026-03-30)
+
+All items confirmed present in codebase via code audit.
+
+| # | Type | Description | File | Status |
+|---|------|-------------|------|--------|
+| D92 | BUG | Atomic `status='calling'` set before dial loop — prevents cron overlap double-dial | `cron/scheduled-callbacks/route.ts:77-83` | **DONE** |
+| D93 | UX | "Scheduled" sub-filter toggle on Queued tab — filters by `scheduled_callback_at IS NOT NULL` | `LeadQueue.tsx:550-564` | **DONE** |
+| D94 | DEBT | Phantom 'calling'/'completed' statuses — resolved by D92 making 'calling' real | `cron/scheduled-callbacks/route.ts:62` | **DONE** |
+| D95 | GAP | Per-client Telegram summary after each cron run | `cron/scheduled-callbacks/route.ts:303-313` | **DONE** |
+| D97 | GAP | Auto-advance lead `status='completed'` after `disposition='answered'` | `webhook/[slug]/completed/route.ts:252` | **DONE** |
+| D99 | GAP | Retry cap: `call_count >= 3` + no answer → `status='dnc'`, clear `scheduled_callback_at` | `cron/scheduled-callbacks/route.ts:136-146` | **DONE** |
+| D100 | GAP | `outbound_vm_script` max 500 chars + char counter (amber ≥450, red ≥500) | `settings-schema.ts:219`, `OutboundAgentConfigCard.tsx:299-306` | **DONE** |
+| D101 | GAP | `call_direction` column in `call_logs` — migration, types, inbound write, dial-out write, cron write, CallsList filter | `migrations/20260330100000_*`, `inbound/route.ts:371,399`, `dial-out/route.ts:229`, `cron:293`, `CallsList.tsx:282` | **DONE** |
+| D109 | NEW | `outbound_connect_tokens` cleanup cron (hourly) + missing table migration | `cron/cleanup-tokens/route.ts`, `migrations/20260330200000_*` | **DONE** |

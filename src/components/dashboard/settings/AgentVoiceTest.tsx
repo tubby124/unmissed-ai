@@ -220,6 +220,14 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, 
     }
   }, [clientId, isAdmin])
 
+  // D182: auto-refresh activity section when call ends
+  useEffect(() => {
+    if (callState !== 'ended') return
+    // Small delay so the call_logs insert (fire-and-forget in agent-test route) completes
+    const t = setTimeout(() => { onEnd?.() }, 1500)
+    return () => clearTimeout(t)
+  }, [callState, onEnd])
+
   // L5/R1: Client-side transcript analysis — runs instantly when call ends
   useEffect(() => {
     if (callState !== 'ended' || !knowledge || transcripts.length === 0) return

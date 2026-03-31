@@ -21,6 +21,7 @@ import {
   ALLOWED_EXTENSIONS,
 } from '@/lib/knowledge-upload'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import { syncClientTools } from '@/lib/sync-client-tools'
 
 export async function POST(req: NextRequest) {
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -148,6 +149,10 @@ export async function POST(req: NextRequest) {
     // ── Embed chunks ──────────────────────────────────────────────────────────
     await embedChunks(clientId, chunks, `knowledge-doc-upload-${Date.now()}`)
     console.log(`[knowledge-upload-dashboard] ${file.name}: ${chunks.length} chunks embedded for client=${client.slug}`)
+
+    try { await syncClientTools(svc, clientId) } catch (err) {
+      console.error(`[knowledge-upload-dashboard] tools sync failed: ${err}`)
+    }
 
     return NextResponse.json({
       success: true,

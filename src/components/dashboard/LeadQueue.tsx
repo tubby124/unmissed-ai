@@ -20,6 +20,8 @@ import { slaTag } from '@/lib/utils/sla'
 
 type Disposition = 'answered' | 'vm' | 'no-answer' | null
 
+type LeadFollowUpStatus = 'new' | 'called_back' | 'booked' | 'closed' | null
+
 interface Lead {
   id: string
   client_id: string | null
@@ -33,6 +35,7 @@ interface Lead {
   disposition: Disposition
   last_call_log_id: string | null
   scheduled_callback_at: string | null
+  lead_status: LeadFollowUpStatus
   clients: { business_name: string } | null
 }
 
@@ -68,6 +71,15 @@ const DISPOSITION_CONFIG: Record<NonNullable<Disposition>, { label: string; cls:
   'no-answer': { label: 'No answer', cls: 'bg-red-500/10 text-red-400 border-red-500/20', Icon: PhoneOff },
 }
 
+const LEAD_STATUS_CONFIG: Record<NonNullable<LeadFollowUpStatus>, { label: string; cls: string }> = {
+  new:         { label: 'New lead',    cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20' },
+  called_back: { label: 'Called back', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+  booked:      { label: 'Booked ✓',   cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
+  closed:      { label: 'Closed',      cls: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
+}
+
+const LEAD_STATUS_CYCLE: LeadFollowUpStatus[] = ['new', 'called_back', 'booked', 'closed', null]
+
 function timeAgo(iso: string | null) {
   if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
@@ -78,6 +90,23 @@ function timeAgo(iso: string | null) {
   if (hrs > 0) return `${hrs}h ago`
   if (mins > 0) return `${mins}m ago`
   return 'just now'
+}
+
+function callbackRelativeTime(iso: string): { label: string; overdue: boolean } {
+  const diff = new Date(iso).getTime() - Date.now()
+  const overdue = diff < 0
+  const absMins = Math.floor(Math.abs(diff) / 60000)
+  const absHrs = Math.floor(absMins / 60)
+  const absDays = Math.floor(absHrs / 24)
+  if (overdue) {
+    if (absDays > 0) return { label: `${absDays}d overdue`, overdue: true }
+    if (absHrs > 0) return { label: `${absHrs}h overdue`, overdue: true }
+    return { label: `${absMins}m overdue`, overdue: true }
+  }
+  if (absDays > 0) return { label: `in ${absDays}d`, overdue: false }
+  if (absHrs > 0) return { label: `in ${absHrs}h`, overdue: false }
+  if (absMins > 0) return { label: `in ${absMins}m`, overdue: false }
+  return { label: 'now', overdue: false }
 }
 
 // Format datetime-local value from ISO string
@@ -148,11 +177,17 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
       .finally(() => setLoadingSummary(false))
   }, [detailLead?.last_call_log_id])
 
+  // D93: for queued tab, split into scheduled (sorted ascending) + unscheduled
+  const queuedLeads = leads.filter(l => l.status === 'queued')
+  const scheduledLeads = queuedLeads
+    .filter(l => l.scheduled_callback_at !== null)
+    .sort((a, b) => new Date(a.scheduled_callback_at!).getTime() - new Date(b.scheduled_callback_at!).getTime())
+  const unscheduledLeads = queuedLeads.filter(l => l.scheduled_callback_at === null)
+
   const filtered = leads.filter(l => {
     if (tab === 'queued' && showScheduledOnly) return l.status === 'queued' && l.scheduled_callback_at !== null
     return l.status === tab
   }).sort((a, b) => {
-    // D93: when showing scheduled-only in queued, sort by callback time ascending
     if (tab === 'queued' && showScheduledOnly && a.scheduled_callback_at && b.scheduled_callback_at) {
       return new Date(a.scheduled_callback_at).getTime() - new Date(b.scheduled_callback_at).getTime()
     }
@@ -217,6 +252,23 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
       }
     } finally {
       setSavingNotes(false)
+    }
+  }
+
+  async function cycleLeadStatus(lead: Lead) {
+    const currentIdx = LEAD_STATUS_CYCLE.indexOf(lead.lead_status)
+    const nextStatus = LEAD_STATUS_CYCLE[(currentIdx + 1) % LEAD_STATUS_CYCLE.length]
+    // Optimistic update
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_status: nextStatus } : l))
+    const res = await fetch('/api/dashboard/leads', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: lead.id, lead_status: nextStatus }),
+    })
+    if (!res.ok) {
+      // Revert on error
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_status: lead.lead_status } : l))
+      toast.error('Failed to update status')
     }
   }
 
@@ -654,125 +706,181 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                   {tab === 'called' && <TableHead>Disposition</TableHead>}
                   {tab === 'queued' && <TableHead>Callback</TableHead>}
                   <TableHead>SLA</TableHead>
+                  <TableHead>Lead Status</TableHead>
                   <TableHead className="text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(lead => {
-                  const tag = slaTag(lead.added_at)
-                  const isChecked = selected.has(lead.id)
-                  const disp = lead.disposition ? DISPOSITION_CONFIG[lead.disposition] : null
-                  return (
-                    <TableRow
-                      key={lead.id}
-                      className={`transition-colors ${isChecked ? 'bg-blue-500/5' : ''}`}
-                    >
-                      <TableCell className="w-10 pr-0">
-                        <Checkbox checked={isChecked} onCheckedChange={() => toggleRow(lead.id)} />
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-sm" style={{ color: 'var(--color-text-1)' }}>
-                          {lead.name ?? <span style={{ color: 'var(--color-text-3)' }}>—</span>}
-                        </span>
-                        {lead.notes && (
-                          <p
-                            className="text-[11px] mt-0.5 truncate max-w-[180px]"
-                            style={{ color: 'var(--color-text-3)' }}
-                          >
-                            {lead.notes}
-                          </p>
+                {(() => {
+                  // D93: on queued tab (non-filtered), render scheduled leads first with a divider
+                  const renderRow = (lead: Lead) => {
+                    const tag = slaTag(lead.added_at)
+                    const isChecked = selected.has(lead.id)
+                    const disp = lead.disposition ? DISPOSITION_CONFIG[lead.disposition] : null
+                    const cbRel = lead.scheduled_callback_at ? callbackRelativeTime(lead.scheduled_callback_at) : null
+                    return (
+                      <TableRow
+                        key={lead.id}
+                        className={`transition-colors ${isChecked ? 'bg-blue-500/5' : ''}`}
+                      >
+                        <TableCell className="w-10 pr-0">
+                          <Checkbox checked={isChecked} onCheckedChange={() => toggleRow(lead.id)} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-sm" style={{ color: 'var(--color-text-1)' }}>
+                              {lead.name ?? <span style={{ color: 'var(--color-text-3)' }}>—</span>}
+                            </span>
+                            {/* D93: relative time badge for scheduled leads */}
+                            {cbRel && (
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                                cbRel.overdue
+                                  ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              }`}>
+                                {cbRel.label}
+                              </span>
+                            )}
+                          </div>
+                          {lead.notes && (
+                            <p
+                              className="text-[11px] mt-0.5 truncate max-w-[180px]"
+                              style={{ color: 'var(--color-text-3)' }}
+                            >
+                              {lead.notes}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-[13px]" style={{ color: 'var(--color-text-2)' }}>
+                            {lead.phone}
+                          </span>
+                        </TableCell>
+                        {clients.length > 1 && (
+                          <TableCell>
+                            <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                              {lead.clients?.business_name ?? '—'}
+                            </span>
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-[13px]" style={{ color: 'var(--color-text-2)' }}>
-                          {lead.phone}
-                        </span>
-                      </TableCell>
-                      {clients.length > 1 && (
                         <TableCell>
                           <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-                            {lead.clients?.business_name ?? '—'}
+                            {timeAgo(lead.added_at)}
                           </span>
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-                          {timeAgo(lead.added_at)}
-                        </span>
-                      </TableCell>
-                      {tab === 'called' && (
+                        {tab === 'called' && (
+                          <TableCell>
+                            <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                              {timeAgo(lead.last_called_at)}
+                              {lead.call_count && lead.call_count > 1
+                                ? <span className="ml-1 opacity-60">×{lead.call_count}</span>
+                                : null
+                              }
+                            </span>
+                          </TableCell>
+                        )}
+                        {tab === 'called' && (
+                          <TableCell>
+                            {disp ? (
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 w-fit ${disp.cls}`}>
+                                <disp.Icon className="h-3 w-3" />
+                                {disp.label}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {tab === 'queued' && (
+                          <TableCell>
+                            {lead.scheduled_callback_at ? (
+                              <span className="text-[10px] font-mono text-yellow-400">
+                                {new Date(lead.scheduled_callback_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
-                          <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-                            {timeAgo(lead.last_called_at)}
-                            {lead.call_count && lead.call_count > 1
-                              ? <span className="ml-1 opacity-60">×{lead.call_count}</span>
-                              : null
-                            }
-                          </span>
-                        </TableCell>
-                      )}
-                      {tab === 'called' && (
-                        <TableCell>
-                          {disp ? (
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 w-fit ${disp.cls}`}>
-                              <disp.Icon className="h-3 w-3" />
-                              {disp.label}
+                          {tag ? (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${tag.cls}`}>
+                              {tag.label}
                             </span>
                           ) : (
                             <span style={{ color: 'var(--color-text-3)' }}>—</span>
                           )}
                         </TableCell>
-                      )}
-                      {tab === 'queued' && (
                         <TableCell>
-                          {lead.scheduled_callback_at ? (
-                            <span className="text-[10px] font-mono text-yellow-400">
-                              {new Date(lead.scheduled_callback_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--color-text-3)' }}>—</span>
-                          )}
+                          <button
+                            onClick={() => cycleLeadStatus(lead)}
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all hover:opacity-80 whitespace-nowrap ${
+                              lead.lead_status
+                                ? LEAD_STATUS_CONFIG[lead.lead_status].cls
+                                : 'bg-transparent border-dashed text-zinc-500 border-zinc-600 hover:border-zinc-500'
+                            }`}
+                            title="Click to cycle status"
+                          >
+                            {lead.lead_status ? LEAD_STATUS_CONFIG[lead.lead_status].label : 'Mark status'}
+                          </button>
                         </TableCell>
-                      )}
-                      <TableCell>
-                        {tag ? (
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${tag.cls}`}>
-                            {tag.label}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                        <TableCell className="text-right pr-4">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              onClick={() => dialLead(lead)}
+                              disabled={dialing.has(lead.id) || !hasPhoneNumber}
+                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 transition-colors disabled:opacity-40"
+                              title={!hasPhoneNumber ? 'Upgrade to a paid plan to get a calling number' : 'Dial with agent'}
+                            >
+                              {dialing.has(lead.id)
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <Phone className="h-3.5 w-3.5" />
+                              }
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDetailLead(lead)
+                                setEditNotes(lead.notes ?? '')
+                                setEditCallback(toDatetimeLocal(lead.scheduled_callback_at))
+                              }}
+                              className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
+                              style={{ color: 'var(--color-text-3)' }}
+                              title="View / edit"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  }
+
+                  const colSpan = 7 + (clients.length > 1 ? 1 : 0) + (tab === 'called' ? 2 : 0) + (tab === 'queued' ? 1 : 0)
+
+                  if (tab === 'queued' && !showScheduledOnly && scheduledLeads.length > 0) {
+                    return (
+                      <>
+                        {scheduledLeads.map(renderRow)}
+                        {unscheduledLeads.length > 0 && (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={colSpan} className="py-1.5 px-4">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                                <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--color-text-3)' }}>
+                                  Queued
+                                </span>
+                                <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right pr-4">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button
-                            onClick={() => dialLead(lead)}
-                            disabled={dialing.has(lead.id) || !hasPhoneNumber}
-                            className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 transition-colors disabled:opacity-40"
-                            title={!hasPhoneNumber ? 'Upgrade to a paid plan to get a calling number' : 'Dial with agent'}
-                          >
-                            {dialing.has(lead.id)
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <Phone className="h-3.5 w-3.5" />
-                            }
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDetailLead(lead)
-                              setEditNotes(lead.notes ?? '')
-                              setEditCallback(toDatetimeLocal(lead.scheduled_callback_at))
-                            }}
-                            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
-                            style={{ color: 'var(--color-text-3)' }}
-                            title="View / edit"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
+                        {unscheduledLeads.map(renderRow)}
+                      </>
+                    )
+                  }
+
+                  return filtered.map(renderRow)
+                })()}
               </TableBody>
             </Table>
           </div>

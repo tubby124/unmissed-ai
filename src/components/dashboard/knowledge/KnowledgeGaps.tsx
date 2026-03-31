@@ -40,6 +40,10 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
   const [suggestionLoading, setSuggestionLoading] = useState(false)
   const [suggestionDismissed, setSuggestionDismissed] = useState(false)
 
+  // D151: AI-generated answer via suggest-answer route
+  const [aiAnswerLoading, setAiAnswerLoading] = useState(false)
+  const [aiAnswerError, setAiAnswerError] = useState<string | null>(null)
+
   const [dismissing, setDismissing] = useState<string | null>(null)
   const [dismissingAll, setDismissingAll] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -95,11 +99,13 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
       setAnswerText('')
       setSuggestion(null)
       setSuggestionDismissed(false)
+      setAiAnswerError(null)
       return
     }
     setExpandedGap(query)
     setAnswerText(`Q: ${query}\nA: `)
     setSaveError(null)
+    setAiAnswerError(null)
     fetchSuggestion(query)
     setTimeout(() => {
       if (textareaRef.current) {
@@ -116,6 +122,30 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
     setAnswerText(`Q: ${expandedGap}\nA: ${answer}`)
     setSuggestionDismissed(true)
     setTimeout(() => textareaRef.current?.focus(), 50)
+  }
+
+  // D151: Generate an AI answer for the current gap using the suggest-answer route
+  async function generateAiAnswer() {
+    if (!expandedGap || aiAnswerLoading) return
+    setAiAnswerLoading(true)
+    setAiAnswerError(null)
+    try {
+      const res = await fetch('/api/dashboard/knowledge/suggest-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, topic: expandedGap }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Generation failed')
+      const answer = (data as { answer?: string }).answer?.trim() ?? ''
+      if (!answer) throw new Error('No answer returned')
+      setAnswerText(`Q: ${expandedGap}\nA: ${answer}`)
+      setTimeout(() => textareaRef.current?.focus(), 50)
+    } catch (err) {
+      setAiAnswerError(err instanceof Error ? err.message : 'Generation failed')
+    } finally {
+      setAiAnswerLoading(false)
+    }
   }
 
   async function handleSave() {
@@ -437,6 +467,36 @@ export default function KnowledgeGaps({ clientId, isAdmin, onAnswered, onGapCoun
                             {/* No suggestion */}
                             {!suggestion && !suggestionLoading && isExpanded && !suggestionDismissed && (
                               <p className="text-[10px] t3 px-1">No existing knowledge matches — write a fresh answer below.</p>
+                            )}
+
+                            {/* D151: AI answer generator */}
+                            {isExpanded && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={generateAiAnswer}
+                                  disabled={aiAnswerLoading}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border b-theme t2 hover:t1 transition-colors disabled:opacity-40 cursor-pointer"
+                                >
+                                  {aiAnswerLoading ? (
+                                    <>
+                                      <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+                                      </svg>
+                                      Generating answer...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                      Generate AI answer
+                                    </>
+                                  )}
+                                </button>
+                                {aiAnswerError && (
+                                  <span className="text-[10px] text-red-400">{aiAnswerError}</span>
+                                )}
+                              </div>
                             )}
 
                             {/* Textarea */}

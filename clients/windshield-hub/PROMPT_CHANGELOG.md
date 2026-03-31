@@ -137,3 +137,15 @@ To roll back: `python3 scripts/deploy_prompt.py windshield-hub "rollback to vN" 
 **Chars:** 8693 | **Hash:** f398f8005a8088e6
 **Supabase version_id:** cf06bcb4-1d50-4bab-8d93-0d4fbbddc19d
 **Ultravox revision:** 215b2c11-1c5f-485f-b05e-6d7c6c98bc64
+
+## v27 — 2026-03-31 02:08 UTC
+**Change:** re-sync Ultravox drift + wow-first
+**Chars:** 8947 | **Hash:** 72cd3affa4830276
+**Supabase version_id:** 92896ad6-63c8-4146-ba8d-25ae0fd00eed
+**Ultravox revision:** e57a8bd9-a49a-4c6d-b85e-45dff03fc1a9
+
+## v28 — 2026-03-31 04:10 UTC
+**Change:** Remove gotcha from backchannel examples (D178 ban)
+**Chars:** 8952 | **Hash:** 3a6b73623393a559
+**Supabase version_id:** 09e07a3c-d936-40a9-b060-f451c9a622e9
+**Ultravox revision:** a2a18200-f53f-4c26-ad93-b4fb211ae43c

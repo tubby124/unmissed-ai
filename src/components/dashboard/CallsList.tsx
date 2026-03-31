@@ -41,6 +41,7 @@ interface CallLog {
   quality_score?: number | null
   transfer_status?: string | null
   sms_outcome?: string | null
+  callback_preference?: string | null
 }
 
 interface ClientInfo {
@@ -269,6 +270,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       if (c.call_status === 'live') continue
       counts.all = (counts.all ?? 0) + 1
       if (c.call_status) counts[c.call_status] = (counts[c.call_status] ?? 0) + 1
+      if (c.call_direction === 'outbound') counts.outbound = (counts.outbound ?? 0) + 1
     }
     return counts
   }, [calls])

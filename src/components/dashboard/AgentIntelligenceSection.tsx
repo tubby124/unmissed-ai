@@ -422,7 +422,7 @@ export default function AgentIntelligenceSection({
                 }
                 label="SMS Follow-up"
                 tagline="Auto-text every caller"
-                planLabel="Core +"
+                planLabel="Receptionist +"
                 preview={
                   <div className="space-y-1">
                     <p className="text-[11px] font-medium t2">📱 Auto-sent after every call:</p>
@@ -442,7 +442,7 @@ export default function AgentIntelligenceSection({
               }
               label="Voicemail Menu"
               tagline="Press 1 for voicemail, 2 for agent"
-              planLabel="Core +"
+              planLabel="Receptionist +"
               preview={
                 <div className="space-y-1 text-[11px] t3">
                   <p className="font-medium t2">Caller hears on answer:</p>
@@ -464,7 +464,7 @@ export default function AgentIntelligenceSection({
                 }
                 label="Book Appointments"
                 tagline="Agent books directly into your calendar"
-                planLabel="Pro"
+                planLabel="Booking Plan"
                 preview={
                   <div className="space-y-1 text-[11px] t3">
                     <p className="font-medium t2">During a call, agent can say:</p>

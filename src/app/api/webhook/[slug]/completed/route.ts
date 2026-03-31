@@ -154,7 +154,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt')
+        .select('id, business_name, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt, first_call_at')
         .eq('slug', slug)
         .single()
 
@@ -232,13 +232,14 @@ export async function POST(
           ...(finalCallState ? { call_state: finalCallState } : {}),
         })
         .eq('ultravox_call_id', callId)
-        .select('id')
+        .select('id, callback_preference')
       if (updateError) console.error(`[completed] DB update FAILED for callId=${callId}: ${updateError.message} code=${updateError.code}`)
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status} callState=${finalCallState ? 'PRESENT' : 'NOT_IN_PAYLOAD'}`)
 
       // Call log row ID for notification_logs FK
       const callLogId = updatedRows?.[0]?.id ?? null
+      const callbackPreference = (updatedRows?.[0] as { callback_preference?: string | null } | undefined)?.callback_preference ?? null
 
       // ── Outbound lead disposition write-back ────────────────────────────────
       if (['outbound', 'scheduled_callback'].includes(metadata.source as string) && metadata.lead_id) {
@@ -305,7 +306,7 @@ export async function POST(
         const notifCtx = {
           supabase, client: client as CompletedClient, callId, callLogId, slug,
           callerPhone, classification, durationSeconds, endedAt,
-          ultravoxSummary, recordingUrl, metadata, transcript,
+          ultravoxSummary, recordingUrl, metadata, transcript, callbackPreference,
         }
 
         // ── Telegram alert ─────────────────────────────────────────────────────
@@ -316,6 +317,27 @@ export async function POST(
 
         // ── Voicemail-to-email ─────────────────────────────────────────────────
         await sendEmailNotification(notifCtx)
+      }
+
+      // ── D168: First call milestone — set first_call_at once on first real inbound call ──
+      if (!isTestCall && !(client as Record<string, unknown>).first_call_at) {
+        const realCallStatuses = ['HOT', 'WARM', 'COLD', 'UNKNOWN']
+        if (realCallStatuses.includes(classification.status as string)) {
+          const { error: firstCallErr } = await supabase
+            .from('clients')
+            .update({ first_call_at: new Date().toISOString() })
+            .eq('id', client.id)
+            .is('first_call_at', null) // atomic guard — only write if still null
+          if (!firstCallErr && client.telegram_bot_token && client.telegram_chat_id) {
+            await sendAlert(
+              client.telegram_bot_token,
+              client.telegram_chat_id,
+              `\uD83C\uDF89 <b>First call received!</b>\n\n<b>${client.business_name}</b> just got their very first real call.\n\nCaller: ${callerPhone}\nDuration: ${durationSeconds}s\nStatus: ${classification.status}\nSummary: ${(classification.summary || '').slice(0, 120)}`,
+              client.telegram_chat_id_2 ?? undefined
+            ).catch((e) => console.error('[completed] First call milestone Telegram failed:', e))
+          }
+          if (!firstCallErr) console.log(`[completed] D168 first_call_at set for slug=${slug} status=${classification.status}`)
+        }
       }
 
       // ── Increment seconds used (S9h: idempotent — skip if already counted) ──

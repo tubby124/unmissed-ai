@@ -14,9 +14,10 @@ interface TestCallCardProps {
   knowledge?: AgentKnowledge
   isTrial?: boolean
   onScrollTo?: (section: string) => void
+  onCallEnded?: () => void
 }
 
-export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo }: TestCallCardProps) {
+export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo, onCallEnded }: TestCallCardProps) {
   const [showPhone, setShowPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [callState, setCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -68,7 +69,7 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
 
         {/* Primary: WebRTC voice orb */}
         {!previewMode ? (
-          <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} />
+          <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} onEnd={onCallEnded} />
         ) : (
           <div className="flex flex-col items-center gap-2 py-6 opacity-40">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">

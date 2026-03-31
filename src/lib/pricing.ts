@@ -42,7 +42,7 @@ export const PLANS = [
     annual: 24, // annual pricing TBD
     annualBilledTotal: 288, // annual pricing TBD
     minutes: 100,
-    description: "Stop listening to voicemails. Your agent answers every call and sends you a full summary — who called, what they need, and when.",
+    description: "Stop missing calls. Every message captured and forwarded to you instantly — who called, what they need, and when.",
     isPopular: false,
     stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // $49/mo CAD — NOT used for new signups (see STRIPE_SUBSCRIPTION_PRICE_ID env var)
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUwvbhTbRM",
@@ -54,7 +54,7 @@ export const PLANS = [
       "100 minutes/month included",
       "Answers every call — even when you're on a job",
       "Captures caller name, number, and what they need",
-      "Full call summary sent to your phone — SMS or Telegram",
+      "Instant SMS to every caller after the call",
       "Trained on your trade: services, hours, and common questions",
       "Full call history in your dashboard",
     ],
@@ -64,13 +64,13 @@ export const PLANS = [
   },
   {
     id: "core" as const,
-    name: "AI Receptionist",
-    tagline: "Answers the call. Handles the questions. Tells you who to call back.",
+    name: "Smart Receptionist",
+    tagline: "Answers questions, qualifies leads, and handles callers like a trained receptionist — 24/7.",
     monthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
     minutes: 400,
-    description: "Know exactly who called and why — before you pick up the phone. Every caller ranked by how urgent the job is.",
+    description: "Your agent knows your business and never forgets it. Answers caller questions, ranks every lead, and tells you who's worth calling back — before you dial.",
     isPopular: true,
     stripeMonthlyPriceId: "price_1TELcr0tFbm4ZBYUIoRpqUMR", // $119/mo CAD
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
@@ -78,11 +78,11 @@ export const PLANS = [
     features: [
       "400 minutes/month included",
       "Everything in AI Voicemail",
-      "Answers caller questions using your website and Google Business listing",
-      "Ranks every caller — you know who to call back first",
-      "Sends callers an automatic follow-up text after the call",
+      "Answers from your own business info — website, hours, services",
+      "Ranks every caller so you know who to call back first",
+      "Instant SMS to every caller after the call",
       "Daily morning summary of all your calls",
-      "Weekly review — your agent improves from real call patterns",
+      "Weekly review — your agent gets smarter from real call patterns",
     ],
     notIncluded: ["Booking", "Live call transfer"],
     cta: "Start 7-Day Free Trial",
@@ -90,23 +90,23 @@ export const PLANS = [
   },
   {
     id: "pro" as const,
-    name: "AI Receptionist + Booking",
+    name: "Receptionist + Booking",
     tagline: "Books the job while you're on the job.",
     monthly: 229,
     annual: 149, // annual pricing TBD
     annualBilledTotal: 1788, // annual pricing TBD
     minutes: 1000,
-    description: "Calls answered, callers qualified, and jobs booked directly into your calendar. Urgent calls reach your phone live.",
+    description: "The only agent that actually books the appointment. No back-and-forth, no missed opportunities — jobs go straight into your calendar.",
     isPopular: false,
     stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // $229/mo CAD
     stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
     stripeProductId: "prod_UCl8d1JTMthpf7",
     features: [
       "1,000 minutes/month included",
-      "Everything in AI Receptionist",
-      "Books appointments into your Google Calendar (connection required at setup)",
-      "Urgent phone calls transferred live to your number",
-      "Collects full job details from every caller before you call back",
+      "Everything in Smart Receptionist",
+      "Books appointments automatically into your Google Calendar",
+      "Transfers to you when it matters — urgent calls reach your phone live",
+      "Collects full job details before you even pick up the phone",
       "Priority support",
       "Customizable follow-up messages",
     ],
@@ -184,12 +184,12 @@ export const FEATURE_COMPARISON = [
   { feature: "Predictable monthly cost", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes — flat base rate, no surprise overage fees" },
   { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you — live during signup" },
   { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Booking included", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
-  { feature: "Live call transfer", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
+  { feature: "Books appointments automatically", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
+  { feature: "Transfers to you when it matters", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
   { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", askbenny: "EN/FR", unmissed: "English (more coming)" },
   { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (weekly review)" },
   { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", askbenny: "Vendor-locked", unmissed: "Dashboard (yours)" },
-  { feature: "Instant mobile alerts", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Telegram + SMS" },
+  { feature: "Instant call alerts to owner", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Telegram + SMS" },
   { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", askbenny: "Monthly", unmissed: "None — cancel anytime" },
 ];
 

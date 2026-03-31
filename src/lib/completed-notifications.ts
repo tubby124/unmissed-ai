@@ -75,6 +75,7 @@ export interface NotificationContext {
   recordingUrl: string | null
   metadata: Record<string, string>
   transcript: Array<{ role: string; text: string }>
+  callbackPreference?: string | null
 }
 
 // ── Idempotency Guard ────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ export async function notificationsAlreadySent(
 
 export async function sendTelegramNotification(ctx: NotificationContext): Promise<void> {
   const { supabase, client, slug, callId, callLogId, callerPhone, classification,
-    durationSeconds, endedAt, ultravoxSummary, recordingUrl } = ctx
+    durationSeconds, endedAt, ultravoxSummary, recordingUrl, callbackPreference } = ctx
 
   if (!client.telegram_bot_token || !client.telegram_chat_id) {
     console.warn(`[completed] Telegram SKIPPED for slug=${slug}: bot_token=${client.telegram_bot_token ? 'set' : 'MISSING'} chat_id=${client.telegram_chat_id ? 'set' : 'MISSING'}`)
@@ -121,7 +122,7 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
   if (client.niche === 'auto_glass') {
     message = buildAutoGlassMessage({
       classification, callerPhone, durationSeconds, endedAt,
-      clientTz, fullSummary, recordingUrl,
+      clientTz, fullSummary, recordingUrl, callbackPreference: callbackPreference ?? null,
     })
   } else {
     const style = (client.telegram_style || 'standard') as TelegramStyle
@@ -163,6 +164,7 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
       callerData: cd ? { callerName: cd.caller_name ?? null, serviceRequested: cd.service_requested ?? null } : null,
       booking,
       recordingUrl,
+      callbackPreference: callbackPreference ?? null,
     })
   }
 
@@ -192,8 +194,9 @@ function buildAutoGlassMessage(params: {
   clientTz: string
   fullSummary: string
   recordingUrl: string | null
+  callbackPreference: string | null
 }): string {
-  const { classification, callerPhone, durationSeconds, endedAt, clientTz, fullSummary, recordingUrl } = params
+  const { classification, callerPhone, durationSeconds, endedAt, clientTz, fullSummary, recordingUrl, callbackPreference } = params
   const mins = Math.floor(durationSeconds / 60)
   const secs = durationSeconds % 60
   const callEnd = new Date(endedAt)
@@ -240,6 +243,7 @@ function buildAutoGlassMessage(params: {
     `• Name: ${nameStr}`,
     `• Phone: ${fmtPhone(callerPhone)}`,
     `• Duration: ${dur}`,
+    ...(callbackPreference ? [``, `📅 Callback: ${callbackPreference}`] : []),
     ...(recordingUrl ? [``, `🎧 Recording: ${recordingUrl}`] : []),
   ].join('\n')
 }

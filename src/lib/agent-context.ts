@@ -20,6 +20,7 @@ import { buildContextBlock } from '@/lib/context-data'
 import { getCapabilities, type AgentCapabilities } from '@/lib/niche-capabilities'
 import { buildKnowledgeSummary, type KnowledgeSummary } from '@/lib/knowledge-summary'
 import { buildRetrievalConfig, type RetrievalConfig, type RetrievalBackend } from '@/lib/knowledge-retrieval'
+import { parseStaffRoster, formatStaffRoster } from '@/lib/staff-roster'
 
 // ── Input type: subset of Supabase clients row ────────────────────────────────
 // All fields except id/slug are optional — avoids breaking callers that SELECT fewer columns.
@@ -39,6 +40,7 @@ export type ClientRow = {
   context_data_label?: string | null
   knowledge_backend?: string | null
   injected_note?: string | null
+  staff_roster?: unknown | null
 }
 
 // ── Input type: one prior call row from call_logs ─────────────────────────────
@@ -342,6 +344,10 @@ export function buildAgentContext(
       .join(', ')
     callerContextStr += `\nVIP CONTACTS: ${rosterStr}`
   }
+
+  // Staff roster — team members for booking-mode clients
+  const staffBlock = formatStaffRoster(parseStaffRoster(client.staff_roster))
+  if (staffBlock) callerContextStr += `\n${staffBlock}`
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')
 

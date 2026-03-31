@@ -278,3 +278,15 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 8056 | **Hash:** 482cda25b4f56edb
 **Supabase version_id:** 17fe1c41-1955-4adb-8fad-ebd6500bb40a
 **Ultravox revision:** 016c6cbd-fda6-4ca2-9d51-ac1dc3165a0d
+
+## v61 — 2026-03-31 02:08 UTC
+**Change:** re-sync Ultravox drift
+**Chars:** 8319 | **Hash:** 3aa3675a145082c6
+**Supabase version_id:** 13843bb2-3df5-4942-b24a-0959daca0035
+**Ultravox revision:** 441e17d9-1bd0-402d-8d84-cb5d8008a0ca
+
+## v62 — 2026-03-31 04:11 UTC
+**Change:** Sync deploy — D197 subscription_status fix
+**Chars:** 8319 | **Hash:** 3aa3675a145082c6
+**Supabase version_id:** c2eec96e-5059-4494-8787-69f640ec2e33
+**Ultravox revision:** b52923ee-485c-4043-ab5f-39a860f68472

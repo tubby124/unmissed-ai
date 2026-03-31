@@ -355,6 +355,12 @@ export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
             schema: { type: 'string', description: 'Preferred time in 24h HH:MM format (e.g. "16:00" for 4 PM). When provided, returns 3 slots closest to this time. Omit if caller has no preference.' },
             required: false,
           },
+          {
+            name: 'duration_minutes',
+            location: 'PARAMETER_LOCATION_QUERY',
+            schema: { type: 'integer', description: 'Service duration in minutes. Pass this when you know the service duration from the service catalog (e.g. 30 for a 30-minute haircut). Defaults to the business default when omitted.' },
+            required: false,
+          },
         ],
         automaticParameters: [
           CALL_STATE_PARAM,
@@ -704,6 +710,8 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   const baseTools: object[] = opts.tools !== undefined ? opts.tools : [HANGUP_TOOL]
   const calendarTools: object[] = (opts.booking_enabled && plan.bookingEnabled && opts.slug) ? buildCalendarTools(opts.slug) : []
   const transferTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? buildTransferTools(opts.slug, opts.transfer_conditions) : []
+  // SMS tool: requires sms_enabled + twilio_number + plan allows + slug.
+  // Trial clients have sms_enabled=true but no twilio_number — tool must NOT be injected without a number.
   const smsTools: object[] = (opts.sms_enabled && opts.twilio_number && plan.smsEnabled && opts.slug) ? buildSmsTools(opts.slug) : []
   // S5: only register knowledge tool when client has approved chunks (safe default = exclude)
   const hasKnowledge = opts.knowledge_backend === 'pgvector' && opts.slug

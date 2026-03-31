@@ -79,9 +79,14 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { id, status, notes, scheduled_callback_at } = body
+  const { id, status, notes, scheduled_callback_at, lead_status } = body
 
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const VALID_LEAD_STATUSES = ['new', 'called_back', 'booked', 'closed', null]
+  if (lead_status !== undefined && !VALID_LEAD_STATUSES.includes(lead_status)) {
+    return NextResponse.json({ error: 'Invalid lead_status' }, { status: 400 })
+  }
 
   if (!isAdmin) {
     if (!ownerClientId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -101,6 +106,7 @@ export async function PATCH(req: NextRequest) {
   if (status === 'called') updates.last_called_at = new Date().toISOString()
   if (notes !== undefined) updates.notes = notes
   if (scheduled_callback_at !== undefined) updates.scheduled_callback_at = scheduled_callback_at
+  if (lead_status !== undefined) updates.lead_status = lead_status
 
   const { data, error } = await supabase
     .from('campaign_leads')

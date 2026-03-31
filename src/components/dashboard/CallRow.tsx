@@ -165,6 +165,13 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             )
           })()}
 
+          {/* Callback preference annotation */}
+          {call.callback_preference && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-400 border-violet-500/25 shrink-0">
+              📅 {call.callback_preference}
+            </span>
+          )}
+
           {/* HOT lead call-back button */}
           {call.call_status === 'HOT' && call.caller_phone && call.caller_phone !== 'trial-test' && onCallBack && (
             <button

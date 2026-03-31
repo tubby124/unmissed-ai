@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         id: intake_id,
         business_name: "Draft",
         niche: niche || "other",
-        status: "draft",
+        status: "pending",
         progress_status: "draft",
         contact_email: null,
         owner_name: null,

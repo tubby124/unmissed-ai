@@ -299,7 +299,7 @@ export default function TryPage() {
               Set up takes under 5 minutes. Your agent is live within 24 hours.
             </p>
             <Link
-              href="/onboard"
+              href={state.step !== "select" ? `/onboard?niche=${state.agentId}` : "/onboard"}
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >

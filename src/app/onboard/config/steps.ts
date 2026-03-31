@@ -76,7 +76,7 @@ export const STEP_DEFS: StepDef[] = [
   {
     label: 'Your business',
     component: Step1GBP,
-    canAdvance: (d) => !!d.businessName && !!d.voiceId,
+    canAdvance: (d) => !!d.businessName && !!d.voiceId && !!d.agentName?.trim(),
   },
   {
     label: 'Voice',

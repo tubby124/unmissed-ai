@@ -38,6 +38,68 @@ function defaultAgentModeForNiche(niche: Niche): NonNullable<import('@/types/onb
   return 'lead_capture'
 }
 
+const DAY_ABBR: Record<string, string> = {
+  Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu",
+  Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+};
+
+/**
+ * Condense a GBP hours array like ["Monday: 8:00 AM – 6:00 PM", "Tuesday: 8:00 AM – 6:00 PM", ...]
+ * into a compact string like "Mon–Fri 8am–6pm, Sat 9am–2pm".
+ * Falls back to a simple comma-joined string if parsing fails.
+ */
+function condenseHours(hours: string[]): string {
+  // Parse each entry into { day, range }
+  const parsed: { day: string; range: string }[] = [];
+  for (const h of hours) {
+    const colonIdx = h.indexOf(":");
+    if (colonIdx === -1) return hours.join(", ");
+    const day = h.slice(0, colonIdx).trim();
+    const range = h.slice(colonIdx + 1).trim();
+    parsed.push({ day, range });
+  }
+  if (parsed.length === 0) return hours.join(", ");
+
+  // Group consecutive days that share the same range
+  const groups: { days: string[]; range: string }[] = [];
+  for (const { day, range } of parsed) {
+    const last = groups[groups.length - 1];
+    if (last && last.range === range) {
+      last.days.push(day);
+    } else {
+      groups.push({ days: [day], range });
+    }
+  }
+
+  // Format a time range like "8:00 AM – 6:00 PM" → "8am–6pm"
+  function fmtTime(t: string): string {
+    const m = t.trim().match(/^(\d+)(?::(\d+))?\s*(AM|PM)$/i);
+    if (!m) return t.trim();
+    let h = parseInt(m[1]);
+    const min = m[2] && m[2] !== "00" ? `:${m[2]}` : "";
+    const period = m[3].toUpperCase();
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return `${h}${min}${period === "PM" || h >= 12 ? "pm" : "am"}`;
+  }
+  function fmtRange(r: string): string {
+    // Split on em-dash or hyphen separator
+    const parts = r.split(/\s*[–\-]\s*/);
+    if (parts.length === 2) {
+      return `${fmtTime(parts[0])}–${fmtTime(parts[1])}`;
+    }
+    return r.trim();
+  }
+
+  const segments = groups.map(({ days, range }) => {
+    const abbr = days.map((d) => DAY_ABBR[d] || d);
+    const dayStr = abbr.length === 1 ? abbr[0] : `${abbr[0]}–${abbr[abbr.length - 1]}`;
+    return `${dayStr} ${fmtRange(range)}`;
+  });
+
+  return segments.join(", ");
+}
+
 function parseAddressParts(address: string): { city: string; state: string; streetAddress: string } {
   const parts = address.split(",").map((s) => s.trim());
   const provincePattern = /^([A-Z]{2})\b/;
@@ -152,7 +214,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
       if (streetAddress) updates.streetAddress = streetAddress;
     }
     if (pendingPlace.phone) updates.callbackPhone = pendingPlace.phone;
-    if (pendingPlace.hours?.length) updates.businessHoursText = pendingPlace.hours.join(", ");
+    if (pendingPlace.hours?.length) updates.businessHoursText = condenseHours(pendingPlace.hours);
     if (pendingPlace.photoUrl) updates.placesPhotoUrl = pendingPlace.photoUrl;
     if (pendingPlace.description) updates.gbpDescription = pendingPlace.description;
     if (pendingPlace.website && !data.websiteUrl) updates.websiteUrl = pendingPlace.website;

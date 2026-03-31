@@ -41,11 +41,13 @@ export async function GET(request: Request) {
   const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes] = await Promise.all([
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes, servicesRes, returningCallerRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, sms_template, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode, injected_note, ivr_enabled, ivr_prompt, voicemail_greeting_text, context_data, email_notifications_enabled, telegram_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, sms_template, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode, injected_note, ivr_enabled, ivr_prompt, voicemail_greeting_text, context_data, email_notifications_enabled, telegram_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url, first_call_at')
       .eq('id', clientId)
       .single(),
 
@@ -120,6 +122,22 @@ export async function GET(request: Request) {
       .eq('client_id', clientId)
       .gte('started_at', todayStart)
       .neq('call_status', 'test'),
+
+    // Active services count — for readiness row (D128)
+    supabase
+      .from('client_services')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('active', true),
+
+    // Returning callers last 30 days — calls where caller_name was recognized (D139)
+    supabase
+      .from('call_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .not('caller_name', 'is', null)
+      .gte('started_at', thirtyDaysAgo)
+      .neq('call_status', 'test'),
   ])
 
   const client = clientRes.data
@@ -132,6 +150,8 @@ export async function GET(request: Request) {
   const bookings = bookingsRes.data ?? []
   const recentCalls = recentRes.data ?? []
   const knowledgeChunks = knowledgeRes.data ?? []
+  const activeServicesCount = servicesRes.count ?? 0
+  const returningCallerCount = returningCallerRes.count ?? 0
 
   // Last call topics for home "teach your agent" panel
   const lastTopicsRow = lastTopicsRes.data?.[0] ?? null
@@ -342,6 +362,10 @@ export async function GET(request: Request) {
     lastCallTopics,
     lastFaqSuggestions,
     calendarConnected: (c.calendar_auth_status as string | null) === 'connected',
+    twilioNumber: (client.twilio_number as string | null) ?? null,
+    activeServicesCount,
+    returningCallerCount,
+    firstCallAt: (c.first_call_at as string | null) ?? null,
     gbpData: {
       placeId: (c.gbp_place_id as string | null) ?? null,
       summary: (c.gbp_summary as string | null) ?? null,

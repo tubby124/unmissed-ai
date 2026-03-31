@@ -76,14 +76,17 @@ describe('A. Existing-client safety — lead_capture defers to call_handling_mod
     assert.ok(!prompt.includes('act as a voicemail'), 'should not contain voicemail_replacement text')
   })
 
-  test('message_only + lead_capture: CALL_HANDLING_MODE_INSTRUCTIONS matches message_only instruction', () => {
+  test('message_only + lead_capture: D184 — routes to voicemail builder (not regular template)', () => {
+    // D184: call_handling_mode='message_only' → buildVoicemailPrompt() regardless of agent_mode.
+    // The voicemail builder produces a completely different structure — not the regular template with
+    // MODE_INSTRUCTIONS embedded. Verify the voicemail builder's distinctive opening is present.
     const prompt = buildPromptFromIntake(baseIntake({
       call_handling_mode: 'message_only',
       agent_mode: 'lead_capture',
     }))
     assert.ok(
-      prompt.includes(MODE_INSTRUCTIONS.message_only),
-      'message_only+lead_capture should produce message_only instruction text'
+      prompt.includes('THIS IS A LIVE VOICE PHONE CALL'),
+      'message_only+lead_capture should route to voicemail builder (D184)'
     )
     assert.ok(!prompt.includes('information assistant'), 'should not contain info_hub text')
   })

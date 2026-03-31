@@ -51,3 +51,15 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 10339 | **Hash:** 49dc9d5f0174690e
 **Supabase version_id:** 67dcbdf4-dd58-476a-a96e-4a6cd951923f
 **Ultravox revision:** 81537f51-6efe-46a2-b7dd-b0ecac29df36
+
+## v10 — 2026-03-30 23:41 UTC
+**Change:** v10:  founding pricing, niche knowledge table, full feature showcase (SMS→booking→IVR→transfer), improved opener and qualifier sequence
+**Chars:** 12351 | **Hash:** f212a2d79fb66641
+**Supabase version_id:** 48276a47-6420-4a6c-aaf1-5a75b3c8c036
+**Ultravox revision:** 050b4d91-dc7e-4650-83f5-1cb1e9b16536
+
+## v11 — 2026-03-30 23:59 UTC
+**Change:** v11: wow-first flow — single qualify question, niche line → immediate demo, no interrogation
+**Chars:** 12359 | **Hash:** cb6722ec3366437b
+**Supabase version_id:** 6b1efa5a-329d-4352-8908-106be2841887
+**Ultravox revision:** ff5a9da4-5048-49b4-8df2-e4fb257038fb

@@ -134,6 +134,15 @@ export interface OnboardingData {
 
   // Internal behavior profile — Phase 1: carried through intake, not yet surfaced in UI.
   agentMode?: 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking';
+
+  // D125/D126: Service catalog collected during onboarding (step 3)
+  // selectedServices: simple name strings ticked from niche suggestions or added manually
+  selectedServices?: string[];
+  // parsedServiceDrafts: structured drafts from the freeform paste+parse flow (D126)
+  parsedServiceDrafts?: { name: string; description?: string; price?: string; duration_mins?: number | null }[];
+
+  // D127: Raw FAQ text entered during onboarding — parsed to extra_qa at provision time
+  callerFaqText?: string;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -214,6 +223,9 @@ export const defaultOnboardingData: OnboardingData = {
   scheduleMode: 'business_hours',
   callForwardingEnabled: false,
   selectedPlan: null,
+  selectedServices: [],
+  parsedServiceDrafts: [],
+  callerFaqText: '',
 };
 
 export const nicheLabels: Record<Niche, string> = {

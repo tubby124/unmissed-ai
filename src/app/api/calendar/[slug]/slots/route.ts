@@ -23,6 +23,7 @@ export async function GET(
   const { slug } = await params
   const date = req.nextUrl.searchParams.get('date')  // YYYY-MM-DD
   const time = req.nextUrl.searchParams.get('time')  // HH:MM (24h) — optional preferred time
+  const durationParam = req.nextUrl.searchParams.get('duration_minutes')  // optional service duration override
 
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ available: false, reason: 'invalid_date' }, { status: 400 })
@@ -50,12 +51,21 @@ export async function GET(
 
   try {
     const accessToken = await getAccessToken(client.google_refresh_token as string)
+    // D115: Use duration_minutes from tool param if provided; else fall back to
+    // client.booking_service_duration_minutes (DB setting), then 60 min default.
+    const resolvedDuration: number = (() => {
+      if (durationParam) {
+        const parsed = parseInt(durationParam, 10)
+        if (Number.isInteger(parsed) && parsed > 0 && parsed <= 480) return parsed
+      }
+      return (client.booking_service_duration_minutes as number) || 60
+    })()
     const slots = await listSlots(
       accessToken,
       (client.google_calendar_id as string) || 'primary',
       date,
       (client.timezone as string) || 'America/Chicago',
-      (client.booking_service_duration_minutes as number) || 30,
+      resolvedDuration,
       (client.booking_buffer_minutes as number) || 0,
       '09:00',
       '18:00',

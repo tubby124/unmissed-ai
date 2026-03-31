@@ -50,11 +50,11 @@ export default function TransferSettingsSection({ client, isAdmin, previewMode }
             rows={2}
             value={transferConditions}
             onChange={(e) => setTransferConditions(e.target.value)}
-            placeholder="e.g. the caller explicitly says it's an emergency or urgently insists on speaking to a human"
+            placeholder='e.g. "Transfer when caller asks to speak with someone or mentions an emergency"'
             disabled={previewMode}
             className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20 resize-y min-h-[72px] disabled:opacity-50"
           />
-          <p className="text-[11px] t3 mt-1">Describe when your agent should offer a live transfer. Leave blank to use the default (emergency or explicit human request only).</p>
+          <p className="text-[11px] t3 mt-1">Tell your agent exactly when to transfer — be specific.</p>
         </div>
 
         {!forwardingNumber && (

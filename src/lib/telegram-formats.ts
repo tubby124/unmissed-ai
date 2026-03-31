@@ -31,6 +31,7 @@ interface FormatInput {
     calendarUrl: string | null
   } | null
   recordingUrl?: string | null
+  callbackPreference?: string | null
 }
 
 const STATUS_EMOJI: Record<string, string> = {
@@ -81,6 +82,10 @@ function formatCompact(input: FormatInput): string {
     lines.push(`↳ ${input.nextSteps}`)
   }
 
+  if (input.callbackPreference) {
+    lines.push(`📅 Callback: ${input.callbackPreference}`)
+  }
+
   if (input.recordingUrl) {
     lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
   }
@@ -120,6 +125,10 @@ function formatStandard(input: FormatInput): string {
     lines.push(`📋 ${input.nextSteps}`)
   }
 
+  if (input.callbackPreference) {
+    lines.push(`📅 Callback: ${input.callbackPreference}`)
+  }
+
   if (input.recordingUrl) {
     lines.push(`🎧 <a href="${input.recordingUrl}">Listen to recording</a>`)
   }
@@ -154,6 +163,10 @@ function formatActionCard(input: FormatInput): string {
     lines.push(`↳ Call${name ? ` ${name}` : ''} at ${phone} to confirm`)
   } else {
     lines.push(`↳ Call ${phone}`)
+  }
+
+  if (input.callbackPreference) {
+    lines.push(`📅 Callback: ${input.callbackPreference}`)
   }
 
   if (input.recordingUrl) {

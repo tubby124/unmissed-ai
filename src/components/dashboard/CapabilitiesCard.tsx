@@ -24,6 +24,7 @@ interface CapabilitiesCardProps {
   hasIvr: boolean
   hasContextData: boolean
   selectedPlan?: string | null
+  hasTelegramAlerts?: boolean
 }
 
 type DotType = 'always' | 'search'
@@ -142,6 +143,12 @@ function CapabilityRow({
         }}>
           {item.enabled ? item.enabledDesc : isGoliveLocked && item.lockReason ? item.lockReason : item.disabledDesc}
         </p>
+        {/* D190 — action CTA for inactive items */}
+        {!item.enabled && !isGoliveLocked && (item.link || item.upgradeRequired) && (
+          <p className="text-[11px] mt-1 font-semibold" style={{ color: 'var(--color-primary)', opacity: 0.75 }}>
+            {item.upgradeRequired ? 'Upgrade →' : 'Set up →'}
+          </p>
+        )}
       </div>
 
       {isGoliveLocked ? <GoliveLockIcon /> : item.link ? <ChevronRight /> : null}
@@ -216,6 +223,7 @@ export default function CapabilitiesCard({
   hasIvr,
   hasContextData,
   selectedPlan,
+  hasTelegramAlerts = false,
 }: CapabilitiesCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
 
@@ -299,6 +307,15 @@ export default function CapabilitiesCard({
       dotType: 'always',
       link: '/dashboard/settings?tab=general',
       upgradeRequired: true,
+    },
+    {
+      id: 'telegram',
+      label: 'Call alerts (Telegram)',
+      enabledDesc: 'Instant call summaries after every call',
+      disabledDesc: 'Tap to get instant call alerts',
+      enabled: hasTelegramAlerts,
+      dotType: 'always',
+      link: '/dashboard/settings?tab=notifications',
     },
     {
       id: 'context_data',

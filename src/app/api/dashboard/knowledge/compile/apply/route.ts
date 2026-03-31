@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
     faq_items?: { q: string; a: string }[]
     fact_items?: { kind: string; text: string }[]
+    conflict_items?: { content: string; review_reason: string }[]
     client_id?: string
     raw_input_hash?: string
     model_used?: string
@@ -162,6 +163,12 @@ export async function POST(req: NextRequest) {
     const modelUsed = body.model_used ?? COMPILER_MODEL
 
     let compileRunId: string | undefined
+    // Sanitize conflict items: only store content + review_reason, max 50 items
+    const conflictItems = (body.conflict_items ?? [])
+      .filter(i => i.content?.trim())
+      .slice(0, 50)
+      .map(i => ({ content: i.content.trim(), review_reason: i.review_reason?.trim() ?? '' }))
+
     const { data: runRow, error: runErr } = await svc
       .from('compiler_runs')
       .insert({
@@ -174,6 +181,7 @@ export async function POST(req: NextRequest) {
         high_risk_count: highRiskCount,
         chunk_count: chunks.length,
         created_by_user_id: user.id,
+        conflicts: conflictItems,
       })
       .select('id')
       .single()

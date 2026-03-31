@@ -217,7 +217,7 @@ export function TrialSuccessScreen({
   clientId,
   agentName,
   setupUrl,
-  telegramLink: _telegramLink,
+  telegramLink,
   email,
   knowledgeCount: initialKnowledgeCount = 0,
 }: {
@@ -518,6 +518,17 @@ export function TrialSuccessScreen({
             <p className="text-sm text-white/60">{text}</p>
           </div>
         ))}
+        {telegramLink && (
+          <div className="flex items-start gap-2.5">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center mt-0.5">4</span>
+            <p className="text-sm text-white/60">
+              <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
+                Connect Telegram
+              </a>{" "}
+              to get instant call alerts on your phone
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Dashboard access */}

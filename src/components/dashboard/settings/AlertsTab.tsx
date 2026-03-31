@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { usePatchSettings } from './usePatchSettings'
@@ -19,6 +19,51 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   const [weeklyDigest, setWeeklyDigest] = useState(client.weekly_digest_enabled !== false)
   const [telegramEnabled, setTelegramEnabled] = useState(client.telegram_notifications_enabled !== false)
   const [emailEnabled, setEmailEnabled] = useState(client.email_notifications_enabled !== false)
+
+  // Telegram connect flow
+  const [tgLinkLoading, setTgLinkLoading] = useState(false)
+  const [tgDeepLink, setTgDeepLink] = useState<string | null>(
+    client.telegram_registration_token
+      ? `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'hassitant_1bot'}?start=${client.telegram_registration_token}`
+      : null
+  )
+  const [tgCopied, setTgCopied] = useState(false)
+
+  const getTelegramLink = useCallback(async () => {
+    if (tgDeepLink) return tgDeepLink
+    setTgLinkLoading(true)
+    try {
+      const res = await fetch('/api/dashboard/telegram-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      const data = await res.json() as { deepLink?: string; alreadyConnected?: boolean }
+      if (data.deepLink) {
+        setTgDeepLink(data.deepLink)
+        return data.deepLink
+      }
+    } catch {
+      // ignore
+    } finally {
+      setTgLinkLoading(false)
+    }
+    return null
+  }, [tgDeepLink, client.id])
+
+  const handleOpenTelegram = useCallback(async () => {
+    const link = await getTelegramLink()
+    if (link) window.open(link, '_blank')
+  }, [getTelegramLink])
+
+  const handleCopyLink = useCallback(async () => {
+    const link = await getTelegramLink()
+    if (link) {
+      await navigator.clipboard.writeText(link).catch(() => {})
+      setTgCopied(true)
+      setTimeout(() => setTgCopied(false), 2000)
+    }
+  }, [getTelegramLink])
 
   async function toggleWeeklyDigest() {
     const newVal = !weeklyDigest
@@ -78,40 +123,81 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
         </div>
       </div>
 
-      {/* Active channels */}
-      <div className="p-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Telegram — active */}
-          <div className={`p-4 rounded-xl border transition-all ${
-            client.telegram_bot_token && client.telegram_chat_id
-              ? 'border-blue-500/20 bg-blue-500/[0.04]'
-              : 'b-theme bg-page'
-          }`}>
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                client.telegram_bot_token && client.telegram_chat_id
-                  ? 'bg-blue-500/15'
-                  : 'bg-hover'
-              }`}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={client.telegram_bot_token && client.telegram_chat_id ? 'text-blue-400' : 't3'}>
-                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-semibold t1">Telegram</p>
-                <p className="text-[10px] t3">
-                  {client.telegram_bot_token && client.telegram_chat_id ? 'Active' : 'Not configured'}
-                </p>
-              </div>
-            </div>
-            <p className="text-[10px] t3 leading-relaxed">Instant call summaries with lead classification and next steps.</p>
-          </div>
+      {/* Channel list + connect CTA */}
+      <div className="p-5 space-y-3">
 
-          {/* Additional channels */}
-          <div className="p-4 rounded-xl border b-theme bg-page col-span-full">
-            <p className="text-[11px] t3">More alert channels (SMS, email) are in development.</p>
+        {/* Telegram row */}
+        <div className={`p-4 rounded-xl border transition-all ${
+          client.telegram_chat_id
+            ? 'border-blue-500/20 bg-blue-500/[0.04]'
+            : 'b-theme bg-page'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+              client.telegram_chat_id ? 'bg-blue-500/15' : 'bg-hover'
+            }`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={client.telegram_chat_id ? 'text-blue-400' : 't3'}>
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <p className="text-xs font-semibold t1">Telegram</p>
+                  <p className="text-[10px] t3 mt-0.5">
+                    {client.telegram_chat_id
+                      ? 'Connected — call alerts arrive instantly after each call.'
+                      : 'Get instant call summaries with lead score and next steps.'}
+                  </p>
+                </div>
+                {client.telegram_chat_id && (
+                  <span className="text-[10px] font-semibold text-blue-400 shrink-0">Connected ✓</span>
+                )}
+              </div>
+
+              {/* Connect flow — only when not yet connected */}
+              {!client.telegram_chat_id && !previewMode && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-[10px] t3 leading-relaxed">
+                    <span className="font-medium t1">How it works:</span>{' '}
+                    Tap the button → press <span className="font-mono bg-hover px-1 py-0.5 rounded text-[9px]">Start</span> in Telegram → done.
+                    Alerts start arriving after your next call.
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={handleOpenTelegram}
+                      disabled={tgLinkLoading}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-60 cursor-pointer"
+                    >
+                      {tgLinkLoading ? (
+                        <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                      Open Telegram &amp; Connect
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      disabled={tgLinkLoading}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border b-theme bg-page hover:bg-hover t1 transition-colors disabled:opacity-60 cursor-pointer"
+                    >
+                      {tgCopied ? '✓ Copied' : 'Copy link'}
+                    </button>
+                  </div>
+                  <p className="text-[9px] t3">On desktop? Copy the link and open it on your phone.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Placeholder for future channels */}
+        <div className="p-4 rounded-xl border b-theme bg-page">
+          <p className="text-[11px] t3">More alert channels (SMS, email) are in development.</p>
+        </div>
+
       </div>
     </div>
 

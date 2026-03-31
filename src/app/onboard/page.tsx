@@ -16,8 +16,8 @@
  * Edit SIDEBAR_BENEFITS below (scroll down ~30 lines).
  */
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { OnboardingData, defaultOnboardingData } from "@/types/onboarding";
@@ -49,8 +49,9 @@ const SIDEBAR_PRICING = {
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
 
-export default function OnboardPage() {
+function OnboardPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [step, setStep] = useState<number>(() => {
     if (typeof window === "undefined") return 1;
@@ -92,6 +93,14 @@ export default function OnboardPage() {
   useEffect(() => {
     if (!data.timezone) {
       update({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply ?niche= URL param if niche not already set from localStorage
+  useEffect(() => {
+    const nicheParam = searchParams.get('niche');
+    if (nicheParam && (!data.niche || data.niche === 'other')) {
+      update({ niche: nicheParam as OnboardingData['niche'] });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -276,7 +285,8 @@ export default function OnboardPage() {
         {/* Card */}
         <div className="w-full max-w-4xl flex flex-col min-h-0 h-full lg:flex-row lg:h-[88vh] lg:rounded-2xl lg:border lg:border-border lg:shadow-xl overflow-hidden">
 
-          {/* LEFT PANEL — benefit sidebar (desktop only) */}
+          {/* LEFT PANEL — benefit sidebar */}
+          {/* Desktop: full vertical sidebar */}
           <div className="hidden lg:flex flex-col w-[260px] shrink-0 justify-center px-8 py-12 border-r border-border gap-6 bg-indigo-950 dark:bg-indigo-950">
             <div className="space-y-1">
               <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">unmissed.ai</p>
@@ -300,6 +310,19 @@ export default function OnboardPage() {
               </p>
               <p className="text-xs text-indigo-400">{SIDEBAR_PRICING.footnote}</p>
             </div>
+          </div>
+
+          {/* Mobile: compact horizontal benefit strip at top */}
+          <div className="lg:hidden bg-indigo-950 px-5 py-3 flex items-center gap-4 flex-wrap shrink-0">
+            <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest shrink-0">
+              {SIDEBAR_PRICING.footnote}
+            </span>
+            {SIDEBAR_BENEFITS.slice(0, 3).map(({ icon, text }) => (
+              <span key={text} className="flex items-center gap-1.5 text-xs text-indigo-200 shrink-0">
+                <span className="text-indigo-400">{icon}</span>
+                {text}
+              </span>
+            ))}
           </div>
 
           {/* RIGHT PANEL */}
@@ -349,6 +372,10 @@ export default function OnboardPage() {
                   ← Back
                 </Button>
 
+                <span className="text-xs text-muted-foreground hidden sm:block">
+                  Changes save automatically
+                </span>
+
                 {!isLastStep && !stepDef?.hideFooterCta && (
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
@@ -368,5 +395,13 @@ export default function OnboardPage() {
       </div>
       <ProvisioningOverlay data={data} visible={isSubmitting} />
     </div>
+  );
+}
+
+export default function OnboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardPageInner />
+    </Suspense>
   );
 }

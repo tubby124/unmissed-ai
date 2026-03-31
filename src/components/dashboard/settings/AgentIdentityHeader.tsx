@@ -63,7 +63,9 @@ export default function AgentIdentityHeader({ client, isActive, onToggleStatus }
               {(client.bonus_minutes ?? 0) > 0 && ` + ${client.bonus_minutes} bonus`}
             </span>
           </div>
-          <p className="text-[11px] t3 mt-0.5">{fmtPhone(client.twilio_number)}</p>
+          {client.twilio_number && (
+            <p className="text-[11px] t3 mt-0.5">Callers see: <span className="font-mono">{fmtPhone(client.twilio_number)}</span></p>
+          )}
         </div>
       </div>
 

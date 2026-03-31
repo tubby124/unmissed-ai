@@ -105,3 +105,15 @@
 **Chars:** 10530 | **Hash:** 18700d34727aba55
 **Supabase version_id:** 92dd92d8-42e9-47fd-8fe6-950873670e2d
 **Ultravox revision:** da3edeb6-9631-4435-a9b3-a78c7db32af5
+
+## v20 — 2026-03-31 02:08 UTC
+**Change:** re-sync Ultravox drift + wow-first
+**Chars:** 10994 | **Hash:** e8a3f5036710795e
+**Supabase version_id:** dec6f7c9-b32f-4c3f-a95e-5a7b927df7e8
+**Ultravox revision:** 272b0eeb-3844-484b-84e5-dff33d16d84d
+
+## v21 — 2026-03-31 04:11 UTC
+**Change:** Sync deploy
+**Chars:** 10994 | **Hash:** e8a3f5036710795e
+**Supabase version_id:** dcb978af-7e24-4b11-b944-a47dd9cd90c1
+**Ultravox revision:** f5a18c88-84b3-49eb-9c43-f1be0099b2d0

@@ -327,7 +327,9 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           {/* Navigation hint */}
           {!pathname?.includes('/dashboard/knowledge') && (
             <p className="text-[10px] t3">
-              Manage chunks, approve suggestions, and run full searches in the <span className="font-medium t2">Knowledge</span> tab.
+              Manage chunks, approve suggestions, and run full searches in the{' '}
+              <a href="/dashboard/knowledge" className="font-medium t2 underline underline-offset-2 hover:opacity-75 transition-opacity">Knowledge</a> tab.{' '}
+              <a href="/dashboard/knowledge" className="font-medium text-[var(--color-primary)] hover:opacity-75 transition-opacity">Manage documents →</a>
             </p>
           )}
         </div>

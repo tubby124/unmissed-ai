@@ -137,8 +137,10 @@ export async function POST(
 
     console.log(`[calendar/book] Booked for slug=${slug} date=${date} time=${matchedSlot.displayTime} name=${callerName} calendarUrl=${event.htmlLink}`)
 
-    // Send booking confirmation SMS if SMS is enabled and caller has a phone number
-    if (client.sms_enabled && client.twilio_number && callerPhone) {
+    // Send booking confirmation SMS if SMS is enabled and caller has a real phone number
+    // Skip synthetic test phone used in dashboard/agent-test and browser-test-call paths
+    const isSyntheticPhone = callerPhone === '+15555550100'
+    if (client.sms_enabled && client.twilio_number && callerPhone && !isSyntheticPhone) {
       const { data: optOut } = await supabase
         .from('sms_opt_outs')
         .select('id, opted_back_in_at')

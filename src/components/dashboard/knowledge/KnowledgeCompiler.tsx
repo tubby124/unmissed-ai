@@ -477,8 +477,13 @@ export default function KnowledgeCompiler({ clientId, isAdmin }: KnowledgeCompil
   async function handleApply() {
     const faqItems: { q: string; a: string }[] = []
     const factItems: { kind: string; text: string }[] = []
+    const conflictItems: { content: string; review_reason: string }[] = []
 
     items.forEach((item, i) => {
+      if (item.kind === 'conflict_flag') {
+        conflictItems.push({ content: item.fact_text || item.review_reason, review_reason: item.review_reason })
+        return
+      }
       if (!approved[i]) return
       if (item.kind === 'faq_pair') {
         faqItems.push({ q: item.question, a: item.answer })
@@ -495,8 +500,8 @@ export default function KnowledgeCompiler({ clientId, isAdmin }: KnowledgeCompil
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isAdmin
-          ? { faq_items: faqItems, fact_items: factItems, client_id: clientId }
-          : { faq_items: faqItems, fact_items: factItems }
+          ? { faq_items: faqItems, fact_items: factItems, conflict_items: conflictItems, client_id: clientId }
+          : { faq_items: faqItems, fact_items: factItems, conflict_items: conflictItems }
         ),
       })
       if (!res.ok) {

@@ -60,8 +60,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     .eq('status', 'active')
     .single()
 
-  if (!client?.twilio_number) {
-    return NextResponse.json({ error: 'Client or Twilio number not found' }, { status: 404 })
+  if (!client) {
+    return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+  }
+
+  // Trial clients have no dedicated twilio_number yet — fall back to platform number so SMS
+  // works during the full-feature trial period (test calls and dashboard agent tests).
+  const fromNumber = (client.twilio_number as string | null) || process.env.TWILIO_FROM_NUMBER
+  if (!fromNumber) {
+    return NextResponse.json({ error: 'No Twilio number configured' }, { status: 404 })
   }
 
   // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
@@ -128,7 +135,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     client_id: client.id,
     related_call_id: relatedCallId,
     direction: 'outbound',
-    from_number: client.twilio_number,
+    from_number: fromNumber,
     to_number: to,
     body: message,
     status: 'pending',
@@ -146,7 +153,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   try {
-    const twilioMessage = await sendSmsTracked(to, client.twilio_number, message, statusCallbackUrl)
+    const twilioMessage = await sendSmsTracked(to, fromNumber, message, statusCallbackUrl)
     console.log(`[sms-tool] Sent in-call SMS: slug=${slug} to=${to} call_id=${call_id} sid=${twilioMessage.sid}`)
 
     // Update the claimed sms_logs row with real SID and status

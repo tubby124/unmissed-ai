@@ -234,7 +234,6 @@ export default function Step2VoicePreview({ data, onUpdate }: Props) {
         selectedVoiceId={data.voiceId}
         playOnSelect={false}
         onSelect={(voiceId, voiceName) => {
-          console.debug('[voice-select] Selected:', voiceId, voiceName)
           onUpdate({ voiceId, voiceName })
         }}
       />

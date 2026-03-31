@@ -453,11 +453,49 @@ export function patchCallHandlingMode(
     instruction = instruction.replace('{{CLOSE_PERSON}}', closePerson || 'the team')
   }
 
-  return (
+  let result = (
     prompt.substring(0, headingIdx) +
     heading + '\n' + instruction + '\n\n' +
     prompt.substring(sectionEnd).trimStart()
   ).replace(/\n{3,}/g, '\n\n').trimEnd()
+
+  // D183 — Update YOUR PRIMARY GOAL line in # GOAL section to anchor GLM-4.6
+  const PRIMARY_GOAL_MAP: Record<string, string> = {
+    message_only: "Take the caller's name, phone, and message. That is your only job.",
+    voicemail_replacement: "Take the caller's name, phone, and message. Answer 1-2 basic questions if asked. Then close.",
+    info_hub: "Answer the caller's question using your knowledge base. Qualify the lead. Capture their info.",
+    appointment_booking: "Book an appointment on this call. Answer questions, check the calendar, confirm the slot.",
+    full_service: "Answer questions, qualify the lead, and book an appointment if the caller is ready.",
+    triage: "Understand what the caller needs, collect their info, and route to callback.",
+    lead_capture: "Understand what the caller needs, collect their info, and route to callback.",
+  }
+  const primaryGoalText = PRIMARY_GOAL_MAP[newMode] ?? "Understand what the caller needs, collect their info, and route to callback."
+  const existingGoalRe = /YOUR PRIMARY GOAL: [^\n]+/
+  if (existingGoalRe.test(result)) {
+    result = result.replace(existingGoalRe, 'YOUR PRIMARY GOAL: ' + primaryGoalText)
+  } else {
+    const goalHeadingIdx = result.indexOf('\n# GOAL\n')
+    if (goalHeadingIdx !== -1) {
+      const insertAt = goalHeadingIdx + '\n# GOAL\n'.length
+      result = result.slice(0, insertAt) + '\nYOUR PRIMARY GOAL: ' + primaryGoalText + '\n' + result.slice(insertAt)
+    }
+  }
+
+  // D180 — message_only: suppress TRIAGE, INFO COLLECTION, and SCHEDULING sections.
+  // Replace sections 3-5 with a minimal 3-step message-taking script.
+  // Section 6 (CLOSING) is preserved intact.
+  if (newMode === 'message_only') {
+    const triageHeadingRe = /## \d+\. (?:TRIAGE|MESSAGE TAKING)/
+    const triageMatch = result.search(triageHeadingRe)
+    const closingStart = result.indexOf('## 6. CLOSING')
+    if (triageMatch !== -1 && closingStart !== -1) {
+      result = result.slice(0, triageMatch) +
+        '## 3. MESSAGE TAKING\n\nStep 1: Get their name.\nStep 2: Get the reason for calling.\nStep 3: Confirm you have both. Then close the call.\nDo NOT ask follow-up questions. Do NOT triage their issue. Do NOT offer information.\n\n' +
+        result.slice(closingStart)
+    }
+  }
+
+  return result.replace(/\n{3,}/g, '\n\n').trimEnd()
 }
 
 // ── VIP caller protocol patcher ──────────────────────────────────────────────

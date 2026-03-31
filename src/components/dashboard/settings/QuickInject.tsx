@@ -64,7 +64,7 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
               </span>
             )}
           </div>
-          <p className="text-[11px] t3 mt-0.5">Temporary override read to callers at the start of each call. Stays until you clear it.</p>
+          <p className="text-[11px] t3 mt-0.5">Broadcast a live message to every caller today — e.g. &apos;We&apos;re closed this afternoon&apos; or &apos;Ask about our sale&apos;. Clears when you remove it.</p>
         </div>
         {isActive && (
           <button

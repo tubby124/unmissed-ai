@@ -12,6 +12,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { activateClient } from "@/lib/activate-client";
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from "@/lib/prompt-builder";
 import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
+import { rowsToCatalogItems } from "@/lib/service-catalog";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
@@ -186,6 +187,25 @@ export async function POST(req: NextRequest) {
     call_handling_mode: effectiveCallHandlingMode,
   };
   if (!intakeData.niche && data.niche) intakeData.niche = data.niche;
+
+  // D112: Inject service_catalog from selectedServices so buildPromptFromIntake()
+  // fills SERVICES_OFFERED with the actual services the owner entered during onboarding.
+  // These are the same rows that get inserted into client_services below.
+  const selectedServicesForPrompt: string[] = Array.isArray(data.selectedServices) ? data.selectedServices : [];
+  if (selectedServicesForPrompt.length > 0) {
+    intakeData.service_catalog = rowsToCatalogItems(
+      selectedServicesForPrompt
+        .filter((name) => typeof name === 'string' && name.trim())
+        .map((name) => ({
+          name: name.trim().slice(0, 200),
+          description: '',
+          category: '',
+          duration_mins: null,
+          price: '',
+          booking_notes: '',
+        }))
+    );
+  }
 
   // Website scraping enrichment
   // H: Skip duplicate scrape when user already previewed their website during onboarding
@@ -429,6 +449,108 @@ export async function POST(req: NextRequest) {
         serviceTags: rawScrapeResult.serviceTags ?? [],
       },
     }).eq('id', clientId)
+  }
+
+  // D110: Insert selected services into client_services table
+  const selectedServices: string[] = Array.isArray(data.selectedServices) ? data.selectedServices : [];
+  if (selectedServices.length > 0) {
+    const serviceRows = selectedServices
+      .filter((name) => typeof name === 'string' && name.trim())
+      .map((name, idx) => ({
+        client_id: clientId,
+        name: name.trim().slice(0, 200),
+        description: '',
+        category: '',
+        duration_mins: null,
+        price: '',
+        booking_notes: '',
+        active: true,
+        sort_order: idx,
+      }));
+    if (serviceRows.length > 0) {
+      const { error: servicesErr } = await supa
+        .from('client_services')
+        .insert(serviceRows);
+      if (servicesErr) {
+        // Non-fatal — services can be added from the dashboard
+        console.warn(`[provision/trial] client_services insert failed for ${clientSlug}:`, servicesErr.message);
+      } else {
+        console.log(`[provision/trial] Inserted ${serviceRows.length} services for ${clientSlug}`);
+      }
+    }
+  }
+
+  // D127: Extract FAQ pairs from callerFaqText and merge into extra_qa
+  const callerFaqText = (data.callerFaqText ?? '').trim();
+  if (callerFaqText) {
+    const faqApiKey = process.env.OPENROUTER_API_KEY;
+    if (faqApiKey) {
+      try {
+        const faqRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${faqApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'anthropic/claude-haiku-4-5',
+            messages: [{
+              role: 'user',
+              content: `Extract question-and-answer pairs from the following caller FAQ text. Return ONLY valid JSON array with objects having "q" (question string) and "a" (answer string, inferred from context if not explicit). If only questions are listed with no answers, return [] — do not fabricate answers.
+
+FAQ text: "${callerFaqText}"
+
+Return ONLY valid JSON array, no markdown, no explanation. Example: [{"q":"Do you offer free estimates?","a":"Yes, free estimates are available."}]`,
+            }],
+            max_tokens: 1024,
+            temperature: 0,
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (faqRes.ok) {
+          const faqData = await faqRes.json();
+          const faqRaw = (faqData.choices?.[0]?.message?.content ?? '').trim();
+          const arrayMatch = faqRaw.match(/\[[\s\S]*\]/);
+          if (arrayMatch) {
+            let parsedFaq: unknown[] = [];
+            try { parsedFaq = JSON.parse(arrayMatch[0]); } catch { /* ignore */ }
+            const extractedQa = parsedFaq
+              .filter((item): item is { q: string; a: string } =>
+                typeof item === 'object' && item !== null &&
+                typeof (item as Record<string, unknown>).q === 'string' &&
+                typeof (item as Record<string, unknown>).a === 'string' &&
+                ((item as Record<string, unknown>).q as string).trim() !== '' &&
+                ((item as Record<string, unknown>).a as string).trim() !== ''
+              )
+              .map((item) => ({ q: item.q.trim(), a: item.a.trim() }));
+
+            if (extractedQa.length > 0) {
+              // Fetch current extra_qa and merge (scraped/manual QA already written above)
+              const { data: currentClient } = await supa
+                .from('clients')
+                .select('extra_qa')
+                .eq('id', clientId)
+                .maybeSingle();
+              const existingQa: { q: string; a: string }[] = Array.isArray(currentClient?.extra_qa)
+                ? (currentClient.extra_qa as { q: string; a: string }[])
+                : [];
+              // Dedup by question text
+              const existingQuestions = new Set(existingQa.map((p) => p.q.toLowerCase()));
+              const newQa = extractedQa.filter((p) => !existingQuestions.has(p.q.toLowerCase()));
+              if (newQa.length > 0) {
+                const merged = [...existingQa, ...newQa];
+                await supa.from('clients').update({ extra_qa: merged }).eq('id', clientId);
+                console.log(`[provision/trial] Added ${newQa.length} FAQ pairs from callerFaqText for ${clientSlug}`);
+              }
+            }
+          }
+        }
+      } catch (faqErr) {
+        // Non-fatal — FAQ extraction failure should not block activation
+        console.warn(`[provision/trial] FAQ extraction failed for ${clientSlug}:`, faqErr);
+      }
+    }
   }
 
   const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();

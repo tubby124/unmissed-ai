@@ -1,11 +1,12 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { OnboardingData } from "@/types/onboarding";
+import { OnboardingData, Niche } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Inbox, HelpCircle, CalendarCheck, PhoneForwarded, Check, MessageSquare, PhoneCall } from "lucide-react";
+import { Inbox, HelpCircle, CalendarCheck, PhoneForwarded, Check, MessageSquare, PhoneCall, Plus, X, Loader2 } from "lucide-react";
 
 type AgentModeId = 'voicemail_replacement' | 'lead_capture' | 'info_hub' | 'appointment_booking';
 
@@ -58,6 +59,20 @@ const AGENT_MODE_OPTIONS: AgentModeOption[] = [
   },
 ];
 
+// D125 — Niche-aware service suggestions (checked by default)
+const NICHE_SERVICE_SUGGESTIONS: Partial<Record<Niche, string[]>> = {
+  plumbing: ['Drain cleaning', 'Water heater repair', 'Pipe repair', 'Leak detection', 'Toilet repair', 'Faucet installation', 'Emergency plumbing'],
+  hvac: ['AC repair', 'Furnace repair', 'HVAC installation', 'Duct cleaning', 'Thermostat installation', 'Seasonal tune-up', 'Emergency HVAC'],
+  auto_glass: ['Windshield replacement', 'Chip repair', 'Side window replacement', 'Rear window replacement', 'Mobile service', 'Insurance claims'],
+  dental: ['Cleaning & exam', 'Teeth whitening', 'Fillings', 'Crowns', 'Root canal', 'Extractions', 'Invisalign', 'Dental implants'],
+  legal: ['Free consultation', 'Real estate law', 'Family law', 'Personal injury', 'Estate planning', 'Business law', 'Immigration'],
+  salon: ['Haircut', 'Color & highlights', 'Blowout', 'Keratin treatment', 'Manicure', 'Pedicure', 'Waxing', 'Eyebrow shaping'],
+  real_estate: ['Buyer consultation', 'Seller consultation', 'Home valuation', 'Property tours', 'Investment properties', 'First-time buyer'],
+  property_management: ['Tenant screening', 'Rent collection', 'Maintenance coordination', 'Lease renewals', 'Property inspections', 'Eviction assistance'],
+  restaurant: ['Dine-in reservations', 'Takeout orders', 'Catering inquiries', 'Private events', 'Hours & location info'],
+  print_shop: ['Business cards', 'Flyers & brochures', 'Banners & signs', 'Custom apparel', 'Rush printing', 'Design services'],
+};
+
 interface Props {
   data: OnboardingData;
   onUpdate: (updates: Partial<OnboardingData>) => void;
@@ -69,6 +84,70 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
   const ivrEnabled = data.ivrEnabled ?? false;
   // Pro plan or no plan selected yet (trial/pre-selection) — both get full access
   const isPro = data.selectedPlan === "pro" || data.selectedPlan === null;
+
+  // D125: initialise selectedServices from existing data (or niche suggestions all-checked)
+  const nicheSuggestions = data.niche ? (NICHE_SERVICE_SUGGESTIONS[data.niche] ?? []) : [];
+  const showServiceSection = nicheSuggestions.length > 0 && currentMode !== 'voicemail_replacement';
+
+  // Ensure selectedServices has been initialised for this niche
+  const selectedServices: string[] = data.selectedServices ?? nicheSuggestions;
+
+  const toggleService = useCallback((name: string) => {
+    const current = data.selectedServices ?? nicheSuggestions;
+    const next = current.includes(name)
+      ? current.filter((s) => s !== name)
+      : [...current, name];
+    onUpdate({ selectedServices: next });
+  }, [data.selectedServices, nicheSuggestions, onUpdate]);
+
+  // D125: custom service add
+  const [customServiceInput, setCustomServiceInput] = useState('');
+  const addCustomService = useCallback(() => {
+    const trimmed = customServiceInput.trim();
+    if (!trimmed) return;
+    const current = data.selectedServices ?? nicheSuggestions;
+    if (!current.includes(trimmed)) {
+      onUpdate({ selectedServices: [...current, trimmed] });
+    }
+    setCustomServiceInput('');
+  }, [customServiceInput, data.selectedServices, nicheSuggestions, onUpdate]);
+
+  // D126: freeform service paste + parse
+  const [freeformText, setFreeformText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+
+  const parseServices = useCallback(async () => {
+    const text = freeformText.trim();
+    if (!text) return;
+    setIsParsing(true);
+    try {
+      const res = await fetch('/api/onboard/parse-services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const json = await res.json() as { services: { name: string; description?: string; price?: string; duration_mins?: number | null }[] };
+      const parsed = json.services ?? [];
+      if (parsed.length === 0) return;
+
+      // Add parsed service names to selectedServices (dedup)
+      const current = data.selectedServices ?? nicheSuggestions;
+      const newNames = parsed.map((s) => s.name).filter((n) => !current.includes(n));
+      onUpdate({
+        selectedServices: [...current, ...newNames],
+        parsedServiceDrafts: [...(data.parsedServiceDrafts ?? []), ...parsed],
+      });
+      setFreeformText('');
+    } catch {
+      // silently ignore — user can still add services manually
+    } finally {
+      setIsParsing(false);
+    }
+  }, [freeformText, data.selectedServices, data.parsedServiceDrafts, nicheSuggestions, onUpdate]);
+
+  // D127: FAQ text
+  const callerFaqText = data.callerFaqText ?? '';
 
   return (
     <div className="space-y-6">
@@ -173,6 +252,140 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
           );
         })}
       </div>
+
+      {/* ── D125/D126: Services your agent will know about ── */}
+      <AnimatePresence>
+        {showServiceSection && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 border-t border-border space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Services you offer
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  These are the services your agent will know about. Uncheck any that don&apos;t apply, and add your own.
+                </p>
+              </div>
+
+              {/* Niche suggestion checkboxes */}
+              <div className="flex flex-wrap gap-2">
+                {nicheSuggestions.map((name) => {
+                  const checked = selectedServices.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleService(name)}
+                      className={[
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all cursor-pointer",
+                        checked
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                          : "border-border bg-card text-muted-foreground hover:border-indigo-300",
+                      ].join(" ")}
+                    >
+                      {checked && <Check className="w-3 h-3 text-indigo-500 shrink-0" />}
+                      {name}
+                    </button>
+                  );
+                })}
+
+                {/* Custom services added by user (not in niche suggestions) */}
+                {selectedServices
+                  .filter((s) => !nicheSuggestions.includes(s))
+                  .map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleService(name)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-3 py-1 text-xs font-medium transition-all cursor-pointer"
+                    >
+                      <Check className="w-3 h-3 text-indigo-500 shrink-0" />
+                      {name}
+                      <X className="w-3 h-3 text-indigo-400 shrink-0" />
+                    </button>
+                  ))
+                }
+              </div>
+
+              {/* Manual add */}
+              <div className="flex items-center gap-2">
+                <Input
+                  value={customServiceInput}
+                  onChange={(e) => setCustomServiceInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomService(); } }}
+                  placeholder="Add a service…"
+                  className="h-8 text-xs flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomService}
+                  disabled={!customServiceInput.trim()}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 h-8 text-xs font-medium text-muted-foreground hover:border-indigo-300 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+
+              {/* D126: Freeform paste */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Or paste a description of what you offer — we&apos;ll do the work.
+                </p>
+                <Textarea
+                  value={freeformText}
+                  onChange={(e) => setFreeformText(e.target.value)}
+                  onBlur={parseServices}
+                  placeholder={`e.g. "We do oil changes from $65, brake repairs, tire rotations, and transmission work. Emergency towing available 24/7."`}
+                  rows={2}
+                  className="text-xs resize-none"
+                />
+                {isParsing && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Parsing your services…
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── D127: FAQ capture ── */}
+      <AnimatePresence>
+        {currentMode !== 'voicemail_replacement' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 border-t border-border space-y-1.5">
+              <Label htmlFor="callerFaqText" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                What questions do callers ask most?
+              </Label>
+              <Textarea
+                id="callerFaqText"
+                value={callerFaqText}
+                onChange={(e) => onUpdate({ callerFaqText: e.target.value })}
+                placeholder={`e.g. "Do you offer free estimates? How long does a windshield replacement take? Do you accept insurance?"`}
+                rows={2}
+                className="text-sm resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your agent will know the answers — and be ready the moment it goes live.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Add-ons ── */}
       <div className="pt-2 border-t border-border">

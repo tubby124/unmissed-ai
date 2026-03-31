@@ -41,7 +41,7 @@ export default function StepPlan({ data, onUpdate }: Props) {
       <div>
         <h2 className="text-2xl font-bold text-foreground">Choose your plan</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Start free for 7 days. No credit card required.
+          Your 7-day trial includes <strong className="text-foreground">everything</strong> — booking, SMS, transfer, and knowledge. Pick what you want to keep after trial. No credit card now.
         </p>
       </div>
 
@@ -132,7 +132,7 @@ export default function StepPlan({ data, onUpdate }: Props) {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        7-day free trial · No credit card required · Cancel anytime
+        All features unlocked during trial · No credit card required · Cancel anytime
       </p>
     </div>
   );

@@ -41,8 +41,8 @@ export default function PricingHero() {
           transition={{ ...spring, delay: 0.1 }}
         >
           {FOUNDING_PROMO.enabled
-            ? `$${FOUNDING_PROMO.foundingMonthly}/mo. A dollar a day. Agent ready before your first call.`
-            : `Plans from $${PLANS[0].monthly}/mo. Scales as you grow.`}
+            ? `$${FOUNDING_PROMO.foundingMonthly}/mo. Never miss a call. Agent live before you hang up.`
+            : `From $${PLANS[0].monthly}/mo. Your agent answers every call, 24/7.`}
         </motion.h1>
         <motion.p
           className="text-gray-400 text-xl leading-relaxed mb-2"
@@ -50,8 +50,8 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          Other AI receptionists charge per minute — the more your phone
-          rings, the more you pay. We charge a flat rate per plan. Generous minutes included.
+          Other AI receptionists charge per minute — the busier you get, the more you pay.
+          We charge a flat rate per plan so you can grow without watching the meter.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"

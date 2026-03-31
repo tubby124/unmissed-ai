@@ -73,6 +73,9 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   const niche = (intake.niche as string) || 'other'
 
+  // D184 — message_only mode → voicemail builder (lightweight message-taking flow) regardless of niche
+  if ((intake.call_handling_mode as string) === 'message_only') return buildVoicemailPrompt(intake)
+
   // Voicemail uses its own lightweight template (no city, no inbound triage)
   if (niche === 'voicemail') return buildVoicemailPrompt(intake)
 
@@ -413,6 +416,27 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   variables.GREETING_LINE = preset.greetingLine
   variables.CLOSING_LINE = preset.closingLine
 
+  // D171 — Wow-first niche capability greeting
+  // Overrides preset greetingLine with a capability-first opening that leads with what we can DO.
+  // Rules: one question max, under 25 words, capability before qualification, no "How can I help?".
+  // Only applies to niches where we have a meaningful capability to lead with.
+  // Preserves AI disclosure required for compliance ("AI assistant" or "virtual assistant").
+  const NICHE_WOW_GREETINGS: Record<string, string> = {
+    auto_glass:         `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I can usually get you booked same-day — what's going on with your vehicle?"`,
+    hvac:               `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. We handle heating and cooling calls 24/7, including emergencies — what's going on with your system?"`,
+    plumbing:           `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. We take emergency calls too, not just regular repairs — what's happening?"`,
+    dental:             `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I can get you on the schedule — are you a new patient or coming back to see us?"`,
+    legal:              `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I make sure every inquiry gets to the right person quickly — what's brought you to call today?"`,
+    salon:              `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I can check availability and hold your spot — what service were you looking to book?"`,
+    property_management:`"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I track every request so nothing slips — are you a tenant, owner, or looking to lease?"`,
+    barbershop:         `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I can lock in your chair — are you looking to walk in or book ahead?"`,
+    restaurant:         `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I handle reservations and can answer any questions — what can I help you with?"`,
+    print_shop:         `"{{BUSINESS_NAME}} — {{AGENT_NAME}} here, AI assistant. I can get your order started and answer any spec questions — what are you looking to print?"`,
+  }
+  if (NICHE_WOW_GREETINGS[niche]) {
+    variables.GREETING_LINE = NICHE_WOW_GREETINGS[niche]
+  }
+
   // Legacy TONE_INSTRUCTIONS — map from preset for backward compatibility
   if (presetId === 'professional_warm') {
     variables.TONE_INSTRUCTIONS = "Use polished, warm language. Use contractions naturally but avoid slang. Keep sentences clean and direct. Sound confident and approachable."
@@ -512,6 +536,22 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   // Build base prompt
   let prompt = buildPrompt(variables)
+
+  // D183 — Inject YOUR PRIMARY GOAL at top of # GOAL section to anchor GLM-4.6
+  // Must run before any section replacements so subsequent injections don't interfere.
+  const PRIMARY_GOAL_MAP_BUILD: Record<string, string> = {
+    message_only: "Take the caller's name, phone, and message. That is your only job.",
+    voicemail_replacement: "Take the caller's name, phone, and message. Answer 1-2 basic questions if asked. Then close.",
+    info_hub: "Answer the caller's question using your knowledge base. Qualify the lead. Capture their info.",
+    appointment_booking: "Book an appointment on this call. Answer questions, check the calendar, confirm the slot.",
+    full_service: "Answer questions, qualify the lead, and book an appointment if the caller is ready.",
+  }
+  const buildPrimaryGoal = PRIMARY_GOAL_MAP_BUILD[effectiveMode] ?? "Understand what the caller needs, collect their info, and route to callback."
+  const goalHeadingIdx = prompt.indexOf('\n# GOAL\n')
+  if (goalHeadingIdx !== -1) {
+    const insertAt = goalHeadingIdx + '\n# GOAL\n'.length
+    prompt = prompt.slice(0, insertAt) + '\nYOUR PRIMARY GOAL: ' + buildPrimaryGoal + '\n' + prompt.slice(insertAt)
+  }
 
   // Fix TRANSFER_ENABLED literal value leaking into prompt text (e.g. "unless false is true")
   if (variables.TRANSFER_ENABLED === 'false') {

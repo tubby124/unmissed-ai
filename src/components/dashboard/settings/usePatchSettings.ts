@@ -125,13 +125,13 @@ export function usePatchSettings(
       // by a green ✓ Saved toast while an amber warning banner is also showing.
       // Must check data.warnings (raw response) — React state hasn't re-rendered yet at this point.
       if (data.ultravox_synced === false && data.ultravox_error) {
-        toast.warning('Saved, but agent sync failed — retry from the card')
+        toast.warning('Settings saved — agent sync failed. Try saving again.')
       } else if (data.ultravox_synced === false) {
         toast.warning('Saved — agent sync skipped')
       } else if (Array.isArray(data.warnings) && data.warnings.length > 0) {
         toast.warning('Saved — see warning below')
       } else {
-        toast.success('Saved')
+        toast.success('Saved ✓')
       }
       // REFACTOR-3: Removed setWarnings([]) — warnings already clear at the start of each new
       // patch() call (line 67), so the 5s auto-dismiss was silently swallowing them.

@@ -143,7 +143,11 @@ export interface HomeData {
   } | null
   lastFaqSuggestions?: { q: string; a: string }[] | null
   calendarConnected: boolean
+  twilioNumber?: string | null
   agentHealth?: 'healthy' | 'degraded' | 'offline'
+  activeServicesCount?: number
+  returningCallerCount?: number
+  firstCallAt?: string | null
   gbpData?: {
     placeId: string | null
     summary: string | null
@@ -455,6 +459,7 @@ export default function ClientHome() {
               postCallDismissed={postCallDismissed}
               onPostCallDismiss={() => setPostCallDismissed(true)}
               sheet={sheet}
+              fetchData={fetchData}
             />
           )}
           {/* Unified layout for returning trial users, paid-awaiting, and paid-ready */}

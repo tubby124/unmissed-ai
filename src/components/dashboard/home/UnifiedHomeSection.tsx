@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
@@ -24,6 +24,9 @@ import IvrVoicemailTile from './IvrVoicemailTile'
 import PostCallActionsTile from './PostCallActionsTile'
 import CallHandlingTile from './CallHandlingTile'
 import BusinessHoursTile from './BusinessHoursTile'
+import AgentReadinessRow from './AgentReadinessRow'
+import ShareNumberCard from './ShareNumberCard'
+import SoftTestGateCard from './SoftTestGateCard'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -108,6 +111,83 @@ export default function UnifiedHomeSection({
   const [activityOpen, setActivityOpen] = useState(data.recentCalls.length > 0)
   const [syncDismissed, setSyncDismissed] = useState(false)
   const [hotDismissed, setHotDismissed] = useState(false)
+  const [firstCallDismissed, setFirstCallDismissed] = useState(false)
+
+  // D163 — Trial "call me through your agent"
+  const [callMePhone, setCallMePhone] = useState('')
+  const [callMeLoading, setCallMeLoading] = useState(false)
+  const [callMeSuccess, setCallMeSuccess] = useState(false)
+  const [callMeError, setCallMeError] = useState<string | null>(null)
+  // D162 — Call forwarding guide expand/collapse
+  const [forwardingExpanded, setForwardingExpanded] = useState(false)
+
+  // D133 — Ask your agent preview
+  const [askQuestion, setAskQuestion] = useState('')
+  const [askAnswer, setAskAnswer] = useState<{ answer: string; sources: string[] } | null>(null)
+  const [askLoading, setAskLoading] = useState(false)
+  const [askError, setAskError] = useState<string | null>(null)
+
+  const handleAskQuestion = useCallback(async () => {
+    const q = askQuestion.trim()
+    if (!q || askLoading) return
+    setAskLoading(true)
+    setAskAnswer(null)
+    setAskError(null)
+    try {
+      const res = await fetch('/api/dashboard/preview-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, clientId: data.clientId }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setAskError(json.error ?? 'Something went wrong')
+      } else {
+        setAskAnswer(json)
+      }
+    } catch {
+      setAskError('Network error — please try again')
+    } finally {
+      setAskLoading(false)
+    }
+  }, [askQuestion, askLoading, data.clientId])
+
+  // D143 — scroll target for test call nudge
+  const testCallRef = useRef<HTMLDivElement>(null)
+  function scrollToTestCall() {
+    testCallRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  // D163 — outbound call-me handler
+  async function handleCallMe() {
+    const phone = callMePhone.trim()
+    if (!phone || callMeLoading) return
+    setCallMeLoading(true)
+    setCallMeError(null)
+    try {
+      const res = await fetch('/api/dashboard/test-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to_phone: phone }),
+      })
+      const json = await res.json()
+      if (!res.ok) setCallMeError(json.error ?? 'Call failed — try again')
+      else setCallMeSuccess(true)
+    } catch {
+      setCallMeError('Network error — please try again')
+    } finally {
+      setCallMeLoading(false)
+    }
+  }
+
+  // D143 — count test calls from recent calls (includes call_status='test')
+  const testCallCount = data.recentCalls.filter(c => c.call_status === 'test').length
+
+  // D130 — show share number card when twilio_number is set and live calls < 5
+  const liveTotalCalls = data.stats.totalCalls // already excludes test calls (home route filters neq 'test')
+  // D162 — forwarding codes need digits only (strip leading + from E.164 +16045551234 → 16045551234)
+  const twilioNumberDigits = data.twilioNumber ? data.twilioNumber.replace(/^\+/, '') : ''
+  const showShareNumber = !!(data.twilioNumber) && liveTotalCalls < 5
 
   const faqCount = data.editableFields.faqs.length
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -124,30 +204,86 @@ export default function UnifiedHomeSection({
     return parts.join(' · ')
   })()
 
+  const pendingKnowledgeCount = data.knowledge?.pending_review_count ?? 0
+  const openGapsCount = data.insights?.openGaps ?? 0
+  const callHandlingMode = data.callHandlingMode
+
+  const isBookingModeNoCalendar = callHandlingMode === 'appointment_booking' && !calendarConnected
+
   const nextAction: { text: string; cta: string; href: string | null; onUpgrade?: boolean } | null = (() => {
+    // D120 — booking mode + no calendar is handled by dedicated amber banner, not nextAction strip
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
       return { text: "Agent doesn't know your business yet", cta: 'Add facts →', href: '/dashboard/knowledge?tab=add&source=manual' }
     }
     if (!capabilities.hasHours) {
       return { text: "Agent can't tell callers your hours", cta: 'Set hours →', href: '/dashboard/actions#hours' }
     }
+
+    // D129 — Knowledge pending review is high priority
+    if (pendingKnowledgeCount > 0) {
+      return {
+        text: `Review ${pendingKnowledgeCount} page${pendingKnowledgeCount !== 1 ? 's' : ''} scraped from your website — approve what's correct`,
+        cta: 'Review →',
+        href: '/dashboard/settings?tab=general#knowledge',
+      }
+    }
+
     if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
       return { text: 'Add your website to teach your agent more', cta: 'Add website →', href: '/dashboard/knowledge' }
     }
     if (isTrial && !onboarding.hasPhoneNumber) {
       return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade →', href: null, onUpgrade: true }
     }
-    if (capabilities.hasBooking && !calendarConnected) {
-      return { text: 'Connect Google Calendar so your agent can book appointments', cta: 'Connect →', href: '/dashboard/settings?tab=general' }
+    // D113 — Mode-aware: info_hub with no context data
+    if (callHandlingMode === 'info_hub' && !data.editableFields.hasContextData) {
+      return { text: 'Add your menu or reference document — your agent needs it to answer questions', cta: 'Add →', href: '/dashboard/settings?tab=general#context' }
     }
+
+    // D113 — lead_capture: nudge toward FAQs and services
+    if (callHandlingMode === 'lead_capture' && faqCount === 0) {
+      return { text: 'Add FAQs so your agent can qualify leads better', cta: 'Add FAQs →', href: '/dashboard/settings?tab=general#knowledge' }
+    }
+
+    // D131 — Unanswered caller questions ready to close
+    if (openGapsCount > 0) {
+      return {
+        text: `${openGapsCount} caller question${openGapsCount !== 1 ? 's' : ''} your agent couldn't answer — teach it now`,
+        cta: 'Answer →',
+        href: '/dashboard/knowledge',
+      }
+    }
+
     if (!onboarding.telegramConnected) {
       return { text: 'Get instant call alerts on Telegram', cta: 'Connect →', href: '/dashboard/settings?tab=notifications' }
     }
     return null
   })()
 
+  // D168 — first call milestone banner: show within 24h of first_call_at
+  const showFirstCallBanner = !firstCallDismissed &&
+    !!data.firstCallAt &&
+    Date.now() - new Date(data.firstCallAt).getTime() < 24 * 60 * 60 * 1000
+
   return (
     <>
+      {/* ── D168 — First call milestone banner ──────────────────── */}
+      {showFirstCallBanner && (
+        <div className="flex items-start gap-3 rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+          <span className="text-xl leading-none mt-0.5">🎉</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-emerald-200">First real call received!</p>
+            <p className="text-xs text-emerald-400 mt-0.5">Your agent handled its first live call. Check your calls page to see how it went.</p>
+          </div>
+          <button
+            onClick={() => setFirstCallDismissed(true)}
+            className="text-emerald-500 hover:text-emerald-300 text-lg leading-none mt-0.5 shrink-0"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* ── Trial countdown pill ─────────────────────────────────── */}
       {isTrial && (
         <div className="flex items-center gap-2">
@@ -159,6 +295,60 @@ export default function UnifiedHomeSection({
               {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
             </span>
           )}
+        </div>
+      )}
+
+      {/* ── D169 — Trial expiry warning ──────────────────────────── */}
+      {isTrial && typeof daysRemaining === 'number' && daysRemaining <= 3 && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)', flexShrink: 0 }}>
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <p className="text-[12px] flex-1 leading-snug" style={{ color: 'rgb(239,68,68)' }}>
+            {daysRemaining === 0
+              ? 'Your trial expires today — upgrade now to keep your agent live'
+              : `Your trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — don\u2019t lose your agent`}
+          </p>
+          <button
+            onClick={() => openUpgradeModal('trial_expiry_banner', data.clientId, daysRemaining, data.selectedPlan)}
+            className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0"
+            style={{ color: 'rgb(239,68,68)' }}
+          >
+            Upgrade →
+          </button>
+        </div>
+      )}
+
+      {/* ── D167 — Trial upgrade CTA card ────────────────────────── */}
+      {isTrial && !onboarding.hasPhoneNumber && (typeof daysRemaining === 'undefined' || daysRemaining > 3) && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)' }}
+        >
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold t1">Your agent is configured and ready</p>
+            <p className="text-[11px] t3 leading-snug">Get your own phone number so real callers can reach your agent.</p>
+          </div>
+          <button
+            onClick={() => openUpgradeModal('trial_upgrade_card', data.clientId, daysRemaining, data.selectedPlan)}
+            className="shrink-0 text-[12px] font-semibold hover:opacity-75 transition-opacity whitespace-nowrap"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Get my number →
+          </button>
         </div>
       )}
 
@@ -198,6 +388,30 @@ export default function UnifiedHomeSection({
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* ── D120 — Booking mode: no calendar connected banner ───── */}
+      {isBookingModeNoCalendar && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(245,158,11)', flexShrink: 0 }}>
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <p className="text-[12px] flex-1 leading-snug" style={{ color: 'rgb(180,130,30)' }}>
+            Your agent is in booking mode but can&apos;t book yet. Connect Google Calendar to start accepting appointments.
+          </p>
+          <Link
+            href="/dashboard/settings?tab=general#booking"
+            className="text-[12px] font-semibold whitespace-nowrap hover:opacity-75 transition-opacity shrink-0"
+            style={{ color: 'rgb(245,158,11)' }}
+          >
+            Connect Calendar →
+          </Link>
         </div>
       )}
 
@@ -262,21 +476,58 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ── Activity stats strip ─────────────────────────────────── */}
-      {data.stats.totalCalls > 0 && (
+      {data.stats.totalCalls > 0 ? (
         <div className="flex items-center gap-2 flex-wrap px-1">
-          <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
-            {callsToday > 0
-              ? `${callsToday} call${callsToday !== 1 ? 's' : ''} today`
-              : `${data.stats.totalCalls} call${data.stats.totalCalls !== 1 ? 's' : ''} total`}
-          </span>
-          {data.recentCalls[0] && (
-            <>
-              <span style={{ color: 'var(--color-text-3)' }}>·</span>
-              <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
-                last {timeAgo(data.recentCalls[0].started_at)}
+          {/* D141 — Agent freshness signal */}
+          {(() => {
+            const lastCallAt = data.stats.lastCallAt
+            if (!lastCallAt) return null
+            const diff = Date.now() - new Date(lastCallAt).getTime()
+            const mins = Math.floor(diff / 60000)
+            const hrs = Math.floor(mins / 60)
+            const isToday = new Date(lastCallAt).toDateString() === new Date().toDateString()
+            let freshnessText: string
+            if (mins < 60) {
+              freshnessText = `Active — answered ${mins < 1 ? 'just now' : `${mins}m ago`}`
+            } else if (isToday) {
+              freshnessText = `Last answered today at ${new Date(lastCallAt).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}`
+            } else if (hrs < 48) {
+              freshnessText = 'Quiet today'
+            } else {
+              freshnessText = 'Quiet today'
+            }
+            return (
+              <span className="text-[12px]" style={{ color: mins < 60 ? 'rgb(34,197,94)' : 'var(--color-text-3)' }}>
+                {freshnessText}
               </span>
-            </>
-          )}
+            )
+          })()}
+          {data.recentCalls[0] && data.stats.lastCallAt && (() => {
+            const diff = Date.now() - new Date(data.stats.lastCallAt).getTime()
+            const mins = Math.floor(diff / 60000)
+            if (mins >= 60) {
+              return (
+                <>
+                  <span style={{ color: 'var(--color-text-3)' }}>·</span>
+                  <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+                    {callsToday > 0
+                      ? `${callsToday} call${callsToday !== 1 ? 's' : ''} today`
+                      : `${data.stats.totalCalls} call${data.stats.totalCalls !== 1 ? 's' : ''} total`}
+                  </span>
+                </>
+              )
+            }
+            return (
+              <>
+                <span style={{ color: 'var(--color-text-3)' }}>·</span>
+                <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+                  {callsToday > 0
+                    ? `${callsToday} call${callsToday !== 1 ? 's' : ''} today`
+                    : `${data.stats.totalCalls} call${data.stats.totalCalls !== 1 ? 's' : ''} total`}
+                </span>
+              </>
+            )
+          })()}
           {data.usage.minutesUsed > 0 && (
             <>
               <span style={{ color: 'var(--color-text-3)' }}>·</span>
@@ -285,7 +536,185 @@ export default function UnifiedHomeSection({
               </span>
             </>
           )}
+          {/* D139 — Returning caller stat */}
+          {(data.returningCallerCount ?? 0) >= 3 ? (
+            <>
+              <span style={{ color: 'var(--color-text-3)' }}>·</span>
+              <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }} title="Callers recognized by name this month">
+                {data.returningCallerCount} recognized
+              </span>
+            </>
+          ) : data.stats.totalCalls >= 5 ? (
+            <>
+              <span style={{ color: 'var(--color-text-3)' }}>·</span>
+              <span className="text-[12px] italic" style={{ color: 'var(--color-text-3)' }}>
+                Once callers return, your agent greets them by name.
+              </span>
+            </>
+          ) : null}
         </div>
+      ) : (
+        /* D141 — No calls yet freshness state */
+        <div className="px-1">
+          <span className="text-[12px]" style={{ color: 'var(--color-text-3)' }}>
+            No calls yet — forward your number to get started
+          </span>
+        </div>
+      )}
+
+      {/* ── D162 — Call forwarding guide ─────────────────────────── */}
+      {!isTrial && !!data.twilioNumber && data.stats.totalCalls === 0 && (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
+        >
+          <button
+            onClick={() => setForwardingExpanded(x => !x)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left"
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold t1">Forward your existing number to your agent</p>
+              <p className="text-[11px] t3 leading-snug">Your agent number is <span className="font-mono">{data.twilioNumber}</span> — forward from your business line to start receiving calls.</p>
+            </div>
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              style={{ color: 'var(--color-text-3)', flexShrink: 0, transform: forwardingExpanded ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {forwardingExpanded && (
+            <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: 'rgba(99,102,241,0.15)' }}>
+              <div className="pt-3 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-3)' }}>Landline — Rogers / Bell / SaskTel / Telus</p>
+                <div className="rounded-lg px-3 py-2.5 space-y-1.5" style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex items-baseline gap-2">
+                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*72 {twilioNumberDigits}</code>
+                    <span className="text-[11px] t3">all calls (pick up landline, dial, wait for tone)</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-text-2)' }}>*92 {twilioNumberDigits}</code>
+                    <span className="text-[11px] t3">no-answer only</span>
+                  </div>
+                  <p className="text-[11px] t3">Telus: destination must ring and be answered to confirm activation.</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-3)' }}>Mobile — Rogers / Bell / Telus / Fido / Koodo</p>
+                <div className="rounded-lg px-3 py-2.5 space-y-1.5" style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex items-baseline gap-2">
+                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*21*{twilioNumberDigits}#</code>
+                    <span className="text-[11px] t3">all calls</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-text-2)' }}>*61*{twilioNumberDigits}#</code>
+                    <span className="text-[11px] t3">no-answer only</span>
+                  </div>
+                  <p className="text-[11px] t3">Rogers/Fido: disable voicemail first. Koodo: requires Call Forwarding add-on in My Koodo app.</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-3)' }}>VoIP — RingCentral / Ooma / Telus Business Connect</p>
+                <p className="text-[11px] t3 leading-relaxed">In your admin portal: <strong>Extensions → Call Forwarding → No Answer</strong> → enter <code className="font-mono text-[12px]" style={{ color: 'var(--color-primary)' }}>{data.twilioNumber}</code></p>
+              </div>
+              <p className="text-[11px] t3">To deactivate: landline dial <code className="font-mono text-[12px]">*73</code> · mobile dial <code className="font-mono text-[12px]">#21#</code></p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── D172 — Forwarding confirmed banner ───────────────────── */}
+      {!isTrial && !!data.twilioNumber && liveTotalCalls > 0 && liveTotalCalls < 10 && (
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30">
+          <span className="text-emerald-400 text-lg leading-none shrink-0">✅</span>
+          <div>
+            <p className="text-sm font-semibold text-emerald-200">Call forwarding is working</p>
+            <p className="text-xs text-emerald-400 mt-0.5">Your calls are reaching your agent. Check your calls page to review them.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── D143 — Soft test gate nudge ──────────────────────────── */}
+      {onboarding.hasAgent && testCallCount === 0 && (
+        <SoftTestGateCard onScrollToTestCall={scrollToTestCall} />
+      )}
+
+      {/* ── D163 — Trial "call me through your agent" ────────────── */}
+      {isTrial && data.clientId && !callMeSuccess && (
+        <div
+          className="px-4 py-4 rounded-xl space-y-3"
+          style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
+        >
+          <div>
+            <p className="text-[12px] font-semibold t1">Hear your agent on a real phone call</p>
+            <p className="text-[11px] t3 leading-snug mt-0.5">We&apos;ll dial your phone and connect you — no forwarding setup needed.</p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              value={callMePhone}
+              onChange={e => setCallMePhone(e.target.value)}
+              placeholder="Your phone number"
+              className="flex-1 px-3 py-2 rounded-lg text-[12px] outline-none focus:ring-1"
+              style={{
+                backgroundColor: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-1)',
+              }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleCallMe() }}
+              disabled={callMeLoading}
+            />
+            <button
+              onClick={() => void handleCallMe()}
+              disabled={callMeLoading || !callMePhone.trim()}
+              className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {callMeLoading ? 'Calling…' : 'Call me'}
+            </button>
+          </div>
+          {callMeError && (
+            <p className="text-[11px]" style={{ color: 'rgb(239,68,68)' }}>{callMeError}</p>
+          )}
+        </div>
+      )}
+      {isTrial && callMeSuccess && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}
+        >
+          <span className="text-base">📞</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold t1">Call is on its way!</p>
+            <p className="text-[11px] t3 leading-snug">Your phone will ring in a few seconds — answer it to talk to your agent.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── D128 — Agent readiness row ───────────────────────────── */}
+      {onboarding.hasAgent && (
+        <AgentReadinessRow
+          hoursWeekday={data.editableFields.hoursWeekday}
+          activeServicesCount={data.activeServicesCount ?? 0}
+          faqCount={faqCount}
+          calendarConnected={calendarConnected}
+          callHandlingMode={data.callHandlingMode}
+          approvedKnowledgeCount={data.knowledge?.approved_chunk_count ?? 0}
+          pendingKnowledgeCount={data.knowledge?.pending_review_count ?? 0}
+        />
+      )}
+
+      {/* ── D130 — Share number card ─────────────────────────────── */}
+      {showShareNumber && data.twilioNumber && (
+        <ShareNumberCard twilioNumber={data.twilioNumber} />
       )}
 
       {/* ── 3-col hero: Capabilities | TestCall | TodayUpdate + Stats ── */}
@@ -301,23 +730,27 @@ export default function UnifiedHomeSection({
             hasIvr={data.editableFields.ivrEnabled}
             hasContextData={data.editableFields.hasContextData}
             selectedPlan={data.selectedPlan}
+            hasTelegramAlerts={onboarding.telegramConnected}
           />
-          <TestCallCard
-            clientId={data.clientId}
-            isAdmin={false}
-            isTrial={isTrial}
-            knowledge={{
-              agentName: agent.name || undefined,
-              hasFacts: !!(data.editableFields.businessFacts?.trim()),
-              hasFaqs: faqCount > 0,
-              hasHours: !!data.editableFields.hoursWeekday,
-              hasBooking: capabilities.hasBooking,
-              hasTransfer: capabilities.hasTransfer,
-              hasSms: capabilities.hasSms,
-              hasKnowledge: capabilities.hasKnowledge,
-              hasWebsite: capabilities.hasWebsite,
-            }}
-          />
+          <div ref={testCallRef}>
+            <TestCallCard
+              clientId={data.clientId}
+              isAdmin={false}
+              isTrial={isTrial}
+              onCallEnded={fetchData}
+              knowledge={{
+                agentName: agent.name || undefined,
+                hasFacts: !!(data.editableFields.businessFacts?.trim()),
+                hasFaqs: faqCount > 0,
+                hasHours: !!data.editableFields.hoursWeekday,
+                hasBooking: capabilities.hasBooking,
+                hasTransfer: capabilities.hasTransfer,
+                hasSms: capabilities.hasSms,
+                hasKnowledge: capabilities.hasKnowledge,
+                hasWebsite: capabilities.hasWebsite,
+              }}
+            />
+          </div>
           <div className="space-y-3">
             {/* Trial: show mode switcher so they can configure before go-live */}
             {isTrial && (
@@ -601,6 +1034,57 @@ export default function UnifiedHomeSection({
             Paste anything — services, pricing, team bios, policies, FAQs. {agent.name || 'Your agent'} will learn it and use it on calls.
           </p>
           <KnowledgeTextInput clientId={data.clientId} isAdmin={false} compact />
+        </div>
+      )}
+
+      {/* ── D133 — Ask your agent (knowledge preview) ────────────── */}
+      {data.clientId && (capabilities.hasFacts || capabilities.hasKnowledge || capabilities.hasWebsite) && (
+        <div className="rounded-2xl border b-theme bg-surface p-4 space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Ask your agent</p>
+            <p className="text-[11px] t3 mt-0.5">Type a question a caller might ask — see what your agent knows.</p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={askQuestion}
+              onChange={e => {
+                setAskQuestion(e.target.value)
+                if (askAnswer) setAskAnswer(null)
+                if (askError) setAskError(null)
+              }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleAskQuestion() }}
+              placeholder="e.g. What are your hours? Do you offer emergency service?"
+              className="flex-1 bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+              disabled={askLoading}
+            />
+            <button
+              onClick={() => void handleAskQuestion()}
+              disabled={!askQuestion.trim() || askLoading}
+              className="px-4 py-2 rounded-xl text-xs font-semibold transition-all bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 disabled:opacity-40 shrink-0"
+            >
+              {askLoading ? '…' : 'Ask'}
+            </button>
+          </div>
+          {askError && (
+            <p className="text-[11px] text-red-400">{askError}</p>
+          )}
+          {askAnswer && (
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold tracking-[0.1em] uppercase t3">What your agent knows:</p>
+              <blockquote
+                className="rounded-lg px-3 py-2.5 text-[12px] leading-relaxed t1"
+                style={{ backgroundColor: 'rgba(99,102,241,0.06)', borderLeft: '3px solid var(--color-primary)' }}
+              >
+                {askAnswer.answer}
+              </blockquote>
+              {askAnswer.sources.length > 0 && (
+                <p className="text-[10px] t3">
+                  Sources: {askAnswer.sources.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

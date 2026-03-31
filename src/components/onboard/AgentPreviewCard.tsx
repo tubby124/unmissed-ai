@@ -1,25 +1,4 @@
-// ── Niche labels + greetings for preview card ──────────────────────────────
-export const NICHE_LABELS: Record<string, string> = {
-  auto_glass: "Auto Glass Shop",
-  hvac: "HVAC / Heating & Cooling",
-  plumbing: "Plumbing",
-  dental: "Dental Office",
-  legal: "Law Firm",
-  salon: "Salon / Barbershop",
-  real_estate: "Real Estate Agent",
-  property_management: "Property Management",
-  outbound_isa_realtor: "Realtor ISA (Outbound)",
-  restaurant: "Restaurant / Food Service",
-  voicemail: "Voicemail / Message Taking",
-  other: "Other Business",
-};
-
-export const DEFAULT_AGENT_NAMES: Record<string, string> = {
-  auto_glass: "Mark", hvac: "Mike", plumbing: "Dave", dental: "Ashley",
-  legal: "Jordan", salon: "Jamie", real_estate: "Alex",
-  property_management: "Jade", outbound_isa_realtor: "Fatima",
-  voicemail: "Sam", restaurant: "Sofia", other: "Sam",
-};
+import { defaultAgentNames, nicheLabels } from "@/types/onboarding";
 
 export function getSampleGreeting(niche: string, businessName: string, agentName: string): string {
   const biz = businessName || "your business";
@@ -38,9 +17,9 @@ export interface IntakePreview {
 
 export function AgentPreviewCard({ preview }: { preview: IntakePreview }) {
   const niche = preview.niche || "other";
-  const agentName = preview.agentName || DEFAULT_AGENT_NAMES[niche] || "Sam";
+  const agentName = preview.agentName || defaultAgentNames[niche as keyof typeof defaultAgentNames] || "Sam";
   const businessName = preview.businessName || "Your Business";
-  const nicheLabel = NICHE_LABELS[niche] || niche.replace(/_/g, " ");
+  const nicheLabel = nicheLabels[niche as keyof typeof nicheLabels] || niche.replace(/_/g, " ");
   const voiceLabel = preview.voiceId ? "Custom voice selected" : "Auto (based on niche)";
   const greeting = getSampleGreeting(niche, businessName, agentName);
 
