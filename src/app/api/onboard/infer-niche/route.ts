@@ -132,10 +132,7 @@ Return ONLY valid JSON with no other text:
         },
         body: JSON.stringify({
           model: 'anthropic/claude-haiku-4-5',
-          messages: [
-            { role: 'user', content: triagePrompt },
-            { role: 'assistant', content: '{' },
-          ],
+          messages: [{ role: 'user', content: triagePrompt }],
           max_tokens: 1000,
           temperature: 0,
         }),
@@ -144,8 +141,7 @@ Return ONLY valid JSON with no other text:
 
       if (res.ok) {
         const data = await res.json()
-        // Prefill adds '{' as assistant turn — prepend it back for JSON parsing
-        const raw = ('{' + (data.choices?.[0]?.message?.content ?? '')).trim()
+        const raw = (data.choices?.[0]?.message?.content ?? '').trim()
         const jsonMatch = raw.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           try {
