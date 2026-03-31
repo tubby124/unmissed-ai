@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, lastTopicsRes, lastFaqRes, todayCallsRes, servicesRes, returningCallerRes, weekCallsRes] = await Promise.all([
+  const [clientRes, callsRes, prevCallsRes, bookingsRes, recentRes, knowledgeRes, gapsRes, gapTextsRes, lastTopicsRes, lastFaqRes, todayCallsRes, servicesRes, returningCallerRes, weekCallsRes] = await Promise.all([
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
@@ -97,6 +97,17 @@ export async function GET(request: Request) {
       .eq('client_id', clientId)
       .eq('result_count', 0)
       .is('resolved_at', null),
+
+    // D252 — Top gap query texts (last 30 days, unanswered) for KnowledgeGapCTA
+    supabase
+      .from('knowledge_query_log')
+      .select('query_text')
+      .eq('client_id', clientId)
+      .eq('result_count', 0)
+      .is('resolved_at', null)
+      .gte('created_at', thirtyDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(50),
 
     // Last call with topics — for home dashboard "teach your agent" panel
     supabase
@@ -198,6 +209,17 @@ export async function GET(request: Request) {
   const lastUpdatedAt = allUpdatedAts.length > 0
     ? allUpdatedAts.sort().reverse()[0]
     : null
+
+  // D252 — Aggregate top gap query texts by frequency
+  const gapTextsRaw = (gapTextsRes.data ?? []).map(r => (r.query_text as string).trim().toLowerCase())
+  const gapFreq: Record<string, number> = {}
+  for (const t of gapTextsRaw) {
+    gapFreq[t] = (gapFreq[t] ?? 0) + 1
+  }
+  const topGaps = Object.entries(gapFreq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([query_text, count]) => ({ query_text, count }))
 
   // G5/D: Knowledge coverage + open gaps for insights header
   const openGaps = gapsRes.count ?? 0
@@ -362,6 +384,7 @@ export async function GET(request: Request) {
     insights: {
       knowledgeCoverage,
       openGaps,
+      topGaps,
     },
     editableFields: {
       hoursWeekday: (c.business_hours_weekday as string | null) ?? null,

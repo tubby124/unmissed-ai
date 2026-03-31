@@ -120,3 +120,4 @@ Every piece of owner input — from onboarding OR the dashboard — maps to an i
 
 **D254** brings the D247 intent editor to the dashboard (post-onboarding edits).
 **D255** ensures context_data is always populated — website scrape OR guided manual entry.
+**D257** closes the loop: all filled injectables get fed BACK through Haiku — not just as data dumps, but as specific prompt section improvements. "You have 3 FAQs about gluten-free. Add a DIETARY_RESTRICTION triage route." Owner confirms → live. This is the self-improving flywheel.

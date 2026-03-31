@@ -16,6 +16,10 @@ export const NICHE_CONFIG: Record<string, { label: string; color: string; border
   'legal':               { label: 'Legal',              color: 'text-rose-400',   border: 'border-rose-500/30',   bg: 'bg-rose-500/10' },
   'print_shop':          { label: 'Print Shop',         color: 'text-indigo-400', border: 'border-indigo-500/30', bg: 'bg-indigo-500/10' },
   'voicemail':           { label: 'Voicemail',          color: 'text-zinc-400',   border: 'border-zinc-500/30',   bg: 'bg-zinc-500/10' },
+  'mechanic_shop':       { label: 'Auto Repair',        color: 'text-red-400',    border: 'border-red-500/30',    bg: 'bg-red-500/10' },
+  'pest_control':        { label: 'Pest Control',       color: 'text-lime-400',   border: 'border-lime-500/30',   bg: 'bg-lime-500/10' },
+  'electrician':         { label: 'Electrician',        color: 'text-yellow-400', border: 'border-yellow-500/30', bg: 'bg-yellow-500/10' },
+  'locksmith':           { label: 'Locksmith',          color: 'text-slate-400',  border: 'border-slate-500/30',  bg: 'bg-slate-500/10' },
   'other':               { label: 'Other',              color: 'text-zinc-400',   border: 'border-zinc-500/30',   bg: 'bg-zinc-500/10' },
 }
 
@@ -37,6 +41,10 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   plumbing:             'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
   legal:                'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — professional
   voicemail:            '87edb04c-06d4-47c2-bd94-683bc47e8fbe', // Monika — warm, natural (upgraded from Emily)
+  mechanic_shop:        'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — confident, direct
+  pest_control:         'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — practical, calm
+  electrician:          'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — direct, reassuring
+  locksmith:            'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — fast, direct (lockouts = speed)
   other:                'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — safe default
 }
 
@@ -53,6 +61,10 @@ export const NICHE_PRODUCTION_READY: Record<Niche, boolean> = {
   restaurant:           true,
   voicemail:            true,
   print_shop:           true,
+  mechanic_shop:        true,
+  pest_control:         true,
+  electrician:          true,
+  locksmith:            true,
   other:                true,
 }
 

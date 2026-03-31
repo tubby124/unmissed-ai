@@ -579,6 +579,21 @@ export default function AgentTab({
         previewMode={previewMode}
       />
 
+      {/* D251 — Triage section editor: let owners self-serve fix their routing script */}
+      <SectionEditorCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        sectionId="triage"
+        label="Call Routing Script"
+        desc="How your agent identifies why someone is calling and what to do next"
+        rows={8}
+        initialContent={(sectionContent[client.id] ?? {}).triage ?? ''}
+        hasMarker={'triage' in (sectionContent[client.id] ?? {})}
+        hasExistingHeader={!('triage' in (sectionContent[client.id] ?? {})) && !!findExistingSectionHeader(prompt[client.id] ?? '', 'triage')}
+        previewMode={previewMode}
+        onPromptChange={handlePromptChange}
+      />
+
       {hasCapability(niche, 'bookAppointments') && (
         <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
           <div id="section-booking">

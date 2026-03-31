@@ -521,6 +521,57 @@ export default function UnifiedHomeSection({
         hasTriage={data.hasTriage ?? false}
       />
 
+      {/* ── D252 — Knowledge gap CTA (show specific questions) ───── */}
+      {(() => {
+        const topGaps = data.insights?.topGaps
+        if (!topGaps || topGaps.length === 0) return null
+        const topTwo = topGaps.slice(0, 2)
+        return (
+          <div
+            className="rounded-2xl p-4"
+            style={{ border: '1px solid rgba(99,102,241,0.15)', backgroundColor: 'rgba(99,102,241,0.04)' }}
+          >
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--color-primary)' }}>
+                Missed questions
+              </p>
+              <Link
+                href="/dashboard/knowledge"
+                className="text-[11px] font-semibold hover:opacity-75 transition-opacity"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                Teach agent →
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {topTwo.map((g, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span
+                    className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'rgb(239,68,68)' }}
+                  >
+                    {g.count}×
+                  </span>
+                  <p className="text-[12px] t2 flex-1 truncate">&ldquo;{g.query_text}&rdquo;</p>
+                  <Link
+                    href={`/dashboard/knowledge?q=${encodeURIComponent(g.query_text)}`}
+                    className="text-[11px] font-medium hover:opacity-75 transition-opacity shrink-0"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    Answer →
+                  </Link>
+                </div>
+              ))}
+              {topGaps.length > 2 && (
+                <p className="text-[10px] t3 pt-0.5">
+                  +{topGaps.length - 2} more unanswered — <Link href="/dashboard/knowledge" className="hover:opacity-75 underline" style={{ color: 'var(--color-primary)' }}>view all</Link>
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ── Activity stats strip ─────────────────────────────────── */}
       {data.stats.totalCalls > 0 ? (
         <div className="flex items-center gap-2 flex-wrap px-1">

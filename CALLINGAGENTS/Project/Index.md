@@ -56,8 +56,9 @@ updated: 2026-03-31
 - [[Tracker/D243]] — TRIAGE rewrite: intent-first structure 🔴
 - [[Tracker/D247]] — ✅ DONE — 6 onboarding questions → Haiku → TRIAGE_DEEP (D254 companion: dashboard card)
 - [[Tracker/D254]] — ✅ DONE — CallRoutingCard: post-onboarding caller reasons → regenerate TRIAGE_DEEP
-- [[Tracker/D249]] — Agent readiness gate + score on home 🔴
+- [[Tracker/D249]] — ✅ DONE — Agent readiness gate (6 dimensions: Hours, Routing, Services, FAQs, Calendar, Knowledge)
 - [[Tracker/D250]] — ROI card ("12 calls, 4 HOT leads, ~3hrs saved") 🔴
+- [[Tracker/D257]] — 🔴 AI-Assisted Prompt Suggestions Feed — self-improving loop (all context → Haiku → confirmable suggestions)
 - [[Tracker/D251]] — Per-section prompt editor UI (self-serve fixes) 🔴
 - [[Tracker/D245]] — Intent routing test on active clients (after D243)
 - [[Tracker/D233]] — CRON_SECRET verify in Railway ⚠️ ops

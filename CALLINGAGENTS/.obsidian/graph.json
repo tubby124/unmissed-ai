@@ -1,22 +1,79 @@
 {
-  "collapse-filter": true,
+  "collapse-filter": false,
   "search": "",
   "showTags": false,
   "showAttachments": false,
   "hideUnresolved": false,
   "showOrphans": true,
-  "collapse-color-groups": true,
-  "colorGroups": [],
-  "collapse-display": true,
-  "showArrow": false,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:Clients",
+      "color": {
+        "a": 1,
+        "rgb": 4538623
+      }
+    },
+    {
+      "query": "path:Features",
+      "color": {
+        "a": 1,
+        "rgb": 16744448
+      }
+    },
+    {
+      "query": "path:Architecture",
+      "color": {
+        "a": 1,
+        "rgb": 16776960
+      }
+    },
+    {
+      "query": "path:Decisions",
+      "color": {
+        "a": 1,
+        "rgb": 8388736
+      }
+    },
+    {
+      "query": "path:Tracker",
+      "color": {
+        "a": 1,
+        "rgb": 16711680
+      }
+    },
+    {
+      "query": "path:Product",
+      "color": {
+        "a": 1,
+        "rgb": 65280
+      }
+    },
+    {
+      "query": "path:Dashboard",
+      "color": {
+        "a": 1,
+        "rgb": 16743068
+      }
+    },
+    {
+      "query": "path:Operations",
+      "color": {
+        "a": 1,
+        "rgb": 8421504
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
   "textFadeMultiplier": 0,
   "nodeSizeMultiplier": 1,
   "lineSizeMultiplier": 1,
-  "collapse-forces": true,
-  "centerStrength": 0.518713248970312,
+  "collapse-forces": false,
+  "centerStrength": 0.518,
   "repelStrength": 10,
   "linkStrength": 1,
   "linkDistance": 250,
-  "scale": 1,
-  "close": false
+  "scale": 1.7596419403481782,
+  "close": true
 }

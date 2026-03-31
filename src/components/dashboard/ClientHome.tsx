@@ -135,6 +135,7 @@ export interface HomeData {
   insights?: {
     knowledgeCoverage: number | null
     openGaps: number
+    topGaps?: { query_text: string; count: number }[]
   }
   lastCallTopics?: {
     id: string

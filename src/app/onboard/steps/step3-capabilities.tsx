@@ -172,6 +172,7 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
           businessName: data.businessName,
           knownNiche: data.niche,
           callerReasons: filled,
+          urgencyWords: data.urgencyWords?.trim() || undefined,
         }),
       })
       if (!res.ok) return
@@ -192,8 +193,7 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
   const triageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     const filled = (data.callerReasons ?? []).map(r => r.trim()).filter(r => r.length > 0)
-    // Only run when there are filled reasons and TRIAGE_DEEP hasn't been generated yet
-    if (filled.length === 0 || data.nicheCustomVariables?.TRIAGE_DEEP) return
+    if (filled.length === 0) return
     if (triageTimerRef.current) clearTimeout(triageTimerRef.current)
     triageTimerRef.current = setTimeout(() => {
       void generateTriage()
@@ -201,7 +201,8 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
     return () => {
       if (triageTimerRef.current) clearTimeout(triageTimerRef.current)
     }
-  }, [data.callerReasons, data.nicheCustomVariables?.TRIAGE_DEEP, generateTriage])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.callerReasons, data.urgencyWords])
 
   return (
     <div className="space-y-6">
@@ -486,6 +487,53 @@ export default function Step3Capabilities({ data, onUpdate }: Props) {
                   Call routing ready — your agent knows how to handle each caller type.
                 </p>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── D258/D259: Urgency signals + price range ── */}
+      <AnimatePresence>
+        {currentMode !== 'voicemail_replacement' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 border-t border-border space-y-4">
+              {/* Urgency words */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  What do callers say when it&apos;s urgent?
+                </Label>
+                <Input
+                  value={data.urgencyWords ?? ''}
+                  onChange={(e) => onUpdate({ urgencyWords: e.target.value })}
+                  placeholder={`e.g. "not working, same day, emergency, can't wait"`}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your agent will spot these phrases and route the call immediately — no back-and-forth.
+                </p>
+              </div>
+
+              {/* Price range */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Typical price range <span className="font-normal normal-case">(optional)</span>
+                </Label>
+                <Input
+                  value={data.priceRange ?? ''}
+                  onChange={(e) => onUpdate({ priceRange: e.target.value })}
+                  placeholder={`e.g. "$150–$400 for most repairs"`}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Gives callers a ballpark before they hang up — your agent stops saying &ldquo;I&apos;m not sure, someone will call you.&rdquo;
+                </p>
+              </div>
             </div>
           </motion.div>
         )}

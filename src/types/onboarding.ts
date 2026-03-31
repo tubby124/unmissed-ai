@@ -13,6 +13,10 @@ export type Niche =
   | "restaurant"
   | "voicemail"
   | "print_shop"
+  | "mechanic_shop"
+  | "pest_control"
+  | "electrician"
+  | "locksmith"
   | "other";
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
@@ -148,6 +152,12 @@ export interface OnboardingData {
 
   // D247: Owner's top reasons people call — used to generate custom TRIAGE_DEEP via Haiku
   callerReasons?: string[];
+
+  // D258: What callers say when it's urgent — improves URGENT block in TRIAGE_DEEP
+  urgencyWords?: string;
+
+  // D259: Typical price range for most common service — injected into context_data
+  priceRange?: string;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -169,6 +179,10 @@ export const NICHE_CONFIG: Record<Niche, {
   restaurant:           { hasPhysicalAddress: true  },
   voicemail:            { hasPhysicalAddress: false },
   print_shop:           { hasPhysicalAddress: true  },
+  mechanic_shop:        { hasPhysicalAddress: true  },
+  pest_control:         { hasPhysicalAddress: false },
+  electrician:          { hasPhysicalAddress: false },
+  locksmith:            { hasPhysicalAddress: false },
   other:                { hasPhysicalAddress: false },
 };
 
@@ -231,6 +245,8 @@ export const defaultOnboardingData: OnboardingData = {
   selectedServices: [],
   parsedServiceDrafts: [],
   callerFaqText: '',
+  urgencyWords: '',
+  priceRange: '',
 };
 
 export const nicheLabels: Record<Niche, string> = {
@@ -246,6 +262,10 @@ export const nicheLabels: Record<Niche, string> = {
   restaurant: "Restaurant / Food Service",
   voicemail: "Voicemail / Message Taking",
   print_shop: "Print Shop",
+  mechanic_shop: "Auto Mechanic Shop",
+  pest_control: "Pest Control",
+  electrician: "Electrician",
+  locksmith: "Locksmith",
   other: "Other Business",
 };
 
@@ -262,6 +282,10 @@ export const nicheEmojis: Record<Niche, string> = {
   restaurant: "🍕",
   voicemail: "📬",
   print_shop: "🖨️",
+  mechanic_shop: "🔩",
+  pest_control: "🐛",
+  electrician: "⚡",
+  locksmith: "🔑",
   other: "🏢",
 };
 
@@ -278,5 +302,9 @@ export const defaultAgentNames: Record<Niche, string> = {
   restaurant: "Sofia",
   voicemail: "Sam",
   print_shop: "Alex",
+  mechanic_shop: "Jake",
+  pest_control: "Tyler",
+  electrician: "Ryan",
+  locksmith: "Chris",
   other: "Sam",
 };

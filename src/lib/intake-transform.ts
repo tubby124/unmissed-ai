@@ -193,13 +193,19 @@ export function toIntakePayload(data: OnboardingData) {
     ...(data.nicheCustomVariables ? { niche_custom_variables: data.nicheCustomVariables } : {}),
     // Niche-specific context_data wiring (explicit niche data takes priority)
     // Fallback: use Haiku-extracted contextData from website scrape (D246)
+    // D259: priceRange entered during onboarding is prepended to context_data when present
     ...(data.niche === 'restaurant' && data.nicheAnswers?.menuData
       ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }
       : data.niche === 'property_management' && data.nicheAnswers?.tenantRoster
       ? { context_data: String(data.nicheAnswers.tenantRoster), context_data_label: 'TENANTS' }
-      : data.websiteScrapeResult?.contextData
-      ? { context_data: String(data.websiteScrapeResult.contextData), context_data_label: 'BUSINESS INFO' }
-      : {}),
+      : (() => {
+          const pricePrefix = data.priceRange?.trim() ? `PRICES\n${data.priceRange.trim()}\n\n` : ''
+          const scraped = data.websiteScrapeResult?.contextData ? String(data.websiteScrapeResult.contextData) : ''
+          const combined = (pricePrefix + scraped).trim()
+          return combined
+            ? { context_data: combined, context_data_label: 'BUSINESS INFO' }
+            : {}
+        })()),
     ...Object.fromEntries(
       Object.entries(data.nicheAnswers).map(([k, v]) =>
         [`niche_${k}`, Array.isArray(v) ? (v as string[]).join(", ") : String(v)]

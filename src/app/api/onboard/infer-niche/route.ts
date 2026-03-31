@@ -28,6 +28,10 @@ const NICHE_HINTS: Record<string, string> = {
   restaurant:          'restaurant, cafe, food service, takeout, catering, dining',
   print_shop:          'printing, signs, banners, business cards, custom print, signage',
   voicemail:           'answering service, message taking, simple voicemail, call screening',
+  mechanic_shop:       'auto mechanic, car repair, vehicle service, oil change, brake repair, engine diagnostics',
+  pest_control:        'pest control, exterminator, bug control, rodent removal, bed bugs, wasp nest',
+  electrician:         'electrician, electrical contractor, wiring, panel upgrade, EV charger install, electrical repair',
+  locksmith:           'locksmith, lockout service, lock replacement, key cutting, car lockout, security locks',
   other:               'none of the above — use this if the business is a unique type',
 }
 
@@ -43,6 +47,7 @@ export async function POST(req: NextRequest) {
   let businessName: string
   let callerReasons: string[] | undefined
   let knownNiche: string | undefined
+  let urgencyWords: string | undefined
   try {
     const body = await req.json()
     businessName = (body.businessName as string)?.trim() || ''
@@ -54,6 +59,9 @@ export async function POST(req: NextRequest) {
       if (callerReasons.length === 0) callerReasons = undefined
     }
     knownNiche = typeof body.knownNiche === 'string' ? body.knownNiche.trim() : undefined
+    urgencyWords = typeof body.urgencyWords === 'string' && body.urgencyWords.trim()
+      ? body.urgencyWords.trim()
+      : undefined
   } catch {
     return NextResponse.json({ niche: 'other' }, { status: 400 })
   }
@@ -76,11 +84,15 @@ export async function POST(req: NextRequest) {
     const nicheLabel = NICHE_HINTS[validKnown] ?? validKnown.replace(/_/g, ' ')
     const reasonsList = callerReasons.map((r, i) => `${i + 1}. ${r}`).join('\n')
 
+    const urgencyLine = urgencyWords
+      ? `\nUrgency signals the owner provided (what callers say when it's an emergency):\n${urgencyWords}\n`
+      : ''
+
     const triagePrompt = `You are an expert voice agent designer configuring a phone answering agent for a ${nicheLabel} business called "${businessName}".
 
 The owner says these are the top reasons people call:
 ${reasonsList}
-
+${urgencyLine}
 Generate a TRIAGE_DEEP routing block — the core logic the agent uses to identify why someone is calling and exactly what to do next.
 
 ---
@@ -117,6 +129,7 @@ FORMAT RULES — follow exactly:
 - Triggers: 4-6 words/phrases callers actually say when they have this intent
 - Close action must be one of: book appointment | give quote | answer directly | take message | transfer to owner | use hangUp tool
 - Add URGENT block if ANY reason implies same-day urgency, emergency, or "not working" — URGENT skips info collection and goes straight to close action
+- URGENT block Triggers MUST include the owner-provided urgency signals above (if any) plus obvious safety/emergency phrases for this business type
 - Always add SPAM_OR_WRONG_NUMBER as the final block
 - Be specific to "${businessName}" — no generic responses
 

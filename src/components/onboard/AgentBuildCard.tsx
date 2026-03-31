@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Car, Flame, Wrench, Stethoscope, Scale, Scissors,
   Home, Building2, PhoneCall, Voicemail, HelpCircle,
-  UtensilsCrossed, Printer, type LucideIcon,
+  UtensilsCrossed, Printer, Settings, Bug, Zap, KeyRound, type LucideIcon,
 } from "lucide-react";
 import { OnboardingData, Niche, nicheLabels, defaultAgentNames } from "@/types/onboarding";
 
@@ -21,6 +21,10 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   voicemail: Voicemail,
   restaurant: UtensilsCrossed,
   print_shop: Printer,
+  mechanic_shop: Settings,
+  pest_control: Bug,
+  electrician: Zap,
+  locksmith: KeyRound,
   other: HelpCircle,
 };
 
@@ -29,7 +33,10 @@ const NICHE_COLOR: Record<string, string> = {
   dental: "#8B5CF6", legal: "#6B7280", salon: "#EC4899",
   real_estate: "#10B981", property_management: "#8B5CF6",
   outbound_isa_realtor: "#10B981", voicemail: "#6366F1",
-  restaurant: "#EF4444", print_shop: "#14B8A6", other: "#6366F1",
+  restaurant: "#EF4444", print_shop: "#14B8A6",
+  mechanic_shop: "#EF4444", pest_control: "#84CC16",
+  electrician: "#EAB308", locksmith: "#94A3B8",
+  other: "#6366F1",
 };
 
 const NICHE_INDUSTRY_LABEL: Partial<Record<Niche, string>> = {
@@ -45,6 +52,10 @@ const NICHE_INDUSTRY_LABEL: Partial<Record<Niche, string>> = {
   voicemail: "Voicemail",
   restaurant: "Restaurant",
   print_shop: "Print Shop",
+  mechanic_shop: "Auto Repair",
+  pest_control: "Pest Control",
+  electrician: "Electrician",
+  locksmith: "Locksmith",
   other: "General",
 };
 

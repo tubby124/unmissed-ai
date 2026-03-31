@@ -176,6 +176,46 @@ export const NICHE_CAPABILITIES: Record<string, AgentCapabilities> = {
     updateTenantRequests: false,
     emergencyRouting: false,
   },
+  mechanic_shop: {
+    takeMessages: true,
+    bookAppointments: false, // Service appointments via callback
+    transferCalls: true,
+    useKnowledgeLookup: true, // Services, pricing, vehicle makes
+    usePropertyLookup: false,
+    useTenantLookup: false,
+    updateTenantRequests: false,
+    emergencyRouting: false,
+  },
+  pest_control: {
+    takeMessages: true,
+    bookAppointments: false, // Inspection/treatment via callback
+    transferCalls: true,
+    useKnowledgeLookup: true, // Pests, treatment methods, pricing
+    usePropertyLookup: false,
+    useTenantLookup: false,
+    updateTenantRequests: false,
+    emergencyRouting: true,  // Active infestation / health hazard → [URGENT]
+  },
+  electrician: {
+    takeMessages: true,
+    bookAppointments: false, // Service calls via callback
+    transferCalls: true,
+    useKnowledgeLookup: true, // Services, pricing, certifications
+    usePropertyLookup: false,
+    useTenantLookup: false,
+    updateTenantRequests: false,
+    emergencyRouting: true,  // Sparks, burning smell, power out → [URGENT]
+  },
+  locksmith: {
+    takeMessages: true,
+    bookAppointments: false, // Emergency dispatch via callback
+    transferCalls: true,
+    useKnowledgeLookup: true, // Lock types, pricing, service area
+    usePropertyLookup: false,
+    useTenantLookup: false,
+    updateTenantRequests: false,
+    emergencyRouting: true,  // Locked out → [URGENT] same-day dispatch
+  },
   other: {
     takeMessages: true,
     bookAppointments: false, // Generic niche — no booking assumed
@@ -313,6 +353,30 @@ export const NICHE_DELTAS: Record<string, NicheDelta> = {
   outbound_isa_realtor: {
     family: 'shared_standard',
     overrideKeys: [],
+    buildtimeSpecialCases: [],
+    runtimeSpecialCases: [],
+  },
+  mechanic_shop: {
+    family: 'shared_standard',
+    overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
+    buildtimeSpecialCases: [],
+    runtimeSpecialCases: [],
+  },
+  pest_control: {
+    family: 'shared_standard',
+    overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
+    buildtimeSpecialCases: [],
+    runtimeSpecialCases: [],
+  },
+  electrician: {
+    family: 'shared_standard',
+    overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
+    buildtimeSpecialCases: [],
+    runtimeSpecialCases: [],
+  },
+  locksmith: {
+    family: 'shared_standard',
+    overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
     buildtimeSpecialCases: [],
     runtimeSpecialCases: [],
   },
