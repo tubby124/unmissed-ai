@@ -21,6 +21,7 @@ import {
   patchCallHandlingMode,
   patchVipSection,
   patchHoursWeekday,
+  patchIdentityPersonality,
   getServiceType,
   getClosePerson,
 } from './prompt-patcher'
@@ -227,6 +228,16 @@ export async function applyPromptPatches(
         if (err) return { warnings, error: err }
         prompt = patched
         console.log(`[settings] Voice style patched to '${body.voice_style_preset}' for client=${clientId}`)
+      }
+      // D275: Also patch personality line in IDENTITY section
+      if (preset.personalityLine) {
+        const personalityPatched = patchIdentityPersonality(prompt, preset.personalityLine)
+        if (personalityPatched !== prompt) {
+          const err = applyPatch(personalityPatched, prompt, updates, warnings)
+          if (err) return { warnings, error: err }
+          prompt = personalityPatched
+          console.log(`[settings] Identity personality patched to '${body.voice_style_preset}' for client=${clientId}`)
+        }
       }
     }
   }

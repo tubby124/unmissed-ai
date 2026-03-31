@@ -275,6 +275,60 @@ export function patchVoiceStyleSection(
   return result.replace(/\n{3,}/g, '\n\n').trimEnd()
 }
 
+// ── Identity personality patcher ────────────────────────────────────────────
+
+/**
+ * Patch the personality line in the IDENTITY section of the prompt.
+ *
+ * Finds the line after "You are {name}..." in the IDENTITY section that contains
+ * personality descriptors (e.g. "Energetic, capable, efficient...") and replaces
+ * it with the new personalityLine from the voice preset.
+ *
+ * D275: Fixes fake-control bug where changing voice preset updated tone/fillers
+ * but left the personality descriptors in IDENTITY unchanged.
+ */
+export function patchIdentityPersonality(
+  prompt: string,
+  personalityLine: string,
+): string {
+  if (!personalityLine) return prompt
+
+  // Find the IDENTITY section
+  const identityRe = /^#+ *IDENTITY\s*$/im
+  const identityMatch = prompt.match(identityRe)
+  if (!identityMatch || identityMatch.index === undefined) return prompt
+
+  const afterIdentity = identityMatch.index + identityMatch[0].length
+  const rest = prompt.slice(afterIdentity)
+
+  // Find the "You are {name}..." line (first non-empty line after header)
+  const lines = rest.split('\n')
+  let youAreLineIdx = -1
+  let personalityLineIdx = -1
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim()
+    if (!trimmed) continue
+    if (trimmed.startsWith('You are ') && youAreLineIdx === -1) {
+      youAreLineIdx = i
+      continue
+    }
+    // The personality line is the first non-empty line after "You are..."
+    if (youAreLineIdx !== -1 && personalityLineIdx === -1) {
+      // Stop if we hit the next section heading
+      if (/^#+\s/.test(trimmed) || /^[A-Z][A-Z ]{2,}[A-Z]$/.test(trimmed)) break
+      personalityLineIdx = i
+      break
+    }
+  }
+
+  if (personalityLineIdx === -1) return prompt
+
+  // Replace the personality line
+  lines[personalityLineIdx] = personalityLine
+  return prompt.slice(0, afterIdentity) + lines.join('\n')
+}
+
 // ── Agent name patcher ──────────────────────────────────────────────────────
 
 /**

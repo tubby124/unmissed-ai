@@ -61,8 +61,8 @@ describe('Niche family classification', () => {
     assert.equal(getNicheFamily('voicemail'), 'bespoke')
   })
 
-  test('real_estate is bespoke', () => {
-    assert.equal(getNicheFamily('real_estate'), 'bespoke')
+  test('real_estate is shared_heavy', () => {
+    assert.equal(getNicheFamily('real_estate'), 'shared_heavy')
   })
 
   test('property_management is shared_heavy', () => {
@@ -89,20 +89,20 @@ describe('Niche family classification', () => {
     assert.equal(getNicheFamily('unknown_niche_xyz'), 'shared_standard')
   })
 
-  test('exactly 2 bespoke niches', () => {
+  test('exactly 1 bespoke niche', () => {
     const bespoke = getNichesByFamily('bespoke')
-    assert.equal(bespoke.length, 2)
+    assert.equal(bespoke.length, 1)
     assert.ok(bespoke.includes('voicemail'))
-    assert.ok(bespoke.includes('real_estate'))
   })
 
-  test('exactly 4 shared_heavy niches', () => {
+  test('exactly 5 shared_heavy niches', () => {
     const heavy = getNichesByFamily('shared_heavy')
-    assert.equal(heavy.length, 4)
+    assert.equal(heavy.length, 5)
     assert.ok(heavy.includes('auto_glass'))
     assert.ok(heavy.includes('property_management'))
     assert.ok(heavy.includes('barbershop'))
     assert.ok(heavy.includes('print_shop'))
+    assert.ok(heavy.includes('real_estate'))
   })
 
   test('all remaining niches are shared_standard', () => {

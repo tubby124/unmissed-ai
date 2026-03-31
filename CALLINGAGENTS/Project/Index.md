@@ -14,6 +14,7 @@ updated: 2026-03-31
 - [[Clients/windshield-hub]] — Mark · Blake · `00652ba8`
 - [[Clients/urban-vibe]] — Alisha · Ashley · `5f88f03b`
 - [[Clients/manzil-isa]] — Fatima · Nour · TEST MODE
+- [[Clients/plumber-calgary-nw]] — Test client · Dave · `d863d0c5` · plumbing niche
 
 ## Architecture Contracts (read-first gates)
 - [[Architecture/Control Plane Mutation]] — how every settings field flows DB → Ultravox
@@ -50,18 +51,61 @@ updated: 2026-03-31
 - [[Operations/Lead Classification]] — HOT/WARM/COLD/JUNK system, AI classification
 - [[Operations/Environment Variables]] — all Railway env vars, dev vs prod delta
 
-## Open Tracker (top priority)
-> 🔴 = root fix — do before any marketing or new clients
+## 🔴 NORTH STAR — User Designs the Prompt (D280)
+> The user IS the prompt builder. They don't know it. Every field they fill in becomes a template variable injected into the system prompt. The user's data is authoritative — never override with hardcoded defaults. See [[Tracker/D280]], [[Tracker/D285]].
 
-- [[Tracker/D243]] — TRIAGE rewrite: intent-first structure 🔴
-- [[Tracker/D247]] — ✅ DONE — 6 onboarding questions → Haiku → TRIAGE_DEEP (D254 companion: dashboard card)
-- [[Tracker/D254]] — ✅ DONE — CallRoutingCard: post-onboarding caller reasons → regenerate TRIAGE_DEEP
-- [[Tracker/D249]] — ✅ DONE — Agent readiness gate (6 dimensions: Hours, Routing, Services, FAQs, Calendar, Knowledge)
-- [[Tracker/D250]] — ROI card ("12 calls, 4 HOT leads, ~3hrs saved") 🔴
-- [[Tracker/D257]] — 🔴 AI-Assisted Prompt Suggestions Feed — self-improving loop (all context → Haiku → confirmable suggestions)
-- [[Tracker/D251]] — Per-section prompt editor UI (self-serve fixes) 🔴
-- [[Tracker/D245]] — Intent routing test on active clients (after D243)
+### Architectural Direction (2026-03-31)
+```
+User Inputs (UI) → Template Variables → buildPromptFromIntake() → Derived Prompt → Ultravox
+```
+- **Bread** = safety + identity (us, non-negotiable)
+- **Filling** = everything else (user's data as variables)
+- Dashboard shows "what your agent knows" — every variable visible and editable
+- No user ever touches raw prompt text
+
+### Key D-items for this vision
+- [[Tracker/D280]] — UI-driven prompt composition (end state) 🔴
+- [[Tracker/D285]] — Prompt sandwich framework 🔴
+- [[Tracker/D278]] — "Agent Brain" dashboard (centralized knowledge visibility) 🔴
+- [[Tracker/D283]] — All prompt variables visible + editable on dashboard 🔴
+- [[Tracker/D279]] — Niche-contextual knowledge editing
+
+## Open Tracker (priority order)
+
+### 🔴 Root Fix — Agent Quality
+- [[Tracker/D243]] — TRIAGE rewrite: intent-first structure
+- [[Tracker/D260]] — Service catalog → agent disconnect (edits are dead data)
+- [[Tracker/D265]] — Remove hardcoded PRODUCT KNOWLEDGE BASE from prompt-builder
+- [[Tracker/D257]] — AI-Assisted Prompt Suggestions Feed (self-improving loop)
+- [[Tracker/D251]] — Per-section prompt editor UI (self-serve fixes)
+- [[Tracker/D252]] — Knowledge gap → one-click fix CTA
+
+### 🔴 User-Designs-Prompt Architecture
+- [[Tracker/D280]] — UI-driven prompt composition
+- [[Tracker/D285]] — Prompt sandwich framework
+- [[Tracker/D278]] — Agent Brain dashboard
+- [[Tracker/D283]] — All variables visible + editable
+- [[Tracker/D279]] — Niche-contextual knowledge editing
+- [[Tracker/D281]] — Owner name (CLOSE_PERSON) editable post-onboarding
+- [[Tracker/D282]] — Business name change → auto-patch prompt
+
+### Recently Completed
+- [[Tracker/D275]] — ✅ Voice preset personality fake-control fix (code done, not deployed)
+- [[Tracker/D247]] — ✅ 6 onboarding questions → Haiku → TRIAGE_DEEP
+- [[Tracker/D254]] — ✅ CallRoutingCard: post-onboarding caller reasons
+- [[Tracker/D249]] — ✅ Agent readiness gate (6 dimensions)
+- [[Tracker/D250]] — ✅ ROI card ("12 calls, 4 HOT leads, ~3hrs saved")
+- [[Tracker/D257]] — ✅ AI-Assisted Prompt Suggestions Feed
+- [[Tracker/D258]] — ✅ Urgency signals onboarding field
+- [[Tracker/D259]] — ✅ Price range onboarding field
+
+### Investigations
+- [[Tracker/D277]] — Lag root cause (plumber-calgary-nw)
+- [[Tracker/D276]] — Calendar/booking auto-updates call flow
+- [[Tracker/D284]] — Self-improving agent loop (architectural)
 - [[Tracker/D233]] — CRON_SECRET verify in Railway ⚠️ ops
+
+### Dashboard UX
 - [[Tracker/D189]] — Unify trial/paid dashboard
 - [[Tracker/D219]] — Missed call auto-SMS
 - [[Tracker/D220]] — Lead queue / callback tracking
@@ -72,6 +116,7 @@ updated: 2026-03-31
 - [[Decisions/Agents API vs createCall]] — toolOverrides pattern, initialState rejected
 - [[Decisions/clients.tools as Runtime Source]] — why agent stored tools are overridden every call
 - [[Decisions/Voice Personality Lock]] — never change voice/tone without explicit ask
+- [[Decisions/User Designs Prompt]] — core principle: user's data is authoritative, prompt is derived
 
 ## System Map
 ```

@@ -38,7 +38,6 @@ import { NICHE_CLASSIFICATION_RULES } from './prompt-config/niche-classification
 export { NICHE_CLASSIFICATION_RULES }
 
 import { buildVoicemailPrompt } from './prompt-niches/voicemail-prompt'
-import { buildRealEstatePrompt } from './prompt-niches/real-estate-prompt'
 
 // ── Core prompt builder ───────────────────────────────────────────────────────
 
@@ -78,9 +77,6 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   // Voicemail uses its own lightweight template (no city, no inbound triage)
   if (niche === 'voicemail') return buildVoicemailPrompt(intake)
-
-  // Real estate uses its own persona-style template
-  if (niche === 'real_estate') return buildRealEstatePrompt(intake)
 
   const nicheDefaults = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS.other
 
@@ -415,6 +411,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   variables.FILLER_STYLE = preset.fillerStyle
   variables.GREETING_LINE = preset.greetingLine
   variables.CLOSING_LINE = preset.closingLine
+  variables.PERSONALITY_LINE = preset.personalityLine
 
   // D171 — Wow-first niche capability greeting
   // Overrides preset greetingLine with a capability-first opening that leads with what we can DO.

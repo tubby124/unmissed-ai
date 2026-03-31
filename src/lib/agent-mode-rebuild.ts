@@ -15,6 +15,7 @@ import {
   patchCalendarBlock,
   patchSmsBlock,
   patchVoiceStyleSection,
+  patchIdentityPersonality,
   patchAgentName,
   getServiceType,
   getClosePerson,
@@ -205,12 +206,15 @@ export async function buildAgentModeRebuildPrompt(
     newPrompt = patchSmsBlock(newPrompt, true, agentModeOverride)
   }
 
-  // 4. Voice style preset
+  // 4. Voice style preset (tone + personality — D275)
   const voicePreset = client.voice_style_preset as string | null
   if (voicePreset) {
     const preset = VOICE_PRESETS[voicePreset]
     if (preset) {
       newPrompt = patchVoiceStyleSection(newPrompt, preset.toneStyleBlock, preset.fillerStyle)
+      if (preset.personalityLine) {
+        newPrompt = patchIdentityPersonality(newPrompt, preset.personalityLine)
+      }
     }
   }
 

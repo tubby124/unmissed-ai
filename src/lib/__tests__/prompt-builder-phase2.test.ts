@@ -180,13 +180,15 @@ describe('Phase 2 — canary: real_estate structural stability', () => {
     )
   })
 
-  test('real_estate: bespoke builder uses callback_phone field (not owner_phone)', () => {
-    // real_estate uses buildRealEstatePrompt — a bespoke builder with no TRANSFER section.
-    // It reads intake.callback_phone (not intake.owner_phone) for the contact number.
-    // This test verifies the prompt contains the identity section.
+  test('real_estate: uses standard pipeline with LIFE SAFETY and TRIAGE_DEEP', () => {
+    // real_estate now uses the standard pipeline (no legacy bespoke builder).
     assert.ok(
-      realEstatePrompt.includes('IDENTITY') || realEstatePrompt.includes('FORBIDDEN ACTIONS'),
-      'real_estate bespoke prompt should contain core sections'
+      realEstatePrompt.includes('LIFE SAFETY EMERGENCY OVERRIDE'),
+      'real_estate prompt must contain LIFE SAFETY section'
+    )
+    assert.ok(
+      realEstatePrompt.includes('FORBIDDEN') || realEstatePrompt.includes('ABSOLUTE FORBIDDEN'),
+      'real_estate prompt should contain forbidden actions section'
     )
   })
 })

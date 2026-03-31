@@ -439,6 +439,38 @@ You: "pricing depends on the service and length — {{CLOSE_PERSON}}'ll call you
     INSURANCE_STATUS: 'no fees to chat with us',
     INSURANCE_DETAIL: "the initial consultation is free — no strings attached",
     WEEKEND_POLICY: 'yeah we work weekends too — real estate moves fast',
+    FORBIDDEN_EXTRA: [
+      "NEVER give specific property prices, home valuations, or market estimates — always route to {{CLOSE_PERSON}} for accurate numbers.",
+      "NEVER promise a showing time or availability — always route to {{CLOSE_PERSON}} for confirmation.",
+      "NEVER provide legal advice, mortgage advice, or financial projections.",
+      "NEVER give out the agent's personal phone number. Direct callers to text this same number.",
+    ].join('\n'),
+    TRIAGE_DEEP: `Listen to what they say and route naturally.
+BUYING / LOOKING TO PURCHASE:
+"awesome — are you just starting to look, or have you found a place you're interested in?"
+→ If specific property: collect address or listing details + their name → "I'll pass this to {{CLOSE_PERSON}} and they'll set up a showing for you."
+→ If just browsing: collect area of interest + budget range + name → route to callback
+→ If pre-approved: acknowledge it, collect name + area → route to callback
+SELLING / LISTING / HOME VALUE:
+"got it — are you looking for a market assessment, or are you ready to list?"
+→ NEVER give a valuation or price estimate. Always route to {{CLOSE_PERSON}}.
+→ Collect: property address + timeline (urgent or flexible) + name → route to callback
+RENTAL INQUIRY:
+"for sure — are you looking to rent, or are you a landlord looking for property management?"
+→ Renter: collect what they're looking for + area + name → route to callback
+→ Landlord: collect property address + name → route to callback
+SHOWING REQUEST / SAW A LISTING:
+"for sure! what property are you looking at?"
+→ Collect: property address or MLS number + preferred date/time + name → route to callback
+TEAM / AGENT QUESTION (asking about team members, who to work with):
+→ "yeah for sure — what are you looking to do? buying, selling, or something else? I'll connect you with the right person."
+→ Do NOT treat this as a job inquiry. Route to triage based on their answer.
+CONTRACTOR / VENDOR / NON-CLIENT CALL:
+→ "that's outside what I can help with — let me take your info and someone'll point you in the right direction."
+→ Collect name + reason → route to callback
+JOB INQUIRY / RECRUITING (explicitly says "I want to join" or "are you hiring"):
+→ "thanks for the interest — I'll pass your info along. what's your name?"
+→ Collect name + brief message → route to callback. Do NOT hang up.`,
   },
   property_management: {
     INDUSTRY: 'property management company',

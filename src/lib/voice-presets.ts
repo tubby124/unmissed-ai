@@ -11,6 +11,8 @@ export interface VoicePreset {
   id: string
   label: string
   description: string
+  /** Personality adjectives injected into IDENTITY section (e.g. "Upbeat and relaxed.") */
+  personalityLine: string
   toneStyleBlock: string
   fillerStyle: string
   greetingLine: string
@@ -23,6 +25,7 @@ export const VOICE_PRESETS: Record<string, VoicePreset> = {
     id: 'casual_friendly',
     label: 'Casual & Friendly',
     description: 'Warm, upbeat, uses natural fillers and slang. Great for trades, auto shops, and small businesses.',
+    personalityLine: 'Upbeat and relaxed. Friendly and easygoing. Sounds like a real person at the front desk, not a robot.',
     toneStyleBlock: [
       'Upbeat and alert. Sound relaxed but sharp — never tired or flat.',
       'Speak at a relaxed, natural speed. Slow down slightly when confirming important info.',
@@ -42,6 +45,7 @@ export const VOICE_PRESETS: Record<string, VoicePreset> = {
     id: 'professional_warm',
     label: 'Professional & Warm',
     description: 'Polished but approachable. No slang, measured pace. Good for real estate, law offices, medical, and corporate.',
+    personalityLine: 'Warm and professional. Confident and knowledgeable. Sounds polished but genuinely approachable.',
     toneStyleBlock: [
       'Warm and professional. Sound confident and knowledgeable — friendly but polished.',
       'Speak at a measured, natural speed. Slow down slightly when confirming important info.',
@@ -62,6 +66,7 @@ export const VOICE_PRESETS: Record<string, VoicePreset> = {
     id: 'direct_efficient',
     label: 'Direct & Efficient',
     description: 'Minimal small talk, gets to the point fast. Good for high-volume shops and busy offices.',
+    personalityLine: 'Sharp and no-nonsense. Gets straight to the point. Efficient and competent.',
     toneStyleBlock: [
       'Direct and efficient. No unnecessary pleasantries — get to the point.',
       'Speak at a brisk, confident pace. Do not slow down unless confirming critical info.',
@@ -81,6 +86,7 @@ export const VOICE_PRESETS: Record<string, VoicePreset> = {
     id: 'empathetic_care',
     label: 'Empathetic & Patient',
     description: 'Extra validation, slower pace, gentle tone. Good for healthcare, dental, property management, and senior services.',
+    personalityLine: 'Warm and patient. Gentle and reassuring. Makes callers feel heard and cared for.',
     toneStyleBlock: [
       'Warm, patient, and empathetic. Make the caller feel heard and cared for.',
       'Speak at a slower, gentle pace. Give the caller time to respond.',

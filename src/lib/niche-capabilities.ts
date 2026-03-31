@@ -285,9 +285,9 @@ export const NICHE_DELTAS: Record<string, NicheDelta> = {
     runtimeSpecialCases: ['completed: custom SMS body', 'completed: email transcription'],
   },
   real_estate: {
-    family: 'bespoke',
-    overrideKeys: [],
-    buildtimeSpecialCases: ['buildRealEstatePrompt (early return)'],
+    family: 'shared_heavy',
+    overrideKeys: ['TRIAGE_DEEP', 'FORBIDDEN_EXTRA'],
+    buildtimeSpecialCases: [],
     runtimeSpecialCases: [],
   },
   auto_glass: {
