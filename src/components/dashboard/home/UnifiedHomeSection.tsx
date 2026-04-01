@@ -124,6 +124,9 @@ export default function UnifiedHomeSection({
   const [callMeError, setCallMeError] = useState<string | null>(null)
   // D162 — Call forwarding guide expand/collapse
   const [forwardingExpanded, setForwardingExpanded] = useState(false)
+  // D363 — Share number inline expand + copy
+  const [shareExpanded, setShareExpanded] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   // Tier 3 — call log filter
   const [callFilter, setCallFilter] = useState<string>('All')
@@ -335,18 +338,18 @@ export default function UnifiedHomeSection({
     })
   }
 
-  // D130 — Share number (only if no ShareNumberCard component needed)
+  // D130 + D363 — Share number with inline copy + carrier codes
   if (showShareNumber && data.twilioNumber) {
     nudgeItems.push({
       key: 'share-number',
       icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" strokeWidth="2"/></svg>,
       label: 'Share your number',
       sub: formatPhone(data.twilioNumber),
-      cta: 'Share',
+      cta: shareExpanded ? 'Close' : 'View',
       color: 'var(--color-primary)',
       bg: 'rgba(99,102,241,0.05)',
-      border: 'rgba(99,102,241,0.12)',
-      href: '/dashboard/settings?tab=general#forwarding',
+      border: shareExpanded ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.12)',
+      onClick: () => setShareExpanded(o => !o),
     })
   }
 
@@ -514,6 +517,74 @@ export default function UnifiedHomeSection({
           })}
         </div>
       )}
+
+      {/* D363 — Share number expanded panel (copy + carrier codes) */}
+      {shareExpanded && data.twilioNumber && (() => {
+        const dialDigits = data.twilioNumber.replace(/\D/g, '')
+        const displayNum = `+1 (${dialDigits.slice(1, 4)}) ${dialDigits.slice(4, 7)}-${dialDigits.slice(7)}`
+        const carriers = [
+          { name: 'Rogers / Fido / Chatr', fwd: `*21*${dialDigits}#`, cancel: '##21#' },
+          { name: 'Bell / Virgin / Lucky', fwd: `*21*${dialDigits}#`, cancel: '#21#' },
+          { name: 'Telus / Koodo / Public Mobile', fwd: `*72${dialDigits}`, cancel: '*73' },
+        ]
+        function handleCopy() {
+          navigator.clipboard.writeText(data.twilioNumber!).catch(() => {
+            const el = document.createElement('textarea')
+            el.value = data.twilioNumber!
+            document.body.appendChild(el)
+            el.select()
+            document.execCommand('copy')
+            document.body.removeChild(el)
+          })
+          setShareCopied(true)
+          setTimeout(() => setShareCopied(false), 2000)
+        }
+        return (
+          <div className="rounded-xl" style={{ border: '1px solid rgba(99,102,241,0.2)', backgroundColor: 'rgba(99,102,241,0.03)' }}>
+            {/* Number + copy */}
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <span className="text-[14px] font-mono font-semibold t1 tracking-wide">{displayNum}</span>
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer"
+                style={{
+                  backgroundColor: shareCopied ? 'rgba(34,197,94,0.1)' : 'rgba(99,102,241,0.1)',
+                  color: shareCopied ? 'rgb(34,197,94)' : 'var(--color-primary)',
+                  border: `1px solid ${shareCopied ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)'}`,
+                }}
+              >
+                {shareCopied ? (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+            {/* Carrier codes */}
+            <div className="px-4 pb-3 space-y-1.5">
+              <p className="text-[10px] t3">Dial from your business phone to forward all calls:</p>
+              {carriers.map(c => (
+                <div key={c.name} className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-[11px] font-semibold t2 mb-0.5">{c.name}</p>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="text-[11px] t3">Forward: <code className="font-mono text-[11px] t1 ml-1">{c.fwd}</code></span>
+                    <span className="text-[11px] t3">Cancel: <code className="font-mono text-[11px] t1 ml-1">{c.cancel}</code></span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-[10px] t3 leading-relaxed">
+                Dial the forward code, wait for confirmation tone, then hang up.
+              </p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* D250 — Weekly ROI (compact inline strip — not a full card) */}
       {data.weeklyStats && data.weeklyStats.callsAnswered > 0 && (
