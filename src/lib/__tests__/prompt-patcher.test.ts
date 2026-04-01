@@ -151,3 +151,39 @@ describe('getClosePerson()', () => {
     assert.equal(getClosePerson('generic prompt'), 'the team')
   })
 })
+
+// ── patchServicesOffered ────────────────────────────────────────────────────
+
+import { patchServicesOffered } from '../prompt-patcher.js'
+
+describe('patchServicesOffered()', () => {
+  const basePrompt = '**What services do you offer?** "General plumbing, Drain cleaning"'
+
+  test('replaces existing services with new text', () => {
+    const result = patchServicesOffered(basePrompt, 'Pipe repair, Water heater install')
+    assert.equal(result, '**What services do you offer?** "Pipe repair, Water heater install"')
+  })
+
+  test('no-op when pattern not found', () => {
+    assert.equal(patchServicesOffered('some random prompt', 'new services'), 'some random prompt')
+  })
+
+  test('no-op when newServices is empty', () => {
+    assert.equal(patchServicesOffered(basePrompt, ''), basePrompt)
+  })
+
+  test('preserves dollar signs in prices (no regex backreference)', () => {
+    const services = 'Drain Cleaning (60 min · From $149) — Full service, Pipe Burst ($299) — Emergency'
+    const result = patchServicesOffered(basePrompt, services)
+    assert.ok(result.includes('$149'), 'should contain literal $149')
+    assert.ok(result.includes('$299'), 'should contain literal $299')
+    // The $1 in "$149" must not be replaced with the regex capture group
+    // (which would produce "**What services do you offer?**49" instead of "$149")
+    const quoted = result.split('"')[1] // extract content between quotes
+    assert.ok(!quoted.includes('**What services'), '$1 in price must not become regex backreference')
+    assert.equal(
+      result,
+      `**What services do you offer?** "${services}"`,
+    )
+  })
+})

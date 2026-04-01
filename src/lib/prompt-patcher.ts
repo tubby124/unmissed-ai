@@ -348,7 +348,8 @@ export function patchAgentName(
 
   const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const re = new RegExp(`\\b${escaped}\\b`, 'g')
-  return prompt.replace(re, newName.trim())
+  const safeNew = newName.trim().replace(/\$/g, '$$$$')
+  return prompt.replace(re, safeNew)
 }
 
 // ── Business name patcher ───────────────────────────────────────────────────
@@ -373,7 +374,8 @@ export function patchBusinessName(
 
   const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const re = new RegExp(`\\b${escaped}\\b`, 'g')
-  return prompt.replace(re, newName.trim())
+  const safeNew = newName.trim().replace(/\$/g, '$$$$')
+  return prompt.replace(re, safeNew)
 }
 
 // ── Services offered patcher ─────────────────────────────────────────────────
@@ -395,7 +397,10 @@ export function patchServicesOffered(
   if (!newServices?.trim()) return prompt
   const re = /(\*\*What services do you offer\?\*\*\s*)"([^"]*)"/i
   if (!re.test(prompt)) return prompt
-  return prompt.replace(re, `$1"${newServices.trim()}"`)
+  // Escape $ in replacement string to prevent regex backreference interpretation
+  // (e.g. "$149" would otherwise treat "$1" as capture group 1)
+  const escaped = newServices.trim().replace(/\$/g, '$$$$')
+  return prompt.replace(re, `$1"${escaped}"`)
 }
 
 // ── Service type lookup ─────────────────────────────────────────────────────
