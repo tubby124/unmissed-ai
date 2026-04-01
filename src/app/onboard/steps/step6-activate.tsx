@@ -5,7 +5,6 @@ import { OnboardingData, NotificationMethod } from "@/types/onboarding";
 import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 import { getAgentMode } from "@/lib/capabilities";
 import { Shield, CalendarOff, X, Check, Rocket } from "lucide-react";
 
@@ -148,17 +147,21 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
       </div>
 
       <div className="space-y-4">
-        {/* Business name — editable, pre-filled */}
+        {/* Email — dashboard login */}
         <div className="space-y-1.5">
-          <Label htmlFor="businessName">
-            Business name <span className="text-red-500">*</span>
+          <Label htmlFor="contactEmail">
+            Email address <span className="text-red-500">*</span>
           </Label>
           <Input
-            id="businessName"
-            value={data.businessName}
-            onChange={(e) => onUpdate({ businessName: e.target.value })}
-            placeholder="Acme Services"
+            id="contactEmail"
+            type="email"
+            value={data.contactEmail}
+            onChange={(e) => onUpdate({ contactEmail: e.target.value })}
+            placeholder="you@business.com"
           />
+          <p className="text-xs text-muted-foreground">
+            Your dashboard login and where call summaries go.
+          </p>
         </div>
 
         {/* Business phone */}
@@ -178,24 +181,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
           </p>
         </div>
 
-        {/* Email */}
-        <div className="space-y-1.5">
-          <Label htmlFor="contactEmail">
-            Email address <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="contactEmail"
-            type="email"
-            value={data.contactEmail}
-            onChange={(e) => onUpdate({ contactEmail: e.target.value })}
-            placeholder="you@business.com"
-          />
-          <p className="text-xs text-muted-foreground">
-            Your dashboard login and where call summaries go.
-          </p>
-        </div>
-
-        {/* Website */}
+        {/* Website — optional, helps train agent */}
         <div className="space-y-1.5">
           <Label htmlFor="websiteUrl">
             Website{" "}
@@ -211,9 +197,6 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             placeholder="https://yourbusiness.com"
           />
         </div>
-
-        {/* Website scrape preview — auto-fires when websiteUrl is set */}
-        <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
 
         {/* Notification method */}
         <div className="space-y-1.5">

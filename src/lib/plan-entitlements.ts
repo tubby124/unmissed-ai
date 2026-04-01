@@ -20,6 +20,8 @@ export interface PlanEntitlements {
   name: string
   /** Included minutes per billing cycle */
   minutes: number
+  /** Default agent mode derived from plan tier */
+  defaultMode: 'voicemail_replacement' | 'lead_capture' | 'appointment_booking'
   /** Booking / calendar integration */
   bookingEnabled: boolean
   /** Live call transfer to owner */
@@ -45,8 +47,9 @@ export interface PlanEntitlements {
 // ── Per-plan entitlements ───────────────────────────────────────────
 
 const LITE: PlanEntitlements = {
-  name: 'Lite',
+  name: 'Call Catcher',
   minutes: 100,
+  defaultMode: 'voicemail_replacement',
   bookingEnabled: false,
   transferEnabled: false,
   smsEnabled: true,
@@ -60,10 +63,11 @@ const LITE: PlanEntitlements = {
 }
 
 const CORE: PlanEntitlements = {
-  name: 'Core',
+  name: 'AI Receptionist',
   minutes: 400,
-  bookingEnabled: false,
-  transferEnabled: false,
+  defaultMode: 'lead_capture',
+  bookingEnabled: true,       // Phase 7: Core now includes booking
+  transferEnabled: false,     // Transfer is Pro-only (high-volume)
   smsEnabled: true,
   knowledgeEnabled: true,
   learningLoopEnabled: true,
@@ -75,10 +79,11 @@ const CORE: PlanEntitlements = {
 }
 
 const PRO: PlanEntitlements = {
-  name: 'Pro',
+  name: 'Front Desk Pro',
   minutes: 1000,
+  defaultMode: 'appointment_booking',
   bookingEnabled: true,
-  transferEnabled: true,
+  transferEnabled: true,      // Pro-only: IVR + transfer for high-volume businesses
   smsEnabled: true,
   knowledgeEnabled: true,
   learningLoopEnabled: true,
@@ -93,6 +98,7 @@ const PRO: PlanEntitlements = {
 const TRIAL_ENTITLEMENTS: PlanEntitlements = {
   name: 'Trial',
   minutes: TRIAL.minutes, // 50
+  defaultMode: 'lead_capture',
   bookingEnabled: true,
   transferEnabled: true,
   smsEnabled: true,
@@ -174,6 +180,15 @@ export function resolveEffectivePlanId(
   }
   if (subscriptionStatus === 'trialing') return 'trial'
   return 'lite' // safest default for unknown/legacy clients
+}
+
+/**
+ * D324: Returns the default agent mode for a plan.
+ * Lite → voicemail_replacement, Core → lead_capture, Pro → appointment_booking.
+ * Used by onboarding to derive mode from plan selection (Plan = Mode).
+ */
+export function planToMode(planId: string | null | undefined): 'voicemail_replacement' | 'lead_capture' | 'appointment_booking' {
+  return getPlanEntitlements(planId).defaultMode
 }
 
 // ── Add-on scaffolding ──────────────────────────────────────────────

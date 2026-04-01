@@ -39,9 +39,11 @@ const MESSAGE_PROGRESS = [12, 32, 52, 70, 82] as const;
 interface ProvisioningOverlayProps {
   data: OnboardingData;
   visible: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export function ProvisioningOverlay({ data, visible }: ProvisioningOverlayProps) {
+export function ProvisioningOverlay({ data, visible, error, onRetry }: ProvisioningOverlayProps) {
   const prefersReduced = useReducedMotion();
   const msgs = buildProvisioningMessages(data);
 
@@ -91,45 +93,79 @@ export function ProvisioningOverlay({ data, visible }: ProvisioningOverlayProps)
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-indigo-950/95 backdrop-blur-sm"
         >
-          {/* Orb — supporting role, not hero */}
-          <VoicePoweredOrb
-            externalEnergy={0.35}
-            className="w-40 h-40 shrink-0"
-          />
-
-          {/* Message */}
-          <div className="mt-8 h-8 flex items-center justify-center px-6 text-center">
-            {prefersReduced ? (
-              <p className="text-sm font-medium text-indigo-100">
-                {msgs[idx]}
-              </p>
-            ) : (
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={idx}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="text-sm font-medium text-indigo-100"
+          {error ? (
+            /* Phase 7: Error state — friendly message + retry + contact link */
+            <div className="flex flex-col items-center gap-6 px-6 text-center max-w-sm">
+              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="space-y-2">
+                <p className="text-lg font-bold text-white">Something went wrong</p>
+                <p className="text-sm text-indigo-200">{error}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors cursor-pointer"
+                  >
+                    Try again
+                  </button>
+                )}
+                <a
+                  href="mailto:support@unmissed.ai"
+                  className="px-4 py-2.5 rounded-xl border border-indigo-400/30 text-indigo-200 text-sm hover:bg-indigo-900/50 transition-colors"
                 >
-                  {msgs[idx]}
-                </motion.p>
-              </AnimatePresence>
-            )}
-          </div>
+                  Contact us
+                </a>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Orb — supporting role, not hero */}
+              <VoicePoweredOrb
+                externalEnergy={0.35}
+                className="w-40 h-40 shrink-0"
+              />
 
-          {/* Visually hidden live region so screen readers announce each message */}
-          <span className="sr-only">{msgs[idx]}</span>
+              {/* Message */}
+              <div className="mt-8 h-8 flex items-center justify-center px-6 text-center">
+                {prefersReduced ? (
+                  <p className="text-sm font-medium text-indigo-100">
+                    {msgs[idx]}
+                  </p>
+                ) : (
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={idx}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="text-sm font-medium text-indigo-100"
+                    >
+                      {msgs[idx]}
+                    </motion.p>
+                  </AnimatePresence>
+                )}
+              </div>
 
-          {/* Progress bar — pinned to bottom of overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-900/60">
-            <div
-              className="h-full bg-indigo-400 transition-[width] duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-              aria-hidden="true"
-            />
-          </div>
+              {/* Visually hidden live region so screen readers announce each message */}
+              <span className="sr-only">{msgs[idx]}</span>
+
+              {/* Progress bar — pinned to bottom of overlay */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-900/60">
+                <div
+                  className="h-full bg-indigo-400 transition-[width] duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                  aria-hidden="true"
+                />
+              </div>
+            </>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

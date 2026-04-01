@@ -171,7 +171,9 @@ export default function UnifiedHomeSection({
   const pendingKnowledgeCount = data.knowledge?.pending_review_count ?? 0
   const openGapsCount = data.insights?.openGaps ?? 0
   const callHandlingMode = data.callHandlingMode
-  const isBookingModeNoCalendar = callHandlingMode === 'appointment_booking' && !calendarConnected
+  // Show calendar CTA when plan includes booking (Core+, or trial which unlocks all) but calendar not connected
+  const planSupportsBooking = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
+  const showCalendarConnect = planSupportsBooking && !calendarConnected
 
   const nextAction: { text: string; cta: string; href: string | null; onUpgrade?: boolean } | null = (() => {
     if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
@@ -224,7 +226,7 @@ export default function UnifiedHomeSection({
     faqCount > 0,
     data.knowledge.approved_chunk_count > 0,
     data.hasTriage ?? false,
-    callHandlingMode === 'appointment_booking' ? calendarConnected : true,
+    planSupportsBooking ? calendarConnected : true,
   ]
   const setupComplete = setupDimensions.filter(Boolean).length
   const setupTotal = setupDimensions.length
@@ -407,8 +409,8 @@ export default function UnifiedHomeSection({
         </div>
       )}
 
-      {/* D120 — Booking mode: no calendar connected banner */}
-      {isBookingModeNoCalendar && (
+      {/* D120 — Calendar connect CTA: shows for any plan that supports booking */}
+      {showCalendarConnect && (
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-xl"
           style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
@@ -419,7 +421,7 @@ export default function UnifiedHomeSection({
             <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <p className="text-[12px] flex-1 leading-snug" style={{ color: 'rgb(180,130,30)' }}>
-            Your agent is in booking mode but can&apos;t book yet. Connect Google Calendar to start accepting appointments.
+            Your plan includes calendar booking. Connect Google Calendar so your agent can book appointments for callers.
           </p>
           <Link
             href="/dashboard/settings?tab=general#booking"
@@ -722,46 +724,18 @@ export default function UnifiedHomeSection({
           ════════════════════════════════════════════════════════════ */}
       {onboarding.hasAgent && data.clientId && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-          {/* Left: Call stats summary */}
-          <div className="rounded-2xl border b-theme bg-surface p-4 flex flex-col gap-3 order-2 md:order-1">
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Calls</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold t1">{data.stats.totalCalls}</span>
-              <span className="text-[12px] t3">total</span>
-              {data.stats.trends.callsChange != null && data.stats.trends.callsChange !== 0 && (
-                <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                  data.stats.trends.callsChange > 0
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'bg-red-500/10 text-red-400'
-                }`}>
-                  {data.stats.trends.callsChange > 0 ? '+' : ''}{data.stats.trends.callsChange}%
-                </span>
-              )}
-            </div>
-            {data.stats.hotLeads > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                <span className="text-[12px] t2">{data.stats.hotLeads} HOT lead{data.stats.hotLeads !== 1 ? 's' : ''}</span>
-              </div>
-            )}
-            {data.stats.todayCalls > 0 && (
-              <p className="text-[11px] t3">{data.stats.todayCalls} today</p>
-            )}
-            {data.stats.lastCallAt && (
-              <p className="text-[11px] t3">Last call {timeAgo(data.stats.lastCallAt)}</p>
-            )}
-            {(data.returningCallerCount ?? 0) >= 3 && (
-              <p className="text-[11px] t3">{data.returningCallerCount} recognized callers</p>
-            )}
-            <Link
-              href="/dashboard/calls"
-              className="text-[12px] font-medium mt-auto cursor-pointer hover:opacity-75 transition-opacity"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              View all calls
-            </Link>
+          {/* Left: Knowledge Base + Agent Readiness */}
+          <div className="flex flex-col gap-3 order-2 md:order-1">
+            <KnowledgeInlineTile
+              knowledgeStats={data.knowledge}
+              gbpData={data.gbpData}
+              businessFacts={(data.editableFields.businessFacts ?? '').split('\n').filter(Boolean)}
+              faqCount={data.editableFields.faqs?.length ?? 0}
+              websiteUrl={data.editableFields.websiteUrl}
+              websiteScrapeStatus={data.websiteScrapeStatus}
+            />
 
-            {/* Agent readiness — inside left column per vision spec */}
+            {/* Agent readiness — below knowledge base */}
             <AgentReadinessRow
               hoursWeekday={data.editableFields.hoursWeekday}
               activeServicesCount={data.activeServicesCount ?? 0}
@@ -1025,21 +999,11 @@ export default function UnifiedHomeSection({
       </div>
 
       {/* ════════════════════════════════════════════════════════════
-          TIER 4 — Knowledge Sources + Unanswered (2-col)
+          TIER 4 — Unanswered Questions
           ════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-        <KnowledgeInlineTile
-          knowledgeStats={data.knowledge}
-          gbpData={data.gbpData}
-          businessFacts={(data.editableFields.businessFacts ?? '').split('\n').filter(Boolean)}
-          faqCount={data.editableFields.faqs?.length ?? 0}
-          websiteUrl={data.editableFields.websiteUrl}
-          websiteScrapeStatus={data.websiteScrapeStatus}
-        />
-        {data.clientId ? (
-          <UnansweredQuestionsTile clientId={data.clientId} />
-        ) : <div />}
-      </div>
+      {data.clientId && (
+        <UnansweredQuestionsTile clientId={data.clientId} />
+      )}
 
       {/* ════════════════════════════════════════════════════════════
           TIER 5 — Plan (bottom)

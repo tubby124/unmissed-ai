@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Niche, OnboardingData, defaultAgentNames, nicheLabels, nicheEmojis } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,15 @@ import PlacesAutocomplete from "@/components/onboard/PlacesAutocomplete";
 import { trackEvent } from "@/lib/analytics";
 import { NICHE_PRODUCTION_READY } from "@/lib/niche-config";
 import { agentNameIsAutoSet } from "@/lib/intake-transform";
+import { Volume2 } from "lucide-react";
 
 const FEMALE_DEFAULT = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
+
+// Phase 7: Voice style picker — two curated options (style-first, not gender-first)
+const VOICE_STYLES = [
+  { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline", style: "Warm & Friendly" },
+  { id: "b0e6b5c1-0be8-47c5-8e21-e5e11c6f4ab0", name: "Mark", style: "Confident & Clear" },
+] as const;
 
 const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
   auto_glass_shop: "auto_glass", car_repair: "auto_glass", car_wash: "auto_glass",
@@ -133,6 +140,24 @@ interface Props {
   onGbpUsed?: () => void;
 }
 
+// Phase 7: Niche-adaptive placeholder text for caller reasons
+const REASON_PLACEHOLDERS: Record<string, string[]> = {
+  auto_glass: ["Windshield crack or chip repair", "Insurance claim question", "Mobile service availability"],
+  hvac: ["AC not cooling / furnace not heating", "Annual maintenance booking", "Emergency after-hours repair"],
+  plumbing: ["Leaking pipe or faucet", "Drain clog or backup", "Water heater issue"],
+  dental: ["Book a cleaning or checkup", "Toothache or emergency", "Insurance coverage question"],
+  property_management: ["Maintenance request", "Rent payment question", "Lease inquiry"],
+  restaurant: ["Make a reservation", "Catering or large group", "Menu or allergy question"],
+  real_estate: ["Looking to buy a home", "Want to list my property", "Market value question"],
+  salon: ["Book a haircut or color", "Price inquiry", "Availability this week"],
+  other: ["Get a quote or estimate", "Book an appointment", "Hours or location question"],
+};
+
+function getReasonPlaceholder(niche: string | null, index: number): string {
+  const placeholders = REASON_PLACEHOLDERS[niche || "other"] ?? REASON_PLACEHOLDERS.other;
+  return placeholders[index] ?? "";
+}
+
 export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [pendingPlace, setPendingPlace] = useState<PendingPlace | null>(null);
   const [placesKey, setPlacesKey] = useState(0);
@@ -144,6 +169,47 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [inferDismissed, setInferDismissed] = useState(false);
   const inferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inferAbortRef = useRef<AbortController | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const triageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Phase 7: Play 3s voice preview on tap
+  const playVoicePreview = useCallback((voiceId: string) => {
+    try {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      const audio = new Audio(`/api/public/voice-preview/${voiceId}`);
+      audio.play().catch(() => { /* silent fail — browser may block autoplay */ });
+      audioRef.current = audio;
+    } catch { /* silent */ }
+  }, []);
+
+  // Phase 7: Debounced TRIAGE_DEEP generation from caller reasons
+  // Reuses the existing /api/onboard/infer-niche endpoint (D247 path)
+  const debouncedTriageGenerate = useCallback((reasons: string[]) => {
+    if (triageTimerRef.current) clearTimeout(triageTimerRef.current);
+    const filled = reasons.filter((r) => r.trim());
+    if (filled.length === 0) return;
+    triageTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/onboard/infer-niche', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessName: data.businessName || 'Business',
+            callerReasons: filled,
+            knownNiche: data.niche || 'other',
+            urgencyWords: data.urgencyWords || '',
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.customVariables?.TRIAGE_DEEP) {
+            onUpdate({ nicheCustomVariables: { ...data.nicheCustomVariables, TRIAGE_DEEP: json.customVariables.TRIAGE_DEEP } });
+          }
+        }
+      } catch { /* non-blocking */ }
+    }, 1200);
+  }, [data.businessName, data.niche, data.urgencyWords, data.nicheCustomVariables, onUpdate]);
 
   // Apply a niche selection — shared by AI suggestion button and grid buttons
   function applyNiche(n: Niche) {
@@ -558,6 +624,83 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                 placeholder="e.g. Mark, Ashley, Jordan"
               />
               <p className="text-xs text-muted-foreground">What your agent introduces itself as on calls.</p>
+            </motion.div>
+
+            {/* Phase 7: Voice style picker — style labels, not gender */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16 }}
+              className="space-y-2"
+            >
+              <Label>Voice style</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {VOICE_STYLES.map((v) => {
+                  const isSelected = data.voiceId === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => {
+                        onUpdate({ voiceId: v.id, voiceName: v.name });
+                        playVoicePreview(v.id);
+                      }}
+                      className={[
+                        "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[88px]",
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30"
+                          : "border-border bg-card hover:border-indigo-300",
+                      ].join(" ")}
+                    >
+                      <span className="text-sm font-bold text-foreground">{v.style}</span>
+                      <span className="text-xs text-muted-foreground">{v.name}</span>
+                      <Volume2 className="w-3.5 h-3.5 text-muted-foreground absolute top-2 right-2" />
+                      {isSelected && (
+                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tap to preview. More voices available in your dashboard.
+              </p>
+            </motion.div>
+
+            {/* Phase 7: Caller reasons — visible optional inputs (40-60% engagement vs 15-25% collapsed) */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-2"
+            >
+              <div>
+                <Label>Top reasons people call</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  These help your agent sound like it knows your business.
+                </p>
+              </div>
+              {[0, 1, 2].map((i) => (
+                <Input
+                  key={i}
+                  value={data.callerReasons?.[i] ?? ""}
+                  onChange={(e) => {
+                    const reasons = [...(data.callerReasons || ["", "", ""])];
+                    reasons[i] = e.target.value;
+                    onUpdate({ callerReasons: reasons });
+                    debouncedTriageGenerate(reasons);
+                  }}
+                  placeholder={getReasonPlaceholder(data.niche, i)}
+                  className="text-sm"
+                />
+              ))}
+              <p className="text-xs text-muted-foreground italic">
+                <span className="text-muted-foreground/70">Optional</span> — if skipped, your agent uses smart defaults for your industry.
+              </p>
             </motion.div>
 
           </motion.div>

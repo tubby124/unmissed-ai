@@ -48,6 +48,8 @@ const SIDEBAR_PRICING = {
 // ──────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
+// Phase 7: Version gate — old 7-step drafts reset to step 1 with fresh defaults
+const ONBOARD_VERSION = 2;
 
 function OnboardPageInner() {
   const router = useRouter();
@@ -59,6 +61,8 @@ function OnboardPageInner() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Version gate: reset old drafts
+        if (parsed.version !== ONBOARD_VERSION) return 1;
         const s = typeof parsed.step === "number" ? parsed.step : 1;
         return s > TOTAL_STEPS ? 1 : s;
       }
@@ -74,6 +78,8 @@ function OnboardPageInner() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Version gate: discard old-format drafts
+        if (parsed.version !== ONBOARD_VERSION) return defaultOnboardingData;
         if (parsed.data && typeof parsed.data === "object") {
           return { ...defaultOnboardingData, ...parsed.data };
         }
@@ -115,11 +121,11 @@ function OnboardPageInner() {
     if (Object.keys(prefill).length > 0) update(prefill);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist to localStorage
+  // Persist to localStorage (with version gate)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: ONBOARD_VERSION, step, data }));
     } catch { /* localStorage full */ }
   }, [step, data]);
 

@@ -112,7 +112,18 @@ export async function POST(req: NextRequest) {
     ? data.ownerName.trim()
     : data.businessName;
 
-  const clientSlug = slugify(displayName);
+  // Deduplicate slug — append random suffix on collision
+  let clientSlug = slugify(displayName);
+  const { data: existingSlug } = await supa
+    .from('clients')
+    .select('id')
+    .eq('slug', clientSlug)
+    .limit(1)
+    .maybeSingle()
+  if (existingSlug) {
+    const suffix = Math.random().toString(36).slice(2, 6)
+    clientSlug = `${clientSlug}-${suffix}`
+  }
 
   // Insert into intake_submissions
   const { data: row, error: insertErr } = await supa
@@ -206,22 +217,30 @@ export async function POST(req: NextRequest) {
   };
   if (!intakeData.niche && data.niche) intakeData.niche = data.niche;
 
-  // D112: Inject service_catalog from selectedServices so buildPromptFromIntake()
+  // D112+D326: Inject service_catalog from selectedServices so buildPromptFromIntake()
   // fills SERVICES_OFFERED with the actual services the owner entered during onboarding.
-  // These are the same rows that get inserted into client_services below.
+  // D326: parsedServiceDrafts carry description/price/duration from freeform paste+parse flow.
   const selectedServicesForPrompt: string[] = Array.isArray(data.selectedServices) ? data.selectedServices : [];
+  const parsedDraftMap = new Map(
+    (data.parsedServiceDrafts ?? [])
+      .filter((d) => d.name?.trim())
+      .map((d) => [d.name.trim().toLowerCase(), d])
+  );
   if (selectedServicesForPrompt.length > 0) {
     intakeData.service_catalog = rowsToCatalogItems(
       selectedServicesForPrompt
         .filter((name) => typeof name === 'string' && name.trim())
-        .map((name) => ({
-          name: name.trim().slice(0, 200),
-          description: '',
-          category: '',
-          duration_mins: null,
-          price: '',
-          booking_notes: '',
-        }))
+        .map((name) => {
+          const draft = parsedDraftMap.get(name.trim().toLowerCase());
+          return {
+            name: name.trim().slice(0, 200),
+            description: draft?.description ?? '',
+            category: '',
+            duration_mins: draft?.duration_mins ?? null,
+            price: draft?.price ?? '',
+            booking_notes: '',
+          };
+        })
     );
   }
 
@@ -470,22 +489,26 @@ export async function POST(req: NextRequest) {
     }).eq('id', clientId)
   }
 
-  // D110: Insert selected services into client_services table
+  // D110+D326: Insert selected services into client_services table
+  // D326: Merge parsedServiceDrafts (description, price, duration) when available.
   const selectedServices: string[] = Array.isArray(data.selectedServices) ? data.selectedServices : [];
   if (selectedServices.length > 0) {
     const serviceRows = selectedServices
       .filter((name) => typeof name === 'string' && name.trim())
-      .map((name, idx) => ({
-        client_id: clientId,
-        name: name.trim().slice(0, 200),
-        description: '',
-        category: '',
-        duration_mins: null,
-        price: '',
-        booking_notes: '',
-        active: true,
-        sort_order: idx,
-      }));
+      .map((name, idx) => {
+        const draft = parsedDraftMap.get(name.trim().toLowerCase());
+        return {
+          client_id: clientId,
+          name: name.trim().slice(0, 200),
+          description: draft?.description ?? '',
+          category: '',
+          duration_mins: draft?.duration_mins ?? null,
+          price: draft?.price ?? '',
+          booking_notes: '',
+          active: true,
+          sort_order: idx,
+        };
+      });
     if (serviceRows.length > 0) {
       const { error: servicesErr } = await supa
         .from('client_services')

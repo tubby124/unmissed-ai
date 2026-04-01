@@ -1,4 +1,5 @@
 import { OnboardingData, Niche, defaultAgentNames } from "@/types/onboarding";
+import { planToMode } from "@/lib/plan-entitlements";
 
 // Map province/state abbreviations to timezone
 export const TIMEZONE_MAP: Record<string, string> = {
@@ -129,9 +130,15 @@ export function toIntakePayload(data: OnboardingData) {
     hoursWeekend = `Sunday ${to12h(sunDay.open)}–${to12h(sunDay.close)}`
   }
 
-  // Derive call_handling_mode: step3 is canonical; fallback to agentJob if step3 was skipped
+  // Phase 7: Derive call_handling_mode from plan when available (Plan = Mode).
+  // Fallback chain: selectedPlan → callHandlingMode → agentJob → agentMode → 'triage'
   let effectiveMode = data.callHandlingMode
-  if (!effectiveMode && data.agentJob) {
+  if (data.selectedPlan) {
+    const planMode = planToMode(data.selectedPlan)
+    effectiveMode = planMode === 'appointment_booking' ? 'full_service'
+      : planMode === 'voicemail_replacement' ? 'message_only'
+      : 'triage'
+  } else if (!effectiveMode && data.agentJob) {
     effectiveMode = data.agentJob === 'booking_agent' ? 'full_service'
       : data.agentJob === 'message_taker' ? 'message_only'
       : 'triage'
@@ -141,7 +148,7 @@ export function toIntakePayload(data: OnboardingData) {
   // Override call_handling_mode when agent_mode requires it.
   // voicemail_replacement → message_only (minimal collection, no triage).
   // appointment_booking stays triage — do NOT derive full_service (avoids booking_enabled coupling).
-  const agentModeVal = data.agentMode ?? 'lead_capture'
+  const agentModeVal = data.agentMode ?? (data.selectedPlan ? planToMode(data.selectedPlan) : 'lead_capture')
   if (agentModeVal === 'voicemail_replacement') {
     effectiveMode = 'message_only'
   }
@@ -194,14 +201,16 @@ export function toIntakePayload(data: OnboardingData) {
     // Niche-specific context_data wiring (explicit niche data takes priority)
     // Fallback: use Haiku-extracted contextData from website scrape (D246)
     // D259: priceRange entered during onboarding is prepended to context_data when present
+    // D320: urgencyWords persisted alongside priceRange in context_data
     ...(data.niche === 'restaurant' && data.nicheAnswers?.menuData
       ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }
       : data.niche === 'property_management' && data.nicheAnswers?.tenantRoster
       ? { context_data: String(data.nicheAnswers.tenantRoster), context_data_label: 'TENANTS' }
       : (() => {
           const pricePrefix = data.priceRange?.trim() ? `PRICES\n${data.priceRange.trim()}\n\n` : ''
+          const urgencyPrefix = data.urgencyWords?.trim() ? `URGENCY KEYWORDS\n${data.urgencyWords.trim()}\n\n` : ''
           const scraped = data.websiteScrapeResult?.contextData ? String(data.websiteScrapeResult.contextData) : ''
-          const combined = (pricePrefix + scraped).trim()
+          const combined = (pricePrefix + urgencyPrefix + scraped).trim()
           return combined
             ? { context_data: combined, context_data_label: 'BUSINESS INFO' }
             : {}

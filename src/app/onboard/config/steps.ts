@@ -63,40 +63,18 @@ export interface StepDef {
 // Import step components here. Add/remove/reorder entries to change the flow.
 
 import Step1GBP from '../steps/step1-gbp'
-import Step2VoicePreview from '../steps/step2-voice-preview'
 import StepPlan from '../steps/step-plan'
-import Step3Capabilities from '../steps/step3-capabilities'
-import Step4Schedule from '../steps/step4-schedule'
-import Step4Knowledge from '../steps/step4'
 import Step6Activate from '../steps/step6-activate'
-// Inactive steps (not currently in the flow):
-// import Step2Job from '../steps/step2-job'         ← merged into Step3Capabilities (same question)
 
+/**
+ * Phase 7: 3-step onboarding — GBP → Plan → Launch
+ * Previous 7-step flow superseded. Dead step files listed in Phase7-75-Second-Agent.md §1h.
+ */
 export const STEP_DEFS: StepDef[] = [
   {
     label: 'Your business',
     component: Step1GBP,
     canAdvance: (d) => !!d.businessName && !!d.voiceId && !!d.agentName?.trim(),
-  },
-  {
-    label: 'Voice',
-    component: Step2VoicePreview,
-    canAdvance: (d) => !!d.voiceId,
-  },
-  {
-    label: 'Agent mode',
-    component: Step3Capabilities,
-    canAdvance: () => true,
-  },
-  {
-    label: 'Schedule',
-    component: Step4Schedule,
-    canAdvance: () => true,
-  },
-  {
-    label: 'Train your agent',
-    component: Step4Knowledge,
-    canAdvance: () => true,
   },
   {
     label: 'Your plan',
