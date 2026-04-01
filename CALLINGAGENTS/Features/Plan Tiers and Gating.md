@@ -3,7 +3,7 @@ type: feature
 status: active
 tags: [pricing, tiers, plan-gating, architecture]
 related: [[Decisions/Tier Differentiation — Quality Floor Not Ceiling]], [[Architecture/Billing and Stripe]], [[D208]], [[D240]], [[D273]]
-updated: 2026-03-31
+updated: 2026-04-01
 ---
 
 # Plan Tiers and Gating
@@ -26,29 +26,29 @@ These are non-negotiable. Even the cheapest plan gets all of this:
 
 **Why:** The demo already shows this quality. Selling less than the demo is a credibility gap. A busy solopreneur (plumber, realtor, auto glass tech) just needs calls handled well — that's what they're paying for.
 
-## Tier Feature Matrix
+## Tier Feature Matrix (Phase 7 — 2026-04-01)
 
-| Capability | Lite (Essentials) | Core (Professional) | Pro (Business) |
-|-----------|-------------------|---------------------|----------------|
+| Capability | Lite — Call Catcher | Core — AI Receptionist | Pro — Front Desk Pro |
+|-----------|---------------------|------------------------|----------------------|
 | **Conversation quality** | Full | Full | Full |
 | **Triage + classification** | Full | Full | Full |
 | **Telegram summaries** | Yes | Yes | Yes |
-| **Monthly minutes** | 100 | 250 | 500 |
-| **SMS follow-up** | No | Yes | Yes |
+| **Monthly minutes** | 100 | 400 | 1,000 |
+| **SMS follow-up** | Yes | Yes | Yes |
 | **Knowledge base (pgvector)** | No | Yes | Yes |
-| **Call transfer** | No | Yes | Yes |
-| **Calendar booking** | No | No | Yes |
-| **IVR pre-filter** | No | No | Yes |
-| **Coaching loop** | No | No | Yes |
+| **Calendar booking** | No | **Yes** | Yes |
+| **Call transfer** | No | No | **Yes** |
+| **IVR pre-filter** | No | No | **Yes** |
+| **Coaching loop** | No | Yes | Yes |
 | **Outbound calls** | No | Planned | Planned |
 
 ## Who Buys What
 
-**Lite (Essentials):** Busy solopreneur. One-person shop. They miss calls, they lose jobs. They need an agent that handles calls professionally while they're on a job site. They don't need SMS or booking — they just need to know who called and what they need. Minutes are the upgrade lever.
+**Lite — Call Catcher ($49/mo):** Busy solopreneur. One-person shop. They miss calls, they lose jobs. AI voicemail that captures every call and texts them the summary. SMS follow-up to callers. No booking, no transfer — just catch every call.
 
-**Core (Professional):** The money tier. Service-based businesses with real call volume. They want SMS follow-up, knowledge base answers, call transfer. This is what most clients want. Everything except booking and IVR. A plumber, HVAC company, auto glass shop, property manager — they all want this.
+**Core — AI Receptionist ($119/mo):** The money tier. SMBs and individuals who want AI in their workflow. Full receptionist that answers questions, books appointments, scores leads, and knows the business. Everything except IVR and live transfer. This is what most clients want.
 
-**Pro (Business):** Scale operations. Calendar booking for appointment-heavy businesses. IVR for multi-department routing. Coaching loop for continuous improvement. More minutes for high-volume shops.
+**Pro — Front Desk Pro ($229/mo):** For companies with massive call volume. IVR routing, live transfer to owner's phone, 1,000 minutes. The full front desk — targeted at real businesses that need actual receptionist-level automation.
 
 ## Where This Is Enforced
 
@@ -68,15 +68,13 @@ These are non-negotiable. Even the cheapest plan gets all of this:
 ### Prompt disclaimer for gated features
 When a tool is gated out, `buildAgentTools()` adds a disclaimer line to the prompt so the agent doesn't promise features it can't deliver. E.g., "You cannot book appointments — route to callback instead."
 
-## Naming Decision (TODO — D208)
+## Naming (Decided 2026-04-01 — Phase 7)
 
-Current names: "Lite / Core / Pro" — functional but generic.
-Consider renaming to match the positioning:
-- "Essentials" (not "AI Voicemail" — that undersells it)
-- "Professional" (the one they really want)
-- "Business" (scale and automation)
+- **Lite → Call Catcher** — catches every call, texts the summary
+- **Core → AI Receptionist** — the full receptionist, books appointments
+- **Pro → Front Desk Pro** — IVR + transfer + volume, for real companies
 
-Update pricing page, billing card, upgrade CTAs, and onboarding to reflect this.
+Names are in `pricing.ts` and `plan-entitlements.ts`. Stripe product names to be updated.
 
 ## Key Files
 
