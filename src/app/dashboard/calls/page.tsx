@@ -5,6 +5,7 @@ import CallsList from '@/components/dashboard/CallsList'
 import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 import ContactsView from '@/components/dashboard/ContactsView'
 import AgentConfigCard from '@/components/dashboard/AgentConfigCard'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import LeadQueue from '@/components/dashboard/LeadQueue'
 
 export const dynamic = 'force-dynamic'
@@ -198,48 +199,40 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <div className="p-3 sm:p-6 max-w-5xl space-y-5">
+    <div className="p-3 sm:p-6 space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-base font-semibold t1">Calls &amp; Leads</h1>
         <p className="text-[11px] t3 mt-0.5">Inbound activity and outbound follow-up</p>
       </div>
 
-      {/* Agent config — inbound/outbound settings at a glance */}
+      {/* Agent config + Talk to Agent (3-col: config | orb | config right) */}
       {clientId && (
-        <AgentConfigCard
-          afterHoursBehavior={afterHoursBehavior}
-          businessHoursWeekday={businessHoursWeekday}
-          businessHoursWeekend={businessHoursWeekend}
-          forwardingNumber={forwardingNumber}
-          voicemailGreetingText={voicemailGreetingText}
-          ivrEnabled={ivrEnabled}
-          smsEnabled={smsEnabled}
-          outboundVmScript={outboundVmScript}
-          outboundTone={outboundTone}
-          outboundGoal={outboundGoal}
-          outboundOpening={outboundOpening}
-          callHandlingMode={callHandlingMode}
-          transferConditions={transferConditions}
-          ivrPrompt={ivrPrompt}
-          clientId={clientId}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+          <div className="md:col-span-2">
+            <AgentConfigCard
+              afterHoursBehavior={afterHoursBehavior}
+              businessHoursWeekday={businessHoursWeekday}
+              businessHoursWeekend={businessHoursWeekend}
+              forwardingNumber={forwardingNumber}
+              voicemailGreetingText={voicemailGreetingText}
+              ivrEnabled={ivrEnabled}
+              smsEnabled={smsEnabled}
+              outboundVmScript={outboundVmScript}
+              outboundTone={outboundTone}
+              outboundGoal={outboundGoal}
+              outboundOpening={outboundOpening}
+              callHandlingMode={callHandlingMode}
+              transferConditions={transferConditions}
+              ivrPrompt={ivrPrompt}
+              clientId={clientId}
+            />
+          </div>
+          <TestCallCard clientId={clientId} isAdmin={isAdmin} />
+        </div>
       )}
 
-      {/* Outbound queue */}
-      {clientId && (
-        <LeadQueue
-          initialLeads={leads}
-          clients={isAdmin
-            ? adminClients.map(c => ({ id: c.id, slug: c.slug, business_name: c.business_name }))
-            : clientId && clientBusinessName
-              ? [{ id: clientId, slug: clientSlug ?? '', business_name: clientBusinessName }]
-              : []
-          }
-        />
-      )}
-
-      {/* Call log */}
+      {/* Call log — full width (contains StatsGrid 5-col, OutcomeCharts 3-col, MinuteUsage, call table) */}
       <CallsList
         initialCalls={allCalls}
         phone={clientPhone}
@@ -254,16 +247,23 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         bonusMinutes={bonusMinutes}
       />
 
-      {/* Learning loop */}
+      {/* Bottom row — 3-col: lead queue | learning loop | contacts */}
       {clientId && (
-        <LearningLoopCard clientId={clientId} isAdmin={isAdmin} />
-      )}
-
-      {/* Contacts — always visible, no tab required */}
-      {clientId && (
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Contacts</p>
-          <ContactsView clientId={clientId} />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <LeadQueue
+            initialLeads={leads}
+            clients={isAdmin
+              ? adminClients.map(c => ({ id: c.id, slug: c.slug, business_name: c.business_name }))
+              : clientId && clientBusinessName
+                ? [{ id: clientId, slug: clientSlug ?? '', business_name: clientBusinessName }]
+                : []
+            }
+          />
+          <LearningLoopCard clientId={clientId} isAdmin={isAdmin} />
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Contacts</p>
+            <ContactsView clientId={clientId} />
+          </div>
         </div>
       )}
 

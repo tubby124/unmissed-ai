@@ -163,7 +163,7 @@ export default function KnowledgeSourcesTile({ gbpData, editableFields, websiteS
   const [gbpError, setGbpError] = useState<string | null>(null)
   const [placesKey, setPlacesKey] = useState(0)
 
-  const hasGbp = !!(localGbp?.summary)
+  const hasGbp = !!(localGbp?.placeId || localGbp?.rating)
   const hasWebsite = websiteScrapeStatus === 'approved' || websiteScrapeStatus === 'extracted' || websiteScrapeStatus === 'scraping'
   const websiteUrl = editableFields.websiteUrl
 
@@ -283,7 +283,11 @@ export default function KnowledgeSourcesTile({ gbpData, editableFields, websiteS
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-xs t2 leading-relaxed line-clamp-3">{localGbp!.summary}</p>
+                {localGbp!.summary ? (
+                  <p className="text-xs t2 leading-relaxed line-clamp-3">{localGbp!.summary}</p>
+                ) : (
+                  <p className="text-xs t3 italic">Google Business Profile connected</p>
+                )}
                 {localGbp?.rating && (
                   <div className="flex items-center gap-1.5 mt-1">
                     <StarRating rating={localGbp.rating} />

@@ -22,6 +22,7 @@ import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import PromptEditorModal from '@/components/dashboard/settings/PromptEditorModal'
 import { buildCapabilityFlags } from '@/lib/capability-flags'
 
@@ -177,7 +178,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-5">
+    <div className="px-4 sm:px-6 py-6 space-y-5">
 
       {/* Admin — client selector + info strip */}
       {isAdmin && clients.length > 1 && (
@@ -340,54 +341,59 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         )
       })()}
 
-      {/* ─── Overview: Capabilities + Prompt Editor + Notifications (non-admin) ─── */}
+      {/* ─── Overview: Orb + Capabilities + Prompt Editor + Notifications (non-admin) ─── */}
       {!isAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Left — capabilities card */}
-          <CapabilitiesCard
-            capabilities={buildCapabilityFlags(client)}
-            agentName={client.agent_name ?? ''}
-            voiceStylePreset={voiceStylePreset[client.id] ?? null}
-            isTrial={client.subscription_status === 'trialing'}
-            clientId={client.id}
-            hasPhoneNumber={!!client.twilio_number}
-            hasIvr={!!client.ivr_enabled && !!client.twilio_number}
-            hasContextData={!!client.context_data}
-            selectedPlan={client.selected_plan}
-          />
+        <div className="space-y-4">
+          {/* 3-col: Capabilities | Orb | Prompt Editor + Notifications */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+            {/* Left: Capabilities (spans 2) */}
+            <div className="md:col-span-2">
+              <CapabilitiesCard
+                capabilities={buildCapabilityFlags(client)}
+                agentName={client.agent_name ?? ''}
+                voiceStylePreset={voiceStylePreset[client.id] ?? null}
+                isTrial={client.subscription_status === 'trialing'}
+                clientId={client.id}
+                hasPhoneNumber={!!client.twilio_number}
+                hasIvr={!!client.ivr_enabled && !!client.twilio_number}
+                hasContextData={!!client.context_data}
+                selectedPlan={client.selected_plan}
+              />
+            </div>
 
-          {/* Right — Prompt Editor entry + Notifications mini */}
-          <div className="space-y-3">
-            {/* ADVANCED: PROMPT EDITOR */}
-            <button
-              onClick={() => setShowPromptEditor(true)}
-              className="w-full text-left card-surface rounded-2xl p-5 hover:border-[var(--color-primary)]/40 transition-colors group"
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Advanced</p>
-                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}>
-                  POWER USER
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold t1 mb-0.5">Prompt Editor</p>
-                  <p className="text-[11px] t3 leading-relaxed">Edit system prompt and all injected context in one place</p>
+            {/* Right: Orb + Prompt Editor + Notifications */}
+            <div className="space-y-4">
+              <TestCallCard clientId={client.id} isAdmin={false} />
+
+              <button
+                onClick={() => setShowPromptEditor(true)}
+                className="w-full text-left card-surface rounded-2xl p-5 hover:border-[var(--color-primary)]/40 transition-colors group"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Advanced</p>
+                  <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}>
+                    POWER USER
+                  </span>
                 </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 t3 group-hover:text-[var(--color-primary)] transition-colors">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </div>
-            </button>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold t1 mb-0.5">Prompt Editor</p>
+                    <p className="text-[11px] t3 leading-relaxed">Edit system prompt and all injected context in one place</p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 t3 group-hover:text-[var(--color-primary)] transition-colors">
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                </div>
+              </button>
 
-            {/* Notifications mini widget */}
-            <NotificationsWidget
-              clientId={client.id}
-              isAdmin={isAdmin}
-              telegramEnabled={!!(client.telegram_notifications_enabled)}
-              emailEnabled={!!(client.email_notifications_enabled)}
-              smsEnabled={smsEnabled[client.id] ?? false}
-            />
+              <NotificationsWidget
+                clientId={client.id}
+                isAdmin={isAdmin}
+                telegramEnabled={!!(client.telegram_notifications_enabled)}
+                emailEnabled={!!(client.email_notifications_enabled)}
+                smsEnabled={smsEnabled[client.id] ?? false}
+              />
+            </div>
           </div>
         </div>
       )}

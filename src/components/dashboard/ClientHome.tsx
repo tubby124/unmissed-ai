@@ -20,7 +20,6 @@ import { useHomeSheet } from '@/hooks/useHomeSheet'
 
 // Phase section components (Wave 2 decomposition)
 import TrialExpiredSection from './home/TrialExpiredSection'
-import TrialActiveSection from './home/TrialActiveSection'
 import UnifiedHomeSection from './home/UnifiedHomeSection'
 // Shared bento-level components kept at this level
 import TrialWelcomeBanner from './home/TrialWelcomeBanner'
@@ -78,6 +77,7 @@ export interface HomeData {
     hasPhoneNumber: boolean
     hasAgent: boolean
     telegramConnected: boolean
+    telegramBotUrl: string | null
     emailNotificationsEnabled: boolean
     telegramNotificationsEnabled: boolean
   }
@@ -166,6 +166,7 @@ export interface HomeData {
     monthHoursSaved: number
   } | null
   hasTriage?: boolean
+  callerReasons?: string[]
 }
 
 
@@ -204,7 +205,6 @@ export default function ClientHome() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [welcomeDismissed, setWelcomeDismissed] = useState(true)
-  const [postCallDismissed, setPostCallDismissed] = useState(false)
   const [liveCalls, setLiveCalls] = useState<{ id: string; ultravox_call_id: string; caller_phone: string | null; started_at: string; business_name?: string | null; transfer_status?: string | null }[]>([])
   const hasTrackedCallEnd = useRef(false)
   const hasAutoOpenedUpgrade = useRef(false)
@@ -226,7 +226,6 @@ export default function ClientHome() {
     }
     if (callState === 'idle') {
       hasTrackedCallEnd.current = false
-      setPostCallDismissed(false)
     }
   }, [callState])
 
@@ -366,13 +365,8 @@ export default function ClientHome() {
   const homePhase = deriveHomePhase(trialPhase, data.activation?.state ?? 'awaiting_number')
   const isTrial = trialPhase !== 'paid_or_non_trial'
   const isTrialActive = trialPhase !== 'expired' && trialPhase !== 'paid_or_non_trial'
-  const isExpired = trialPhase === 'expired'
-  const showChecklist = onboarding.clientStatus === 'active' && !isExpired
   const hasRealCalls = stats.totalCalls > 0
   const justUpgraded = searchParams.get('upgraded') === 'true'
-
-  // ProofStrip: most recent completed call from recentCalls (not 'live')
-  const lastCompletedCall = recentCalls.find(c => c.call_status !== 'live') ?? null
 
   function dismissWelcome() {
     localStorage.setItem(WELCOME_DISMISSED_KEY, 'true')
@@ -456,27 +450,10 @@ export default function ClientHome() {
               onUpgradeClick={() => openUpgradeModal('trial_expired_hero', homeClientId)}
             />
           )}
-          {/* First-visit welcome screen — intentionally distinct one-time onboarding moment */}
-          {homePhase === 'trial_active' && data.trialWelcome.isFirstVisit && (
-            <TrialActiveSection
-              data={data}
-              trialPhase={trialPhase}
-              daysRemaining={daysRemaining}
-              isTrial={isTrial}
-              isFirstVisit={true}
-              showChecklist={showChecklist}
-              hasRealCalls={hasRealCalls}
-              lastCompletedCall={lastCompletedCall}
-              postCallDismissed={postCallDismissed}
-              onPostCallDismiss={() => setPostCallDismissed(true)}
-              sheet={sheet}
-              fetchData={fetchData}
-            />
-          )}
-          {/* Unified layout for returning trial users, paid-awaiting, and paid-ready */}
+          {/* Unified layout for ALL non-expired users: trial (first visit or returning), paid-awaiting, and paid-ready */}
           {(homePhase === 'paid_ready' ||
             homePhase === 'paid_awaiting' ||
-            (homePhase === 'trial_active' && !data.trialWelcome.isFirstVisit)) && (
+            homePhase === 'trial_active') && (
             <UnifiedHomeSection
               data={data}
               isTrial={isTrial}

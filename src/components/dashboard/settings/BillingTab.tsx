@@ -208,7 +208,7 @@ export default function BillingTab({
       )}
 
       {/* ── Row 1: 3 stat cards ─────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Current Plan */}
         <div className="rounded-2xl border b-theme bg-surface p-5 flex flex-col">
@@ -330,10 +330,10 @@ export default function BillingTab({
       </div>
 
       {/* ── Row 2: Plan Comparison + Payment & Invoices ─────────────── */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
         {/* Plan Comparison */}
-        <div className="col-span-2 rounded-2xl border b-theme bg-surface p-5">
+        <div className="lg:col-span-2 rounded-2xl border b-theme bg-surface p-5">
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-4 flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <rect x="2" y="3" width="6" height="18" rx="1" stroke="currentColor" strokeWidth="2"/>
@@ -393,7 +393,7 @@ export default function BillingTab({
         </div>
 
         {/* Payment & Invoices */}
-        <div className="col-span-3 rounded-2xl border b-theme bg-surface p-5">
+        <div className="lg:col-span-3 rounded-2xl border b-theme bg-surface p-5">
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-4 flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>

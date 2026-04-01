@@ -13,6 +13,10 @@ import InlineFactsEditor from '@/components/dashboard/knowledge/InlineFactsEdito
 import InlineFaqEditor from '@/components/dashboard/knowledge/InlineFaqEditor'
 import FileUploadPanel from '@/components/dashboard/knowledge/FileUploadPanel'
 import DocumentList from '@/components/dashboard/knowledge/DocumentList'
+import KnowledgeHealthScore from '@/components/dashboard/knowledge/KnowledgeHealthScore'
+import KnowledgeDrawer from '@/components/dashboard/knowledge/KnowledgeDrawer'
+import CallContextPreview from '@/components/dashboard/knowledge/CallContextPreview'
+import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import { useCallContext } from '@/contexts/CallContext'
 import { toast } from 'sonner'
@@ -63,7 +67,7 @@ function ConflictModal({
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg t3 hover:t2 transition-colors"
+            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg t3 hover:t2 transition-colors cursor-pointer"
             style={{ backgroundColor: 'var(--color-hover)' }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -101,17 +105,17 @@ function ConflictModal({
         <div className="flex items-center justify-end gap-2 pt-1">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-xl text-xs font-medium border b-theme t2 hover:bg-hover transition-colors"
+            className="px-3 py-1.5 rounded-xl text-xs font-medium border b-theme t2 hover:bg-hover transition-colors cursor-pointer"
           >
             Close
           </button>
           <button
             onClick={handleDismissAll}
             disabled={dismissing}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors cursor-pointer"
             style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
-            {dismissing ? 'Dismissing…' : 'Dismiss all'}
+            {dismissing ? 'Dismissing\u2026' : 'Dismiss all'}
           </button>
         </div>
       </div>
@@ -119,7 +123,7 @@ function ConflictModal({
   )
 }
 
-// ── Most Asked Topics card ──────────────────────────────────────────────────
+// ── Top queries card ──────────────────────────────────────────────────────────
 interface TopQuery { query: string; count: number }
 
 function TopQueriesCard({ clientId, isAdmin }: { clientId: string; isAdmin: boolean }) {
@@ -150,49 +154,196 @@ function TopQueriesCard({ clientId, isAdmin }: { clientId: string; isAdmin: bool
     return () => ctrl.abort()
   }, [clientId, isAdmin])
 
-  if (!loaded || queries.length === 0) return null
-
   return (
-    <div className="card-surface rounded-2xl p-5 space-y-3">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
-        {/* Search icon */}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="t3 shrink-0">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Callers Have Searched For</p>
-        <span
-          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
-        >
-          {queries.length}
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {queries.map((q, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: 'var(--color-hover)' }}
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Callers Search For</p>
+        {loaded && queries.length > 0 && (
+          <span
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
           >
-            <span className="text-[11px] t2 leading-snug flex-1 min-w-0 truncate" title={q.query}>
-              {q.query}
-            </span>
-            <span
-              className="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-              style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
-            >
-              {q.count}×
-            </span>
-          </div>
-        ))}
+            {queries.length}
+          </span>
+        )}
       </div>
-      <p className="text-[10px] t3">Based on the last 90 days of calls</p>
+      {!loaded ? (
+        <div className="flex items-center gap-2 py-3">
+          <span className="w-3 h-3 rounded-full border-[1.5px] border-current border-t-transparent animate-spin t3" />
+          <span className="text-[11px] t3">Loading...</span>
+        </div>
+      ) : queries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="t3 mb-2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <p className="text-[11px] t3">No search data yet</p>
+          <p className="text-[10px] t3 mt-0.5">Search queries appear after callers interact with your agent</p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            {queries.map((q, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl"
+                style={{ backgroundColor: 'var(--color-hover)' }}
+              >
+                <span className="text-[11px] t2 leading-snug flex-1 min-w-0 truncate" title={q.query}>
+                  {q.query}
+                </span>
+                <span
+                  className="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
+                >
+                  {q.count}x
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] t3">Based on the last 90 days of calls</p>
+        </>
+      )}
     </div>
   )
 }
 
-type ActivePanel = 'website' | 'compiler' | 'search' | 'upload' | null
+// ── Ask Your Agent section ────────────────────────────────────────────────────
+function AskYourAgent({ clientId, isAdmin }: { clientId: string; isAdmin: boolean }) {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<{ content: string; sources: string[] } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleAsk() {
+    const q = question.trim()
+    if (!q || loading) return
+    setLoading(true)
+    setAnswer(null)
+    try {
+      const params = new URLSearchParams({ q })
+      if (isAdmin) params.set('client_id', clientId)
+      const res = await fetch(`/api/dashboard/knowledge/preview-question?${params}`)
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      setAnswer({
+        content: data.answer ?? data.content ?? 'No answer found.',
+        sources: data.sources ?? [],
+      })
+    } catch {
+      setAnswer({ content: 'Could not reach the knowledge base. Try again.', sources: [] })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="t3 shrink-0">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </svg>
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Ask Your Agent</p>
+      </div>
+      <p className="text-[11px] t3">Type a question a caller might ask &mdash; see what your agent knows.</p>
+      <div className="flex gap-2">
+        <input
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleAsk() } }}
+          placeholder="e.g. How much for a windshield?"
+          className="flex-1 text-[11px] px-3 py-2 rounded-lg outline-none transition-colors"
+          style={{
+            backgroundColor: 'var(--color-hover)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-1)',
+          }}
+        />
+        <button
+          onClick={() => void handleAsk()}
+          disabled={!question.trim() || loading}
+          className="px-3 py-2 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40 cursor-pointer"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+        >
+          {loading ? 'Asking\u2026' : 'Ask'}
+        </button>
+      </div>
+      {answer && (
+        <div
+          className="rounded-xl px-3 py-2.5 space-y-1.5"
+          style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+        >
+          <p className="text-[11px] t1 leading-relaxed">{answer.content}</p>
+          {answer.sources.length > 0 && (
+            <p className="text-[10px] t3">
+              Sources: {answer.sources.join(', ')}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Drawer content type ───────────────────────────────────────────────────────
+type DrawerContent = 'upload' | 'scrape' | 'compile' | 'bulk-ai' | 'context-preview' | 'chunks' | null
+
+const DRAWER_META: Record<Exclude<DrawerContent, null>, { title: string; subtitle: string }> = {
+  upload: { title: 'Upload Document', subtitle: 'Add PDFs or Word docs \u2014 your agent learns from them automatically' },
+  scrape: { title: 'Scrape Website', subtitle: 'Extract knowledge from your website pages' },
+  compile: { title: 'AI Compiler', subtitle: 'Extract structured knowledge from raw content' },
+  'bulk-ai': { title: 'Bulk AI Answers', subtitle: 'Generate answers for multiple unanswered questions' },
+  'context-preview': { title: 'Call Context Preview', subtitle: 'What your agent sees at the start of every call' },
+  chunks: { title: 'Knowledge Chunks', subtitle: 'Browse and manage all indexed knowledge' },
+}
+
+// ── Quick Add action button icons ─────────────────────────────────────────────
+const QUICK_ADD_ACTIONS: { id: DrawerContent; label: string; icon: React.ReactNode }[] = [
+  {
+    id: 'upload',
+    label: 'Upload',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'scrape',
+    label: 'Scrape',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" />
+        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'compile',
+    label: 'AI Compile',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: 'chunks',
+    label: 'Browse',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.75" />
+        <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+]
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 interface KnowledgePageViewProps {
   clients: ClientConfig[]
@@ -212,12 +363,24 @@ export default function KnowledgePageView({
       ? initialClientId
       : clients[0]?.id ?? ''
   )
-  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [uploadRefresh, setUploadRefresh] = useState(0)
   const [testCallLoading, setTestCallLoading] = useState(false)
   const [conflicts, setConflicts] = useState<ConflictEntry[]>([])
   const [conflictModalOpen, setConflictModalOpen] = useState(false)
   const { startCall, endCall, setMeta, callState } = useCallContext()
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerContent, setDrawerContent] = useState<DrawerContent>(null)
+
+  // Health score data
+  const [healthData, setHealthData] = useState<{
+    approvedChunkCount: number
+    staleItemCount: number
+    connectedSources: number
+    unansweredCount: number
+    answeredCount: number
+  }>({ approvedChunkCount: 0, staleItemCount: 0, connectedSources: 0, unansweredCount: 0, answeredCount: 0 })
 
   useEffect(() => {
     if (initialClientId && clients.find(c => c.id === initialClientId)) {
@@ -227,6 +390,7 @@ export default function KnowledgePageView({
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
 
+  // Fetch conflicts
   const fetchConflicts = useCallback((cid: string) => {
     const url = isAdmin ? `/api/dashboard/knowledge/conflicts?client_id=${cid}` : '/api/dashboard/knowledge/conflicts'
     fetch(url)
@@ -237,9 +401,50 @@ export default function KnowledgePageView({
       .catch(() => {})
   }, [isAdmin])
 
+  // Fetch health score data
+  const fetchHealthData = useCallback((cid: string) => {
+    // Stats endpoint
+    const statsUrl = isAdmin
+      ? `/api/dashboard/knowledge/stats?client_id=${cid}`
+      : '/api/dashboard/knowledge/stats'
+    fetch(statsUrl)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          const bySource = data.bySource ?? {}
+          const connectedSources = Object.values(bySource).filter((v) => (v as number) > 0).length
+          setHealthData(prev => ({
+            ...prev,
+            approvedChunkCount: data.approved ?? 0,
+            connectedSources,
+          }))
+        }
+      })
+      .catch(() => {})
+
+    // Gaps endpoint for unanswered count
+    const gapsUrl = isAdmin
+      ? `/api/dashboard/knowledge/gaps?client_id=${cid}&days=90`
+      : '/api/dashboard/knowledge/gaps?days=90'
+    fetch(gapsUrl)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setHealthData(prev => ({
+            ...prev,
+            unansweredCount: data.total_unanswered_queries ?? data.total ?? 0,
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [isAdmin])
+
   useEffect(() => {
-    if (client?.id) fetchConflicts(client.id)
-  }, [client?.id, fetchConflicts])
+    if (client?.id) {
+      fetchConflicts(client.id)
+      fetchHealthData(client.id)
+    }
+  }, [client?.id, fetchConflicts, fetchHealthData])
 
   async function handleDismissConflicts(runIds: string[]) {
     const url = isAdmin && client?.id
@@ -259,6 +464,42 @@ export default function KnowledgePageView({
   }
 
   if (!client) return null
+
+  // Derived data
+  const facts: string[] = Array.isArray(client.business_facts)
+    ? (client.business_facts as string[]).filter(Boolean)
+    : (client.business_facts ? (client.business_facts as string).split('\n').filter(Boolean) : [])
+  const qa: Array<{ q: string; a: string }> = client.extra_qa ?? []
+  const callActive = callState === 'active' || callState === 'connecting'
+
+  // Health score props
+  const healthProps = {
+    factsCount: facts.length,
+    faqsCount: qa.length,
+    approvedChunkCount: healthData.approvedChunkCount,
+    niche: client.niche,
+    hasHours: !!client.business_hours_weekday,
+    hasPricing: facts.some(f => /price|cost|\$|\d+\.\d{2}/i.test(f)),
+    hasServices: !!client.services_offered,
+    hasLocation: !!(client.city || client.state),
+    hasFaqs: qa.length > 0,
+    totalItems: facts.length + qa.length + healthData.approvedChunkCount,
+    staleItemCount: healthData.staleItemCount,
+    connectedSources: healthData.connectedSources,
+    unansweredCount: healthData.unansweredCount,
+    answeredCount: healthData.answeredCount,
+  }
+
+  // Drawer helpers
+  function openDrawer(content: DrawerContent) {
+    setDrawerContent(content)
+    setDrawerOpen(true)
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false)
+    setDrawerContent(null)
+  }
 
   async function handleTestCall() {
     setTestCallLoading(true)
@@ -290,65 +531,14 @@ export default function KnowledgePageView({
     }
   }
 
-  function togglePanel(panel: ActivePanel) {
-    setActivePanel(prev => prev === panel ? null : panel)
-  }
-
-  const callActive = callState === 'active' || callState === 'connecting'
-
-  const facts: string[] = Array.isArray(client.business_facts)
-    ? (client.business_facts as string[]).filter(Boolean)
-    : (client.business_facts ? (client.business_facts as string).split('\n').filter(Boolean) : [])
-  const qa: Array<{ q: string; a: string }> = client.extra_qa ?? []
-
-  const actions: { id: ActivePanel; label: string; icon: React.ReactNode }[] = [
-    {
-      id: 'upload',
-      label: 'Upload document',
-      icon: (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-    {
-      id: 'website',
-      label: 'Scrape website',
-      icon: (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" />
-          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-    {
-      id: 'compiler',
-      label: 'AI Compiler',
-      icon: (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-    {
-      id: 'search',
-      label: 'Test search',
-      icon: (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.75" />
-          <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-  ]
-
   return (
-    <div className="p-3 sm:p-6 max-w-5xl space-y-5">
-      {/* ── Conflict banner ──────────────────────────────────────────── */}
+    <div className="p-3 sm:p-6 space-y-5">
+
+      {/* ── Conflict banner ──────────────────────────────────────────────── */}
       {conflicts.length > 0 && (
         <button
           onClick={() => setConflictModalOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors hover:opacity-90"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors hover:opacity-90 cursor-pointer"
           style={{
             borderColor: 'rgba(251,146,60,0.4)',
             backgroundColor: 'rgba(251,146,60,0.08)',
@@ -360,7 +550,7 @@ export default function KnowledgePageView({
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
           <span className="text-xs font-medium" style={{ color: 'rgb(251,146,60)' }}>
-            {conflicts.length} potential conflict{conflicts.length !== 1 ? 's' : ''} found in your knowledge — review before approving
+            {conflicts.length} potential conflict{conflicts.length !== 1 ? 's' : ''} found in your knowledge &mdash; review before approving
           </span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgb(251,146,60)" strokeWidth="2.5" strokeLinecap="round" className="ml-auto shrink-0">
             <path d="M9 18l6-6-6-6" />
@@ -368,7 +558,7 @@ export default function KnowledgePageView({
         </button>
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
         {isAdmin && clients.length > 1 ? (
           <AdminDropdown clients={clients} selectedId={selectedId} onSelect={setSelectedId} />
@@ -379,6 +569,20 @@ export default function KnowledgePageView({
           </div>
         )}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Context preview button */}
+          <button
+            onClick={() => openDrawer('context-preview')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors duration-200 cursor-pointer"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)' }}
+            title="Preview what the agent sees each call"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Preview
+          </button>
+          {/* Export CSV */}
           <button
             onClick={() => {
               const url = isAdmin && client?.id
@@ -386,7 +590,7 @@ export default function KnowledgePageView({
                 : '/api/dashboard/knowledge/export?format=csv'
               window.open(url, '_blank')
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors duration-200 cursor-pointer"
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)' }}
             title="Download approved knowledge as CSV"
           >
@@ -395,12 +599,13 @@ export default function KnowledgePageView({
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export CSV
+            Export
           </button>
+          {/* Test call */}
           {callActive ? (
             <button
               onClick={endCall}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors duration-200 cursor-pointer"
               style={{ backgroundColor: '#DC2626', color: '#fff' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -412,88 +617,83 @@ export default function KnowledgePageView({
             <button
               onClick={handleTestCall}
               disabled={testCallLoading || previewMode}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors duration-200 cursor-pointer"
               style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.67-1.67a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
-              {testCallLoading ? 'Connecting...' : 'Talk to Agent'}
+              {testCallLoading ? 'Connecting\u2026' : 'Talk to Agent'}
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Action buttons ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2">
-        {actions.map(action => {
-          const isActive = activePanel === action.id
-          return (
-            <button
-              key={action.id as string}
-              onClick={() => togglePanel(action.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
-              style={{
-                borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
-                color: isActive ? 'var(--color-primary)' : 'var(--color-text-2)',
-                backgroundColor: isActive ? 'var(--color-accent-tint)' : 'transparent',
-              }}
-            >
-              {action.icon}
-              {action.label}
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                style={{ transform: isActive ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+      {/* ═══ TIER 1 — Health Score + Talk to Agent + Quick Add (3-col) ═════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        {/* Left: Health Score */}
+        <KnowledgeHealthScore {...healthProps} />
+
+        {/* Center: Talk to Agent orb */}
+        <TestCallCard clientId={client.id} isAdmin={isAdmin} />
+
+        {/* Right: Quick Add */}
+        <div
+          className="rounded-2xl border p-5 space-y-4"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Quick Add</p>
+
+          {/* 2x2 action button grid */}
+          <div className="grid grid-cols-2 gap-2">
+            {QUICK_ADD_ACTIONS.map(action => (
+              <button
+                key={action.id as string}
+                onClick={() => openDrawer(action.id)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors duration-200 hover:border-[var(--color-primary)] cursor-pointer"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  color: 'var(--color-text-2)',
+                  backgroundColor: 'transparent',
+                }}
               >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-          )
-        })}
+                <span className="t3 shrink-0">{action.icon}</span>
+                <span className="text-[11px] font-medium">{action.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Inline paste text input */}
+          <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} compact />
+        </div>
       </div>
 
-      {/* ── Expandable panels ───────────────────────────────────────────── */}
-      {activePanel === 'upload' && (
-        <div className="card-surface rounded-2xl p-5 space-y-4">
-          <div>
-            <p className="text-sm font-semibold t1">Upload a document</p>
-            <p className="text-[11px] t3 mt-0.5">Add PDFs or Word docs — your agent learns from them automatically</p>
+      {/* ═══ TIER 2 — Facts + FAQs + Unanswered (3-col) ═══════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Business facts */}
+        <div
+          className="rounded-2xl border p-5 space-y-3"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Business Facts</p>
+            {facts.length > 0 && (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: 'var(--color-accent-tint)', color: 'var(--color-primary)' }}
+              >
+                {facts.length}
+              </span>
+            )}
           </div>
-          <FileUploadPanel
-            key={client.id}
-            clientId={client.id}
-            previewMode={previewMode}
-            onChunkAdded={() => setUploadRefresh(n => n + 1)}
-          />
-          <DocumentList key={`dl-${client.id}`} clientId={client.id} refreshTrigger={uploadRefresh} />
-        </div>
-      )}
-      {activePanel === 'website' && (
-        <WebsiteKnowledgeCard key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
-      )}
-      {activePanel === 'compiler' && (
-        <KnowledgeCompiler key={client.id} clientId={client.id} isAdmin={isAdmin} />
-      )}
-      {activePanel === 'search' && (
-        <ChunkBrowser key={client.id} clientId={client.id} isAdmin={isAdmin} />
-      )}
-
-      {/* ── 2-col: What your agent knows | FAQs ────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Business facts — inline editable */}
-        <div className="card-surface rounded-2xl p-5 space-y-3">
-          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">What Your Agent Knows</p>
           <InlineFactsEditor key={client.id} facts={facts} clientId={client.id} />
         </div>
 
-        {/* FAQs — inline editable */}
-        <div className="card-surface rounded-2xl p-5 space-y-3">
+        {/* FAQs */}
+        <div
+          className="rounded-2xl border p-5 space-y-3"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
           <div className="flex items-center gap-2">
             <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">FAQs</p>
             {qa.length > 0 && (
@@ -507,29 +707,68 @@ export default function KnowledgePageView({
           </div>
           <InlineFaqEditor key={client.id} qa={qa} clientId={client.id} />
         </div>
-      </div>
 
-      {/* ── Full-width: Unanswered questions ────────────────────────────── */}
-      <KnowledgeGaps key={`gaps-${client.id}`} clientId={client.id} isAdmin={isAdmin} />
-
-      {/* ── 2-col: Auto-suggested FAQs | Teach more + Knowledge base ───── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <PendingSuggestions key={`ps-${client.id}`} clientId={client.id} />
-
-        <div className="space-y-3">
-          {/* Teach more */}
-          <div className="card-surface rounded-2xl p-5 space-y-3">
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Teach More</p>
-            <KnowledgeTextInput clientId={client.id} isAdmin={isAdmin} compact />
+        {/* Unanswered Questions */}
+        <div
+          className="rounded-2xl border p-5 space-y-3"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
+          <KnowledgeGaps
+            key={`gaps-${client.id}`}
+            clientId={client.id}
+            isAdmin={isAdmin}
+            onGapCountChange={(count) => {
+              setHealthData(prev => ({ ...prev, unansweredCount: count }))
+            }}
+            onAnswered={() => {
+              setHealthData(prev => ({
+                ...prev,
+                answeredCount: prev.answeredCount + 1,
+              }))
+            }}
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={() => openDrawer('bulk-ai')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium border transition-colors duration-200 cursor-pointer"
+              style={{
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text-2)',
+              }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Bulk AI Answers
+            </button>
           </div>
-
-          {/* Knowledge sources */}
-          <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} websiteUrl={client.website_url ?? undefined} />
         </div>
       </div>
 
-      {/* ── Most Asked Topics ────────────────────────────────────────────── */}
-      <TopQueriesCard key={`tq-${client.id}`} clientId={client.id} isAdmin={isAdmin} />
+      {/* ═══ TIER 3 — Sources + Suggestions + Caller Searches (3-col) ════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Knowledge sources */}
+        <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} websiteUrl={client.website_url ?? undefined} />
+
+        {/* Pending suggestions */}
+        <PendingSuggestions key={`ps-${client.id}`} clientId={client.id} />
+
+        {/* What callers search for */}
+        <div
+          className="rounded-2xl border p-5"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        >
+          <TopQueriesCard key={`tq-${client.id}`} clientId={client.id} isAdmin={isAdmin} />
+        </div>
+      </div>
+
+      {/* ═══ TIER 4 — Ask Your Agent (full width) ════════════════════════ */}
+      <div
+        className="rounded-2xl border p-5"
+        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+      >
+        <AskYourAgent clientId={client.id} isAdmin={isAdmin} />
+      </div>
 
       {/* ── Conflict modal ──────────────────────────────────────────────── */}
       {conflictModalOpen && conflicts.length > 0 && (
@@ -539,6 +778,58 @@ export default function KnowledgePageView({
           onClose={() => setConflictModalOpen(false)}
         />
       )}
+
+      {/* ── Slide-over drawer ──────────────────────────────────────────── */}
+      <KnowledgeDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        title={drawerContent ? DRAWER_META[drawerContent].title : ''}
+        subtitle={drawerContent ? DRAWER_META[drawerContent].subtitle : ''}
+        width="560px"
+      >
+        {drawerContent === 'upload' && (
+          <div className="space-y-4">
+            <FileUploadPanel
+              key={client.id}
+              clientId={client.id}
+              previewMode={previewMode}
+              onChunkAdded={() => setUploadRefresh(n => n + 1)}
+            />
+            <DocumentList key={`dl-${client.id}`} clientId={client.id} refreshTrigger={uploadRefresh} />
+          </div>
+        )}
+        {drawerContent === 'scrape' && (
+          <WebsiteKnowledgeCard key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
+        )}
+        {drawerContent === 'compile' && (
+          <KnowledgeCompiler key={client.id} clientId={client.id} isAdmin={isAdmin} />
+        )}
+        {drawerContent === 'chunks' && (
+          <ChunkBrowser key={client.id} clientId={client.id} isAdmin={isAdmin} />
+        )}
+        {drawerContent === 'context-preview' && (
+          <CallContextPreview
+            facts={facts.join('\n')}
+            qa={qa}
+            injectedNote={client.injected_note ?? undefined}
+            contextData={client.context_data ?? undefined}
+            contextDataLabel={client.context_data_label ?? undefined}
+            knowledgeEnabled={client.knowledge_backend === 'pgvector'}
+            timezone={client.timezone ?? undefined}
+          />
+        )}
+        {drawerContent === 'bulk-ai' && (
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="t3">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <p className="text-sm font-medium t1">Bulk AI Answers</p>
+            <p className="text-[11px] t3 max-w-xs">
+              Coming soon: batch-generate answers for all unanswered caller questions using your existing knowledge base.
+            </p>
+          </div>
+        )}
+      </KnowledgeDrawer>
     </div>
   )
 }

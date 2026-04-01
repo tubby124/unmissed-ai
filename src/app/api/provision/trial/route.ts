@@ -435,13 +435,14 @@ export async function POST(req: NextRequest) {
 
   // Persist GBP provenance snapshot so the knowledge page can show "Imported from Google"
   if (data.placeId) {
-    void supa.from('clients').update({
+    const { error: gbpErr } = await supa.from('clients').update({
       gbp_place_id:     data.placeId,
       gbp_summary:      data.gbpDescription ?? null,
       gbp_rating:       data.placesRating ?? null,
       gbp_review_count: data.placesReviewCount ?? null,
       gbp_photo_url:    data.placesPhotoUrl ?? null,
     }).eq('id', clientId)
+    if (gbpErr) console.warn(`[provision/trial] GBP provenance save failed for ${clientSlug}:`, gbpErr.message)
   }
 
   // Gate-17: Set website_scrape_status to reflect actual scrape data.

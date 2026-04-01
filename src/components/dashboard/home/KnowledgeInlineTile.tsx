@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { ChevronDown, ChevronUp, ExternalLink, X, Plus } from 'lucide-react'
+import type { HomeData } from '../ClientHome'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,16 +17,48 @@ interface Chunk {
   created_at: string
 }
 
+// ── Star rating ──────────────────────────────────────────────────────────────
+
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <span className="flex items-center gap-px">
+      {[1, 2, 3, 4, 5].map(i => {
+        const fill = i <= Math.floor(rating)
+          ? 'currentColor'
+          : i === Math.floor(rating) + 1 && rating % 1 >= 0.3
+            ? 'url(#kstar-half)'
+            : 'none'
+        return (
+          <svg key={i} width="10" height="10" viewBox="0 0 24 24" fill={fill} style={{ color: 'rgb(251 191 36)' }}>
+            {i === Math.floor(rating) + 1 && rating % 1 >= 0.3 && rating % 1 < 0.8 && (
+              <defs>
+                <linearGradient id="kstar-half">
+                  <stop offset="50%" stopColor="rgb(251 191 36)" />
+                  <stop offset="50%" stopColor="transparent" />
+                </linearGradient>
+              </defs>
+            )}
+            <polygon
+              points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+              stroke="rgb(251 191 36)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            />
+          </svg>
+        )
+      })}
+    </span>
+  )
+}
+
 // ── Source definitions ────────────────────────────────────────────────────────
 
 interface SourceDef {
   id: string
   label: string
-  sources: string[]           // all source values that map here
-  primarySource: string       // used for single-source fetch
+  sources: string[]
+  primarySource: string
   addHref: string
   manageHref: string
-  canAdd: boolean             // show "Add" CTA inline
+  canAdd: boolean
   icon: React.ReactNode
 }
 
@@ -103,21 +136,6 @@ const SOURCE_DEFS: SourceDef[] = [
       </svg>
     ),
   },
-  {
-    id: 'gbp',
-    label: 'Google Profile',
-    sources: ['gbp'],
-    primarySource: 'gbp',
-    addHref: '/dashboard/knowledge',
-    manageHref: '/dashboard/knowledge',
-    canAdd: false,
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 6.9 8 11.7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
 ]
 
 // ── Chunk row ─────────────────────────────────────────────────────────────────
@@ -167,7 +185,6 @@ function ChunkPanel({
   const fetchChunks = useCallback(async () => {
     setLoading(true)
     try {
-      // For multi-source types, fetch by primary source — full management is in /knowledge
       const res = await fetch(
         `/api/dashboard/knowledge/chunks?source=${def.primarySource}&status=approved&limit=8`
       )
@@ -263,6 +280,162 @@ function ChunkPanel({
   )
 }
 
+// ── GBP Identity Strip ───────────────────────────────────────────────────────
+
+function GbpStrip({
+  gbp,
+  websiteUrl,
+  websiteStatus,
+}: {
+  gbp: NonNullable<HomeData['gbpData']>
+  websiteUrl: string | null
+  websiteStatus: string | null
+}) {
+  const hostname = websiteUrl
+    ? (() => { try { return new URL(websiteUrl).hostname.replace(/^www\./, '') } catch { return websiteUrl } })()
+    : null
+
+  return (
+    <div className="px-5 py-3 border-b b-theme">
+      <div className="flex items-start gap-3">
+        {/* Photo */}
+        {gbp.photoUrl ? (
+          <img
+            src={gbp.photoUrl}
+            alt=""
+            className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-white/10"
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center"
+            style={{ backgroundColor: 'var(--color-hover)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="t3">
+              <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 6.9 8 11.7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="flex-1 min-w-0 space-y-1">
+          {/* Rating row */}
+          {gbp.rating && (
+            <div className="flex items-center gap-1.5">
+              <StarRating rating={gbp.rating} />
+              <span className="text-[10px] t3 font-medium">
+                {gbp.rating}
+                {gbp.reviewCount ? ` · ${gbp.reviewCount.toLocaleString()} reviews` : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Website + status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {hostname && (
+              <a
+                href={websiteUrl!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] t3 hover:t2 transition-colors truncate"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M2 12h20" stroke="currentColor" strokeWidth="1.5"/>
+                </svg>
+                {hostname}
+              </a>
+            )}
+            {websiteStatus === 'approved' && (
+              <span className="flex items-center gap-1 text-[9px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-px rounded-full">
+                <span className="w-1 h-1 rounded-full bg-green-400" />
+                Scraped
+              </span>
+            )}
+            {websiteStatus === 'extracted' && (
+              <span className="flex items-center gap-1 text-[9px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-px rounded-full">
+                <span className="w-1 h-1 rounded-full bg-amber-400" />
+                Pending
+              </span>
+            )}
+            {(!websiteStatus || websiteStatus === 'idle') && hostname && (
+              <Link
+                href="/dashboard/settings?tab=knowledge"
+                className="flex items-center gap-1 text-[9px] font-semibold px-1.5 py-px rounded-full"
+                style={{ color: 'var(--color-primary)', backgroundColor: 'var(--color-primary-10)' }}
+              >
+                Scan site →
+              </Link>
+            )}
+          </div>
+
+          {/* GBP badge */}
+          <div className="flex items-center gap-1">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" className="t3 shrink-0">
+              <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 6.9 8 11.7z" stroke="currentColor" strokeWidth="1.5"/>
+            </svg>
+            <span className="text-[9px] t3">via Google Business Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Business Facts Preview ───────────────────────────────────────────────────
+
+function FactsPreview({
+  facts,
+  faqCount,
+}: {
+  facts: string[]
+  faqCount: number
+}) {
+  const MAX_VISIBLE = 3
+  const visible = facts.slice(0, MAX_VISIBLE)
+  const remaining = facts.length - MAX_VISIBLE
+  const total = facts.length + faqCount
+
+  if (total === 0) return null
+
+  return (
+    <div className="px-5 py-3 border-b b-theme">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-semibold tracking-wider uppercase t3">
+          What your agent knows
+        </p>
+        <span className="text-[10px] font-medium t3">
+          {facts.length} fact{facts.length !== 1 ? 's' : ''}
+          {faqCount > 0 && ` · ${faqCount} Q&A`}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {visible.map((fact, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span
+              className="w-1 h-1 rounded-full mt-1.5 shrink-0"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            />
+            <p className="text-[11px] t2 leading-relaxed line-clamp-1">{fact}</p>
+          </div>
+        ))}
+        {remaining > 0 && (
+          <p className="text-[10px] t3 pl-3">+{remaining} more</p>
+        )}
+      </div>
+      <Link
+        href="/dashboard/knowledge"
+        className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold hover:opacity-70 transition-opacity"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        <Plus width={9} height={9} />
+        Edit knowledge
+      </Link>
+    </div>
+  )
+}
+
 // ── Main tile ─────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -270,11 +443,25 @@ interface Props {
     approved_chunk_count: number
     source_types: string[]
   }
+  gbpData?: HomeData['gbpData']
+  businessFacts?: string[]
+  faqCount?: number
+  websiteUrl?: string | null
+  websiteScrapeStatus?: string | null
 }
 
-export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
+export default function KnowledgeInlineTile({
+  knowledgeStats,
+  gbpData,
+  businessFacts = [],
+  faqCount = 0,
+  websiteUrl,
+  websiteScrapeStatus,
+}: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  const hasGbp = !!(gbpData?.placeId || gbpData?.rating)
+  const hasFacts = businessFacts.length > 0 || faqCount > 0
   const activeSourceTypes = new Set(knowledgeStats.source_types)
 
   const entries = SOURCE_DEFS.map(def => {
@@ -321,6 +508,20 @@ export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
         </Link>
       </div>
 
+      {/* GBP identity strip — only when connected */}
+      {hasGbp && gbpData && (
+        <GbpStrip
+          gbp={gbpData}
+          websiteUrl={websiteUrl ?? null}
+          websiteStatus={websiteScrapeStatus ?? null}
+        />
+      )}
+
+      {/* Business facts preview */}
+      {hasFacts && (
+        <FactsPreview facts={businessFacts} faqCount={faqCount} />
+      )}
+
       {/* Source list */}
       <div className="divide-y" style={{ borderColor: 'var(--color-hover)' }}>
         {entries.map(entry => {
@@ -329,7 +530,6 @@ export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
 
           return (
             <div key={entry.id}>
-              {/* Source row — click to expand */}
               <button
                 onClick={() => toggle(entry.id)}
                 className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-[var(--color-hover)] transition-colors text-left"
@@ -357,7 +557,6 @@ export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
                 </span>
               </button>
 
-              {/* Inline expanded chunk panel */}
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div
@@ -382,8 +581,8 @@ export default function KnowledgeInlineTile({ knowledgeStats }: Props) {
         })}
       </div>
 
-      {/* Empty state */}
-      {totalApproved === 0 && (
+      {/* Empty state — only if nothing at all */}
+      {totalApproved === 0 && !hasGbp && !hasFacts && (
         <div className="px-5 py-6 text-center">
           <p className="text-[12px] t3">No knowledge added yet</p>
           <Link

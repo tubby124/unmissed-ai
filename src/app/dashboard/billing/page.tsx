@@ -32,8 +32,8 @@ export default async function BillingPage({
 
   if (!targetClientId) {
     return (
-      <div className="p-6 max-w-4xl">
-        <h1 className="text-lg font-bold t1 mb-2">Billing</h1>
+      <div className="p-3 sm:p-6">
+        <h1 className="text-base font-semibold t1 mb-2">Billing</h1>
         <p className="text-sm t3">Select a client to view billing.</p>
       </div>
     )
@@ -55,10 +55,10 @@ export default async function BillingPage({
   const usagePct = totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0
 
   return (
-    <div className="p-3 sm:p-6 max-w-5xl">
-      <div className="mb-5">
-        <h1 className="text-[18px] font-bold t1">Billing</h1>
-        <p className="text-[12px] t3 mt-0.5">Plan, usage, and payment details</p>
+    <div className="p-3 sm:p-6 space-y-5">
+      <div>
+        <h1 className="text-base font-semibold t1">Billing</h1>
+        <p className="text-[11px] t3 mt-0.5">Plan, usage, and payment details</p>
       </div>
       <BillingTab
         client={client as ClientConfig}

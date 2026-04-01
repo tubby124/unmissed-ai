@@ -280,26 +280,25 @@ export default function AgentTab({
 
   // ─── JSX ───────────────────────────────────────────────────────────────────────
 
-  return (<div className="space-y-2">
-    {/* ── 0. Setup (admin only — clients manage this on Go Live) ──── */}
-    {isAdmin && (
-      <SetupCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        twilioNumber={client.twilio_number}
-        initialForwardingNumber={forwardingNumber[client.id] ?? ''}
-        initialTransferConditions={transferConditions[client.id] ?? ''}
-        initialSetupComplete={setupComplete[client.id] ?? false}
-        previewMode={previewMode}
-        onSetupCompleteChange={(complete) =>
-          setSetupComplete(prev => ({ ...prev, [client.id]: complete }))
-        }
-      />
-    )}
+  return (<>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-    {/* ── Plan Info + Billing (admin — top; owner — bottom after sections) */}
-    {isAdmin && (
-      <>
+      {/* ═══════ ADMIN TOP ROW ═══════════════════════════════════════ */}
+      {isAdmin && (
+        <SetupCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          twilioNumber={client.twilio_number}
+          initialForwardingNumber={forwardingNumber[client.id] ?? ''}
+          initialTransferConditions={transferConditions[client.id] ?? ''}
+          initialSetupComplete={setupComplete[client.id] ?? false}
+          previewMode={previewMode}
+          onSetupCompleteChange={(complete) =>
+            setSetupComplete(prev => ({ ...prev, [client.id]: complete }))
+          }
+        />
+      )}
+      {isAdmin && (
         <PlanInfoCard
           clientId={client.id}
           selectedPlan={client.selected_plan}
@@ -311,6 +310,8 @@ export default function AgentTab({
           trialConverted={client.trial_converted ?? null}
           stripeCustomerId={client.stripe_customer_id ?? null}
         />
+      )}
+      {isAdmin && (
         <BillingCard
           clientId={client.id}
           selectedPlan={client.selected_plan}
@@ -322,36 +323,23 @@ export default function AgentTab({
           cancelAt={client.cancel_at ?? null}
           isAdmin={isAdmin}
         />
-      </>
-    )}
+      )}
 
-    {/* ── CAPABILITIES OVERVIEW (always visible, all users) ────────── */}
-    <CapabilitiesCard
-      capabilities={capabilities}
-      agentName={client.agent_name ?? client.business_name}
-      voiceStylePreset={client.voice_style_preset ?? null}
-      isTrial={client.subscription_status === 'trialing'}
-      clientId={client.id}
-      hasPhoneNumber={!!client.twilio_number}
-      hasIvr={!!client.ivr_enabled}
-      hasContextData={!!(client.context_data?.trim())}
-    />
+      {/* ═══════ CAPABILITIES (wide) ════════════════════════════════= */}
+      <div className="md:col-span-2">
+        <CapabilitiesCard
+          capabilities={capabilities}
+          agentName={client.agent_name ?? client.business_name}
+          voiceStylePreset={client.voice_style_preset ?? null}
+          isTrial={client.subscription_status === 'trialing'}
+          clientId={client.id}
+          hasPhoneNumber={!!client.twilio_number}
+          hasIvr={!!client.ivr_enabled}
+          hasContextData={!!(client.context_data?.trim())}
+        />
+      </div>
 
-    {/* ── QUICK SETUP STRIP (non-admin, disappears when fully configured) ── */}
-    {!isAdmin && (
-      <QuickSetupStrip client={client} onScrollTo={handleScrollTo} />
-    )}
-
-    {/* ── 1. TALK TO YOUR AGENT (moved up — key feature) ──────────── */}
-    <SettingsSection
-      id="talk"
-      title="Talk to Your Agent"
-      subtitle="Test your agent with a live call"
-      icon={<MicIcon />}
-      isOpen={openSections.talk ?? false}
-      onToggle={() => toggleSection('talk')}
-      accentColor="indigo"
-    >
+      {/* TEST CALL — sits next to capabilities */}
       <TestCallCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -370,31 +358,21 @@ export default function AgentTab({
         }}
         onScrollTo={handleScrollTo}
       />
-      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
-      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
-        <LearningLoopCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          onRequestImprovement={isAdmin ? handleRequestImprovement : undefined}
-        />
-      </PlanGate>
-      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
-        <PromptSuggestionsCard clientId={client.id} isAdmin={isAdmin} onScrollTo={handleScrollTo} />
-      </PlanGate>
-    </SettingsSection>
 
-    {/* ── 2. IDENTITY & VOICE ──────────────────────────────────────── */}
-    <SettingsSection
-      id="identity"
-      title="Identity & Voice"
-      subtitle={client.agent_name ? `${client.agent_name} \u2014 ${nicheConfig.label}` : nicheConfig.label}
-      icon={<UserIcon />}
-      isOpen={openSections.identity ?? false}
-      onToggle={() => toggleSection('identity')}
-      accentColor="zinc"
-    >
+      {/* ═══════ QUICK SETUP (full width) ═══════════════════════════ */}
+      {!isAdmin && (
+        <div className="col-span-full">
+          <QuickSetupStrip client={client} onScrollTo={handleScrollTo} />
+        </div>
+      )}
+
+      {/* ═══════ IDENTITY & VOICE ═══════════════════════════════════ */}
+      <div className="col-span-full pt-2">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Identity & Voice</p>
+      </div>
+
       {isAdmin && (
-        <>
+        <div className="md:col-span-2">
           <AgentOverviewCard
             client={client}
             isAdmin={isAdmin}
@@ -404,19 +382,9 @@ export default function AgentTab({
             onPromptChange={handlePromptChange}
             promptLength={(prompt[client.id] ?? '').length}
           />
-          {!setupComplete[client.id] && (
-            <div className="flex justify-end">
-              <button
-                onClick={handleMarkSetupComplete}
-                className="text-xs px-3 py-1.5 rounded-lg border"
-                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-3)' }}
-              >
-                Setup incomplete &middot; Mark as done &rarr;
-              </button>
-            </div>
-          )}
-        </>
+        </div>
       )}
+
       <CallHandlingModeCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -426,6 +394,7 @@ export default function AgentTab({
         previewMode={previewMode}
         onPromptChange={handlePromptChange}
       />
+
       {!isAdmin && (
         <AgentModeCard
           clientId={client.id}
@@ -434,6 +403,7 @@ export default function AgentTab({
           previewMode={previewMode}
         />
       )}
+
       <div id="section-voice-style">
         <VoiceStyleCard
           clientId={client.id}
@@ -443,6 +413,7 @@ export default function AgentTab({
           onPromptChange={handlePromptChange}
         />
       </div>
+
       <div id="section-voicemail">
         <VoicemailGreetingCard
           clientId={client.id}
@@ -453,6 +424,7 @@ export default function AgentTab({
           previewMode={previewMode}
         />
       </div>
+
       {isAdmin && (
         <SectionEditorCard
           clientId={client.id}
@@ -468,22 +440,19 @@ export default function AgentTab({
           onPromptChange={handlePromptChange}
         />
       )}
-    </SettingsSection>
 
-    {/* ── 3. WHAT IT KNOWS ─────────────────────────────────────────── */}
-    <SettingsSection
-      id="knowledge"
-      title="What It Knows"
-      subtitle="Business facts, FAQs, and knowledge base"
-      icon={<BookIcon />}
-      isOpen={openSections.knowledge ?? false}
-      onToggle={() => toggleSection('knowledge')}
-      accentColor="blue"
-    >
+      {/* ═══════ KNOWLEDGE ══════════════════════════════════════════ */}
+      <div className="col-span-full pt-2">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Knowledge</p>
+      </div>
+
       <ServicesOfferedCard client={client} clientId={client.id} isAdmin={isAdmin} />
+
+      <AgentKnowledgeCard client={client} clientId={client.id} isAdmin={isAdmin} />
+
       {isAdmin ? (
         <>
-          <div id="section-advanced-context">
+          <div id="section-advanced-context" className="md:col-span-2 xl:col-span-3">
             <AdvancedContextCard
               clientId={client.id}
               isAdmin={isAdmin}
@@ -499,15 +468,10 @@ export default function AgentTab({
             />
           </div>
           <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
-            <WebsiteSourcesList
-              client={client}
-              isAdmin={isAdmin}
-            />
-            <WebsiteKnowledgeCard
-              client={client}
-              isAdmin={isAdmin}
-              previewMode={previewMode}
-            />
+            <WebsiteSourcesList client={client} isAdmin={isAdmin} />
+          </PlanGate>
+          <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
+            <WebsiteKnowledgeCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
           </PlanGate>
           <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="knowledge">
             <div id="section-knowledge">
@@ -523,6 +487,19 @@ export default function AgentTab({
               />
             </div>
           </PlanGate>
+          <SectionEditorCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            sectionId="knowledge"
+            label="Knowledge Base"
+            desc="Upload documents for your agent to search through \u2014 policies, procedures, or detailed guides."
+            rows={10}
+            initialContent={(sectionContent[client.id] ?? {}).knowledge ?? ''}
+            hasMarker={'knowledge' in (sectionContent[client.id] ?? {})}
+            hasExistingHeader={!('knowledge' in (sectionContent[client.id] ?? {})) && !!findExistingSectionHeader(prompt[client.id] ?? '', 'knowledge')}
+            previewMode={previewMode}
+            onPromptChange={handlePromptChange}
+          />
         </>
       ) : (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
@@ -533,53 +510,26 @@ export default function AgentTab({
           <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Manage →</a>
         </div>
       )}
-      {isAdmin && (
-        <SectionEditorCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          sectionId="knowledge"
-          label="Knowledge Base"
-          desc="Upload documents for your agent to search through \u2014 policies, procedures, or detailed guides."
-          rows={10}
-          initialContent={(sectionContent[client.id] ?? {}).knowledge ?? ''}
-          hasMarker={'knowledge' in (sectionContent[client.id] ?? {})}
-          hasExistingHeader={!('knowledge' in (sectionContent[client.id] ?? {})) && !!findExistingSectionHeader(prompt[client.id] ?? '', 'knowledge')}
-          previewMode={previewMode}
-          onPromptChange={handlePromptChange}
-        />
-      )}
-    </SettingsSection>
 
-    {/* ── 4. WHAT IT CAN DO ────────────────────────────────────────── */}
-    <SettingsSection
-      id="capabilities"
-      title="What It Can Do"
-      subtitle="Hours, booking, transfers, and capabilities"
-      icon={<ZapIcon />}
-      isOpen={openSections.capabilities ?? false}
-      onToggle={() => toggleSection('capabilities')}
-      accentColor="green"
-    >
-      {/* CapabilitiesCard moved to top-level (always visible above sections) */}
+      {/* ═══════ CAPABILITIES & ROUTING ═════════════════════════════ */}
+      <div className="col-span-full pt-2">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Capabilities & Routing</p>
+      </div>
+
       {!isAdmin && (
         <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
           <div>
             <p className="text-xs font-medium t1">Answering schedule</p>
             <p className="text-[11px] t3">Configure when your agent answers calls</p>
           </div>
-          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">
-            Go Live →
-          </a>
+          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Go Live →</a>
         </div>
       )}
-      {/* D254 — Call routing: why people call → custom TRIAGE_DEEP */}
-      <CallRoutingCard
-        client={client}
-        isAdmin={isAdmin}
-        previewMode={previewMode}
-      />
 
-      {/* D251 — Triage section editor: let owners self-serve fix their routing script */}
+      <div className="md:col-span-2 xl:col-span-3">
+        <CallRoutingCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
+
       <SectionEditorCard
         clientId={client.id}
         isAdmin={isAdmin}
@@ -621,6 +571,7 @@ export default function AgentTab({
           </div>
         </PlanGate>
       )}
+
       {hasCapability(niche, 'bookAppointments') && isAdmin && (
         <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
           <StaffRosterCard
@@ -632,6 +583,7 @@ export default function AgentTab({
           />
         </PlanGate>
       )}
+
       <div id="section-ivr">
         <IvrMenuCard
           clientId={client.id}
@@ -644,7 +596,6 @@ export default function AgentTab({
         />
       </div>
 
-      {/* VIP Contacts — Pro plan feature (same gate as transfer) */}
       <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="transfer">
         <VIPContactsCard
           clientId={client.id}
@@ -652,19 +603,13 @@ export default function AgentTab({
           forwardingNumber={client.forwarding_number ?? null}
         />
       </PlanGate>
-    </SettingsSection>
 
-    {/* ── 5. AGENT SCRIPT (admin only) ─────────────────────────────── */}
-    {isAdmin && (
-      <SettingsSection
-        id="script"
-        title="Agent Script"
-        subtitle="System prompt, AI improvements, and version history"
-        icon={<FileIcon />}
-        isOpen={openSections.script ?? false}
-        onToggle={() => toggleSection('script')}
-        accentColor="blue"
-      >
+      {/* ═══════ AGENT SCRIPT ══════════════════════════════════════= */}
+      <div className="col-span-full pt-2">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Agent Script</p>
+      </div>
+
+      <div className="md:col-span-2 xl:col-span-3">
         <PromptEditorCard
           client={client}
           isAdmin={isAdmin}
@@ -673,145 +618,130 @@ export default function AgentTab({
           onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
           previewMode={previewMode}
         />
-        <div id="section-improve-prompt">
-          <ImprovePromptCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            onApply={(improved) => setPrompt(prev => ({ ...prev, [client.id]: improved }))}
-          />
-        </div>
-        <PromptVersionsCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          onRestore={(content) => setPrompt(prev => ({ ...prev, [client.id]: content }))}
-        />
-        <OutboundAgentConfigCard
-          clientId={client.id}
-          isAdmin={isAdmin}
-          hasPhoneNumber={!!client.twilio_number}
-          initialOutboundPrompt={client.outbound_prompt ?? null}
-          initialGoal={client.outbound_goal ?? null}
-          initialOpening={client.outbound_opening ?? null}
-          initialVmScript={client.outbound_vm_script ?? null}
-          initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
-          initialNotes={(client.outbound_notes as string | null) ?? null}
-        />
-      </SettingsSection>
-    )}
+      </div>
 
-    {/* ── Non-admin: Agent Script section (collapsible, matches admin pattern) */}
-    {!isAdmin && (
-      <SettingsSection
-        id="script"
-        title="Agent Script"
-        subtitle="See what your agent says on calls"
-        icon={<FileIcon />}
-        isOpen={openSections.script ?? false}
-        onToggle={() => toggleSection('script')}
-        accentColor="blue"
-      >
-        <PromptEditorCard
-          client={client}
-          isAdmin={isAdmin}
-          nicheLabel={nicheConfig.label}
-          prompt={prompt[client.id] ?? ''}
-          onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
-          previewMode={previewMode}
-        />
-        <OutboundAgentConfigCard
-          clientId={client.id}
-          isAdmin={false}
-          hasPhoneNumber={!!client.twilio_number}
-          initialOutboundPrompt={client.outbound_prompt ?? null}
-          initialGoal={client.outbound_goal ?? null}
-          initialOpening={client.outbound_opening ?? null}
-          initialVmScript={client.outbound_vm_script ?? null}
-          initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
-          initialNotes={client.outbound_notes ?? null}
-        />
-      </SettingsSection>
-    )}
-
-    {/* ── 6. CONFIGURATION (admin only) ────────────────────────────── */}
-    {isAdmin && (
-      <SettingsSection
-        id="config"
-        title="Configuration"
-        subtitle="Webhooks, agent config, and infrastructure"
-        icon={<SlidersIcon />}
-        isOpen={openSections.config ?? false}
-        onToggle={() => toggleSection('config')}
-        accentColor="amber"
-      >
-        <div id="section-agent-config">
-          <AgentConfigCard
-            clientId={client.id}
-            isAdmin={isAdmin}
-            agentVoiceId={client.agent_voice_id}
-            ultravoxAgentId={client.ultravox_agent_id}
-            telegramChatId={client.telegram_chat_id}
-          />
-        </div>
-        <WebhooksCard appUrl={appUrl} slug={client.slug} twilioNumber={client.twilio_number} />
-        {godConfig[client.id] && (
-          <GodModeCard
-            clientId={client.id}
-            initialConfig={godConfig[client.id]}
-            previewMode={previewMode}
-            currentAgentMode={(client.agent_mode as string | null) ?? null}
-            currentCallHandlingMode={(client.call_handling_mode as string | null) ?? null}
-          />
-        )}
-        <RuntimeCard client={client} />
-      </SettingsSection>
-    )}
-
-    {/* ── Owner: billing + setup at bottom (not above the hero orb) ── */}
-    {!isAdmin && (
-      <>
-        <PlanInfoCard
-          clientId={client.id}
-          selectedPlan={client.selected_plan}
-          subscriptionStatus={client.subscription_status}
-          secondsUsedThisMonth={client.seconds_used_this_month}
-          monthlyMinuteLimit={client.monthly_minute_limit}
-          bonusMinutes={client.bonus_minutes ?? 0}
-          trialExpiresAt={client.trial_expires_at ?? null}
-          trialConverted={client.trial_converted ?? null}
-          stripeCustomerId={client.stripe_customer_id ?? null}
-        />
-        <BillingCard
-          clientId={client.id}
-          selectedPlan={client.selected_plan}
-          subscriptionStatus={client.subscription_status}
-          subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
-          stripeCustomerId={client.stripe_customer_id ?? null}
-          stripeDiscountName={client.stripe_discount_name ?? null}
-          effectiveMonthlyRate={client.effective_monthly_rate ?? null}
-          cancelAt={client.cancel_at ?? null}
-          isAdmin={isAdmin}
-        />
-        <SetupProgressRing client={client} isAdmin={isAdmin} />
-        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium t1">Phone &amp; call forwarding</p>
-            <p className="text-[11px] t3">
-              {client.twilio_number
-                ? <>Your number: <span className="font-mono">{fmtPhone(client.twilio_number)}</span> &mdash; carrier instructions</>
-                : 'Configure your phone number and call routing'}
-            </p>
+      {isAdmin && (
+        <>
+          <div id="section-improve-prompt">
+            <ImprovePromptCard
+              clientId={client.id}
+              isAdmin={isAdmin}
+              onApply={(improved) => setPrompt(prev => ({ ...prev, [client.id]: improved }))}
+            />
           </div>
-          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0 cursor-pointer">
-            Setup →
-          </a>
-        </div>
-      </>
-    )}
+          <PromptVersionsCard
+            clientId={client.id}
+            isAdmin={isAdmin}
+            onRestore={(content) => setPrompt(prev => ({ ...prev, [client.id]: content }))}
+          />
+        </>
+      )}
 
-    {/* ── ACTIVITY LOG ──────────────────────────────────────────── */}
-    <ActivityLog clientId={client.id} isAdmin={isAdmin} />
+      <OutboundAgentConfigCard
+        clientId={client.id}
+        isAdmin={isAdmin}
+        hasPhoneNumber={!!client.twilio_number}
+        initialOutboundPrompt={client.outbound_prompt ?? null}
+        initialGoal={client.outbound_goal ?? null}
+        initialOpening={client.outbound_opening ?? null}
+        initialVmScript={client.outbound_vm_script ?? null}
+        initialTone={(client.outbound_tone as 'warm' | 'professional' | 'direct') ?? 'warm'}
+        initialNotes={(client.outbound_notes as string | null) ?? null}
+      />
 
-    {/* ── SETTINGS PANEL (right-side drawer) ───────────────────── */}
+      {/* Learning loop cards */}
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
+        <LearningLoopCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          onRequestImprovement={isAdmin ? handleRequestImprovement : undefined}
+        />
+      </PlanGate>
+      <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="learningLoop">
+        <PromptSuggestionsCard clientId={client.id} isAdmin={isAdmin} onScrollTo={handleScrollTo} />
+      </PlanGate>
+
+      {/* ═══════ CONFIGURATION (admin) ═════════════════════════════= */}
+      {isAdmin && (
+        <>
+          <div className="col-span-full pt-2">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Configuration</p>
+          </div>
+          <div id="section-agent-config">
+            <AgentConfigCard
+              clientId={client.id}
+              isAdmin={isAdmin}
+              agentVoiceId={client.agent_voice_id}
+              ultravoxAgentId={client.ultravox_agent_id}
+              telegramChatId={client.telegram_chat_id}
+            />
+          </div>
+          <WebhooksCard appUrl={appUrl} slug={client.slug} twilioNumber={client.twilio_number} />
+          {godConfig[client.id] && (
+            <GodModeCard
+              clientId={client.id}
+              initialConfig={godConfig[client.id]}
+              previewMode={previewMode}
+              currentAgentMode={(client.agent_mode as string | null) ?? null}
+              currentCallHandlingMode={(client.call_handling_mode as string | null) ?? null}
+            />
+          )}
+          <RuntimeCard client={client} />
+        </>
+      )}
+
+      {/* ═══════ BILLING & SETUP (non-admin, bottom) ═══════════════ */}
+      {!isAdmin && (
+        <>
+          <div className="col-span-full pt-2">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Plan & Billing</p>
+          </div>
+          <PlanInfoCard
+            clientId={client.id}
+            selectedPlan={client.selected_plan}
+            subscriptionStatus={client.subscription_status}
+            secondsUsedThisMonth={client.seconds_used_this_month}
+            monthlyMinuteLimit={client.monthly_minute_limit}
+            bonusMinutes={client.bonus_minutes ?? 0}
+            trialExpiresAt={client.trial_expires_at ?? null}
+            trialConverted={client.trial_converted ?? null}
+            stripeCustomerId={client.stripe_customer_id ?? null}
+          />
+          <BillingCard
+            clientId={client.id}
+            selectedPlan={client.selected_plan}
+            subscriptionStatus={client.subscription_status}
+            subscriptionCurrentPeriodEnd={client.subscription_current_period_end ?? null}
+            stripeCustomerId={client.stripe_customer_id ?? null}
+            stripeDiscountName={client.stripe_discount_name ?? null}
+            effectiveMonthlyRate={client.effective_monthly_rate ?? null}
+            cancelAt={client.cancel_at ?? null}
+            isAdmin={isAdmin}
+          />
+          <SetupProgressRing client={client} isAdmin={isAdmin} />
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Phone &amp; call forwarding</p>
+              <p className="text-[11px] t3">
+                {client.twilio_number
+                  ? <>Your number: <span className="font-mono">{fmtPhone(client.twilio_number)}</span> &mdash; carrier instructions</>
+                  : 'Configure your phone number and call routing'}
+              </p>
+            </div>
+            <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0 cursor-pointer">
+              Setup →
+            </a>
+          </div>
+        </>
+      )}
+
+      {/* ═══════ ACTIVITY LOG (full width) ═════════════════════════ */}
+      <div className="col-span-full">
+        <ActivityLog clientId={client.id} isAdmin={isAdmin} />
+      </div>
+    </div>
+
+    {/* ── SETTINGS PANEL (right-side drawer — outside grid) ───────── */}
     <SettingsPanel
       open={activePanel !== null}
       onClose={() => setActivePanel(null)}
@@ -832,6 +762,5 @@ export default function AgentTab({
         />
       )}
     </SettingsPanel>
-
-  </div>)
+  </>)
 }

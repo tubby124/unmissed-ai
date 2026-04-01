@@ -358,6 +358,9 @@ export async function GET(request: Request) {
       hasPhoneNumber: !!client.twilio_number,
       hasAgent: !!client.ultravox_agent_id,
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
+      telegramBotUrl: (client.telegram_bot_token && client.telegram_chat_id)
+        ? `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'}`
+        : null,
       emailNotificationsEnabled: (c.email_notifications_enabled as boolean | null) ?? true,
       telegramNotificationsEnabled: (c.telegram_notifications_enabled as boolean | null) ?? true,
     },
@@ -419,5 +422,12 @@ export async function GET(request: Request) {
     },
     weeklyStats,
     hasTriage: !!((client.niche_custom_variables as Record<string, string> | null)?.TRIAGE_DEEP),
+    callerReasons: (() => {
+      try {
+        const raw = (client.niche_custom_variables as Record<string, string> | null)?._caller_reasons
+        if (raw) return JSON.parse(raw) as string[]
+      } catch { /* noop */ }
+      return []
+    })(),
   })
 }
