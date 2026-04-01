@@ -97,6 +97,9 @@ export async function PATCH(req: NextRequest) {
     affectedSlots = [varDef.slotId]
   }
 
+  // Include prompt diff data if requested (for frontend diff display)
+  const includeDiff = body.includeDiff === true
+
   const result = await regenerateSlots(clientId, affectedSlots, user.id)
 
   if (!result.success) {
@@ -111,10 +114,23 @@ export async function PATCH(req: NextRequest) {
     })
   }
 
+  // If diff requested: read back the current prompt for comparison
+  // (regenerateSlots already saved the new prompt to DB)
+  let newPrompt: string | undefined
+  if (includeDiff && result.promptChanged) {
+    const { data: updatedClient } = await svc
+      .from('clients')
+      .select('system_prompt')
+      .eq('id', clientId)
+      .single()
+    newPrompt = updatedClient?.system_prompt as string | undefined
+  }
+
   return NextResponse.json({
     ok: true,
     affectedSlots,
     charCount: result.charCount,
     promptChanged: result.promptChanged,
+    ...(newPrompt ? { newPrompt } : {}),
   })
 }

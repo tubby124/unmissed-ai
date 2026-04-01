@@ -30,6 +30,7 @@ last-tracker-cleanup: 2026-03-31
 - [[Architecture/Prompt Slots]] — Phase 2→5: 19 slot functions LIVE. Phase 3: pgvector-first KB, conditional pricing, D296 fix. Phase 4: service catalog sync (D260), owner_name patcher (D281), business_name contract fix (D282). Phase 5: variable registry (39 vars), slot regenerator, service KB reseed (D300). 456 tests pass.
 
 ## Features
+- [[Features/Plan Tiers and Gating]] — what each tier gets, quality floor rule, feature gates
 - [[Features/Booking]] — calendar auth, patchCalendarBlock, plan gating
 - [[Features/SMS]] — sms_enabled, twilio_number, sendTextMessage tool
 - [[Features/Transfer]] — forwarding_number, transferCall HTTP tool
@@ -177,6 +178,7 @@ Root Fix wave: D233 D241 D245 D247 D249 D251 D252 D254 D257 D275 — all ✅
 Removed: ~~D240~~ · ~~D277~~ · ~~D228~~
 
 ## Decisions Log
+- [[Decisions/Tier Differentiation — Quality Floor Not Ceiling]] — every agent gets full conversation quality; tiers = minutes + features, NOT quality
 - [[Decisions/n8n Retirement]] — why n8n was retired Mar 2026
 - [[Decisions/Agents API vs createCall]] — toolOverrides pattern, initialState rejected
 - [[Decisions/clients.tools as Runtime Source]] — why agent stored tools are overridden every call

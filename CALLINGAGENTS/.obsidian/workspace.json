@@ -199,6 +199,8 @@
   },
   "active": "c955854385329990",
   "lastOpenFiles": [
+    "Features/Plan Tiers and Gating.md",
+    "Decisions/Tier Differentiation — Quality Floor Not Ceiling.md",
     "Templates/Decision.md",
     "Architecture/Control Plane Mutation.md",
     "Clients/urban-vibe.md",
@@ -224,8 +226,6 @@
     "Tracker/D301.md",
     "Tracker/D279.md",
     "00-Inbox/Research-Phase5-Agent-Config-UX.md",
-    "00-Inbox/UI-Alignment-Audit-Phase2.md",
-    "Tracker/D300.md",
     "Untitled 1.canvas",
     "Untitled.canvas",
     "Operations",

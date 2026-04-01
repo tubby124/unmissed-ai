@@ -5,15 +5,15 @@
  * without actually saving to DB or syncing to Ultravox.
  *
  * Supports two modes:
- * - Single variable preview: { variableKey, value }
- * - Full recompose preview: { recompose: true }
+ * - Variable change preview: { variableKey, value } — shows what prompt would look like WITH the change
+ * - Full recompose preview: { recompose: true } — shows what full recompose would produce
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { getVariable, getSlotsAffectedByDbField } from '@/lib/prompt-variable-registry'
-import { regenerateSlots, recomposePrompt } from '@/lib/slot-regenerator'
-import type { SlotId } from '@/lib/prompt-sections'
+import { getVariable } from '@/lib/prompt-variable-registry'
+import { clientRowToIntake, recomposePrompt } from '@/lib/slot-regenerator'
+import { buildSlotContext, buildPromptFromSlots } from '@/lib/prompt-slots'
 
 export async function POST(req: NextRequest) {
   // 1 — Auth
@@ -52,45 +52,79 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Mode B: Single variable preview
-  if (typeof body.variableKey !== 'string') {
+  // Mode B: Prospective variable change preview
+  if (typeof body.variableKey !== 'string' || typeof body.value !== 'string') {
     return NextResponse.json({ error: 'Required: { variableKey, value } or { recompose: true }' }, { status: 400 })
   }
 
-  const { variableKey, value } = body as { variableKey: string; value?: string }
+  const { variableKey, value } = body as { variableKey: string; value: string }
   const varDef = getVariable(variableKey)
   if (!varDef) {
     return NextResponse.json({ error: `Unknown variable: ${variableKey}` }, { status: 400 })
   }
 
-  // For preview, we need to temporarily write the value, run dryRun regeneration,
-  // then restore. But that's risky — instead, we'll just preview the affected slot(s)
-  // from current DB state (without the variable change applied).
-  // This shows what the CURRENT regenerated output would look like.
-  // For actual variable-change preview, the frontend should call PATCH with the value
-  // and show the diff from the response.
-  let affectedSlots: SlotId[] = varDef.dbField
-    ? getSlotsAffectedByDbField(varDef.dbField)
-    : [varDef.slotId]
+  // Read current client state
+  const svc = createServiceClient()
+  const { data: client, error: clientErr } = await svc
+    .from('clients')
+    .select('*')
+    .eq('id', clientId)
+    .single()
 
-  if (affectedSlots.length === 0) {
-    affectedSlots = [varDef.slotId]
+  if (clientErr || !client) {
+    return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   }
 
-  const result = await regenerateSlots(clientId, affectedSlots, user.id, true)
-
-  if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: 400 })
+  const currentPrompt = client.system_prompt as string | null
+  if (!currentPrompt) {
+    return NextResponse.json({ error: 'No system_prompt on client' }, { status: 400 })
   }
+
+  // Read services
+  const { data: services } = await svc
+    .from('client_services')
+    .select('name, description, category, duration_mins, price, booking_notes')
+    .eq('client_id', clientId)
+    .eq('active', true)
+    .order('sort_order')
+    .order('created_at')
+
+  // Count knowledge chunks
+  let knowledgeChunkCount = 0
+  if (client.knowledge_backend === 'pgvector') {
+    const { count } = await svc
+      .from('knowledge_chunks')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'approved')
+    knowledgeChunkCount = count ?? 0
+  }
+
+  // Build a simulated client row with the variable change applied
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const simulatedClient: Record<string, any> = { ...client }
+  if (varDef.dbField) {
+    // Variable maps to a DB column — override it
+    simulatedClient[varDef.dbField] = value.trim()
+  } else {
+    // Variable lives in niche_custom_variables — merge the change
+    const currentNcv = (client.niche_custom_variables as Record<string, unknown>) ?? {}
+    simulatedClient.niche_custom_variables = { ...currentNcv, [variableKey]: value.trim() }
+  }
+
+  // Build preview prompt from simulated state
+  const intake = clientRowToIntake(simulatedClient, services ?? [], knowledgeChunkCount)
+  const ctx = buildSlotContext(intake)
+  const previewPrompt = buildPromptFromSlots(ctx)
 
   return NextResponse.json({
     ok: true,
-    mode: 'slot_preview',
+    mode: 'variable_preview',
     variableKey,
-    affectedSlots,
-    promptChanged: result.promptChanged,
-    charCount: result.charCount,
-    preview: result.preview,
-    currentPrompt: result.currentPrompt,
+    affectedSlots: [varDef.slotId],
+    promptChanged: previewPrompt !== currentPrompt,
+    charCount: previewPrompt.length,
+    preview: previewPrompt,
+    currentPrompt,
   })
 }
