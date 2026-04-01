@@ -14,6 +14,7 @@ import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
 import KnowledgeInlineTile from './KnowledgeInlineTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
+import PendingReviewTile from './PendingReviewTile'
 import QuickConfigStrip from './QuickConfigStrip'
 import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
@@ -785,6 +786,14 @@ export default function UnifiedHomeSection({
                 hasWebsite: capabilities.hasWebsite,
               }}
             />
+            {/* Pending knowledge review — show when scrape chunks need approval */}
+            {pendingKnowledgeCount > 0 && (
+              <PendingReviewTile
+                clientId={data.clientId}
+                pendingCount={pendingKnowledgeCount}
+                onApproved={fetchData}
+              />
+            )}
             {/* D354 — Unanswered Questions under orb for tight feedback loop */}
             <UnansweredQuestionsTile clientId={data.clientId} />
           </div>

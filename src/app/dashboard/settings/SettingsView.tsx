@@ -452,6 +452,16 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
+      {/* Legacy prompt banner — old-style prompt without section markers */}
+      {client?.system_prompt && !client.system_prompt.includes('<!-- unmissed:') && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/25 px-4 py-3 text-xs text-amber-400 flex items-start gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
+            <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>This agent uses a legacy prompt format. Knowledge base lookups, triage rules, and some settings changes may not take full effect. A prompt migration is needed to enable the full system.</span>
+        </div>
+      )}
+
       {/* Reload success banner */}
       {reloadSuccess && (
         <div className="rounded-lg bg-green-500/10 border border-green-500/25 px-4 py-2 text-xs text-green-400">
