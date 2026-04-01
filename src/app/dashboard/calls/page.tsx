@@ -4,6 +4,7 @@ import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import CallsList from '@/components/dashboard/CallsList'
 import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 import ContactsView from '@/components/dashboard/ContactsView'
+import CalendarEventsCard from '@/components/dashboard/CalendarEventsCard'
 import AgentConfigCard from '@/components/dashboard/AgentConfigCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import LeadQueue from '@/components/dashboard/LeadQueue'
@@ -260,6 +261,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
             }
           />
           <LearningLoopCard clientId={clientId} isAdmin={isAdmin} />
+          <CalendarEventsCard clientId={clientId} />
           <div>
             <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-3">Contacts</p>
             <ContactsView clientId={clientId} />

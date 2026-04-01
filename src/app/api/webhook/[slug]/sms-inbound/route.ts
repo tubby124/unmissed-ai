@@ -125,6 +125,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       console.error(`[sms-inbound] sms_opt_outs upsert failed: ${optOutError.message}`)
     }
 
+    // Fire-and-forget: sync opt-out to client_contacts (no-op if contact doesn't exist yet)
+    supabase
+      .from('client_contacts')
+      .update({ sms_opted_out: true })
+      .eq('client_id', client.id)
+      .eq('phone', from)
+      .then(({ error }) => {
+        if (error) console.error(`[sms-inbound] client_contacts opt-out update failed: ${error.message}`)
+      })
+
     // Notify client via Telegram
     if (client.telegram_bot_token && client.telegram_chat_id) {
       try {
@@ -155,6 +165,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (optInError) {
       console.error(`[sms-inbound] opt-in update failed: ${optInError.message}`)
     }
+
+    // Fire-and-forget: sync opt-in to client_contacts (no-op if contact doesn't exist yet)
+    supabase
+      .from('client_contacts')
+      .update({ sms_opted_out: false })
+      .eq('client_id', client.id)
+      .eq('phone', from)
+      .then(({ error }) => {
+        if (error) console.error(`[sms-inbound] client_contacts opt-in update failed: ${error.message}`)
+      })
 
     return twimlResponse(`You have been re-subscribed to ${client.business_name || 'our'} messages. Text STOP to unsubscribe.`)
   }

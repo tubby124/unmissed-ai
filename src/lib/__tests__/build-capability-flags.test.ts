@@ -195,9 +195,9 @@ describe('plan gates — SMS requires plan.smsEnabled', () => {
 })
 
 describe('plan gates — Booking requires plan.bookingEnabled', () => {
-  test('CORE plan + booking_enabled + calendar connected → false (not on plan)', () => {
+  test('CORE plan + booking_enabled + calendar connected → true (Core includes booking)', () => {
     const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', booking_enabled: true, calendar_auth_status: 'connected' })
-    assert.equal(f.hasBooking, false)
+    assert.equal(f.hasBooking, true)
   })
 
   test('PRO plan + booking_enabled + calendar connected → true', () => {

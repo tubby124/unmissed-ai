@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, createCall, signCallbackUrl } from '@/lib/ultravox'
 import { validateSignature, buildStreamTwiml } from '@/lib/twilio'
-import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
 import { defaultCallState } from '@/lib/call-state'
 import { sendAlert } from '@/lib/telegram'
 import { notifySystemFailure } from '@/lib/admin-alerts'
@@ -155,21 +155,27 @@ export async function POST(
       priorCallRows = (priorData ?? []) as PriorCall[]
     }
 
-    // VIP lookup — restore VIP context lost when Ultravox call was replaced
-    let vipLine = ''
+    // Contact lookup — restore caller context lost when Ultravox call was replaced
+    let contactProfile: ContactProfile | null = null
     if (callerPhone !== 'unknown') {
-      const { data: vipRow } = await supabase
-        .from('client_vip_contacts')
-        .select('name, relationship, notes, transfer_enabled')
+      const { data: contact } = await supabase
+        .from('client_contacts')
+        .select('name, tags, notes, is_vip, vip_relationship, vip_notes, transfer_enabled, call_count, preferences')
         .eq('client_id', client.id)
         .eq('phone', callerPhone)
         .maybeSingle()
-      if (vipRow) {
-        const parts = [`VIP CALLER: ${vipRow.name}`]
-        if (vipRow.relationship) parts.push(`Relationship: ${vipRow.relationship}`)
-        if (vipRow.notes) parts.push(`Notes: ${vipRow.notes}`)
-        if (vipRow.transfer_enabled) parts.push('Transfer: enabled')
-        vipLine = parts.join(' | ')
+      if (contact) {
+        contactProfile = {
+          name: contact.name as string | null,
+          tags: (contact.tags as string[]) ?? [],
+          notes: contact.notes as string | null,
+          is_vip: contact.is_vip as boolean,
+          vip_relationship: contact.vip_relationship as string | null,
+          vip_notes: contact.vip_notes as string | null,
+          transfer_enabled: contact.transfer_enabled as boolean,
+          call_count: contact.call_count as number,
+          preferences: (contact.preferences as ContactProfile['preferences']) ?? {},
+        }
       }
     }
 
@@ -194,7 +200,7 @@ export async function POST(
     // pgvector is the only active backend
     const knowledgeBackend = (client.knowledge_backend as string | null)
     const corpusAvailable = knowledgeBackend === 'pgvector'
-    const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable)
+    const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable, [], contactProfile)
 
     const callerContextBlock = ctx.assembled.callerContextBlock
     const callerContextRaw = callerContextBlock.slice(1, -1)
@@ -214,8 +220,8 @@ export async function POST(
     // Include transfer failure context so the agent knows to offer "take a message"
     const transferFailureNote = `TRANSFER FAILED: The caller was being transferred to the business owner but they did not answer (${dialStatus}). Resume the conversation naturally — say something like "Hey, looks like they're tied up right now. Would you like to leave a message and I'll make sure they get it?" Do NOT re-attempt the transfer.`
     const callerContextWithFailure = callerContextRaw
-      ? `${callerContextRaw}${vipLine ? `\n${vipLine}` : ''}\n${transferFailureNote}`
-      : `${vipLine ? `${vipLine}\n` : ''}${transferFailureNote}`
+      ? `${callerContextRaw}\n${transferFailureNote}`
+      : transferFailureNote
 
     const callMeta = {
       caller_phone: callerPhone,

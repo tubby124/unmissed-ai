@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'motion/react'
 
 interface VipContact {
   id: string
-  name: string
+  name: string | null
   phone: string
-  relationship: string | null
-  notes: string | null
+  vip_relationship: string | null
+  vip_notes: string | null
   document_url: string | null
   transfer_enabled: boolean
   created_at: string
@@ -39,9 +39,11 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/dashboard/vip-contacts?client_id=${clientId}`)
+      const res = await fetch(`/api/dashboard/contacts?client_id=${clientId}`)
       if (!res.ok) throw new Error(`Failed to load (${res.status})`)
-      setContacts(await res.json())
+      const data = await res.json()
+      // Filter to VIP contacts only
+      setContacts((data.contacts ?? []).filter((c: { is_vip: boolean }) => c.is_vip))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load contacts')
     } finally {
@@ -59,15 +61,15 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
     }
     setAdding(true)
     try {
-      const res = await fetch('/api/dashboard/vip-contacts', {
+      const res = await fetch('/api/dashboard/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: clientId,
-          name: addName.trim(),
           phone: addPhone.trim(),
-          relationship: addRelationship.trim() || undefined,
-          notes: addNotes.trim() || undefined,
+          name: addName.trim(),
+          is_vip: true,
+          vip_relationship: addRelationship.trim() || null,
+          vip_notes: addNotes.trim() || null,
           transfer_enabled: addTransfer,
         }),
       })
@@ -85,8 +87,13 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
 
   async function handleDelete(id: string) {
     if (!confirm('Remove this VIP contact?')) return
-    const res = await fetch(`/api/dashboard/vip-contacts/${id}`, { method: 'DELETE' })
-    if (res.ok || res.status === 204) {
+    // Remove VIP status (keep the contact record)
+    const res = await fetch('/api/dashboard/contacts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_vip: false, vip_relationship: null, vip_notes: null }),
+    })
+    if (res.ok) {
       setContacts(prev => prev.filter(c => c.id !== id))
     }
   }
@@ -94,10 +101,10 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
   async function handleToggleTransfer(contact: VipContact) {
     const next = !contact.transfer_enabled
     setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, transfer_enabled: next } : c))
-    const res = await fetch(`/api/dashboard/vip-contacts/${contact.id}`, {
+    const res = await fetch('/api/dashboard/contacts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transfer_enabled: next }),
+      body: JSON.stringify({ id: contact.id, transfer_enabled: next }),
     })
     if (!res.ok) {
       // Roll back on failure
@@ -163,19 +170,19 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
               <div className="rounded-xl border b-theme p-3.5 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 min-w-0">
-                    <p className="text-[13px] font-medium t1 truncate">{contact.name}</p>
+                    <p className="text-[13px] font-medium t1 truncate">{contact.name ?? 'Unknown'}</p>
                     <p className="text-[11px] t3 font-mono">{contact.phone}</p>
-                    {contact.relationship && (
-                      <p className="text-[11px] t3">{contact.relationship}</p>
+                    {contact.vip_relationship && (
+                      <p className="text-[11px] t3">{contact.vip_relationship}</p>
                     )}
-                    {contact.notes && (
-                      <p className="text-[11px] t3 italic">&ldquo;{contact.notes}&rdquo;</p>
+                    {contact.vip_notes && (
+                      <p className="text-[11px] t3 italic">&ldquo;{contact.vip_notes}&rdquo;</p>
                     )}
                   </div>
                   <button
                     onClick={() => handleDelete(contact.id)}
                     className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors shrink-0 mt-0.5"
-                    title="Remove VIP contact"
+                    title="Remove VIP status"
                   >
                     ✕
                   </button>
@@ -234,12 +241,12 @@ export default function VIPContactsCard({ clientId, isAdmin: _isAdmin, forwardin
                     />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-medium t3 uppercase tracking-wider">Phone (E.164) *</p>
+                    <p className="text-[10px] font-medium t3 uppercase tracking-wider">Phone *</p>
                     <input
                       type="tel"
                       value={addPhone}
                       onChange={e => setAddPhone(e.target.value)}
-                      placeholder="+14036056470"
+                      placeholder="(403) 605-6470"
                       className="w-full bg-black/20 border b-theme rounded-lg px-3 py-1.5 text-[12px] t1 font-mono focus:outline-none focus:border-blue-500/40 transition-colors"
                     />
                   </div>

@@ -43,6 +43,26 @@ export type ClientRow = {
   staff_roster?: unknown | null
 }
 
+// ── Input type: persistent contact profile from client_contacts ──────────────
+// Passed in by the calling route — buildAgentContext stays pure (no DB calls).
+export type ContactProfile = {
+  name: string | null
+  tags: string[]
+  notes: string | null
+  is_vip: boolean
+  vip_relationship: string | null
+  vip_notes: string | null
+  transfer_enabled: boolean
+  call_count: number
+  preferences: {
+    last_service_requested?: string | null
+    last_sentiment?: string | null
+    has_booked?: boolean
+    notes_for_agent?: string | null
+    callback_preference?: 'morning' | 'afternoon' | 'evening' | null
+  }
+}
+
 // ── Input type: one prior call row from call_logs ─────────────────────────────
 export type PriorCall = {
   started_at: string
@@ -108,6 +128,8 @@ export type CallerContext = {
   lastCallDate: string | null
   /** First 120 chars of ai_summary from most recent prior call */
   lastCallSummary: string | null
+  /** Persistent contact profile — enriched across calls */
+  contactProfile: ContactProfile | null
 }
 
 // ── AssembledContextBlocks — ready-to-inject strings ─────────────────────────
@@ -219,6 +241,7 @@ export function buildAfterHoursBehaviorNote(
  * @param now         - Current time (default: new Date())
  * @param corpusAvailable - Whether pgvector corpus is available (default false)
  * @param vipContacts - Full VIP roster for the client — injected as VIP CONTACTS line (default [])
+ * @param contactProfile - Persistent contact record from client_contacts (default null)
  */
 export function buildAgentContext(
   client: ClientRow,
@@ -227,6 +250,7 @@ export function buildAgentContext(
   now: Date = new Date(),
   corpusAvailable: boolean = false,
   vipContacts: Array<{ name: string; relationship: string | null }> = [],
+  contactProfile: ContactProfile | null = null,
 ): AgentContext {
   // ── Business config ──────────────────────────────────────────────────────
   const niche = (client.niche as string | null) || 'other'
@@ -298,6 +322,16 @@ export function buildAgentContext(
       (priorCalls.find((c) => c.caller_name)?.caller_name as string | null) ?? null
   }
 
+  // Contact profile enriches caller data — persistent name wins over call-log-derived name
+  if (contactProfile?.name) {
+    returningCallerName = contactProfile.name
+  }
+  // Contact call_count may be higher than priorCalls (which is limited to 5 recent)
+  if (contactProfile && contactProfile.call_count > priorCallCount) {
+    priorCallCount = contactProfile.call_count
+    isReturningCaller = true
+  }
+
   const caller: CallerContext = {
     callerPhone: callerPhoneNormalized,
     todayIso,
@@ -310,6 +344,7 @@ export function buildAgentContext(
     returningCallerName,
     lastCallDate,
     lastCallSummary,
+    contactProfile,
   }
 
   // ── Assemble context blocks (same strings as inbound/route.ts) ────────────
@@ -322,6 +357,32 @@ export function buildAgentContext(
       `\nRETURNING CALLER — ${priorCallCount} prior call${priorCallCount > 1 ? 's' : ''}. ` +
       `Most recent: ${lastCallDate}.${summaryStr}`
   }
+  // Contact intelligence — accumulated across all prior calls
+  if (contactProfile) {
+    if (contactProfile.is_vip) {
+      const vipParts = ['VIP CALLER']
+      if (contactProfile.vip_relationship) vipParts.push(contactProfile.vip_relationship)
+      if (contactProfile.vip_notes) vipParts.push(contactProfile.vip_notes)
+      if (contactProfile.transfer_enabled) vipParts.push('Transfer: enabled')
+      callerContextStr += `\n${vipParts.join(' | ')}`
+    }
+    if (contactProfile.tags.length > 0) {
+      callerContextStr += `\nCALLER INTERESTS: ${contactProfile.tags.join(', ')}`
+    }
+    if (contactProfile.preferences.last_service_requested) {
+      callerContextStr += `\nLAST SERVICE INTEREST: ${contactProfile.preferences.last_service_requested}`
+    }
+    if (contactProfile.preferences.notes_for_agent) {
+      callerContextStr += `\nAGENT NOTE: ${contactProfile.preferences.notes_for_agent}`
+    }
+    if (contactProfile.preferences.callback_preference) {
+      callerContextStr += `\nCALLBACK PREFERENCE: ${contactProfile.preferences.callback_preference}`
+    }
+    if (contactProfile.notes) {
+      callerContextStr += `\nCONTACT NOTES: ${contactProfile.notes}`
+    }
+  }
+
   // Office/visit hours — informational only. Agent always answers calls 24/7.
   const hoursLines: string[] = []
   if (business.hoursWeekday) hoursLines.push(`- Weekdays: ${business.hoursWeekday}`)

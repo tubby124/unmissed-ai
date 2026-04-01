@@ -9,7 +9,7 @@ import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
-import { normalizePhoneNA } from '@/lib/demo-visitor'
+import { normalizePhoneNA } from '@/lib/utils/phone'
 
 // 3 calls per IP per hour (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)

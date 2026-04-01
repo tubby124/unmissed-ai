@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
-import { Star, Phone, Clock, TrendingUp, X, Plus, ChevronDown } from 'lucide-react'
+import { Star, Phone, Clock, TrendingUp, X, ChevronDown, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -22,16 +22,23 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface Contact {
+  id: string
   phone: string
   name: string | null
-  call_count: number
-  last_call_at: string
-  last_status: string | null
-  last_summary: string | null
-  last_sentiment: string | null
-  last_quality_score: number | null
+  email: string | null
+  tags: string[]
+  notes: string | null
+  source: string
   is_vip: boolean
   vip_relationship: string | null
+  vip_notes: string | null
+  transfer_enabled: boolean
+  preferences: Record<string, unknown>
+  sms_opted_out: boolean
+  call_count: number
+  last_call_at: string | null
+  last_outcome: string | null
+  first_seen_at: string | null
 }
 
 interface CallHistoryRow {
@@ -43,15 +50,6 @@ interface CallHistoryRow {
   started_at: string
   duration_seconds: number | null
   sentiment: string | null
-}
-
-interface VipContact {
-  id: string
-  name: string
-  phone: string
-  relationship: string | null
-  notes: string | null
-  transfer_enabled: boolean
 }
 
 interface Props {
@@ -202,67 +200,61 @@ function VipPanel({
 }: {
   contact: Contact
   clientId: string
-  onVipChange: (isVip: boolean) => void
+  onVipChange: (isVip: boolean, vipRelationship?: string | null, vipNotes?: string | null) => void
 }) {
-  const [vip, setVip] = useState<VipContact | null>(null)
-  const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const [form, setForm] = useState({ name: contact.name ?? '', relationship: '', notes: '' })
+  const [form, setForm] = useState({
+    name: contact.name ?? '',
+    relationship: contact.vip_relationship ?? '',
+    notes: contact.vip_notes ?? '',
+  })
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!contact.is_vip) { setLoading(false); return }
-    fetch(`/api/dashboard/vip-contacts?client_id=${clientId}`)
-      .then(r => r.ok ? r.json() : [])
-      .then((list: VipContact[]) => {
-        const found = list.find(v => v.phone === contact.phone) ?? null
-        setVip(found)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [contact.phone, contact.is_vip, clientId])
 
   async function handleAdd() {
     if (!form.name.trim()) { setError('Name is required'); return }
     setAdding(true)
     setError('')
     try {
-      const res = await fetch('/api/dashboard/vip-contacts', {
-        method: 'POST',
+      const res = await fetch('/api/dashboard/contacts', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: clientId,
+          id: contact.id,
+          is_vip: true,
           name: form.name.trim(),
-          phone: contact.phone,
-          relationship: form.relationship.trim() || null,
-          notes: form.notes.trim() || null,
+          vip_relationship: form.relationship.trim() || null,
+          vip_notes: form.notes.trim() || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed'); return }
-      setVip(data)
-      onVipChange(true)
+      onVipChange(true, form.relationship.trim() || null, form.notes.trim() || null)
     } finally {
       setAdding(false)
     }
   }
 
   async function handleRemove() {
-    if (!vip) return
     setRemoving(true)
     try {
-      await fetch(`/api/dashboard/vip-contacts?id=${vip.id}&client_id=${clientId}`, { method: 'DELETE' })
-      setVip(null)
-      onVipChange(false)
+      const res = await fetch('/api/dashboard/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: contact.id,
+          is_vip: false,
+          vip_relationship: null,
+          vip_notes: null,
+        }),
+      })
+      if (res.ok) onVipChange(false, null, null)
     } finally {
       setRemoving(false)
     }
   }
 
-  if (loading) return null
-
-  if (vip) {
+  if (contact.is_vip) {
     return (
       <div
         className="rounded-xl px-3 py-3 flex items-center justify-between gap-2"
@@ -273,11 +265,11 @@ function VipPanel({
             <Star width={11} height={11} className="text-amber-400 fill-amber-400" />
             <span className="text-[12px] font-semibold" style={{ color: 'rgb(234,179,8)' }}>VIP Contact</span>
           </div>
-          {vip.relationship && (
-            <p className="text-[11px] t3 mt-0.5">{vip.relationship}</p>
+          {contact.vip_relationship && (
+            <p className="text-[11px] t3 mt-0.5">{contact.vip_relationship}</p>
           )}
-          {vip.notes && (
-            <p className="text-[11px] t2 mt-0.5">{vip.notes}</p>
+          {contact.vip_notes && (
+            <p className="text-[11px] t2 mt-0.5">{contact.vip_notes}</p>
           )}
         </div>
         <button
@@ -316,7 +308,7 @@ function VipPanel({
         <input
           value={form.notes}
           onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-          placeholder="Notes (optional)"
+          placeholder="VIP notes (optional)"
           className="w-full text-[12px] t1 rounded-lg px-3 py-1.5 outline-none"
           style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
         />
@@ -329,13 +321,99 @@ function VipPanel({
         style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
       >
         <Star width={11} height={11} />
-        {adding ? 'Saving…' : 'Save as VIP'}
+        {adding ? 'Saving...' : 'Save as VIP'}
       </button>
     </div>
   )
 }
 
 // ── Contact detail dialog ────────────────────────────────────────────────────
+
+function EditableNotes({
+  contactId,
+  initialNotes,
+  initialAgentNotes,
+  preferences,
+}: {
+  contactId: string
+  initialNotes: string | null
+  initialAgentNotes: string | undefined
+  preferences: Record<string, unknown>
+}) {
+  const [notes, setNotes] = useState(initialNotes ?? '')
+  const [agentNotes, setAgentNotes] = useState(initialAgentNotes ?? '')
+  const [saving, setSaving] = useState<'notes' | 'agent' | null>(null)
+  const [error, setError] = useState('')
+
+  async function saveNotes() {
+    setSaving('notes')
+    setError('')
+    try {
+      const res = await fetch('/api/dashboard/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: contactId, notes: notes.trim() || null }),
+      })
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Save failed') }
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveAgentNotes() {
+    setSaving('agent')
+    setError('')
+    try {
+      const res = await fetch('/api/dashboard/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: contactId,
+          preferences: { ...preferences, notes_for_agent: agentNotes.trim() || undefined },
+        }),
+      })
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Save failed') }
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3 pt-1">
+      {/* Internal notes */}
+      <div>
+        <p className="text-[11px] font-semibold t1 mb-1">Notes</p>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          onBlur={saveNotes}
+          placeholder="Internal notes about this contact…"
+          rows={2}
+          className="w-full text-[11px] t1 rounded-lg px-3 py-2 outline-none resize-none leading-relaxed"
+          style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+        />
+        {saving === 'notes' && <p className="text-[10px] t3">Saving…</p>}
+      </div>
+
+      {/* Agent-visible notes */}
+      <div>
+        <p className="text-[11px] font-semibold t1 mb-1">Notes for agent <span className="font-normal t3">(visible during calls)</span></p>
+        <textarea
+          value={agentNotes}
+          onChange={e => setAgentNotes(e.target.value)}
+          onBlur={saveAgentNotes}
+          placeholder="e.g. Always offer the VIP discount, prefers morning appointments…"
+          rows={2}
+          className="w-full text-[11px] t1 rounded-lg px-3 py-2 outline-none resize-none leading-relaxed"
+          style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+        />
+        {saving === 'agent' && <p className="text-[10px] t3">Saving…</p>}
+      </div>
+
+      {error && <p className="text-[11px] text-red-400">{error}</p>}
+    </div>
+  )
+}
 
 function ContactDialog({
   contact,
@@ -346,7 +424,7 @@ function ContactDialog({
   contact: Contact
   clientId: string
   onClose: () => void
-  onVipChange: (phone: string, isVip: boolean) => void
+  onVipChange: (phone: string, isVip: boolean, vipRelationship?: string | null, vipNotes?: string | null) => void
 }) {
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose() }}>
@@ -365,26 +443,44 @@ function ContactDialog({
             <Phone width={11} height={11} className="t3" />
             <span className="text-[11px] t2">{contact.call_count} call{contact.call_count !== 1 ? 's' : ''}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Clock width={11} height={11} className="t3" />
-            <span className="text-[11px] t2">Last: {formatDate(contact.last_call_at)}</span>
-          </div>
-          {contact.last_sentiment && (
+          {contact.last_call_at && (
             <div className="flex items-center gap-1.5">
-              <TrendingUp width={11} height={11} className="t3" />
-              <span className="text-[11px] t2 capitalize">{contact.last_sentiment.toLowerCase()}</span>
+              <Clock width={11} height={11} className="t3" />
+              <span className="text-[11px] t2">Last: {formatDate(contact.last_call_at)}</span>
             </div>
           )}
-          {contact.last_status && (
-            <StatusBadge status={contact.last_status} />
+          {(contact.preferences?.last_sentiment as string | undefined) && (
+            <div className="flex items-center gap-1.5">
+              <TrendingUp width={11} height={11} className="t3" />
+              <span className="text-[11px] t2 capitalize">{(contact.preferences.last_sentiment as string).toLowerCase()}</span>
+            </div>
+          )}
+          {contact.last_outcome && (
+            <StatusBadge status={contact.last_outcome} />
           )}
         </div>
+
+        {/* Tags */}
+        {contact.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 py-1">
+            {contact.tags.map(tag => (
+              <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-primary-10)] text-[var(--color-primary)]">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Service interest */}
+        {typeof contact.preferences?.last_service_requested === 'string' && (
+          <p className="text-[11px] t2">Interested in: <span className="font-medium t1">{contact.preferences.last_service_requested}</span></p>
+        )}
 
         {/* VIP panel */}
         <VipPanel
           contact={contact}
           clientId={clientId}
-          onVipChange={isVip => onVipChange(contact.phone, isVip)}
+          onVipChange={(isVip, vipRelationship, vipNotes) => onVipChange(contact.phone, isVip, vipRelationship, vipNotes)}
         />
 
         {/* Call history */}
@@ -392,6 +488,14 @@ function ContactDialog({
           <p className="text-[11px] font-semibold t1 mb-2">Call History</p>
           <CallHistory phone={contact.phone} clientId={clientId} />
         </div>
+
+        {/* Editable notes */}
+        <EditableNotes
+          contactId={contact.id}
+          initialNotes={contact.notes}
+          initialAgentNotes={contact.preferences?.notes_for_agent as string | undefined}
+          preferences={contact.preferences}
+        />
 
         {/* VIP settings link */}
         <div className="pt-1 border-t b-theme">
@@ -425,11 +529,16 @@ export default function ContactsView({ clientId }: Props) {
   const [selected, setSelected] = useState<Contact | null>(null)
   const [search, setSearch] = useState('')
   const [filterVip, setFilterVip] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addPhone, setAddPhone] = useState('')
+  const [addName, setAddName] = useState('')
+  const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState('')
 
   const fetchContacts = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/dashboard/callers?client_id=${clientId}`)
+      const res = await fetch(`/api/dashboard/contacts?client_id=${clientId}`)
       if (!res.ok) return
       const data = await res.json()
       setContacts(data.contacts ?? [])
@@ -441,12 +550,46 @@ export default function ContactsView({ clientId }: Props) {
 
   useEffect(() => { fetchContacts() }, [fetchContacts])
 
-  function handleVipChange(phone: string, isVip: boolean) {
+  async function handleAddContact() {
+    if (!addPhone.trim()) { setAddError('Phone is required'); return }
+    setAddSaving(true)
+    setAddError('')
+    try {
+      const res = await fetch('/api/dashboard/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: addPhone.trim(),
+          name: addName.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAddError(data.error ?? 'Failed to add contact'); return }
+      setAddPhone('')
+      setAddName('')
+      setShowAddForm(false)
+      fetchContacts()
+    } finally {
+      setAddSaving(false)
+    }
+  }
+
+  function handleVipChange(phone: string, isVip: boolean, vipRelationship?: string | null, vipNotes?: string | null) {
     setContacts(prev => prev.map(c =>
-      c.phone === phone ? { ...c, is_vip: isVip, vip_relationship: isVip ? c.vip_relationship : null } : c
+      c.phone === phone ? {
+        ...c,
+        is_vip: isVip,
+        vip_relationship: vipRelationship !== undefined ? vipRelationship : (isVip ? c.vip_relationship : null),
+        vip_notes: vipNotes !== undefined ? vipNotes : (isVip ? c.vip_notes : null),
+      } : c
     ))
     if (selected?.phone === phone) {
-      setSelected(prev => prev ? { ...prev, is_vip: isVip } : prev)
+      setSelected(prev => prev ? {
+        ...prev,
+        is_vip: isVip,
+        vip_relationship: vipRelationship !== undefined ? vipRelationship : (isVip ? prev.vip_relationship : null),
+        vip_notes: vipNotes !== undefined ? vipNotes : (isVip ? prev.vip_notes : null),
+      } : prev)
     }
   }
 
@@ -498,10 +641,62 @@ export default function ContactsView({ clientId }: Props) {
           <Star width={11} height={11} className={filterVip ? 'fill-amber-400' : ''} />
           VIP only
         </button>
+        <button
+          onClick={() => { setShowAddForm(v => !v); setAddError('') }}
+          className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-xl transition-colors t2 hover:t1"
+          style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+        >
+          <Plus width={11} height={11} />
+          Add Contact
+        </button>
         <span className="text-[11px] t3 ml-auto">
           {loading ? '…' : `${filtered.length} of ${total} callers`}
         </span>
       </div>
+
+      {/* Add contact inline form */}
+      {showAddForm && (
+        <div
+          className="flex items-end gap-2 rounded-xl px-3 py-3"
+          style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}
+        >
+          <div className="flex-1 min-w-[140px] space-y-0.5">
+            <label className="text-[10px] t3 font-medium">Phone *</label>
+            <input
+              value={addPhone}
+              onChange={e => setAddPhone(e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              className="w-full text-[12px] t1 rounded-lg px-3 py-1.5 outline-none"
+              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            />
+          </div>
+          <div className="flex-1 min-w-[140px] space-y-0.5">
+            <label className="text-[10px] t3 font-medium">Name</label>
+            <input
+              value={addName}
+              onChange={e => setAddName(e.target.value)}
+              placeholder="Optional"
+              className="w-full text-[12px] t1 rounded-lg px-3 py-1.5 outline-none"
+              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            />
+          </div>
+          <button
+            onClick={handleAddContact}
+            disabled={addSaving}
+            className="text-[11px] font-semibold px-4 py-1.5 rounded-lg transition-opacity disabled:opacity-40 shrink-0"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
+          >
+            {addSaving ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            onClick={() => { setShowAddForm(false); setAddError('') }}
+            className="t3 hover:t2 shrink-0 p-1.5"
+          >
+            <X width={14} height={14} />
+          </button>
+          {addError && <p className="text-[11px] text-red-400 shrink-0">{addError}</p>}
+        </div>
+      )}
 
       {/* Table */}
       <motion.div
@@ -549,6 +744,11 @@ export default function ContactsView({ clientId }: Props) {
                       <span className="font-medium t1">
                         {contact.name ?? <span className="t3 font-normal">Unknown</span>}
                       </span>
+                      {contact.sms_opted_out && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wide bg-red-500/10 text-red-400">
+                          SMS opted out
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -568,10 +768,10 @@ export default function ContactsView({ clientId }: Props) {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] t2">{formatDate(contact.last_call_at)}</span>
+                    <span className="text-[11px] t2">{contact.last_call_at ? formatDate(contact.last_call_at) : '—'}</span>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={contact.last_status} />
+                    <StatusBadge status={contact.last_outcome} />
                   </TableCell>
                   <TableCell>
                     <button

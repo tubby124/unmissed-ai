@@ -1,3 +1,6 @@
+// DEPRECATED: VIP contacts are now managed via /api/dashboard/contacts (client_contacts table).
+// This route is kept temporarily for backward compatibility. Remove after 2026-04-08.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 

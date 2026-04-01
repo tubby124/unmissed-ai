@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
-import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { APP_URL } from '@/lib/app-url'
 
@@ -98,11 +98,12 @@ export async function POST(req: NextRequest) {
   const priorCalls = (priorData ?? []) as PriorCall[]
 
   const { data: vipRosterData } = await svc
-    .from('client_vip_contacts')
-    .select('name, relationship')
+    .from('client_contacts')
+    .select('name, vip_relationship')
     .eq('client_id', targetClientId)
+    .eq('is_vip', true)
     .order('name')
-  const vipRoster = (vipRosterData ?? []) as Array<{ name: string; relationship: string | null }>
+  const vipRoster = (vipRosterData ?? []).map(v => ({ name: v.name as string, relationship: v.vip_relationship as string | null }))
 
   const ctx = buildAgentContext(clientRow, '+15555550100', priorCalls, new Date(), corpusAvailable, vipRoster)
 

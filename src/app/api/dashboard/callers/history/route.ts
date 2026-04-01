@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const phone = url.searchParams.get('phone')
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20', 10), 50)
 
-  if (!phone) return NextResponse.json({ error: 'phone required' }, { status: 400 })
+  const contactId = url.searchParams.get('contact_id')
 
   const { data: cu } = await supabase
     .from('client_users')
@@ -23,6 +23,21 @@ export async function GET(req: NextRequest) {
 
   const isAdmin = cu.role === 'admin'
   const clientId = isAdmin && requestedClientId ? requestedClientId : cu.client_id
+
+  // Prefer contact_id lookup (no phone normalization needed)
+  if (contactId) {
+    const { data, error } = await supabase
+      .from('call_logs')
+      .select('id, caller_phone, caller_name, call_status, ai_summary, started_at, duration_seconds, sentiment, quality_score')
+      .eq('contact_id', contactId)
+      .order('started_at', { ascending: false })
+      .limit(limit)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ calls: data ?? [] })
+  }
+
+  // Fallback: phone-based lookup
+  if (!phone) return NextResponse.json({ error: 'phone or contact_id required' }, { status: 400 })
 
   const { data, error } = await supabase
     .from('call_logs')

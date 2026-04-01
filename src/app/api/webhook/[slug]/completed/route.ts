@@ -13,6 +13,7 @@ import {
   type CompletedClient,
 } from '@/lib/completed-notifications'
 import { getSignedRecordingUrl } from '@/lib/recording-url'
+import { normalizePhoneNA, isValidE164NA } from '@/lib/utils/phone'
 import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig, type AnalysisMessage } from '@/lib/transcript-analysis'
 import { embedText } from '@/lib/embeddings'
 import { analyzeQualityMetrics } from '@/lib/quality-metrics'
@@ -240,6 +241,36 @@ export async function POST(
       // Call log row ID for notification_logs FK
       const callLogId = updatedRows?.[0]?.id ?? null
       const callbackPreference = (updatedRows?.[0] as { callback_preference?: string | null } | undefined)?.callback_preference ?? null
+
+      // ── Contact upsert — accumulate caller intelligence across calls ────────
+      const normalizedPhone = callerPhone !== 'unknown' ? (isValidE164NA(callerPhone) ? callerPhone : normalizePhoneNA(callerPhone)) : ''
+      if (normalizedPhone && callLogId) {
+        const cd = classification.caller_data
+        const nd = classification.niche_data
+        const serviceRequested = cd?.service_requested ?? nd?.requested_service ?? null
+        const { data: contactId, error: contactErr } = await supabase
+          .rpc('upsert_client_contact', {
+            p_client_id: client.id,
+            p_phone: normalizedPhone,
+            p_caller_name: cd?.caller_name ?? nd?.caller_name ?? null,
+            p_call_status: classification.status,
+            p_key_topics: classification.key_topics?.length ? classification.key_topics : [],
+            p_service_requested: serviceRequested,
+            p_sentiment: classification.sentiment ?? null,
+            p_booked: cd?.booked ?? false,
+            p_caller_email: null,
+          })
+        if (contactErr) {
+          console.error(`[completed] Contact upsert failed: callId=${callId} phone=${normalizedPhone} err=${contactErr.message}`)
+        } else if (contactId) {
+          // Link call_logs row to contact
+          await supabase
+            .from('call_logs')
+            .update({ contact_id: contactId })
+            .eq('id', callLogId)
+          console.log(`[completed] Contact linked: callId=${callId} contactId=${contactId}`)
+        }
+      }
 
       // ── Outbound lead disposition write-back ────────────────────────────────
       if (['outbound', 'scheduled_callback'].includes(metadata.source as string) && metadata.lead_id) {

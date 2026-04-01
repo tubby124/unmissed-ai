@@ -4,7 +4,7 @@ import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { defaultCallState } from '@/lib/call-state'
 import { validateSignature, buildStreamTwiml, buildVoicemailTwiml, buildIvrGatherTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
-import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
 import { measurePromptLength } from '@/lib/knowledge-summary'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
 import { APP_URL } from '@/lib/app-url'
@@ -154,34 +154,43 @@ export async function POST(
     priorCallRows = (priorData ?? []) as PriorCall[]
   }
 
-  // ── VIP contacts lookup — identify priority callers for VIP greeting + owner alert flow ──
-  let vipLine: string | null = null
+  // ── Contact lookup — persistent caller identity + VIP status from client_contacts ──
+  let contactProfile: ContactProfile | null = null
   if (callerPhone !== 'unknown') {
-    const { data: vipContact } = await supabase
-      .from('client_vip_contacts')
-      .select('name, relationship, notes, transfer_enabled')
+    const { data: contact } = await supabase
+      .from('client_contacts')
+      .select('name, tags, notes, is_vip, vip_relationship, vip_notes, transfer_enabled, call_count, preferences')
       .eq('client_id', client.id)
       .eq('phone', callerPhone)
       .maybeSingle()
-    if (vipContact) {
-      const parts: string[] = [`VIP CALLER: ${vipContact.name}`]
-      if (vipContact.relationship) parts.push(vipContact.relationship)
-      if (vipContact.notes) parts.push(`Note: ${vipContact.notes}`)
-      parts.push(`Transfer: ${vipContact.transfer_enabled ? 'enabled' : 'disabled'}`)
-      vipLine = parts.join(' | ')
-      console.log(`[inbound] VIP caller detected: slug=${slug} name=${vipContact.name}`)
+    if (contact) {
+      contactProfile = {
+        name: contact.name as string | null,
+        tags: (contact.tags as string[]) ?? [],
+        notes: contact.notes as string | null,
+        is_vip: contact.is_vip as boolean,
+        vip_relationship: contact.vip_relationship as string | null,
+        vip_notes: contact.vip_notes as string | null,
+        transfer_enabled: contact.transfer_enabled as boolean,
+        call_count: contact.call_count as number,
+        preferences: (contact.preferences as ContactProfile['preferences']) ?? {},
+      }
+      if (contactProfile.is_vip) {
+        console.log(`[inbound] VIP caller detected: slug=${slug} name=${contactProfile.name}`)
+      }
     }
   }
 
-  // ── VIP roster — inject ALL VIP names into callerContext for agent awareness ──
+  // ── VIP roster — all VIP contacts injected for agent awareness ──
   let vipRoster: Array<{ name: string; relationship: string | null }> = []
   const { data: vipRosterData } = await supabase
-    .from('client_vip_contacts')
-    .select('name, relationship')
+    .from('client_contacts')
+    .select('name, vip_relationship')
     .eq('client_id', client.id)
+    .eq('is_vip', true)
     .order('name')
   if (vipRosterData && vipRosterData.length > 0) {
-    vipRoster = vipRosterData
+    vipRoster = vipRosterData.map(v => ({ name: v.name as string, relationship: v.vip_relationship as string | null }))
   }
 
   // ── SMS opt-out check — prevents agent from verbally promising SMS to opted-out callers ──
@@ -219,7 +228,7 @@ export async function POST(
   // Phase 4: retrieval available — pgvector is the only active backend
   const knowledgeBackend = (client.knowledge_backend as string | null)
   const corpusAvailable = knowledgeBackend === 'pgvector'
-  const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable, vipRoster)
+  const ctx = buildAgentContext(clientRow, callerPhone, priorCallRows, now, corpusAvailable, vipRoster, contactProfile)
 
   if (ctx.caller.isReturningCaller) {
     console.log(
@@ -236,9 +245,6 @@ export async function POST(
   let callerContextRaw   = ctx.assembled.callerContextBlock.slice(1, -1)
   if (smsCallerOptedOut) {
     callerContextRaw += '\nSMS STATUS: Caller has opted out. Do not offer or send a text.'
-  }
-  if (vipLine) {
-    callerContextRaw += `\n${vipLine}`
   }
   const callerContextBlock = `[${callerContextRaw}]`
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
