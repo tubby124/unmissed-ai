@@ -108,9 +108,12 @@ function formatLastUpdated(iso: string): string {
 export default function KnowledgeSourceRegistry({
   clientId,
   websiteUrl,
+  onSourceClick,
 }: {
   clientId: string
   websiteUrl?: string
+  /** Called when an active source card is clicked — receives the source def id and its DB source keys */
+  onSourceClick?: (sourceId: string, sourceKeys: string[], label: string) => void
 }) {
   const [stats, setStats] = useState<StatsResponse | null>(null)
   const [rescrapeStatus, setRescrapeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
@@ -190,16 +193,9 @@ export default function KnowledgeSourceRegistry({
       <div className="grid grid-cols-2 gap-2">
         {entries.map(entry => {
           const isActive = entry.count > 0
-          return (
-            <Link
-              key={entry.id}
-              href={entry.actionHref}
-              className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-colors hover:border-blue-500/30 hover:bg-blue-500/[0.03] ${
-                isActive
-                  ? 'border-green-500/20 bg-green-500/[0.04]'
-                  : 'b-theme bg-surface'
-              }`}
-            >
+
+          const inner = (
+            <>
               <span className={`mt-0.5 shrink-0 ${isActive ? 'text-green-400' : 't3'}`}>
                 {entry.icon}
               </span>
@@ -232,6 +228,36 @@ export default function KnowledgeSourceRegistry({
                   <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               )}
+            </>
+          )
+
+          const cls = `flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-colors hover:border-blue-500/30 hover:bg-blue-500/[0.03] ${
+            isActive
+              ? 'border-green-500/20 bg-green-500/[0.04]'
+              : 'b-theme bg-surface'
+          }`
+
+          // Active sources open the chunk detail drawer; inactive sources navigate to the add page
+          if (isActive && onSourceClick) {
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onSourceClick(entry.id, entry.sources, entry.label)}
+                className={`${cls} text-left cursor-pointer`}
+              >
+                {inner}
+              </button>
+            )
+          }
+
+          return (
+            <Link
+              key={entry.id}
+              href={entry.actionHref}
+              className={cls}
+            >
+              {inner}
             </Link>
           )
         })}

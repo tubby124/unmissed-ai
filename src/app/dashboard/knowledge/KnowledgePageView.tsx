@@ -372,6 +372,9 @@ export default function KnowledgePageView({
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerContent, setDrawerContent] = useState<DrawerContent>(null)
+  // Source-specific chunk browsing (set when clicking an active source card)
+  const [sourceDrawerFilter, setSourceDrawerFilter] = useState<string | null>(null)
+  const [sourceDrawerLabel, setSourceDrawerLabel] = useState<string>('')
 
   // Health score data
   const [healthData, setHealthData] = useState<{
@@ -499,6 +502,18 @@ export default function KnowledgePageView({
   function closeDrawer() {
     setDrawerOpen(false)
     setDrawerContent(null)
+    setSourceDrawerFilter(null)
+    setSourceDrawerLabel('')
+  }
+
+  /** Open the chunks drawer pre-filtered to a specific knowledge source */
+  function openSourceDrawer(_sourceId: string, sourceKeys: string[], label: string) {
+    // Only pre-filter when there's exactly one DB source key;
+    // multi-key groups (e.g. Text Imports) open unfiltered so the user can pick.
+    setSourceDrawerFilter(sourceKeys.length === 1 ? sourceKeys[0] : null)
+    setSourceDrawerLabel(label)
+    setDrawerContent('chunks')
+    setDrawerOpen(true)
   }
 
   async function handleTestCall() {
@@ -748,7 +763,7 @@ export default function KnowledgePageView({
       {/* ═══ TIER 3 — Sources + Suggestions + Caller Searches (3-col) ════ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Knowledge sources */}
-        <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} websiteUrl={client.website_url ?? undefined} />
+        <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} websiteUrl={client.website_url ?? undefined} onSourceClick={openSourceDrawer} />
 
         {/* Pending suggestions */}
         <PendingSuggestions key={`ps-${client.id}`} clientId={client.id} />
@@ -783,8 +798,16 @@ export default function KnowledgePageView({
       <KnowledgeDrawer
         open={drawerOpen}
         onClose={closeDrawer}
-        title={drawerContent ? DRAWER_META[drawerContent].title : ''}
-        subtitle={drawerContent ? DRAWER_META[drawerContent].subtitle : ''}
+        title={
+          drawerContent === 'chunks' && sourceDrawerLabel
+            ? `${sourceDrawerLabel} Chunks`
+            : drawerContent ? DRAWER_META[drawerContent].title : ''
+        }
+        subtitle={
+          drawerContent === 'chunks' && sourceDrawerLabel
+            ? `Browse knowledge from ${sourceDrawerLabel.toLowerCase()}`
+            : drawerContent ? DRAWER_META[drawerContent].subtitle : ''
+        }
         width="560px"
       >
         {drawerContent === 'upload' && (
@@ -805,7 +828,7 @@ export default function KnowledgePageView({
           <KnowledgeCompiler key={client.id} clientId={client.id} isAdmin={isAdmin} />
         )}
         {drawerContent === 'chunks' && (
-          <ChunkBrowser key={client.id} clientId={client.id} isAdmin={isAdmin} />
+          <ChunkBrowser key={`${client.id}-${sourceDrawerFilter ?? 'all'}`} clientId={client.id} isAdmin={isAdmin} initialSourceFilter={sourceDrawerFilter ?? undefined} />
         )}
         {drawerContent === 'context-preview' && (
           <CallContextPreview

@@ -278,7 +278,7 @@ export async function POST(
     contextDataStr,
   )
   if (promptReport.overHardMax) {
-    console.error(`[inbound] PROMPT OVER HARD MAX for slug=${slug}: ${promptReport.totalChars} chars (max 12000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
+    console.error(`[inbound] PROMPT OVER HARD MAX for slug=${slug}: ${promptReport.totalChars} chars (max 25000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
   } else if (promptReport.overTarget) {
     console.warn(`[inbound] Prompt over target for slug=${slug}: ${promptReport.totalChars} chars (target 6000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
   }

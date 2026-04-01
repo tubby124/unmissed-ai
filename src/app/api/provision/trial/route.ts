@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
     console.error(`[provision/trial] Prompt too large after all retries (niche=${data.niche})`);
     await supa.from("intake_submissions").update({ client_id: null, progress_status: "abandoned" }).eq("id", intakeId);
     await supa.from("clients").delete().eq("id", clientId);
-    return NextResponse.json({ error: "prompt_too_large", chars: promptCharCount, hard_limit: 12000 }, { status: 422 });
+    return NextResponse.json({ error: "prompt_too_large", chars: promptCharCount, hard_limit: 25000 }, { status: 422 });
   }
 
   // Voice ID: direct picker selection > gender fallback > niche default

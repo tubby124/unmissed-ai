@@ -9,7 +9,7 @@
  * - KnowledgeSummary is the ONLY knowledge injected into the runtime prompt by default
  * - contextData (tenant tables, lookup data) is NOT knowledge — it stays full (handled separately)
  * - Long-form content (website scrape, knowledge docs, full businessFacts) stored but not injected
- * - Prompt length is measured and enforced: target 6K chars, warn 8K, hard max 12K chars
+ * - Prompt length is measured and enforced: target 15K chars, warn 15K, hard max 25K chars
  *
  * Sources:
  * - businessFacts: free-text business facts from client dashboard

@@ -2,7 +2,7 @@
  * POST /api/dashboard/browser-test-call
  *
  * Client-authenticated endpoint that creates an ephemeral WebRTC test call.
- * Uses createDemoCall() — no Twilio, no completed webhook, no call_logs entry.
+ * Uses createDemoCall() — no Twilio, no completed webhook.
  *
  * Body: { promptSlot: 'live' | 'draft', promptContent?: string }
  * Returns: { joinUrl, callId, promptSlot }
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     .replace(/\{\{extraQa\}\}/g, '')
     .replace(/\{\{contextData\}\}/g, contextDataBlock)
 
-  // ── Create ephemeral WebRTC call (no Twilio, no webhook, no call_logs) ──────
+  // ── Create ephemeral WebRTC call (no Twilio, no webhook) ───────────────────
   try {
     recordUsage(targetClientId)
 
@@ -160,6 +160,17 @@ export async function POST(req: NextRequest) {
     })
 
     console.log(`[lab] Browser test call started: clientId=${targetClientId} slot=${promptSlot} callId=${callId}`)
+
+    // Track test call in call_logs so it appears on the Calls page
+    svc.from('call_logs').insert({
+      ultravox_call_id: callId,
+      client_id: targetClientId,
+      call_status: 'test',
+      caller_phone: 'webrtc-test',
+      started_at: new Date().toISOString(),
+    }).then(({ error: logErr }) => {
+      if (logErr) console.error(`[lab] call_logs insert failed: ${logErr.message}`)
+    })
 
     return NextResponse.json({ joinUrl, callId, promptSlot })
   } catch (err) {

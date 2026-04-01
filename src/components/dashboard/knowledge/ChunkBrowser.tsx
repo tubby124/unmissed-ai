@@ -20,6 +20,8 @@ interface KnowledgeChunk {
 interface ChunkBrowserProps {
   clientId: string
   isAdmin: boolean
+  /** Pre-set the source filter on mount (e.g. when opened from a source card) */
+  initialSourceFilter?: string
 }
 
 function TrustTierBadge({ tier }: { tier: string }) {
@@ -51,7 +53,7 @@ function ChunkStatusBadge({ status }: { status: string }) {
   )
 }
 
-export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
+export default function ChunkBrowser({ clientId, isAdmin, initialSourceFilter }: ChunkBrowserProps) {
   const [chunks, setChunks] = useState<KnowledgeChunk[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -59,7 +61,7 @@ export default function ChunkBrowser({ clientId, isAdmin }: ChunkBrowserProps) {
   const [offset, setOffset] = useState(0)
   const [statusFilter, setStatusFilter] = useState('all')
   const [trustTierFilter, setTrustTierFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState(initialSourceFilter ?? 'all')
   const [clearingAll, setClearingAll] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
