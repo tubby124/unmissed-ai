@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Project/Index.md",
+                "file": "Tracker/D308.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Index"
+              "title": "D308"
             }
           },
           {
@@ -199,6 +199,16 @@
   },
   "active": "c955854385329990",
   "lastOpenFiles": [
+    "Tracker/D310.md",
+    "Tracker/D309.md",
+    "Architecture/Phase6-Wave2-Knowledge-Page.md",
+    "Decisions/Overview-5-Tier-Layout.md",
+    "Decisions/Dashboard-Tab-Naming.md",
+    "Architecture/Phase6-Wave2-Dashboard-Matrix.md",
+    "Tracker/D308.md",
+    "Project/Index.md",
+    "Tracker/D307.md",
+    "Tracker/D306.md",
     "Features/Plan Tiers and Gating.md",
     "Decisions/Tier Differentiation — Quality Floor Not Ceiling.md",
     "Templates/Decision.md",
@@ -216,16 +226,6 @@
     "Tracker/D276.md",
     "Tracker/D274.md",
     "Tracker/D269.md",
-    "Tracker/D260.md",
-    "Tracker/D257.md",
-    "Tracker/D254.md",
-    "Tracker/D251.md",
-    "Tracker/D278.md",
-    "Tracker/D272.md",
-    "Tracker/D268.md",
-    "Tracker/D301.md",
-    "Tracker/D279.md",
-    "00-Inbox/Research-Phase5-Agent-Config-UX.md",
     "Untitled 1.canvas",
     "Untitled.canvas",
     "Operations",

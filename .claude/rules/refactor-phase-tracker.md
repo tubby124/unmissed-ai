@@ -40,14 +40,32 @@
 5. ~~**D276**~~ — ✅ DONE. Booking toggle → regenerate conversation_flow + goal slots.
 
 **Wave 2 — UI Design Wave** (run through `/ui-ux-pro-max`):
-- **D278** — Agent Brain dashboard page (flagship UX piece)
+
+*Overview page (5-tier layout — Sonar-validated 2026-03-31):*
+- **D278** — Overview page redesign: 5-tier layout (hero 3-col → identity → call log → unanswered → quick config 2x2). Decision: `CALLINGAGENTS/Decisions/Overview-5-Tier-Layout.md`
+- **D308** — Tab stays "Overview" (not "Agent Brain"). Decision: `CALLINGAGENTS/Decisions/Dashboard-Tab-Naming.md`
+- **D306** — Empty states for every card (trial vs paid same layout, data replaces empty states)
+- **D266** — Rich call log on Overview (same component as Calls & Leads, condensed filters)
+- **D288** — Capability preview (moved from hero left-col to readiness pills summary)
+- **D290** — "What Your Agent Knows" condensed to KB source list on Overview (full version stays on Knowledge page)
+
+*Knowledge page (full redesign — Sonar-validated 2026-03-31):*
+- **D309** — Knowledge page redesign: health score, drawer pattern, inline edit/delete, bulk AI answers. Spec: `CALLINGAGENTS/Architecture/Phase6-Wave2-Knowledge-Page.md`
+- **D310** — Knowledge Health Score: weighted formula (completeness 35%, coverage 25%, freshness 20%, sources 15%, resolution 5%) with niche-specific targets
+
+*Settings + prompt (unchanged scope):*
 - **D283b** — PromptVariablesCard (read-only variable display)
 - **D305 frontend** — Diff preview UI (current vs proposed)
-- **D288** — Capability preview card
-- **D290** — "What Your Agent Knows" surface
+- **D307** — Recompose warning UX (confirmation + diff before nuke — ships WITH recompose button)
 - **D286** — Dashboard settings reorganization
 
 **Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
+
+**Key architecture docs (read before building):**
+- Overview layout matrix: `CALLINGAGENTS/Architecture/Phase6-Wave2-Dashboard-Matrix.md`
+- Knowledge page spec: `CALLINGAGENTS/Architecture/Phase6-Wave2-Knowledge-Page.md`
+- Overview 5-tier decision: `CALLINGAGENTS/Decisions/Overview-5-Tier-Layout.md`
+- Tab naming decision: `CALLINGAGENTS/Decisions/Dashboard-Tab-Naming.md`
 
 **Also Phase 6:** D287 (niche-adaptive onboarding), D289 (services chips), D301 (locked vars)
 **Deferred to post-Phase 6:** D304 (old-client migration) — do AFTER Phase 6 proven on new clients.
