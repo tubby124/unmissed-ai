@@ -132,6 +132,19 @@ tests:
         value: "The response acknowledges the delivery request and asks for a delivery address. It should also mention the delivery area or minimum if relevant."
         provider: openrouter:anthropic/claude-haiku-4.5
 
+  - description: "D343 — Reads back full order before closing"
+    vars:
+      caller_message: "It's for pickup under Marco. Large pepperoni, a dozen garlic knots, and a Coke. I'll be there at 6."
+    assert:
+      - type: llm-rubric
+        value: "The response reads back the order items (pepperoni pizza, garlic knots, Coke), the pickup time (6), and the name (Marco) — confirming what the caller ordered before wrapping up. It asks 'did I get that right?' or similar confirmation."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: icontains-any
+        value:
+          - "pepperoni"
+          - "garlic knots"
+          - "Coke"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # MENU KNOWLEDGE — answers with real prices
   # ═══════════════════════════════════════════════════════════════════════════

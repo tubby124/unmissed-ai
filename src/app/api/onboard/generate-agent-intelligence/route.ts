@@ -129,6 +129,7 @@ Intent routing blocks. Each caller intent gets its own block with:
 Rules:
 - 3-5 intent blocks based on the business type and caller reasons provided
 - Each intent must end with a SPECIFIC outcome, not "someone will follow up"
+- For ORDER intents (food, service requests): add "→ Before closing: read back the full order — 'so that's [items] for [pickup/delivery] under [name] at [time] — did I get that right?'" as the last step before outcome
 - Add URGENT block — what triggers urgency for THIS business specifically
 - Add SPAM_OR_WRONG_NUMBER as final block
 - Be specific to "${body.businessName}" — use their actual services/context
@@ -196,12 +197,27 @@ Return ONLY valid JSON with no other text:
     }
 
     // Haiku sometimes returns TRIAGE_DEEP as an array of objects instead of a flat string.
-    // Convert array format to the flat string format that prompt-slots.ts expects.
+    // It may also return it as a string containing a JSON array (e.g. "[{...}]").
+    // Convert both formats to the flat string format that prompt-slots.ts expects.
     let triageDeep = ''
-    if (typeof parsed.TRIAGE_DEEP === 'string') {
-      triageDeep = parsed.TRIAGE_DEEP.trim()
-    } else if (Array.isArray(parsed.TRIAGE_DEEP)) {
-      triageDeep = (parsed.TRIAGE_DEEP as Array<Record<string, unknown>>)
+    let triageArray: Array<Record<string, unknown>> | null = null
+
+    if (Array.isArray(parsed.TRIAGE_DEEP)) {
+      triageArray = parsed.TRIAGE_DEEP as Array<Record<string, unknown>>
+    } else if (typeof parsed.TRIAGE_DEEP === 'string') {
+      const trimmed = parsed.TRIAGE_DEEP.trim()
+      // Detect stringified JSON array
+      if (trimmed.startsWith('[')) {
+        try {
+          const arr = JSON.parse(trimmed)
+          if (Array.isArray(arr)) triageArray = arr as Array<Record<string, unknown>>
+        } catch { /* not valid JSON array — use as flat text */ }
+      }
+      if (!triageArray) triageDeep = trimmed
+    }
+
+    if (triageArray) {
+      triageDeep = triageArray
         .map(block => {
           const name = String(block.INTENT_NAME || block.intent_name || '').toUpperCase()
           const ask = String(block.Ask || block.ask || '')
