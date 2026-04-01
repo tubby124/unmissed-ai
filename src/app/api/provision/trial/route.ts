@@ -87,9 +87,12 @@ export async function POST(req: NextRequest) {
     }
   }
   // Merge with any explicit nicheCustomVariables (TRIAGE_DEEP, etc.) from D258/D259 onboarding fields
-  const mergedNicheVars = {
+  // GAP-2 fix: Set CLOSE_PERSON from owner name so the prompt says "Sal" not "the boss"
+  const ownerFirstName = (data.ownerName || data.businessName || '').split(' ')[0]?.trim()
+  const mergedNicheVars: Record<string, string> = {
     ...nicheIntakeFields,
     ...(data.nicheCustomVariables ?? {}),
+    ...(ownerFirstName ? { CLOSE_PERSON: ownerFirstName } : {}),
   }
 
   // Gate-13: Enforce plan entitlements server-side — UI can show toggles as disabled

@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { OnboardingData, NotificationMethod } from "@/types/onboarding";
 import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAgentMode } from "@/lib/capabilities";
-import { Shield, CalendarOff, X, Check, Rocket } from "lucide-react";
+import { Shield, CalendarOff, X, Check, Rocket, Brain, ChevronDown } from "lucide-react";
 
 interface Props {
   data: OnboardingData;
@@ -110,6 +111,132 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
       <p className="text-xs t3">
         You can teach {agentName} more from your dashboard after launch.
       </p>
+    </div>
+  )
+}
+
+function AgentIntelligenceCard({ data, agentName }: { data: OnboardingData; agentName: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const seed = data.agentIntelligenceSeed
+
+  if (!seed?.TRIAGE_DEEP) return null
+
+  // Parse intent buckets from TRIAGE_DEEP for display
+  const intentBlocks = seed.TRIAGE_DEEP
+    .split(/\n\n+/)
+    .filter(block => block.trim() && !block.startsWith('SPAM'))
+    .slice(0, 5)
+
+  const urgencyKeywords = seed.URGENCY_KEYWORDS
+    ? seed.URGENCY_KEYWORDS.split(',').map(k => k.trim()).filter(Boolean).slice(0, 6)
+    : []
+
+  const neverRules = seed.FORBIDDEN_EXTRA
+    ? seed.FORBIDDEN_EXTRA.split('\n').filter(l => l.trim()).slice(0, 4)
+    : []
+
+  return (
+    <div className="rounded-xl border border-violet-200 dark:border-violet-800/50 bg-violet-50/50 dark:bg-violet-950/20 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+          <p className="text-xs font-semibold tracking-[0.12em] uppercase text-violet-700 dark:text-violet-300">
+            Agent Intelligence
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+          AI-configured
+        </span>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {agentName} knows how to handle {intentBlocks.length} caller intent{intentBlocks.length !== 1 ? 's' : ''}, detects urgency, and follows business-specific rules.
+      </p>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="text-center p-2 rounded-lg bg-violet-100/60 dark:bg-violet-900/30">
+          <p className="text-lg font-bold text-foreground">{intentBlocks.length}</p>
+          <p className="text-[10px] text-muted-foreground">intents</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-violet-100/60 dark:bg-violet-900/30">
+          <p className="text-lg font-bold text-foreground">{urgencyKeywords.length}</p>
+          <p className="text-[10px] text-muted-foreground">urgency triggers</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-violet-100/60 dark:bg-violet-900/30">
+          <p className="text-lg font-bold text-foreground">{neverRules.length}</p>
+          <p className="text-[10px] text-muted-foreground">safety rules</p>
+        </div>
+      </div>
+
+      {/* Expandable detail */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition-colors cursor-pointer"
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        {expanded ? 'Hide details' : 'See what your agent will do'}
+      </button>
+
+      {expanded && (
+        <div className="space-y-3 pt-2 border-t border-violet-200 dark:border-violet-800/50">
+          {/* Greeting */}
+          {seed.GREETING_LINE && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Opening line</p>
+              <p className="text-xs text-foreground italic">&ldquo;{seed.GREETING_LINE}&rdquo;</p>
+            </div>
+          )}
+
+          {/* Intent buckets */}
+          <div>
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Caller routing</p>
+            <div className="space-y-1.5">
+              {intentBlocks.map((block, i) => {
+                const firstLine = block.split('\n')[0].trim()
+                const intentName = firstLine.replace(/:$/, '').replace(/_/g, ' ')
+                return (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-card/60">
+                    <span className="text-[10px] font-mono font-bold text-violet-600 dark:text-violet-400 shrink-0">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="text-xs text-foreground">{intentName}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Urgency */}
+          {urgencyKeywords.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Urgency triggers</p>
+              <div className="flex flex-wrap gap-1">
+                {urgencyKeywords.map(k => (
+                  <span key={k} className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-[10px] text-red-700 dark:text-red-300">{k}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* NEVER rules */}
+          {neverRules.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Safety rules</p>
+              <div className="space-y-1">
+                {neverRules.map((rule, i) => (
+                  <p key={i} className="text-[10px] text-muted-foreground">{rule}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-muted-foreground italic">
+            All of this was auto-generated from your Google listing and business type. You can refine it from your dashboard after launch.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -221,6 +348,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
 
       {/* ── Pre-activation knowledge summary ─────────────────────────── */}
       <KnowledgeSummary data={data} agentName={agentName} />
+
+      {/* ── Agent Intelligence — auto-generated from GBP + niche ──────── */}
+      <AgentIntelligenceCard data={data} agentName={agentName} />
 
       {/* GBP data summary — show what was learned from Google Maps */}
       {(data.gbpDescription || data.placesRating || data.businessHoursText) && (

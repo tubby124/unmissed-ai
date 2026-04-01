@@ -79,6 +79,7 @@ export interface OnboardingData {
   placesReviewCount?: number;     // Total review count from Google
   gbpDescription?: string;        // Google Business Profile editorial summary (seeds business_facts)
   nicheCustomVariables?: Record<string, string>; // AI-generated prompt variables for 'other' businesses
+  agentIntelligenceSeed?: Record<string, string>; // Full agent intelligence seed from generate-agent-intelligence
   businessHoursText: string;   // e.g. "Mon–Fri 9am–5pm, Sat 10am–2pm" — used when step 3 is skipped
   servicesOffered: string;     // brief services description — optional, used when step 4 is skipped
 

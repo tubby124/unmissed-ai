@@ -1,0 +1,13 @@
+{
+  "slug": "sals-ny-pizza",
+  "business_name": "Sal's NY Pizza",
+  "niche": "restaurant",
+  "agent_name": "Marco",
+  "owner_name": "Sal",
+  "city": "Calgary",
+  "state": "AB",
+  "hours_weekday": "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm",
+  "hours_weekend": "Sun 12pm-9pm",
+  "status": "test",
+  "notes": "Test client for intelligence pipeline validation. Not a real business."
+}

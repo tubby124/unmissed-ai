@@ -920,6 +920,12 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     variables.GREETING_LINE = NICHE_WOW_GREETINGS[niche]
   }
 
+  // AI-generated greeting from generate-agent-intelligence takes priority over static niche defaults.
+  // customVars.GREETING_LINE is set when the intelligence seed produced a business-specific greeting.
+  if (customVars.GREETING_LINE?.trim()) {
+    variables.GREETING_LINE = customVars.GREETING_LINE
+  }
+
   // Completion fields
   const completionFields = intake.completion_fields as string | undefined
   if (completionFields?.trim()) variables.COMPLETION_FIELDS = completionFields

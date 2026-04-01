@@ -1,0 +1,384 @@
+# Promptfoo test suite — Sal's NY Pizza (Marco / restaurant niche)
+# Tests the FULL intelligence pipeline: onboarding → seed → prompt → behavior.
+# This is the reference test for restaurant niche agents.
+#
+# Run: promptfoo eval -c tests/promptfoo/sals-ny-pizza-test.yaml
+# Requires: OPENROUTER_API_KEY env var
+#
+# Validates:
+# - Takes phone orders (items, sizes, pickup/delivery, name, address/time)
+# - Answers menu questions with correct prices
+# - Handles catering inquiries properly
+# - Takes reservations for 6+
+# - Routes complaints to Sal
+# - Never promises exact delivery times
+# - Never takes payment over phone
+# - Allergen safety disclaimer always given
+# - Voice lock (casual Marco persona, no corporate filler)
+
+description: "Sal's NY Pizza — intelligence pipeline + restaurant behavior"
+
+providers:
+  - id: openrouter:anthropic/claude-haiku-4.5
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://prompts/chat.json
+
+defaultTest:
+  vars:
+    system_prompt: file://generated/SYSTEM_PROMPT_GENERATED.txt
+  assert:
+    # VOICE LOCK — forbidden corporate filler
+    - type: not-icontains
+      value: "certainly"
+    - type: not-icontains
+      value: "absolutely"
+    - type: not-icontains
+      value: "of course"
+    - type: not-icontains
+      value: "I will"
+    # NO MARKDOWN
+    - type: javascript
+      value: "!/\\*\\*|#{1,6}\\s|```|\\n-\\s/.test(output)"
+      threshold: 1
+    # ONE QUESTION PER TURN
+    - type: javascript
+      value: "(output.match(/\\?/g) || []).length <= 1"
+      threshold: 1
+    # NEVER ASK FOR PHONE
+    - type: javascript
+      value: "!/(what's|what is|can i get).*(your|the).*(number|phone)/i.test(output)"
+      threshold: 1
+
+tests:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPENING — capability signal (Pattern 1)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Opening names the business and signals ordering capability"
+    vars:
+      caller_message: "Hello?"
+    assert:
+      - type: icontains-any
+        value:
+          - "Sal's"
+          - "Marco"
+          - "pizza"
+      - type: llm-rubric
+        value: "The response mentions the restaurant name and says something about ordering, menu, or what they can help with — NOT just 'how can I help you'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORDER TAKING — the core job
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Starts taking a pizza order — asks about pickup or delivery"
+    vars:
+      caller_message: "Yeah I wanna order a pizza."
+    assert:
+      - type: icontains-any
+        value:
+          - "pickup"
+          - "delivery"
+          - "dine-in"
+          - "pick up"
+      - type: llm-rubric
+        value: "The response engages with the order and asks whether this is for pickup or delivery. It does NOT just say 'I'll take a message'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Collects order details — size and toppings"
+    vars:
+      caller_message: "I want a large pepperoni pizza for pickup."
+    assert:
+      - type: llm-rubric
+        value: "The response confirms the order (large/20-inch pepperoni for pickup) and asks a relevant follow-up: pickup time, name, or if they want anything else. It does NOT just say 'I'll have someone call you back'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Handles multi-item order"
+    vars:
+      caller_message: "Can I get a 20-inch meat lovers, a dozen garlic knots, and two Cokes?"
+    assert:
+      - type: llm-rubric
+        value: "The response acknowledges ALL items (pizza, garlic knots, drinks) and either confirms or asks about pickup/delivery/name. Does not ignore any item."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Asks for name and pickup time to complete order"
+    vars:
+      caller_message: "Yep, pickup. I'll come get it."
+    assert:
+      - type: icontains-any
+        value:
+          - "name"
+          - "when"
+          - "time"
+          - "pick"
+      - type: llm-rubric
+        value: "The response asks for the caller's name and/or when they want to pick up. These are the minimum fields to complete a pickup order."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Handles delivery order — asks for address"
+    vars:
+      caller_message: "I want delivery. Large cheese pizza."
+    assert:
+      - type: icontains-any
+        value:
+          - "address"
+          - "deliver"
+          - "where"
+      - type: llm-rubric
+        value: "The response acknowledges the delivery request and asks for a delivery address. It should also mention the delivery area or minimum if relevant."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MENU KNOWLEDGE — answers with real prices
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Knows pizza prices when asked"
+    vars:
+      caller_message: "How much is a large pepperoni pizza?"
+    assert:
+      - type: llm-rubric
+        value: "The response gives information about the pepperoni pizza price. It should reference the actual price or direct the caller to order. Does NOT say 'I don't know the prices' or just route to a callback."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Knows garlic knots exist and are popular"
+    vars:
+      caller_message: "Do you guys have garlic knots?"
+    assert:
+      - type: icontains-any
+        value:
+          - "garlic knots"
+          - "yeah"
+          - "yep"
+          - "sure do"
+      - type: llm-rubric
+        value: "The response confirms garlic knots are available and ideally mentions the price or asks if they want to add them to an order."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Answers what toppings are available"
+    vars:
+      caller_message: "What toppings can I get on a pizza?"
+    assert:
+      - type: llm-rubric
+        value: "The response lists some available toppings (pepperoni, sausage, mushrooms, peppers, etc.) or mentions they have a build-your-own option. Does NOT just say 'check our website'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CATERING — routes to Sal for quote
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Catering inquiry — asks about event details"
+    vars:
+      caller_message: "We need catering for an office party, about 25 people."
+    assert:
+      - type: icontains-any
+        value:
+          - "when"
+          - "date"
+          - "event"
+          - "Sal"
+          - "quote"
+      - type: llm-rubric
+        value: "The response engages with the catering request — asks about the date, or mentions they'll get Sal to call back with a quote. Does NOT say 'we don't do catering'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RESERVATIONS — groups of 6+
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Takes reservation for a group"
+    vars:
+      caller_message: "Can I book a table for 8 people this Saturday at 7pm?"
+    assert:
+      - type: icontains-any
+        value:
+          - "name"
+          - "reservation"
+          - "Saturday"
+          - "8"
+          - "book"
+          - "noted"
+      - type: llm-rubric
+        value: "The response acknowledges the reservation request (8 people, Saturday 7pm) and asks for the caller's name or confirms the booking. Does NOT refuse to take reservations."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DELIVERY TIME — never promises under 30 min (Pattern 5)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Never promises delivery under 30 minutes"
+    vars:
+      caller_message: "Can you deliver in 15 minutes? I'm really hungry."
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT promise delivery in 15 minutes. It should say something like 'usually 30-45 minutes' or 'could be up to 60 on busy nights'. Never commits to a specific fast time."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "15 minutes"
+
+  - description: "Gives realistic delivery estimate"
+    vars:
+      caller_message: "How long will delivery take?"
+    assert:
+      - type: icontains-any
+        value:
+          - "30"
+          - "45"
+          - "minutes"
+          - "60"
+          - "busy"
+      - type: llm-rubric
+        value: "The response gives a realistic delivery time range (30-45 min or up to 60 on busy nights). It does NOT give an unrealistically fast time."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PAYMENT — never takes card over phone
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Never takes payment over phone"
+    vars:
+      caller_message: "Can I pay with my credit card over the phone?"
+    assert:
+      - type: llm-rubric
+        value: "The response says payment is handled in person (cash or card at pickup/delivery) — NOT over the phone. It does NOT ask for a card number."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "card number"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ALLERGIES — always gives safety disclaimer
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Allergen question — gives safety disclaimer"
+    vars:
+      caller_message: "I have a severe nut allergy. Is your kitchen nut-free?"
+    assert:
+      - type: icontains-any
+        value:
+          - "not nut-free"
+          - "can't guarantee"
+          - "cross-contamination"
+          - "check with us"
+          - "in person"
+      - type: llm-rubric
+        value: "The response does NOT say the kitchen is nut-free. It warns about cross-contamination and suggests checking in person for severe allergies."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Gluten-free question — mentions option and upcharge"
+    vars:
+      caller_message: "Do you have gluten-free pizza?"
+    assert:
+      - type: llm-rubric
+        value: "The response mentions gluten-free crust is available (possibly with an upcharge). It does NOT say 'we don't have gluten-free options'."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # COMPLAINTS — routes to Sal (Pattern 3 explicit outcome)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Complaint — escalates to Sal, not generic 'team'"
+    vars:
+      caller_message: "My pizza arrived cold and the order was wrong. I want to talk to someone."
+    assert:
+      - type: icontains-any
+        value:
+          - "Sal"
+          - "sorry"
+          - "call you back"
+          - "call ya back"
+      - type: llm-rubric
+        value: "The response apologizes, acknowledges the issue, and routes to Sal (the owner) specifically — not 'the team' or 'someone'. It takes the complaint seriously."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Never offers refund or discount on complaint"
+    vars:
+      caller_message: "I want a refund. The food was terrible."
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT offer a refund or discount directly. It routes to Sal to handle the resolution. The agent apologizes but does not commit to compensation."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-icontains
+        value: "refund"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SPAM / WRONG NUMBER / OFF-TOPIC
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Wrong number — clarifies this is a pizza restaurant"
+    vars:
+      caller_message: "Is this the dentist office?"
+    assert:
+      - type: icontains-any
+        value:
+          - "pizza"
+          - "Sal's"
+          - "restaurant"
+          - "wrong number"
+
+  - description: "Spam call — rejects politely"
+    vars:
+      caller_message: "We're calling about your business insurance renewal."
+    assert:
+      - type: icontains-any
+        value:
+          - "not interested"
+          - "thanks"
+          - "wrong number"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # URGENCY — handles food safety issues
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Urgent — food safety issue escalated immediately"
+    vars:
+      caller_message: "I think I got food poisoning from your pizza last night."
+    assert:
+      - type: icontains-any
+        value:
+          - "Sal"
+          - "urgent"
+          - "sorry"
+          - "right away"
+          - "immediately"
+      - type: llm-rubric
+        value: "The response takes the food safety complaint seriously, flags it as urgent, and routes to Sal immediately — does NOT say 'I'll take a message' in a casual way."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VOICE QUALITY
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Voice — casual and friendly, sounds like a real person"
+    vars:
+      caller_message: "What's good here?"
+    assert:
+      - type: llm-rubric
+        value: "The response is short (1-3 sentences), sounds like a friendly person working at a pizza shop, uses casual language, and recommends something specific (garlic knots, 20-inch pies, etc.). NOT corporate or robotic."
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  - description: "Voice — uses contractions"
+    vars:
+      caller_message: "I would like to order something."
+    assert:
+      - type: icontains-any
+        value:
+          - "I'll"
+          - "what's"
+          - "gotcha"
+          - "yeah"
+          - "I can"
+          - "let me"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LIFE SAFETY — always overrides
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - description: "Life safety — 911 for medical emergency"
+    vars:
+      caller_message: "Someone just collapsed in your restaurant and they're not breathing!"
+    assert:
+      - type: icontains
+        value: "911"

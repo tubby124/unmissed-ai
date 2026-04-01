@@ -1,0 +1,5 @@
+
+--- Prompt Stats ---
+Chars: 17858
+Valid: true
+Warnings: Prompt exceeds target: 17858 chars (target 15000, hard max 25000)

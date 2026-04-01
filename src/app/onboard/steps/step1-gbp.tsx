@@ -171,6 +171,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const inferAbortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const triageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intelligenceAbortRef = useRef<AbortController | null>(null);
 
   // Phase 7: Play 3s voice preview on tap
   const playVoicePreview = useCallback((voiceId: string) => {
@@ -210,6 +211,72 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
       } catch { /* non-blocking */ }
     }, 1200);
   }, [data.businessName, data.niche, data.urgencyWords, data.nicheCustomVariables, onUpdate]);
+
+  // Phase 7: Fire agent intelligence generation with ALL available context.
+  // Runs in background — by the time user reaches Launch step, it's done.
+  // This is the "smart agent from day 1" feature: Haiku generates TRIAGE_DEEP,
+  // greeting, urgency keywords, and NEVER list from GBP + niche + services + reasons.
+  const fireIntelligenceGeneration = useCallback((currentData: OnboardingData) => {
+    if (intelligenceAbortRef.current) intelligenceAbortRef.current.abort();
+    const controller = new AbortController();
+    intelligenceAbortRef.current = controller;
+
+    // Collect all available context
+    const payload: Record<string, unknown> = {
+      businessName: currentData.businessName || '',
+      niche: currentData.niche || 'other',
+      agentName: currentData.agentName || '',
+      ownerName: currentData.ownerName || '',
+      city: currentData.city || '',
+      hours: currentData.businessHoursText || '',
+      gbpDescription: currentData.gbpDescription || '',
+      services: currentData.selectedServices || [],
+      callerReasons: (currentData.callerReasons || []).filter((r: string) => r?.trim()),
+      selectedPlan: currentData.selectedPlan || '',
+    };
+
+    // Include website scrape facts if available
+    if (currentData.websiteScrapeResult) {
+      const sr = currentData.websiteScrapeResult;
+      payload.websiteFacts = sr.businessFacts?.filter((_: string, i: number) => sr.approvedFacts?.[i] !== false) || [];
+      payload.websiteQa = sr.extraQa?.filter((_: { q: string; a: string }, i: number) => sr.approvedQa?.[i] !== false) || [];
+    }
+
+    fetch('/api/onboard/generate-agent-intelligence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(json => {
+        if (!json?.seed) return;
+        const seed = json.seed as Record<string, string>;
+        const updates: Partial<OnboardingData> = {};
+
+        // Merge AI-generated fields into nicheCustomVariables
+        const existingVars = currentData.nicheCustomVariables || {};
+        const newVars: Record<string, string> = { ...existingVars };
+
+        if (seed.TRIAGE_DEEP) newVars.TRIAGE_DEEP = seed.TRIAGE_DEEP;
+        if (seed.GREETING_LINE) newVars.GREETING_LINE = seed.GREETING_LINE;
+        if (seed.URGENCY_KEYWORDS) newVars.URGENCY_KEYWORDS = seed.URGENCY_KEYWORDS;
+        if (seed.FORBIDDEN_EXTRA) {
+          // Append to existing rather than replace
+          newVars.FORBIDDEN_EXTRA = existingVars.FORBIDDEN_EXTRA
+            ? existingVars.FORBIDDEN_EXTRA + '\n' + seed.FORBIDDEN_EXTRA
+            : seed.FORBIDDEN_EXTRA;
+        }
+
+        updates.nicheCustomVariables = newVars;
+
+        // Store the seed for display on the Launch step
+        updates.agentIntelligenceSeed = seed;
+
+        onUpdate(updates);
+      })
+      .catch(() => { /* non-blocking — niche defaults will handle it */ });
+  }, [onUpdate]);
 
   // Apply a niche selection — shared by AI suggestion button and grid buttons
   function applyNiche(n: Niche) {
@@ -315,6 +382,9 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     setGbpConfirmed(true);
     setPendingPlace(null);
     if (detectedNiche === 'other') setNichePickerDismissed(false);
+
+    // Fire agent intelligence generation with all the GBP data we just collected
+    fireIntelligenceGeneration({ ...data, ...updates } as OnboardingData);
   };
 
   const handleManual = () => {
@@ -693,6 +763,13 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                     reasons[i] = e.target.value;
                     onUpdate({ callerReasons: reasons });
                     debouncedTriageGenerate(reasons);
+                  }}
+                  onBlur={() => {
+                    // Re-fire full intelligence generation when user finishes a reason
+                    const filled = (data.callerReasons || []).filter((r: string) => r?.trim());
+                    if (filled.length > 0) {
+                      fireIntelligenceGeneration(data);
+                    }
                   }}
                   placeholder={getReasonPlaceholder(data.niche, i)}
                   className="text-sm"
