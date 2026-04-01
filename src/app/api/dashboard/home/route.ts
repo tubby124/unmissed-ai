@@ -205,6 +205,11 @@ export async function GET(request: Request) {
   const approvedChunks = knowledgeChunks.filter(k => k.status === 'approved')
   const pendingChunks = knowledgeChunks.filter(k => k.status === 'pending')
   const sourceTypes = [...new Set(approvedChunks.map(k => k.source as string))]
+  const sourceCounts: Record<string, number> = {}
+  for (const chunk of approvedChunks) {
+    const src = chunk.source as string
+    sourceCounts[src] = (sourceCounts[src] ?? 0) + 1
+  }
   const allUpdatedAts = approvedChunks.map(k => k.updated_at).filter(Boolean) as string[]
   const lastUpdatedAt = allUpdatedAts.length > 0
     ? allUpdatedAts.sort().reverse()[0]
@@ -382,6 +387,7 @@ export async function GET(request: Request) {
       approved_chunk_count: approvedChunks.length,
       pending_review_count: pendingChunks.length,
       source_types: sourceTypes,
+      source_counts: sourceCounts,
       last_updated_at: lastUpdatedAt,
     },
     insights: {

@@ -18,7 +18,7 @@ export const MAX_TEXT_LENGTH = 50_000
 export const MAX_FILE_SIZE = 5 * 1024 * 1024
 
 /** Allowed file extensions */
-export const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx', 'csv'])
+export const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'docx', 'csv', 'md'])
 
 /** Min chars per chunk — skip fragments shorter than this */
 export const MIN_CHUNK_CHARS = 20
@@ -39,7 +39,7 @@ export async function extractText(
 ): Promise<string> {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
 
-  if (ext === 'txt' || mimeType === 'text/plain') {
+  if (ext === 'txt' || ext === 'md' || mimeType === 'text/plain' || mimeType === 'text/markdown') {
     return buffer.toString('utf-8')
   }
 

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV' }, { status: 400 })
+    return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV, MD' }, { status: 400 })
   }
 
   // ── Extract text ────────────────────────────────────────────────────────────

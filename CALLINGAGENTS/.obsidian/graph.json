@@ -1,11 +1,11 @@
 {
   "collapse-filter": false,
   "search": "",
-  "showTags": false,
+  "showTags": true,
   "showAttachments": false,
-  "hideUnresolved": false,
+  "hideUnresolved": true,
   "showOrphans": false,
-  "collapse-color-groups": true,
+  "collapse-color-groups": false,
   "colorGroups": [
     {
       "query": "path:Clients",
@@ -71,9 +71,9 @@
   "lineSizeMultiplier": 5,
   "collapse-forces": false,
   "centerStrength": 0,
-  "repelStrength": 6.99783393501805,
-  "linkStrength": 0.191119133574007,
+  "repelStrength": 10.2425642506497,
+  "linkStrength": 1,
   "linkDistance": 500,
-  "scale": 0.6151328153870805,
+  "scale": 0.43200258130576,
   "close": false
 }

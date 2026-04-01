@@ -43,10 +43,15 @@ const NICHE_PLACEHOLDERS: Record<string, string[]> = {
   salon:               ['Book appointment', 'Pricing / services', 'Cancel or reschedule'],
   real_estate:         ['Buy a home', 'Sell my home', 'Rental inquiry'],
   property_management: ['Maintenance request', 'Pay rent / question', 'Lease inquiry'],
-  restaurant:          ['Reserve a table', 'Menu / hours', 'Catering inquiry'],
-  print_shop:          ['Get a quote', 'Order status', 'Rush job request'],
+  restaurant:          ['Reserve a table or place an order', 'Menu / hours / location', 'Catering or large order'],
+  print_shop:          ['Get a printing quote', 'Check order status', 'Rush job request'],
+  barbershop:          ['Book a haircut', 'Walk-in availability', 'Pricing / services'],
+  mechanic_shop:       ['Car repair or diagnostic', 'Oil change / maintenance', 'Get a quote'],
+  pest_control:        ['Pest problem — need service', 'Get an inspection quote', 'Follow-up on treatment'],
+  electrician:         ['Electrical issue or repair', 'New installation quote', 'Inspection or panel upgrade'],
+  locksmith:           ['Locked out — need help now', 'Lock replacement or rekey', 'Security upgrade quote'],
   voicemail:           ['Leave a message', 'Pricing question', 'Callback request'],
-  other:               ['Main reason people call', 'Second common call type', 'Third call type'],
+  other:               ['e.g. Get a quote or book service', 'e.g. Check on existing order', 'e.g. Hours, location, or general info'],
 }
 
 function getPlaceholders(niche: string | null): string[] {
@@ -147,7 +152,7 @@ export default function CallRoutingCard({ client, isAdmin, previewMode }: CallRo
           <div>
             <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Call Routing</p>
             <p className="text-[11px] t3 mt-0.5">
-              Why do people call you? Your agent uses this to route each caller to the right outcome.
+              Why do people call you? Your agent listens and figures out the reason — no phone menu, just smarter conversations.
             </p>
           </div>
         </div>
@@ -188,7 +193,7 @@ export default function CallRoutingCard({ client, isAdmin, previewMode }: CallRo
       <div className="mt-3 flex items-center justify-between">
         <p className="text-[10px] t3">
           {triageGenerated
-            ? 'Routing saved and applied to your live agent.'
+            ? 'Your agent now classifies calls and adapts its questions per caller type.'
             : 'Add at least one reason and click generate to set up call routing.'}
         </p>
         <button
@@ -211,9 +216,9 @@ export default function CallRoutingCard({ client, isAdmin, previewMode }: CallRo
               Routing updated
             </>
           ) : triageGenerated ? (
-            'Regenerate'
+            'Update routing'
           ) : (
-            'Set up routing'
+            'Generate routing'
           )}
         </button>
       </div>

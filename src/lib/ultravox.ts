@@ -615,6 +615,7 @@ export function buildKnowledgeTools(slug: string): UltravoxTool[] {
           { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
         ],
       } : {}),
+      defaultReaction: 'AGENT_REACTION_SPEAKS',
       http: {
         baseUrlPattern: `${appUrl}/api/knowledge/${slug}/query`,
         httpMethod: 'POST',

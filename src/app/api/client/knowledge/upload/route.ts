@@ -27,6 +27,7 @@ const perIpLimiter = new SlidingWindowRateLimiter(5, 60 * 1000)
 const ALLOWED_TYPES = new Set([
   'application/pdf',
   'text/plain',
+  'text/markdown',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/csv',
   'application/vnd.ms-excel', // some systems send CSV as this
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Validate file type by extension and MIME
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_EXTENSIONS.has(ext) && !ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV' }, { status: 400 })
+      return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, TXT, DOCX, CSV, MD' }, { status: 400 })
     }
 
     // Ensure intake row exists — upsert a draft if missing (handles create-draft failures gracefully)

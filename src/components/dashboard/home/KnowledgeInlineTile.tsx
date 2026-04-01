@@ -286,10 +286,12 @@ function GbpStrip({
   gbp,
   websiteUrl,
   websiteStatus,
+  websiteChunkCount,
 }: {
   gbp: NonNullable<HomeData['gbpData']>
   websiteUrl: string | null
   websiteStatus: string | null
+  websiteChunkCount: number
 }) {
   const hostname = websiteUrl
     ? (() => { try { return new URL(websiteUrl).hostname.replace(/^www\./, '') } catch { return websiteUrl } })()
@@ -346,13 +348,13 @@ function GbpStrip({
                 {hostname}
               </a>
             )}
-            {websiteStatus === 'approved' && (
+            {(websiteStatus === 'approved' || (websiteStatus === 'extracted' && websiteChunkCount > 0)) && (
               <span className="flex items-center gap-1 text-[9px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-px rounded-full">
                 <span className="w-1 h-1 rounded-full bg-green-400" />
-                Scraped
+                {websiteChunkCount > 0 ? `${websiteChunkCount} pages imported` : 'Scraped'}
               </span>
             )}
-            {websiteStatus === 'extracted' && (
+            {websiteStatus === 'extracted' && websiteChunkCount === 0 && (
               <span className="flex items-center gap-1 text-[9px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-px rounded-full">
                 <span className="w-1 h-1 rounded-full bg-amber-400" />
                 Pending
@@ -442,6 +444,7 @@ interface Props {
   knowledgeStats: {
     approved_chunk_count: number
     source_types: string[]
+    source_counts?: Record<string, number>
   }
   gbpData?: HomeData['gbpData']
   businessFacts?: string[]
@@ -464,9 +467,10 @@ export default function KnowledgeInlineTile({
   const hasFacts = businessFacts.length > 0 || faqCount > 0
   const activeSourceTypes = new Set(knowledgeStats.source_types)
 
+  const sc = knowledgeStats.source_counts ?? {}
   const entries = SOURCE_DEFS.map(def => {
-    const isActive = def.sources.some(s => activeSourceTypes.has(s))
-    return { ...def, count: isActive ? 1 : 0 }
+    const count = def.sources.reduce((sum, s) => sum + (sc[s] ?? 0), 0)
+    return { ...def, count }
   })
 
   const totalApproved = knowledgeStats.approved_chunk_count
@@ -495,7 +499,7 @@ export default function KnowledgeInlineTile({
               className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
               style={{ backgroundColor: 'var(--color-primary-10)', color: 'var(--color-primary)' }}
             >
-              {totalApproved}
+              {totalApproved} item{totalApproved !== 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -514,6 +518,7 @@ export default function KnowledgeInlineTile({
           gbp={gbpData}
           websiteUrl={websiteUrl ?? null}
           websiteStatus={websiteScrapeStatus ?? null}
+          websiteChunkCount={sc['website_scrape'] ?? 0}
         />
       )}
 

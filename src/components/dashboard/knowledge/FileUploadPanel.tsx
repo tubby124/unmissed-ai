@@ -158,14 +158,14 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
 
   // ── File queue helpers ─────────────────────────────────────────────────────
 
-  const ALLOWED_EXTS = new Set(['pdf', 'txt', 'docx', 'csv'])
+  const ALLOWED_EXTS = new Set(['pdf', 'txt', 'docx', 'csv', 'md'])
 
   function addFilesToQueue(files: File[]) {
     const valid: QueuedFile[] = []
     for (const file of files) {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
       if (!ALLOWED_EXTS.has(ext)) {
-        setPreviewError(`"${file.name}" is not a supported type (PDF, TXT, DOCX, CSV)`)
+        setPreviewError(`"${file.name}" is not a supported type (PDF, TXT, DOCX, CSV, MD)`)
         continue
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -189,7 +189,7 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
   const processFile = useCallback(async (file: File, skipDedupCheck = false) => {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_EXTS.has(ext)) {
-      setPreviewError('Unsupported file type. Allowed: PDF, TXT, DOCX, CSV')
+      setPreviewError('Unsupported file type. Allowed: PDF, TXT, DOCX, CSV, MD')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -666,11 +666,11 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <p className="text-xs font-medium t2">Drop files here or click to upload</p>
-            <p className="text-[10px] t3 mt-1">PDF, TXT, DOCX, or CSV — max 5MB each — multiple files supported</p>
+            <p className="text-[10px] t3 mt-1">PDF, TXT, DOCX, CSV, or MD — max 5MB each — multiple files supported</p>
             <input
               ref={docFileInputRef}
               type="file"
-              accept=".pdf,.txt,.docx,.csv"
+              accept=".pdf,.txt,.docx,.csv,.md"
               multiple
               className="hidden"
               disabled={atLimit}

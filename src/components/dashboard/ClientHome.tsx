@@ -126,6 +126,7 @@ export interface HomeData {
     approved_chunk_count: number
     pending_review_count: number
     source_types: string[]
+    source_counts?: Record<string, number>
     last_updated_at: string | null
   }
   agentSync?: {

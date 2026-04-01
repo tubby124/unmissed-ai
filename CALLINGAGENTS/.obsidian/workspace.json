@@ -11,10 +11,14 @@
             "id": "c955854385329990",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "Tracker/D293.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "D293"
             }
           },
           {
@@ -66,7 +70,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:#onboarding",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -87,7 +91,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -195,32 +200,32 @@
   },
   "active": "c955854385329990",
   "lastOpenFiles": [
-    "Product/Working Agent Patterns.md",
-    "Decisions/Prompt Architecture Refactor Plan.md",
-    "Tracker/D338.md",
-    "Tracker/D337.md",
+    "Architecture/Phase7-Fixes-Session-2026-04-01.md",
+    "Tracker/D360.md",
+    "Tracker/D359.md",
+    "Tracker/D358.md",
+    "Tracker/D357.md",
+    "Tracker/D356.md",
+    "Tracker/D355.md",
+    "Tracker/D354.md",
+    "Tracker/D353.md",
+    "Tracker/D352.md",
+    "Architecture/Red-Swan-Pizza-Test-Call-Review.md",
+    "Tracker/D351.md",
+    "Tracker/D350.md",
+    "Tracker/D349.md",
     "Tracker/D336.md",
-    "Tracker/D335.md",
-    "Tracker/D334.md",
-    "Decisions/CRM-Contact-Intelligence-Architecture.md",
-    "Architecture/Phase7-CRM-Contacts-Calendar.md",
-    "Decisions/Dashboard-Tab-Naming.md",
-    "Tracker/D324.md",
-    "Architecture/Phase7-75-Second-Agent.md",
-    "Tracker/D326.md",
-    "Decisions/Plan-Equals-Mode.md",
-    "Tracker/D325.md",
-    "Tracker/D323.md",
-    "Architecture/Phase7-Onboarding-Audit.md",
-    "Tracker/D289.md",
-    "Product/Business Pain Map.md",
-    "Tracker/D322.md",
-    "Tracker/D321.md",
-    "Tracker/D320.md",
-    "Tracker/D319.md",
-    "Tracker/D318.md",
-    "Tracker/D317.md",
-    "Tracker/D316.md",
+    "Tracker/D348.md",
+    "Tracker/D347.md",
+    "Architecture/Onboarding-Live-Test-2026-04-01.md",
+    "Tracker/D346.md",
+    "Tracker/D345.md",
+    "Tracker/D344.md",
+    "Tracker/D343.md",
+    "Tracker/D342.md",
+    "Tracker/D341.md",
+    "Tracker/D340.md",
+    "Tracker/D339.md",
     "Untitled 2.canvas",
     "Untitled 1.canvas",
     "Untitled.canvas",

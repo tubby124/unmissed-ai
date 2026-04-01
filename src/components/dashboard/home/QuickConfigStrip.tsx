@@ -169,12 +169,23 @@ export default function QuickConfigStrip({
 
   // Call routing
   const NICHE_PH: Record<string, string[]> = {
-    auto_glass: ['Windshield replacement quote', 'Chip repair — same day', 'Insurance claim help'],
-    plumbing: ['Emergency leak', 'Drain cleaning quote', 'Water heater install'],
-    dental: ['New patient booking', 'Toothache / emergency', 'Insurance question'],
-    real_estate: ['Buy a home', 'Sell my home', 'Rental inquiry'],
+    auto_glass:          ['Windshield replacement quote', 'Chip repair — same day', 'Insurance claim help'],
+    hvac:                ['AC not working', 'Furnace tune-up booking', 'Get a quote'],
+    plumbing:            ['Emergency leak', 'Drain cleaning quote', 'Water heater install'],
+    dental:              ['New patient booking', 'Toothache / emergency', 'Insurance question'],
+    legal:               ['Free consultation', 'Case update check-in', 'New matter intake'],
+    salon:               ['Book appointment', 'Pricing / services', 'Cancel or reschedule'],
+    real_estate:         ['Buy a home', 'Sell my home', 'Rental inquiry'],
     property_management: ['Maintenance request', 'Pay rent / question', 'Lease inquiry'],
-    other: ['Main reason people call', 'Second common call type', 'Third call type'],
+    restaurant:          ['Reserve a table or place an order', 'Menu / hours / location', 'Catering or large order'],
+    print_shop:          ['Get a printing quote', 'Check order status', 'Rush job request'],
+    barbershop:          ['Book a haircut', 'Walk-in availability', 'Pricing / services'],
+    mechanic_shop:       ['Car repair or diagnostic', 'Oil change / maintenance', 'Get a quote'],
+    pest_control:        ['Pest problem — need service', 'Get an inspection quote', 'Follow-up on treatment'],
+    electrician:         ['Electrical issue or repair', 'New installation quote', 'Inspection or panel upgrade'],
+    locksmith:           ['Locked out — need help now', 'Lock replacement or rekey', 'Security upgrade quote'],
+    voicemail:           ['Leave a message', 'Pricing question', 'Callback request'],
+    other:               ['e.g. Get a quote or book service', 'e.g. Check on existing order', 'e.g. Hours, location, or general info'],
   }
   const routingPh = NICHE_PH[niche ?? ''] ?? NICHE_PH.other
   const [routingReasons, setRoutingReasons] = useState<string[]>(

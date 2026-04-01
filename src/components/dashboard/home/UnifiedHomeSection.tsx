@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
@@ -16,8 +16,7 @@ import KnowledgeInlineTile from './KnowledgeInlineTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
 import QuickConfigStrip from './QuickConfigStrip'
 import AgentReadinessRow from './AgentReadinessRow'
-import ShareNumberCard from './ShareNumberCard'
-import SoftTestGateCard from './SoftTestGateCard'
+// ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import VoicePickerDropdown from './VoicePickerDropdown'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
@@ -241,32 +240,136 @@ export default function UnifiedHomeSection({
         return status === filter
       })
 
+  // ── Build action nudge items for the compact grid ─────────────
+  const nudgeItems: { key: string; icon: React.ReactNode; label: string; sub?: string; cta: string; color: string; bg: string; border: string; href?: string; onClick?: () => void; dismiss?: () => void }[] = []
+
+  // D167 — Trial upgrade CTA
+  if (isTrial && !onboarding.hasPhoneNumber && (typeof daysRemaining === 'undefined' || daysRemaining > 3)) {
+    nudgeItems.push({
+      key: 'trial-upgrade',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+      label: 'Agent ready',
+      sub: 'Get your phone number',
+      cta: 'Upgrade',
+      color: 'var(--color-primary)',
+      bg: 'rgba(99,102,241,0.05)',
+      border: 'rgba(99,102,241,0.2)',
+      onClick: () => openUpgradeModal('trial_upgrade_card', data.clientId, daysRemaining, data.selectedPlan),
+    })
+  }
+
+  // D120 — Calendar connect
+  if (showCalendarConnect) {
+    nudgeItems.push({
+      key: 'calendar-connect',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(245,158,11)' }}><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+      label: 'Calendar booking',
+      sub: 'Connect Google Calendar',
+      cta: 'Connect',
+      color: 'rgb(245,158,11)',
+      bg: 'rgba(245,158,11,0.06)',
+      border: 'rgba(245,158,11,0.2)',
+      href: '/dashboard/settings?tab=general#booking',
+    })
+  }
+
+  // Next best action
+  if (nextAction) {
+    nudgeItems.push({
+      key: 'next-action',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+      label: nextAction.text,
+      cta: nextAction.cta,
+      color: 'var(--color-primary)',
+      bg: 'rgba(99,102,241,0.05)',
+      border: 'rgba(99,102,241,0.12)',
+      href: nextAction.onUpgrade ? undefined : (nextAction.href ?? undefined),
+      onClick: nextAction.onUpgrade ? () => openUpgradeModal('next_action_strip', data.clientId, daysRemaining, data.selectedPlan) : undefined,
+    })
+  }
+
+  // HOT leads
+  if (!hotDismissed && data.stats.hotLeads > 0) {
+    nudgeItems.push({
+      key: 'hot-leads',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)' }}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg>,
+      label: `${data.stats.hotLeads} HOT lead${data.stats.hotLeads !== 1 ? 's' : ''}`,
+      sub: 'This month',
+      cta: 'View',
+      color: 'rgb(239,68,68)',
+      bg: 'rgba(239,68,68,0.05)',
+      border: 'rgba(239,68,68,0.2)',
+      href: '/dashboard/calls',
+      dismiss: () => setHotDismissed(true),
+    })
+  }
+
+  // D143 — Soft test gate
+  if (onboarding.hasAgent && testCallCount === 0) {
+    nudgeItems.push({
+      key: 'test-gate',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="2"/><path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+      label: 'Test your agent',
+      sub: 'Hear how it sounds',
+      cta: 'Test',
+      color: 'var(--color-primary)',
+      bg: 'rgba(99,102,241,0.05)',
+      border: 'rgba(99,102,241,0.12)',
+      onClick: scrollToTestCall,
+    })
+  }
+
+  // D168 — First call milestone
+  if (showFirstCallBanner) {
+    nudgeItems.push({
+      key: 'first-call',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(52,211,153)' }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+      label: 'First call received!',
+      sub: 'Check how it went',
+      cta: 'View',
+      color: 'rgb(52,211,153)',
+      bg: 'rgba(52,211,153,0.06)',
+      border: 'rgba(52,211,153,0.25)',
+      href: '/dashboard/calls',
+      dismiss: () => setFirstCallDismissed(true),
+    })
+  }
+
+  // D130 — Share number (only if no ShareNumberCard component needed)
+  if (showShareNumber && data.twilioNumber) {
+    nudgeItems.push({
+      key: 'share-number',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" strokeWidth="2"/></svg>,
+      label: 'Share your number',
+      sub: formatPhone(data.twilioNumber),
+      cta: 'Share',
+      color: 'var(--color-primary)',
+      bg: 'rgba(99,102,241,0.05)',
+      border: 'rgba(99,102,241,0.12)',
+      href: '/dashboard/settings?tab=general#forwarding',
+    })
+  }
+
+  // D172 — Forwarding confirmed
+  if (!isTrial && !!data.twilioNumber && liveTotalCalls > 0 && liveTotalCalls < 10) {
+    nudgeItems.push({
+      key: 'forwarding-ok',
+      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(52,211,153)' }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+      label: 'Forwarding active',
+      sub: 'Calls reaching your agent',
+      cta: 'Calls',
+      color: 'rgb(52,211,153)',
+      bg: 'rgba(52,211,153,0.06)',
+      border: 'rgba(52,211,153,0.25)',
+      href: '/dashboard/calls',
+    })
+  }
+
   return (
     <>
       {/* ════════════════════════════════════════════════════════════
-          BANNERS — conditional alerts at the top
+          LAYER 1 — Inline toast alerts (slim, critical)
           ════════════════════════════════════════════════════════════ */}
-
-      {/* D168 — First call milestone banner */}
-      {showFirstCallBanner && (
-        <div className="flex items-start gap-3 rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-emerald-400">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-emerald-200">First real call received!</p>
-            <p className="text-xs text-emerald-400 mt-0.5">Your agent handled its first live call. Check your calls page to see how it went.</p>
-          </div>
-          <button
-            onClick={() => setFirstCallDismissed(true)}
-            className="text-emerald-500 hover:text-emerald-300 text-lg leading-none mt-0.5 shrink-0 cursor-pointer transition-colors duration-200"
-            aria-label="Dismiss"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-      )}
 
       {/* Trial countdown pill */}
       {isTrial && (
@@ -282,93 +385,158 @@ export default function UnifiedHomeSection({
         </div>
       )}
 
-      {/* D169 — Trial expiry warning */}
-      {isTrial && typeof daysRemaining === 'number' && daysRemaining <= 3 && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)', flexShrink: 0 }}>
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <p className="text-[12px] flex-1 leading-snug" style={{ color: 'rgb(239,68,68)' }}>
-            {daysRemaining === 0
-              ? 'Your trial expires today — upgrade now to keep your agent live'
-              : `Your trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — don\u2019t lose your agent`}
-          </p>
-          <button
-            onClick={() => openUpgradeModal('trial_expiry_banner', data.clientId, daysRemaining, data.selectedPlan)}
-            className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0 cursor-pointer"
-            style={{ color: 'rgb(239,68,68)' }}
-          >
-            Upgrade
-          </button>
-        </div>
-      )}
+      {/* D169 — Trial expiry + D218 — Minutes warning + Sync error: slim inline toasts */}
+      {(() => {
+        const toasts: { key: string; text: string; cta: string; color: string; bg: string; border: string; onClick?: () => void; href?: string; dismiss?: () => void }[] = []
 
-      {/* D218 — Minutes usage warning banner */}
-      {!isTrial && data.usage.totalAvailable > 0 && (() => {
-        const pct = (data.usage.minutesUsed / data.usage.totalAvailable) * 100
-        if (pct < 75) return null
-        const isUrgent = pct >= 90
+        // Trial expiry
+        if (isTrial && typeof daysRemaining === 'number' && daysRemaining <= 3) {
+          toasts.push({
+            key: 'trial-expiry',
+            text: daysRemaining === 0 ? 'Trial expires today' : `Trial expires in ${daysRemaining}d`,
+            cta: 'Upgrade',
+            color: 'rgb(239,68,68)',
+            bg: 'rgba(239,68,68,0.06)',
+            border: 'rgba(239,68,68,0.2)',
+            onClick: () => openUpgradeModal('trial_expiry_banner', data.clientId, daysRemaining, data.selectedPlan),
+          })
+        }
+
+        // Minutes usage
+        if (!isTrial && data.usage.totalAvailable > 0) {
+          const pct = (data.usage.minutesUsed / data.usage.totalAvailable) * 100
+          if (pct >= 75) {
+            const isUrgent = pct >= 90
+            toasts.push({
+              key: 'minutes-warn',
+              text: `${Math.round(pct)}% minutes used`,
+              cta: 'Buy more',
+              color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)',
+              bg: isUrgent ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+              border: isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+              onClick: () => openUpgradeModal('minutes_warning_banner', data.clientId, undefined, data.selectedPlan),
+            })
+          }
+        }
+
+        // Sync error
+        if (!syncDismissed && data.agentSync?.last_agent_sync_status === 'error') {
+          toasts.push({
+            key: 'sync-error',
+            text: 'Agent sync failed',
+            cta: 'Fix',
+            color: 'rgb(239,68,68)',
+            bg: 'rgba(239,68,68,0.06)',
+            border: 'rgba(239,68,68,0.2)',
+            href: '/dashboard/settings?tab=general',
+            dismiss: () => setSyncDismissed(true),
+          })
+        }
+
+        if (toasts.length === 0) return null
+
         return (
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{
-              backgroundColor: isUrgent ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
-              border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)', flexShrink: 0 }}>
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            <p className="text-[12px] flex-1 leading-snug" style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)' }}>
-              {isUrgent
-                ? `You've used ${Math.round(pct)}% of your ${data.usage.totalAvailable} monthly minutes — upgrade or buy more to stay live`
-                : `You've used ${Math.round(pct)}% of your ${data.usage.totalAvailable} monthly minutes`}
-            </p>
-            <button
-              onClick={() => openUpgradeModal('minutes_warning_banner', data.clientId, undefined, data.selectedPlan)}
-              className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0 cursor-pointer"
-              style={{ color: isUrgent ? 'rgb(239,68,68)' : 'rgb(245,158,11)' }}
-            >
-              Buy minutes
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {toasts.map(t => (
+              <div
+                key={t.key}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-200"
+                style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.color }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span>{t.text}</span>
+                {t.onClick ? (
+                  <button onClick={t.onClick} className="font-semibold hover:opacity-75 transition-opacity cursor-pointer ml-1">{t.cta}</button>
+                ) : t.href ? (
+                  <Link href={t.href} className="font-semibold hover:opacity-75 transition-opacity cursor-pointer ml-1">{t.cta}</Link>
+                ) : null}
+                {t.dismiss && (
+                  <button onClick={t.dismiss} aria-label="Dismiss" className="hover:opacity-60 transition-opacity cursor-pointer ml-0.5">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )
       })()}
 
-      {/* D167 — Trial upgrade CTA card */}
-      {isTrial && !onboarding.hasPhoneNumber && (typeof daysRemaining === 'undefined' || daysRemaining > 3) && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)' }}
-        >
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold t1">Your agent is configured and ready</p>
-            <p className="text-[11px] t3 leading-snug">Get your own phone number so real callers can reach your agent.</p>
-          </div>
-          <button
-            onClick={() => openUpgradeModal('trial_upgrade_card', data.clientId, daysRemaining, data.selectedPlan)}
-            className="shrink-0 text-[12px] font-semibold hover:opacity-75 transition-opacity whitespace-nowrap cursor-pointer"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            Get my number
-          </button>
+      {/* ════════════════════════════════════════════════════════════
+          LAYER 2 — Compact action grid (2-col mobile, 4-col desktop)
+          ════════════════════════════════════════════════════════════ */}
+
+      {nudgeItems.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {nudgeItems.map(n => {
+            const inner = (
+              <>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: `color-mix(in srgb, ${n.color} 12%, transparent)` }}>
+                    {n.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold t1 truncate leading-tight">{n.label}</p>
+                    {n.sub && <p className="text-[10px] t3 truncate leading-tight">{n.sub}</p>}
+                  </div>
+                </div>
+                <span className="text-[10px] font-semibold mt-1.5 self-end" style={{ color: n.color }}>{n.cta}</span>
+              </>
+            )
+
+            const cardClass = "flex flex-col justify-between rounded-xl px-3 py-2.5 transition-all duration-200 hover:brightness-110 cursor-pointer"
+            const cardStyle = { backgroundColor: n.bg, border: `1px solid ${n.border}` }
+
+            return (
+              <div key={n.key} className="relative group">
+                {n.href ? (
+                  <Link href={n.href} className={cardClass} style={cardStyle}>{inner}</Link>
+                ) : n.onClick ? (
+                  <button onClick={n.onClick} className={`${cardClass} text-left w-full`} style={cardStyle}>{inner}</button>
+                ) : (
+                  <div className={cardClass} style={cardStyle}>{inner}</div>
+                )}
+                {n.dismiss && (
+                  <button
+                    onClick={n.dismiss}
+                    aria-label="Dismiss"
+                    className="absolute top-1.5 right-1.5 z-10 w-4 h-4 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
+                    style={{ color: n.color, backgroundColor: `color-mix(in srgb, ${n.color} 15%, transparent)` }}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
+
+      {/* D250 — Weekly ROI (compact inline strip — not a full card) */}
+      {data.weeklyStats && data.weeklyStats.callsAnswered > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)' }}>
+          <span className="text-[10px] font-semibold t3 uppercase tracking-wider">This week</span>
+          <span className="text-[11px] t1 font-medium">{data.weeklyStats.callsAnswered} calls</span>
+          {data.weeklyStats.hotLeadsCaptured > 0 && (
+            <Link href="/dashboard/calls?status=HOT" className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 cursor-pointer">
+              {data.weeklyStats.hotLeadsCaptured} HOT
+            </Link>
+          )}
+          {data.weeklyStats.hoursSaved > 0 && (
+            <span className="text-[11px] t2">~{data.weeklyStats.hoursSaved}h saved</span>
+          )}
+          {data.weeklyStats.monthCallsAnswered > data.weeklyStats.callsAnswered && (
+            <span className="text-[10px] t3">Month: {data.weeklyStats.monthCallsAnswered} calls</span>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          LAYER 3 — Interactive cards (full-width, need inputs)
+          ════════════════════════════════════════════════════════════ */}
 
       {/* Paid awaiting — activation setup tile */}
       {isPaidAwaiting && data.activation && (
@@ -379,214 +547,7 @@ export default function UnifiedHomeSection({
         />
       )}
 
-      {/* Sync error banner */}
-      {!syncDismissed && data.agentSync?.last_agent_sync_status === 'error' && (
-        <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)', flexShrink: 0 }}>
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <p className="text-[12px] flex-1" style={{ color: 'rgb(239,68,68)' }}>Agent sync failed — your latest settings may not be live</p>
-          <Link
-            href="/dashboard/settings?tab=general"
-            className="text-[12px] font-semibold hover:opacity-75 transition-opacity shrink-0 cursor-pointer"
-            style={{ color: 'rgb(239,68,68)' }}
-          >
-            Fix
-          </Link>
-          <button
-            onClick={() => setSyncDismissed(true)}
-            aria-label="Dismiss"
-            className="ml-1 shrink-0 hover:opacity-60 transition-opacity leading-none cursor-pointer"
-            style={{ color: 'rgb(239,68,68)', fontSize: '16px' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-      )}
-
-      {/* D120 — Calendar connect CTA: shows for any plan that supports booking */}
-      {showCalendarConnect && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(245,158,11)', flexShrink: 0 }}>
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <p className="text-[12px] flex-1 leading-snug" style={{ color: 'rgb(180,130,30)' }}>
-            Your plan includes calendar booking. Connect Google Calendar so your agent can book appointments for callers.
-          </p>
-          <Link
-            href="/dashboard/settings?tab=general#booking"
-            className="text-[12px] font-semibold whitespace-nowrap hover:opacity-75 transition-opacity shrink-0 cursor-pointer"
-            style={{ color: 'rgb(245,158,11)' }}
-          >
-            Connect Calendar
-          </Link>
-        </div>
-      )}
-
-      {/* Next best action strip */}
-      {nextAction && (
-        <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)', flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <p className="text-[12px] flex-1" style={{ color: 'var(--color-text-2)' }}>{nextAction.text}</p>
-          {nextAction.onUpgrade ? (
-            <button
-              onClick={() => openUpgradeModal('next_action_strip', data.clientId, daysRemaining, data.selectedPlan)}
-              className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {nextAction.cta}
-            </button>
-          ) : nextAction.href ? (
-            <Link
-              href={nextAction.href}
-              className="text-[12px] font-semibold cursor-pointer hover:opacity-75 transition-opacity shrink-0"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {nextAction.cta}
-            </Link>
-          ) : null}
-        </div>
-      )}
-
-      {/* HOT lead banner */}
-      {!hotDismissed && data.stats.hotLeads > 0 && (
-        <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <Link
-            href="/dashboard/calls"
-            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-75 transition-opacity cursor-pointer"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: 'rgb(239,68,68)' }}>
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
-            </svg>
-            <p className="text-[12px] flex-1 font-medium" style={{ color: 'rgb(239,68,68)' }}>
-              {data.stats.hotLeads} HOT lead{data.stats.hotLeads !== 1 ? 's' : ''} this month — view now
-            </p>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)', flexShrink: 0 }}>
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-          <button
-            onClick={() => setHotDismissed(true)}
-            aria-label="Dismiss"
-            className="shrink-0 hover:opacity-60 transition-opacity leading-none cursor-pointer"
-            style={{ color: 'rgb(239,68,68)', fontSize: '16px' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-      )}
-
-      {/* D130 — Share number card */}
-      {showShareNumber && data.twilioNumber && (
-        <ShareNumberCard twilioNumber={data.twilioNumber} />
-      )}
-
-      {/* D143 — Soft test gate nudge */}
-      {onboarding.hasAgent && testCallCount === 0 && (
-        <SoftTestGateCard onScrollToTestCall={scrollToTestCall} />
-      )}
-
-      {/* D163 — Trial "call me through your agent" */}
-      {isTrial && data.clientId && !callMeSuccess && (
-        <div
-          className="px-4 py-4 rounded-xl space-y-3"
-          style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
-        >
-          <div>
-            <p className="text-[12px] font-semibold t1">Hear your agent on a real phone call</p>
-            <p className="text-[11px] t3 leading-snug mt-0.5">We&apos;ll dial your phone and connect you — no forwarding setup needed.</p>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="tel"
-              value={callMePhone}
-              onChange={e => setCallMePhone(e.target.value)}
-              placeholder="Your phone number"
-              className="flex-1 px-3 py-2 rounded-lg text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors duration-200"
-              style={{
-                backgroundColor: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-1)',
-              }}
-              onKeyDown={e => { if (e.key === 'Enter') void handleCallMe() }}
-              disabled={callMeLoading}
-            />
-            <button
-              onClick={() => void handleCallMe()}
-              disabled={callMeLoading || !callMePhone.trim()}
-              className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white transition-opacity disabled:opacity-50 cursor-pointer"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {callMeLoading ? 'Calling...' : 'Call me'}
-            </button>
-          </div>
-          {callMeError && (
-            <p className="text-[11px]" style={{ color: 'rgb(239,68,68)' }}>{callMeError}</p>
-          )}
-        </div>
-      )}
-      {isTrial && callMeSuccess && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 text-emerald-400">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold t1">Call is on its way!</p>
-            <p className="text-[11px] t3 leading-snug">Your phone will ring in a few seconds — answer it to talk to your agent.</p>
-          </div>
-        </div>
-      )}
-
-      {/* D250 — Weekly ROI card */}
-      {data.weeklyStats && data.weeklyStats.callsAnswered > 0 && (
-        <div
-          className="rounded-xl px-4 py-3"
-          style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
-        >
-          <p className="text-[11px] font-semibold t3 uppercase tracking-wide mb-2">Your agent this week</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <span className="text-[12px] t1 font-medium">{data.weeklyStats.callsAnswered} calls answered</span>
-            {data.weeklyStats.hotLeadsCaptured > 0 && (
-              <Link href="/dashboard/calls?status=HOT" className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 cursor-pointer">
-                {data.weeklyStats.hotLeadsCaptured} HOT {data.weeklyStats.hotLeadsCaptured === 1 ? 'lead' : 'leads'}
-              </Link>
-            )}
-            {data.weeklyStats.callbacksMade > 0 && (
-              <span className="text-[12px] t2">{data.weeklyStats.callbacksMade} called back</span>
-            )}
-            {data.weeklyStats.hoursSaved > 0 && (
-              <span className="text-[12px] t2">~{data.weeklyStats.hoursSaved}h saved</span>
-            )}
-          </div>
-          {data.weeklyStats.monthCallsAnswered > data.weeklyStats.callsAnswered && (
-            <p className="text-[11px] t3 mt-1">
-              This month: {data.weeklyStats.monthCallsAnswered} calls · {data.weeklyStats.monthHotLeads} leads · ~{data.weeklyStats.monthHoursSaved}h saved
-            </p>
-          )}
-        </div>
-      )}
+      {/* D163 — "call me through your agent" — moved to right column in 3-col grid */}
 
       {/* D162 — Call forwarding guide */}
       {!isTrial && !!data.twilioNumber && data.stats.totalCalls === 0 && (
@@ -648,20 +609,6 @@ export default function UnifiedHomeSection({
               <p className="text-[11px] t3">To deactivate: landline <code className="font-mono text-[12px]">*73</code> · mobile <code className="font-mono text-[12px]">#21#</code></p>
             </div>
           )}
-        </div>
-      )}
-
-      {/* D172 — Forwarding confirmed banner */}
-      {!isTrial && !!data.twilioNumber && liveTotalCalls > 0 && liveTotalCalls < 10 && (
-        <div className="flex items-center gap-3 rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 text-emerald-400">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <div>
-            <p className="text-sm font-semibold text-emerald-200">Call forwarding is working</p>
-            <p className="text-xs text-emerald-400 mt-0.5">Your calls are reaching your agent. Check your calls page to review them.</p>
-          </div>
         </div>
       )}
 
@@ -748,8 +695,8 @@ export default function UnifiedHomeSection({
             />
           </div>
 
-          {/* Center: Test Call orb — mobile first */}
-          <div ref={testCallRef} className="order-1 md:order-2">
+          {/* Center: Test Call orb + Unanswered Questions — mobile first */}
+          <div ref={testCallRef} className="order-1 md:order-2 space-y-3">
             <TestCallCard
               clientId={data.clientId}
               isAdmin={false}
@@ -767,6 +714,8 @@ export default function UnifiedHomeSection({
                 hasWebsite: capabilities.hasWebsite,
               }}
             />
+            {/* D354 — Unanswered Questions under orb for tight feedback loop */}
+            <UnansweredQuestionsTile clientId={data.clientId} />
           </div>
 
           {/* Right: Voice + Today's Update + Stats + Trial Mode */}
@@ -778,6 +727,56 @@ export default function UnifiedHomeSection({
               agentName={data.agent.name}
               onVoiceChanged={fetchData}
             />
+
+            {/* D163 — "Hear your agent on a real phone call" */}
+            {!callMeSuccess ? (
+              <div
+                className="px-3 py-2.5 rounded-xl"
+                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              >
+                <p className="text-[11px] font-semibold t1 mb-1.5">Hear your agent on a real phone call</p>
+                <p className="text-[10px] t3 leading-snug mb-2">We&apos;ll dial your phone and connect you.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={callMePhone}
+                    onChange={e => setCallMePhone(e.target.value)}
+                    placeholder="Your phone number"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[11px] outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors duration-200"
+                    style={{
+                      backgroundColor: 'var(--color-bg)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-text-1)',
+                    }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleCallMe() }}
+                    disabled={callMeLoading}
+                  />
+                  <button
+                    onClick={() => void handleCallMe()}
+                    disabled={callMeLoading || !callMePhone.trim()}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-opacity disabled:opacity-50 cursor-pointer shrink-0"
+                    style={{ backgroundColor: 'rgb(34,197,94)' }}
+                  >
+                    {callMeLoading ? '...' : 'Call me'}
+                  </button>
+                </div>
+                {callMeError && (
+                  <p className="text-[11px] mt-1.5" style={{ color: 'rgb(239,68,68)' }}>{callMeError}</p>
+                )}
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px]"
+                style={{ backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', color: 'rgb(52,211,153)' }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="font-medium">Call is on its way! Answer your phone.</span>
+              </div>
+            )}
+
             {isTrial && (
               <TrialModeSwitcher
                 clientId={data.clientId}
@@ -998,12 +997,7 @@ export default function UnifiedHomeSection({
       <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
       </div>
 
-      {/* ════════════════════════════════════════════════════════════
-          TIER 4 — Unanswered Questions
-          ════════════════════════════════════════════════════════════ */}
-      {data.clientId && (
-        <UnansweredQuestionsTile clientId={data.clientId} />
-      )}
+      {/* TIER 4 removed — Unanswered Questions moved to center column under orb (D354) */}
 
       {/* ════════════════════════════════════════════════════════════
           TIER 5 — Plan (bottom)
