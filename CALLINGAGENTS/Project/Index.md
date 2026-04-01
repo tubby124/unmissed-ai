@@ -1,7 +1,7 @@
 ---
 type: moc
 tags: [index, project]
-updated: 2026-03-31
+updated: 2026-04-01
 cleaned: 2026-03-31
 last-tracker-cleanup: 2026-03-31
 ---
@@ -10,6 +10,15 @@ last-tracker-cleanup: 2026-03-31
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
+## Latest Session (2026-04-01)
+- **D314 DONE**: Killed first-visit `TrialActiveSection` branch — ALL users now see `UnifiedHomeSection` (full product) from first login
+- Sonar research confirmed: feature teasing > feature gating for trial conversion; full dashboard with upgrade hints beats simplified views
+- Dashboard layout refactor shipped: CONFIG-first Overview, 3-col Knowledge/Calls/Settings, orb on all 4 pages
+- QuickConfigStrip expanded to 8 pills: +Booking, +Transfer, +Routing (inline AI-generated triage)
+- Settings page: capabilities overview + orb above tab bar, Agent tab kept for all users
+- See [[Dashboard/Phase6-Wave2-Layout-Refactor]] for full details
+- See [[Tracker/D314]] for unified dashboard decision + research
+
 ## Active Clients
 - [[Clients/hasan-sharif]] — Hasan Sharif · Aisha · `f19b4ad7`
 - [[Clients/exp-realty]] — Omar Sharif · Fatema · `c9019927`
@@ -17,6 +26,7 @@ last-tracker-cleanup: 2026-03-31
 - [[Clients/urban-vibe]] — Alisha · Ashley · `5f88f03b`
 - [[Clients/manzil-isa]] — Fatima · Nour · TEST MODE
 - [[Clients/plumber-calgary-nw]] — Test client · Dave · `d863d0c5` · plumbing niche
+- [[Clients/muffin-house-cafe]] — Test client · Sofia · `8a97e54c` · restaurant niche · **Phase 6 architecture test**
 
 ## Architecture Contracts (read-first gates)
 - [[Architecture/Control Plane Mutation]] — how every settings field flows DB → Ultravox
@@ -41,7 +51,8 @@ last-tracker-cleanup: 2026-03-31
 - [[Features/Notifications]] — Telegram + email alerts, notification_logs
 
 ## Product & Dashboard
-- [[Dashboard/Dashboard Architecture]] — all pages, home gaps, calls, knowledge, trial/paid split
+- [[Dashboard/Dashboard Architecture]] — all pages, layout order, QuickConfigStrip pills, TestCallCard placement
+- [[Dashboard/Phase6-Wave2-Layout-Refactor]] — 2026-03-31: 3-col layouts, CONFIG-first, orb on every page, booking+transfer pills
 - [[Dashboard/Settings Cards]] — 19 cards, what saves where, Ultravox sync table
 - [[Product/Onboarding Flow]] — 7 steps, removed step 4, mode-first redesign
 - [[Product/Intent Classification]] — root problem (info bots), 5-layer fix, D240-D245
@@ -79,7 +90,7 @@ See [[Decisions/Prompt Sandwich Ownership Model]] for full philosophy.
 | 3 — Shrink+Clean | **DONE ✅** | Slot composition live, pgvector-first KB, conditional pricing, 406 tests |
 | 4 — Gap Wiring | **DONE ✅** | Service sync (D260), owner name (D281), business name (D282), 448 tests |
 | 5 — Agent Knowledge UX | **DONE ✅** | Variable registry (39 vars), slot regenerator, service KB reseed, 456 tests |
-| 6 — North Star | NOT STARTED | Full recomposePrompt(), Agent Brain, no raw editor |
+| 6 — North Star | **Wave 1 DONE ✅** | recomposePrompt, variable API, preview, booking regen. Wave 2 UI in progress |
 
 ### Key D-items for this vision
 - [[Tracker/D285]] — Prompt sandwich framework ✅ DONE
@@ -109,20 +120,26 @@ See [[Decisions/Prompt Sandwich Ownership Model]] for full philosophy.
 
 ## Open Tracker
 
-### Phase 6 — North Star (NEXT)
-**Wave 1 — Backend** (no UI skill needed):
-1. [[Tracker/D302]] — ✅ Preserve niche intake fields (DONE 2026-03-31) — 461 tests pass
-2. [[Tracker/D280]] — `recomposePrompt()` (pure lib, calls all 19 slots) 🔴 CRITICAL
-3. [[Tracker/D303]] — Variable edit API (`PATCH /api/dashboard/variables`)
-4. [[Tracker/D305]] — Dry-run/preview mode in regenerator (returns diff, no save)
+### Phase 6 — North Star (Wave 1 DONE, Wave 2 IN PROGRESS)
+**Wave 1 — Backend** — ALL DONE ✅:
+1. [[Tracker/D302]] — ✅ Preserve niche intake fields
+2. [[Tracker/D280]] — ✅ `recomposePrompt()`
+3. [[Tracker/D303]] — ✅ Variable edit API
+4. [[Tracker/D305]] — ✅ Dry-run/preview mode
+5. [[Tracker/D276]] — ✅ Booking toggle regeneration
 
 **Wave 2 — UI Design** (all must pass `/ui-ux-pro-max` before done):
-- [[Tracker/D278]] — Agent Brain dashboard page (flagship UX)
+- [[Tracker/D278]] — Overview page 5-tier layout ✅ DONE
+- [[Tracker/D309]] — Knowledge page redesign ✅ DONE
+- [[Tracker/D310]] — Knowledge Health Score ✅ DONE
+- [[Tracker/D311]] — GBP provenance fix + Overview knowledge tile merge ✅ DONE (2026-04-01)
+- [[Tracker/D312]] — Settings page bento grid layout ✅ DONE (2026-04-01)
+- [[Tracker/D313]] — Telegram bot link click-through ✅ DONE (2026-04-01)
 - [[Tracker/D283]] — PromptVariablesCard (D283b — read-only variable display)
 - [[Tracker/D305]] — Diff preview UI (current vs proposed) — frontend
 - [[Tracker/D288]] — Capability preview card
 - [[Tracker/D290]] — "What Your Agent Knows" surface
-- [[Tracker/D286]] — Dashboard settings reorganization
+- [[Tracker/D286]] — Dashboard settings reorganization (bento grid done, card content reorganization remaining)
 
 Also Phase 6:
 - [[Tracker/D276]] — Calendar/booking auto-updates call flow
@@ -131,14 +148,46 @@ Also Phase 6:
 - [[Tracker/D301]] — 29 locked variables post-onboarding
 - [[Tracker/D304]] — Old-client prompt migration (add section markers to 4 live clients)
 
+### Onboarding UX Overhaul (2026-04-01 audit)
+> Full audit: [[Product/Onboarding Audit 2026-04-01]]
+- [[Tracker/D315]] — Niche badge on confirmed business card (HIGH)
+- [[Tracker/D316]] — Voice preview cards are fake controls (HIGH)
+- [[Tracker/D317]] — Placeholder examples hardcoded to auto_glass (HIGH)
+- [[Tracker/D318]] — Step 3 bloat — trim to mode selection only (CRITICAL)
+- [[Tracker/D319]] — Simplify voice picker to Male/Female first (MEDIUM)
+- [[Tracker/D320]] — urgencyWords not stored independently (MEDIUM)
+- [[Tracker/D321]] — Step 3 and Step 5 duplicate FAQ collection (HIGH)
+- [[Tracker/D322]] — Loading orb during GBP lookup (MEDIUM)
+- [[Tracker/D323]] — **Radical onboarding simplification — 3-step flow** (CRITICAL)
+- [[Tracker/D324]] — **Plan = Mode — eliminate separate mode selection** (CRITICAL)
+- [[Tracker/D325]] — Onboarding visual redesign (HIGH)
+- Decision: [[Decisions/Plan-Equals-Mode]]
+
 ### Phase 7 — "2-Minute Agent" (after Phase 6)
-> Onboarding leverages the compose pipeline. No waiting — unlocks immediately.
-- [[Tracker/D291]] — GBP auto-import (CRITICAL — flagship)
-- [[Tracker/D293]] — Paste URL → agent ready
+> Onboarding leverages the compose pipeline. Sonar-validated 2026-04-01.
+> **Audit + plan:** [[Architecture/Phase7-Onboarding-Audit]]
+> **Target:** 3 steps (Find Business → Meet Agent → Account + Go Live)
+
+**Bugs to fix first:**
+- [[Tracker/D315]] — Fix hardcoded auto_glass FAQ examples (BUG — all niches see windshield text)
+- [[Tracker/D316]] — Fix hardcoded auto_glass caller reason examples (BUG — same)
+- [[Tracker/D317]] — Verify personality preset round-trip (onboarding → DB → prompt → dashboard)
+
+**Core Phase 7:**
+- [[Tracker/D291]] — GBP auto-import via Google Places API (NOT Apify — no credits). Auto-detect niche from categories.
+- [[Tracker/D293]] — Paste URL → agent ready (alt path to GBP)
+- [[Tracker/D292]] — Guided call forwarding wizard (post-activation, on dashboard)
+- D318 — Simplify voice selection: male/female toggle + "More voices" expand
+- D319 — Remove personality preset from onboarding (use niche default)
+- D320 — Remove FAQ/services/caller-reasons/urgency/pricing from onboarding (defer to dashboard)
+- D321 — Collapse onboarding to 3 steps
+- D322 — Niche badge on confirmed business card
+- D323 — Orb loading state for GBP lookup + provision steps
+
+**Deferred (still valid):**
 - [[Tracker/D273]] — Pre-populate from best source
 - [[Tracker/D255]] — Guided context data entry
 - [[Tracker/D294]] — Post-activation summary
-- [[Tracker/D292]] — Guided call forwarding wizard
 - [[Tracker/D242]] — Haiku intent inference for niche='other'
 - [[Tracker/D185]] — Mode-first onboarding
 - [[Tracker/D304]] — Old-client prompt migration
@@ -174,6 +223,8 @@ Also Phase 6:
 Phase 1-3: D235 D285 D274 D265 D268 D269 D272 D296 — all ✅
 Phase 4: D260 D281 D282 — all ✅
 Phase 5: D283 (backend) D300 D302 — all ✅
+Phase 6 Wave 1: D280 D303 D305 D276 — all ✅
+Phase 6 Wave 2: D278 D309 D310 D311 D312 D313 — all ✅
 Root Fix wave: D233 D241 D245 D247 D249 D251 D252 D254 D257 D275 — all ✅
 Removed: ~~D240~~ · ~~D277~~ · ~~D228~~
 

@@ -42,18 +42,22 @@
 **Wave 2 — UI Design Wave** (run through `/ui-ux-pro-max`):
 
 *Overview page (5-tier layout — Sonar-validated 2026-03-31):*
-- **D278** — Overview page redesign: 5-tier layout (hero 3-col → identity → call log → unanswered → quick config 2x2). Decision: `CALLINGAGENTS/Decisions/Overview-5-Tier-Layout.md`
+- ~~**D278**~~ — ✅ DONE. Overview page redesign: CONFIG-first layout, 3-col hero, call log + bookings 2-col, 8-pill QuickConfigStrip (Telegram/Email/IVR/Voicemail/Auto-text/Booking/Transfer/Routing)
 - **D308** — Tab stays "Overview" (not "Agent Brain"). Decision: `CALLINGAGENTS/Decisions/Dashboard-Tab-Naming.md`
 - **D306** — Empty states for every card (trial vs paid same layout, data replaces empty states)
-- **D266** — Rich call log on Overview (same component as Calls & Leads, condensed filters)
-- **D288** — Capability preview (moved from hero left-col to readiness pills summary)
-- **D290** — "What Your Agent Knows" condensed to KB source list on Overview (full version stays on Knowledge page)
+- **D266** — Rich call log on Overview (call log + bookings now side-by-side in 2-col grid)
+- **D288** — Capability preview (CapabilitiesCard now on Settings overview section; partial)
+- **D290** — "What Your Agent Knows" condensed to KB source list on Overview (KnowledgeInlineTile; partial)
 
 *Knowledge page (full redesign — Sonar-validated 2026-03-31):*
-- **D309** — Knowledge page redesign: health score, drawer pattern, inline edit/delete, bulk AI answers. Spec: `CALLINGAGENTS/Architecture/Phase6-Wave2-Knowledge-Page.md`
-- **D310** — Knowledge Health Score: weighted formula (completeness 35%, coverage 25%, freshness 20%, sources 15%, resolution 5%) with niche-specific targets
+- ~~**D309**~~ — ✅ DONE. Knowledge page redesign: 3-col layout, TestCallCard orb in center, health score + drawer pattern + inline edit/delete + bulk AI answers
+- ~~**D310**~~ — ✅ DONE. Knowledge Health Score: weighted formula with niche-specific targets
 
-*Settings + prompt (unchanged scope):*
+*Calls & Leads page (2026-04-01):*
+- ✅ DONE. 3-col grid: AgentConfigCard (2-col) + TestCallCard orb (1-col). Full-width layout.
+
+*Settings page (2026-04-01):*
+- ✅ DONE. Non-admin overview section: Capabilities (2-col) + Orb + Prompt Editor + Notifications (1-col) above tab bar. Agent tab kept for all users.
 - **D283b** — PromptVariablesCard (read-only variable display)
 - **D305 frontend** — Diff preview UI (current vs proposed)
 - **D307** — Recompose warning UX (confirmation + diff before nuke — ships WITH recompose button)
@@ -69,6 +73,20 @@
 
 **Also Phase 6:** D287 (niche-adaptive onboarding), D289 (services chips), D301 (locked vars)
 **Deferred to post-Phase 6:** D304 (old-client migration) — do AFTER Phase 6 proven on new clients.
+
+### Onboarding UX Overhaul (2026-04-01 audit)
+> Full audit: `CALLINGAGENTS/Product/Onboarding Audit 2026-04-01.md`
+
+| # | Summary | Priority | Status |
+|---|---------|----------|--------|
+| D315 | Niche badge on confirmed GBP card | HIGH | NOT STARTED |
+| D316 | Voice preview cards are fake controls | HIGH | NOT STARTED |
+| D317 | Placeholder examples hardcoded to auto_glass | HIGH | NOT STARTED |
+| D318 | Step 3 bloat — trim to mode selection only | CRITICAL | NOT STARTED |
+| D319 | Simplify voice picker to Male/Female first | MEDIUM | NOT STARTED |
+| D320 | urgencyWords not stored independently | MEDIUM | NOT STARTED |
+| D321 | Step 3 + Step 5 duplicate FAQ collection | HIGH | NOT STARTED |
+| D322 | Loading orb during GBP lookup | MEDIUM | NOT STARTED |
 
 **Total D-items closed:** 30 of ~40 (D235 ✅ D285 ✅ D274 ✅ D265 ✅ D269 ✅ D272 ✅ D268 ✅ D296 ✅ D260 ✅ D281 ✅ D282 ✅ D283a ✅ D283c ✅ D300 ✅ D302 ✅ D280 ✅ D303 ✅ D305-be ✅ D276 ✅ D233 ✅ D241 ✅ D245 ✅ D247 ✅ D249 ✅ D251 ✅ D252 ✅ D254 ✅ D257 ✅ D275 ✅ + D283 partial-done + removed: D240 D277 D228)
 **Completed phases archived:** `docs/architecture/prompt-architecture-completed-phases.md`
