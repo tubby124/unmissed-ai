@@ -20,6 +20,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { type SlotId, replacePromptSection, wrapSection } from './prompt-sections'
 import {
   buildSlotContext,
+  buildPromptFromSlots,
   buildSafetyPreamble,
   buildForbiddenActions,
   buildVoiceNaturalness,
@@ -93,7 +94,7 @@ const SLOT_FUNCTIONS: Record<SlotId, SlotFn> = {
  * Fields that only exist during onboarding (niche_* intake fields) are stored
  * in niche_custom_variables as overrides.
  */
-function clientRowToIntake(
+export function clientRowToIntake(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: Record<string, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,6 +162,18 @@ function clientRowToIntake(
     niche_custom_variables: client.niche_custom_variables,
   }
 
+  // D302: Spread niche intake fields from niche_custom_variables back to top-level keys
+  // so buildSlotContext() can read them directly (e.g., intake.niche_emergency, intake.niche_clientType).
+  // These were preserved during onboarding by saving all niche_* intakePayload fields.
+  const ncv = client.niche_custom_variables as Record<string, unknown> | null
+  if (ncv && typeof ncv === 'object') {
+    for (const [k, v] of Object.entries(ncv)) {
+      if (k.startsWith('niche_') && !(k in intake)) {
+        intake[k] = v
+      }
+    }
+  }
+
   // Service catalog
   if (services.length > 0) {
     const catalog = rowsToCatalogItems(services)
@@ -168,6 +181,137 @@ function clientRowToIntake(
   }
 
   return intake
+}
+
+// ── Shared DB reader (used by regenerateSlot, regenerateSlots, recomposePrompt) ─
+
+interface ClientContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: Record<string, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  services: any[]
+  knowledgeChunkCount: number
+  ctx: SlotContext
+  intake: Record<string, unknown>
+}
+
+async function loadClientContext(clientId: string): Promise<
+  { ok: true; data: ClientContext } | { ok: false; error: string }
+> {
+  const svc = createServiceClient()
+
+  const { data: client, error: clientErr } = await svc
+    .from('clients')
+    .select('*')
+    .eq('id', clientId)
+    .single()
+
+  if (clientErr || !client) {
+    return { ok: false, error: `Client not found: ${clientId}` }
+  }
+
+  if (!client.system_prompt) {
+    return { ok: false, error: 'No system_prompt on client' }
+  }
+
+  const { data: services } = await svc
+    .from('client_services')
+    .select('name, description, category, duration_mins, price, booking_notes')
+    .eq('client_id', clientId)
+    .eq('active', true)
+    .order('sort_order')
+    .order('created_at')
+
+  let knowledgeChunkCount = 0
+  if (client.knowledge_backend === 'pgvector') {
+    const { count } = await svc
+      .from('knowledge_chunks')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'approved')
+    knowledgeChunkCount = count ?? 0
+  }
+
+  const intake = clientRowToIntake(client, services ?? [], knowledgeChunkCount)
+  const ctx = buildSlotContext(intake)
+
+  return {
+    ok: true,
+    data: { client, services: services ?? [], knowledgeChunkCount, ctx, intake },
+  }
+}
+
+/** Build the agentFlags object needed for updateAgent() and buildAgentTools(). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildAgentFlagsFromClient(client: Record<string, any>, prompt: string, knowledgeChunkCount: number): Parameters<typeof updateAgent>[1] {
+  return {
+    systemPrompt: prompt,
+    ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+    booking_enabled: client.booking_enabled ?? false,
+    slug: client.slug,
+    forwarding_number: (client.forwarding_number as string | null) || undefined,
+    sms_enabled: client.sms_enabled ?? false,
+    twilio_number: (client.twilio_number as string | null) || undefined,
+    knowledge_backend: client.knowledge_backend,
+    knowledge_chunk_count: knowledgeChunkCount,
+    transfer_conditions: client.transfer_conditions,
+    selectedPlan: (client.selected_plan as string | null) || undefined,
+    subscriptionStatus: (client.subscription_status as string | null) || undefined,
+  }
+}
+
+/** Save prompt to DB, insert version, sync to Ultravox. */
+async function savePromptAndSync(
+  clientId: string,
+  newPrompt: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: Record<string, any>,
+  knowledgeChunkCount: number,
+  changeDescription: string,
+  triggeredByUserId: string | null,
+): Promise<{ error?: string }> {
+  const svc = createServiceClient()
+
+  const { error: updateErr } = await svc
+    .from('clients')
+    .update({
+      system_prompt: newPrompt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', clientId)
+
+  if (updateErr) {
+    return { error: `DB update failed: ${updateErr.message}` }
+  }
+
+  // Version tracking
+  try {
+    await insertPromptVersion(svc, {
+      clientId,
+      content: newPrompt,
+      changeDescription,
+      triggeredByUserId,
+      triggeredByRole: triggeredByUserId ? 'owner' : 'system',
+      prevCharCount: (client.system_prompt as string).length,
+    })
+  } catch (err) {
+    console.warn(`[slot-regen] Prompt version insert failed: ${err}`)
+  }
+
+  // Ultravox sync
+  if (client.ultravox_agent_id) {
+    try {
+      const agentFlags = buildAgentFlagsFromClient(client, newPrompt, knowledgeChunkCount)
+      await updateAgent(client.ultravox_agent_id, agentFlags)
+      const syncTools = buildAgentTools(agentFlags)
+      await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
+      console.log(`[slot-regen] ${changeDescription} for client=${clientId}, synced to Ultravox`)
+    } catch (err) {
+      console.error(`[slot-regen] Ultravox sync failed for client=${clientId}: ${err}`)
+    }
+  }
+
+  return {}
 }
 
 // ── Main regeneration function ──────────────────────────────────────────────────
@@ -178,6 +322,10 @@ export interface RegenerateSlotResult {
   error?: string
   /** New prompt char count */
   charCount?: number
+  /** When dryRun=true, the preview prompt text */
+  preview?: string
+  /** When dryRun=true, the current prompt text (for diffing) */
+  currentPrompt?: string
 }
 
 /**
@@ -190,138 +338,63 @@ export interface RegenerateSlotResult {
  * @param clientId - The client UUID
  * @param slotId - Which slot to regenerate (e.g. 'identity', 'goal', 'conversation_flow')
  * @param triggeredByUserId - Who triggered this (null for system)
+ * @param dryRun - If true, return preview without saving to DB or syncing to Ultravox
  */
 export async function regenerateSlot(
   clientId: string,
   slotId: SlotId,
   triggeredByUserId: string | null = null,
+  dryRun = false,
 ): Promise<RegenerateSlotResult> {
-  const svc = createServiceClient()
-
-  // 1. Read client row (all fields needed by buildSlotContext)
-  const { data: client, error: clientErr } = await svc
-    .from('clients')
-    .select('*')
-    .eq('id', clientId)
-    .single()
-
-  if (clientErr || !client) {
-    return { success: false, promptChanged: false, error: `Client not found: ${clientId}` }
+  const loaded = await loadClientContext(clientId)
+  if (!loaded.ok) {
+    return { success: false, promptChanged: false, error: loaded.error }
   }
-
-  if (!client.system_prompt) {
-    return { success: false, promptChanged: false, error: 'No system_prompt on client' }
-  }
+  const { client, knowledgeChunkCount, ctx } = loaded.data
 
   // Guard: only works on slot-composed prompts (have section markers).
-  // Old-format prompts (4 live clients) have no markers — regeneration would
-  // append duplicate sections instead of replacing. Use patchers for those.
   if (!hasSlotMarkers(client.system_prompt as string)) {
     return { success: false, promptChanged: false, error: 'Old-format prompt without section markers — use patchers instead of regeneration' }
   }
 
-  // 2. Read services catalog
-  const { data: services } = await svc
-    .from('client_services')
-    .select('name, description, category, duration_mins, price, booking_notes')
-    .eq('client_id', clientId)
-    .eq('active', true)
-    .order('sort_order')
-    .order('created_at')
-
-  // 3. Count knowledge chunks (for pgvector-aware slot output)
-  let knowledgeChunkCount = 0
-  if (client.knowledge_backend === 'pgvector') {
-    const { count } = await svc
-      .from('knowledge_chunks')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .eq('status', 'approved')
-    knowledgeChunkCount = count ?? 0
-  }
-
-  // 4. Convert client row → synthetic intake
-  const intake = clientRowToIntake(client, services ?? [], knowledgeChunkCount)
-
-  // 5. Build full SlotContext (needed because slots cross-reference each other)
-  const ctx = buildSlotContext(intake)
-
-  // 6. Run the target slot function
+  // Run the target slot function
   const slotFn = SLOT_FUNCTIONS[slotId]
   if (!slotFn) {
     return { success: false, promptChanged: false, error: `Unknown slot: ${slotId}` }
   }
   const newContent = slotFn(ctx)
 
-  // 7. Replace that section in the stored prompt
+  // Replace that section in the stored prompt
   const updatedPrompt = replacePromptSection(client.system_prompt, slotId, newContent)
 
   if (updatedPrompt === client.system_prompt) {
     return { success: true, promptChanged: false, charCount: updatedPrompt.length }
   }
 
-  // 8. Validate
+  // Validate
   const validation = validatePrompt(updatedPrompt)
   if (!validation.valid) {
     return { success: false, promptChanged: false, error: `Validation failed: ${validation.error}` }
   }
 
-  // 9. Save to DB
-  const { error: updateErr } = await svc
-    .from('clients')
-    .update({
-      system_prompt: updatedPrompt,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', clientId)
-
-  if (updateErr) {
-    return { success: false, promptChanged: false, error: `DB update failed: ${updateErr.message}` }
-  }
-
-  // 10. Prompt version tracking
-  try {
-    await insertPromptVersion(svc, {
-      clientId,
-      content: updatedPrompt,
-      changeDescription: `Slot regeneration: ${slotId}`,
-      triggeredByUserId,
-      triggeredByRole: triggeredByUserId ? 'owner' : 'system',
-      prevCharCount: client.system_prompt.length,
-    })
-  } catch (err) {
-    console.warn(`[slot-regen] Prompt version insert failed: ${err}`)
-  }
-
-  // 11. Sync to Ultravox if agent exists
-  if (client.ultravox_agent_id) {
-    try {
-      const agentFlags: Parameters<typeof updateAgent>[1] = {
-        systemPrompt: updatedPrompt,
-        ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        booking_enabled: client.booking_enabled ?? false,
-        slug: client.slug,
-        forwarding_number: (client.forwarding_number as string | null) || undefined,
-        sms_enabled: client.sms_enabled ?? false,
-        twilio_number: (client.twilio_number as string | null) || undefined,
-        knowledge_backend: client.knowledge_backend,
-        knowledge_chunk_count: knowledgeChunkCount,
-        transfer_conditions: client.transfer_conditions,
-        selectedPlan: (client.selected_plan as string | null) || undefined,
-        subscriptionStatus: (client.subscription_status as string | null) || undefined,
-      }
-
-      await updateAgent(client.ultravox_agent_id, agentFlags)
-
-      // Keep clients.tools in sync
-      const syncTools = buildAgentTools(agentFlags)
-      await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
-
-      console.log(`[slot-regen] Regenerated ${slotId} for client=${clientId}, synced to Ultravox`)
-    } catch (err) {
-      console.error(`[slot-regen] Ultravox sync failed for client=${clientId}: ${err}`)
-      // Prompt is saved to DB even if Ultravox sync fails
+  // Dry-run: return preview without saving
+  if (dryRun) {
+    return {
+      success: true,
+      promptChanged: true,
+      charCount: updatedPrompt.length,
+      preview: updatedPrompt,
+      currentPrompt: client.system_prompt as string,
     }
+  }
+
+  // Save + sync
+  const saveResult = await savePromptAndSync(
+    clientId, updatedPrompt, client, knowledgeChunkCount,
+    `Slot regeneration: ${slotId}`, triggeredByUserId,
+  )
+  if (saveResult.error) {
+    return { success: false, promptChanged: false, error: saveResult.error }
   }
 
   return {
@@ -334,53 +407,25 @@ export async function regenerateSlot(
 /**
  * Regenerate multiple slots at once.
  * Useful when a single field change affects multiple slots.
+ *
+ * @param dryRun - If true, return preview without saving to DB or syncing to Ultravox
  */
 export async function regenerateSlots(
   clientId: string,
   slotIds: SlotId[],
   triggeredByUserId: string | null = null,
+  dryRun = false,
 ): Promise<RegenerateSlotResult> {
-  const svc = createServiceClient()
-
-  // Read client once
-  const { data: client, error: clientErr } = await svc
-    .from('clients')
-    .select('*')
-    .eq('id', clientId)
-    .single()
-
-  if (clientErr || !client || !client.system_prompt) {
-    return { success: false, promptChanged: false, error: `Client not found or no prompt: ${clientId}` }
+  const loaded = await loadClientContext(clientId)
+  if (!loaded.ok) {
+    return { success: false, promptChanged: false, error: loaded.error }
   }
+  const { client, knowledgeChunkCount, ctx } = loaded.data
 
-  // Guard: slot-composed prompts only (same as regenerateSlot)
+  // Guard: slot-composed prompts only
   if (!hasSlotMarkers(client.system_prompt as string)) {
     return { success: false, promptChanged: false, error: 'Old-format prompt without section markers — use patchers instead of regeneration' }
   }
-
-  // Read services once
-  const { data: services } = await svc
-    .from('client_services')
-    .select('name, description, category, duration_mins, price, booking_notes')
-    .eq('client_id', clientId)
-    .eq('active', true)
-    .order('sort_order')
-    .order('created_at')
-
-  // Count chunks once
-  let knowledgeChunkCount = 0
-  if (client.knowledge_backend === 'pgvector') {
-    const { count } = await svc
-      .from('knowledge_chunks')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .eq('status', 'approved')
-    knowledgeChunkCount = count ?? 0
-  }
-
-  // Build context once
-  const intake = clientRowToIntake(client, services ?? [], knowledgeChunkCount)
-  const ctx = buildSlotContext(intake)
 
   // Regenerate each slot in the stored prompt
   let prompt = client.system_prompt as string
@@ -401,64 +446,122 @@ export async function regenerateSlots(
     return { success: false, promptChanged: false, error: `Validation failed: ${validation.error}` }
   }
 
-  // Save
-  const { error: updateErr } = await svc
-    .from('clients')
-    .update({
-      system_prompt: prompt,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', clientId)
-
-  if (updateErr) {
-    return { success: false, promptChanged: false, error: `DB update failed: ${updateErr.message}` }
-  }
-
-  // Version tracking
-  try {
-    await insertPromptVersion(svc, {
-      clientId,
-      content: prompt,
-      changeDescription: `Slot regeneration: ${slotIds.join(', ')}`,
-      triggeredByUserId,
-      triggeredByRole: triggeredByUserId ? 'owner' : 'system',
-      prevCharCount: (client.system_prompt as string).length,
-    })
-  } catch (err) {
-    console.warn(`[slot-regen] Prompt version insert failed: ${err}`)
-  }
-
-  // Ultravox sync
-  if (client.ultravox_agent_id) {
-    try {
-      const agentFlags: Parameters<typeof updateAgent>[1] = {
-        systemPrompt: prompt,
-        ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
-        booking_enabled: client.booking_enabled ?? false,
-        slug: client.slug,
-        forwarding_number: (client.forwarding_number as string | null) || undefined,
-        sms_enabled: client.sms_enabled ?? false,
-        twilio_number: (client.twilio_number as string | null) || undefined,
-        knowledge_backend: client.knowledge_backend,
-        knowledge_chunk_count: knowledgeChunkCount,
-        transfer_conditions: client.transfer_conditions,
-        selectedPlan: (client.selected_plan as string | null) || undefined,
-        subscriptionStatus: (client.subscription_status as string | null) || undefined,
-      }
-
-      await updateAgent(client.ultravox_agent_id, agentFlags)
-      const syncTools = buildAgentTools(agentFlags)
-      await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
-
-      console.log(`[slot-regen] Regenerated [${slotIds.join(', ')}] for client=${clientId}, synced to Ultravox`)
-    } catch (err) {
-      console.error(`[slot-regen] Ultravox sync failed for client=${clientId}: ${err}`)
+  // Dry-run: return preview without saving
+  if (dryRun) {
+    return {
+      success: true,
+      promptChanged: true,
+      charCount: prompt.length,
+      preview: prompt,
+      currentPrompt: client.system_prompt as string,
     }
+  }
+
+  // Save + sync
+  const saveResult = await savePromptAndSync(
+    clientId, prompt, client, knowledgeChunkCount,
+    `Slot regeneration: ${slotIds.join(', ')}`, triggeredByUserId,
+  )
+  if (saveResult.error) {
+    return { success: false, promptChanged: false, error: saveResult.error }
   }
 
   return {
     success: true,
     promptChanged: true,
     charCount: prompt.length,
+  }
+}
+
+// ── Full prompt recomposition (D280) ────────────────────────────────────────────
+
+export interface RecomposeResult {
+  success: boolean
+  promptChanged: boolean
+  error?: string
+  charCount?: number
+  /** When dryRun=true, the fully recomposed prompt text */
+  preview?: string
+  /** When dryRun=true, the current stored prompt text (for diffing) */
+  currentPrompt?: string
+}
+
+/**
+ * Recompose the entire prompt from scratch using current DB state.
+ *
+ * Unlike regenerateSlots (which patches individual sections in the existing prompt),
+ * this rebuilds the full prompt via buildPromptFromSlots(). This is the "nuclear"
+ * option — it guarantees the prompt matches what a fresh onboarding would produce
+ * from the current DB fields.
+ *
+ * WARNING: This overwrites ALL sections, including any manual edits made via the
+ * D251 section editor (triage, etc.) that live only in prompt text. Manual edits
+ * survive only if their content was saved to a DB field or niche_custom_variables
+ * (e.g., TRIAGE_DEEP override). Always use dryRun=true first to show a diff preview.
+ * For targeted updates, prefer regenerateSlots() which only touches affected sections.
+ *
+ * Use cases:
+ * - "Recompose" button in Agent Brain dashboard (always show diff preview first)
+ * - After bulk variable edits
+ * - Prompt drift repair
+ *
+ * @param clientId - The client UUID
+ * @param triggeredByUserId - Who triggered this (null for system)
+ * @param dryRun - If true, return the recomposed prompt without saving or syncing
+ */
+export async function recomposePrompt(
+  clientId: string,
+  triggeredByUserId: string | null = null,
+  dryRun = false,
+): Promise<RecomposeResult> {
+  const loaded = await loadClientContext(clientId)
+  if (!loaded.ok) {
+    return { success: false, promptChanged: false, error: loaded.error }
+  }
+  const { client, knowledgeChunkCount, ctx } = loaded.data
+
+  // Guard: only recompose slot-composed prompts.
+  // Old-format prompts (4 live clients) must be migrated first (D304).
+  if (!hasSlotMarkers(client.system_prompt as string)) {
+    return { success: false, promptChanged: false, error: 'Old-format prompt without section markers — migrate to slot format first (D304)' }
+  }
+
+  // Build the entire prompt from scratch
+  const newPrompt = buildPromptFromSlots(ctx)
+
+  if (newPrompt === client.system_prompt) {
+    return { success: true, promptChanged: false, charCount: newPrompt.length }
+  }
+
+  // Validate
+  const validation = validatePrompt(newPrompt)
+  if (!validation.valid) {
+    return { success: false, promptChanged: false, error: `Validation failed: ${validation.error}` }
+  }
+
+  // Dry-run: return preview without saving
+  if (dryRun) {
+    return {
+      success: true,
+      promptChanged: true,
+      charCount: newPrompt.length,
+      preview: newPrompt,
+      currentPrompt: client.system_prompt as string,
+    }
+  }
+
+  // Save + sync
+  const saveResult = await savePromptAndSync(
+    clientId, newPrompt, client, knowledgeChunkCount,
+    'Full prompt recomposition', triggeredByUserId,
+  )
+  if (saveResult.error) {
+    return { success: false, promptChanged: false, error: saveResult.error }
+  }
+
+  return {
+    success: true,
+    promptChanged: true,
+    charCount: newPrompt.length,
   }
 }

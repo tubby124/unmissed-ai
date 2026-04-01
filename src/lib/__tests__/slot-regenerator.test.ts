@@ -16,11 +16,10 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { buildSlotContext, buildPromptFromSlots } from '../prompt-slots.js'
+import { clientRowToIntake as exportedClientRowToIntake } from '../slot-regenerator.js'
 
-// We can't import clientRowToIntake directly (it's not exported),
-// so we test the full path: simulate a client row → build intake → build prompt.
-// The key assertion: fields that exist in both intake and client row
-// produce identical SlotContext values.
+// clientRowToIntake is now exported, so we can test it directly
+// AND via the full round-trip path for extra safety.
 
 /**
  * Simulate a client DB row from intake data.
@@ -78,11 +77,23 @@ function intakeToSimulatedClientRow(intake: Record<string, unknown>): Record<str
     insurance_status: intake.insurance_status,
     insurance_detail: intake.insurance_detail,
 
-    // Niche custom variables
-    niche_custom_variables: intake.niche_custom_variables,
-
     // After hours
     after_hours_behavior: intake.after_hours_behavior ?? 'standard',
+
+    // D302: Niche custom variables — merge explicit overrides with niche_* intake fields
+    // This mirrors what provision/trial/route.ts now does at onboarding time.
+    niche_custom_variables: (() => {
+      const ncv: Record<string, string> = {}
+      // Collect niche_* intake fields (same as provision route)
+      for (const [k, v] of Object.entries(intake)) {
+        if (k.startsWith('niche_') && k !== 'niche_custom_variables' && k !== 'niche_faq_pairs' && v) {
+          ncv[k] = String(v)
+        }
+      }
+      // Merge with explicit overrides (TRIAGE_DEEP etc.)
+      const explicit = intake.niche_custom_variables as Record<string, string> | undefined
+      return { ...ncv, ...(explicit ?? {}) }
+    })(),
   }
 }
 
@@ -129,6 +140,17 @@ function clientRowToIntake(
     insurance_status: client.insurance_status,
     insurance_detail: client.insurance_detail,
     niche_custom_variables: client.niche_custom_variables,
+    // D302: Spread niche_* fields from niche_custom_variables back to top-level keys
+    // (mirrors the D302 change in slot-regenerator.ts clientRowToIntake)
+    ...(() => {
+      const ncv = client.niche_custom_variables as Record<string, unknown> | null
+      if (!ncv || typeof ncv !== 'object') return {}
+      const spread: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(ncv)) {
+        if (k.startsWith('niche_')) spread[k] = v
+      }
+      return spread
+    })(),
   }
 }
 
@@ -250,6 +272,131 @@ describe('clientRowToIntake round-trip', () => {
   }
 })
 
+describe('D302: niche intake fields survive round-trip via niche_custom_variables', () => {
+  test('HVAC niche_emergency + niche_pricingModel survive', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'hvac',
+      business_name: 'Prairie HVAC',
+      agent_name: 'Sarah',
+      city: 'Saskatoon',
+      hours_weekday: 'Mon-Sat 7am-7pm',
+      call_handling_mode: 'triage',
+      niche_emergency: '24/7 emergency for no-heat calls',
+      niche_pricingModel: 'flat_rate',
+      niche_serviceArea: 'Saskatoon and surrounding area',
+      niche_brands: 'Lennox, Carrier, Trane',
+    }
+
+    const ctxA = buildSlotContext(intake)
+    const promptA = buildPromptFromSlots(ctxA)
+
+    // Simulate DB round-trip
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = clientRowToIntake(clientRow)
+    const ctxB = buildSlotContext(recovered)
+    const promptB = buildPromptFromSlots(ctxB)
+
+    assert.strictEqual(promptA, promptB, 'HVAC prompt should match after round-trip with niche fields')
+  })
+
+  test('plumbing niche_clientType + niche_emergency survive', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'plumbing',
+      business_name: 'Emon Plumbing',
+      agent_name: 'Dave',
+      city: 'Calgary NW',
+      hours_weekday: 'Mon-Fri 7am-6pm',
+      call_handling_mode: 'triage',
+      niche_emergency: 'burst pipes, sewer backup, no hot water',
+      niche_clientType: 'residential',
+      niche_serviceArea: 'Calgary NW and Airdrie',
+    }
+
+    const ctxA = buildSlotContext(intake)
+    const promptA = buildPromptFromSlots(ctxA)
+
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = clientRowToIntake(clientRow)
+    const ctxB = buildSlotContext(recovered)
+    const promptB = buildPromptFromSlots(ctxB)
+
+    assert.strictEqual(promptA, promptB, 'Plumbing prompt should match after round-trip with niche fields')
+  })
+
+  test('dental niche_newPatients + niche_insurance + niche_emergencyAppts survive', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'dental',
+      business_name: 'Bright Smiles Dental',
+      agent_name: 'Lily',
+      city: 'Edmonton',
+      hours_weekday: 'Mon-Thu 8am-5pm',
+      call_handling_mode: 'triage',
+      niche_newPatients: 'yes',
+      niche_insurance: 'all_major',
+      niche_emergencyAppts: 'same_day',
+    }
+
+    const ctxA = buildSlotContext(intake)
+    const promptA = buildPromptFromSlots(ctxA)
+
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = clientRowToIntake(clientRow)
+    const ctxB = buildSlotContext(recovered)
+    const promptB = buildPromptFromSlots(ctxB)
+
+    assert.strictEqual(promptA, promptB, 'Dental prompt should match after round-trip with niche fields')
+  })
+
+  test('restaurant niche_cuisineType + niche_orderTypes + niche_cancelPolicy survive', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'restaurant',
+      business_name: 'Spice Route',
+      agent_name: 'Priya',
+      city: 'Calgary',
+      hours_weekday: 'Tue-Sun 11am-10pm',
+      call_handling_mode: 'triage',
+      niche_cuisineType: 'Indian fusion',
+      niche_orderTypes: 'dine-in, takeout, delivery',
+      niche_cancelPolicy: '24h',
+      niche_partySize: '12',
+    }
+
+    const ctxA = buildSlotContext(intake)
+    const promptA = buildPromptFromSlots(ctxA)
+
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = clientRowToIntake(clientRow)
+    const ctxB = buildSlotContext(recovered)
+    const promptB = buildPromptFromSlots(ctxB)
+
+    assert.strictEqual(promptA, promptB, 'Restaurant prompt should match after round-trip with niche fields')
+  })
+
+  test('property_management niche_propertyType + niche_hasEmergencyLine survive', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'property_management',
+      business_name: 'Urban Vibe Properties',
+      agent_name: 'Alisha',
+      city: 'Calgary',
+      hours_weekday: 'Mon-Fri 9am-5pm',
+      call_handling_mode: 'triage',
+      niche_propertyType: 'residential',
+      niche_hasEmergencyLine: 'yes',
+      niche_maintenanceContacts: 'Emergency plumber: 403-555-1234, Electrician: 403-555-5678',
+    }
+
+    const ctxA = buildSlotContext(intake)
+    const promptA = buildPromptFromSlots(ctxA)
+
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = clientRowToIntake(clientRow)
+    const ctxB = buildSlotContext(recovered)
+    const promptB = buildPromptFromSlots(ctxB)
+
+    assert.strictEqual(promptA, promptB, 'Property mgmt prompt should match after round-trip with niche fields')
+  })
+})
+
 describe('clientRowToIntake preserves niche_custom_variables', () => {
   test('TRIAGE_DEEP override survives round-trip', () => {
     const customTriage = 'Ask about the make and model first, then the specific problem.'
@@ -320,5 +467,243 @@ describe('hasSlotMarkers guard', () => {
       prompt.includes('<!-- unmissed:knowledge -->'),
       'Slot-composed prompt should have knowledge marker',
     )
+  })
+})
+
+// ── D280: recomposePrompt round-trip tests ──────────────────────────────────────
+
+describe('D280: recomposePrompt equivalence', () => {
+  // recomposePrompt calls buildPromptFromSlots(ctx) where ctx is built from
+  // clientRowToIntake(clientRow). This test verifies that the full chain
+  // intake → clientRow → clientRowToIntake → buildSlotContext → buildPromptFromSlots
+  // produces the same prompt as the direct intake path.
+  //
+  // This IS the core recomposePrompt contract — if this passes, the function
+  // will produce correct output.
+
+  const RECOMPOSE_CASES = [
+    {
+      name: 'auto_glass full config',
+      intake: {
+        niche: 'auto_glass',
+        business_name: 'Quick Glass Ltd',
+        agent_name: 'Blake',
+        city: 'Calgary',
+        owner_name: 'Mark Johnson',
+        hours_weekday: 'Mon-Fri 8am-5pm',
+        call_handling_mode: 'triage',
+        voice_style_preset: 'professional',
+        booking_enabled: true,
+        sms_enabled: true,
+        owner_phone: '+14035551234',
+        forwarding_number: '+14035551234',
+        knowledge_backend: 'pgvector',
+        knowledge_chunk_count: 15,
+        services_offered: 'Windshield replacement, chip repair, side windows',
+        services_not_offered: 'Tinting',
+        after_hours_behavior: 'standard',
+        niche_custom_variables: {
+          TRIAGE_DEEP: 'Ask: make/model/year, chip or crack, size, location on windshield.',
+        },
+      },
+    },
+    {
+      name: 'plumbing minimal config',
+      intake: {
+        niche: 'plumbing',
+        business_name: 'Emon Plumbing',
+        agent_name: 'Dave',
+        city: 'Calgary NW',
+        owner_name: 'Emon Ahmed',
+        hours_weekday: 'Mon-Fri 7am-6pm',
+        call_handling_mode: 'triage',
+      },
+    },
+    {
+      name: 'dental with insurance + booking',
+      intake: {
+        niche: 'dental',
+        business_name: 'Bright Smiles',
+        agent_name: 'Lily',
+        city: 'Edmonton',
+        owner_name: 'Dr. Sarah Chen',
+        hours_weekday: 'Mon-Thu 8am-5pm',
+        call_handling_mode: 'triage',
+        booking_enabled: true,
+        insurance_preset: 'all_major',
+        niche_custom_variables: {
+          niche_newPatients: 'yes',
+          niche_emergencyAppts: 'same_day',
+        },
+      },
+    },
+    {
+      name: 'property_management with transfer',
+      intake: {
+        niche: 'property_management',
+        business_name: 'Urban Vibe',
+        agent_name: 'Alisha',
+        city: 'Calgary',
+        owner_name: 'Ray Kassam',
+        hours_weekday: 'Mon-Fri 9am-5pm',
+        call_handling_mode: 'triage',
+        owner_phone: '+14035559999',
+        forwarding_number: '+14035559999',
+        after_hours_behavior: 'route_emergency',
+        emergency_phone: '+14035550911',
+      },
+    },
+    {
+      name: 'restaurant with FAQ pairs',
+      intake: {
+        niche: 'restaurant',
+        business_name: 'Spice Route',
+        agent_name: 'Priya',
+        city: 'Calgary',
+        owner_name: 'Chef Raj',
+        hours_weekday: 'Tue-Sun 11am-10pm',
+        call_handling_mode: 'triage',
+        niche_faq_pairs: JSON.stringify([
+          { q: 'Do you have a patio?', a: 'Yes, our patio is open seasonally.' },
+          { q: 'Is parking available?', a: 'Free parking in rear lot.' },
+        ]),
+      },
+    },
+    {
+      name: 'hvac with appointment_booking mode',
+      intake: {
+        niche: 'hvac',
+        business_name: 'Prairie HVAC',
+        agent_name: 'Sarah',
+        city: 'Saskatoon',
+        owner_name: 'Jim Prairie',
+        hours_weekday: 'Mon-Sat 7am-7pm',
+        call_handling_mode: 'triage',
+        agent_mode: 'appointment_booking',
+        booking_enabled: true,
+        sms_enabled: true,
+      },
+    },
+  ]
+
+  for (const { name, intake } of RECOMPOSE_CASES) {
+    test(`recompose equivalence: ${name}`, () => {
+      // Path A: direct intake → prompt (what onboarding does)
+      const ctxA = buildSlotContext(intake)
+      const promptA = buildPromptFromSlots(ctxA)
+
+      // Path B: intake → simulated client row → clientRowToIntake → prompt
+      // (what recomposePrompt does at runtime)
+      const clientRow = intakeToSimulatedClientRow(intake)
+      const recoveredIntake = exportedClientRowToIntake(
+        clientRow,
+        [],
+        (intake.knowledge_backend === 'pgvector' ? 15 : 0),
+      )
+      const ctxB = buildSlotContext(recoveredIntake)
+      const promptB = buildPromptFromSlots(ctxB)
+
+      assert.strictEqual(promptA, promptB, `Recompose diverged for: ${name}`)
+    })
+  }
+
+  test('recompose is idempotent', () => {
+    const intake = {
+      niche: 'auto_glass',
+      business_name: 'Test Glass',
+      agent_name: 'Alex',
+      city: 'Calgary',
+      owner_name: 'Test Owner',
+      hours_weekday: 'Mon-Fri 8-5',
+      call_handling_mode: 'triage',
+    }
+
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered1 = exportedClientRowToIntake(clientRow, [], 0)
+    const prompt1 = buildPromptFromSlots(buildSlotContext(recovered1))
+
+    // Simulate saving prompt1 to DB and recomposing again
+    const clientRow2 = { ...clientRow, system_prompt: prompt1 }
+    const recovered2 = exportedClientRowToIntake(clientRow2, [], 0)
+    const prompt2 = buildPromptFromSlots(buildSlotContext(recovered2))
+
+    assert.strictEqual(prompt1, prompt2, 'Recompose should be idempotent')
+  })
+
+  test('recompose has section markers for identity and knowledge', () => {
+    // Only identity and knowledge slots call wrapSection() explicitly.
+    // Other slots use header text matched by replacePromptSection aliases.
+    const intake = {
+      niche: 'plumbing',
+      business_name: 'Test Plumbing',
+      agent_name: 'Dave',
+      city: 'Calgary',
+      call_handling_mode: 'triage',
+      booking_enabled: true,
+      sms_enabled: true,
+      owner_phone: '+14035551234',
+    }
+    const clientRow = intakeToSimulatedClientRow(intake)
+    const recovered = exportedClientRowToIntake(clientRow, [], 0)
+    const prompt = buildPromptFromSlots(buildSlotContext(recovered))
+
+    // Marker-wrapped slots
+    assert.ok(prompt.includes('<!-- unmissed:identity -->'), 'Should have identity marker')
+    assert.ok(prompt.includes('<!-- /unmissed:identity -->'), 'Should have identity end marker')
+    assert.ok(prompt.includes('<!-- unmissed:knowledge -->'), 'Should have knowledge marker')
+    assert.ok(prompt.includes('<!-- /unmissed:knowledge -->'), 'Should have knowledge end marker')
+
+    // Key section headers should be present (these are matched by alias in replacePromptSection)
+    assert.ok(prompt.includes('LIFE SAFETY EMERGENCY OVERRIDE'), 'Should have safety header')
+    assert.ok(prompt.includes('ABSOLUTE FORBIDDEN ACTIONS'), 'Should have forbidden header')
+    assert.ok(prompt.includes('DYNAMIC CONVERSATION FLOW'), 'Should have conversation flow header')
+    assert.ok(prompt.includes('GOAL'), 'Should have goal header')
+  })
+})
+
+describe('D280: clientRowToIntake exported', () => {
+  test('exported function produces same output as inline copy', () => {
+    const clientRow = {
+      niche: 'auto_glass',
+      business_name: 'Quick Glass',
+      agent_name: 'Blake',
+      city: 'Calgary',
+      owner_name: 'Mark',
+      business_hours_weekday: 'Mon-Fri 8am-5pm',
+      services_offered: 'Windshield repair',
+      services_not_offered: null,
+      callback_phone: '+14035551234',
+      forwarding_number: '+14035559999',
+      after_hours_emergency_phone: null,
+      call_handling_mode: 'triage',
+      agent_mode: null,
+      voice_style_preset: 'professional',
+      agent_tone: null,
+      booking_enabled: false,
+      sms_enabled: false,
+      knowledge_backend: '',
+      pricing_policy: null,
+      unknown_answer_behavior: null,
+      caller_faq: null,
+      common_objections: null,
+      extra_qa: null,
+      completion_fields: null,
+      agent_restrictions: null,
+      insurance_preset: null,
+      insurance_status: null,
+      insurance_detail: null,
+      after_hours_behavior: 'standard',
+      niche_custom_variables: null,
+    }
+
+    const result = exportedClientRowToIntake(clientRow, [], 0)
+
+    assert.strictEqual(result.niche, 'auto_glass')
+    assert.strictEqual(result.business_name, 'Quick Glass')
+    assert.strictEqual(result.agent_name, 'Blake')
+    assert.strictEqual(result.db_agent_name, 'Blake')
+    assert.strictEqual(result.hours_weekday, 'Mon-Fri 8am-5pm')
+    assert.strictEqual(result.owner_phone, '+14035559999')
+    assert.strictEqual(result.forwarding_number, '+14035559999')
   })
 })

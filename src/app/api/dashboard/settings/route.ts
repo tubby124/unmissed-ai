@@ -14,7 +14,7 @@ import {
 } from '@/lib/settings-schema'
 import { applyPromptPatches } from '@/lib/settings-patchers'
 import { regenerateSlots, type RegenerateSlotResult } from '@/lib/slot-regenerator'
-import { SLOT_IDS } from '@/lib/prompt-sections'
+import { SLOT_IDS, type SlotId } from '@/lib/prompt-sections'
 
 // ── Agent sync helper ────────────────────────────────────────────────────────────
 
@@ -252,6 +252,29 @@ export async function PATCH(req: NextRequest) {
       }
     } catch (err) {
       console.warn(`[settings] Slot regeneration failed: ${err}`)
+    }
+  }
+
+  // 8c — D276: Booking toggle → regenerate TRIAGE_FLOW + GOAL slots
+  // When booking_enabled changes, the triage questions and closing should adapt
+  // to whether calendar booking is available. Only fires on slot-composed prompts.
+  // Skips if niche_custom_variables already triggered a full regen above.
+  if ('booking_enabled' in updates && !slotRegenResult?.promptChanged) {
+    try {
+      const bookingRegenResult = await regenerateSlots(
+        targetClientId,
+        ['conversation_flow', 'goal'] as const as SlotId[],
+        user.id,
+      )
+      if (bookingRegenResult.promptChanged) {
+        console.log(`[settings] D276: Regenerated conversation_flow+goal after booking_enabled change for client=${targetClientId}`)
+        updates.system_prompt = '__regenerated__'
+        slotRegenResult = bookingRegenResult
+      } else if (bookingRegenResult.error) {
+        console.log(`[settings] D276 slot regen skipped: ${bookingRegenResult.error}`)
+      }
+    } catch (err) {
+      console.warn(`[settings] D276 booking slot regeneration failed: ${err}`)
     }
   }
 

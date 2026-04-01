@@ -27,10 +27,32 @@
 | 2 — Named Slots | D274 + golden expansion to 100+ + Sonar + UI audit | Shadow tests pass, 19 slots, 191 tests, UI audit | **DONE ✅** |
 | 3 — Shrink+Clean | D265 + D269 + D272 + D268 + D296 + Sonar | Slot composition live, pgvector-first KB, conditional pricing, 406 tests pass | **DONE ✅** |
 | 4 — Gap Wiring | D260 + D281 + D282 + Sonar + FILTER_EXTRA fix | Service/name edits sync to agent, mutation contract updated, 448 tests pass | **DONE ✅** |
-| 5 — Agent Knowledge UX | D283a/b/c + D286 + D288 + D290 + D300 + Sonar + contract audit | Variable registry, section regen, capabilities, knowledge surface, service KB reseed | **IN PROGRESS** (D283a ✅ D283c ✅ D300 ✅ — D283b/D286/D288/D290 deferred to UI wave) |
-| 6 — North Star | D280 + D278 + D276 + D287 + D289 + Sonar | Full recomposePrompt, Agent Brain, niche onboarding (scope reduced — section regen done in Ph5) | NOT STARTED |
+| 5 — Agent Knowledge UX | D283a/b/c + D300 + Sonar + contract audit + gap fixes | Variable registry, section regen WIRED, service KB reseed, niche_custom_variables fixed, old-prompt guard, 456 tests | **DONE ✅** (backend complete; D283b/D286/D288/D290 UI deferred) |
+| 6 — North Star | D280 + D278 + D303 + D305 + D276 + Sonar | recomposePrompt, Agent Brain, variable edit API, preview mode, booking flow update (D302 prereq ✅) | **Wave 1 DONE ✅** (D280 ✅ D303 ✅ D305-backend ✅ D276 ✅) |
 
-**Total D-items to close:** 24 (D235 ✅, D285 ✅, D274 ✅, D265 ✅, D269 ✅, D272 ✅, D268 ✅, D296 ✅, D260 ✅, D281 ✅, D282 ✅, D283a ✅, D283c ✅, D300 ✅, D283b, D286, D288, D290, D280, D278, D276, D287, D289, D291, D292, D293, D294)
+### Phase 6 Execution Order
+
+**Wave 1 — Backend** (no UI skill needed) — **ALL DONE ✅**:
+1. ~~**D302**~~ — ✅ DONE. Preserve niche intake fields (provision route).
+2. ~~**D280**~~ — ✅ DONE. `recomposePrompt()` + dryRun + shared helpers. 1387 tests pass.
+3. ~~**D303**~~ — ✅ DONE. Variable edit API (`PATCH /api/dashboard/variables`).
+4. ~~**D305 backend**~~ — ✅ DONE. Dry-run/preview mode + `POST /api/dashboard/variables/preview`.
+5. ~~**D276**~~ — ✅ DONE. Booking toggle → regenerate conversation_flow + goal slots.
+
+**Wave 2 — UI Design Wave** (run through `/ui-ux-pro-max`):
+- **D278** — Agent Brain dashboard page (flagship UX piece)
+- **D283b** — PromptVariablesCard (read-only variable display)
+- **D305 frontend** — Diff preview UI (current vs proposed)
+- **D288** — Capability preview card
+- **D290** — "What Your Agent Knows" surface
+- **D286** — Dashboard settings reorganization
+
+**Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
+
+**Also Phase 6:** D287 (niche-adaptive onboarding), D289 (services chips), D301 (locked vars)
+**Deferred to post-Phase 6:** D304 (old-client migration) — do AFTER Phase 6 proven on new clients.
+
+**Total D-items closed:** 30 of ~40 (D235 ✅ D285 ✅ D274 ✅ D265 ✅ D269 ✅ D272 ✅ D268 ✅ D296 ✅ D260 ✅ D281 ✅ D282 ✅ D283a ✅ D283c ✅ D300 ✅ D302 ✅ D280 ✅ D303 ✅ D305-be ✅ D276 ✅ D233 ✅ D241 ✅ D245 ✅ D247 ✅ D249 ✅ D251 ✅ D252 ✅ D254 ✅ D257 ✅ D275 ✅ + D283 partial-done + removed: D240 D277 D228)
 **Completed phases archived:** `docs/architecture/prompt-architecture-completed-phases.md`
 **Carry-forward findings:** see execution plan Phase 1+2 summary section
 
@@ -65,160 +87,137 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 
 ---
 
-## NEXT — Priority Order
+## POST-PHASE 6 ROADMAP
 
-### 🔴 ARCHITECTURAL: Minimal Prompt + Dynamic Knowledge
-> The fundamental shift from monolithic hardcoded prompts to minimal base + dynamic sections + knowledge-base-first.
-> Do before any new niche or marketing push.
+> Phase 6 completes the architecture. Everything below plugs into it.
+> No waiting required — these unlock the moment Phase 6 ships.
 
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D268 | ARCH | **Minimal base prompt + dynamic sections** — ~4-5K char base (safety + identity + voice + flow skeleton). Everything else dynamic based on client config. | CRITICAL |
-| D269 | ARCH | **Knowledge base as primary info source** — Move factual business info out of prompt → pgvector. 1-line instruction: "Use queryKnowledge." | CRITICAL |
-| D272 | ARCH | **Remove business-logic constraints from prompts** — Only 5 true safety rules hardcoded. Everything else conditional on client config. | CRITICAL |
-| D265 | PROMPT | **Remove hardcoded PRODUCT KNOWLEDGE BASE** — Duplicates extra_qa pgvector chunks, bloats prompt 1-2K chars. | CRITICAL |
-| D273 | ONBOARD | **Collect what matters for prompt building** — "What questions do callers ask?", pricing sheet, escalation rules. D247 started this. | CRITICAL |
-| D275 | BUG | **Voice preset → personality descriptors fake-control** — Preset change patches TONE but not IDENTITY personality line. Classic fake-control. | CRITICAL |
-| D260 | GAP | ~~Service catalog → agent runtime disconnect~~ | ✅ DONE (Phase 4) — prompt patched + Ultravox sync. Knowledge reseed gap → D300. |
-| D300 | GAP | **Service catalog knowledge reseed** — D260 patches prompt but doesn't reseed pgvector chunks. Service changes invisible to queryKnowledge. | HIGH |
-| D278 | ARCH | **"Agent Brain" dashboard** — Centralized view of everything agent knows, organized by niche-relevant categories. Editable inline. | CRITICAL |
-| D280 | ARCH | **UI-driven prompt composition** — Users never touch raw prompts. UI fields → prompt sections → Ultravox sync. End state of D268+D274+D278. | CRITICAL |
-| D283 | ARCH | **All prompt variables visible + editable** — Every template variable on dashboard as labeled field. Auto-patches + syncs. | CRITICAL |
-| D274 | ARCH | ~~System prompt = template with named slots~~ | ✅ DONE |
-| D285 | ARCH | ~~Prompt sandwich framework~~ | ✅ DONE |
-| D296 | BUG | **FORBIDDEN_EXTRA dead code** — niche intake modifications silently discarded (line 573 reads nicheDefaults not variables). Auto-fixed by slot builder. | CRITICAL |
-| D291 | ONBOARD | **GBP auto-import onboarding** — business name → Apify Google Maps → auto-populate everything. First "2-minute agent." | CRITICAL |
-| D270 | LOOP | **Frequent KB query → auto-suggest FAQ promotion** — 3+ same queries → suggest FAQ. Extends D252. | HIGH |
-| D271 | FEATURE | **PDF/pricing sheet upload → knowledge base** — Upload CTA + extract + embed into pgvector. | HIGH |
-| D276 | ARCH | **Calendar/booking auto-updates call flow** — `patchCalendarBlock()` appends section but TRIAGE/FLOW don't adapt. | HIGH |
-| D279 | ARCH | **Niche-contextual knowledge editing** — Per-niche knowledge schema determines UI categories. | HIGH |
-| D284 | ARCH | **Self-improving agent loop** — Calls teach the agent. Extends D252+D270+D257. | HIGH |
-| D292 | ONBOARD | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH |
-| D293 | ONBOARD | **"Paste URL → agent ready" streamlined flow** — single-step scrape + approve + build. | HIGH |
-| D294 | ONBOARD | **Post-activation "Your Agent Is Live" summary** — capabilities, knowledge, test CTA. | HIGH |
-| D295 | FEATURE | **Audio preview of knowledge in action** — edit FAQ, hear agent use it. Greenfield. | MEDIUM |
+---
 
-### 🔴 Dashboard UX + Agent Quality
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D261 | UX | **Multi-column layout** — 2-3 columns for calls, contacts, readiness, FAQs, gaps. | HIGH |
-| D262 | UX | **Capability badges → knowledge modal** — Click badge → popup showing what agent knows. | HIGH |
-| D263 | UX | **Agent readiness → proper deep links** — Link to exact settings card needing attention. | HIGH |
-| D264 | UX | **PDF upload / website / GBP connect CTAs** — Prominent on knowledge page + overview. | HIGH |
-| D266 | UX | **Recent calls parity** — Overview vs Calls page use same component/query. | MEDIUM |
-| D267 | UX | **Business hours click** — Inline edit or deep-link to Hours card, not generic redirect. | MEDIUM |
-
-### Ops & Investigation
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D233 | OPS | **Verify `CRON_SECRET` in Railway** — All 10 cron jobs silently fail without it. Check manually. | CRITICAL |
-| ~~D277~~ | ~~INVESTIGATE~~ | ~~Lag root cause for plumber-calgary-nw~~ — **REMOVED:** architecture fix (D268) solves this structurally. | ~~HIGH~~ |
-| D235 | QUICK | **Reseed gate removal** — 3-line fix in `lib/embeddings.ts`: always delete `settings_edit` chunks before re-embedding. | MEDIUM |
-
-### Purpose-Driven Agent (remaining)
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| ~~D240-DEPLOY~~ | ~~DEPLOY~~ | ~~Deploy TRIAGE_DEEP to 4 clients~~ — **REMOVED:** 4 working clients stay untouched. New architecture = new clients. | ~~CRITICAL~~ |
-| D242 | ONBOARD | **"Top 3 reasons" question** — Feed into D247 intent mapping. | HIGH |
-| D243 | DASHBOARD | **Intent coverage view** — Replace capability badges with intent readiness gaps. | HIGH |
-| D244 | LOOP | **Knowledge gap → triage improvement** — 3+ unanswered → suggest FAQ or intent route. | MEDIUM |
-
-### Post-Call Conversion (HIGH ROI)
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D193-PROMPT | PROMPT | **Callback preference question** — Add "morning or afternoon?" to CLOSING section. | HIGH |
-| D219 | FEATURE | **Missed call auto-SMS** — Short call + no info → "we missed you" text. 1/phone/24h. | HIGH |
-| D220 | FEATURE | **Lead queue / callback tracking** — HOT/WARM leads sorted, "Mark called back", count badge. | HIGH |
-| D229 | FEATURE | **"Call back now" button** — HOT/WARM row → owner's phone rings → agent bridge. | HIGH |
-
-### Dashboard UX
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D189 | UX | **Unify trial/paid dashboard** — Locked features show preview, not blank. | HIGH |
-| D190 | UX | **Feature unlock CTAs** — Click → modal with configure/upgrade action. | HIGH |
-| D218 | FEATURE | **Minutes usage warning** — Banner at 75%/90% of limit. | HIGH |
-| D230 | FEATURE | **Activation smoke test** — Auto WebRTC test after upgrade, Telegram alert on fail. | CRITICAL |
-| D213/D251 | FEATURE | **Per-section prompt editor UI** — Backend done. Need expandable edit blocks with Save + Reset. | HIGH |
-| D186 | UX | **Mode capability preview** — 3-tier preview: AI Voicemail / Smart Receptionist / +Booking. | HIGH |
-| D222 | UX | **Trial mid-point nudge** — Day 3-4, no Telegram → nudge banner. | MEDIUM |
-| D223 | UX | **Agent health indicator** — `last_agent_sync_status='error'` → amber banner. | HIGH |
-| D191 | UX | **Capabilities grid quick-actions** — Inactive → "Set up", Active → "Configure". | MEDIUM |
-| D185 | UX | **Mode-first onboarding** — Skip irrelevant steps per mode. | MEDIUM |
-| D187 | UX | **Mode-aware capability badges** — Labels change per mode. | MEDIUM |
-
-### Untracked Code — Needs Wiring
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D225 | WIRE | `/api/dashboard/telegram-link` → Telegram setup card. | MEDIUM |
-| D226 | WIRE | `/api/onboard/parse-services` → onboarding service input. | MEDIUM |
-| D227 | WIRE | `knowledge/conflicts` + `docs` + `preview-question` → Knowledge page. | MEDIUM |
-
-### Prompt & Agent Gaps
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D281 | GAP | ~~CLOSE_PERSON not editable post-onboarding~~ | ✅ DONE (Phase 4) — owner_name → patchAgentName(oldFirst, newFirst) + Ultravox sync |
-| D282 | GAP | ~~Business name change doesn't patch prompt~~ | ✅ DONE (Phase 4) — was already implemented, mutation contract updated |
-| D171 | UX | **Wow-first template update** — OPENING + TRIAGE still passive. Keep deploy_prompt.py in sync. | MEDIUM |
-| D198 | GAP | **hasan-sharif SYSTEM_PROMPT.txt drift** — Run `/prompt-deploy hasan-sharif`. | MEDIUM |
-
-### Trial & Activation
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D174 | GAP | **Email notifications** — Wire after domain purchase. BLOCKED GATE-1. | HIGH |
-| D172 | GAP | **Forwarding confirmation** — No in-app signal it worked. | MEDIUM |
-| D170 | FEATURE | **Inbound SMS reply visibility** — Replies silently dropped. `sms_logs.direction` exists. | MEDIUM |
-| D175 | UX | **Calls page empty state** — CTA to forwarding guide. | LOW |
-| D124 | SECURITY | **QWERTY123 default password** — DEFERRED (no email platform). | HIGH |
-
-### Pricing & Messaging
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D208 | STRATEGY | **Feature-to-tier messaging** — Pricing page, billing card, upgrade CTAs. | HIGH |
-| D212 | STRATEGY | **Upgrade CTA copy** — Product tier names, not plan names. | MEDIUM |
-| D209 | STRATEGY | **Minute allocation audit** — 100 min Lite may be too low. | MEDIUM |
-| D210 | STRATEGY | **Post-call SMS plan assignment** — Which plans get auto-trigger. | MEDIUM |
-
-### Missing Capabilities
-
-| # | Type | Summary | Priority |
-|---|------|---------|----------|
-| D206 | GAP | **Live quote lookup — Windshield Hub** — Price range from KB. | HIGH |
-| D200 | GAP | **Appointment reminder SMS** — Day-before cron. | HIGH |
-| D199 | GAP | **Real-time call monitoring** — Twilio Conference. | MEDIUM |
-| D201 | GAP | **CRM push webhook** — Structured lead data to HubSpot/Zapier. | MEDIUM |
-| D203 | GAP | **Agent performance analytics** — Info capture %, hang-up rate, avg duration. | MEDIUM |
-| D195 | FEATURE | **Knowledge gap digest** — Weekly Telegram summary of unanswered questions. | MEDIUM |
-| D202 | GAP | **Cross-call transcript search** — Full-text on `call_logs.ai_summary`. | LOW |
-| D224 | FEATURE | **Call history CSV export** — Low effort. | LOW |
-
-### Low Priority / Deferred
+### Phase 7 — "2-Minute Agent" (Onboarding Excellence)
+> **Goal:** New client → working agent in 2 minutes. Phase 6 built the compose pipeline. Phase 7 makes onboarding leverage it.
+> **When:** Immediately after Phase 6. This is the growth unlock.
+> **Dependency:** Phase 6 (recomposePrompt, variable API, Agent Brain)
 
 | # | Summary | Priority |
 |---|---------|----------|
-| D56 | Transfer recovery smoke test (manual) | MEDIUM |
-| D34 | Call sentiment deep metrics | MEDIUM |
-| D39 | Demo GA4 events | MEDIUM |
-| D40 | Demo follow-up email (BLOCKED on domain) | MEDIUM |
-| D176 | GBP hours 24h→12h format conversion | LOW |
-| D177 | GBP website URL strip UTM params | LOW |
-| D179 | HomeSideSheet empty dialog a11y | LOW |
-| D98 | VIP contacts outbound path | LOW |
-| D215 | windshield-hub promptfoo spam test | LOW |
-| D30 | Realtime re-render storms debounce | LOW |
-| D31 | Unbounded state arrays slice | LOW |
-| D41 | Demo-to-Brevo contact sync | LOW |
-| D42 | "Not {name}?" returning demo visitors | LOW |
-| D80 | restaurant mode empty context_data nudge | LOW |
-| STRIPE-PORTAL | Configure Stripe Customer Portal (manual) | LOW |
+| D291 | **GBP auto-import** — business name → Apify → auto-populate everything. Flagship "2-minute agent." | CRITICAL |
+| D293 | **Paste URL → agent ready** — single-step scrape + compose. UX streamlining of existing pipeline. | HIGH |
+| D273 | **Pre-populate from best source** — GBP, website scrape, or manual entry → variable system | HIGH |
+| D255 | **Guided context data entry** — fallback form when no website. Prices, policies, urgency words. | HIGH |
+| D294 | **Post-activation summary** — "Your Agent Is Live" page. Capabilities, knowledge, test CTA. | HIGH |
+| D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH |
+| D242 | **Haiku intent inference for niche='other'** — auto-suggest closest niche + PRIMARY GOAL | MEDIUM |
+| D185 | **Mode-first onboarding** — skip irrelevant steps per mode (voicemail vs receptionist vs booking) | MEDIUM |
+| D304 | **Old-client prompt migration** — add section markers to 4 live clients. Do after Phase 6 proven. | MEDIUM |
+
+---
+
+### Phase 8 — Dashboard Polish + Post-Call ROI
+> **Goal:** Make the product feel complete. Convert calls into callbacks.
+> **When:** Can run in parallel with Phase 7 — no dependencies between them.
+> **Dependency:** None (independent features)
+
+| # | Summary | Priority |
+|---|---------|----------|
+| D230 | **Activation smoke test** — Auto WebRTC test after upgrade, Telegram alert on fail | CRITICAL |
+| D219 | **Missed call auto-SMS** — short call + no info → "we missed you" text. 1/phone/24h | HIGH |
+| D220 | **Lead queue / callback tracking** — HOT/WARM sorted, "Mark called back", count badge | HIGH |
+| D229 | **"Call back now" button** — HOT/WARM row → owner's phone rings → agent bridge | HIGH |
+| D189 | **Unify trial/paid dashboard** — locked features show preview, not blank | HIGH |
+| D190 | **Feature unlock CTAs** — click → modal with configure/upgrade action | HIGH |
+| D218 | **Minutes usage warning** — banner at 75%/90% of limit | HIGH |
+| D213 | **Per-section prompt editor UI** — full multi-section (D251 shipped triage only) | HIGH |
+| D186 | **Mode capability preview** — 3-tier preview per mode | HIGH |
+| D223 | **Agent health indicator** — `last_agent_sync_status='error'` → amber banner | HIGH |
+| D261 | **Multi-column layout** — 2-3 columns for calls, contacts, readiness, FAQs | HIGH |
+| D262 | **Capability badges → knowledge modal** — click badge → popup showing what agent knows | HIGH |
+| D263 | **Agent readiness → proper deep links** — link to exact settings card | HIGH |
+| D264 | **PDF upload / website / GBP connect CTAs** — prominent on knowledge + overview | HIGH |
+| D193 | **Callback preference question** — "morning or afternoon?" in CLOSING section | HIGH |
+| D266 | **Recent calls parity** — Overview vs Calls page use same component/query | MEDIUM |
+| D267 | **Business hours click** — inline edit or deep-link to Hours card | MEDIUM |
+| D222 | **Trial mid-point nudge** — Day 3-4, no Telegram → nudge banner | MEDIUM |
+| D191 | **Capabilities grid quick-actions** — Inactive → "Set up", Active → "Configure" | MEDIUM |
+| D187 | **Mode-aware capability badges** — labels change per mode | MEDIUM |
+
+---
+
+### Phase 9 — Agent Intelligence Loop
+> **Goal:** Agents get smarter from calls. Close the learning loop.
+> **When:** After Phase 7. Needs call data accumulation from real clients.
+> **Dependency:** Phase 6 (knowledge surface) + real call volume
+
+| # | Summary | Priority |
+|---|---------|----------|
+| D243 | **Intent coverage view** — replace badges with intent readiness gaps | HIGH |
+| D244 | **Knowledge gap → triage improvement** — 3+ unanswered → suggest FAQ or intent route | HIGH |
+| D270 | **Frequent KB query → auto-suggest FAQ** — 3+ same queries → promote to FAQ. Extends D252. | HIGH |
+| D279 | **Niche-contextual knowledge editing** — per-niche knowledge schema determines UI categories | HIGH |
+| D284 | **Self-improving agent loop** — calls teach the agent. Extends D252+D270+D257. | HIGH |
+| D297 | **Agent learning loop UX** — "your agent learned X this week" approve/edit/dismiss | HIGH |
+| D195 | **Knowledge gap digest** — weekly Telegram summary of unanswered questions | MEDIUM |
+| D203 | **Agent performance analytics** — info capture %, hang-up rate, avg duration | MEDIUM |
+
+---
+
+### Phase 10 — Platform Moat
+> **Goal:** System-level intelligence. Each client makes every other client better.
+> **When:** After 10+ clients per niche.
+
+| # | Summary | Priority |
+|---|---------|----------|
+| D298 | **AI Compiler as universal knowledge refinery** — single gateway for all 7 input sources | CRITICAL |
+| D299 | **Collective niche intelligence** — 5th dentist gets battle-tested defaults from first 4 | HIGH |
+| D295 | **Multi-source knowledge ingestion** — multiple websites, PDF upload, GBP connect from dashboard | HIGH |
+| D271 | **PDF/pricing sheet upload → KB** — upload CTA + extract + embed into pgvector | HIGH |
+| D206 | **Live quote lookup (Windshield Hub)** — price range from knowledge base | HIGH |
+| D201 | **CRM push webhook** — structured lead data to HubSpot/Zapier | MEDIUM |
+| D200 | **Appointment reminder SMS** — day-before cron | MEDIUM |
+| D202 | **Cross-call transcript search** — full-text on `call_logs.ai_summary` | LOW |
+| D224 | **Call history CSV export** — low effort | LOW |
+
+---
+
+### Wiring + Gaps (do alongside any phase)
+
+| # | Summary | Priority |
+|---|---------|----------|
+| D225 | `/api/dashboard/telegram-link` → Telegram setup card | MEDIUM |
+| D226 | `/api/onboard/parse-services` → onboarding service input | MEDIUM |
+| D227 | `knowledge/conflicts` + `docs` + `preview-question` → Knowledge page | MEDIUM |
+| D171 | Wow-first template update — OPENING + TRIAGE still passive | MEDIUM |
+| D170 | Inbound SMS reply visibility — replies silently dropped | MEDIUM |
+| D172 | Forwarding confirmation — no in-app signal it worked | MEDIUM |
+| D175 | Calls page empty state — CTA to forwarding guide | LOW |
+
+### BLOCKED on domain purchase (GATE-1)
+
+| # | Summary |
+|---|---------|
+| D174 | Email notifications — wire after domain |
+| D124 | QWERTY123 default password — needs email platform |
+| D40 | Demo follow-up email |
+| D208 | Feature-to-tier messaging — pricing page, billing card |
+| D212 | Upgrade CTA copy — product tier names |
+
+### Low Priority / Deferred
+
+| # | Summary |
+|---|---------|
+| D56 | Transfer recovery smoke test (manual) |
+| D34 | Call sentiment deep metrics |
+| D39 | Demo GA4 events |
+| D176/D177 | GBP format fixes (hours 24h→12h, UTM strip) |
+| D179 | HomeSideSheet empty dialog a11y |
+| D98 | VIP contacts outbound path |
+| D215 | windshield-hub promptfoo spam test |
+| D30/D31 | Realtime re-render storms + unbounded state arrays |
+| D41/D42 | Demo-to-Brevo sync + "Not {name}?" |
+| D80 | Restaurant mode empty context_data nudge |
+| D199 | Real-time call monitoring — Twilio Conference |
+| D209/D210 | Minute allocation audit + post-call SMS plan assignment |
+| STRIPE-PORTAL | Configure Stripe Customer Portal (manual) |
 
 ### Slice 8 Intelligence UX (all LOW, not started)
 8e Prompt-Aware Suggestions · 8f Change Impact Preview · 8i Settings Search/Filter · 8j Intent Confidence · 8k Cost-Per-Call Widget · 8l A/B Prompt Testing · 8n Conversation Flow Viz · 8p Prompt Coherence Guard · 8q Live Call Duration Timer

@@ -3,6 +3,7 @@ type: moc
 tags: [index, project]
 updated: 2026-03-31
 cleaned: 2026-03-31
+last-tracker-cleanup: 2026-03-31
 ---
 
 # unmissed.ai — Project Knowledge Graph
@@ -26,7 +27,7 @@ cleaned: 2026-03-31
 - [[Architecture/Mode Architecture]] — call_handling_mode, D180 bug, PRIMARY GOAL fix
 - [[Architecture/Prompt Generation]] — buildPromptFromIntake(), template structure, deploy paths
 - [[Architecture/Prompt Sandwich Spec]] — 19 named slots, char budgets, section order (Phase 1 output)
-- [[Architecture/Prompt Slots]] — Phase 2→4: 19 slot functions LIVE. Phase 3: pgvector-first KB, conditional pricing, D296 fix. Phase 4: service catalog sync (D260), owner_name patcher (D281), business_name contract fix (D282), FILTER_EXTRA+3 bug fix. 448 tests pass.
+- [[Architecture/Prompt Slots]] — Phase 2→5: 19 slot functions LIVE. Phase 3: pgvector-first KB, conditional pricing, D296 fix. Phase 4: service catalog sync (D260), owner_name patcher (D281), business_name contract fix (D282). Phase 5: variable registry (39 vars), slot regenerator, service KB reseed (D300). 456 tests pass.
 
 ## Features
 - [[Features/Booking]] — calendar auth, patchCalendarBlock, plan gating
@@ -76,7 +77,7 @@ See [[Decisions/Prompt Sandwich Ownership Model]] for full philosophy.
 | 2 — Named Slots | **DONE ✅** | 19 slot functions, shadow tests, 191 tests, UI audit |
 | 3 — Shrink+Clean | **DONE ✅** | Slot composition live, pgvector-first KB, conditional pricing, 406 tests |
 | 4 — Gap Wiring | **DONE ✅** | Service sync (D260), owner name (D281), business name (D282), 448 tests |
-| 5 — Agent Knowledge UX | NOT STARTED | Variable registry, section regen (D283a/b/c), D286, D288, D290, D300 |
+| 5 — Agent Knowledge UX | **DONE ✅** | Variable registry (39 vars), slot regenerator, service KB reseed, 456 tests |
 | 6 — North Star | NOT STARTED | Full recomposePrompt(), Agent Brain, no raw editor |
 
 ### Key D-items for this vision
@@ -89,9 +90,9 @@ See [[Decisions/Prompt Sandwich Ownership Model]] for full philosophy.
 - [[Tracker/D260]] — Service catalog → agent sync ✅ DONE (Phase 4)
 - [[Tracker/D281]] — Owner name (CLOSE_PERSON) editable ✅ DONE (Phase 4)
 - [[Tracker/D282]] — Business name change → auto-patch prompt ✅ DONE (Phase 4)
-- [[Tracker/D283]] — All prompt variables visible + editable 🔴 (split: D283a/b/c)
-- [[Tracker/D286]] — Dashboard + onboarding UI alignment 🔴
-- [[Tracker/D300]] — Service catalog knowledge reseed (NEW — extends D260) 🔴
+- [[Tracker/D283]] — All prompt variables visible + editable ✅ backend (D283a/c done, D283b UI deferred)
+- [[Tracker/D300]] — Service catalog knowledge reseed ✅ DONE (Phase 5)
+- [[Tracker/D286]] — Dashboard + onboarding UI alignment 🔴 (deferred to UI wave)
 - [[Tracker/D280]] — UI-driven prompt composition (end state) 🔴
 - [[Tracker/D278]] — "Agent Brain" dashboard 🔴
 - [[Tracker/D279]] — Niche-contextual knowledge editing
@@ -105,44 +106,75 @@ See [[Decisions/Prompt Sandwich Ownership Model]] for full philosophy.
 - Char baselines: `CALLINGAGENTS/00-Inbox/Phase1-Char-Count-Baselines.md`
 - Sonar research: `CALLINGAGENTS/00-Inbox/Research-Phase1-Prompt-Architecture.md`
 
-## Open Tracker (priority order)
+## Open Tracker
 
-### 🔴 Root Fix — Agent Quality
-- [[Tracker/D260]] — ✅ Service catalog → agent sync DONE (Phase 4). Gap: KB reseed → D300
-- [[Tracker/D300]] — Service catalog knowledge reseed (pgvector gap from D260) 🔴
-- [[Tracker/D265]] — Remove hardcoded PRODUCT KNOWLEDGE BASE from prompt-builder 🔴
-- [[Tracker/D243]] — Intent coverage view (replace badges with readiness gaps)
-- [[Tracker/D242]] — Onboarding "top 3 reasons" question
-- [[Tracker/D244]] — Knowledge gap → triage improvement pipeline
+### Phase 6 — North Star (NEXT)
+**Wave 1 — Backend** (no UI skill needed):
+1. [[Tracker/D302]] — ✅ Preserve niche intake fields (DONE 2026-03-31) — 461 tests pass
+2. [[Tracker/D280]] — `recomposePrompt()` (pure lib, calls all 19 slots) 🔴 CRITICAL
+3. [[Tracker/D303]] — Variable edit API (`PATCH /api/dashboard/variables`)
+4. [[Tracker/D305]] — Dry-run/preview mode in regenerator (returns diff, no save)
 
-### Recently Completed (2026-03-31)
-- [[Tracker/D235]] — ✅ Knowledge reseed gate removal (already fixed in SCRAPE7)
-- [[Tracker/D285]] — ✅ Prompt sandwich framework spec (19 slots)
-- [[Tracker/D246]] — ✅ Haiku context data extractor
-- [[Tracker/D247]] — ✅ 6 onboarding questions → Haiku → TRIAGE_DEEP
-- [[Tracker/D248]] — ✅ Telegram HOT/WARM/INFO action cards
-- [[Tracker/D249]] — ✅ Agent readiness gate (6 dimensions)
-- [[Tracker/D250]] — ✅ ROI card
-- [[Tracker/D251]] — ✅ Per-section prompt editor
-- [[Tracker/D252]] — ✅ Knowledge gap → one-click fix CTA
-- [[Tracker/D253]] — ✅ Working patterns extracted from 4 live agents
-- [[Tracker/D254]] — ✅ CallRoutingCard
-- [[Tracker/D257]] — ✅ AI-Assisted Prompt Suggestions Feed
-- [[Tracker/D258]] — ✅ Urgency signals onboarding field
-- [[Tracker/D259]] — ✅ Price range onboarding field
-- [[Tracker/D275]] — ✅ Voice preset personality fix
+**Wave 2 — UI Design** (all must pass `/ui-ux-pro-max` before done):
+- [[Tracker/D278]] — Agent Brain dashboard page (flagship UX)
+- [[Tracker/D283]] — PromptVariablesCard (D283b — read-only variable display)
+- [[Tracker/D305]] — Diff preview UI (current vs proposed) — frontend
+- [[Tracker/D288]] — Capability preview card
+- [[Tracker/D290]] — "What Your Agent Knows" surface
+- [[Tracker/D286]] — Dashboard settings reorganization
 
-### Investigations
-- ~~[[Tracker/D277]]~~ — Lag root cause (plumber-calgary-nw) — REMOVED: architecture fix solves it
+Also Phase 6:
 - [[Tracker/D276]] — Calendar/booking auto-updates call flow
-- [[Tracker/D284]] — Self-improving agent loop (architectural)
-- [[Tracker/D233]] — CRON_SECRET verify in Railway ⚠️ ops
+- [[Tracker/D287]] — Niche-adaptive onboarding (chips, checkboxes)
+- [[Tracker/D289]] — Services input UX (structured chips)
+- [[Tracker/D301]] — 29 locked variables post-onboarding
+- [[Tracker/D304]] — Old-client prompt migration (add section markers to 4 live clients)
 
-### Dashboard UX
-- [[Tracker/D189]] — Unify trial/paid dashboard
+### Phase 7 — "2-Minute Agent" (after Phase 6)
+> Onboarding leverages the compose pipeline. No waiting — unlocks immediately.
+- [[Tracker/D291]] — GBP auto-import (CRITICAL — flagship)
+- [[Tracker/D293]] — Paste URL → agent ready
+- [[Tracker/D273]] — Pre-populate from best source
+- [[Tracker/D255]] — Guided context data entry
+- [[Tracker/D294]] — Post-activation summary
+- [[Tracker/D292]] — Guided call forwarding wizard
+- [[Tracker/D242]] — Haiku intent inference for niche='other'
+- [[Tracker/D185]] — Mode-first onboarding
+- [[Tracker/D304]] — Old-client prompt migration
+
+### Phase 8 — Dashboard Polish + Post-Call ROI (parallel with Ph7)
+> Independent features. Can interleave with Phase 7.
+- [[Tracker/D230]] — Activation smoke test (CRITICAL)
 - [[Tracker/D219]] — Missed call auto-SMS
 - [[Tracker/D220]] — Lead queue / callback tracking
 - [[Tracker/D229]] — "Call back now" button
+- [[Tracker/D189]] — Unify trial/paid dashboard
+- [[Tracker/D190]] — Feature unlock CTAs
+- [[Tracker/D213]] — Per-section prompt editor (full)
+- [[Tracker/D186]] — Mode capability preview
+- [[Tracker/D218]] — Minutes usage warning
+- [[Tracker/D261]]-[[Tracker/D264]] — Dashboard UX batch
+
+### Phase 9 — Agent Intelligence (needs call data)
+> Close the learning loop. Needs real call volume from active clients.
+- [[Tracker/D243]] — Intent coverage view
+- [[Tracker/D244]] — Knowledge gap → triage improvement
+- [[Tracker/D279]] — Niche-contextual knowledge editing
+- [[Tracker/D284]] — Self-improving agent loop
+- [[Tracker/D297]] — Agent learning loop UX
+
+### Phase 10 — Platform Moat (10+ clients per niche)
+- [[Tracker/D298]] — AI Compiler as universal refinery
+- [[Tracker/D299]] — Collective niche intelligence
+- [[Tracker/D295]] — Multi-source knowledge ingestion
+- [[Tracker/D206]] — Live quote lookup (Windshield Hub)
+
+### Completed (26 items)
+Phase 1-3: D235 D285 D274 D265 D268 D269 D272 D296 — all ✅
+Phase 4: D260 D281 D282 — all ✅
+Phase 5: D283 (backend) D300 D302 — all ✅
+Root Fix wave: D233 D241 D245 D247 D249 D251 D252 D254 D257 D275 — all ✅
+Removed: ~~D240~~ · ~~D277~~ · ~~D228~~
 
 ## Decisions Log
 - [[Decisions/n8n Retirement]] — why n8n was retired Mar 2026
@@ -169,26 +201,13 @@ Visitor → /api/demo/start → createDemoCall() → WebRTC browser ↔ Zara (un
 
 ---
 
-### Post-Phase 6 — Product Excellence
-- [[Tracker/D291]] — GBP auto-import onboarding (CRITICAL)
-- [[Tracker/D292]] — Guided call forwarding wizard (HIGH)
-- [[Tracker/D293]] — "Paste URL → agent ready" streamlined flow (HIGH)
-- [[Tracker/D294]] — Post-activation "Your Agent Is Live" summary (HIGH)
-- [[Tracker/D295]] — Audio preview of knowledge in action (MEDIUM)
-- [[Tracker/D296]] — Agent health score dashboard (HIGH)
-- [[Tracker/D297]] — Learning loop UX (MEDIUM)
-- [[Tracker/D298]] — AI Compiler as universal knowledge gateway (MEDIUM)
-- [[Tracker/D299]] — Collective niche intelligence (MEDIUM)
-
----
-
 ## Live Queries (Dataview)
 
 ### Open Tracker Items
 ```dataview
-TABLE priority, affects-clients
+TABLE priority, status
 FROM "Tracker"
-WHERE status = "open"
+WHERE status != "done" AND status != "removed"
 SORT priority DESC
 ```
 

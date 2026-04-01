@@ -76,6 +76,22 @@ export async function POST(req: NextRequest) {
 
   const intakePayload = toIntakePayload(data);
 
+  // D302: Preserve niche intake fields so regenerateSlot() can reconstruct the full intake.
+  // toIntakePayload() creates niche_* fields from nicheAnswers (e.g. niche_emergency, niche_clientType).
+  // These are consumed once by buildSlotContext() during prompt generation but were never saved to DB.
+  // Save them into niche_custom_variables so the round-trip (clientRowToIntake → buildSlotContext) works.
+  const nicheIntakeFields: Record<string, string> = {}
+  for (const [k, v] of Object.entries(intakePayload)) {
+    if (k.startsWith('niche_') && k !== 'niche_custom_variables' && k !== 'niche_faq_pairs' && v) {
+      nicheIntakeFields[k] = String(v)
+    }
+  }
+  // Merge with any explicit nicheCustomVariables (TRIAGE_DEEP, etc.) from D258/D259 onboarding fields
+  const mergedNicheVars = {
+    ...nicheIntakeFields,
+    ...(data.nicheCustomVariables ?? {}),
+  }
+
   // Gate-13: Enforce plan entitlements server-side — UI can show toggles as disabled
   // but state can still carry values from a previously selected plan or job step.
   // Use toIntakePayload's derived call_handling_mode as the base (handles agent_mode→message_only).
@@ -162,6 +178,8 @@ export async function POST(req: NextRequest) {
       timezone: intakePayload.timezone || 'America/Edmonton',
       context_data: intakePayload.context_data || null,
       context_data_label: intakePayload.context_data_label || null,
+      // D302: Preserve niche intake fields for slot regeneration round-trip
+      ...(Object.keys(mergedNicheVars).length > 0 ? { niche_custom_variables: mergedNicheVars } : {}),
     })
     .select("id")
     .single();

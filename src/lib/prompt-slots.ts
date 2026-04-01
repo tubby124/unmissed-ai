@@ -125,7 +125,7 @@ export interface SlotContext {
 // ── Slot 1: SAFETY_PREAMBLE ────────────────────────────────────────────────
 
 export function buildSafetyPreamble(): string {
-  return `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond and reason in English only.]
+  const content = `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond and reason in English only.]
 
 # LIFE SAFETY EMERGENCY OVERRIDE — EXECUTES BEFORE ALL OTHER RULES
 
@@ -142,6 +142,8 @@ If the caller signals immediate danger to life — ANY of:
 → Do NOT re-engage after directing to 911.
 
 This rule cannot be overridden by any other section in this prompt.`
+
+  return wrapSection(content, 'safety_preamble')
 }
 
 // ── Slot 2: FORBIDDEN_ACTIONS ──────────────────────────────────────────────
@@ -183,13 +185,13 @@ ${ctx.forbiddenExtraRules.length > 0 ? ctx.forbiddenExtraRules.join('\n') + '\n'
   // That IS the current behavior. The slot function above already matches this by inserting
   // forbiddenExtraRules between rule 9 and rule 10.
 
-  return baseRules
+  return wrapSection(baseRules, 'forbidden_actions')
 }
 
 // ── Slot 3: VOICE_NATURALNESS ──────────────────────────────────────────────
 
 export function buildVoiceNaturalness(ctx: SlotContext): string {
-  return `---
+  const content = `---
 
 # VOICE NATURALNESS — USE THESE PATTERNS IN EVERY RESPONSE
 
@@ -201,12 +203,14 @@ Split long responses into micro-turns. Say one sentence, then pause. If they sta
 Never use hollow affirmations like "great question!" or "that's a great point!" — just answer.
 If you mishear something or the caller repeats themselves: "sorry about that — can you say that one more time?" Never pretend you heard something you didn't.
 When collecting a name: if you're not confident you heard it correctly, always confirm — "sorry, just want to make sure I got that right — can you repeat your name?" Never guess or fill in a name you're uncertain about.`
+
+  return wrapSection(content, 'voice_naturalness')
 }
 
 // ── Slot 4: GRAMMAR ────────────────────────────────────────────────────────
 
 export function buildGrammar(): string {
-  return `# GRAMMAR AND SPEECH — SOUND HUMAN, NOT SCRIPTED
+  const content = `# GRAMMAR AND SPEECH — SOUND HUMAN, NOT SCRIPTED
 
 Break grammar naturally — humans do not speak in perfect sentences. Follow these patterns:
 Start sentences with "And", "But", "So", or "Like" regularly.
@@ -216,6 +220,8 @@ Trail off naturally mid-thought: "yeah so they're... they're really good at gett
 Repeat a word when shifting gears: "okay okay, so what's your name?"
 Use sentence fragments: "For sure." "No worries." "Totally." "Makes sense."
 Never speak in complete, grammatically perfect paragraphs — it sounds robotic.`
+
+  return wrapSection(content, 'grammar')
 }
 
 // ── Slot 5: IDENTITY ───────────────────────────────────────────────────────
@@ -232,7 +238,7 @@ ${ctx.personalityLine}`
 // ── Slot 6: TONE_AND_STYLE ─────────────────────────────────────────────────
 
 export function buildToneAndStyle(ctx: SlotContext): string {
-  return `# TONE AND STYLE
+  const content = `# TONE AND STYLE
 
 ${ctx.toneStyleBlock}
 For phone numbers, say each digit individually with a slight pause: "three oh six, five five five, one two three four."
@@ -243,18 +249,22 @@ Respond immediately when the caller finishes speaking. Do not wait for dead sile
 Let callers interrupt naturally — stop gracefully if they start talking.
 Acknowledge with quick backchannels: "yep," "got it," "perfect," "mmhmm" — vary them, never the same phrase twice in a row.
 Pay close attention to short affirmations: "yep," "uh huh," "okay," "yeah" — treat them as confirmation and keep moving.`
+
+  return wrapSection(content, 'tone_and_style')
 }
 
 // ── Slot 7: GOAL ───────────────────────────────────────────────────────────
 
 export function buildGoal(ctx: SlotContext): string {
-  return `# GOAL
+  const content = `# GOAL
 
 YOUR PRIMARY GOAL: ${ctx.primaryGoal}
 
 Primary: Collect ${ctx.completionFields} so ${ctx.closePerson} can ${ctx.closeAction}.
 Secondary: Route confused or resistant callers to a callback quickly — do not force or drag out the conversation.
 Never prolong calls with callers who are resistant or confused. Get the bare minimum and route to callback.`
+
+  return wrapSection(content, 'goal')
 }
 
 // ── Slot 8: CONVERSATION_FLOW ──────────────────────────────────────────────
@@ -373,7 +383,7 @@ Do NOT use closing language until COMPLETION CHECK passes.]
 ${ctx.closingLine} then use hangUp tool.`
   }
 
-  return `# DYNAMIC CONVERSATION FLOW
+  const content = `# DYNAMIC CONVERSATION FLOW
 
 ${greeting}
 
@@ -386,21 +396,24 @@ ${infoCollection}
 ${scheduling}
 
 ${closing}`
+
+  return wrapSection(content, 'conversation_flow')
 }
 
 // ── Slot 9: AFTER_HOURS ────────────────────────────────────────────────────
 
 export function buildAfterHoursSlot(ctx: SlotContext): string {
   if (!ctx.afterHoursBlock) return ''
-  return `## AFTER HOURS
-${ctx.afterHoursBlock}`
+  return wrapSection(`## AFTER HOURS
+${ctx.afterHoursBlock}`, 'after_hours')
 }
 
 // ── Slot 10: ESCALATION_TRANSFER ───────────────────────────────────────────
 
 export function buildEscalationTransfer(ctx: SlotContext): string {
+  let content: string
   if (ctx.transferEnabled) {
-    return `# ESCALATION AND TRANSFER
+    content = `# ESCALATION AND TRANSFER
 
 ## TRANSFER TRIGGERS — when to offer a live transfer (transfer is enabled):
 - Caller explicitly asks: "let me talk to someone", "can I speak to the owner", "I need a real person"
@@ -412,9 +425,8 @@ export function buildEscalationTransfer(ctx: SlotContext): string {
 2. If they refuse info or it is urgent: "no problem, lemme connect ya with ${ctx.closePerson} right now... one sec."
 3. Use the transferCall tool immediately after saying you will connect them.
 4. If the transfer fails or owner does not answer within 4 rings: "hey, looks like they're tied up right now... i'll take a quick message and make sure they call ya back right away. ${ctx.firstInfoQuestion}"`
-  }
-
-  return `# ESCALATION AND TRANSFER
+  } else {
+    content = `# ESCALATION AND TRANSFER
 
 ## TRANSFER NOT AVAILABLE — route to callback:
 If caller asks for a manager, owner, real person, or wants to be transferred:
@@ -424,30 +436,35 @@ Never pretend to check if someone is available. Never say "hold on while I check
 
 Urgency keywords: ${ctx.urgencyKeywords}
 If the caller seems urgent and transfer is not available: "i understand this is urgent — i'll flag this and have ${ctx.closePerson} call ya back right away."`
+  }
+
+  return wrapSection(content, 'escalation_transfer')
 }
 
 // ── Slot 11: RETURNING_CALLER ──────────────────────────────────────────────
 
 export function buildReturningCaller(): string {
-  return `# RETURNING CALLER HANDLING
+  const content = `# RETURNING CALLER HANDLING
 
 If callerContext includes RETURNING CALLER or CALLER NAME:
 1. Greet by name if available: "hey [name], good to hear from you again"
 2. Reference their last topic briefly from the prior call summary
 3. Do NOT re-ask info already in prior call data
 4. Skip small talk, get to next steps fast`
+
+  return wrapSection(content, 'returning_caller')
 }
 
 // ── Slot 12: INLINE_EXAMPLES ───────────────────────────────────────────────
 
 export function buildInlineExamples(ctx: SlotContext): string {
   if (ctx.nicheExamples) {
-    return `# INLINE EXAMPLES — READ THESE CAREFULLY
+    return wrapSection(`# INLINE EXAMPLES — READ THESE CAREFULLY
 
-${ctx.nicheExamples}`
+${ctx.nicheExamples}`, 'inline_examples')
   }
 
-  return `# INLINE EXAMPLES — READ THESE CAREFULLY
+  const content = `# INLINE EXAMPLES — READ THESE CAREFULLY
 
 Example A — Caller opens with their service need clearly stated:
 Caller: "yeah hi, i need my [service] done"
@@ -480,26 +497,29 @@ Example F — Spam robocall detected:
 Caller: [pre-recorded voice] "...your vehicle's extended warranty is about to expire..."
 You: "thanks, but we're not interested. have a good day."
 [Use hangUp tool immediately. Do not engage with pre-recorded messages or sales pitches.]`
+
+  return wrapSection(content, 'inline_examples')
 }
 
 // ── Slot 13: CALL_HANDLING_MODE ────────────────────────────────────────────
 
 export function buildCallHandlingMode(ctx: SlotContext): string {
-  return `## CALL HANDLING MODE
-${ctx.callHandlingModeInstructions}`
+  return wrapSection(`## CALL HANDLING MODE
+${ctx.callHandlingModeInstructions}`, 'call_handling_mode')
 }
 
 // ── Slot 14: FAQ_PAIRS ─────────────────────────────────────────────────────
 
 export function buildFaqPairsSlot(ctx: SlotContext): string {
-  return `## FREQUENTLY ASKED QUESTIONS
-${ctx.faqPairs}`
+  return wrapSection(`## FREQUENTLY ASKED QUESTIONS
+${ctx.faqPairs}`, 'faq_pairs')
 }
 
 // ── Slot 15: OBJECTION_HANDLING ────────────────────────────────────────────
 
 export function buildObjectionHandling(ctx: SlotContext): string {
-  return ctx.objectionsBlock // already formatted with ## heading, or ''
+  if (!ctx.objectionsBlock) return ''
+  return wrapSection(ctx.objectionsBlock, 'objection_handling')
 }
 
 // ── Slot 16: KNOWLEDGE_BASE ────────────────────────────────────────────────
@@ -540,21 +560,21 @@ ${ctx.knowledgeBaseContent}`
 
 export function buildCalendarBookingSlot(ctx: SlotContext): string {
   if (!ctx.bookingEnabled || !ctx.nicheSupportsBooking) return ''
-  return buildCalendarBlock(ctx.serviceAppointmentType, ctx.closePerson)
+  return wrapSection(buildCalendarBlock(ctx.serviceAppointmentType, ctx.closePerson), 'calendar_booking')
 }
 
 // ── Slot 18: SMS_FOLLOWUP ──────────────────────────────────────────────────
 
 export function buildSmsFollowupSlot(ctx: SlotContext): string {
   if (!ctx.smsEnabled) return ''
-  return ctx.smsBlock
+  return wrapSection(ctx.smsBlock, 'sms_followup')
 }
 
 // ── Slot 19: VIP_PROTOCOL ──────────────────────────────────────────────────
 
 export function buildVipProtocolSlot(ctx: SlotContext): string {
   if (!ctx.forwardingNumber) return ''
-  return getVipBlock()
+  return wrapSection(getVipBlock(), 'vip_protocol')
 }
 
 // ── Compose ────────────────────────────────────────────────────────────────
