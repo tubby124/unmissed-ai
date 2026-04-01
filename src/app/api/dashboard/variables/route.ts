@@ -1,7 +1,11 @@
 /**
- * D303: Variable Edit API — PATCH /api/dashboard/variables
+ * D303: Variable Edit API — GET + PATCH /api/dashboard/variables
  *
- * Allows editing prompt variables post-onboarding. Routes each variable to
+ * GET — Returns resolved variable values for the authenticated client.
+ *   Combines: niche defaults → niche_custom_variables → DB column overrides.
+ *   Used by PromptVariablesCard to show current values.
+ *
+ * PATCH — Allows editing prompt variables post-onboarding. Routes each variable to
  * the correct storage location (DB column or niche_custom_variables JSONB)
  * using the prompt-variable-registry, then regenerates only the affected slots.
  *
@@ -11,9 +15,76 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { getVariable, getSlotsAffectedByDbField } from '@/lib/prompt-variable-registry'
+import {
+  getVariable,
+  getSlotsAffectedByDbField,
+  PROMPT_VARIABLE_REGISTRY,
+  type PromptVariable,
+} from '@/lib/prompt-variable-registry'
 import { regenerateSlots } from '@/lib/slot-regenerator'
+import { clientRowToIntake } from '@/lib/slot-regenerator'
+import { buildSlotContext } from '@/lib/prompt-slots'
 import type { SlotId } from '@/lib/prompt-sections'
+
+// ── GET — Resolve current variable values ─────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .order('role').limit(1).maybeSingle()
+
+  if (!cu) return NextResponse.json({ error: 'No client found' }, { status: 404 })
+
+  // Admin can fetch variables for any client
+  let targetClientId = cu.client_id
+  const qsClientId = req.nextUrl.searchParams.get('client_id')
+  if (cu.role === 'admin' && qsClientId) {
+    targetClientId = qsClientId
+  }
+
+  const svc = createServiceClient()
+  const { data: client, error: clientErr } = await svc
+    .from('clients')
+    .select('*')
+    .eq('id', targetClientId)
+    .single()
+
+  if (clientErr || !client) {
+    return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+  }
+
+  // Get services for intake
+  const { data: services } = await svc
+    .from('client_services')
+    .select('*')
+    .eq('client_id', targetClientId)
+
+  // Get knowledge chunk count
+  const { count: chunkCount } = await svc
+    .from('knowledge_chunks')
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', targetClientId)
+    .eq('status', 'approved')
+
+  const intake = clientRowToIntake(client, services ?? [], chunkCount ?? 0)
+  const ctx = buildSlotContext(intake)
+
+  // Build resolved values from the context's variables map
+  const resolvedVars: Record<string, { value: string; meta: PromptVariable }> = {}
+
+  for (const varDef of PROMPT_VARIABLE_REGISTRY) {
+    const value = ctx.variables[varDef.key] ?? ''
+    resolvedVars[varDef.key] = { value, meta: varDef }
+  }
+
+  return NextResponse.json({ variables: resolvedVars })
+}
 
 export async function PATCH(req: NextRequest) {
   // 1 — Auth
@@ -28,7 +99,6 @@ export async function PATCH(req: NextRequest) {
     .order('role').limit(1).maybeSingle()
 
   if (!cu) return NextResponse.json({ error: 'No client found' }, { status: 404 })
-  const clientId = cu.client_id
 
   // 2 — Parse body
   const body = await req.json().catch(() => null)
@@ -38,6 +108,12 @@ export async function PATCH(req: NextRequest) {
 
   const { variableKey, value } = body as { variableKey: string; value: string }
   const trimmedValue = value.trim()
+
+  // Admin can edit variables for any client
+  let clientId = cu.client_id
+  if (cu.role === 'admin' && typeof body.client_id === 'string') {
+    clientId = body.client_id
+  }
 
   // 3 — Look up variable in registry
   const varDef = getVariable(variableKey)

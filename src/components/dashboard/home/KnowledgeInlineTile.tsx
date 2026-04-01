@@ -586,6 +586,23 @@ export default function KnowledgeInlineTile({
         })}
       </div>
 
+      {/* Upload CTA — always visible at bottom of source list */}
+      <div className="px-5 py-3 border-t b-theme">
+        <Link
+          href="/dashboard/knowledge"
+          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl border border-dashed hover:bg-[var(--color-hover)] transition-colors group"
+          style={{ borderColor: 'var(--color-text-3)' }}
+        >
+          <span className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary-10)' }}>
+            <Plus width={12} height={12} style={{ color: 'var(--color-primary)' }} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold t1 group-hover:opacity-80 transition-opacity">Upload menu, price list, or docs</p>
+            <p className="text-[10px] t3">PDF, TXT, DOCX, CSV, or MD</p>
+          </div>
+        </Link>
+      </div>
+
       {/* Empty state — only if nothing at all */}
       {totalApproved === 0 && !hasGbp && !hasFacts && (
         <div className="px-5 py-6 text-center">

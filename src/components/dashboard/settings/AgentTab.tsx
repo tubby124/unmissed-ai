@@ -31,6 +31,7 @@ import LearningLoopCard from '@/components/dashboard/settings/LearningLoopCard'
 import PromptSuggestionsCard from '@/components/dashboard/settings/PromptSuggestionsCard'
 import ImprovePromptCard from '@/components/dashboard/settings/ImprovePromptCard'
 import PromptEditorCard from '@/components/dashboard/settings/PromptEditorCard'
+import PromptVariablesCard from '@/components/dashboard/settings/PromptVariablesCard'
 import OutboundAgentConfigCard from '@/components/dashboard/OutboundAgentConfigCard'
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
@@ -444,6 +445,15 @@ export default function AgentTab({
       {/* ═══════ KNOWLEDGE ══════════════════════════════════════════ */}
       <div className="col-span-full pt-2">
         <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Knowledge</p>
+      </div>
+
+      {/* D358/D283b — Agent Variables ("lego pieces" for prompt composition) */}
+      <div className="md:col-span-2">
+        <PromptVariablesCard
+          client={client}
+          isAdmin={isAdmin}
+          onPromptChange={handlePromptChange}
+        />
       </div>
 
       <ServicesOfferedCard client={client} clientId={client.id} isAdmin={isAdmin} />
