@@ -81,14 +81,14 @@
 |---|---------|----------|--------|
 | D315 | Niche badge on confirmed GBP card | HIGH | NOT STARTED |
 | D316 | Voice preview cards are fake controls | HIGH | NOT STARTED |
-| D317 | Placeholder examples hardcoded to auto_glass | HIGH | NOT STARTED |
-| D318 | Step 3 bloat — trim to mode selection only | CRITICAL | NOT STARTED |
+| D317 | Placeholder examples hardcoded to auto_glass | HIGH | ✅ 2026-04-03 — REASON_PLACEHOLDERS in step1-gbp.tsx:145, niche-adaptive for all niches |
+| D318 | Step 3 bloat — trim to mode selection only | CRITICAL | ✅ 2026-04-01 — Phase 7 collapsed to 3 steps; mode via plan card in step-plan.tsx |
 | D319 | Simplify voice picker to Male/Female first | MEDIUM | NOT STARTED |
 | D320 | urgencyWords not stored independently | MEDIUM | NOT STARTED |
 | D321 | Step 3 + Step 5 duplicate FAQ collection | HIGH | NOT STARTED |
 | D322 | Loading orb during GBP lookup | MEDIUM | NOT STARTED |
 
-**Total D-items closed:** 30 of ~40 (D235 ✅ D285 ✅ D274 ✅ D265 ✅ D269 ✅ D272 ✅ D268 ✅ D296 ✅ D260 ✅ D281 ✅ D282 ✅ D283a ✅ D283c ✅ D300 ✅ D302 ✅ D280 ✅ D303 ✅ D305-be ✅ D276 ✅ D233 ✅ D241 ✅ D245 ✅ D247 ✅ D249 ✅ D251 ✅ D252 ✅ D254 ✅ D257 ✅ D275 ✅ + D283 partial-done + removed: D240 D277 D228)
+**Total D-items closed:** 35+ (D235 ✅ D285 ✅ D274 ✅ D265 ✅ D269 ✅ D272 ✅ D268 ✅ D296 ✅ D260 ✅ D281 ✅ D282 ✅ D283a ✅ D283c ✅ D300 ✅ D302 ✅ D280 ✅ D303 ✅ D305-be ✅ D276 ✅ D233 ✅ D241 ✅ D245 ✅ D247 ✅ D249 ✅ D251 ✅ D252 ✅ D254 ✅ D257 ✅ D275 ✅ D283b/D358 ✅ D317 ✅ D318 ✅ D368 ✅ D180 ✅ + D283 partial-done + removed: D240 D277 D228)
 **Completed phases archived:** `docs/architecture/prompt-architecture-completed-phases.md`
 **Carry-forward findings:** see execution plan Phase 1+2 summary section
 
@@ -219,6 +219,9 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 
 | # | Summary | Priority |
 |---|---------|----------|
+| D368 | **Retrieval instruction fails with zero inline facts** — ✅ 2026-04-03 — `hasInlineFacts` param added; empty-facts path now reads "use queryKnowledge for ALL questions" | HIGH |
+| D180 | **message_only TRIAGE override** — ✅ 2026-04-03 — guard in `buildConversationFlow()` skips TRIAGE entirely for message_only/voicemail_replacement modes | HIGH |
+| D369 | **Legacy prompt banner on dashboard** — amber warning for old-style prompts without section markers. Banner added in SettingsView.tsx (2026-04-01). Full migration = D304. | HIGH |
 | D225 | `/api/dashboard/telegram-link` → Telegram setup card | MEDIUM |
 | D226 | `/api/onboard/parse-services` → onboarding service input | MEDIUM |
 | D227 | `knowledge/conflicts` + `docs` + `preview-question` → Knowledge page | MEDIUM |

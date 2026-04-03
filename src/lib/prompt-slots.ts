@@ -272,6 +272,26 @@ Never prolong calls with callers who are resistant or confused. Get the bare min
 export function buildConversationFlow(ctx: SlotContext): string {
   // This is the biggest slot — internalizes greeting, filter, triage, info, scheduling, closing
 
+  // D180: For message_only mode, skip TRIAGE entirely — the full TRIAGE block at Slot 8
+  // appears before the CALL_HANDLING_MODE override at Slot 13. GLM-4 / Llama treat earlier
+  // instructions as higher priority in long prompts, so TRIAGE was overriding message_only.
+  if (ctx.effectiveMode === 'message_only' || ctx.effectiveMode === 'voicemail_replacement') {
+    const content = `# DYNAMIC CONVERSATION FLOW
+
+## 1. GREETING
+
+${ctx.greetingLine}
+
+## 2. MESSAGE COLLECTION
+
+Collect name, callback number, and reason for calling — one question at a time. That is your complete job.
+
+"What's your name?" → after they answer: "And your best callback number?" → after they answer: "Got it — what's this regarding?"
+
+After collecting all three: "${ctx.closingLine}" then use hangUp tool.`
+    return wrapSection(content, 'conversation_flow')
+  }
+
   // --- Greeting ---
   const greeting = `## 1. GREETING
 

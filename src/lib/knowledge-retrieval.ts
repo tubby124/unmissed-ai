@@ -85,9 +85,11 @@ export function buildRetrievalConfig(
     )
   )
 
-  const knowledgeTruncated = countFullFacts(knowledge) > knowledge.facts.length
+  const fullFactCount = countFullFacts(knowledge)
+  const knowledgeTruncated = fullFactCount > knowledge.facts.length
+  const hasInlineFacts = fullFactCount > 0
 
-  const promptInstruction = enabled ? buildRetrievalInstruction(knowledgeTruncated, backend) : ''
+  const promptInstruction = enabled ? buildRetrievalInstruction(knowledgeTruncated, backend, hasInlineFacts) : ''
 
   return {
     enabled,
@@ -115,13 +117,29 @@ export function countFullFacts(knowledge: KnowledgeSummary): number {
  * Builds the retrieval instruction for injection into the prompt.
  * Scoped strictly to business knowledge — NEVER includes emergency/booking/after-hours/tone rules.
  */
-export function buildRetrievalInstruction(knowledgeTruncated: boolean, backend?: RetrievalBackend): string {
+export function buildRetrievalInstruction(
+  knowledgeTruncated: boolean,
+  backend?: RetrievalBackend,
+  hasInlineFacts: boolean = true,
+): string {
+  // pgvector is now universal — only legacy ultravox backend uses queryCorpus
+  const toolName = backend === 'ultravox' ? 'queryCorpus' : 'queryKnowledge'
+
+  // D368: When no inline facts exist, don't imply facts above are authoritative —
+  // that causes the agent to skip queryKnowledge entirely.
+  if (!hasInlineFacts) {
+    return [
+      '## KNOWLEDGE LOOKUP',
+      `This business has no inline facts configured. Use ${toolName} for ALL business-specific questions.`,
+      `When a caller asks about services, prices, hours, or any business detail, use ${toolName} to search.`,
+      `If ${toolName} returns a relevant result, answer naturally. If no results, tell the caller you will have someone follow up — never guess.`,
+      `Do NOT use ${toolName} for greetings, emergencies, or booking confirmation.`,
+    ].join('\n')
+  }
+
   const truncationNote = knowledgeTruncated
     ? ' The facts above are a summary — more detail is available through search.'
     : ''
-
-  // pgvector is now universal — only legacy ultravox backend uses queryCorpus
-  const toolName = backend === 'ultravox' ? 'queryCorpus' : 'queryKnowledge'
 
   return [
     '## KNOWLEDGE LOOKUP',
