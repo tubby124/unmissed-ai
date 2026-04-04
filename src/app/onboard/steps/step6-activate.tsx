@@ -389,14 +389,16 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             <option value="both">Telegram + Email</option>
           </select>
 
-          {/* Telegram not-yet-connected warning — always shown since connection happens post-activation */}
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2 mt-1">
-            <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
-            <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-              Telegram not connected — you won&apos;t receive lead notifications until you connect it.
-              Connect it in Settings after going live.
-            </p>
-          </div>
+          {/* Telegram not-yet-connected warning — only shown when telegram is selected */}
+          {['telegram', 'both'].includes(data.notificationMethod || 'email') && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2 mt-1">
+              <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+                Telegram not connected — you won&apos;t receive lead notifications until you connect it.
+                Connect it in Settings after going live.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

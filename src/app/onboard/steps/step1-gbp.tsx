@@ -560,6 +560,25 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               <p className="text-xs text-muted-foreground">What your agent introduces itself as on calls.</p>
             </motion.div>
 
+            {/* Website URL — shown when GBP had no website; helps train agent */}
+            {!data.websiteUrl && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.16 }}
+                className="space-y-1.5"
+              >
+                <Label htmlFor="websiteUrl">Website <span className="text-xs text-muted-foreground font-normal">(helps train your agent)</span></Label>
+                <Input
+                  id="websiteUrl"
+                  type="url"
+                  value={data.websiteUrl || ''}
+                  onChange={(e) => onUpdate({ websiteUrl: e.target.value })}
+                  placeholder="https://yourbusiness.com"
+                />
+              </motion.div>
+            )}
+
           </motion.div>
         )}
       </AnimatePresence>
