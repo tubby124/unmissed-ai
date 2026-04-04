@@ -33,6 +33,7 @@ interface AgentIntelligenceRequest {
   websiteQa?: { q: string; a: string }[]
   ownerName?: string
   selectedPlan?: string
+  calendarEnabled?: boolean
 }
 
 interface AgentIntelligenceSeed {
@@ -258,8 +259,22 @@ Return ONLY valid JSON with no other text:
     if (!seed.TRIAGE_DEEP || seed.TRIAGE_DEEP.length < 50) {
       seed.TRIAGE_DEEP = buildFallbackSeed(body).TRIAGE_DEEP
     }
+
+    // P1-B: Calendar booking guard — if no calendar is connected, replace booking outcomes
+    // with callback language so the agent never promises a time slot it can't deliver.
+    if (body.calendarEnabled === false) {
+      seed.TRIAGE_DEEP = seed.TRIAGE_DEEP
+        .replace(/→\s*Outcome:\s*book\s+appointment/gi,
+          "→ Outcome: callback — \"I've got all those details logged. I'll have {{CLOSE_PERSON}} call you back to get you on the schedule — does that work?\"")
+        .replace(/bookCalendar\b/g, 'callback')
+    }
     if (!seed.GREETING_LINE || seed.GREETING_LINE.length < 20) {
       seed.GREETING_LINE = ''  // Let niche wow greetings handle it
+    }
+
+    // Fallback: if validator cleared it (or Haiku returned empty), use template
+    if (!seed.GREETING_LINE) {
+      seed.GREETING_LINE = `Thank you for calling ${body.businessName}, this is ${agentName}. How can I help you today?`
     }
     if (!seed.URGENCY_KEYWORDS || seed.URGENCY_KEYWORDS.length < 10) {
       seed.URGENCY_KEYWORDS = ''  // Let niche defaults handle it

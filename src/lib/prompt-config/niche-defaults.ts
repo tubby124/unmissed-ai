@@ -99,6 +99,7 @@ You: "no stress — we can check when you get here. when were you looking to bri
 Example E — Spam robocall:
 Caller: [pre-recorded voice] "...your vehicle's extended warranty is about to expire..."
 You: "thanks, not interested. have a good day." [use hangUp immediately — do not engage]`,
+    LINGUISTIC_ANCHORS: "OEM, ARG, aftermarket, chip, crack, full replacement, ADAS calibration, zero deductible, insurance claim, mobile service, rock chip, windshield, side glass, back glass",
   },
   hvac: {
     INDUSTRY: 'heating and cooling company',
@@ -126,22 +127,37 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
       "NEVER quote specific repair or install prices — always route to {{CLOSE_PERSON}} callback.",
       "If caller says no heat in winter, ALWAYS flag as [URGENT] — do not ask if it's an emergency.",
     ].join('\n'),
-    TRIAGE_DEEP: `Listen to what they say and route naturally.
-NO HEAT / NO AC / SYSTEM NOT RUNNING:
-"okay, that's definitely urgent — is it completely off, or is it running but not heating/cooling?"
-→ Completely off or no heat in winter: flag [URGENT] → collect name + address → close fast
-→ Running but not working right: collect name + address + symptoms → close normally
-STRANGE NOISE / SMELL / LEAK:
-"got it — is it a burning smell, a gas smell, or something else?"
-→ Gas smell: "okay — call your gas company emergency line right now and get everyone out. what's your name and address so {{CLOSE_PERSON}} can follow up?"
-→ Burning smell: flag [URGENT] → collect name + address → close fast
-→ Other: collect name + address + description → close normally
-MAINTENANCE / TUNE-UP:
-"for sure — seasonal tune-up. furnace, AC, or both?"
-→ Collect: system type + name + address + preferred timing → close normally
-NEW INSTALL / QUOTE:
-"got it — what are you looking to get installed?"
-→ Collect: what they want + name + address → close normally`,
+    TRIAGE_DEEP: `[SAFETY CHECK — RUNS FIRST ON EVERY CALL]
+If caller mentions gas smell, sparking, smoke, carbon monoxide, or active flooding:
+- STOP standard flow immediately
+- Say: "That sounds like a safety emergency. If you smell gas, please evacuate now and don't turn on any light switches. I'm connecting you to our on-call technician right now."
+- Collect: address + callback number only
+- Outcome: Warm transfer / emergency dispatch
+
+[WEATHER URGENCY CHECK]
+If caller says "no heat" or "furnace not working":
+- Winter months → Priority 1: "That's an emergency in this weather — I'm getting a technician out to you today."
+- Mild weather → Priority 2: urgent same-day/next-day booking
+If caller says "no AC" or "air conditioning not working":
+- Summer heatwave → Priority 1
+- Mild weather → Priority 2
+
+[DIAGNOSTIC QUESTIONS — Priority 2 and 3 only]
+Ask in this order:
+1. "Is this a furnace, air conditioner, or heat pump?"
+2. "What's happening — is it blowing the wrong temperature, making a noise, or not turning on at all?"
+3. "Where is the unit located — basement, attic, or outside?"
+4. "Do you know roughly how old the unit is?"
+If caller mentions insurance at any point: "Insurance accepted: {{INSURANCE_TYPE}} — just so you know before we send someone out."
+
+[BOOKING — before confirming any appointment]
+"Just so you know, there is a standard dispatch and diagnostic fee of {{DIAGNOSTIC_FEE}} when we send a technician. Does that work for you?"
+→ If yes: book appointment
+→ If no: offer to have someone call them back with a quote
+
+[Priority 3 — Maintenance / Quotes]
+Offer next available slot later in the week. No diagnostic fee disclosure needed for quotes.`,
+    LINGUISTIC_ANCHORS: `["furnace", "heat pump", "compressor", "evaporator coil", "freon", "ductless mini-split", "BTU", "tonnage", "HVAC"]`,
     NICHE_EXAMPLES: `Example A — No heat emergency (winter):
 Caller: "my furnace isn't working and it's freezing"
 You: "okay, flagging this urgent right now. what's your name and address?"
@@ -228,6 +244,7 @@ Example D — General plumbing question:
 Caller: "I need a new faucet installed in my bathroom"
 You: "got it — what's your name and address, and when works best for you?"
 [Straightforward install request. Collect info, route to callback.]`,
+    LINGUISTIC_ANCHORS: "main shutoff valve, P-trap, backflow preventer, water hammer, drain snake, hydro-jet, sewer line, supply line, waste line, water pressure, shut-off",
   },
   dental: {
     INDUSTRY: 'dental office',
@@ -582,6 +599,7 @@ Caller: [pre-recorded voice] "...your vehicle's extended warranty is about to ex
 You: "thanks, not interested. have a good day." [use hangUp immediately — do not engage]`,
     FILTER_EXTRA: `SERVICES NOT OFFERED (commercial properties):
 "we're residential only — but I can have {{CLOSE_PERSON}} call you back to point you in the right direction." then use hangUp tool.`,
+    LINGUISTIC_ANCHORS: "CC&Rs, break clause, Priority 1 maintenance, eviction notice, rent roll, lease renewal, maintenance ticket, vacate notice, security deposit, strata, month-to-month, fixed term",
   },
   outbound_isa_realtor: {
     INDUSTRY: 'real estate team',
@@ -630,6 +648,7 @@ NOT INTERESTED / WRONG PERSON:
 WANTS CALLBACK AT DIFFERENT TIME:
 "of course — when's a better time, and is this the best number?"
 → Get: time + confirm number → "perfect, our agent will reach out then." then use hangUp tool.`,
+    LINGUISTIC_ANCHORS: "CMA, FSBO, days on market, pre-approval, motivated seller, listing appointment, buyer consultation, MLS, LPMAMA, closing timeline, equity, absorption rate",
   },
   voicemail: {
     INDUSTRY: 'professional practice',
@@ -1202,4 +1221,58 @@ You: "I'm sorry to hear that — are you safe right now?"
 Caller: "yes, police were here, I just need the door secured"
 You: "okay — what's your address? I'll get {{CLOSE_PERSON}} out there to secure it right away." [flag [URGENT]]`,
   },
+}
+
+// ── Production niche resolver ──────────────────────────────────────────────────
+// Maps any niche slug to the nearest production-quality niche key.
+// Production keys pass through unchanged; unrecognised niches are keyword-matched
+// so they inherit a rich template instead of the sparse 'other' defaults.
+
+const PRODUCTION_NICHE_KEYS = ['auto_glass', 'hvac', 'plumbing', 'property_management', 'outbound_isa_realtor'] as const
+type ProductionNiche = typeof PRODUCTION_NICHE_KEYS[number]
+
+const NICHE_KEYWORD_MAP: Array<{ pattern: RegExp; target: ProductionNiche }> = [
+  // HVAC — pass through to dedicated template
+  {
+    pattern: /hvac|heating|cooling|furnace|air.?condition/i,
+    target: 'hvac',
+  },
+  // Plumbing — pass through to dedicated template
+  {
+    pattern: /plumbing|plumber|drain|pipe|sewer/i,
+    target: 'plumbing',
+  },
+  // Job-dispatch / trades → auto_glass (most complete job-booking template)
+  {
+    pattern: /auto.?glass|trades?|mechanic|electrical|roofer|roofing|painter|painting|handyman|pest|cleaning|landscap|locksmith|towing|restoration/i,
+    target: 'auto_glass',
+  },
+  // Property / leasing → property_management
+  {
+    pattern: /property|rental|strata|leasing|landlord|tenant|management/i,
+    target: 'property_management',
+  },
+  // Sales / ISA / real estate → outbound_isa_realtor
+  {
+    pattern: /sales|leads?|isa\b|real.?estate|realtor|outbound/i,
+    target: 'outbound_isa_realtor',
+  },
+]
+
+/**
+ * Resolves any niche slug to the nearest production niche key.
+ * Production keys (auto_glass, property_management, outbound_isa_realtor) pass through unchanged.
+ * Unrecognised niches are keyword-matched against common trade/property/sales patterns.
+ * Default fallback: auto_glass (the most complete template).
+ */
+export function resolveProductionNiche(niche: string): ProductionNiche {
+  const normalized = niche.replace(/-/g, '_').toLowerCase()
+  if ((PRODUCTION_NICHE_KEYS as readonly string[]).includes(normalized)) {
+    return normalized as ProductionNiche
+  }
+  const readable = normalized.replace(/_/g, ' ')
+  for (const { pattern, target } of NICHE_KEYWORD_MAP) {
+    if (pattern.test(readable)) return target
+  }
+  return 'auto_glass'
 }

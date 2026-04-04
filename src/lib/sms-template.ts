@@ -1,7 +1,7 @@
 // Extracted from prompt-builder.ts by Phase 5 refactor.
 // SMS follow-up template builder.
 
-import { NICHE_DEFAULTS } from './prompt-config/niche-defaults'
+import { NICHE_DEFAULTS, resolveProductionNiche } from './prompt-config/niche-defaults'
 
 /**
  * Build the SMS follow-up message text from intake form answers + niche defaults.
@@ -11,7 +11,7 @@ import { NICHE_DEFAULTS } from './prompt-config/niche-defaults'
  */
 export function buildSmsTemplate(intake: Record<string, unknown>): string {
   const niche = (intake.niche as string) || 'other'
-  const nicheDefaults = NICHE_DEFAULTS[niche] || NICHE_DEFAULTS.other
+  const nicheDefaults = NICHE_DEFAULTS[resolveProductionNiche(niche)] || NICHE_DEFAULTS.other
   const commonDefaults = NICHE_DEFAULTS._common || {}
 
   let template =

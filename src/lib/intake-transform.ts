@@ -183,6 +183,38 @@ export function toIntakePayload(data: OnboardingData) {
       (Array.isArray(data.nicheAnswers?.services)
         ? (data.nicheAnswers.services as string[]).join(', ')
         : (data.nicheAnswers?.services as string) || ''),
+    services_not_offered: (() => {
+      const excluded = Array.isArray(data.nicheAnswers?.excludedServices)
+        ? (data.nicheAnswers.excludedServices as string[])
+        : data.nicheAnswers?.excludedServices
+          ? [data.nicheAnswers.excludedServices as string]
+          : [];
+      const labelMap: Record<string, string> = {
+        no_rv: "RV windshields", no_large_crack: "cracks longer than 6 inches",
+        no_fleet: "fleet accounts", no_tinting: "window tinting", no_adas: "ADAS recalibration",
+        no_septic: "septic systems", no_commercial_grease: "commercial grease traps",
+        no_gas: "gas line work", no_reno: "bathroom renovations", no_well: "well systems",
+        no_commercial: "commercial HVAC", no_oil_furnace: "oil furnaces",
+        no_radiant: "radiant heating", no_geothermal: "geothermal systems",
+        no_duct_fabrication: "custom duct fabrication",
+      };
+      return excluded.map(k => labelMap[k] || k).join(", ");
+    })(),
+    urgency_keywords: (() => {
+      const p1 = (data.nicheAnswers?.p1Triggers as string[]) || [];
+      const em = (data.nicheAnswers?.maintenanceEmergencyTriggers as string[])
+        || (data.nicheAnswers?.emergencyTriggers as string[]) || [];
+      const labelMap: Record<string, string> = {
+        burst_pipe: "burst pipe", flooding: "flooding", no_water: "no water supply",
+        sewage_backup: "sewage backup", gas_smell: "gas smell", ceiling_dripping: "ceiling dripping",
+        no_heat: "no heat", no_heat_winter: "no heat in winter", furnace_not_starting: "furnace not starting",
+        carbon_monoxide: "carbon monoxide", no_cooling_extreme_heat: "no AC in extreme heat",
+        system_flooded: "system flooded", sparking: "sparking outlet or wires",
+        security: "security breach", no_hot_water: "no hot water", elevator_stuck: "stuck elevator", fire: "fire"
+      };
+      return [...p1, ...em].map(k => labelMap[k] || k).join(", ");
+    })(),
+    diagnostic_fee: (data.nicheAnswers?.diagnosticFee as string) || "",
     call_handling_mode: effectiveMode,
     agent_mode: data.agentMode ?? 'lead_capture',
     booking_enabled: effectiveMode === 'full_service' || agentModeVal === 'appointment_booking',

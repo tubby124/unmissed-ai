@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { checkPublicRateLimit } from '@/lib/public-rate-limiter'
+import { NICHE_DEFAULTS, resolveProductionNiche } from '@/lib/prompt-config/niche-defaults'
 
 export async function GET(req: NextRequest) {
   const rl = checkPublicRateLimit(req)
@@ -97,6 +98,11 @@ export async function GET(req: NextRequest) {
   // ── Has website ───────────────────────────────────────────────────────────
   const hasWebsite = !!(client.website_url?.trim())
 
+  // ── Linguistic anchors ────────────────────────────────────────────────────
+  // True if the resolved production niche has LINGUISTIC_ANCHORS populated.
+  const resolvedNiche = resolveProductionNiche(client.niche ?? 'other')
+  const hasLinguisticAnchors = !!(NICHE_DEFAULTS[resolvedNiche]?.LINGUISTIC_ANCHORS)
+
   return NextResponse.json({
     servicesNote,
     hoursNote,
@@ -106,5 +112,6 @@ export async function GET(req: NextRequest) {
     hasWebsite,         // boolean — whether a website URL was provided
     injectedNote: client.injected_note?.trim() || null,  // current quick note (if any)
     trialExpiresAt: client.trial_expires_at || null,     // ISO string — trial end date
+    hasLinguisticAnchors,                                // true if niche has voice anchor vocabulary
   })
 }

@@ -221,6 +221,8 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 |---|---------|----------|
 | D368 | **Retrieval instruction fails with zero inline facts** — ✅ 2026-04-03 — `hasInlineFacts` param added; empty-facts path now reads "use queryKnowledge for ALL questions" | HIGH |
 | D180 | **message_only TRIAGE override** — ✅ 2026-04-03 — guard in `buildConversationFlow()` skips TRIAGE entirely for message_only/voicemail_replacement modes | HIGH |
+| D373 | **Onboarding quality floor** — new agents don't sound like Windshield Hub/Hasan/Urban Vibe. NICHE_DEFAULTS need to be bootstrapped from real working-agent patterns, not Haiku guesses | CRITICAL |
+| D374 | **Calendar connect → auto-upgrade prompt** — connecting Google Calendar should trigger recomposePrompt() with appointment_booking mode automatically | HIGH |
 | D369 | **Legacy prompt banner on dashboard** — amber warning for old-style prompts without section markers. Banner added in SettingsView.tsx (2026-04-01). Full migration = D304. | HIGH |
 | D225 | `/api/dashboard/telegram-link` → Telegram setup card | MEDIUM |
 | D226 | `/api/onboard/parse-services` → onboarding service input | MEDIUM |

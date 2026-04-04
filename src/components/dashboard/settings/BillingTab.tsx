@@ -7,6 +7,7 @@ import { getPlanEntitlements, getUpgradePlan } from '@/lib/plan-entitlements'
 import type { PlanIdOrTrial } from '@/lib/plan-entitlements'
 import DangerZoneCard from './DangerZoneCard'
 import AdminPromoPanel from './AdminPromoPanel'
+import AdminRecomposePanel from './AdminRecomposePanel'
 import UsageSummary from '@/components/dashboard/UsageSummary'
 
 interface BillingTabProps {
@@ -515,6 +516,7 @@ export default function BillingTab({
       {isAdmin && client.stripe_subscription_id && (
         <AdminPromoPanel clientId={client.id} client={client} />
       )}
+      {isAdmin && <AdminRecomposePanel clientId={client.id} />}
       {isAdmin && <UsageSummary isAdmin={isAdmin} />}
 
       {/* Danger Zone */}
