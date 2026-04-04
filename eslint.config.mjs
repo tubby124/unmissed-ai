@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Obsidian vault — third-party compiled JS, not project source
+    "CALLINGAGENTS/**",
   ]),
 ]);
 

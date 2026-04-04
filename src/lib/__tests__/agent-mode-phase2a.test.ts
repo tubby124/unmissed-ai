@@ -262,7 +262,7 @@ describe('C. Revert behavior — non-lead_capture → lead_capture reverts to ca
 describe('D. Single-patch — combined resolver applies exactly one CALL HANDLING MODE patch', () => {
 
   test('combined resolver: info_hub takes precedence over call_handling_mode=message_only', () => {
-    const rawAgentMode = 'info_hub'
+    const rawAgentMode: string = 'info_hub'
     const callHandlingMode = 'message_only'
     const effectiveMode = (rawAgentMode && rawAgentMode !== 'lead_capture') ? rawAgentMode : callHandlingMode
     assert.equal(effectiveMode, 'info_hub', 'non-lead_capture agent_mode should win')
@@ -279,7 +279,7 @@ describe('D. Single-patch — combined resolver applies exactly one CALL HANDLIN
   })
 
   test('combined resolver: appointment_booking takes precedence over call_handling_mode=full_service', () => {
-    const rawAgentMode = 'appointment_booking'
+    const rawAgentMode: string = 'appointment_booking'
     const callHandlingMode = 'full_service'
     const effectiveMode = (rawAgentMode && rawAgentMode !== 'lead_capture') ? rawAgentMode : callHandlingMode
     assert.equal(effectiveMode, 'appointment_booking')

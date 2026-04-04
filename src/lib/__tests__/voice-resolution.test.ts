@@ -113,7 +113,7 @@ function makeData(overrides: Record<string, unknown> = {}): Parameters<typeof to
     callerAutoTextMessage: '',
     callerFAQ: '',
     agentRestrictions: '',
-    agentTone: 'casual',
+    agentTone: 'casual_friendly',
     primaryGoal: '',
     completionFields: '',
     pricingPolicy: '',

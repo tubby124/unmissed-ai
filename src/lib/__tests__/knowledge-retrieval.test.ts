@@ -221,7 +221,7 @@ describe('countFullFacts', () => {
   })
 
   test('counts text facts correctly', () => {
-    const business = makeBusiness({ businessFacts: 'Fact one\nFact two\nFact three' })
+    const business = makeBusiness({ businessFacts: ['Fact one', 'Fact two', 'Fact three'] })
     const knowledge = makeKnowledge(business)
     assert.equal(countFullFacts(knowledge), 3)
   })
@@ -239,7 +239,7 @@ describe('countFullFacts', () => {
 
   test('counts combined text + QA facts', () => {
     const business = makeBusiness({
-      businessFacts: 'Fact A\nFact B',
+      businessFacts: ['Fact A', 'Fact B'],
       extraQa: [{ q: 'Q1', a: 'A1' }],
     })
     const knowledge = makeKnowledge(business)
@@ -247,7 +247,7 @@ describe('countFullFacts', () => {
   })
 
   test('skips markdown headings in text facts', () => {
-    const business = makeBusiness({ businessFacts: '# Heading\nFact A\n## Subheading\nFact B' })
+    const business = makeBusiness({ businessFacts: ['# Heading', 'Fact A', '## Subheading', 'Fact B'] })
     const knowledge = makeKnowledge(business)
     assert.equal(countFullFacts(knowledge), 2)
   })
@@ -267,7 +267,7 @@ describe('countFullFacts', () => {
 
 describe('buildRetrievalConfig — truncation detection', () => {
   test('knowledgeTruncated=false when all facts fit in summary (under 15)', () => {
-    const business = makeBusiness({ businessFacts: 'Fact 1\nFact 2\nFact 3' })
+    const business = makeBusiness({ businessFacts: ['Fact 1', 'Fact 2', 'Fact 3'] })
     const knowledge = makeKnowledge(business)
     const caps = makeCapabilities({ useKnowledgeLookup: true })
     const result = buildRetrievalConfig(caps, knowledge, true)
@@ -276,7 +276,7 @@ describe('buildRetrievalConfig — truncation detection', () => {
 
   test('knowledgeTruncated=true when more facts exist than fit in summary', () => {
     // Create 20 facts — KnowledgeSummary caps at 15
-    const facts = Array.from({ length: 20 }, (_, i) => `Fact number ${i + 1}`).join('\n')
+    const facts = Array.from({ length: 20 }, (_, i) => `Fact number ${i + 1}`)
     const business = makeBusiness({ businessFacts: facts })
     const knowledge = makeKnowledge(business)
     const caps = makeCapabilities({ useKnowledgeLookup: true })
@@ -285,7 +285,7 @@ describe('buildRetrievalConfig — truncation detection', () => {
   })
 
   test('truncation note appears in instruction when truncated', () => {
-    const facts = Array.from({ length: 20 }, (_, i) => `Fact number ${i + 1}`).join('\n')
+    const facts = Array.from({ length: 20 }, (_, i) => `Fact number ${i + 1}`)
     const business = makeBusiness({ businessFacts: facts })
     const knowledge = makeKnowledge(business)
     const caps = makeCapabilities({ useKnowledgeLookup: true })
@@ -294,7 +294,7 @@ describe('buildRetrievalConfig — truncation detection', () => {
   })
 
   test('no truncation note in instruction when not truncated', () => {
-    const business = makeBusiness({ businessFacts: 'One fact' })
+    const business = makeBusiness({ businessFacts: ['One fact'] })
     const knowledge = makeKnowledge(business)
     const caps = makeCapabilities({ useKnowledgeLookup: true })
     const result = buildRetrievalConfig(caps, knowledge, true)

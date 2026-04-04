@@ -49,7 +49,7 @@ function base(): OnboardingData {
     callerAutoTextMessage: '',
     callerFAQ: '',
     agentRestrictions: '',
-    agentTone: 'casual',
+    agentTone: 'casual_friendly',
     primaryGoal: '',
     completionFields: '',
     pricingPolicy: '',

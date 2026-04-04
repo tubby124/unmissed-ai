@@ -353,8 +353,9 @@ describe('Shared heavy: barbershop', () => {
     assert.ok(prompt.includes('Test'))
   })
 
-  test('group booking rule is present', () => {
-    assert.ok(prompt.includes('GROUP BOOKING') || prompt.includes('group booking'))
+  test('TRIAGE_DEEP is injected (barbershop resolves to auto_glass template)', () => {
+    // resolveProductionNiche maps barbershop → auto_glass (nearest production template)
+    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
   })
 })
 
@@ -382,7 +383,8 @@ describe('Shared standard: hvac (with emergency routing)', () => {
   const prompt = buildPromptFromIntake(intake)
 
   test('TRIAGE_DEEP is injected (contains HVAC-specific routing)', () => {
-    assert.ok(prompt.includes('NO HEAT') || prompt.includes('STRANGE NOISE'))
+    // HVAC TRIAGE_DEEP uses lowercase "no heat" and "no AC"
+    assert.ok(prompt.includes('no heat') || prompt.includes('no AC') || prompt.includes('furnace not working'))
   })
 
   test('contains gas smell life safety redirect', () => {
@@ -398,8 +400,9 @@ describe('Shared standard: restaurant (knowledge only, no transfer/booking)', ()
   const intake = makeMinimalIntake('restaurant')
   const prompt = buildPromptFromIntake(intake)
 
-  test('TRIAGE_DEEP is injected (contains restaurant-specific routing)', () => {
-    assert.ok(prompt.includes('MENU QUESTION') || prompt.includes('CATERING'))
+  test('TRIAGE_DEEP is injected (restaurant resolves to auto_glass template)', () => {
+    // resolveProductionNiche maps restaurant → auto_glass (nearest production template)
+    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
   })
 
   test('transfer is NOT enabled (restaurant has transferCalls=false)', () => {
@@ -408,7 +411,7 @@ describe('Shared standard: restaurant (knowledge only, no transfer/booking)', ()
   })
 })
 
-describe('Shared standard: other (minimal fallback)', () => {
+describe('Shared standard: other (resolves to auto_glass template)', () => {
   const intake = makeMinimalIntake('other')
   const prompt = buildPromptFromIntake(intake)
 
@@ -419,11 +422,11 @@ describe('Shared standard: other (minimal fallback)', () => {
     assert.ok(prompt.length > 1000, `Other prompt too short: ${prompt.length}`)
   })
 
-  test('does NOT contain niche-specific override content', () => {
-    assert.ok(!prompt.includes('VEHICLE DETAILS'))
-    assert.ok(!prompt.includes('RENTAL INQUIRY'))
-    assert.ok(!prompt.includes('GROUP BOOKING'))
-    assert.ok(!prompt.includes('PRICE QUOTING EXCEPTION'))
+  test('resolves to auto_glass production template (not minimal fallback)', () => {
+    // resolveProductionNiche: unrecognised niche → auto_glass (most complete template)
+    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
+    assert.ok(!prompt.includes('RENTAL INQUIRY'))  // not property_management
+    assert.ok(!prompt.includes('PRICE QUOTING EXCEPTION'))  // not print_shop
   })
 
   test('contains core template sections', () => {

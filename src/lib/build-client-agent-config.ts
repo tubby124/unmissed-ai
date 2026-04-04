@@ -61,7 +61,7 @@ export type ClientsRow = {
   call_handling_mode?: string | null
   agent_mode?: string | null
   knowledge_backend?: string | null
-  business_facts?: string[] | null
+  business_facts?: string | string[] | null
   extra_qa?: { q: string; a: string }[] | null
   services_offered?: string | null
   website_scrape_status?: string | null
@@ -200,7 +200,9 @@ export function buildClientAgentConfig(
       knowledgeEnabled: row.knowledge_backend === 'pgvector',
     },
     knowledge: {
-      businessFacts: row.business_facts ?? null,
+      businessFacts: Array.isArray(row.business_facts)
+        ? row.business_facts
+        : (row.business_facts ? row.business_facts.split('\n').filter((l: string) => l.trim().length > 0) : null),
       extraQa,
       servicesOffered: row.services_offered ?? null,
       scrapeStatus: deriveScrapeStatus(row.website_scrape_status),

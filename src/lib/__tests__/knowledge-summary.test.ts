@@ -185,7 +185,7 @@ describe('buildKnowledgeSummary', () => {
 
   test('extracts facts from businessFacts', () => {
     const biz = makeBusinessConfig({
-      businessFacts: 'SGI approved shop\nOpen Monday to Saturday\nFree mobile service',
+      businessFacts: ['SGI approved shop', 'Open Monday to Saturday', 'Free mobile service'],
     })
     const summary = buildKnowledgeSummary(biz)
     assert.deepStrictEqual(summary.facts, [
@@ -199,7 +199,7 @@ describe('buildKnowledgeSummary', () => {
 
   test('merges businessFacts and extraQa', () => {
     const biz = makeBusinessConfig({
-      businessFacts: 'We offer ADAS calibration',
+      businessFacts: ['We offer ADAS calibration'],
       extraQa: [{ q: 'Do you bill SGI?', a: 'Yes' }],
     })
     const summary = buildKnowledgeSummary(biz)
@@ -210,7 +210,7 @@ describe('buildKnowledgeSummary', () => {
 
   test('deduplicates identical facts (case-insensitive)', () => {
     const biz = makeBusinessConfig({
-      businessFacts: 'Open weekdays\nOpen weekdays',
+      businessFacts: ['Open weekdays', 'Open weekdays'],
     })
     const summary = buildKnowledgeSummary(biz)
     assert.deepStrictEqual(summary.facts, ['Open weekdays'])
@@ -218,7 +218,7 @@ describe('buildKnowledgeSummary', () => {
 
   test('caps at MAX_SUMMARY_FACTS', () => {
     const lines = Array.from({ length: 25 }, (_, i) => `Fact number ${i + 1}`)
-    const biz = makeBusinessConfig({ businessFacts: lines.join('\n') })
+    const biz = makeBusinessConfig({ businessFacts: lines })
     const summary = buildKnowledgeSummary(biz)
     assert.ok(summary.facts.length <= MAX_SUMMARY_FACTS, `expected <= ${MAX_SUMMARY_FACTS}, got ${summary.facts.length}`)
   })
@@ -226,23 +226,23 @@ describe('buildKnowledgeSummary', () => {
   test('respects SUMMARY_CHAR_LIMIT', () => {
     const lines = Array.from({ length: 20 }, (_, i) =>
       `This is a detailed fact number ${i + 1} with extra detail to push the character count higher`)
-    const biz = makeBusinessConfig({ businessFacts: lines.join('\n') })
+    const biz = makeBusinessConfig({ businessFacts: lines })
     const summary = buildKnowledgeSummary(biz)
     assert.ok(summary.charCount <= SUMMARY_CHAR_LIMIT, `expected <= ${SUMMARY_CHAR_LIMIT}, got ${summary.charCount}`)
   })
 
   test('preserves full knowledge for Phase 4 retrieval', () => {
-    const fullFacts = 'Very long business facts text that is preserved'
+    const fullFacts = ['Very long business facts text that is preserved']
     const fullQa = [{ q: 'Q1', a: 'A1' }, { q: 'Q2', a: 'A2' }]
     const biz = makeBusinessConfig({ businessFacts: fullFacts, extraQa: fullQa })
     const summary = buildKnowledgeSummary(biz)
-    assert.strictEqual(summary.fullBusinessFacts, fullFacts)
+    assert.deepStrictEqual(summary.fullBusinessFacts, fullFacts)
     assert.deepStrictEqual(summary.fullExtraQa, fullQa)
   })
 
   test('truncates individual long facts', () => {
     const longFact = 'A'.repeat(200)
-    const biz = makeBusinessConfig({ businessFacts: longFact })
+    const biz = makeBusinessConfig({ businessFacts: [longFact] })
     const summary = buildKnowledgeSummary(biz)
     assert.ok(summary.facts[0].length <= MAX_FACT_CHARS, `expected <= ${MAX_FACT_CHARS}, got ${summary.facts[0].length}`)
     assert.ok(summary.facts[0].endsWith('...'))
@@ -250,7 +250,7 @@ describe('buildKnowledgeSummary', () => {
 
   test('block format has header and bullet points', () => {
     const biz = makeBusinessConfig({
-      businessFacts: 'Fact A\nFact B',
+      businessFacts: ['Fact A', 'Fact B'],
     })
     const summary = buildKnowledgeSummary(biz)
     assert.strictEqual(summary.block, '## Key Business Facts\n- Fact A\n- Fact B')

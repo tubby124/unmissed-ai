@@ -647,8 +647,9 @@ describe('Layer 4B — Feature edge cases', () => {
     }))
     assert.ok(p.includes('queryKnowledge'), 'pgvector path should reference queryKnowledge tool')
     assert.ok(!p.includes('PRODUCT KNOWLEDGE BASE'), 'pgvector path should NOT have inline PRODUCT KNOWLEDGE BASE')
-    // pgvector removes ~1-3K of inline FAQ, but behavioral content stays the same
-    assert.ok(p.length < 18_000, `pgvector prompt should be smaller than inline FAQ path but got ${p.length}`)
+    // pgvector removes inline FAQ — prompt is shorter than the non-pgvector path
+    // Threshold bumped from 18K → 21K to account for persona_anchor slot addition
+    assert.ok(p.length < 21_000, `pgvector prompt should be smaller than inline FAQ path but got ${p.length}`)
     assert.ok(!p.includes('{{'), 'raw {{placeholder}} in pgvector path')
   })
 
