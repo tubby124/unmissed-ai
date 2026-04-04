@@ -7,7 +7,7 @@ import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAgentMode } from "@/lib/capabilities";
-import { Shield, CalendarOff, X, Check, Rocket, Brain, ChevronDown } from "lucide-react";
+import { Shield, CalendarOff, X, Check, Rocket, Brain, ChevronDown, Phone } from "lucide-react";
 
 interface Props {
   data: OnboardingData;
@@ -16,6 +16,48 @@ interface Props {
   isSubmitting: boolean;
   error: string | null;
   canActivate: boolean;
+}
+
+// ── D389 — Aha Moment: hear your agent before going live ──────────────────────
+function AhaMomentPanel({ data, agentName, businessName }: { data: OnboardingData; agentName: string; businessName: string }) {
+  const greeting = data.agentIntelligenceSeed?.GREETING_LINE
+    || data.nicheCustomVariables?.GREETING_LINE;
+
+  const isGenerating = !greeting && !!(data.businessName && data.niche);
+
+  if (isGenerating) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
+          Generating your agent&apos;s greeting...
+        </div>
+      </div>
+    );
+  }
+  if (!greeting) return null;
+
+  return (
+    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-400">
+          This is how {agentName} answers calls for {businessName}
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          {agentName[0]}
+        </div>
+        <div className="flex-1 bg-white dark:bg-card rounded-xl rounded-tl-none px-4 py-3 shadow-sm border border-emerald-100 dark:border-emerald-800/40">
+          <p className="text-sm text-foreground leading-relaxed italic">&ldquo;{greeting}&rdquo;</p>
+        </div>
+      </div>
+      <p className="text-[11px] text-emerald-600 dark:text-emerald-500 pl-11">
+        AI-generated from your business info. You can refine it from your dashboard.
+      </p>
+    </div>
+  );
 }
 
 function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName: string }) {
@@ -256,6 +298,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         </p>
       </div>
 
+      {/* ── D389 — Aha Moment: hear how your agent sounds before going live ── */}
+      <AhaMomentPanel data={data} agentName={agentName} businessName={businessName} />
+
       {/* Trust chips */}
       <div className="flex flex-wrap gap-2">
         {[
@@ -343,6 +388,15 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             <option value="sms">SMS text</option>
             <option value="both">Telegram + Email</option>
           </select>
+
+          {/* Telegram not-yet-connected warning — always shown since connection happens post-activation */}
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2 mt-1">
+            <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
+            <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+              Telegram not connected — you won&apos;t receive lead notifications until you connect it.
+              Connect it in Settings after going live.
+            </p>
+          </div>
         </div>
       </div>
 

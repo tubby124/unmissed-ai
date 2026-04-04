@@ -1,6 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
+import ChipSelector from "@/components/onboard/ChipSelector";
 import { OnboardingData } from "@/types/onboarding";
 
 interface Props {
@@ -9,98 +10,91 @@ interface Props {
 }
 
 const INSURANCE_OPTIONS = [
-  { value: "all_major", label: "All major insurance — we handle billing directly" },
-  { value: "private_pay", label: "Private pay only — we give receipts for claims" },
-  { value: "pending", label: "Private pay for now — working on insurance approval" },
-  { value: "other", label: "Other (explain below)" },
+  { value: "all_major", label: "All major insurance" },
+  { value: "private_pay", label: "Private pay only" },
+  { value: "pending", label: "Working on insurance approval" },
+  { value: "other", label: "Other" },
+];
+
+const MOBILE_OPTIONS = [
+  { value: "no", label: "Shop only" },
+  { value: "yes", label: "We come to you" },
+  { value: "emergency_only", label: "Emergency only" },
 ];
 
 const SERVICES = [
-  { value: "chip_repair", label: "Windshield chip repair" },
-  { value: "full_replacement", label: "Windshield full replacement" },
+  { value: "chip_repair", label: "Chip repair" },
+  { value: "full_replacement", label: "Full replacement" },
   { value: "side_rear_glass", label: "Side & rear glass" },
-  { value: "adas_calibration", label: "ADAS camera calibration" },
+  { value: "adas_calibration", label: "ADAS calibration" },
   { value: "window_tinting", label: "Window tinting" },
   { value: "sunroof", label: "Sunroof / moonroof" },
-  { value: "rv_glass", label: "RV / motorhome glass" },
-  { value: "commercial_fleet", label: "Commercial / fleet vehicles" },
+  { value: "rv_glass", label: "RV glass" },
+  { value: "commercial_fleet", label: "Commercial / fleet" },
+];
+
+const EXCLUDED_SERVICES = [
+  { value: "no_rv", label: "No RV glass" },
+  { value: "no_large_crack", label: "No cracks > 6 inches" },
+  { value: "no_fleet", label: "No fleet accounts" },
+  { value: "no_tinting", label: "No tinting" },
+  { value: "no_adas", label: "No ADAS calibration" },
 ];
 
 export default function AutoGlassNiche({ data, onChange }: Props) {
   const answers = data.nicheAnswers;
   const selectedServices = (answers.services as string[]) || [];
+  const excludedServices = (answers.excludedServices as string[]) || [];
   const insurance = (answers.insurance as string) || "";
-  const mobileService = (answers.mobileService as string) || "no";
-
-  const toggleService = (val: string) => {
-    const updated = selectedServices.includes(val)
-      ? selectedServices.filter((s) => s !== val)
-      : [...selectedServices, val];
-    onChange("services", updated);
-  };
+  const mobileService = (answers.mobileService as string) || "";
 
   return (
     <div className="space-y-6">
       {/* Insurance */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Do you accept insurance claims?</Label>
-        <div className="space-y-2">
-          {INSURANCE_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="insurance"
-                value={opt.value}
-                checked={insurance === opt.value}
-                onChange={() => onChange("insurance", opt.value)}
-                className="mt-0.5 accent-blue-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
-            </label>
-          ))}
-        </div>
+        <ChipSelector
+          options={INSURANCE_OPTIONS}
+          value={insurance}
+          onChange={(val) => onChange("insurance", val)}
+        />
       </div>
 
       {/* Mobile service */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Do you offer mobile / on-site service?</Label>
-        <div className="space-y-2">
-          {[
-            { value: "no", label: "No — customer comes to our shop" },
-            { value: "yes", label: "Yes — we come to the customer" },
-            { value: "emergency_only", label: "Emergency only (e.g. stuck on highway)" },
-          ].map((opt) => (
-            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="mobileService"
-                value={opt.value}
-                checked={mobileService === opt.value}
-                onChange={() => onChange("mobileService", opt.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900">{opt.label}</span>
-            </label>
-          ))}
-        </div>
+        <Label className="text-sm font-medium">Mobile / on-site service?</Label>
+        <ChipSelector
+          options={MOBILE_OPTIONS}
+          value={mobileService}
+          onChange={(val) => onChange("mobileService", val)}
+        />
       </div>
 
-      {/* Services */}
+      {/* Services offered */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">What services do you offer? <span className="text-gray-400 font-normal">(select all that apply)</span></Label>
-        <div className="grid grid-cols-2 gap-2">
-          {SERVICES.map((svc) => (
-            <label key={svc.value} className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50">
-              <input
-                type="checkbox"
-                checked={selectedServices.includes(svc.value)}
-                onChange={() => toggleService(svc.value)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-700">{svc.label}</span>
-            </label>
-          ))}
-        </div>
+        <Label className="text-sm font-medium">
+          Services offered <span className="text-gray-400 font-normal">(select all)</span>
+        </Label>
+        <ChipSelector
+          multi
+          options={SERVICES}
+          value={selectedServices}
+          onChange={(val) => onChange("services", val)}
+        />
+      </div>
+
+      {/* Services NOT offered */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Services you do <span className="italic">not</span> offer{" "}
+          <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <ChipSelector
+          multi
+          options={EXCLUDED_SERVICES}
+          value={excludedServices}
+          onChange={(val) => onChange("excludedServices", val)}
+        />
       </div>
     </div>
   );

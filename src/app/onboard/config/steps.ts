@@ -63,18 +63,32 @@ export interface StepDef {
 // Import step components here. Add/remove/reorder entries to change the flow.
 
 import Step1GBP from '../steps/step1-gbp'
+import StepNiche from '../steps/step-niche'
 import StepPlan from '../steps/step-plan'
 import Step6Activate from '../steps/step6-activate'
 
 /**
- * Phase 7: 3-step onboarding — GBP → Plan → Launch
- * Previous 7-step flow superseded. Dead step files listed in Phase7-75-Second-Agent.md §1h.
+ * 4-step onboarding — Your business → Your agent → Your plan → Launch
+ * StepNiche (D386) re-wired 2026-04-04 after Phase 7 removed it.
  */
 export const STEP_DEFS: StepDef[] = [
   {
     label: 'Your business',
     component: Step1GBP,
-    canAdvance: (d) => !!d.businessName && !!d.voiceId && !!d.agentName?.trim(),
+    canAdvance: (d) => !!d.businessName && !!d.agentName?.trim(),
+  },
+  {
+    label: 'Your agent',
+    component: StepNiche,
+    canAdvance: (data: OnboardingData) => {
+      if (!data.voiceId) return false;
+      const nichesWithServices: string[] = ['auto_glass', 'plumbing', 'hvac', 'dental', 'legal', 'salon'];
+      if (nichesWithServices.includes(data.niche || '')) {
+        const services = data.nicheAnswers?.services;
+        return Array.isArray(services) && (services as string[]).length > 0;
+      }
+      return true;
+    },
   },
   {
     label: 'Your plan',

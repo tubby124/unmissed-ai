@@ -18,6 +18,7 @@ interface AgentSnapshot {
   hasWebsite: boolean;
   injectedNote: string | null;
   trialExpiresAt: string | null;
+  hasLinguisticAnchors: boolean;
 }
 
 /** Returns "X days left" or "X hours left" string from an ISO date */
@@ -211,6 +212,109 @@ function AgentKnowledgeCard({
   );
 }
 
+// ── MVD Readiness Card ────────────────────────────────────────────────────────
+
+function ReadinessRow({ label, status }: { label: string; status: "ok" | "low" | "missing" }) {
+  const icon =
+    status === "ok" ? (
+      <span className="text-emerald-400 shrink-0">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
+        </svg>
+      </span>
+    ) : status === "low" ? (
+      <span className="text-amber-400 shrink-0 text-[11px] font-bold">~</span>
+    ) : (
+      <span className="text-white/30 shrink-0">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/>
+        </svg>
+      </span>
+    );
+  return (
+    <div className="flex items-center gap-2.5">
+      {icon}
+      <span className={`text-sm ${status === "missing" ? "text-white/40" : "text-white/70"}`}>{label}</span>
+    </div>
+  );
+}
+
+function MVDReadinessCard({
+  snapshot,
+  liveCount,
+  telegramLink,
+  agentName,
+}: {
+  snapshot: AgentSnapshot | null;
+  liveCount: number;
+  telegramLink: string | null;
+  agentName: string | null;
+}) {
+  if (!snapshot) return null;
+
+  const kbStatus: "ok" | "low" | "missing" =
+    liveCount >= 5 ? "ok" : liveCount > 0 ? "low" : "missing";
+  const kbLabel =
+    liveCount >= 5
+      ? `KB chunks loaded — ${liveCount}`
+      : liveCount > 0
+      ? `KB chunks low — ${liveCount} (aim for 5+)`
+      : "KB chunks — none loaded yet";
+
+  const checks: Array<{ label: string; status: "ok" | "low" | "missing" }> = [
+    {
+      label: snapshot.hasLinguisticAnchors
+        ? "Voice anchors configured"
+        : "Voice anchors — not configured for this niche",
+      status: snapshot.hasLinguisticAnchors ? "ok" : "missing",
+    },
+    { label: kbLabel, status: kbStatus },
+    {
+      label: telegramLink ? "Telegram connected" : "Telegram — not connected",
+      status: telegramLink ? "ok" : "missing",
+    },
+    {
+      label: snapshot.hoursNote ? "Business hours set" : "Business hours — not set",
+      status: snapshot.hoursNote ? "ok" : "missing",
+    },
+    {
+      label: agentName?.trim() ? "Agent name set" : "Agent name — not set",
+      status: agentName?.trim() ? "ok" : "missing",
+    },
+  ];
+
+  const passCount = checks.filter(c => c.status === "ok").length;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+          Agent readiness
+        </p>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          passCount >= 4
+            ? "bg-emerald-500/20 text-emerald-400"
+            : passCount >= 2
+            ? "bg-amber-500/20 text-amber-400"
+            : "bg-white/10 text-white/40"
+        }`}>
+          {passCount}/5
+        </span>
+      </div>
+      <div className="space-y-2">
+        {checks.map((c, i) => (
+          <ReadinessRow key={i} label={c.label} status={c.status} />
+        ))}
+      </div>
+      {passCount < 5 && (
+        <p className="text-[11px] text-white/30 leading-relaxed pt-0.5 border-t border-white/10">
+          Not a blocker — you can complete missing items from your dashboard after launch.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function TrialSuccessScreen({
@@ -384,6 +488,16 @@ export function TrialSuccessScreen({
         loading={snapshotLoading}
         injectedNote={liveNote}
       />
+
+      {/* MVD readiness — non-blocking checklist */}
+      {!snapshotLoading && (
+        <MVDReadinessCard
+          snapshot={snapshot}
+          liveCount={liveCount}
+          telegramLink={telegramLink}
+          agentName={agentName}
+        />
+      )}
 
       {/* Quick note injection */}
       {clientId && (
