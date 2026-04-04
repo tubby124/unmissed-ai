@@ -32,7 +32,7 @@ export default async function LabPage({ searchParams }: { searchParams: Promise<
   const params = await searchParams
   const queryClientId = isAdmin ? (params.client_id ?? null) : null
 
-  let clientId: string | null = isAdmin ? queryClientId : (cu.client_id as string | null)
+  const clientId: string | null = isAdmin ? queryClientId : (cu.client_id as string | null)
   let systemPrompt: string | null = null
   let agentName = 'Agent'
   let niche: string | null = null

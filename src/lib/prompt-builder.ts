@@ -36,7 +36,7 @@ import { buildVoicemailPrompt } from './prompt-niches/voicemail-prompt'
 // Kept as dead code for rollback reference alongside INBOUND_TEMPLATE_BODY.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _buildPrompt_legacy(variables: Record<string, string>): string {
-  let filled = INBOUND_TEMPLATE_BODY.replace(
+  const filled = INBOUND_TEMPLATE_BODY.replace(
     /\{\{([A-Z_a-z]+)\}\}/g,
     (_, key: string) => variables[key.toUpperCase()] ?? variables[key.toLowerCase()] ?? '',
   )

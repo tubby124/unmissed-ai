@@ -31,6 +31,7 @@ export async function activateClient(params: {
   clientSlug: string
   reservedNumber?: string | null
   trialDays?: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stripeSession?: any // Stripe.Checkout.Session
 }): Promise<{ success: boolean; twilioNumber?: string; telegramLink?: string; setupUrl?: string; error?: string }> {
   const adminSupa = createServiceClient()

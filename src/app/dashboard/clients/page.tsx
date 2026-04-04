@@ -28,7 +28,7 @@ export default async function ClientsPage() {
   const clientIds = (clients ?? []).map(c => c.id)
 
   // Get client → user mapping and last_sign_in_at from auth.users
-  let lastLoginMap = new Map<string, string | null>()
+  const lastLoginMap = new Map<string, string | null>()
   if (clientIds.length > 0) {
     const { data: cuRows } = await svc.from('client_users').select('client_id, user_id').in('client_id', clientIds).neq('role', 'admin')
     const cuMap = new Map((cuRows ?? []).map(r => [r.client_id as string, r.user_id as string]))

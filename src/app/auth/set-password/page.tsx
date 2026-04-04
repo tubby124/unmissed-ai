@@ -22,6 +22,7 @@ export default function SetPasswordPage() {
   function getSupabase() {
     if (!supabaseRef.current) {
       // Lazy-init: only runs in browser (never during SSR prerender)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { createBrowserClient } = require('@/lib/supabase/client')
       supabaseRef.current = createBrowserClient()
     }
