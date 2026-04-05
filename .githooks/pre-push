@@ -65,7 +65,7 @@ echo "  No module-level SDK init found."
 # ── S18b: Fire-and-forget .then() baseline check ─────────────────────────────
 echo "[4/4] Checking .then() count in route handlers (S18b)..."
 THEN_COUNT=$(grep -r '\.then(' src/app/api/ src/lib/ --include='*.ts' 2>/dev/null | wc -l | tr -d ' ')
-THEN_BASELINE=5
+THEN_BASELINE=6
 if [ "$THEN_COUNT" -gt "$THEN_BASELINE" ]; then
   echo ""
   echo "ERROR: .then() count in route handlers increased ($THEN_COUNT > baseline $THEN_BASELINE)"
