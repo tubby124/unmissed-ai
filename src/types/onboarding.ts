@@ -159,6 +159,9 @@ export interface OnboardingData {
 
   // D259: Typical price range for most common service — injected into context_data
   priceRange?: string;
+
+  // D393: Manual business description when no website + no GBP description available
+  manualDescription?: string;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────
@@ -218,7 +221,7 @@ export const defaultOnboardingData: OnboardingData = {
   afterHoursBehavior: "standard",
   emergencyPhone: "",
   nicheAnswers: {},
-  notificationMethod: "telegram",
+  notificationMethod: "email",
   notificationPhone: "",
   notificationEmail: "",
   callerAutoText: false,

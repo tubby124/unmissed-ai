@@ -687,17 +687,29 @@ function normalize24hHours(raw: string): string {
 
 export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   const niche = (intake.niche as string) || 'other'
-  const nicheDefaults = NICHE_DEFAULTS[resolveProductionNiche(niche)] ?? NICHE_DEFAULTS.other
+  // Use niche-specific defaults if they exist (restaurant, dental, salon, legal, real_estate, etc.)
+  // Fall back to production template mapping only for unknown/other niches
+  const nicheDefaults = (niche !== 'other' && niche in NICHE_DEFAULTS)
+    ? NICHE_DEFAULTS[niche as keyof typeof NICHE_DEFAULTS]
+    : (NICHE_DEFAULTS[resolveProductionNiche(niche)] ?? NICHE_DEFAULTS.other)
   const caps = getCapabilities(niche)
 
   // Layer: common → niche → AI-inferred custom vars → intake overrides
   const customVars = intake.niche_custom_variables
     ? (intake.niche_custom_variables as Record<string, string>)
     : {}
-  const variables: Record<string, string> = {
+  const baseVars: Record<string, string> = {
     ...NICHE_DEFAULTS._common,
     ...nicheDefaults,
+  }
+  const variables: Record<string, string> = {
+    ...baseVars,
     ...customVars,
+  }
+  // Merge FORBIDDEN_EXTRA: niche defaults contain authoritative guardrails (FHA, ESA, etc.)
+  // that must survive even when AI-generated customVars also sets FORBIDDEN_EXTRA.
+  if (baseVars.FORBIDDEN_EXTRA && customVars.FORBIDDEN_EXTRA && customVars.FORBIDDEN_EXTRA !== baseVars.FORBIDDEN_EXTRA) {
+    variables.FORBIDDEN_EXTRA = baseVars.FORBIDDEN_EXTRA + '\n' + customVars.FORBIDDEN_EXTRA
   }
 
   // Direct intake field mappings
@@ -940,6 +952,44 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
       }
       variables.SERVICES_NOT_OFFERED = pmServicesNotOffered
         .split(',').map((k: string) => labelMap[k.trim()] || k.trim()).filter(Boolean).join(', ')
+    }
+
+    // Pet policy → FORBIDDEN_EXTRA (tenants commonly ask; hallucinating is dangerous)
+    const petPolicy = (intake.niche_petPolicy as string) || ''
+    if (petPolicy) {
+      const petLabels: Record<string, string> = {
+        no_pets: 'No pets allowed',
+        cats_only: 'Cats only',
+        cats_dogs: 'Cats and small dogs only',
+        all_pets: 'All pets welcome',
+        case_by_case: 'Pet policy is case-by-case — requires owner approval',
+      }
+      const petLabel = petLabels[petPolicy] || petPolicy
+      variables.FORBIDDEN_EXTRA = (variables.FORBIDDEN_EXTRA ? variables.FORBIDDEN_EXTRA + '\n' : '') +
+        `PET POLICY: ${petLabel}. If asked: state the policy clearly, then route to manager for deposit/breed details.`
+    }
+
+    // Parking + package → FILTER_EXTRA as policy reference
+    const parkingPolicy = (intake.niche_parkingPolicy as string) || ''
+    const packagePolicy = (intake.niche_packagePolicy as string) || ''
+    const parkingLabels: Record<string, string> = {
+      street_only: 'Street parking only — no assigned stalls',
+      assigned: 'Assigned parking stalls (tenant-specific)',
+      underground: 'Underground parkade (access via fob/key)',
+      visitor_only: 'Visitor stalls available, no assigned tenant parking',
+    }
+    const packageLabels: Record<string, string> = {
+      lobby_only: 'Packages left at lobby/front desk only',
+      locked_room: 'Locked package room — tenants notified',
+      notify_tenant: 'Carrier delivers directly to unit',
+      no_policy: 'No managed delivery policy',
+    }
+    const policyLines: string[] = []
+    if (parkingPolicy && parkingLabels[parkingPolicy]) policyLines.push(`Parking: ${parkingLabels[parkingPolicy]}`)
+    if (packagePolicy && packageLabels[packagePolicy]) policyLines.push(`Packages/delivery: ${packageLabels[packagePolicy]}`)
+    if (policyLines.length > 0) {
+      variables.FILTER_EXTRA = (variables.FILTER_EXTRA ? variables.FILTER_EXTRA + '\n' : '') +
+        `PROPERTY POLICIES — state these if asked, then route to manager for details:\n${policyLines.join('\n')}`
     }
   }
 

@@ -26,11 +26,20 @@ interface AgentTestCardProps {
   daysRemaining?: number
 }
 
+interface CallResult {
+  call_status: string
+  ai_summary: string | null
+  duration_seconds: number | null
+  sentiment: string | null
+}
+
 export default function AgentTestCard({ agentName, businessName, clientStatus, isTrial = false, clientId, daysRemaining }: AgentTestCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
   const [isRequesting, setIsRequesting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [returnedCallId, setReturnedCallId] = useState<string | null>(null)
+  const [callResult, setCallResult] = useState<CallResult | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { incrementTestCalls, isStepComplete } = useOnboarding()
   const hasRecordedCallEnd = useRef(false)
   const pathname = usePathname()
@@ -102,6 +111,8 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
     resetCall()
     setApiError(null)
     setReturnedCallId(null)
+    setCallResult(null)
+    if (pollRef.current) clearInterval(pollRef.current)
   }, [resetCall])
 
   // Auto-complete "meet_agent" checklist step when test call ends
@@ -114,6 +125,29 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
       hasRecordedCallEnd.current = false
     }
   }, [callState, incrementTestCalls])
+
+  // Poll for classification + AI summary after call ends (aha moment)
+  useEffect(() => {
+    if (callState !== "ended" || !returnedCallId) return
+    setCallResult(null)
+    let attempts = 0
+    const MAX_ATTEMPTS = 18 // 90 seconds at 5s intervals
+    pollRef.current = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch(`/api/dashboard/agent-test/result?callId=${returnedCallId}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.ready) {
+          setCallResult(data)
+          if (pollRef.current) clearInterval(pollRef.current)
+        } else if (attempts >= MAX_ATTEMPTS) {
+          if (pollRef.current) clearInterval(pollRef.current)
+        }
+      } catch { /* silent — polling is best-effort */ }
+    }, 5000)
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [callState, returnedCallId])
 
   // Derive display state from both API request + hook state
   const displayState: "idle" | "loading" | "active" | "ended" | "error" =
@@ -306,6 +340,41 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                     showLabel={i === 0 || transcripts.filter(x => x.isFinal)[i - 1]?.speaker !== t.speaker}
                   />
                 ))}
+              </div>
+            )}
+
+            {/* Aha moment: classification result */}
+            {callResult ? (
+              <div className="mt-4 rounded-xl p-3.5 space-y-2" style={{ backgroundColor: "var(--color-hover)", border: "1px solid var(--color-border)" }}>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    callResult.call_status === 'HOT' ? 'bg-red-500/15 text-red-400' :
+                    callResult.call_status === 'WARM' ? 'bg-orange-500/15 text-orange-400' :
+                    callResult.call_status === 'COLD' ? 'bg-blue-500/15 text-blue-400' :
+                    callResult.call_status === 'MISSED' ? 'bg-yellow-500/15 text-yellow-400' :
+                    'bg-zinc-500/15 text-zinc-400'
+                  }`}>{callResult.call_status}</span>
+                  <p className="text-[11px] font-semibold t1">Your agent classified this call</p>
+                  {callResult.duration_seconds && (
+                    <span className="ml-auto text-[10px] t3">{Math.ceil(callResult.duration_seconds / 60)}m used</span>
+                  )}
+                </div>
+                {callResult.ai_summary && (
+                  <p className="text-[11px] t2 leading-relaxed">{callResult.ai_summary}</p>
+                )}
+                <a href="/dashboard/calls" className="text-[11px] font-medium hover:opacity-75 transition-opacity" style={{ color: "var(--color-primary)" }}>
+                  View full call log →
+                </a>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ backgroundColor: "var(--color-hover)" }}>
+                <motion.div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ repeat: Infinity, duration: 1.6 }}
+                />
+                <p className="text-[11px] t3">Analyzing your call… classification will appear here</p>
               </div>
             )}
 

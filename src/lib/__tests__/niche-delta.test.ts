@@ -353,9 +353,9 @@ describe('Shared heavy: barbershop', () => {
     assert.ok(prompt.includes('Test'))
   })
 
-  test('TRIAGE_DEEP is injected (barbershop resolves to auto_glass template)', () => {
-    // resolveProductionNiche maps barbershop → auto_glass (nearest production template)
-    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
+  test('TRIAGE_DEEP is injected (barbershop uses own template)', () => {
+    // barbershop has its own NICHE_DEFAULTS entry — uses barbershop-specific TRIAGE_DEEP
+    assert.ok(prompt.includes('BOOKING REQUEST') || prompt.includes('WALK-IN QUESTION') || prompt.includes('PRICE QUESTION'))
   })
 })
 
@@ -400,9 +400,9 @@ describe('Shared standard: restaurant (knowledge only, no transfer/booking)', ()
   const intake = makeMinimalIntake('restaurant')
   const prompt = buildPromptFromIntake(intake)
 
-  test('TRIAGE_DEEP is injected (restaurant resolves to auto_glass template)', () => {
-    // resolveProductionNiche maps restaurant → auto_glass (nearest production template)
-    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
+  test('TRIAGE_DEEP is injected (restaurant uses own template)', () => {
+    // restaurant has its own NICHE_DEFAULTS entry — uses restaurant-specific TRIAGE_DEEP
+    assert.ok(prompt.includes('MENU QUESTION') || prompt.includes('RESERVATION') || prompt.includes('HOURS'))
   })
 
   test('transfer is NOT enabled (restaurant has transferCalls=false)', () => {

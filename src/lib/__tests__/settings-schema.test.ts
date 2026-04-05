@@ -178,6 +178,8 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
       'knowledge_backend',
       'sms_enabled',
       'twilio_number',
+      'after_hours_behavior',
+      'after_hours_emergency_phone',
     ].sort()
 
     const actual = [...SYNC_TRIGGER_FIELDS].sort()

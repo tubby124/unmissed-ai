@@ -18,12 +18,43 @@ interface Props {
   canActivate: boolean;
 }
 
+// Niche fallback greetings — shown if intelligence API hasn't returned yet
+const NICHE_FALLBACK_GREETING: Record<string, string> = {
+  hvac: "Thank you for calling, this is {name}! Are you looking to book a service call, or can I help with something else?",
+  plumbing: "Thanks for calling, this is {name}! Got a plumbing issue I can help with?",
+  auto_glass: "Hey thanks for calling, this is {name}! Calling about a chip or crack in your glass?",
+  dental: "Thank you for calling, this is {name}! Are you looking to book an appointment?",
+  restaurant: "Thanks for calling, this is {name}! Can I help you with a reservation or question?",
+  salon: "Hey, thanks for calling! This is {name} — looking to book an appointment?",
+  legal: "Thank you for calling, this is {name}. How can I direct your call today?",
+  real_estate: "Thanks for calling, this is {name}! Are you looking to buy, sell, or just have a question?",
+  property_management: "Thank you for calling, this is {name}. Is this a maintenance request or can I help with something else?",
+  other: "Thank you for calling, this is {name}! How can I help you today?",
+};
+
+function getFallbackGreeting(niche: string, agentName: string): string {
+  const template = NICHE_FALLBACK_GREETING[niche] ?? NICHE_FALLBACK_GREETING.other;
+  return template.replace('{name}', agentName);
+}
+
 // ── D389 — Aha Moment: hear your agent before going live ──────────────────────
 function AhaMomentPanel({ data, agentName, businessName }: { data: OnboardingData; agentName: string; businessName: string }) {
+  const [timedOut, setTimedOut] = useState(false);
+
   const greeting = data.agentIntelligenceSeed?.GREETING_LINE
     || data.nicheCustomVariables?.GREETING_LINE;
 
-  const isGenerating = !greeting && !!(data.businessName && data.niche);
+  const isGenerating = !greeting && !!(data.businessName && data.niche) && !timedOut;
+
+  // Fallback after 6s so the panel never hangs indefinitely
+  useState(() => {
+    if (!greeting && data.businessName && data.niche) {
+      const t = setTimeout(() => setTimedOut(true), 6000);
+      return () => clearTimeout(t);
+    }
+  });
+
+  const displayGreeting = greeting || (timedOut ? getFallbackGreeting(data.niche || 'other', agentName) : null);
 
   if (isGenerating) {
     return (
@@ -35,7 +66,7 @@ function AhaMomentPanel({ data, agentName, businessName }: { data: OnboardingDat
       </div>
     );
   }
-  if (!greeting) return null;
+  if (!displayGreeting) return null;
 
   return (
     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 space-y-3">
@@ -50,7 +81,7 @@ function AhaMomentPanel({ data, agentName, businessName }: { data: OnboardingDat
           {agentName[0]}
         </div>
         <div className="flex-1 bg-white dark:bg-card rounded-xl rounded-tl-none px-4 py-3 shadow-sm border border-emerald-100 dark:border-emerald-800/40">
-          <p className="text-sm text-foreground leading-relaxed italic">&ldquo;{greeting}&rdquo;</p>
+          <p className="text-sm text-foreground leading-relaxed italic">&ldquo;{displayGreeting}&rdquo;</p>
         </div>
       </div>
       <p className="text-[11px] text-emerald-600 dark:text-emerald-500 pl-11">

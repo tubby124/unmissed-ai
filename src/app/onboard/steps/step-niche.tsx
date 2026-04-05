@@ -115,9 +115,9 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
   // D391 — Re-trigger intelligence generation after chip selection + voice + caller reasons.
   // Step 1 fired Haiku with only callerReasons (services were empty then).
   // Now that niche chips are filled, re-run with services so TRIAGE_DEEP is niche-specific.
+  // Also fires with empty services on niche mount — ensures GREETING_LINE is always generated.
   useEffect(() => {
     const services = (data.nicheAnswers?.services as string[]) ?? [];
-    if (!services.length) return;
     if (!data.businessName || !data.niche) return;
 
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -134,6 +134,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
         city: data.city || "",
         hours: data.businessHoursText || "",
         gbpDescription: data.gbpDescription || "",
+        manualDescription: data.manualDescription || "",
         services,
         callerReasons: (data.callerReasons || []).filter((r: string) => r?.trim()),
         calendarEnabled: data.callHandlingMode === 'full_service' || data.agentMode === 'appointment_booking',
@@ -159,7 +160,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
           const newVars: Record<string, string> = { ...existingVars };
 
           // Production niches have hand-crafted TRIAGE_DEEP — don't overwrite with Haiku generic output
-          const NICHE_DEFAULTS_HAVE_TRIAGE = ['auto_glass', 'property_management', 'outbound_isa_realtor'];
+          const NICHE_DEFAULTS_HAVE_TRIAGE = ['auto_glass', 'hvac', 'plumbing', 'property_management', 'outbound_isa_realtor'];
           if (seed.TRIAGE_DEEP && !NICHE_DEFAULTS_HAVE_TRIAGE.includes(data.niche || 'other')) newVars.TRIAGE_DEEP = seed.TRIAGE_DEEP;
           if (seed.GREETING_LINE) newVars.GREETING_LINE = seed.GREETING_LINE;
           if (seed.URGENCY_KEYWORDS) newVars.URGENCY_KEYWORDS = seed.URGENCY_KEYWORDS;
@@ -281,6 +282,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
                   city: data.city || "",
                   hours: data.businessHoursText || "",
                   gbpDescription: data.gbpDescription || "",
+                  manualDescription: data.manualDescription || "",
                   services: (data.nicheAnswers?.services as string[]) ?? [],
                   callerReasons: filled,
                   calendarEnabled: data.callHandlingMode === 'full_service' || data.agentMode === 'appointment_booking',
@@ -304,7 +306,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
                     const seed = json.seed as Record<string, string>;
                     const existingVars = data.nicheCustomVariables || {};
                     const newVars: Record<string, string> = { ...existingVars };
-                    const NICHE_DEFAULTS_HAVE_TRIAGE = ['auto_glass', 'property_management', 'outbound_isa_realtor'];
+                    const NICHE_DEFAULTS_HAVE_TRIAGE = ['auto_glass', 'hvac', 'plumbing', 'property_management', 'outbound_isa_realtor'];
                     if (seed.TRIAGE_DEEP && !NICHE_DEFAULTS_HAVE_TRIAGE.includes(data.niche || 'other')) newVars.TRIAGE_DEEP = seed.TRIAGE_DEEP;
                     if (seed.GREETING_LINE) newVars.GREETING_LINE = seed.GREETING_LINE;
                     if (seed.URGENCY_KEYWORDS) newVars.URGENCY_KEYWORDS = seed.URGENCY_KEYWORDS;

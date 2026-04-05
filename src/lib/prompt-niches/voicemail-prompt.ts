@@ -6,6 +6,9 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const bizName     = ((intake.business_name as string) || 'our office').trim()
   const callbackPhone = ((intake.callback_phone as string) || '').trim()
   const ownerName   = ((intake.owner_name as string) || '').trim()
+  const niche       = ((intake.niche as string) || '').trim()
+  const city        = ((intake.city as string) || '').trim()
+  const isPM        = niche === 'property_management'
 
   // Who receives messages
   const recipientType   = ((intake.niche_messageRecipient as string) || 'owner')
@@ -18,8 +21,56 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   // Behavior mode
   const canAnswerFaq = (intake.niche_voicemailBehavior as string) === 'message_and_faq'
 
-  // Extra context from owner
-  const extraContext = ((intake.niche_voicemailContext as string) || '').trim()
+  // PM-specific context (pet/parking/package policies + safety rules)
+  let pmContext = ''
+  if (isPM) {
+    const pmNotes: string[] = []
+    const petPolicy = (intake.niche_petPolicy as string) || ''
+    if (petPolicy) {
+      const petLabels: Record<string, string> = {
+        no_pets: 'No pets allowed',
+        cats_only: 'Cats only',
+        cats_dogs: 'Cats and small dogs only',
+        all_pets: 'All pets welcome',
+        case_by_case: 'Pet policy is case-by-case — requires owner approval',
+      }
+      pmNotes.push(`PET POLICY: ${petLabels[petPolicy] || petPolicy}. If asked, state clearly then say "for deposits or breed restrictions, the manager will confirm when they call back."`)
+    }
+    const parkingPolicy = (intake.niche_parkingPolicy as string) || ''
+    const parkingLabels: Record<string, string> = {
+      street_only: 'Street parking only — no assigned stalls',
+      assigned: 'Assigned parking stalls (tenant-specific)',
+      underground: 'Underground parkade (access via fob/key)',
+      visitor_only: 'Visitor stalls only',
+    }
+    if (parkingPolicy && parkingLabels[parkingPolicy]) pmNotes.push(`PARKING: ${parkingLabels[parkingPolicy]}.`)
+    const packagePolicy = (intake.niche_packagePolicy as string) || ''
+    const packageLabels: Record<string, string> = {
+      lobby_only: 'Packages left at lobby/front desk only',
+      locked_room: 'Locked package room — tenants notified',
+      notify_tenant: 'Carrier delivers directly to unit',
+      no_policy: 'No managed delivery policy',
+    }
+    if (packagePolicy && packageLabels[packagePolicy]) pmNotes.push(`PACKAGES: ${packageLabels[packagePolicy]}.`)
+    pmNotes.push(`EMERGENCY TONE: If caller reports flooding, no heat, gas smell, or security breach — do NOT stay cheerful. Immediately acknowledge: "that sounds serious — I'm flagging this urgent right now." Then route to the right contact.`)
+    pmNotes.push(`FHA: NEVER use demographic language or coded references about tenants or neighborhood characteristics (e.g. "quiet building", "professional residents").`)
+    pmContext = pmNotes.join('\n')
+  }
+
+  // Extra context: PM context takes priority; fall back to voicemail niche custom field
+  const extraContext = pmContext || ((intake.niche_voicemailContext as string) || '').trim()
+
+  // Opening greetings — PM uses location-aware options
+  const locationStr = city ? ` in ${city}` : ''
+  const openingGreetings = isPM
+    ? `Pick ONE of these greetings — rotate between calls, don't always use the same one:
+- "Hi, thanks for calling ${bizName}${locationStr} — this is ${agentName}. Are you a tenant, owner, or looking to lease?"
+- "Hey there, you've reached ${bizName}${locationStr}, ${agentName} speaking — maintenance, lease, or something else?"
+- "Hi, ${agentName} here with ${bizName}${locationStr} — what can I help you with today?"`
+    : `Pick ONE of these greetings — rotate between calls, don't always use the same one:
+- "Hey there! This is ${agentName} from ${bizName}... how can I help ya?"
+- "Hi hi, ${agentName} here with ${bizName}... what's goin' on?"
+- "Oh hey! You've reached ${bizName}, this is ${agentName}... what can I do for ya?"`
 
   return `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. You MUST speak in short, natural sentences. Never produce any text formatting. Always respond in English.]
 
@@ -111,10 +162,7 @@ Add a thinking beat before answering something — "yeah so..." or "okay so..." 
 # OPENING
 
 Say this first within the first 2 seconds. Keep it under 4 seconds total.
-Pick ONE of these greetings — rotate between calls, don't always use the same one:
-- "Hey there! This is ${agentName} from ${bizName}... how can I help ya?"
-- "Hi hi, ${agentName} here with ${bizName}... what's goin' on?"
-- "Oh hey! You've reached ${bizName}, this is ${agentName}... what can I do for ya?"
+${openingGreetings}
 
 Do NOT wait silently. Speak immediately when the call connects.
 
@@ -129,8 +177,8 @@ Ask: "Can I get your name?"
 If they already gave their name: acknowledge it and skip this step.
 
 ## Step 2 — Get the reason
-Ask: "And what's this about?" or "What can I pass along to ${recipientName}?"
-Keep it open-ended. Let them tell you in their own words.
+If the caller already told you why they're calling: acknowledge it and skip this step.
+Only ask if you genuinely don't know: "And what's this about?" or "What can I pass along to ${recipientName}?"
 
 ## Step 3 — Confirm you have what you need
 The caller's number is already in context (CALLER PHONE) — no need to ask for it.

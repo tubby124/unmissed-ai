@@ -25,6 +25,7 @@ interface AgentIntelligenceRequest {
   niche: string
   agentName?: string
   gbpDescription?: string
+  manualDescription?: string
   services?: string[]
   callerReasons?: string[]
   hours?: string
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
     contextLines.push(`Owner says top reasons people call:\n${body.callerReasons.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}`)
   }
   if (body.gbpDescription) contextLines.push(`Google Business description: "${body.gbpDescription}"`)
+  if (!body.gbpDescription && body.manualDescription) contextLines.push(`Business description (owner-provided): "${body.manualDescription}"`)
   if (body.websiteFacts?.length) {
     contextLines.push(`Facts from their website:\n${body.websiteFacts.slice(0, 10).map(f => `  - ${f}`).join('\n')}`)
   }

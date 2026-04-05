@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
-import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { APP_URL } from '@/lib/app-url'
 
-// 5 test calls per client per 30 minutes
-const rateLimiter = new SlidingWindowRateLimiter(5, 30 * 60_000)
+const RATE_LIMIT_MAX = 5
+const RATE_LIMIT_WINDOW_MS = 30 * 60_000
 
 export async function POST(req: NextRequest) {
   // Auth: Supabase session
@@ -55,16 +54,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No agent configured yet. Complete setup first.' }, { status: 400 })
   }
 
-  // Rate limit: 5 calls per client per 30 min
-  const rlKey = `agent-test:${client.id}`
-  const { allowed, remaining, retryAfterMs } = rateLimiter.check(rlKey)
-  if (!allowed) {
+  // Rate limit: 5 test calls per client per 30 min — DB-backed so it survives deploys
+  const cutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString()
+  const { count: recentCount } = await svc
+    .from('call_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', client.id)
+    .eq('caller_phone', 'webrtc-test')
+    .gte('started_at', cutoff)
+  if ((recentCount ?? 0) >= RATE_LIMIT_MAX) {
     return NextResponse.json(
-      { error: 'Too many test calls. Please wait before trying again.', retryAfterSeconds: Math.ceil(retryAfterMs / 1000) },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) } }
+      { error: 'Too many test calls. Please wait before trying again.', retryAfterSeconds: 1800 },
+      { status: 429, headers: { 'Retry-After': '1800' } }
     )
   }
-  rateLimiter.record(rlKey)
 
   // Build full context via shared buildAgentContext() — same as inbound webhook
   const clientRow: ClientRow = {
@@ -136,14 +139,14 @@ export async function POST(req: NextRequest) {
       overrideTools,
     })
 
-    console.log(`[agent-test] Started WebRTC test: client=${client.slug} callId=${callId} remaining=${remaining - 1}`)
+    console.log(`[agent-test] Started WebRTC test: client=${client.slug} callId=${callId} recentCount=${recentCount ?? 0}`)
 
     // Track test call server-side: enables native webhook billing update + prevents false orphan warnings
     try {
       await svc.from('call_logs').insert({
         ultravox_call_id: callId,
         client_id: client.id,
-        call_status: 'test',
+        call_status: 'live',
         caller_phone: 'webrtc-test',
         started_at: new Date().toISOString(),
       })

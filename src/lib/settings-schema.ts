@@ -76,8 +76,8 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   // → computeNeedsSync returns true → Ultravox agent resynced automatically.
   business_hours_weekday:     { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false },
   business_hours_weekend:     { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
-  after_hours_behavior:       { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
-  after_hours_emergency_phone:{ mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
+  after_hours_behavior:       { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true },
+  after_hours_emergency_phone:{ mutationClass: 'DB_PLUS_PROMPT', triggersSync: true },
   injected_note:              { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
   context_data:               { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
   context_data_label:         { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },

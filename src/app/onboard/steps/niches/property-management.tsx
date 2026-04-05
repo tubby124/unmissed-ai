@@ -119,6 +119,61 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
         />
       </div>
 
+      {/* Pet policy */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Pet policy{" "}
+          <span className="text-gray-400 font-normal">(tenants ask — helps your agent answer correctly)</span>
+        </Label>
+        <ChipSelector
+          options={[
+            { value: "no_pets", label: "No pets" },
+            { value: "cats_only", label: "Cats only" },
+            { value: "cats_dogs", label: "Cats & small dogs" },
+            { value: "all_pets", label: "All pets welcome" },
+            { value: "case_by_case", label: "Case by case — ask owner" },
+          ]}
+          value={(answers.petPolicy as string) || ""}
+          onChange={(val) => onChange("petPolicy", val)}
+        />
+      </div>
+
+      {/* Parking */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Parking situation{" "}
+          <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <ChipSelector
+          options={[
+            { value: "street_only", label: "Street parking only" },
+            { value: "assigned", label: "Assigned stalls" },
+            { value: "underground", label: "Underground parkade" },
+            { value: "visitor_only", label: "Visitor stalls only" },
+          ]}
+          value={(answers.parkingPolicy as string) || ""}
+          onChange={(val) => onChange("parkingPolicy", val)}
+        />
+      </div>
+
+      {/* Package handling */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Package / delivery handling{" "}
+          <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <ChipSelector
+          options={[
+            { value: "lobby_only", label: "Lobby / front desk only" },
+            { value: "locked_room", label: "Locked package room" },
+            { value: "notify_tenant", label: "Carrier leaves at unit" },
+            { value: "no_policy", label: "No managed policy" },
+          ]}
+          value={(answers.packagePolicy as string) || ""}
+          onChange={(val) => onChange("packagePolicy", val)}
+        />
+      </div>
+
       {/* Maintenance contacts */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">

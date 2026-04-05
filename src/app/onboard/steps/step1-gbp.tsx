@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Niche, OnboardingData, defaultAgentNames, nicheLabels, nicheEmojis } from "@/types/onboarding";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import PlacesAutocomplete from "@/components/onboard/PlacesAutocomplete";
 import { trackEvent } from "@/lib/analytics";
 import { NICHE_PRODUCTION_READY } from "@/lib/niche-config";
@@ -13,15 +14,16 @@ import { agentNameIsAutoSet } from "@/lib/intake-transform";
 const FEMALE_DEFAULT = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
 
 const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
-  auto_glass_shop: "auto_glass", car_repair: "auto_glass", car_wash: "auto_glass",
-  hvac_contractor: "hvac", electrician: "hvac",
-  plumber: "plumbing",
-  dentist: "dental", dental_clinic: "dental",
-  lawyer: "legal", legal_services: "legal",
-  hair_care: "salon", beauty_salon: "salon", nail_salon: "salon", spa: "salon",
+  auto_glass_shop: "auto_glass", car_repair: "auto_glass", car_wash: "auto_glass", glass_repair_service: "auto_glass",
+  hvac_contractor: "hvac", electrician: "hvac", heating_contractor: "hvac", air_conditioning_contractor: "hvac", roofing_contractor: "hvac",
+  plumber: "plumbing", drain_cleaning_service: "plumbing",
+  dentist: "dental", dental_clinic: "dental", orthodontist: "dental", cosmetic_dentist: "dental",
+  lawyer: "legal", legal_services: "legal", attorney: "legal",
+  hair_care: "salon", beauty_salon: "salon", nail_salon: "salon", spa: "salon", barber_shop: "salon",
   real_estate_agency: "real_estate", real_estate: "real_estate",
   property_management_company: "property_management",
-  restaurant: "restaurant", food: "restaurant", cafe: "restaurant", meal_takeaway: "restaurant",
+  apartment_rental_agency: "property_management", real_estate_rental_agency: "property_management", condominium_complex: "property_management",
+  restaurant: "restaurant", food: "restaurant", cafe: "restaurant", meal_takeaway: "restaurant", bakery: "restaurant", bar: "restaurant", fast_food_restaurant: "restaurant",
   print_shop: "print_shop",
 };
 
@@ -184,7 +186,9 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
         if (res.ok) {
           const json = await res.json();
           if (json.niche && json.niche !== 'other') {
+            // Auto-apply the inferred niche — show a dismissible "wrong?" strip instead of requiring a click
             setInferredNiche(json.niche as Niche);
+            applyNiche(json.niche as Niche);
           } else if (json.customVariables) {
             // Store AI-generated variables for 'other' businesses — wired into prompt at build time
             onUpdate({ nicheCustomVariables: json.customVariables });
@@ -577,6 +581,72 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                   placeholder="https://yourbusiness.com"
                 />
               </motion.div>
+            )}
+
+            {/* D393: Zero-data fallback — shown when no website AND no GBP description */}
+            {!data.websiteUrl && !data.gbpDescription && (
+              data.niche === 'property_management' ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.22 }}
+                  className="space-y-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20"
+                >
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                    Your agent is pre-configured for property management calls — no website needed.
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pmManagerName" className="text-sm font-medium">
+                      Property manager name{" "}
+                      <span className="text-xs text-amber-700 dark:text-amber-400 font-normal">(becomes the callback contact)</span>
+                    </Label>
+                    <Input
+                      id="pmManagerName"
+                      value={data.ownerName || ''}
+                      onChange={(e) => onUpdate({ ownerName: e.target.value })}
+                      placeholder="e.g. Ray, Alisha, Jordan"
+                      className="text-sm"
+                    />
+                  </div>
+                  {!data.city && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pmCity" className="text-sm font-medium">
+                        What city do you manage properties in?
+                      </Label>
+                      <Input
+                        id="pmCity"
+                        value={data.city || ''}
+                        onChange={(e) => onUpdate({ city: e.target.value })}
+                        placeholder="e.g. Calgary, Edmonton, Vancouver"
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.22 }}
+                  className="space-y-1.5 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20"
+                >
+                  <Label htmlFor="manualDescription">
+                    Tell us about your business{" "}
+                    <span className="text-xs text-amber-700 dark:text-amber-400 font-normal">(no website needed)</span>
+                  </Label>
+                  <Textarea
+                    id="manualDescription"
+                    value={data.manualDescription || ''}
+                    onChange={(e) => onUpdate({ manualDescription: e.target.value })}
+                    placeholder="Describe what you do in 2–3 sentences. What jobs do you take? What areas do you cover? What makes you different?"
+                    rows={3}
+                    className="resize-none text-sm"
+                  />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Your agent will use this to answer questions about your business.
+                  </p>
+                </motion.div>
+              )
             )}
 
           </motion.div>

@@ -101,9 +101,12 @@ export async function POST(req: NextRequest) {
   // Only block full_service for non-Pro plans — message_only and triage are safe to pass through.
   const entitlements = getPlanEntitlements(data.selectedPlan)
   const rawCallHandlingMode = intakePayload.call_handling_mode
-  const effectiveCallHandlingMode = (!entitlements.bookingEnabled && rawCallHandlingMode === 'full_service')
+  // Trial upgrade: selectedPlan during trial = "what they'll pay for after" — not a cap on trial experience.
+  // Always give trial users at least AI Receptionist (triage) so they experience the full product.
+  const trialUpgradedMode = rawCallHandlingMode === 'message_only' ? 'triage' : (rawCallHandlingMode || 'triage')
+  const effectiveCallHandlingMode = (!entitlements.bookingEnabled && trialUpgradedMode === 'full_service')
     ? 'triage'
-    : (rawCallHandlingMode || 'triage')
+    : trialUpgradedMode
   const effectiveCallForwardingEnabled = entitlements.transferEnabled
     ? (data.callForwardingEnabled ?? false)
     : false
@@ -443,10 +446,12 @@ export async function POST(req: NextRequest) {
     .map((p: { question: string; answer: string }) => ({ q: p.question.trim(), a: p.answer.trim() }));
   const allQa = [...scrapedQa, ...manualQa];
 
-  // If no scraped facts, fall back to GBP description formatted as a fact line
+  // If no scraped facts, fall back to GBP description, then manual description
   const gbpFact = (data.gbpDescription && scrapedFacts.length === 0)
     ? `About this business: ${data.gbpDescription}` : '';
-  const factsArr = scrapedFacts.length > 0 ? scrapedFacts : (gbpFact ? [gbpFact] : []);
+  const manualFact = (!data.gbpDescription && data.manualDescription && scrapedFacts.length === 0)
+    ? `About this business: ${data.manualDescription}` : '';
+  const factsArr = scrapedFacts.length > 0 ? scrapedFacts : (gbpFact ? [gbpFact] : (manualFact ? [manualFact] : []));
   if (factsArr.length > 0 || allQa.length > 0) {
     await supa.from('clients').update({
       ...(factsArr.length > 0 ? { business_facts: factsArr } : {}),
