@@ -445,6 +445,8 @@ interface AgentConfig {
   selectedPlan?: string | null
   /** Subscription status — 'trialing' bypasses plan gating (all features). */
   subscriptionStatus?: string | null
+  /** Client niche — used for niche-specific tool injection (e.g. property_management → maintenanceRequest). */
+  niche?: string | null
 }
 
 /**
@@ -536,6 +538,85 @@ export function buildSmsTools(slug: string): UltravoxTool[] {
       },
     },
   }]
+}
+
+/**
+ * Build maintenanceRequest HTTP tool — lets Jade (PM voice agent) write maintenance requests
+ * to the DB during a live call. Niche-gated: only injected for property_management clients.
+ */
+export function buildMaintenanceRequestTool(slug: string): UltravoxTool {
+  const appUrl = AGENT_WEBHOOK_BASE
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return {
+    temporaryTool: {
+      modelToolName: 'submitMaintenanceRequest',
+      description: "Submit a maintenance request from a tenant. Use after collecting unit number, issue description, and urgency. Do NOT use for emergencies requiring 911.",
+      dynamicParameters: [
+        {
+          name: 'unit_number',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "The tenant's unit number (e.g. '101', '2B')" },
+          required: true,
+        },
+        {
+          name: 'tenant_name',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Full name of the tenant calling in" },
+          required: true,
+        },
+        {
+          name: 'category',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: {
+            type: 'string',
+            enum: ['plumbing', 'electrical', 'hvac', 'appliance', 'structural', 'pest_control', 'other'],
+            description: "Category of the maintenance issue",
+          },
+          required: true,
+        },
+        {
+          name: 'description',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Plain-language description of the issue as reported by the tenant" },
+          required: true,
+        },
+        {
+          name: 'urgency_tier',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: {
+            type: 'string',
+            enum: ['urgent', 'routine'],
+            description: "'urgent' for same-day or safety issues; 'routine' for non-critical requests",
+          },
+          required: true,
+        },
+        {
+          name: 'preferred_access_window',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Tenant's preferred time window for entry (e.g. 'weekday mornings')" },
+          required: false,
+        },
+        {
+          name: 'entry_permission',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'boolean', description: "Whether the tenant grants permission to enter without them present" },
+          required: false,
+        },
+      ],
+      automaticParameters: [
+        { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      http: {
+        baseUrlPattern: `${appUrl}/api/webhook/${slug}/maintenance-request`,
+        httpMethod: 'POST',
+      },
+    },
+  }
 }
 
 /**
@@ -721,6 +802,8 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   const coachingTools: object[] = (opts.slug && plan.learningLoopEnabled) ? [buildCoachingTool(opts.slug)] : []
   // pageOwner: alerts owner via SMS when a VIP caller tried to reach them — same gate as transfer
   const pageOwnerTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? [buildPageOwnerTool(opts.slug)] : []
+  // maintenanceRequest: PM niche only — lets voice agent write maintenance requests during live calls
+  const maintenanceTools: object[] = opts.niche === 'property_management' && opts.slug ? [buildMaintenanceRequestTool(opts.slug)] : []
 
   // Phase 4.5 GAP-I: Log plan-gated tools for observability
   if (opts.slug) {
@@ -735,7 +818,7 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
     }
   }
 
-  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools]
+  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools, ...maintenanceTools]
 }
 
 /** Update an existing agent's config (call after saving a new system prompt). */
