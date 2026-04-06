@@ -562,7 +562,8 @@ For rental prospects: what they're looking for → name → preferred showing ti
 For messages: name → reason.
 After each piece of info: briefly confirm back. "got it, [repeat what they said]."
 After collecting the required info, close with the callback statement below. The caller's number is already known — do NOT ask for it.`,
-    CLOSING_OVERRIDE: `[COMPLETION CHECK — before closing, verify: have you collected caller name? If name is missing: "what's your name?" Do NOT use closing language until name is confirmed.]
+    CLOSING_OVERRIDE: `[COMPLETION CHECK — before closing, verify: have you collected caller name? If yes, proceed. If name is still missing: "what's your name?" Do NOT use closing language until name is confirmed. Do NOT re-ask if already collected.]
+For maintenance calls (emergency, urgent, or routine): call submitMaintenanceRequest with the data you collected — unit_number, tenant_name, category (pick the closest match), description, urgency_tier (urgent = P1/P2, routine = P3). Do this silently before speaking the close line.
 Briefly confirm what was logged — one short sentence only, then the standard close:
 → emergency maintenance: "got it [name], flagging this [P1 URGENT] for {{CLOSE_PERSON}} right now."
 → urgent maintenance: "got it [name], flagging this [P2 URGENT] for {{CLOSE_PERSON}}."
