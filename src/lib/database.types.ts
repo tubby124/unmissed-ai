@@ -324,10 +324,12 @@ export type Database = {
           call_direction: string | null
           call_state: Json | null
           call_status: string | null
+          callback_preference: string | null
           caller_name: string | null
           caller_phone: string | null
           client_id: string | null
           confidence: number | null
+          contact_id: string | null
           created_at: string | null
           duration_seconds: number | null
           end_reason: string | null
@@ -339,6 +341,7 @@ export type Database = {
           in_call_sms_sent: boolean | null
           is_overage: boolean | null
           key_topics: Json | null
+          lead_status: string | null
           next_steps: string | null
           parent_call_log_id: string | null
           quality_score: number | null
@@ -364,10 +367,12 @@ export type Database = {
           call_direction?: string | null
           call_state?: Json | null
           call_status?: string | null
+          callback_preference?: string | null
           caller_name?: string | null
           caller_phone?: string | null
           client_id?: string | null
           confidence?: number | null
+          contact_id?: string | null
           created_at?: string | null
           duration_seconds?: number | null
           end_reason?: string | null
@@ -379,6 +384,7 @@ export type Database = {
           in_call_sms_sent?: boolean | null
           is_overage?: boolean | null
           key_topics?: Json | null
+          lead_status?: string | null
           next_steps?: string | null
           parent_call_log_id?: string | null
           quality_score?: number | null
@@ -404,10 +410,12 @@ export type Database = {
           call_direction?: string | null
           call_state?: Json | null
           call_status?: string | null
+          callback_preference?: string | null
           caller_name?: string | null
           caller_phone?: string | null
           client_id?: string | null
           confidence?: number | null
+          contact_id?: string | null
           created_at?: string | null
           duration_seconds?: number | null
           end_reason?: string | null
@@ -419,6 +427,7 @@ export type Database = {
           in_call_sms_sent?: boolean | null
           is_overage?: boolean | null
           key_topics?: Json | null
+          lead_status?: string | null
           next_steps?: string | null
           parent_call_log_id?: string | null
           quality_score?: number | null
@@ -442,6 +451,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "client_contacts"
             referencedColumns: ["id"]
           },
           {
@@ -500,6 +516,7 @@ export type Database = {
           id: string
           last_call_log_id: string | null
           last_called_at: string | null
+          lead_status: string | null
           name: string | null
           notes: string | null
           phone: string
@@ -515,6 +532,7 @@ export type Database = {
           id?: string
           last_call_log_id?: string | null
           last_called_at?: string | null
+          lead_status?: string | null
           name?: string | null
           notes?: string | null
           phone: string
@@ -530,6 +548,7 @@ export type Database = {
           id?: string
           last_call_log_id?: string | null
           last_called_at?: string | null
+          lead_status?: string | null
           name?: string | null
           notes?: string | null
           phone?: string
@@ -550,6 +569,86 @@ export type Database = {
             columns: ["last_call_log_id"]
             isOneToOne: false
             referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_contacts: {
+        Row: {
+          call_count: number | null
+          client_id: string
+          created_at: string | null
+          document_url: string | null
+          email: string | null
+          first_seen_at: string | null
+          id: string
+          is_vip: boolean | null
+          last_call_at: string | null
+          last_outcome: string | null
+          name: string | null
+          notes: string | null
+          phone: string
+          preferences: Json | null
+          sms_opted_out: boolean | null
+          source: string | null
+          tags: string[] | null
+          transfer_enabled: boolean | null
+          updated_at: string | null
+          vip_notes: string | null
+          vip_relationship: string | null
+        }
+        Insert: {
+          call_count?: number | null
+          client_id: string
+          created_at?: string | null
+          document_url?: string | null
+          email?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_vip?: boolean | null
+          last_call_at?: string | null
+          last_outcome?: string | null
+          name?: string | null
+          notes?: string | null
+          phone: string
+          preferences?: Json | null
+          sms_opted_out?: boolean | null
+          source?: string | null
+          tags?: string[] | null
+          transfer_enabled?: boolean | null
+          updated_at?: string | null
+          vip_notes?: string | null
+          vip_relationship?: string | null
+        }
+        Update: {
+          call_count?: number | null
+          client_id?: string
+          created_at?: string | null
+          document_url?: string | null
+          email?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_vip?: boolean | null
+          last_call_at?: string | null
+          last_outcome?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string
+          preferences?: Json | null
+          sms_opted_out?: boolean | null
+          source?: string | null
+          tags?: string[] | null
+          transfer_enabled?: boolean | null
+          updated_at?: string | null
+          vip_notes?: string | null
+          vip_relationship?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -819,6 +918,7 @@ export type Database = {
           effective_monthly_rate: number | null
           email_notifications_enabled: boolean | null
           extra_qa: Json | null
+          first_call_at: string | null
           forwarding_number: string | null
           gbp_photo_url: string | null
           gbp_place_id: string | null
@@ -844,10 +944,11 @@ export type Database = {
           minutes_used_this_month: number | null
           monthly_minute_limit: number | null
           niche: string | null
+          niche_custom_variables: Json | null
           outbound_goal: string | null
+          outbound_notes: string | null
           outbound_opening: string | null
           outbound_prompt: string | null
-          outbound_notes: string | null
           outbound_tone: string | null
           outbound_vm_script: string | null
           owner_name: string | null
@@ -862,6 +963,7 @@ export type Database = {
           slug: string
           sms_enabled: boolean | null
           sms_template: string | null
+          staff_roster: Json | null
           state: string | null
           status: string | null
           stripe_customer_id: string | null
@@ -929,6 +1031,7 @@ export type Database = {
           effective_monthly_rate?: number | null
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
+          first_call_at?: string | null
           forwarding_number?: string | null
           gbp_photo_url?: string | null
           gbp_place_id?: string | null
@@ -954,6 +1057,7 @@ export type Database = {
           minutes_used_this_month?: number | null
           monthly_minute_limit?: number | null
           niche?: string | null
+          niche_custom_variables?: Json | null
           outbound_goal?: string | null
           outbound_notes?: string | null
           outbound_opening?: string | null
@@ -972,6 +1076,7 @@ export type Database = {
           slug: string
           sms_enabled?: boolean | null
           sms_template?: string | null
+          staff_roster?: Json | null
           state?: string | null
           status?: string | null
           stripe_customer_id?: string | null
@@ -1039,6 +1144,7 @@ export type Database = {
           effective_monthly_rate?: number | null
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
+          first_call_at?: string | null
           forwarding_number?: string | null
           gbp_photo_url?: string | null
           gbp_place_id?: string | null
@@ -1064,6 +1170,7 @@ export type Database = {
           minutes_used_this_month?: number | null
           monthly_minute_limit?: number | null
           niche?: string | null
+          niche_custom_variables?: Json | null
           outbound_goal?: string | null
           outbound_notes?: string | null
           outbound_opening?: string | null
@@ -1082,6 +1189,7 @@ export type Database = {
           slug?: string
           sms_enabled?: boolean | null
           sms_template?: string | null
+          staff_roster?: Json | null
           state?: string | null
           status?: string | null
           stripe_customer_id?: string | null
@@ -1181,6 +1289,8 @@ export type Database = {
           approved_count: number
           chunk_count: number
           client_id: string
+          conflicts: Json
+          conflicts_dismissed: boolean
           created_at: string
           created_by_user_id: string | null
           faq_count: number
@@ -1195,6 +1305,8 @@ export type Database = {
           approved_count?: number
           chunk_count?: number
           client_id: string
+          conflicts?: Json
+          conflicts_dismissed?: boolean
           created_at?: string
           created_by_user_id?: string | null
           faq_count?: number
@@ -1209,6 +1321,8 @@ export type Database = {
           approved_count?: number
           chunk_count?: number
           client_id?: string
+          conflicts?: Json
+          conflicts_dismissed?: boolean
           created_at?: string
           created_by_user_id?: string | null
           faq_count?: number
@@ -1537,6 +1651,68 @@ export type Database = {
           },
         ]
       }
+      maintenance_requests: {
+        Row: {
+          call_log_id: string | null
+          caller_phone: string | null
+          category: string
+          client_id: string | null
+          created_at: string | null
+          created_by: string
+          description: string
+          entry_permission: boolean | null
+          id: string
+          notes: string[] | null
+          preferred_access_window: string | null
+          status: string
+          tenant_name: string
+          unit_number: string
+          urgency_tier: string
+        }
+        Insert: {
+          call_log_id?: string | null
+          caller_phone?: string | null
+          category: string
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          description: string
+          entry_permission?: boolean | null
+          id?: string
+          notes?: string[] | null
+          preferred_access_window?: string | null
+          status?: string
+          tenant_name: string
+          unit_number: string
+          urgency_tier: string
+        }
+        Update: {
+          call_log_id?: string | null
+          caller_phone?: string | null
+          category?: string
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string
+          entry_permission?: boolean | null
+          id?: string
+          notes?: string[] | null
+          preferred_access_window?: string | null
+          status?: string
+          tenant_name?: string
+          unit_number?: string
+          urgency_tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           call_id: string | null
@@ -1643,6 +1819,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      outbound_connect_tokens: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          join_url: string
+          ultravox_call_id: string | null
+          vm_script: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          join_url: string
+          ultravox_call_id?: string | null
+          vm_script?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          join_url?: string
+          ultravox_call_id?: string | null
+          vm_script?: string | null
+        }
+        Relationships: []
       }
       prompt_improvement_suggestions: {
         Row: {
@@ -2063,6 +2269,10 @@ export type Database = {
           resolved_queries: string[]
         }[]
       }
+      bump_knowledge_gap_priority: {
+        Args: { p_client_id: string; p_topics: string[] }
+        Returns: number
+      }
       deduct_advisor_credits: {
         Args: { p_amount_cents: number; p_user_id: string }
         Returns: boolean
@@ -2129,6 +2339,20 @@ export type Database = {
           p_similarity_threshold?: number
         }
         Returns: boolean
+      }
+      upsert_client_contact: {
+        Args: {
+          p_booked?: boolean
+          p_call_status?: string
+          p_caller_email?: string
+          p_caller_name?: string
+          p_client_id: string
+          p_key_topics?: string[]
+          p_phone: string
+          p_sentiment?: string
+          p_service_requested?: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -2262,4 +2486,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
