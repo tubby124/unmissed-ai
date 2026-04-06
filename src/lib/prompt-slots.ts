@@ -1057,8 +1057,11 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   let afterHoursInstructions = ''
   if (afterHoursBehavior === 'route_emergency' && emergencyPhone) {
     afterHoursInstructions = `If the caller mentions it's after hours or an emergency: "for emergencies, i can connect ya to ${emergencyPhone} — want me to do that?" If yes, use transferCall tool. If no: "no worries, i'll take a message and ${variables.CLOSE_PERSON || 'the team'} will call ya back first thing."`
-  } else if (afterHoursBehavior === 'standard') {
-    afterHoursInstructions = `If the caller mentions it's after hours: "we're closed right now — our hours are ${variables.HOURS_WEEKDAY || ''}. i can take a message and have ${variables.CLOSE_PERSON || 'the team'} call ya back when we open."`
+  } else if (afterHoursBehavior === 'route_emergency' && !emergencyPhone) {
+    // route_emergency selected but no phone configured — acknowledge urgency, flag P1, promise fast callback
+    afterHoursInstructions = `If the caller mentions it's after hours and it sounds like a P1 emergency (no heat, flooding, gas, fire, break-in): "this sounds urgent — if it's life-threatening, call 9-1-1 right now. i'm flagging this as emergency and ${variables.CLOSE_PERSON || 'the manager'} will call you back as soon as possible." Collect name + unit + brief issue. For non-emergencies after hours: "we're not in the office right now — i'll make sure ${variables.CLOSE_PERSON || 'the manager'} calls you back first thing."`
+  } else if (afterHoursBehavior === 'take_message' || afterHoursBehavior === 'standard') {
+    afterHoursInstructions = `If the caller mentions it's after hours: "we're closed right now — ${variables.HOURS_WEEKDAY || 'our regular business hours'}. i can take a message and have ${variables.CLOSE_PERSON || 'the team'} call ya back when we open."`
   }
 
   // Pricing / unknown instructions
@@ -1176,6 +1179,8 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
   variables.URGENCY_KEYWORDS = variables.URGENCY_KEYWORDS || '"emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"'
+  // HOURS_WEEKDAY fallback — prevents {{HOURS_WEEKDAY}} leaking raw when client hasn't configured hours
+  if (!variables.HOURS_WEEKDAY) variables.HOURS_WEEKDAY = 'our regular business hours'
 
   // Pre-resolve variable cross-references
   for (const key of Object.keys(variables)) {
