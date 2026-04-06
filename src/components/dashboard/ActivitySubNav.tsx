@@ -6,18 +6,27 @@ import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 
 interface ActivitySubNavProps {
   isTrialing?: boolean
+  niche?: string | null
 }
 
-const SEGMENTS = [
+const BASE_SEGMENTS = [
   { href: '/dashboard/calls', label: 'Calls', trialLocked: false },
   { href: '/dashboard/leads', label: 'Leads', trialLocked: false },
   { href: '/dashboard/bookings', label: 'Bookings', trialLocked: true },
   { href: '/dashboard/live', label: 'Live ⚡', trialLocked: true },
 ]
 
-const ACTIVITY_ROUTES = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live']
+const PM_SEGMENTS = [
+  { href: '/dashboard/maintenance', label: 'Maintenance', trialLocked: false },
+]
 
-export default function ActivitySubNav({ isTrialing = false }: ActivitySubNavProps) {
+const ACTIVITY_ROUTES = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live', '/dashboard/maintenance']
+
+export default function ActivitySubNav({ isTrialing = false, niche = null }: ActivitySubNavProps) {
+  const SEGMENTS = [
+    ...BASE_SEGMENTS,
+    ...(niche === 'property_management' ? PM_SEGMENTS : []),
+  ]
   const pathname = usePathname()
   const { openUpgradeModal } = useUpgradeModal()
 

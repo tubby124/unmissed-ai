@@ -151,7 +151,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               <main className="flex-1 min-w-0 overflow-y-auto pb-16 lg:pb-0 dashboard-main">
                 <AdminCommandStrip />
                 {/* Activity sub-nav — only visible on Activity routes */}
-                <ActivitySubNav isTrialing={isTrialing} />
+                <ActivitySubNav isTrialing={isTrialing} niche={clientNiche} />
                 <PageTransition>{children}</PageTransition>
               </main>
 

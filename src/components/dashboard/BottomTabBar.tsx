@@ -64,7 +64,7 @@ const CLIENT_TABS = [
   },
 ]
 
-const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live']
+const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live', '/dashboard/maintenance']
 
 function isTabActive(tabHref: string, pathname: string): boolean {
   if (tabHref === '/dashboard') return pathname === '/dashboard'
