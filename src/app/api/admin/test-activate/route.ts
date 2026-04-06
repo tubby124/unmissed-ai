@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existingClient } = await svc
     .from('clients')
-    .select('id, ultravox_agent_id, twilio_number, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, selected_plan')
+    .select('id, ultravox_agent_id, twilio_number, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, selected_plan, niche')
     .eq('slug', clientSlug)
     .maybeSingle()
 
@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
         sms_enabled: existingClient?.sms_enabled ?? false,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
+        niche: (existingClient?.niche as string | null) || undefined,
       }
       await updateAgent(existingAgentId, agentFlags)
       agentId = existingAgentId

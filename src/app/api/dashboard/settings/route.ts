@@ -27,7 +27,7 @@ async function syncToUltravox(
 ): Promise<SyncResult> {
   const { data: clientRow } = await supabase
     .from('clients')
-    .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, call_handling_mode, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status')
+    .select('slug, ultravox_agent_id, agent_voice_id, system_prompt, forwarding_number, booking_enabled, call_handling_mode, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, selected_plan, subscription_status, niche')
     .eq('id', clientId)
     .single()
 
@@ -75,6 +75,7 @@ async function syncToUltravox(
       transfer_conditions: transferConditions,
       selectedPlan: (clientRow.selected_plan as string | null) || undefined,
       subscriptionStatus: (clientRow.subscription_status as string | null) || undefined,
+      niche: (clientRow.niche as string | null) || undefined,
     }
 
     await updateAgent(clientRow.ultravox_agent_id, agentFlags)

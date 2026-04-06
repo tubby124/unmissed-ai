@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     // Load full client row — needed for Ultravox sync (partial PATCH wipes callTemplate)
     const { data: client } = await svc
       .from('clients')
-      .select('id, slug, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions')
+      .select('id, slug, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, niche')
       .eq('slug', body.clientSlug)
       .single()
 
@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
         twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
+        niche: (client.niche as string | null) || undefined,
       }
 
       await updateAgent(body.agentId, agentFlags)

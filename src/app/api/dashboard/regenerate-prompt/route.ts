@@ -271,6 +271,7 @@ export async function POST(req: NextRequest) {
         twilio_number: (client.twilio_number as string | null) || undefined,
         knowledge_backend: knowledgeBackend,
         knowledge_chunk_count: knowledgeChunkCount,
+        niche: (client.niche as string | null) || undefined,
       }
 
       await updateAgent(client.ultravox_agent_id, agentFlags)

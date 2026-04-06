@@ -335,6 +335,7 @@ export async function POST(req: NextRequest) {
       name: clientSlug.slice(0, 64),
       voice: voiceId,
       slug: clientSlug,
+      niche: data.niche || 'other',
       maxDuration: '180s',
     });
   } catch (err) {

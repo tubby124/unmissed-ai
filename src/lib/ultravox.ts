@@ -723,7 +723,7 @@ export function buildDemoTools(slug: string, caps: DemoToolCapabilities): Ultrav
 }
 
 /** Create a persistent Ultravox agent profile for a client. Store agentId in clients.ultravox_agent_id. */
-export async function createAgent({ systemPrompt, voice, tools, name, slug, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, knowledge_chunk_count, transfer_conditions, maxDuration }: AgentConfig): Promise<string> {
+export async function createAgent({ systemPrompt, voice, tools, name, slug, niche, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, knowledge_chunk_count, transfer_conditions, maxDuration }: AgentConfig): Promise<string> {
   // All call config MUST be nested inside callTemplate — top-level fields are silently ignored by the API
   const callTemplate: Record<string, unknown> = {
     systemPrompt: systemPrompt + '\n\n{{callerContext}}\n\n{{businessFacts}}\n\n## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}',
@@ -750,7 +750,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, book
   // Always include hangUp — without it the agent cannot end calls (Gotcha #55)
   callTemplate.selectedTools = buildAgentTools({
     tools: tools?.length ? tools : [HANGUP_TOOL],
-    booking_enabled, slug, forwarding_number, transfer_conditions,
+    niche, booking_enabled, slug, forwarding_number, transfer_conditions,
     sms_enabled, twilio_number, knowledge_backend, knowledge_chunk_count,
   })
 

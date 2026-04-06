@@ -281,6 +281,7 @@ export async function POST(req: NextRequest) {
         name: clientSlug.slice(0, 64),
         voice: voiceId,
         slug: clientSlug,
+        niche: intake.niche || 'other',
       })
     } catch (err) {
       console.error('[create-public-checkout] createAgent failed:', err)

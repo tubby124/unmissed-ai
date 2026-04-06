@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   // Sync restored prompt to Ultravox agent (if one exists)
   const { data: clientRow } = await supabase
     .from('clients')
-    .select('id, slug, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, selected_plan, subscription_status')
+    .select('id, slug, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, knowledge_backend, transfer_conditions, selected_plan, subscription_status, niche')
     .eq('id', client_id)
     .single()
 
@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
       knowledge_chunk_count: knowledgeChunkCount,
       selectedPlan: (clientRow.selected_plan as string | null) || undefined,
       subscriptionStatus: (clientRow.subscription_status as string | null) || undefined,
+      niche: (clientRow.niche as string | null) || undefined,
     }
 
     try {
