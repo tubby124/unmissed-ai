@@ -200,6 +200,8 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
             if (item.adminOnly && (!isAdmin || previewMode)) return false
             // Hide Calendar nav for niches that don't support booking
             if (item.href === '/dashboard/calendar' && !isAdmin && niche && !hasCapability(niche, 'bookAppointments')) return false
+            // Maintenance tab: property_management only
+            if (item.href === '/dashboard/maintenance' && !isAdmin && niche !== 'property_management') return false
             return true
           })
           return filteredNav.map((item, idx) => {

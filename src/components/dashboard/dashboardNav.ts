@@ -26,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 1, iconName: 'bell' },
   // ── Group 2 — OPS ─────────────────────────────────────────────────────────
   { href: '/dashboard/setup', label: 'Go Live', adminOnly: false, group: 2, iconName: 'wrench' },
+  { href: '/dashboard/maintenance', label: 'Maintenance', adminOnly: false, group: 2, iconName: 'clipboard-list' },
   // ── Group 3 — SECONDARY (trialLocked) ────────────────────────────────────
   { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 3, iconName: 'broadcast', trialLocked: true },
   { href: '/dashboard/leads', label: 'Leads', adminLabel: 'Outbound Queue', adminOnly: false, group: 3, iconName: 'list' },
