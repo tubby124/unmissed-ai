@@ -567,11 +567,7 @@ export function buildMaintenanceRequestTool(slug: string): UltravoxTool {
         {
           name: 'category',
           location: 'PARAMETER_LOCATION_BODY',
-          schema: {
-            type: 'string',
-            enum: ['plumbing', 'electrical', 'hvac', 'appliance', 'structural', 'pest_control', 'other'],
-            description: "Category of the maintenance issue",
-          },
+          schema: { type: 'string', description: "Category of the maintenance issue. One of: plumbing, electrical, hvac, appliance, structural, pest_control, other" },
           required: true,
         },
         {
@@ -583,11 +579,7 @@ export function buildMaintenanceRequestTool(slug: string): UltravoxTool {
         {
           name: 'urgency_tier',
           location: 'PARAMETER_LOCATION_BODY',
-          schema: {
-            type: 'string',
-            enum: ['urgent', 'routine'],
-            description: "'urgent' for same-day or safety issues; 'routine' for non-critical requests",
-          },
+          schema: { type: 'string', description: "One of: urgent (same-day or safety issues), routine (non-critical requests)" },
           required: true,
         },
         {
