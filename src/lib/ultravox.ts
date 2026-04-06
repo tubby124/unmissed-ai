@@ -31,9 +31,10 @@ const CALLBACK_SIG_MAX_AGE_MS = 30 * 60 * 1000
 export function signCallbackUrl(baseUrl: string, slug: string): string {
   const secret = process.env.WEBHOOK_SIGNING_SECRET
   if (!secret) return baseUrl // dev: no secret → no sig
-  const nonce = crypto.randomBytes(8).toString('hex') // 8 bytes = 16 hex chars (keep URL under 200)
+  const nonce = crypto.randomBytes(4).toString('hex') // 4 bytes = 8 hex chars — compact for Ultravox 200-char URL limit
   const ts = Date.now().toString()
-  const sig = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
+  // Truncate to 32 hex chars (128-bit) — still secure, saves 32 chars vs full SHA256 digest
+  const sig = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex').slice(0, 32)
   const sep = baseUrl.includes('?') ? '&' : '?'
   return `${baseUrl}${sep}sig=${sig}&n=${nonce}&t=${ts}`
 }
@@ -61,7 +62,9 @@ export function verifyCallbackSig(
     if (isNaN(tsNum) || Math.abs(Date.now() - tsNum) > CALLBACK_SIG_MAX_AGE_MS) {
       return { valid: false, legacy: false }
     }
-    const expected = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
+    const fullSig = crypto.createHmac('sha256', secret).update(`${slug}:${nonce}:${ts}`).digest('hex')
+    // Accept both full (64-char) and truncated (32-char) sigs — truncated used to stay under Ultravox 200-char URL limit
+    const expected = sig.length === 32 ? fullSig.slice(0, 32) : fullSig
     try {
       return { valid: crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)), legacy: false }
     } catch {
