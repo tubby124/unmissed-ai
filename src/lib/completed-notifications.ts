@@ -124,6 +124,11 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
       classification, callerPhone, durationSeconds, endedAt,
       clientTz, fullSummary, recordingUrl, callbackPreference: callbackPreference ?? null,
     })
+  } else if (client.niche === 'property_management') {
+    message = buildPmNotificationMessage({
+      classification, callerPhone, durationSeconds, endedAt,
+      clientTz, fullSummary, recordingUrl,
+    })
   } else {
     const style = (client.telegram_style || 'standard') as TelegramStyle
 
@@ -272,6 +277,86 @@ function buildAutoGlassMessage(params: {
   lines.push(DIVIDER)
   lines.push(`📅 ${dateStr} · ${timeStr} · ${dur}`)
   if (vinStr !== 'Not Provided') lines.push(`VIN: ${vinStr}`)
+  if (recordingUrl) lines.push(`🎧 <a href="${recordingUrl}">Recording</a>`)
+
+  return lines.join('\n')
+}
+
+// ── Property Management Telegram format ──────────────────────────────────────
+
+function buildPmNotificationMessage(params: {
+  classification: Classification
+  callerPhone: string
+  durationSeconds: number
+  endedAt: string
+  clientTz: string
+  fullSummary: string
+  recordingUrl: string | null
+}): string {
+  const { classification, callerPhone, durationSeconds, endedAt, clientTz, fullSummary, recordingUrl } = params
+  const mins = Math.floor(durationSeconds / 60)
+  const secs = durationSeconds % 60
+  const callEnd = new Date(endedAt)
+  const dateStr = callEnd.toLocaleDateString('en-US', { timeZone: clientTz, month: 'short', day: 'numeric', year: 'numeric' })
+  const timeStr = callEnd.toLocaleTimeString('en-US', { timeZone: clientTz, hour: 'numeric', minute: '2-digit', hour12: true })
+  const dur = durationSeconds > 0 ? `${mins}m ${secs}s` : 'n/a'
+  const DIVIDER = '━━━━━━━━━━━━━━━━━'
+
+  const fmtPhone = (p: string) => {
+    const d = p.replace(/\D/g, '')
+    if (d.length === 11 && d[0] === '1') return `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`
+    if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
+    return p
+  }
+
+  // Best-effort parse of unit, tenant, issue from summary text
+  const unitMatch = fullSummary.match(/unit\s+([A-Za-z0-9#\-]+)/i)
+  const tenantMatch = fullSummary.match(/tenant[:\s]+([A-Za-z ]+?)(?:\s*[-,|]|$)/im)
+  const issueMatch = fullSummary.match(/issue[:\s]+(.+?)(?:\n|$)/i)
+  const unitStr = unitMatch ? unitMatch[1] : null
+  const tenantStr = tenantMatch ? tenantMatch[1].trim() : null
+  const issueStr = issueMatch ? issueMatch[1].trim() : null
+
+  const summaryUpper = fullSummary.toUpperCase()
+  const lines: string[] = []
+
+  if (/\[P1\s+(?:URGENT|EMERGENCY)\]/i.test(fullSummary)) {
+    lines.push(`🚨 <b>[P1 EMERGENCY]</b>`)
+    if (unitStr && tenantStr) lines.push(`${unitStr} — ${tenantStr}`)
+    else if (tenantStr) lines.push(tenantStr)
+    if (issueStr) lines.push(`Issue: ${issueStr}`)
+    else if (!unitStr && !tenantStr) lines.push(fullSummary)
+    lines.push(`⚠️ REQUIRES IMMEDIATE RESPONSE`)
+  } else if (/\[P2\s+URGENT\]/i.test(fullSummary)) {
+    lines.push(`⚡ <b>[P2 URGENT]</b>`)
+    if (tenantStr && unitStr) lines.push(`${tenantStr} — ${unitStr}`)
+    else if (tenantStr) lines.push(tenantStr)
+    if (issueStr) lines.push(`Issue: ${issueStr}`)
+    else if (!tenantStr && !unitStr) lines.push(fullSummary)
+  } else if (/\[P3\s+ROUTINE\]/i.test(fullSummary)) {
+    lines.push(`🔧 <b>[P3 ROUTINE]</b>`)
+    if (tenantStr && unitStr) lines.push(`${tenantStr} — ${unitStr}`)
+    else if (tenantStr) lines.push(tenantStr)
+    else lines.push(fullSummary)
+  } else if (/\[SHOWING REQUEST\]/i.test(fullSummary)) {
+    lines.push(`🏠 <b>[SHOWING REQUEST]</b>`)
+    // Strip the tag and include remaining summary details
+    const detail = fullSummary.replace(/\[SHOWING REQUEST\]/gi, '').trim()
+    if (detail) lines.push(detail)
+  } else {
+    // Standard fallback — mirrors the non-niche formatTelegramMessage path
+    const STATUS_EMOJI: Record<string, string> = { HOT: '🔥', WARM: '🟡', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️' }
+    const emoji = STATUS_EMOJI[classification.status] || '📞'
+    lines.push(`${emoji} <b>${classification.status}</b> — ${callerPhone !== 'unknown' ? fmtPhone(callerPhone) : 'Unknown'}`)
+    if (fullSummary) {
+      lines.push(DIVIDER)
+      lines.push(fullSummary)
+    }
+  }
+
+  lines.push(DIVIDER)
+  lines.push(`📞 ${fmtPhone(callerPhone)}`)
+  lines.push(`📅 ${dateStr} · ${timeStr} · ${dur}`)
   if (recordingUrl) lines.push(`🎧 <a href="${recordingUrl}">Recording</a>`)
 
   return lines.join('\n')
