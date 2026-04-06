@@ -55,7 +55,7 @@ const LITE: PlanEntitlements = {
   smsEnabled: true,
   knowledgeEnabled: false,
   learningLoopEnabled: false,
-  leadScoringEnabled: false,
+  leadScoringEnabled: true,
   maxKnowledgeSources: 1, // 1 website + GBP + manual facts
   maxWebsiteUrls: 1,
   fileUploadEnabled: false,
@@ -67,7 +67,7 @@ const CORE: PlanEntitlements = {
   minutes: 400,
   defaultMode: 'lead_capture',
   bookingEnabled: true,       // Phase 7: Core now includes booking
-  transferEnabled: false,     // Transfer is Pro-only (high-volume)
+  transferEnabled: true,      // D416: Transfer enabled for Core
   smsEnabled: true,
   knowledgeEnabled: true,
   learningLoopEnabled: true,

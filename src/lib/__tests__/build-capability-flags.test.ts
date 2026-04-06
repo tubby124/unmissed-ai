@@ -207,9 +207,9 @@ describe('plan gates — Booking requires plan.bookingEnabled', () => {
 })
 
 describe('plan gates — Transfer requires plan.transferEnabled', () => {
-  test('CORE plan + forwarding_number set → false (not on plan)', () => {
+  test('CORE plan + forwarding_number set → true (D416: transfer enabled for Core)', () => {
     const f = buildCapabilityFlags({ ...base(), selected_plan: 'core', forwarding_number: '+15559876543' })
-    assert.equal(f.hasTransfer, false)
+    assert.equal(f.hasTransfer, true)
   })
 
   test('LITE plan + forwarding_number set → false (not on plan)', () => {
