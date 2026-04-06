@@ -50,6 +50,8 @@ import { useDirtyGuardEffect } from './useDirtyGuard'
 import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
 import { fmtPhone } from '@/lib/settings-utils'
+import PmSetupChecklist from '@/components/dashboard/settings/PmSetupChecklist'
+import PmConfigCard from '@/components/dashboard/settings/PmConfigCard'
 
 // ─── Section icon components ──────────────────────────────────────────────────
 
@@ -284,6 +286,13 @@ export default function AgentTab({
 
   return (<>
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+      {/* ═══════ PM SETUP CHECKLIST (D407) — property_management only ══ */}
+      {niche === 'property_management' && (
+        <div className="col-span-full">
+          <PmSetupChecklist client={client} />
+        </div>
+      )}
 
       {/* ═══════ ADMIN TOP ROW ═══════════════════════════════════════ */}
       {isAdmin && (
@@ -554,6 +563,18 @@ export default function AgentTab({
         previewMode={previewMode}
         onPromptChange={handlePromptChange}
       />
+
+      {/* ═══════ PM CONFIG CARD (D422) — property_management only ══════ */}
+      {niche === 'property_management' && (
+        <div id="pm-config" className="col-span-full">
+          <PmConfigCard
+            client={client}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+            onPromptChange={handlePromptChange}
+          />
+        </div>
+      )}
 
       {hasCapability(niche, 'bookAppointments') && (
         <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">

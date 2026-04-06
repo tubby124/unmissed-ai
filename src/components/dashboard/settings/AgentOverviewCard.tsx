@@ -251,6 +251,38 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
           </div>
         </div>}
 
+        {/* ── D423: Agent sync status (settings only) ──────────────────────────── */}
+        {mode !== 'onboarding' && (() => {
+          const syncAt = client.last_agent_sync_at ?? null
+          const syncStatus = client.last_agent_sync_status ?? null
+          if (!syncStatus) return null
+          const isSuccess = syncStatus === 'success'
+          const isError = syncStatus === 'error'
+          const isPending = syncStatus === 'pending'
+          const dot = isSuccess ? 'bg-green-400' : isError ? 'bg-red-500' : isPending ? 'bg-amber-400' : 'bg-zinc-500'
+          const label = isSuccess ? 'Synced' : isError ? 'Sync error' : isPending ? 'Sync pending' : syncStatus
+          const timeStr = (() => {
+            if (!syncAt) return null
+            const diff = Date.now() - new Date(syncAt).getTime()
+            const mins = Math.floor(diff / 60_000)
+            if (mins < 1) return 'just now'
+            if (mins < 60) return `${mins}m ago`
+            const h = Math.floor(mins / 60)
+            if (h < 24) return `${h}h ago`
+            return `${Math.floor(h / 24)}d ago`
+          })()
+          return (
+            <div className="mb-5 pt-4 border-t b-theme">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-2">Agent sync</p>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                <span className={`text-[11px] font-medium ${isError ? 'text-red-400' : isPending ? 'text-amber-400' : 't2'}`}>{label}</span>
+                {timeStr && <span className="text-[10px] t3 font-mono ml-1">Last synced: {timeStr}</span>}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── Row 5-6: Capabilities + inject + context (settings only) ────────── */}
         {mode !== 'onboarding' && (<>
         <div className="mb-5 pt-4 border-t b-theme">
