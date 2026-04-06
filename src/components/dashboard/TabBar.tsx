@@ -22,7 +22,7 @@ const CLIENT_TABS = [
   { href: '/dashboard/other', label: 'Other' },
 ]
 
-const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live']
+const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live', '/dashboard/maintenance']
 const OTHER_HREFS = ['/dashboard/other']
 
 function isTabActive(tabHref: string, pathname: string): boolean {
