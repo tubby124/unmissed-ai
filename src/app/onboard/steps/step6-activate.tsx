@@ -404,7 +404,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         {/* Notification method */}
         <div className="space-y-1.5">
           <Label htmlFor="notificationMethod">
-            How should we notify you of new calls?
+            How should we notify you of new leads? <span className="text-red-500">*</span>
           </Label>
           <select
             id="notificationMethod"
@@ -414,19 +414,37 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             }
             className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
           >
-            <option value="email">Email</option>
-            <option value="telegram">Telegram</option>
+            <option value="email">Email (instant — recommended)</option>
             <option value="sms">SMS text</option>
+            <option value="telegram">Telegram</option>
             <option value="both">Telegram + Email</option>
           </select>
 
-          {/* Telegram not-yet-connected warning — only shown when telegram is selected */}
-          {['telegram', 'both'].includes(data.notificationMethod || 'email') && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2 mt-1">
-              <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
-              <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-                Telegram not connected — you won&apos;t receive lead notifications until you connect it.
-                Connect it in Settings after going live.
+          {/* SMS: require phone number */}
+          {['sms'].includes(data.notificationMethod || '') && (
+            <div className="space-y-1.5 mt-2">
+              <Label htmlFor="notificationPhone">Mobile number for SMS alerts <span className="text-red-500">*</span></Label>
+              <Input
+                id="notificationPhone"
+                type="tel"
+                value={data.notificationPhone || ''}
+                onChange={(e) => onUpdate({ notificationPhone: e.target.value })}
+                placeholder="(306) 555-1234"
+              />
+            </div>
+          )}
+
+          {/* Telegram: show connect instructions inline */}
+          {['telegram', 'both'].includes(data.notificationMethod || '') && (
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 px-3 py-2.5 mt-1 space-y-1.5">
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">Connect Telegram in 30 seconds</p>
+              <ol className="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside leading-snug">
+                <li>Open Telegram → search <strong>@unmissedai_bot</strong></li>
+                <li>Send <strong>/start</strong></li>
+                <li>Connect from Settings after you launch</li>
+              </ol>
+              <p className="text-[11px] text-blue-500 dark:text-blue-400">
+                You&apos;ll still get email notifications until Telegram is connected.
               </p>
             </div>
           )}

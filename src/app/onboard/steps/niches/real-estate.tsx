@@ -9,10 +9,19 @@ interface Props {
   onChange: (key: string, value: string | string[] | boolean) => void;
 }
 
+const FOCUS_OPTIONS = [
+  { value: "residential", label: "Residential" },
+  { value: "commercial",  label: "Commercial"  },
+  { value: "both",        label: "Both"        },
+];
+
 export default function RealEstateNiche({ data, onChange }: Props) {
   const answers = data.nicheAnswers;
   const serviceAreas = (answers.serviceAreas as string[]) || [];
   const pronouns     = (answers.pronouns    as string)    || "he";
+  const brokerage    = (answers.brokerage   as string)    || "";
+  const focus        = (answers.focus       as string)    || "residential";
+  const calendarIntent = (answers.calendarIntent as boolean) ?? false;
 
   const [areaInput, setAreaInput] = useState("");
 
@@ -67,6 +76,66 @@ export default function RealEstateNiche({ data, onChange }: Props) {
           />
         </div>
         <p className="text-xs text-slate-400">Format: "Saskatoon, SK" · "Calgary, AB" · "Edmonton, AB"</p>
+      </div>
+
+      {/* Brokerage */}
+      <div className="space-y-2">
+        <Label htmlFor="brokerage">
+          Which brokerage?{" "}
+          <span className="text-slate-400 font-normal text-xs">Optional</span>
+        </Label>
+        <input
+          id="brokerage"
+          type="text"
+          value={brokerage}
+          onChange={e => onChange("brokerage", e.target.value)}
+          placeholder="e.g. eXp Realty, RE/MAX, Royal LePage"
+          className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-slate-400"
+        />
+      </div>
+
+      {/* Focus */}
+      <div className="space-y-2">
+        <Label>What type of real estate?</Label>
+        <div className="flex gap-2 flex-wrap">
+          {FOCUS_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange("focus", opt.value)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
+                focus === opt.value
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-slate-700 border-slate-300 hover:border-indigo-400"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Calendar booking intent */}
+      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-sm font-medium text-slate-800">Enable direct booking</p>
+          <p className="text-xs text-slate-500 mt-0.5">Callers can book showings or consultations on-call</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={calendarIntent}
+          onClick={() => onChange("calendarIntent", !calendarIntent)}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+            calendarIntent ? "bg-indigo-600" : "bg-slate-300"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${
+              calendarIntent ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
       </div>
 
       {/* Pronouns */}
