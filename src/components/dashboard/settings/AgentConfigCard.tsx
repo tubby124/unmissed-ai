@@ -100,7 +100,7 @@ export default function AgentConfigCard({
               {syncing ? 'Syncing\u2026' : syncState === 'ok' ? '\u2713 Synced' : syncState === 'error' ? '\u2717 Sync failed' : 'Re-sync Agent'}
             </button>
             <span className="text-[11px] t3">
-              {syncState === 'error' ? syncError : 'Force-push current prompt + voice to Ultravox'}
+              {syncState === 'error' ? syncError : 'Pushes stored prompt to Ultravox — does not rebuild. Use Regenerate Prompt first if settings changed.'}
             </span>
           </div>
         )}

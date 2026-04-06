@@ -122,6 +122,102 @@ describe('owner_phone — callForwardingEnabled + emergencyPhone gate', () => {
   })
 })
 
+// ── real_estate niche — context_data + booking_enabled ────────────────────
+
+function realEstateBase(): OnboardingData {
+  return {
+    ...base(),
+    niche: 'real_estate',
+    businessName: 'Hasan Sharif Real Estate',
+    ownerName: 'Hasan Sharif',
+    nicheAnswers: {
+      brokerage: 'eXp Realty',
+      serviceAreas: ['Calgary', 'Airdrie'],
+      focus: 'commercial',
+      calendarIntent: true,
+    },
+    selectedPlan: null,
+    callHandlingMode: 'triage',
+  }
+}
+
+describe('real_estate — context_data', () => {
+  test('includes Brokerage line', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.ok(
+      (r.context_data as string).includes('Brokerage: eXp Realty'),
+      `context_data missing brokerage: ${r.context_data}`
+    )
+  })
+
+  test('includes Service areas line', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.ok(
+      (r.context_data as string).includes('Service areas: Calgary, Airdrie'),
+      `context_data missing service areas: ${r.context_data}`
+    )
+  })
+
+  test('includes Specialty for commercial focus', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.ok(
+      (r.context_data as string).includes('Specialty: Commercial real estate'),
+      `context_data missing specialty: ${r.context_data}`
+    )
+  })
+
+  test('omits Specialty when focus=both', () => {
+    const r = toIntakePayload({
+      ...realEstateBase(),
+      nicheAnswers: { brokerage: 'eXp Realty', serviceAreas: ['Calgary'], focus: 'both', calendarIntent: false },
+    })
+    assert.ok(!(r.context_data as string).includes('Specialty'), `Unexpected Specialty line: ${r.context_data}`)
+  })
+
+  test('context_data_label = AGENT CONTEXT', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.equal(r.context_data_label, 'AGENT CONTEXT')
+  })
+
+  test('no context_data when brokerage and serviceAreas are both empty', () => {
+    const r = toIntakePayload({
+      ...realEstateBase(),
+      nicheAnswers: { brokerage: '', serviceAreas: [], calendarIntent: false },
+    })
+    assert.equal(r.context_data, undefined)
+    assert.equal(r.context_data_label, undefined)
+  })
+})
+
+describe('real_estate — booking_enabled', () => {
+  test('true when calendarIntent=true', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.equal(r.booking_enabled, true)
+  })
+
+  test('false when calendarIntent=false and no full_service plan', () => {
+    const r = toIntakePayload({
+      ...realEstateBase(),
+      nicheAnswers: { brokerage: 'eXp Realty', serviceAreas: ['Calgary'], calendarIntent: false },
+      selectedPlan: null,
+      callHandlingMode: 'triage',
+    })
+    assert.equal(r.booking_enabled, false)
+  })
+})
+
+describe('real_estate — niche field passthrough', () => {
+  test('niche_brokerage present in payload', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.equal(r.niche_brokerage, 'eXp Realty')
+  })
+
+  test('niche_focus present in payload', () => {
+    const r = toIntakePayload(realEstateBase())
+    assert.equal(r.niche_focus, 'commercial')
+  })
+})
+
 // ── slugify edge cases ─────────────────────────────────────────────────────
 import { slugify } from '../intake-transform.js'
 
