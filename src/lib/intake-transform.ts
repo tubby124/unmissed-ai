@@ -235,7 +235,7 @@ export function toIntakePayload(data: OnboardingData) {
       ? { after_hours_emergency_phone: String(data.nicheAnswers.emergencyTechPhone) }
       : {}),
     ...(data.niche === 'property_management' && data.nicheAnswers?.afterHoursBehavior
-      ? { pm_after_hours_behavior: String(data.nicheAnswers.afterHoursBehavior) }
+      ? { after_hours_behavior: String(data.nicheAnswers.afterHoursBehavior) }
       : {}),
     // D417 — Business address
     ...(data.businessAddress?.trim() ? { niche_businessAddress: data.businessAddress.trim() } : {}),
