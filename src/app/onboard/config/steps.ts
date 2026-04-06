@@ -87,6 +87,10 @@ export const STEP_DEFS: StepDef[] = [
         const services = data.nicheAnswers?.services;
         return Array.isArray(services) && (services as string[]).length > 0;
       }
+      // PM requires manager name (CLOSE_PERSON) and after-hours behavior (emergency routing choice)
+      if (data.niche === 'property_management') {
+        return !!data.ownerName?.trim() && !!(data.nicheAnswers?.afterHoursBehavior as string | undefined);
+      }
       return true;
     },
   },
@@ -98,7 +102,11 @@ export const STEP_DEFS: StepDef[] = [
   {
     label: 'Launch',
     component: Step6Activate,
-    canAdvance: (d) => !!d.businessName?.trim() && !!d.contactEmail?.trim() && !!d.callbackPhone?.trim(),
+    canAdvance: (d) => {
+      if (!d.businessName?.trim() || !d.contactEmail?.trim() || !d.callbackPhone?.trim()) return false;
+      if (d.notificationMethod === 'sms' && !d.notificationPhone?.trim()) return false;
+      return true;
+    },
     hideFooterCta: true,
     activationProps: true,
   },

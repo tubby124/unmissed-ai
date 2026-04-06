@@ -217,7 +217,7 @@ export function toIntakePayload(data: OnboardingData) {
     diagnostic_fee: (data.nicheAnswers?.diagnosticFee as string) || "",
     call_handling_mode: effectiveMode,
     agent_mode: data.agentMode ?? 'lead_capture',
-    booking_enabled: effectiveMode === 'full_service' || agentModeVal === 'appointment_booking',
+    booking_enabled: effectiveMode === 'full_service' || agentModeVal === 'appointment_booking' || (data.niche === 'real_estate' && !!data.nicheAnswers?.calendarIntent),
     owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,
 
@@ -247,6 +247,21 @@ export function toIntakePayload(data: OnboardingData) {
       ? { context_data: String(data.nicheAnswers.menuData), context_data_label: 'MENU' }
       : data.niche === 'property_management' && data.nicheAnswers?.tenantRoster
       ? { context_data: String(data.nicheAnswers.tenantRoster), context_data_label: 'TENANTS' }
+      : data.niche === 'real_estate' && (data.nicheAnswers?.brokerage || (data.nicheAnswers?.serviceAreas as string[])?.length)
+      ? (() => {
+          const lines: string[] = []
+          const brokerage = (data.nicheAnswers?.brokerage as string)?.trim()
+          if (brokerage) lines.push(`Brokerage: ${brokerage}`)
+          const areas = data.nicheAnswers?.serviceAreas as string[] | undefined
+          if (areas?.length) lines.push(`Service areas: ${areas.join(', ')}`)
+          const focus = (data.nicheAnswers?.focus as string)?.trim()
+          if (focus && focus !== 'both') {
+            lines.push(`Specialty: ${focus === 'commercial' ? 'Commercial real estate' : 'Residential homes'}`)
+          }
+          return lines.length > 0
+            ? { context_data: lines.join('\n'), context_data_label: 'AGENT CONTEXT' }
+            : {}
+        })()
       : (() => {
           const pricePrefix = data.priceRange?.trim() ? `PRICES\n${data.priceRange.trim()}\n\n` : ''
           const urgencyPrefix = data.urgencyWords?.trim() ? `URGENCY KEYWORDS\n${data.urgencyWords.trim()}\n\n` : ''

@@ -50,8 +50,23 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
   const maintenanceEmergencyTriggers = (answers.maintenanceEmergencyTriggers as string[]) || [];
   const servicesNotOffered = (answers.servicesNotOffered as string[]) || [];
 
+  const missingOwnerName = !data.ownerName?.trim()
+  const missingAfterHours = !(answers.afterHoursBehavior as string | undefined)
+
   return (
     <div className="space-y-6">
+      {/* Required fields banner */}
+      {(missingOwnerName || missingAfterHours) && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 space-y-1">
+          <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-wide">Required to continue</p>
+          {missingOwnerName && (
+            <p className="text-xs text-amber-300/80">• Property manager name — go back to Step 1 and fill in &quot;Your name&quot;</p>
+          )}
+          {missingAfterHours && (
+            <p className="text-xs text-amber-300/80">• After-hours behavior — select below how emergencies should be handled</p>
+          )}
+        </div>
+      )}
       {/* Property types */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">

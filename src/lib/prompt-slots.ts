@@ -874,6 +874,28 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     else if (plumbingClientType === 'commercial') variables.INDUSTRY = 'commercial plumbing company'
   }
 
+  // Real estate
+  if (niche === 'real_estate') {
+    const reBrokerage = (intake.niche_brokerage as string)?.trim()
+    if (reBrokerage) variables.INDUSTRY = `${reBrokerage} brokerage`
+    const reServiceAreasRaw = intake.niche_serviceAreas
+    const reServiceAreas = Array.isArray(reServiceAreasRaw)
+      ? (reServiceAreasRaw as string[]).join(', ')
+      : (reServiceAreasRaw as string)?.trim()
+    if (reServiceAreas) variables.CITY = reServiceAreas
+    const reFocus = (intake.niche_focus as string)?.trim()
+    if (reFocus === 'commercial') {
+      variables.PRIMARY_CALL_REASON = 'commercial real estate — buying, selling, or leasing commercial properties'
+      variables.TRIAGE_SCRIPT = [
+        `"If buying commercial: 'are you looking for office, retail, industrial, or multi-family?'"`,
+        `"If leasing: 'got it — are you a tenant looking for space, or an owner looking to lease out?'"`,
+        `"If selling: 'are you ready to list, or looking for a valuation first?'"`,
+      ].join('\n')
+    } else if (reFocus === 'residential') {
+      variables.PRIMARY_CALL_REASON = 'residential real estate — buying, selling, or listing a home'
+    }
+  }
+
   // Dental
   if (niche === 'dental') {
     const newPatients = (intake.niche_newPatients as string) || ''
@@ -1083,7 +1105,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     dental:             `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can get you on the schedule — are you a new patient or coming back to see us?"`,
     legal:              `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I make sure every inquiry gets to the right person quickly — what's brought you to call today?"`,
     salon:              `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can check availability and hold your spot — what service were you looking to book?"`,
-    property_management:`"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I track every request so nothing slips — are you a tenant, owner, or looking to lease?"`,
+    property_management:`"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here. What can I do for ya?"`,
     barbershop:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can lock in your chair — are you looking to walk in or book ahead?"`,
     restaurant:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I handle reservations and can answer any questions — what can I help you with?"`,
     print_shop:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can get your order started and answer any spec questions — what are you looking to print?"`,
@@ -1230,6 +1252,30 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     const maintenanceContacts = (intake.niche_maintenanceContacts as string)?.trim()
     if (maintenanceContacts)
       triageDeep += `\nMAINTENANCE ROUTING: When a tenant has an emergency or urgent repair, give them the direct contact from this list based on the issue type:\n${maintenanceContacts}\nMatch the issue to the right person (plumbing issue → plumber, electrical → electrician, general/locks/appliances → general maintenance) and give their name + number directly: "for that you'll want to reach [Name] at [number] — they handle [issue type]."`
+
+    // Customize P1 emergency list from client's maintenanceEmergencyTriggers selection
+    const triggerRaw = (intake.niche_maintenanceEmergencyTriggers as string)?.trim()
+    if (triggerRaw) {
+      const TRIGGER_LABELS: Record<string, string> = {
+        flooding: 'flooding / water damage',
+        no_heat: 'no heat (winter)',
+        sparking: 'sparking / electrical hazard',
+        gas_smell: 'gas smell',
+        security: 'break-in or active security threat',
+        no_hot_water: 'no hot water',
+        elevator_stuck: 'elevator stuck with occupants',
+        fire: 'fire or smoke',
+      }
+      const triggers = triggerRaw.split(',').map(t => t.trim()).filter(Boolean)
+      const triggerList = triggers.map(t => TRIGGER_LABELS[t] || t).join(', ')
+      triageDeep += `\nP1 EMERGENCY TRIGGERS FOR THIS CLIENT: ${triggerList}. Only these situations warrant immediate escalation / live transfer — everything else is P2/P3.`
+    }
+
+    // Unit count context — affects how agent frames scale/urgency
+    const unitCount = (intake.niche_unitCount as string)?.trim()
+    if (unitCount === 'large') {
+      triageDeep += `\nPORTFOLIO SCALE: Large portfolio (100+ units). For building-wide issues (heat outage, water main), acknowledge scope immediately: "if this is affecting multiple units I'm flagging this as building-wide — what's your unit?"`
+    }
   }
   if (niche === 'dental' && triageDeep) {
     const emergencyAppts = (intake.niche_emergencyAppts as string) || ''

@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     // Client config — slug + setup_complete added for buildClientAgentConfig
     supabase
       .from('clients')
-      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, sms_template, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode, injected_note, ivr_enabled, ivr_prompt, voicemail_greeting_text, context_data, email_notifications_enabled, telegram_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url, first_call_at, niche_custom_variables')
+      .select('id, slug, business_name, agent_name, status, subscription_status, trial_expires_at, niche, agent_voice_id, voice_style_preset, seconds_used_this_month, monthly_minute_limit, bonus_minutes, booking_enabled, sms_enabled, sms_template, forwarding_number, transfer_conditions, knowledge_backend, business_facts, extra_qa, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, services_offered, website_url, website_scrape_status, calendar_auth_status, twilio_number, telegram_bot_token, telegram_chat_id, ultravox_agent_id, selected_plan, setup_complete, last_agent_sync_at, last_agent_sync_status, call_handling_mode, injected_note, injected_note_expires_at, ivr_enabled, ivr_prompt, voicemail_greeting_text, context_data, email_notifications_enabled, telegram_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url, first_call_at, niche_custom_variables')
       .eq('id', clientId)
       .single(),
 
@@ -405,6 +405,7 @@ export async function GET(request: Request) {
       websiteUrl: (client.website_url as string | null) ?? null,
       businessFacts: Array.isArray(client.business_facts) ? (client.business_facts as string[]).join('\n') : ((client.business_facts as string | null) ?? null),
       injectedNote: (c.injected_note as string | null) ?? null,
+      injectedNoteExpiresAt: (c.injected_note_expires_at as string | null) ?? null,
       ivrEnabled: (c.ivr_enabled as boolean | null) ?? false,
       ivrPrompt: (c.ivr_prompt as string | null) ?? null,
       voicemailGreetingText: (c.voicemail_greeting_text as string | null) ?? null,

@@ -393,9 +393,11 @@ export function buildAgentContext(
   if (afterHoursBehaviorNote) callerContextStr += `\n${afterHoursBehaviorNote}`
 
   // Today's Update — time-sensitive temporary override from dashboard
-  const injectedNote = (client.injected_note as string | null)?.trim()
-  if (injectedNote) {
-    callerContextStr += `\nRIGHT NOW: ${injectedNote}`
+  const injectedNoteRaw = (client.injected_note as string | null)?.trim()
+  const injectedNoteExpiry = (client as { injected_note_expires_at?: string | null }).injected_note_expires_at ?? null
+  const injectedNoteExpired = injectedNoteExpiry ? new Date(injectedNoteExpiry) < new Date() : false
+  if (injectedNoteRaw && !injectedNoteExpired) {
+    callerContextStr += `\nRIGHT NOW: ${injectedNoteRaw}`
   }
 
   // VIP roster — all VIP contacts for this client injected for agent awareness

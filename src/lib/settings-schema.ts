@@ -421,9 +421,13 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   }
 
   // injected_note — union(string, null)
+  // When a note is saved, auto-set 24h expiry. When cleared, remove expiry.
   if (body.injected_note !== undefined) {
     const noteText = typeof body.injected_note === 'string' ? body.injected_note.trim() : null
     updates.injected_note = noteText || null
+    ;(updates as Record<string, unknown>).injected_note_expires_at = noteText
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      : null
   }
 
   // service_catalog — array of service items (filter out empty names)

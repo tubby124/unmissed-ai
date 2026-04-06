@@ -106,6 +106,7 @@ export interface HomeData {
     websiteUrl: string | null
     businessFacts: string | null
     injectedNote: string | null
+    injectedNoteExpiresAt: string | null
     ivrEnabled: boolean
     ivrPrompt: string | null
     voicemailGreetingText: string | null

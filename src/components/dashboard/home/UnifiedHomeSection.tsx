@@ -870,6 +870,7 @@ export default function UnifiedHomeSection({
             <TodayUpdateCard
               clientId={data.clientId}
               currentNote={data.editableFields.injectedNote}
+              currentNoteExpiresAt={data.editableFields.injectedNoteExpiresAt}
             />
             <StatsHeroCard
               agentName={agent.name}

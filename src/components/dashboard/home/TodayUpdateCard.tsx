@@ -5,12 +5,14 @@ import { useState } from 'react'
 interface TodayUpdateCardProps {
   clientId: string
   currentNote: string | null
+  currentNoteExpiresAt?: string | null
 }
 
-export default function TodayUpdateCard({ clientId: _clientId, currentNote }: TodayUpdateCardProps) {
+export default function TodayUpdateCard({ clientId: _clientId, currentNote, currentNoteExpiresAt }: TodayUpdateCardProps) {
   const [note, setNote] = useState(currentNote ?? '')
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(currentNote ? new Date() : null)
+  const [expiresAt, setExpiresAt] = useState<Date | null>(currentNoteExpiresAt ? new Date(currentNoteExpiresAt) : null)
   const [error, setError] = useState<string | null>(null)
 
   const isDirty = note.trim() !== (currentNote ?? '')
@@ -23,6 +25,15 @@ export default function TodayUpdateCard({ clientId: _clientId, currentNote }: To
     if (diff < 60) return `${diff}m ago`
     const h = Math.floor(diff / 60)
     return h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`
+  }
+
+  function expiresText(): string {
+    if (!expiresAt) return ''
+    const diff = Math.round((expiresAt.getTime() - Date.now()) / 60000)
+    if (diff <= 0) return 'expired'
+    if (diff < 60) return `expires in ${diff}m`
+    const h = Math.floor(diff / 60)
+    return h < 24 ? `expires in ${h}h` : `expires ${expiresAt.toLocaleDateString()}`
   }
 
   async function handleSave(value: string | null) {
@@ -38,7 +49,12 @@ export default function TodayUpdateCard({ clientId: _clientId, currentNote }: To
         const json = await res.json().catch(() => ({}))
         throw new Error((json as { error?: string }).error || 'Failed to save')
       }
-      if (value === null) setNote('')
+      if (value === null) {
+        setNote('')
+        setExpiresAt(null)
+      } else {
+        setExpiresAt(new Date(Date.now() + 24 * 60 * 60 * 1000))
+      }
       setSavedAt(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -89,7 +105,7 @@ export default function TodayUpdateCard({ clientId: _clientId, currentNote }: To
       <div className="flex items-center gap-2 min-h-[20px]">
         {savedAt && !isDirty && !saving && (
           <p className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
-            {isEmpty ? 'No active update' : `Synced to agent · ${savedAgoText()}`}
+            {isEmpty ? 'No active update' : `Synced · ${savedAgoText()}${expiresAt ? ` · ${expiresText()}` : ''}`}
           </p>
         )}
         {error && (
@@ -112,6 +128,17 @@ export default function TodayUpdateCard({ clientId: _clientId, currentNote }: To
         >
           {saving ? 'Saving…' : 'Update agent'}
         </button>
+
+        {!isEmpty && !isDirty && (
+          <button
+            onClick={() => handleSave(note.trim())}
+            disabled={saving}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-opacity hover:opacity-75 disabled:opacity-40 cursor-pointer"
+            style={{ color: 'var(--color-text-3)', border: '1px solid var(--color-border)' }}
+          >
+            Extend 24h
+          </button>
+        )}
 
         {!isEmpty && (
           <button

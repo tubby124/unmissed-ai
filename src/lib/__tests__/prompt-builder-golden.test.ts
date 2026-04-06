@@ -443,11 +443,16 @@ describe('Layer 3 — Char count baseline (pre-Phase 3)', () => {
     'restaurant', 'other', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith',
   ] as const
 
+  // PM niche has a higher ceiling (28K) — 4 caller types, P1 trigger list, verbal confirm, FHA guardrails
+  const PM_CEILING = 28_000
+  const DEFAULT_CEILING = 25_000
+
   for (const niche of STANDARD_NICHES) {
-    test(`${niche}: prompt under 25K chars (Phase 3 target: 12K)`, () => {
+    const ceiling = niche === 'property_management' ? PM_CEILING : DEFAULT_CEILING
+    test(`${niche}: prompt under ${ceiling / 1000}K chars (Phase 3 target: 12K)`, () => {
       const p = buildPromptFromIntake(intake(niche))
-      assert.ok(p.length <= 25_000,
-        `${niche} baseline is ${p.length} chars — exceeds 25K safety ceiling`)
+      assert.ok(p.length <= ceiling,
+        `${niche} baseline is ${p.length} chars — exceeds ${ceiling / 1000}K safety ceiling`)
       assert.ok(p.length > 100,
         `${niche} prompt is suspiciously short: ${p.length} chars`)
     })

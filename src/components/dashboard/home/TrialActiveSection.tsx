@@ -351,6 +351,7 @@ export default function TrialActiveSection({
             <TodayUpdateCard
               clientId={data.clientId}
               currentNote={data.editableFields.injectedNote}
+              currentNoteExpiresAt={data.editableFields.injectedNoteExpiresAt}
             />
             <div className="rounded-xl p-3 card-surface space-y-2">
               <div className="flex items-center justify-between gap-2">
