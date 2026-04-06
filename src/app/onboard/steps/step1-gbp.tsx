@@ -564,6 +564,24 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               <p className="text-xs text-muted-foreground">What your agent introduces itself as on calls.</p>
             </motion.div>
 
+            {/* Business address */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="space-y-1.5"
+            >
+              <Label htmlFor="businessAddress">
+                Business address <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="businessAddress"
+                value={data.businessAddress || ''}
+                onChange={(e) => onUpdate({ businessAddress: e.target.value })}
+                placeholder="123 Main St, Calgary, AB T2P 1J9"
+              />
+            </motion.div>
+
             {/* Website URL — shown when GBP had no website; helps train agent */}
             {!data.websiteUrl && (
               <motion.div

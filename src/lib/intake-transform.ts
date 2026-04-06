@@ -230,6 +230,15 @@ export function toIntakePayload(data: OnboardingData) {
     hours_weekend: hoursWeekend,
     niche_faq_pairs: JSON.stringify(data.faqPairs || []),
     ...(data.nicheCustomVariables ? { niche_custom_variables: data.nicheCustomVariables } : {}),
+    // D413 — PM after-hours fields (explicit keys consumed by PM prompt builder)
+    ...(data.niche === 'property_management' && data.nicheAnswers?.emergencyTechPhone
+      ? { after_hours_emergency_phone: String(data.nicheAnswers.emergencyTechPhone) }
+      : {}),
+    ...(data.niche === 'property_management' && data.nicheAnswers?.afterHoursBehavior
+      ? { pm_after_hours_behavior: String(data.nicheAnswers.afterHoursBehavior) }
+      : {}),
+    // D417 — Business address
+    ...(data.businessAddress?.trim() ? { niche_businessAddress: data.businessAddress.trim() } : {}),
     // Niche-specific context_data wiring (explicit niche data takes priority)
     // Fallback: use Haiku-extracted contextData from website scrape (D246)
     // D259: priceRange entered during onboarding is prepended to context_data when present

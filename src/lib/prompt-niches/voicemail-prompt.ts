@@ -54,6 +54,9 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
     if (packagePolicy && packageLabels[packagePolicy]) pmNotes.push(`PACKAGES: ${packageLabels[packagePolicy]}.`)
     pmNotes.push(`EMERGENCY TONE: If caller reports flooding, no heat, gas smell, or security breach — do NOT stay cheerful. Immediately acknowledge: "that sounds serious — I'm flagging this urgent right now." Then route to the right contact.`)
     pmNotes.push(`FHA: NEVER use demographic language or coded references about tenants or neighborhood characteristics (e.g. "quiet building", "professional residents").`)
+    const maintenanceContacts = (intake.niche_maintenanceContacts as string)?.trim()
+    if (maintenanceContacts)
+      pmNotes.push(`MAINTENANCE CONTACTS:\n${maintenanceContacts}\nRoute emergency calls to the right person based on issue type.`)
     pmContext = pmNotes.join('\n')
   }
 

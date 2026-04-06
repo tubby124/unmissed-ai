@@ -162,6 +162,9 @@ export interface OnboardingData {
 
   // D393: Manual business description when no website + no GBP description available
   manualDescription?: string;
+
+  // D417: Business address — optional, displayed in agent context
+  businessAddress?: string;
 }
 
 // ── Niche metadata — controls which fields are shown per niche ────────────────

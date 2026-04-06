@@ -217,6 +217,39 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
           {((answers.tenantRoster as string) ?? "").length.toLocaleString()} / 8,000 chars
         </p>
       </div>
+
+      {/* Emergency tech phone */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Emergency tech phone <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <p className="text-xs text-gray-500">
+          Direct line for after-hours emergency contractors. Agent routes urgent calls here.
+        </p>
+        <input
+          type="tel"
+          value={(answers.emergencyTechPhone as string) ?? ""}
+          onChange={(e) => onChange("emergencyTechPhone", e.target.value)}
+          placeholder="e.g. 587-555-9999"
+          className="w-full bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+        />
+      </div>
+
+      {/* After-hours behavior */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">After-hours behavior</Label>
+        <p className="text-xs text-gray-500">
+          What should the agent do when a call comes in outside business hours?
+        </p>
+        <ChipSelector
+          options={[
+            { value: "route_emergency", label: "Route Emergency Calls" },
+            { value: "take_message", label: "Take a Message" },
+          ]}
+          value={(answers.afterHoursBehavior as string) || ""}
+          onChange={(val) => onChange("afterHoursBehavior", val)}
+        />
+      </div>
     </div>
   );
 }
