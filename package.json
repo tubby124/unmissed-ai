@@ -28,6 +28,8 @@
     "test:prompt-version-audit": "npx tsx --test src/lib/__tests__/prompt-version-audit.test.ts",
     "test:notification-guards": "npx tsx --test src/lib/__tests__/notification-guards.test.ts",
     "test:intake-transform": "npx tsx --test src/lib/__tests__/intake-transform.test.ts",
+    "test:scenarios": "npx tsx --test src/lib/__tests__/call-scenarios.test.ts",
+    "test:scenarios:report": "npm run test:scenarios; node scripts/write-scenario-results.mjs",
     "test:all": "npx tsx --test src/lib/__tests__/*.test.ts",
     "test:canary": "npx tsx ../tests/canary/eval-harness.ts",
     "test:smoke": "bash scripts/smoke-test.sh",
