@@ -1282,6 +1282,12 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     if (unitCount === 'large') {
       triageDeep += `\nPORTFOLIO SCALE: Large portfolio (100+ units). For building-wide issues (heat outage, water main), acknowledge scope immediately: "if this is affecting multiple units I'm flagging this as building-wide — what's your unit?"`
     }
+
+    // Tenant roster — use to identify callers by unit number
+    const tenantRoster = (intake.niche_tenantRoster as string)?.trim()
+    if (tenantRoster) {
+      triageDeep += `\nTENANT ROSTER: Use this to identify callers by name or unit. When a caller identifies themselves, match against this list to confirm unit number and context:\n${tenantRoster.substring(0, 2000)}`
+    }
   }
   if (niche === 'dental' && triageDeep) {
     const emergencyAppts = (intake.niche_emergencyAppts as string) || ''

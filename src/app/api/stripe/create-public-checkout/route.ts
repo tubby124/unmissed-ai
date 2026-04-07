@@ -324,7 +324,9 @@ export async function POST(req: NextRequest) {
         // Gate-11/12/13 parity: same fixes as provision/trial
         forwarding_number: checkoutForwardingNumber,
         telegram_notifications_enabled: checkoutNotificationMethod === 'email' ? false : null,
-        email_notifications_enabled: checkoutNotificationMethod === 'telegram' ? false : null,
+        // D376: Email always enabled at provision — telegram_chat_id may not be connected yet.
+        // Only disable email after telegram is confirmed connected (post-provision via bot webhook).
+        email_notifications_enabled: null,
       })
       .select('id')
       .single()

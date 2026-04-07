@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
       business_hours_weekday: intakePayload.hours_weekday || null,
       business_hours_weekend: intakePayload.hours_weekend || null,
       after_hours_behavior: data.afterHoursBehavior || 'take_message',
-      after_hours_emergency_phone: data.emergencyPhone || null,
+      after_hours_emergency_phone: data.emergencyPhone || (data.nicheAnswers?.emergencyTechPhone as string) || null,
       website_url: data.websiteUrl || null,
       owner_name: data.ownerName || null,
       city: data.city || null,
@@ -186,8 +186,11 @@ export async function POST(req: NextRequest) {
       // Use agentTone directly as voice_style_preset (types now aligned)
       voice_style_preset: data.agentTone || 'casual_friendly',
       // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
+      // D376: Email always stays enabled at provision — telegram_chat_id may not be connected yet.
+      // Disabling email when telegram is chosen but not connected = silent failure (zero notifications).
+      // Email is disabled only when telegram is selected AND confirmed connected (post-provision via bot webhook).
       telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
-      email_notifications_enabled: data.notificationMethod === 'telegram' ? false : null,
+      email_notifications_enabled: null,
       // Capability flags — must be written at provision time so syncClientTools() picks them up
       booking_enabled: intakePayload.booking_enabled ?? false,
       sms_enabled: data.callerAutoText !== false,
