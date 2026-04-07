@@ -35,7 +35,7 @@ export const TRIAL = {
 export const PLANS = [
   {
     id: "lite" as const,
-    name: "Call Catcher",
+    name: "Solo",
     tagline: "Your calls get answered. You get the summary, not the voicemail.",
     monthly: 49,
     foundingMonthly: 29,
@@ -77,7 +77,7 @@ export const PLANS = [
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
       "400 minutes/month included",
-      "Everything in Call Catcher",
+      "Everything in Solo",
       "Answers from your own business info — website, hours, services",
       "Books appointments into your Google Calendar",
       "Ranks every caller so you know who to call back first",
@@ -270,7 +270,7 @@ export const FOUNDING_PROMO = {
   minutes: PLANS[0].minutes,
   badge: "Founding Rate",
   label: "$29/mo locked for founding members",
-  description: "Lock in $29/mo Call Catcher forever. Standard price: $49/mo.",
+  description: "Lock in $29/mo Solo forever. Standard price: $49/mo.",
   regularPrice: PLANS[0].monthly,
 };
 

@@ -47,7 +47,7 @@ export interface PlanEntitlements {
 // ── Per-plan entitlements ───────────────────────────────────────────
 
 const LITE: PlanEntitlements = {
-  name: 'Call Catcher',
+  name: 'Solo',
   minutes: 100,
   defaultMode: 'voicemail_replacement',
   bookingEnabled: false,
