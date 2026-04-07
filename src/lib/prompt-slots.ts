@@ -987,8 +987,12 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
         case_by_case: 'Pet policy is case-by-case — requires owner approval',
       }
       const petLabel = petLabels[petPolicy] || petPolicy
+      const petDepositAmount = (intake.niche_petDepositAmount as string)?.trim()
+      const depositClause = petDepositAmount
+        ? ` Pet deposit: ${petDepositAmount}.`
+        : ''
       variables.FORBIDDEN_EXTRA = (variables.FORBIDDEN_EXTRA ? variables.FORBIDDEN_EXTRA + '\n' : '') +
-        `PET POLICY: ${petLabel}. If asked: state the policy clearly, then route to manager for deposit/breed details.`
+        `PET POLICY: ${petLabel}.${depositClause} If asked: state the policy clearly${depositClause ? ' and the deposit amount' : ''}, then route to manager for breed/approval details.`
     }
 
     // Parking + package → FILTER_EXTRA as policy reference
@@ -1287,6 +1291,12 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     const tenantRoster = (intake.niche_tenantRoster as string)?.trim()
     if (tenantRoster) {
       triageDeep += `\nTENANT ROSTER: Use this to identify callers by name or unit. When a caller identifies themselves, match against this list to confirm unit number and context:\n${tenantRoster.substring(0, 2000)}`
+    }
+
+    // Shut-off valve location — injected for water emergency guidance
+    const shutOffValve = (intake.niche_shutOffValveLocation as string)?.trim()
+    if (shutOffValve) {
+      triageDeep += `\nSHUT-OFF VALVE: Main water shut-off is at: ${shutOffValve}. For active water leaks/flooding, direct the tenant to this location before the plumber arrives: "if you can get to it safely, the main shut-off valve is ${shutOffValve} — turning it off will stop the water."`
     }
   }
   if (niche === 'dental' && triageDeep) {

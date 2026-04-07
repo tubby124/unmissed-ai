@@ -151,6 +151,17 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
           value={(answers.petPolicy as string) || ""}
           onChange={(val) => onChange("petPolicy", val)}
         />
+        {/* Pet deposit amount — only shown when pets are allowed */}
+        {(answers.petPolicy as string) && (answers.petPolicy as string) !== "no_pets" && (
+          <input
+            type="text"
+            value={(answers.petDepositAmount as string) ?? ""}
+            onChange={(e) => onChange("petDepositAmount", e.target.value)}
+            placeholder="Pet deposit amount — e.g. $500 refundable"
+            className="w-full bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+            maxLength={100}
+          />
+        )}
       </div>
 
       {/* Parking */}
@@ -186,6 +197,24 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
           ]}
           value={(answers.packagePolicy as string) || ""}
           onChange={(val) => onChange("packagePolicy", val)}
+        />
+      </div>
+
+      {/* Shut-off valve location */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Main water shut-off valve location <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <p className="text-xs text-gray-500">
+          For burst pipes and flooding — agent tells the tenant exactly where to shut off water before the plumber arrives.
+        </p>
+        <input
+          type="text"
+          value={(answers.shutOffValveLocation as string) ?? ""}
+          onChange={(e) => onChange("shutOffValveLocation", e.target.value)}
+          placeholder="e.g. Mechanical room on B1, unit 101 hallway closet, outside meter box"
+          className="w-full bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+          maxLength={200}
         />
       </div>
 
@@ -248,6 +277,17 @@ export default function PropertyManagementNiche({ data, onChange }: Props) {
           placeholder="e.g. 587-555-9999"
           className="w-full bg-hover border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
         />
+      </div>
+
+      {/* Tenant caller ID — VIP contacts info */}
+      <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-3 py-3 space-y-1.5">
+        <p className="text-[11px] font-semibold text-blue-400 uppercase tracking-wide">Caller ID for tenants</p>
+        <p className="text-xs text-blue-300/80">
+          After setup, add your tenants as contacts in your dashboard — your agent will greet them by name when they call from their registered number.
+        </p>
+        <p className="text-xs text-gray-500">
+          Dashboard → Contacts → Add contact (name + phone + unit). No limit on contacts.
+        </p>
       </div>
 
       {/* After-hours behavior */}
