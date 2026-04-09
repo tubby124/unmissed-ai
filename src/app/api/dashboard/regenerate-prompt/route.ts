@@ -40,8 +40,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json().catch(() => ({})) as { clientId?: string; agentModeOverride?: string }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; agentModeOverride?: string; force?: boolean }
   const { clientId } = body
+  // Phase E Wave 7 safety flag — callers can explicitly opt into overwriting a
+  // hand-tuned prompt (e.g. admin confirmation modal). Defaults to false so the
+  // guard fires unless the caller is deliberate.
+  const force = body.force === true
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
   // Scope check: owners can only regenerate their own client
@@ -86,10 +90,25 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode, hand_tuned')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+
+  // ── Phase E Wave 7 — hand_tuned safety gate (D.5 debt item H) ──────────────
+  // Founding-4 clients (hasan-sharif, exp-realty, urban-vibe, windshield-hub) have
+  // hand_tuned = true so their hand-crafted prompts cannot be silently clobbered
+  // via the dashboard sync button or an owner-triggered regenerate. Admins can
+  // force the overwrite by passing { force: true } from a confirmation modal.
+  if (client.hand_tuned === true && !force) {
+    return NextResponse.json(
+      {
+        error: 'This client has a hand-tuned system prompt. Regenerating would overwrite the custom text. Pass { force: true } to confirm.',
+        handTuned: true,
+      },
+      { status: 409 },
+    )
+  }
 
   // ── S6d: Capture prev char count for audit trail ───────────────────────────
   const prevCharCount = typeof client.system_prompt === 'string'

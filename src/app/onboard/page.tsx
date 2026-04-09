@@ -48,8 +48,10 @@ const SIDEBAR_PRICING = {
 // ──────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = STORAGE_KEYS.ONBOARD_DRAFT;
-// Phase 7: Version gate — old 7-step drafts reset to step 1 with fresh defaults
-const ONBOARD_VERSION = 2;
+// Phase 7: Version gate — old 7-step drafts reset to step 1 with fresh defaults.
+// Phase E Wave 6 (2026-04-09): bumped 2 → 3 so any draft saved before the
+// onboarding-v1 form trim and D408 chip absorption resets cleanly.
+const ONBOARD_VERSION = 3;
 
 function OnboardPageInner() {
   const router = useRouter();
