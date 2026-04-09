@@ -98,6 +98,8 @@ describe('Shadow — Slot function output presence', () => {
 
   test('all required sections present in composed output', () => {
     const composed = buildPromptFromSlots(ctx)
+    // P0.1: PRODUCT KNOWLEDGE BASE is now conditional — only present when
+    // caller_faq / pricing_policy / unknown_answer_behavior / pgvector set.
     const requiredHeaders = [
       'LIFE SAFETY EMERGENCY OVERRIDE',
       'ABSOLUTE FORBIDDEN ACTIONS',
@@ -111,7 +113,6 @@ describe('Shadow — Slot function output presence', () => {
       'RETURNING CALLER HANDLING',
       'INLINE EXAMPLES',
       'CALL HANDLING MODE',
-      'PRODUCT KNOWLEDGE BASE',
     ]
     for (const header of requiredHeaders) {
       assert.ok(composed.includes(header), `missing section: ${header}`)
@@ -133,7 +134,6 @@ describe('Shadow — Slot function output presence', () => {
       'RETURNING CALLER HANDLING',
       'INLINE EXAMPLES',
       'CALL HANDLING MODE',
-      'PRODUCT KNOWLEDGE BASE',
     ]
     let lastIdx = -1
     for (const header of headers) {
@@ -158,6 +158,7 @@ describe('Shadow — Content comparison (old vs new path)', () => {
     const { old, new_ } = compareOldNew(intakeData)
 
     // Both should contain these key phrases
+    // P0.1: PRODUCT KNOWLEDGE BASE removed — now conditional on caller_faq/policies
     const mustContain = [
       'LIFE SAFETY EMERGENCY OVERRIDE',
       'ABSOLUTE FORBIDDEN ACTIONS',
@@ -174,7 +175,6 @@ describe('Shadow — Content comparison (old vs new path)', () => {
       'RETURNING CALLER',
       'INLINE EXAMPLES',
       'CALL HANDLING MODE',
-      'PRODUCT KNOWLEDGE BASE',
     ]
     for (const phrase of mustContain) {
       assert.ok(old.includes(phrase), `OLD missing: ${phrase}`)
@@ -190,7 +190,9 @@ describe('Shadow — Content comparison (old vs new path)', () => {
     const intakeData = intake('auto_glass', undefined, { owner_phone: '+14035550000' })
     const { old, new_ } = compareOldNew(intakeData)
 
-    const mustContain = ['auto glass shop', 'TRIAGE (Windshield)', 'lane assist camera', 'PRODUCT KNOWLEDGE BASE']
+    // P0.1: PRODUCT KNOWLEDGE BASE removed — now conditional on caller_faq/policies.
+    // "lane assist camera" still appears via INLINE_EXAMPLES and TRIAGE_DEEP slots.
+    const mustContain = ['auto glass shop', 'TRIAGE (Windshield)', 'lane assist camera']
     for (const phrase of mustContain) {
       assert.ok(old.includes(phrase), `OLD missing: ${phrase}`)
       assert.ok(new_.includes(phrase), `NEW missing: ${phrase}`)

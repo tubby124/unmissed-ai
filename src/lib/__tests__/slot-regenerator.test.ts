@@ -451,12 +451,15 @@ describe('clientRowToIntake preserves niche_custom_variables', () => {
 
 describe('hasSlotMarkers guard', () => {
   test('slot-composed prompt has markers', () => {
+    // P0.1: knowledge slot now conditional — provide pgvector context so it emits.
     const intake = {
       niche: 'auto_glass',
       business_name: 'Test',
       agent_name: 'Alex',
       city: 'Calgary',
       call_handling_mode: 'triage',
+      knowledge_backend: 'pgvector',
+      knowledge_chunk_count: 5,
     }
     const prompt = buildPromptFromSlots(buildSlotContext(intake))
     assert.ok(
@@ -465,7 +468,7 @@ describe('hasSlotMarkers guard', () => {
     )
     assert.ok(
       prompt.includes('<!-- unmissed:knowledge -->'),
-      'Slot-composed prompt should have knowledge marker',
+      'Slot-composed prompt should have knowledge marker (when pgvector enabled)',
     )
   })
 })
@@ -633,6 +636,7 @@ describe('D280: recomposePrompt equivalence', () => {
   test('recompose has section markers for identity and knowledge', () => {
     // Only identity and knowledge slots call wrapSection() explicitly.
     // Other slots use header text matched by replacePromptSection aliases.
+    // P0.1: knowledge slot now conditional — provide pgvector context + 5 chunks so it emits.
     const intake = {
       niche: 'plumbing',
       business_name: 'Test Plumbing',
@@ -642,9 +646,10 @@ describe('D280: recomposePrompt equivalence', () => {
       booking_enabled: true,
       sms_enabled: true,
       owner_phone: '+14035551234',
+      knowledge_backend: 'pgvector',
     }
     const clientRow = intakeToSimulatedClientRow(intake)
-    const recovered = exportedClientRowToIntake(clientRow, [], 0)
+    const recovered = exportedClientRowToIntake(clientRow, [], 5)
     const prompt = buildPromptFromSlots(buildSlotContext(recovered))
 
     // Marker-wrapped slots

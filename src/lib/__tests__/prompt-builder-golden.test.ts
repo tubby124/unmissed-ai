@@ -293,7 +293,9 @@ describe('Layer 2 — All 4 modes × plumbing', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 /** Section headers that map to future named slots (D274).
- *  Every non-voicemail prompt MUST contain all of these. */
+ *  Every non-voicemail prompt MUST contain all of these.
+ *  P0.1 (Phase D): PRODUCT KNOWLEDGE BASE is now conditional — only appears when
+ *  caller_faq, pricing_policy, unknown_answer_behavior, or pgvector backend is set. */
 const REQUIRED_SECTION_HEADERS = [
   'LIFE SAFETY EMERGENCY OVERRIDE',
   'ABSOLUTE FORBIDDEN ACTIONS',
@@ -307,7 +309,6 @@ const REQUIRED_SECTION_HEADERS = [
   'RETURNING CALLER HANDLING',
   'INLINE EXAMPLES',
   'CALL HANDLING MODE',
-  'PRODUCT KNOWLEDGE BASE',
 ] as const
 
 /** Conditional section headers — present only when features enabled. */
@@ -482,7 +483,9 @@ describe('Layer 3 — No unresolved {{VARIABLE}} per niche', () => {
 
 describe('Layer 3 — Section order validation', () => {
   test('section headers appear in sandwich spec order', () => {
-    const p = buildPromptFromIntake(intake('hvac'))
+    // P0.1: add unknown_answer_behavior so PRODUCT KNOWLEDGE BASE slot emits
+    // and we can verify its position in the sandwich order.
+    const p = buildPromptFromIntake(intake('hvac', undefined, { unknown_answer_behavior: 'take_message' }))
     const orderedHeaders = [
       'LIFE SAFETY EMERGENCY OVERRIDE',
       'ABSOLUTE FORBIDDEN ACTIONS',
@@ -496,7 +499,6 @@ describe('Layer 3 — Section order validation', () => {
       'RETURNING CALLER HANDLING',
       'INLINE EXAMPLES',
       'CALL HANDLING MODE',
-      'PRODUCT KNOWLEDGE BASE',
     ]
     let lastIdx = -1
     for (const header of orderedHeaders) {
@@ -658,18 +660,38 @@ describe('Layer 4B — Feature edge cases', () => {
     assert.ok(!p.includes('{{'), 'raw {{placeholder}} in pgvector path')
   })
 
-  test('knowledge_backend=pgvector + 0 chunks: falls back to inline FAQ', () => {
+  // P0.1: pgvector-with-0-chunks used to silently inject ~1.8K of default niche FAQ
+  // as a fallback. That was the generator bloat bug. Now the slot returns empty
+  // unless caller_faq, pricing_policy, unknown_answer_behavior, or real pgvector chunks exist.
+  test('knowledge_backend=pgvector + 0 chunks: emits no knowledge slot when no FAQ/policies', () => {
     const p = buildPromptFromIntake(intake('hvac', undefined, {
       knowledge_backend: 'pgvector',
       knowledge_chunk_count: 0,
     }))
-    assert.ok(p.includes('PRODUCT KNOWLEDGE BASE'), 'empty pgvector should fall back to inline FAQ')
-    assert.ok(!p.includes('queryKnowledge'), 'empty pgvector should NOT reference queryKnowledge')
+    assert.ok(!p.includes('PRODUCT KNOWLEDGE BASE'),
+      'empty pgvector + no caller_faq should NOT emit inline FAQ header')
+    assert.ok(!p.includes('queryKnowledge'),
+      'empty pgvector should NOT reference queryKnowledge')
+    assert.ok(!p.includes('<!-- unmissed:knowledge -->'),
+      'knowledge slot should be empty when nothing to emit')
   })
 
-  test('no knowledge_backend: falls back to inline FAQ', () => {
+  test('no knowledge_backend + no caller_faq: emits no knowledge slot', () => {
     const p = buildPromptFromIntake(intake('hvac'))
-    assert.ok(p.includes('PRODUCT KNOWLEDGE BASE'), 'no pgvector should use inline FAQ')
+    assert.ok(!p.includes('PRODUCT KNOWLEDGE BASE'),
+      'no pgvector + no caller_faq should NOT emit inline FAQ header')
+    assert.ok(!p.includes('<!-- unmissed:knowledge -->'),
+      'knowledge slot should be empty when no caller_faq and no pgvector')
+  })
+
+  test('no knowledge_backend + caller_faq provided: emits PRODUCT KNOWLEDGE BASE with FAQ', () => {
+    const p = buildPromptFromIntake(intake('hvac', undefined, {
+      caller_faq: 'What hours are you open? 9 to 5 weekdays.\nDo you do emergency calls? Yes, after hours urgent.',
+    }))
+    assert.ok(p.includes('PRODUCT KNOWLEDGE BASE'),
+      'caller_faq should emit inline FAQ header')
+    assert.ok(p.includes('9 to 5'),
+      'caller_faq content should be in prompt')
   })
 
   // D272: conditional pricing policy
