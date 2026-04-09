@@ -24,7 +24,7 @@ export const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
     INFO_TO_COLLECT: 'year, make, model, and whether they have the lane assist camera',
     INFO_LABEL: 'vehicle info',
     SERVICE_TIMING_PHRASE: 'bring it in',
-    CLOSE_PERSON: 'the boss',
+    CLOSE_PERSON: 'the team',
     CLOSE_ACTION: 'call ya back with a quote and to confirm your slot',
     MOBILE_POLICY: "you'd bring it to us",
     COMPLETION_FIELDS: 'vehicle year, make, model, and preferred timing',
