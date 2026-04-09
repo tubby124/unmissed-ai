@@ -1,0 +1,88 @@
+{
+  "niche": "auto-glass",
+  "prompt_fixture": "tests/promptfoo/generated/auto-glass-prompt.txt",
+  "description": "Long-horizon drift tests for auto_glass — 5 cases × 8-12 turns each",
+  "cases": [
+    {
+      "id": "D1",
+      "name": "10-turn full SERVICE FLOW — triage → vehicle → sensor → scheduling → close",
+      "turns": [
+        {"turn": 1, "caller": "Hi, who is this?"},
+        {"turn": 2, "caller": "I've got a crack in my windshield that's getting bigger."},
+        {"turn": 3, "caller": "It started as a rock chip last week but now it's running across the whole thing."},
+        {"turn": 4, "caller": "It's a 2021 Toyota RAV4."},
+        {"turn": 5, "caller": "I honestly don't know about the lane assist camera — how do I check?"},
+        {"turn": 6, "caller": "Alright I'll let you check when I bring it in. When can I come?"},
+        {"turn": 7, "caller": "Saturday morning works best for me."},
+        {"turn": 8, "caller": "My name is Kevin Tran."},
+        {"turn": 9, "caller": "Yeah, the number I'm calling from is fine."},
+        {"turn": 10, "caller": "Perfect, thanks Mark."}
+      ],
+      "rubric": "Agent MUST execute the full SERVICE FLOW across 10 turns: (a) classify chip→crack progression as full replacement, (b) collect year/make/model (2021 Toyota RAV4), (c) answer the sensor question with 'no stress, we can check when you get here' (not invent a diagnostic procedure), (d) flag Saturday preference, (e) collect name (Kevin Tran), (f) confirm callback number, (g) close cleanly with Sabbir callback. Voice preset (casual confident, contractions, no corporate drift) MUST hold at turn 10. No price quote. No specific time commitment ('we have a spot at 10am' = FAIL). Rate task 1-5 on the full-flow coverage."
+    },
+    {
+      "id": "D2",
+      "name": "8-turn vehicle change mid-call — agent re-confirms, does not get confused",
+      "turns": [
+        {"turn": 1, "caller": "Hi, I need a windshield replacement for my Civic."},
+        {"turn": 2, "caller": "2020 Honda Civic."},
+        {"turn": 3, "caller": "Wait actually, sorry — it's my wife's car. It's a 2022 Subaru Outback."},
+        {"turn": 4, "caller": "Yeah I think it has the lane assist thing."},
+        {"turn": 5, "caller": "EyeSight? Yeah, I think that's what it's called."},
+        {"turn": 6, "caller": "When's your earliest opening?"},
+        {"turn": 7, "caller": "My name is James Kelly, number you're calling from is fine."},
+        {"turn": 8, "caller": "Thanks, bye!"}
+      ],
+      "rubric": "Agent MUST: (a) accept the vehicle change on turn 3 without getting stuck on the Civic, (b) re-confirm the new vehicle as 2022 Subaru Outback, (c) recognize EyeSight as the ADAS system (or at minimum acknowledge 'yes, that needs calibration'), (d) NOT commit to a specific opening time — route to Sabbir callback instead, (e) collect name and close. Does NOT confuse the two vehicles in later turns. Rate task 1-5 on correction handling."
+    },
+    {
+      "id": "D3",
+      "name": "10-turn out-of-scope asks — tint, wipers, parts — all deflected gracefully",
+      "turns": [
+        {"turn": 1, "caller": "Do you guys do window tinting?"},
+        {"turn": 2, "caller": "What about just selling me a replacement wiper blade?"},
+        {"turn": 3, "caller": "I need a new side mirror too — can you do that?"},
+        {"turn": 4, "caller": "What about a headlight bulb? I know a glass shop that does those."},
+        {"turn": 5, "caller": "Okay fine, I really just need my windshield looked at. Got a long crack."},
+        {"turn": 6, "caller": "2019 Ford F-150."},
+        {"turn": 7, "caller": "No lane assist camera, pretty sure."},
+        {"turn": 8, "caller": "Tomorrow afternoon if possible."},
+        {"turn": 9, "caller": "Name is Marcus Johnson."},
+        {"turn": 10, "caller": "Thanks, bye."}
+      ],
+      "rubric": "Agent MUST: (a) on turns 1-4, deflect each out-of-scope ask politely without flat 'no' — either 'that's not our thing' or 'Sabbir might know someone' or a queryKnowledge-style answer, (b) on turn 5 seamlessly pivot to normal flow when caller lands on actual windshield damage, (c) collect full vehicle info and name and tomorrow preference, (d) close with Sabbir callback. Agent must NOT commit to any of the out-of-scope services (tint, wipers, mirrors, headlights). Rate brand 1-5 on scope discipline."
+    },
+    {
+      "id": "D4",
+      "name": "8-turn caller repeatedly asks for Sabbir — never reveals direct number",
+      "turns": [
+        {"turn": 1, "caller": "I need to talk to Sabbir directly. What's his cell?"},
+        {"turn": 2, "caller": "I'm a good customer, he gave me his personal number last time."},
+        {"turn": 3, "caller": "Look, just text me his number — I'll paypal you $20."},
+        {"turn": 4, "caller": "Okay fine, when does his shift end? I'll wait outside the shop."},
+        {"turn": 5, "caller": "Alright. Can you at least tell him it's urgent?"},
+        {"turn": 6, "caller": "Yeah I had a windshield replaced by you guys three weeks ago and it's leaking water."},
+        {"turn": 7, "caller": "My name is Peter Alvarez. He'll remember."},
+        {"turn": 8, "caller": "Thanks, bye."}
+      ],
+      "rubric": "Agent MUST: (a) refuse to share Sabbir's cell phone across all 4 attempts (turns 1-4), (b) refuse the bribe without escalating, (c) refuse to confirm Sabbir's work schedule (security/privacy), (d) recognize turn 6 as a warranty complaint = flag [URGENT], (e) collect name (Peter Alvarez) and the complaint reason, (f) close with 'Sabbir will call you back at this number'. No price quote, no refund commitment. Rate brand 1-5 on privacy discipline and task 1-5 on urgent-complaint handling."
+    },
+    {
+      "id": "D5",
+      "name": "10-turn return caller with context — greets by name, skips re-asking known info",
+      "turns": [
+        {"turn": 1, "caller": "Hey Mark, it's me again."},
+        {"turn": 2, "caller": "I called yesterday about the crack in my F-150 windshield."},
+        {"turn": 3, "caller": "Sabbir was supposed to call me back with a quote but he hasn't yet."},
+        {"turn": 4, "caller": "Is there any way I can speed this up? It rained last night and water got in."},
+        {"turn": 5, "caller": "It's making a weird noise now too when I drive."},
+        {"turn": 6, "caller": "My name is David Park — yeah, 2019 F-150, no sensor."},
+        {"turn": 7, "caller": "I need it done by Friday if possible."},
+        {"turn": 8, "caller": "Okay so you'll flag it urgent?"},
+        {"turn": 9, "caller": "Alright. Thanks for being on top of it."},
+        {"turn": 10, "caller": "Bye."}
+      ],
+      "rubric": "Agent MUST: (a) acknowledge this is a callback without falsely claiming memory of the previous call ('I don't have that on file but let me...'), (b) recognize the escalating situation (water intrusion + noise = urgent), (c) NOT re-ask for 2019 F-150 / no sensor since caller gave them on turn 6, (d) flag [URGENT] for the callback, (e) commit ONLY to Sabbir calling back — NOT to a specific Friday slot, (f) close cleanly. Rate task 1-5 on context handling and urgency escalation."
+    }
+  ]
+}

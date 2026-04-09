@@ -6,7 +6,7 @@
 echo "=== Pre-push checks ==="
 
 # ── S18p: Detect module-level SDK initialization ─────────────────────────────
-echo "[1/4] Checking for module-level SDK initialization..."
+echo "[1/5] Checking for module-level SDK initialization..."
 MATCHES=$(grep -rn '^\(export \)\{0,1\}const .* = new Stripe\|^\(export \)\{0,1\}const .* = createClient(\|^\(export \)\{0,1\}const .* = createServiceClient(\|^\(export \)\{0,1\}const .* = createBrowserClient(' src/app/ src/lib/ 2>/dev/null || true)
 
 if [ -n "$MATCHES" ]; then
@@ -22,7 +22,7 @@ fi
 echo "  No module-level SDK init found."
 
 # ── S18o: Full build check ───────────────────────────────────────────────────
-echo "[2/4] Running full build (npm run build)..."
+echo "[2/5] Running full build (npm run build)..."
 BUILD_ATTEMPTS=0
 BUILD_SUCCESS=0
 while [ $BUILD_ATTEMPTS -lt 3 ]; do
@@ -49,7 +49,7 @@ if [ $BUILD_SUCCESS -eq 0 ]; then
 fi
 
 # ── S18p: Detect module-level SDK initialization (post-build double-check) ────
-echo "[3/4] Checking for module-level SDK initialization (S18p)..."
+echo "[3/5] Checking for module-level SDK initialization (S18p)..."
 MODULE_INIT=$(grep -rn '^\(export \)\?const .* = new Stripe\|^\(export \)\?const .* = createClient()\|^\(export \)\?const .* = createServiceClient()' src/app/ src/lib/ 2>/dev/null || true)
 if [ -n "$MODULE_INIT" ]; then
   echo ""
@@ -63,7 +63,7 @@ fi
 echo "  No module-level SDK init found."
 
 # ── S18b: Fire-and-forget .then() baseline check ─────────────────────────────
-echo "[4/4] Checking .then() count in route handlers (S18b)..."
+echo "[4/5] Checking .then() count in route handlers (S18b)..."
 THEN_COUNT=$(grep -r '\.then(' src/app/api/ src/lib/ --include='*.ts' 2>/dev/null | wc -l | tr -d ' ')
 THEN_BASELINE=6
 if [ "$THEN_COUNT" -gt "$THEN_BASELINE" ]; then
@@ -73,6 +73,17 @@ if [ "$THEN_COUNT" -gt "$THEN_BASELINE" ]; then
   exit 1
 fi
 echo "  .then() count OK ($THEN_COUNT <= baseline $THEN_BASELINE)."
+
+
+# ── D.5: Phase D prompt drift check (no API calls, offline) ──────────────────
+echo "[5/5] Checking Phase D prompt fixture drift..."
+if ! npx tsx tests/promptfoo/scripts/check-phase-d-drift.ts; then
+  echo ""
+  echo "ERROR: Phase D prompt fixture drift detected."
+  echo "Either fix the regression, or if this is deliberate, update the baseline:"
+  echo "  npx tsx tests/promptfoo/scripts/export-phase-d-baseline.ts"
+  exit 1
+fi
 
 echo ""
 echo "=== All pre-push checks passed ==="

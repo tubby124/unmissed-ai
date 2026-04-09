@@ -37,6 +37,13 @@
     "test:ui": "npx playwright test",
     "test:ui:headed": "npx playwright test --headed",
     "test:ui:report": "npx playwright show-report",
+    "test:prompts:gen": "npx tsx tests/promptfoo/scripts/generate-voicemail-generic-prompt.ts && npx tsx tests/promptfoo/scripts/generate-auto-glass-prompt.ts",
+    "test:prompts:voicemail": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/voicemail-generic-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche voicemail-generic",
+    "test:prompts:auto-glass": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/auto-glass-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche auto-glass",
+    "test:prompts": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/voicemail-generic-golden.yaml && npx promptfoo eval -c tests/promptfoo/auto-glass-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche all",
+    "test:prompts:watch": "npx promptfoo eval -c tests/promptfoo/voicemail-generic-golden.yaml --watch",
+    "test:prompts:break": "npm run test:prompts:gen && npx tsx tests/promptfoo/scripts/deliberate-break-test.ts",
+    "test:prompts:baseline": "npm run test:prompts:gen && echo 'baseline export: see tests/reference/post-phase-d-baseline/'",
     "prepare": "if [ -d .git ]; then git config core.hooksPath .githooks; fi"
   },
   "dependencies": {
