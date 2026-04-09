@@ -1,8 +1,14 @@
 /**
- * GET /api/cron/trial-expiry
+ * POST /api/cron/trial-expiry
+ *   Daily cron: finds clients whose trial has expired, pauses their agent,
+ *   sends a conversion email via Resend, and alerts admin via Telegram.
  *
- * Daily cron: finds clients whose trial has expired, pauses their agent,
- * sends a conversion email via Resend, and alerts admin via Telegram.
+ * GET  /api/cron/trial-expiry?dry_run=1
+ *   Admin debugging: reports what the POST path WOULD do, without mutating
+ *   anything. Added 2026-04-09 after Phase F pre-flight found 25 stale
+ *   expired-trialing rows that the scheduled cron had not cleaned up —
+ *   the GET path lets an operator confirm the query + count before deciding
+ *   whether to curl the POST or run scripts/admin-trial-cleanup.mjs.
  *
  * Auth: Bearer CRON_SECRET only (no ADMIN_PASSWORD fallback — S13a).
  */
@@ -236,4 +242,75 @@ export async function POST(req: NextRequest) {
     console.error('[trial-expiry] Unexpected error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+/**
+ * GET /api/cron/trial-expiry?dry_run=1
+ *
+ * Admin debugging view of what the POST path would transition and release,
+ * without mutating anything. Added 2026-04-09 after Phase F pre-flight found
+ * 25 stale expired-trialing rows the scheduled cron had not cleaned up. Lets
+ * an operator confirm the query + count before deciding whether to curl POST
+ * or run scripts/admin-trial-cleanup.mjs.
+ *
+ * Intentionally defined AFTER POST so the S18k cron method parity test
+ * (which regexes the FIRST exported function) still resolves POST for this
+ * route — railway.json schedules POST at 0 7 * * *.
+ */
+export async function GET(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET
+  const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
+  if (!cronSecret || token !== cronSecret) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
+
+  const url = new URL(req.url)
+  if (url.searchParams.get('dry_run') !== '1') {
+    return NextResponse.json(
+      { error: 'GET only supports ?dry_run=1 — use POST to actually run.' },
+      { status: 400 },
+    )
+  }
+
+  const svc = createServiceClient()
+  const nowIso = new Date().toISOString()
+
+  const { data: expiredClients, error: queryErr } = await svc
+    .from('clients')
+    .select('id, slug, business_name, contact_email, trial_expires_at, twilio_number')
+    .lt('trial_expires_at', nowIso)
+    .eq('trial_converted', false)
+    .eq('status', 'active')
+
+  if (queryErr) {
+    return NextResponse.json({ error: 'Query failed', details: queryErr.message }, { status: 500 })
+  }
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: numbersToRelease, error: relErr } = await svc
+    .from('clients')
+    .select('id, slug, twilio_number')
+    .lt('trial_expires_at', sevenDaysAgo)
+    .eq('trial_converted', false)
+    .eq('status', 'paused')
+    .not('twilio_number', 'is', null)
+
+  if (relErr) {
+    return NextResponse.json({ error: 'Release query failed', details: relErr.message }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    dry_run: true,
+    now: nowIso,
+    expired_trials_to_pause: (expiredClients ?? []).length,
+    expired_trials: (expiredClients ?? []).map(c => ({
+      slug: c.slug,
+      business_name: c.business_name,
+      trial_expires_at: c.trial_expires_at,
+      has_twilio_number: Boolean(c.twilio_number),
+      has_contact_email: Boolean(c.contact_email),
+    })),
+    twilio_numbers_to_release: (numbersToRelease ?? []).length,
+    numbers: (numbersToRelease ?? []).map(n => ({ slug: n.slug, twilio_number: n.twilio_number })),
+  })
 }
