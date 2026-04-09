@@ -88,9 +88,13 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Get client — include all fields needed for buildAgentTools ─────────────
+  // Phase E Wave 8 follow-up: also read the 6 Wave 1 onboarding-v1 columns so
+  // dashboard edits to today_update / business_notes / D408 chips / fields_to_collect
+  // flow into the regenerated prompt. Without these, dashboard saves land in the
+  // clients row but the next regenerate would read only intake_json and miss them.
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode, hand_tuned')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode, hand_tuned, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -158,6 +162,17 @@ export async function POST(req: NextRequest) {
     if (client.agent_name && client.status === 'active') {
       intakeData.db_agent_name = client.agent_name
     }
+
+    // Phase E Wave 8 follow-up: merge Wave 1 onboarding-v1 columns from the clients
+    // row so dashboard edits flow into the regenerated prompt. These columns are the
+    // source of truth once set — they override intake_json because the owner edited
+    // them after provision. NULL columns fall through to whatever intake_json has.
+    if (client.today_update !== null && client.today_update !== undefined) intakeData.today_update = client.today_update
+    if (client.business_notes !== null && client.business_notes !== undefined) intakeData.business_notes = client.business_notes
+    if (client.unknown_answer_behavior !== null && client.unknown_answer_behavior !== undefined) intakeData.unknown_answer_behavior = client.unknown_answer_behavior
+    if (client.pricing_policy !== null && client.pricing_policy !== undefined) intakeData.pricing_policy = client.pricing_policy
+    if (client.calendar_mode !== null && client.calendar_mode !== undefined) intakeData.calendar_mode = client.calendar_mode
+    if (client.fields_to_collect !== null && client.fields_to_collect !== undefined) intakeData.fields_to_collect = client.fields_to_collect
 
     // Fetch knowledge docs
     let knowledgeDocs = ''

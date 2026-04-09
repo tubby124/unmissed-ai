@@ -104,7 +104,10 @@ export async function buildAgentModeRebuildPrompt(
       'id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, ' +
       'forwarding_number, booking_enabled, sms_enabled, twilio_number, ' +
       'knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, ' +
-      'niche, call_handling_mode, agent_mode, service_catalog',
+      'niche, call_handling_mode, agent_mode, service_catalog, ' +
+      // Phase E Wave 8 follow-up — pull Wave 1 onboarding-v1 columns so deep-mode
+      // rebuilds preserve dashboard edits the same way regenerate-prompt does.
+      'today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect',
     )
     .eq('id', clientId)
     .single()
@@ -119,6 +122,9 @@ export async function buildAgentModeRebuildPrompt(
     system_prompt: string | null; voice_style_preset: string | null
     niche: string | null; call_handling_mode: string | null; agent_mode: string | null
     service_catalog: unknown
+    today_update: string | null; business_notes: string | null
+    unknown_answer_behavior: string | null; pricing_policy: string | null
+    calendar_mode: string | null; fields_to_collect: string[] | null
   } | null
 
   if (!client) throw new Error('Client not found')
@@ -169,6 +175,17 @@ export async function buildAgentModeRebuildPrompt(
   if (client.agent_name && client.status === 'active') {
     intakeData.db_agent_name = client.agent_name
   }
+
+  // Phase E Wave 8 follow-up: merge Wave 1 onboarding-v1 columns from the clients
+  // row. Same pattern as /api/dashboard/regenerate-prompt so the two paths stay
+  // parity-compatible. clients.* values override intake_json because the owner
+  // edited them after provision.
+  if (client.today_update !== null) intakeData.today_update = client.today_update
+  if (client.business_notes !== null) intakeData.business_notes = client.business_notes
+  if (client.unknown_answer_behavior !== null) intakeData.unknown_answer_behavior = client.unknown_answer_behavior
+  if (client.pricing_policy !== null) intakeData.pricing_policy = client.pricing_policy
+  if (client.calendar_mode !== null) intakeData.calendar_mode = client.calendar_mode
+  if (client.fields_to_collect !== null) intakeData.fields_to_collect = client.fields_to_collect
 
   // Fetch knowledge docs (same as regen route)
   let knowledgeDocs = ''
