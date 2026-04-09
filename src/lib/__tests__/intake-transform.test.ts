@@ -54,6 +54,7 @@ function base(): OnboardingData {
     completionFields: '',
     pricingPolicy: '',
     unknownAnswerBehavior: '',
+    calendarMode: '',
     commonObjections: [],
     voiceId: null,
     voiceName: '',

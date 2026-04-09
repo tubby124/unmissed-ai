@@ -40,6 +40,14 @@ export type UnknownAnswerBehavior =
   | "find_out_callback" // Say "I'll find out and we'll call you back"
   | "";
 
+// Phase E.6 Wave 3 — mirrors CALENDAR_MODE_OPTIONS in AgentPageView.tsx
+// Day1EditPanel. Keep values in sync with that chip group.
+export type CalendarMode =
+  | "none"              // No calendar, just take messages
+  | "request_callback"  // Ask preferred time, route to human callback
+  | "book_direct"       // Book directly into owner calendar
+  | "";
+
 export interface BusinessHours {
   open: string;   // "09:00" or ""
   close: string;  // "17:00" or ""
@@ -114,6 +122,11 @@ export interface OnboardingData {
   completionFields: string;   // Moved to Settings > Advanced Context
   pricingPolicy: PricingPolicy;
   unknownAnswerBehavior: UnknownAnswerBehavior;
+  // Phase E.6 Wave 3 — closes the E.5 Wave 2 deferral. Pre-E.6 calendar_mode
+  // was dashboard-only (Day1EditPanel chip group). Now flows through the
+  // onboarding form intake-transform → clients.calendar_mode so fresh trial
+  // signups carry their preference into the prompt.
+  calendarMode: CalendarMode;
   commonObjections: { question: string; answer: string }[];
 
   // New: voice + call handling + knowledge
@@ -236,6 +249,7 @@ export const defaultOnboardingData: OnboardingData = {
   completionFields: "",
   pricingPolicy: "",
   unknownAnswerBehavior: "",
+  calendarMode: "",
   commonObjections: [],
   voiceId: null,
   voiceName: '',

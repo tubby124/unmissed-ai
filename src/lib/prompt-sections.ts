@@ -122,6 +122,27 @@ export function replacePromptSection(prompt: string, sectionId: string, newConte
 /**
  * Wrap a chunk of text in a named section marker.
  * Used by prompt-builder to mark sections at provisioning time.
+ *
+ * ── Slot ceiling budgeting rule (Phase E.6 Wave 4, documented from E.5 Wave 6) ──
+ * Marker wrapper adds ~50 chars per section. The full "slot wrapper" for
+ * Day-1 slots (TODAY_UPDATE, BUSINESS_NOTES) also includes a header
+ * paragraph and XML-style safety tags:
+ *
+ *   # TODAY'S UPDATE — READ THIS FIRST
+ *
+ *   The owner left this note for today's calls. ... (~230 chars)
+ *
+ *   <today_update>
+ *   ...content...
+ *   </today_update>
+ *
+ * Measured overhead for TODAY_UPDATE with max 200-char payload = 482 chars
+ * total (282 chars of wrapper). Rule of thumb for ANY future slot that uses
+ * wrapSection + a human-readable header: **budget ~300 chars of wrapper
+ * overhead on top of raw content** before picking a SLOT_CEILINGS value.
+ * Add ~15% headroom (matches the Phase D convention) and you land close to
+ * the actual populated-path length. Forgetting this is why the E.5 Wave 6
+ * initial TODAY_UPDATE ceiling (450) flapped on first run.
  */
 export function wrapSection(content: string, sectionId: string): string {
   return `<!-- unmissed:${sectionId} -->\n${content}\n<!-- /unmissed:${sectionId} -->`

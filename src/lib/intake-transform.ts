@@ -223,6 +223,9 @@ export function toIntakePayload(data: OnboardingData) {
 
     pricing_policy: data.pricingPolicy || "",
     unknown_answer_behavior: data.unknownAnswerBehavior || "",
+    // Phase E.6 Wave 3 — closes E.5 Wave 2 deferral. Fresh trial signups
+    // now carry calendar mode into clients.calendar_mode on first provision.
+    calendar_mode: data.calendarMode || "",
     common_objections: JSON.stringify(
       (data.commonObjections || []).filter(p => p.question?.trim() && p.answer?.trim())
     ),

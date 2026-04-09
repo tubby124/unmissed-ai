@@ -118,6 +118,7 @@ function makeData(overrides: Record<string, unknown> = {}): Parameters<typeof to
     completionFields: '',
     pricingPolicy: '',
     unknownAnswerBehavior: '',
+    calendarMode: '',
     commonObjections: [],
     voiceId: null,
     voiceName: '',

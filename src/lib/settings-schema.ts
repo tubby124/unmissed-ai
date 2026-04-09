@@ -139,6 +139,25 @@ const VALID_MODES = ['message_only', 'triage', 'full_service'] as const
 const VALID_AGENT_MODES = ['voicemail_replacement', 'lead_capture', 'info_hub', 'appointment_booking'] as const
 const VALID_AFTER_HOURS = ['take_message', 'route_emergency', 'custom_message'] as const
 const VALID_TELEGRAM_STYLES = ['compact', 'standard', 'action_card'] as const
+// Phase E.6 Wave 2 — hard enum for voice_style_preset. Pre-E.6 this was
+// z.string().min(1), so the dropdown was the only enforcement. Two orphan
+// rows (emon='casual', poulin-s-pest-control='energetic') were migrated to
+// canonical keys before this enum was tightened. Legacy 4 preset keys live
+// in src/lib/voice-presets.ts; B.6 founding-4 keys live in
+// src/lib/prompt-config/voice-tone-presets.ts. Keep this list aligned with
+// the <optgroup> ordering in AgentPageView.tsx Day1EditPanel.
+const VALID_VOICE_PRESETS = [
+  // Legacy (pre-B.6)
+  'casual_friendly',
+  'professional_warm',
+  'direct_efficient',
+  'empathetic_care',
+  // B.6 founding-4 extracted
+  'casual_confident',
+  'polished_professional',
+  'alert_relaxed',
+  'upbeat_confident',
+] as const
 
 /**
  * Schema for the settings PATCH request body.
@@ -175,7 +194,7 @@ export const settingsBodySchema = z.object({
   calendar_beta_enabled: z.boolean().optional(),
 
   // Voice / identity
-  voice_style_preset: z.string().min(1).optional(),
+  voice_style_preset: z.enum(VALID_VOICE_PRESETS).optional(),
   agent_voice_id: z.string().min(1).optional(),
   agent_name: z.string().min(1).optional(),
   business_name: z.string().min(1).optional(),
