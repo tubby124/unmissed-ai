@@ -1929,6 +1929,7 @@ export type Database = {
           content: string
           created_at: string | null
           deployed_at: string
+          force_overrode_hand_tuned: boolean
           id: string
           is_active: boolean | null
           prev_char_count: number | null
@@ -1946,6 +1947,7 @@ export type Database = {
           content: string
           created_at?: string | null
           deployed_at?: string
+          force_overrode_hand_tuned?: boolean
           id?: string
           is_active?: boolean | null
           prev_char_count?: number | null
@@ -1963,6 +1965,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           deployed_at?: string
+          force_overrode_hand_tuned?: boolean
           id?: string
           is_active?: boolean | null
           prev_char_count?: number | null

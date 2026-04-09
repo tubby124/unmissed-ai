@@ -268,13 +268,22 @@ export async function POST(req: NextRequest) {
     ? `Re-generated from intake (${newPrompt.length} chars, delta ${delta > 0 ? '+' : ''}${delta})`
     : `Refreshed agent (tools/voice re-sync, prompt unchanged, ${newPrompt.length} chars)`
 
+  // Phase H audit — flag when an admin used { force: true } to override the
+  // hand_tuned gate. Only writes `true` when both conditions hold: client was
+  // hand_tuned AND caller passed force. Normal regens on non-hand-tuned clients
+  // default to false. Lets us grep prompt_versions later for override events.
+  const forceOverrodeHandTuned = client.hand_tuned === true && force
+
   const newVersion = await insertPromptVersion(svc, {
     clientId,
     content: newPrompt,
-    changeDescription: changeDesc,
+    changeDescription: forceOverrodeHandTuned
+      ? `${changeDesc} (admin force-override of hand_tuned prompt)`
+      : changeDesc,
     triggeredByUserId: user.id,
     triggeredByRole: cu.role,
     prevCharCount,
+    forceOverrodeHandTuned,
   })
 
   // Save to clients table

@@ -20,6 +20,13 @@ export interface InsertPromptVersionParams {
   prevCharCount: number | null
   /** Explicit version number. If omitted, auto-increments from latest. */
   version?: number
+  /**
+   * Phase H audit flag — true when this write was produced by an admin
+   * force-override of a hand_tuned client via { force: true } in the
+   * regenerate-prompt route. Used for audit review of admin overrides of
+   * protected prompts. Defaults to false.
+   */
+  forceOverrodeHandTuned?: boolean
 }
 
 export interface InsertPromptVersionResult {
@@ -42,6 +49,7 @@ export async function insertPromptVersion(
     triggeredByUserId,
     triggeredByRole,
     prevCharCount,
+    forceOverrodeHandTuned,
   } = params
 
   // Resolve version number
@@ -73,6 +81,7 @@ export async function insertPromptVersion(
       triggered_by_role: triggeredByRole,
       char_count: content.length,
       prev_char_count: prevCharCount,
+      force_overrode_hand_tuned: forceOverrodeHandTuned ?? false,
     })
     .select('id')
     .single()
