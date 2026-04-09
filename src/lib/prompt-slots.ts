@@ -57,6 +57,7 @@ export interface SlotContext {
   weekendPolicy: string
   primaryCallReason: string
   hoursWeekday: string
+  hoursWeekend: string
   insuranceStatus: string
   insuranceDetail: string
   servicesNotOffered: string
@@ -310,13 +311,30 @@ After collecting all three: "${ctx.closingLine}" then use hangUp tool.`
     ? `SERVICES NOT OFFERED (${ctx.servicesNotOffered}): "we don't handle that one, i'll have ${ctx.closePerson} call ya back to point ya in the right direction." then hangUp.\n`
     : ''
 
+  // D.6 Fix 3: Weekend hours — render both weekday and weekend hours as separate labeled lines
+  // so the LLM cannot merge them (Windshield Hub bug: said "mon through sat 8am-6pm" when
+  // weekday was Mon-Fri 8-6 + weekend was Sat 9-3). Falls back to single line if no weekend.
+  const hoursLine = ctx.hoursWeekend
+    ? `HOURS / "ARE YOU OPEN": weekday hours are ${ctx.hoursWeekday}; weekend hours are ${ctx.hoursWeekend}. Say them exactly as given — never merge or paraphrase into a single range. If caller asks about a specific day, answer from the correct line (weekday vs weekend). If caller just asks "are you open": "yeah we're open ${ctx.hoursWeekday}, and ${ctx.hoursWeekend} on weekends. anything i can help with?" If no: "alright take care." then hangUp.`
+    : `HOURS / "ARE YOU OPEN": "yeah we're open ${ctx.hoursWeekday}. anything i can help with?" If no: "alright take care." then hangUp.`
+
+  // D.6 Fix 4: Suppress the generic HIRING deflection when the niche filterExtra provides
+  // its own JOB INQUIRY / HIRING ASK override (e.g. auto_glass routes hiring to the owner
+  // callback instead of "sorry we're not hiring"). Marker-based suppression keeps the default
+  // behavior intact for every other niche.
+  const nicheOverridesHiring = /JOB INQUIRY|HIRING ASK/i.test(ctx.filterExtra || '')
+  const hiringLine = nicheOverridesHiring ? '' : `HIRING: "sorry we're not hiring right now." then hangUp.\n`
+
+  // D.6 Fix 1 note: warranty / callback-on-prior-job handling originally landed here but was
+  // moved into the niche TRIAGE_DEEP (auto_glass only) — keeping it in the universal filter
+  // was diluting the D1 happy-path flow without measurable gain on D4.
+
   const filter = `## 2. FILTER
 
 WRONG NUMBER: "sorry, wrong number — this is a ${ctx.industry}." then hangUp.
 SPAM / ROBOCALL (warranty, Medicare, press 9, sales pitch): "thanks, not interested." then hangUp.
-HOURS / "ARE YOU OPEN": "yeah we're open ${ctx.hoursWeekday}. anything i can help with?" If no: "alright take care." then hangUp.${ctx.afterHoursInstructions ? '\n' + ctx.afterHoursInstructions : ''}
-HIRING: "sorry we're not hiring right now." then hangUp.
-${servicesNotOfferedLine}CALLER ENDS CALL ("bye", "thanks that's all", "have a good one"): "talk soon!" then hangUp.
+${hoursLine}${ctx.afterHoursInstructions ? '\n' + ctx.afterHoursInstructions : ''}
+${hiringLine}${servicesNotOfferedLine}CALLER ENDS CALL ("bye", "thanks that's all", "have a good one"): "talk soon!" then hangUp.
 ${filterExtra}${ctx.primaryCallReason}: go to triage.
 ANYTHING ELSE: "sounds good — lemme grab your ${ctx.infoLabel} quick and i'll have ${ctx.closePerson} call ya back. ${ctx.firstInfoQuestion}"`
 
@@ -632,6 +650,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     ['agent_name', 'AGENT_NAME'],
     ['db_agent_name', 'AGENT_NAME'],
     ['hours_weekday', 'HOURS_WEEKDAY'],
+    ['hours_weekend', 'HOURS_WEEKEND'],
     ['services_offered', 'SERVICES_OFFERED'],
     ['weekend_policy', 'WEEKEND_POLICY'],
     ['callback_phone', 'CALLBACK_PHONE'],
@@ -649,6 +668,10 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   // Normalize HOURS_WEEKDAY from 24h → 12h AM/PM (GBP returns "11:00–23:00" style)
   if (variables.HOURS_WEEKDAY) {
     variables.HOURS_WEEKDAY = normalize24hHours(variables.HOURS_WEEKDAY)
+  }
+  // D.6 Fix 3: Same normalization for weekend hours so both lines render consistently.
+  if (variables.HOURS_WEEKEND) {
+    variables.HOURS_WEEKEND = normalize24hHours(variables.HOURS_WEEKEND)
   }
 
   // niche_services fallback
@@ -1276,6 +1299,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     weekendPolicy: variables.WEEKEND_POLICY || '',
     primaryCallReason: variables.PRIMARY_CALL_REASON || '',
     hoursWeekday: variables.HOURS_WEEKDAY || '',
+    hoursWeekend: variables.HOURS_WEEKEND || '',
     insuranceStatus: variables.INSURANCE_STATUS || '',
     insuranceDetail: variables.INSURANCE_DETAIL || '',
     servicesNotOffered: variables.SERVICES_NOT_OFFERED || '',
