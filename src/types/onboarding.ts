@@ -127,6 +127,13 @@ export interface OnboardingData {
   // onboarding form intake-transform → clients.calendar_mode so fresh trial
   // signups carry their preference into the prompt.
   calendarMode: CalendarMode;
+  // Phase E.7 — closes the business_notes phantom-data gap. Plan Phase E.2 +
+  // E.9 called for a free-form "About your business" textarea with a 3000-char
+  // cap. The DB column, ClientConfig type, and buildBusinessNotes slot all
+  // shipped in Phase E, but no editor or persistence path landed. E.7 wires
+  // the dashboard textarea, intake-transform line, and form default so the
+  // <business_notes> slot can actually be populated.
+  businessNotes: string;
   commonObjections: { question: string; answer: string }[];
 
   // New: voice + call handling + knowledge
@@ -250,6 +257,7 @@ export const defaultOnboardingData: OnboardingData = {
   pricingPolicy: "",
   unknownAnswerBehavior: "",
   calendarMode: "",
+  businessNotes: "",
   commonObjections: [],
   voiceId: null,
   voiceName: '',

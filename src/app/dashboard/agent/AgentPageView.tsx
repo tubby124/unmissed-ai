@@ -187,6 +187,9 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   const [fieldsToCollectText, setFieldsToCollectText] = useState<string>(
     Array.isArray(client.fields_to_collect) ? client.fields_to_collect.join(', ') : '',
   )
+  // Phase E.7 — business_notes editor (closes E.2+E.9 phantom-data gap)
+  const [businessNotes, setBusinessNotes] = useState<string>(client.business_notes ?? '')
+  const [savedBusinessNotes, setSavedBusinessNotes] = useState<string>(client.business_notes ?? '')
   const [saving, setSaving] = useState<string | null>(null) // holds the field key currently being saved
   const [handTunedConfirm, setHandTunedConfirm] = useState<HandTunedConfirm>(null)
 
@@ -197,7 +200,9 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     setUnknownAnswer(client.unknown_answer_behavior ?? null)
     setCalendarMode(client.calendar_mode ?? null)
     setFieldsToCollectText(Array.isArray(client.fields_to_collect) ? client.fields_to_collect.join(', ') : '')
-  }, [client.id, client.voice_style_preset, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect])
+    setBusinessNotes(client.business_notes ?? '')
+    setSavedBusinessNotes(client.business_notes ?? '')
+  }, [client.id, client.voice_style_preset, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect, client.business_notes])
 
   // ── Save chain: PATCH settings → POST regenerate-prompt → 409 handTuned flow ─
   const runSaveChain = useCallback(async (
@@ -273,6 +278,15 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     await runSaveChain('fields_to_collect', { fields_to_collect: list })
   }
 
+  // Phase E.7 — business_notes save handler. Server-side cap enforcement
+  // mirrors the 3000-char limit from Plan E.9 and the BUSINESS_NOTES slot
+  // ceiling (3400 chars wrapped) in slot-ceilings.test.ts.
+  const handleBusinessNotesSave = async () => {
+    const trimmed = businessNotes.trim().slice(0, 3000)
+    const result = await runSaveChain('business_notes', { business_notes: trimmed || null })
+    if (result.ok) setSavedBusinessNotes(trimmed)
+  }
+
   const handlePricingChange = async (next: string) => {
     setPricingPolicy(next)
     await runSaveChain('pricing_policy', { pricing_policy: next })
@@ -301,11 +315,14 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   }
 
   const isSaving = saving !== null
+  const businessNotesDirty = businessNotes !== savedBusinessNotes
 
   return (
     <div className="sm:col-span-2">
       <SectionLabel>Day-1 Edits</SectionLabel>
       <div className="rounded-2xl border b-theme bg-surface p-5 space-y-5">
+        {/* Phase E.7 Wave 2 — Lego Block Contract Rule #2 surfaced in UI. */}
+        <p className="text-[10px] t3 italic">Changes apply to new calls, not calls already in progress.</p>
         {client.hand_tuned && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] px-3 py-2">
             <p className="text-[11px] text-amber-400/90 leading-relaxed">
@@ -394,6 +411,37 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
             onChange={handleCalendarChange}
             disabled={isSaving}
           />
+        </div>
+
+        {/* ── 7. About your business (Phase E.7 — closes business_notes phantom gap) ── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            About your business
+          </label>
+          <div className="relative">
+            <textarea
+              value={businessNotes}
+              onChange={e => setBusinessNotes(e.target.value.slice(0, 3000))}
+              rows={5}
+              maxLength={3000}
+              disabled={isSaving}
+              placeholder="Free-form context the agent should know — specialties, unusual hours, recent changes, how you're different from competitors, anything a new caller should hear. Max 3000 chars."
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 resize-y focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+            />
+            <span className="absolute bottom-2 right-3 text-[10px] t3 tabular-nums pointer-events-none bg-surface/80 px-1 rounded">
+              {businessNotes.length}/3000
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[10px] t3">Injected into the prompt as business context. Wrapped as &lt;business_notes&gt; for safety.</p>
+            <button
+              onClick={handleBusinessNotesSave}
+              disabled={isSaving || !businessNotesDirty}
+              className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-40 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+            >
+              {saving === 'business_notes' ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
 

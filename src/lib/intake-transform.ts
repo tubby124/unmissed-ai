@@ -226,6 +226,10 @@ export function toIntakePayload(data: OnboardingData) {
     // Phase E.6 Wave 3 — closes E.5 Wave 2 deferral. Fresh trial signups
     // now carry calendar mode into clients.calendar_mode on first provision.
     calendar_mode: data.calendarMode || "",
+    // Phase E.7 — closes the business_notes phantom-data gap. Trims to
+    // the 3000-char cap enforced by the dashboard editor AND the slot
+    // ceiling test (BUSINESS_NOTES: 3400).
+    business_notes: (data.businessNotes || "").slice(0, 3000),
     common_objections: JSON.stringify(
       (data.commonObjections || []).filter(p => p.question?.trim() && p.answer?.trim())
     ),

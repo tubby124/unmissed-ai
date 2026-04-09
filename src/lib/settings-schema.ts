@@ -272,7 +272,9 @@ export const settingsBodySchema = z.object({
 
   // Phase E Wave 1 — Day-1 edit panel fields (dashboard regenerates prompt after save)
   today_update: z.union([z.string().max(200), z.null()]).optional(),
-  business_notes: z.union([z.string().max(2000), z.null()]).optional(),
+  // Phase E.7 — raised from 2000 → 3000 to match approved plan E.9 (500 words)
+  // and the BUSINESS_NOTES slot ceiling (3400 chars including ~300-char wrapper).
+  business_notes: z.union([z.string().max(3000), z.null()]).optional(),
   unknown_answer_behavior: z.enum(['take_message', 'transfer', 'find_out_callback']).optional(),
   pricing_policy: z.enum(['quote_range', 'no_quote_callback', 'website_pricing', 'collect_first']).optional(),
   calendar_mode: z.enum(['none', 'request_callback', 'book_direct']).optional(),
