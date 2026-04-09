@@ -4,38 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "5697e2282416ca25",
+        "id": "f96a755846f9ffb9",
         "type": "tabs",
         "children": [
           {
-            "id": "c955854385329990",
+            "id": "63108419b13d009b",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tracker/D293.md",
-                "mode": "preview",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "D293"
-            }
-          },
-          {
-            "id": "b66257df2e5d7933",
-            "type": "leaf",
-            "state": {
-              "type": "canvas",
-              "state": {
-                "file": "Untitled 1.canvas",
-                "viewState": {
-                  "x": 0,
-                  "y": 0,
-                  "zoom": 0
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "Untitled 1"
+              "title": "New tab"
             }
           }
         ]
@@ -91,8 +70,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -195,39 +173,45 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "pdf-plus:PDF++: Toggle auto-copy": false,
+      "pdf-plus:PDF++: Toggle auto-focus": false,
+      "pdf-plus:PDF++: Toggle auto-paste": false,
+      "omnisearch:Omnisearch": false,
+      "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "c955854385329990",
+  "active": "63108419b13d009b",
   "lastOpenFiles": [
-    "Architecture/Phase7-Fixes-Session-2026-04-01.md",
-    "Tracker/D360.md",
-    "Tracker/D359.md",
-    "Tracker/D358.md",
-    "Tracker/D357.md",
-    "Tracker/D356.md",
-    "Tracker/D355.md",
-    "Tracker/D354.md",
-    "Tracker/D353.md",
-    "Tracker/D352.md",
-    "Architecture/Red-Swan-Pizza-Test-Call-Review.md",
-    "Tracker/D351.md",
-    "Tracker/D350.md",
-    "Tracker/D349.md",
-    "Tracker/D336.md",
-    "Tracker/D348.md",
-    "Tracker/D347.md",
-    "Architecture/Onboarding-Live-Test-2026-04-01.md",
-    "Tracker/D346.md",
-    "Tracker/D345.md",
-    "Tracker/D344.md",
-    "Tracker/D343.md",
-    "Tracker/D342.md",
-    "Tracker/D341.md",
-    "Tracker/D340.md",
-    "Tracker/D339.md",
-    "Untitled 2.canvas",
     "Untitled 1.canvas",
+    "Features/Plan Tiers and Gating.md",
+    "Excalidraw/Drawing 2026-04-03 00.48.35.excalidraw.md",
+    "2026-04-03.md",
+    "Tracker/D251.md",
+    "Features/SMS.md",
+    "Features/Knowledge RAG.md",
+    "Features/IVR.md",
+    "Features/Booking.md",
+    "Features/AI Compiler.md",
+    "Excalidraw/Drawing 2026-04-03 00.48.37.excalidraw.md",
+    "Excalidraw/Drawing 2026-04-03 00.47.31.excalidraw.md",
+    "Product/Business Pain Map.md",
+    "Excalidraw",
+    "Templates/Tracker Item.md",
+    "Project/Index.md",
+    "Operations/Environment Variables.md",
+    "Operations/Lead Classification.md",
+    "Architecture/Phase7-CRM-Contacts-Calendar.md",
+    "Untitled 3.canvas",
+    "Tracker/D365.md",
+    "Tracker/D372.md",
+    "Tracker/D371.md",
+    "Tracker/D370.md",
+    "Tracker/D369.md",
+    "Tracker/D368.md",
+    "Tracker/Archive-Done.md",
+    "Tracker/D293.md",
+    "Untitled 2.canvas",
     "Untitled.canvas",
     "Operations",
     "Dashboard",
@@ -237,7 +221,6 @@
     "Tracker",
     "Features",
     "Architecture",
-    "Decisions",
-    "Clients"
+    "Decisions"
   ]
 }
