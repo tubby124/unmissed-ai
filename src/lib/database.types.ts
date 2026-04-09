@@ -903,8 +903,10 @@ export type Database = {
           business_hours_weekday: string | null
           business_hours_weekend: string | null
           business_name: string
+          business_notes: string | null
           calendar_auth_status: string | null
           calendar_beta_enabled: boolean | null
+          calendar_mode: string | null
           call_handling_mode: string
           callback_phone: string | null
           cancel_at: string | null
@@ -918,6 +920,7 @@ export type Database = {
           effective_monthly_rate: number | null
           email_notifications_enabled: boolean | null
           extra_qa: Json | null
+          fields_to_collect: string[] | null
           first_call_at: string | null
           forwarding_number: string | null
           gbp_photo_url: string | null
@@ -928,9 +931,11 @@ export type Database = {
           google_calendar_id: string | null
           google_refresh_token: string | null
           grace_period_end: string | null
+          hand_tuned: boolean | null
           hours: string | null
           id: string
           injected_note: string | null
+          injected_note_expires_at: string | null
           ivr_enabled: boolean | null
           ivr_prompt: string | null
           knowledge_backend: string | null
@@ -954,6 +959,7 @@ export type Database = {
           owner_name: string | null
           pending_loop_suggestion: Json | null
           previous_agent_voice_id: string | null
+          pricing_policy: string | null
           seconds_used_this_month: number | null
           selected_plan: string | null
           service_catalog: Json
@@ -979,6 +985,7 @@ export type Database = {
           telegram_registration_token: string | null
           telegram_style: string
           timezone: string | null
+          today_update: string | null
           tools: Json | null
           transfer_conditions: string | null
           trial_converted: boolean | null
@@ -986,6 +993,7 @@ export type Database = {
           twilio_number: string | null
           twilio_subaccount_sid: string | null
           ultravox_agent_id: string | null
+          unknown_answer_behavior: string | null
           updated_at: string | null
           user_id: string | null
           voice_style_preset: string | null
@@ -1016,8 +1024,10 @@ export type Database = {
           business_hours_weekday?: string | null
           business_hours_weekend?: string | null
           business_name: string
+          business_notes?: string | null
           calendar_auth_status?: string | null
           calendar_beta_enabled?: boolean | null
+          calendar_mode?: string | null
           call_handling_mode?: string
           callback_phone?: string | null
           cancel_at?: string | null
@@ -1031,6 +1041,7 @@ export type Database = {
           effective_monthly_rate?: number | null
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
+          fields_to_collect?: string[] | null
           first_call_at?: string | null
           forwarding_number?: string | null
           gbp_photo_url?: string | null
@@ -1041,9 +1052,11 @@ export type Database = {
           google_calendar_id?: string | null
           google_refresh_token?: string | null
           grace_period_end?: string | null
+          hand_tuned?: boolean | null
           hours?: string | null
           id?: string
           injected_note?: string | null
+          injected_note_expires_at?: string | null
           ivr_enabled?: boolean | null
           ivr_prompt?: string | null
           knowledge_backend?: string | null
@@ -1067,6 +1080,7 @@ export type Database = {
           owner_name?: string | null
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
+          pricing_policy?: string | null
           seconds_used_this_month?: number | null
           selected_plan?: string | null
           service_catalog?: Json
@@ -1092,6 +1106,7 @@ export type Database = {
           telegram_registration_token?: string | null
           telegram_style?: string
           timezone?: string | null
+          today_update?: string | null
           tools?: Json | null
           transfer_conditions?: string | null
           trial_converted?: boolean | null
@@ -1099,6 +1114,7 @@ export type Database = {
           twilio_number?: string | null
           twilio_subaccount_sid?: string | null
           ultravox_agent_id?: string | null
+          unknown_answer_behavior?: string | null
           updated_at?: string | null
           user_id?: string | null
           voice_style_preset?: string | null
@@ -1129,8 +1145,10 @@ export type Database = {
           business_hours_weekday?: string | null
           business_hours_weekend?: string | null
           business_name?: string
+          business_notes?: string | null
           calendar_auth_status?: string | null
           calendar_beta_enabled?: boolean | null
+          calendar_mode?: string | null
           call_handling_mode?: string
           callback_phone?: string | null
           cancel_at?: string | null
@@ -1144,6 +1162,7 @@ export type Database = {
           effective_monthly_rate?: number | null
           email_notifications_enabled?: boolean | null
           extra_qa?: Json | null
+          fields_to_collect?: string[] | null
           first_call_at?: string | null
           forwarding_number?: string | null
           gbp_photo_url?: string | null
@@ -1154,9 +1173,11 @@ export type Database = {
           google_calendar_id?: string | null
           google_refresh_token?: string | null
           grace_period_end?: string | null
+          hand_tuned?: boolean | null
           hours?: string | null
           id?: string
           injected_note?: string | null
+          injected_note_expires_at?: string | null
           ivr_enabled?: boolean | null
           ivr_prompt?: string | null
           knowledge_backend?: string | null
@@ -1180,6 +1201,7 @@ export type Database = {
           owner_name?: string | null
           pending_loop_suggestion?: Json | null
           previous_agent_voice_id?: string | null
+          pricing_policy?: string | null
           seconds_used_this_month?: number | null
           selected_plan?: string | null
           service_catalog?: Json
@@ -1205,6 +1227,7 @@ export type Database = {
           telegram_registration_token?: string | null
           telegram_style?: string
           timezone?: string | null
+          today_update?: string | null
           tools?: Json | null
           transfer_conditions?: string | null
           trial_converted?: boolean | null
@@ -1212,6 +1235,7 @@ export type Database = {
           twilio_number?: string | null
           twilio_subaccount_sid?: string | null
           ultravox_agent_id?: string | null
+          unknown_answer_behavior?: string | null
           updated_at?: string | null
           user_id?: string | null
           voice_style_preset?: string | null
