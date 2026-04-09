@@ -130,7 +130,6 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
     { label: 'Website knowledge', on: hasWebsite },
     { label: 'Calendar booking', on: bookingActive },
     { label: 'Call forwarding', on: !!(data.callForwardingEnabled && data.emergencyPhone?.trim()) },
-    { label: 'IVR pre-filter', on: data.ivrEnabled === true },
   ]
   const activeCaps = caps.filter(c => c.on)
 

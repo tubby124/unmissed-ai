@@ -127,6 +127,14 @@ export interface ClientConfig {
   // G0.5 — agent sync instrumentation
   last_agent_sync_at: string | null
   last_agent_sync_status: string | null
+  // Phase E Wave 1 — Day-1 edit panel fields
+  today_update: string | null
+  business_notes: string | null
+  unknown_answer_behavior: string | null
+  pricing_policy: string | null
+  calendar_mode: string | null
+  fields_to_collect: string[] | null
+  hand_tuned: boolean | null
 }
 
 export default async function SettingsPage({
@@ -152,7 +160,7 @@ export default async function SettingsPage({
   const isAdmin = cu.role === 'admin'
   const appUrl = APP_URL
 
-  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, telegram_registration_token, telegram_style, timezone, minutes_used_this_month, seconds_used_this_month, monthly_minute_limit, updated_at, created_at, bonus_minutes, sms_enabled, sms_template, business_facts, extra_qa, forwarding_number, setup_complete, agent_name, context_data, context_data_label, google_calendar_id, booking_enabled, booking_service_duration_minutes, booking_buffer_minutes, calendar_beta_enabled, calendar_auth_status, injected_note, subscription_status, subscription_current_period_end, grace_period_end, stripe_customer_id, stripe_subscription_id, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, transfer_conditions, voice_style_preset, website_url, website_last_scraped_at, website_scrape_status, website_scrape_error, website_scrape_pages, website_knowledge_preview, website_knowledge_approved, stripe_discount_name, effective_monthly_rate, voicemail_greeting_text, voicemail_greeting_audio_url, weekly_digest_enabled, contact_email, owner_name, city, state, services_offered, callback_phone, ivr_enabled, ivr_prompt, call_handling_mode, agent_mode, service_catalog, selected_plan, trial_expires_at, trial_converted, cancel_at, telegram_notifications_enabled, email_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_notes, staff_roster, niche_custom_variables, last_agent_sync_at, last_agent_sync_status'
+  const SELECT = 'id, slug, business_name, niche, status, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, telegram_chat_id, telegram_bot_token, telegram_registration_token, telegram_style, timezone, minutes_used_this_month, seconds_used_this_month, monthly_minute_limit, updated_at, created_at, bonus_minutes, sms_enabled, sms_template, business_facts, extra_qa, forwarding_number, setup_complete, agent_name, context_data, context_data_label, google_calendar_id, booking_enabled, booking_service_duration_minutes, booking_buffer_minutes, calendar_beta_enabled, calendar_auth_status, injected_note, subscription_status, subscription_current_period_end, grace_period_end, stripe_customer_id, stripe_subscription_id, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, transfer_conditions, voice_style_preset, website_url, website_last_scraped_at, website_scrape_status, website_scrape_error, website_scrape_pages, website_knowledge_preview, website_knowledge_approved, stripe_discount_name, effective_monthly_rate, voicemail_greeting_text, voicemail_greeting_audio_url, weekly_digest_enabled, contact_email, owner_name, city, state, services_offered, callback_phone, ivr_enabled, ivr_prompt, call_handling_mode, agent_mode, service_catalog, selected_plan, trial_expires_at, trial_converted, cancel_at, telegram_notifications_enabled, email_notifications_enabled, gbp_place_id, gbp_summary, gbp_rating, gbp_review_count, gbp_photo_url, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_notes, staff_roster, niche_custom_variables, last_agent_sync_at, last_agent_sync_status, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect, hand_tuned'
 
   if (isAdmin) {
     const { data: clients } = await supabase

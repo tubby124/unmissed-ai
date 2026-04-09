@@ -114,6 +114,18 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   // D283c: was DB_ONLY (fake-control). Now triggers slot regeneration → prompt rebuild → sync.
   niche_custom_variables:  { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
 
+  // ── Phase E Wave 1 columns ────────────────────────────────────────────────
+  // These back the Day-1 edit panel. They're DB_ONLY from the settings PATCH
+  // route's perspective — the dashboard edit panel explicitly calls POST
+  // /api/dashboard/regenerate-prompt after saving, which rebuilds the prompt
+  // slots and syncs Ultravox. That avoids double-regen inside the settings route.
+  today_update:              { mutationClass: 'DB_ONLY', triggersSync: false },
+  business_notes:            { mutationClass: 'DB_ONLY', triggersSync: false },
+  unknown_answer_behavior:   { mutationClass: 'DB_ONLY', triggersSync: false },
+  pricing_policy:            { mutationClass: 'DB_ONLY', triggersSync: false },
+  calendar_mode:             { mutationClass: 'DB_ONLY', triggersSync: false },
+  fields_to_collect:         { mutationClass: 'DB_ONLY', triggersSync: false },
+
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
   telegram_bot_token:      { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -238,6 +250,14 @@ export const settingsBodySchema = z.object({
 
   // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
   niche_custom_variables: z.record(z.string()).optional(),
+
+  // Phase E Wave 1 — Day-1 edit panel fields (dashboard regenerates prompt after save)
+  today_update: z.union([z.string().max(200), z.null()]).optional(),
+  business_notes: z.union([z.string().max(2000), z.null()]).optional(),
+  unknown_answer_behavior: z.enum(['take_message', 'transfer', 'find_out_callback']).optional(),
+  pricing_policy: z.enum(['quote_range', 'no_quote_callback', 'website_pricing', 'collect_first']).optional(),
+  calendar_mode: z.enum(['none', 'request_callback', 'book_direct']).optional(),
+  fields_to_collect: z.array(z.string().min(1).max(60)).max(20).optional(),
 
   // Staff roster (PER_CALL_CONTEXT_ONLY — booking-mode clients only)
   staff_roster: z.array(z.object({
@@ -433,6 +453,37 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   // service_catalog — array of service items (filter out empty names)
   if (body.service_catalog !== undefined) {
     updates.service_catalog = body.service_catalog.filter(s => s.name.trim())
+  }
+
+  // ── Phase E Wave 1 — Day-1 edit panel fields ───────────────────────────────
+  // today_update — nullable string, 200 char max (enforced by Zod)
+  if (body.today_update !== undefined) {
+    const val = typeof body.today_update === 'string' ? body.today_update.trim() : null
+    updates.today_update = val || null
+  }
+  // business_notes — nullable string, 2000 char max (enforced by Zod)
+  if (body.business_notes !== undefined) {
+    const val = typeof body.business_notes === 'string' ? body.business_notes.trim() : null
+    updates.business_notes = val || null
+  }
+  // unknown_answer_behavior — enum, direct copy
+  if (body.unknown_answer_behavior !== undefined) {
+    updates.unknown_answer_behavior = body.unknown_answer_behavior
+  }
+  // pricing_policy — enum, direct copy
+  if (body.pricing_policy !== undefined) {
+    updates.pricing_policy = body.pricing_policy
+  }
+  // calendar_mode — enum, direct copy
+  if (body.calendar_mode !== undefined) {
+    updates.calendar_mode = body.calendar_mode
+  }
+  // fields_to_collect — string[] (trim + filter empties)
+  if (body.fields_to_collect !== undefined) {
+    const cleaned = body.fields_to_collect
+      .map(s => (typeof s === 'string' ? s.trim() : ''))
+      .filter(s => s.length > 0)
+    updates.fields_to_collect = cleaned
   }
 
   // pending_loop_suggestion — any (nullable)

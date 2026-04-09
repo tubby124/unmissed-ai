@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import AgentIdentityHeader from '@/components/dashboard/settings/AgentIdentityHeader'
 import VoiceStyleCard from '@/components/dashboard/settings/VoiceStyleCard'
@@ -94,6 +95,363 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>
       {children}
     </p>
+  )
+}
+
+// ─── Phase E Wave 3 — Day-1 Edit Panel ────────────────────────────────────────
+// Customer-facing Day-1 editables land here (per unmissed-onboarding-field-schema).
+// Save chain: PATCH /api/dashboard/settings → POST /api/dashboard/regenerate-prompt.
+// If regenerate returns 409 + handTuned, we show a confirm dialog before forcing.
+
+const VOICE_PRESETS_LEGACY = [
+  { id: 'casual_friendly',    label: 'Casual & Friendly' },
+  { id: 'professional_warm',  label: 'Professional & Warm' },
+  { id: 'direct_efficient',   label: 'Direct & Efficient' },
+  { id: 'empathetic_care',    label: 'Empathetic & Patient' },
+] as const
+
+const PRICING_POLICY_OPTIONS = [
+  { value: 'quote_range',       label: 'Quote a range' },
+  { value: 'no_quote_callback', label: 'No quote — call back' },
+  { value: 'website_pricing',   label: 'Point to website' },
+  { value: 'collect_first',     label: 'Collect details first' },
+] as const
+
+const UNKNOWN_ANSWER_OPTIONS = [
+  { value: 'take_message',       label: 'Take a message' },
+  { value: 'transfer',           label: 'Transfer to me' },
+  { value: 'find_out_callback',  label: "Find out & call back" },
+] as const
+
+const CALENDAR_MODE_OPTIONS = [
+  { value: 'none',              label: 'No calendar' },
+  { value: 'request_callback',  label: 'Request callback' },
+  { value: 'book_direct',       label: 'Book directly' },
+] as const
+
+type ChipOption = { value: string; label: string }
+
+function DarkChipGroup({ options, value, onChange, disabled }: {
+  options: readonly ChipOption[]
+  value: string | null
+  onChange: (v: string) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => {
+        const selected = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            aria-pressed={selected}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all disabled:opacity-40 ${
+              selected
+                ? 'border-blue-500/60 bg-blue-500/15 text-blue-300'
+                : 'b-theme bg-hover t2 hover:border-[var(--color-text-3)]'
+            }`}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+type HandTunedConfirm = { pending: Record<string, unknown> } | null
+
+function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
+  const [voicePreset, setVoicePreset] = useState<string>(client.voice_style_preset ?? 'casual_friendly')
+  const [todayUpdate, setTodayUpdate] = useState<string>(client.today_update ?? '')
+  const [savedTodayUpdate, setSavedTodayUpdate] = useState<string>(client.today_update ?? '')
+  const [pricingPolicy, setPricingPolicy] = useState<string | null>(client.pricing_policy ?? null)
+  const [unknownAnswer, setUnknownAnswer] = useState<string | null>(client.unknown_answer_behavior ?? null)
+  const [calendarMode, setCalendarMode] = useState<string | null>(client.calendar_mode ?? null)
+  const [fieldsToCollectText, setFieldsToCollectText] = useState<string>(
+    Array.isArray(client.fields_to_collect) ? client.fields_to_collect.join(', ') : '',
+  )
+  const [saving, setSaving] = useState<string | null>(null) // holds the field key currently being saved
+  const [handTunedConfirm, setHandTunedConfirm] = useState<HandTunedConfirm>(null)
+
+  // Reset state when client changes (e.g. admin dropdown switch)
+  useEffect(() => {
+    setVoicePreset(client.voice_style_preset ?? 'casual_friendly')
+    setTodayUpdate(client.today_update ?? '')
+    setSavedTodayUpdate(client.today_update ?? '')
+    setPricingPolicy(client.pricing_policy ?? null)
+    setUnknownAnswer(client.unknown_answer_behavior ?? null)
+    setCalendarMode(client.calendar_mode ?? null)
+    setFieldsToCollectText(Array.isArray(client.fields_to_collect) ? client.fields_to_collect.join(', ') : '')
+  }, [client.id, client.voice_style_preset, client.today_update, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect])
+
+  // ── Save chain: PATCH settings → POST regenerate-prompt → 409 handTuned flow ─
+  const runSaveChain = useCallback(async (
+    fieldKey: string,
+    patchBody: Record<string, unknown>,
+    opts?: { force?: boolean },
+  ): Promise<{ ok: boolean; handTuned?: boolean }> => {
+    setSaving(fieldKey)
+    try {
+      // 1) PATCH clients row via shared settings route
+      const patchPayload = { ...patchBody, ...(isAdmin ? { client_id: client.id } : {}) }
+      const patchRes = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload),
+      })
+      if (!patchRes.ok) {
+        const body = await patchRes.json().catch(() => ({})) as { error?: string }
+        toast.error(body.error || `Save failed (${patchRes.status})`)
+        return { ok: false }
+      }
+
+      // 2) POST regenerate-prompt (rebuilds slots, chains Ultravox sync internally)
+      const regenRes = await fetch('/api/dashboard/regenerate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, ...(opts?.force ? { force: true } : {}) }),
+      })
+
+      if (regenRes.status === 409) {
+        const body = await regenRes.json().catch(() => ({})) as { handTuned?: boolean; error?: string }
+        if (body.handTuned) {
+          // Surface confirm modal — caller can retry with force:true
+          setHandTunedConfirm({ pending: patchBody })
+          return { ok: false, handTuned: true }
+        }
+        toast.error(body.error || 'Regeneration blocked')
+        return { ok: false }
+      }
+      if (regenRes.status === 429) {
+        const body = await regenRes.json().catch(() => ({})) as { error?: string; cooldown_seconds?: number }
+        toast.warning(body.error || `Slow down — wait ${body.cooldown_seconds ?? 60}s before saving again`)
+        // DB update already landed; treat as soft-success for UI state
+        return { ok: true }
+      }
+      if (!regenRes.ok) {
+        const body = await regenRes.json().catch(() => ({})) as { error?: string }
+        toast.warning(body.error || 'Saved — but agent sync failed')
+        return { ok: true }
+      }
+      toast.success('Saved — agent updated')
+      return { ok: true }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Network error')
+      return { ok: false }
+    } finally {
+      setSaving(null)
+    }
+  }, [client.id, isAdmin])
+
+  // ── Per-field save handlers ────────────────────────────────────────────────
+  const handleVoicePresetChange = async (next: string) => {
+    setVoicePreset(next)
+    await runSaveChain('voice_style_preset', { voice_style_preset: next })
+  }
+
+  const handleTodayUpdateSave = async () => {
+    const trimmed = todayUpdate.trim().slice(0, 200)
+    const result = await runSaveChain('today_update', { today_update: trimmed || null })
+    if (result.ok) setSavedTodayUpdate(trimmed)
+  }
+
+  const handleFieldsToCollectSave = async () => {
+    const list = fieldsToCollectText
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .slice(0, 20)
+    await runSaveChain('fields_to_collect', { fields_to_collect: list })
+  }
+
+  const handlePricingChange = async (next: string) => {
+    setPricingPolicy(next)
+    await runSaveChain('pricing_policy', { pricing_policy: next })
+  }
+  const handleUnknownChange = async (next: string) => {
+    setUnknownAnswer(next)
+    await runSaveChain('unknown_answer_behavior', { unknown_answer_behavior: next })
+  }
+  const handleCalendarChange = async (next: string) => {
+    setCalendarMode(next)
+    await runSaveChain('calendar_mode', { calendar_mode: next })
+  }
+
+  // ── Hand-tuned confirm modal handlers ──────────────────────────────────────
+  const confirmForceRegen = async () => {
+    if (!handTunedConfirm) return
+    const pending = handTunedConfirm.pending
+    setHandTunedConfirm(null)
+    // Re-run the chain with force:true — PATCH already committed, but re-sending
+    // the same body is idempotent and avoids a separate regen-only endpoint.
+    await runSaveChain('__force__', pending, { force: true })
+  }
+  const cancelForceRegen = () => {
+    setHandTunedConfirm(null)
+    toast('Hand-tuned prompt preserved — settings saved to DB but agent not rebuilt')
+  }
+
+  const todayUpdateDirty = todayUpdate !== savedTodayUpdate
+  const isSaving = saving !== null
+
+  return (
+    <div className="sm:col-span-2">
+      <SectionLabel>Day-1 Edits</SectionLabel>
+      <div className="rounded-2xl border b-theme bg-surface p-5 space-y-5">
+        {client.hand_tuned && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] px-3 py-2">
+            <p className="text-[11px] text-amber-400/90 leading-relaxed">
+              This agent has a <span className="font-semibold">hand-tuned prompt</span>. Saving here
+              will ask before rebuilding it from your latest settings.
+            </p>
+          </div>
+        )}
+
+        {/* ── 1. Voice tone preset ────────────────────────────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            Voice tone
+          </label>
+          <select
+            value={voicePreset}
+            onChange={e => handleVoicePresetChange(e.target.value)}
+            disabled={isSaving}
+            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+          >
+            {VOICE_PRESETS_LEGACY.map(p => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+          <p className="text-[10px] t3 mt-1.5">Changes the personality and pacing on every call.</p>
+        </div>
+
+        {/* ── 2. Today's update (new today_update column) ─────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            Today&apos;s update
+          </label>
+          <div className="relative">
+            <textarea
+              value={todayUpdate}
+              onChange={e => setTodayUpdate(e.target.value.slice(0, 200))}
+              rows={2}
+              maxLength={200}
+              disabled={isSaving}
+              placeholder="E.g. Running 30 min late today — apologies."
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+            />
+            <span className="absolute bottom-2 right-3 text-[10px] t3 tabular-nums pointer-events-none">
+              {todayUpdate.length}/200
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[10px] t3">Baked into the prompt until you clear it.</p>
+            <button
+              onClick={handleTodayUpdateSave}
+              disabled={isSaving || !todayUpdateDirty}
+              className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-40 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+            >
+              {saving === 'today_update' ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* ── 3. Fields to collect ────────────────────────────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            Fields to collect on every call
+          </label>
+          <input
+            type="text"
+            value={fieldsToCollectText}
+            onChange={e => setFieldsToCollectText(e.target.value)}
+            onBlur={handleFieldsToCollectSave}
+            disabled={isSaving}
+            placeholder="name, phone, address, reason for calling"
+            className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
+          />
+          <p className="text-[10px] t3 mt-1.5">Comma-separated. Max 20. Saves when you tab away.</p>
+        </div>
+
+        {/* ── 4. Pricing policy chips (D408) ──────────────────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            When callers ask about price
+          </label>
+          <DarkChipGroup
+            options={PRICING_POLICY_OPTIONS}
+            value={pricingPolicy}
+            onChange={handlePricingChange}
+            disabled={isSaving}
+          />
+        </div>
+
+        {/* ── 5. Unknown answer behavior chips (D408) ─────────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            When agent doesn&apos;t know the answer
+          </label>
+          <DarkChipGroup
+            options={UNKNOWN_ANSWER_OPTIONS}
+            value={unknownAnswer}
+            onChange={handleUnknownChange}
+            disabled={isSaving}
+          />
+        </div>
+
+        {/* ── 6. Calendar mode chips (D408) ───────────────────────────────── */}
+        <div>
+          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
+            Scheduling
+          </label>
+          <DarkChipGroup
+            options={CALENDAR_MODE_OPTIONS}
+            value={calendarMode}
+            onChange={handleCalendarChange}
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+
+      {/* ── Hand-tuned confirm modal ──────────────────────────────────────── */}
+      {handTunedConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={cancelForceRegen}
+        >
+          <div
+            className="rounded-2xl border b-theme bg-surface max-w-md w-full p-5 space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold t1">Overwrite hand-tuned prompt?</p>
+            <p className="text-xs t2 leading-relaxed">
+              This client has a hand-tuned system prompt. Regenerating will overwrite the custom text
+              with a fresh build from your current settings. Continue?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={cancelForceRegen}
+                className="text-xs px-3 py-1.5 rounded-lg border b-theme t2 hover:bg-hover transition-colors"
+              >
+                Keep custom prompt
+              </button>
+              <button
+                onClick={confirmForceRegen}
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors font-semibold"
+              >
+                Overwrite &amp; regenerate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -266,6 +624,9 @@ function AgentCards({
           daysRemaining={daysRemaining}
         />
       </div>
+
+      {/* ── 2.25. Phase E Wave 3 — Day-1 Edit Panel ────────── */}
+      <Day1EditPanel client={client} isAdmin={isAdmin} />
 
       {/* ── 2.5. Today's Update ────────────────────────────── */}
       <div>

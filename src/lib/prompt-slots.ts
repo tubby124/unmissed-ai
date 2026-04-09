@@ -17,6 +17,7 @@
 
 import { getCapabilities } from '@/lib/niche-capabilities'
 import { VOICE_PRESETS } from './voice-presets'
+import { VOICE_TONE_PRESETS } from './prompt-config/voice-tone-presets'
 import { MODE_INSTRUCTIONS, getSmsBlock, getVipBlock } from './prompt-patcher'
 import { NICHE_DEFAULTS, resolveProductionNiche } from './prompt-config/niche-defaults'
 import { INSURANCE_PRESETS, PRICING_POLICY_MAP, UNKNOWN_ANSWER_MAP } from './prompt-config/insurance-presets'
@@ -1071,10 +1072,15 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   }
 
   // Voice style preset
+  // Phase E Wave 4: prefer founding-4 presets (VOICE_TONE_PRESETS) when the
+  // intake explicitly names one. Otherwise fall back to legacy VOICE_PRESETS
+  // to preserve existing behaviour for all snapshot fixtures.
   const presetId = (intake.voice_style_preset as string)
     || (intake.agent_tone === 'professional' ? 'professional_warm' : undefined)
     || 'casual_friendly'
-  const preset = VOICE_PRESETS[presetId] || VOICE_PRESETS.casual_friendly
+  const preset = VOICE_TONE_PRESETS[presetId]
+    || VOICE_PRESETS[presetId]
+    || VOICE_PRESETS.casual_friendly
 
   if (preset.closePerson && variables.CLOSE_PERSON === 'the boss') {
     variables.CLOSE_PERSON = preset.closePerson
