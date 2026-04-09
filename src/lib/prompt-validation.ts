@@ -57,9 +57,9 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings.push(`Prompt exceeds target: ${prompt.length} chars (target ${PROMPT_CHAR_TARGET}, hard max ${PROMPT_CHAR_HARD_MAX})`)
   }
 
-  // Required sections — only check what the inbound template actually contains.
-  // Do NOT check for SILENCE / ANGRY / LANGUAGE / PRICING — those are NOT in the base
-  // INBOUND_TEMPLATE_BODY and will always produce false-positive warnings.
+  // Required sections — only check what slot composition actually produces.
+  // Do NOT check for SILENCE / ANGRY / LANGUAGE / PRICING — those are NOT emitted
+  // as headers by prompt-slots.ts and would always produce false-positive warnings.
   const requiredSections = ['WRONG NUMBER', 'SPAM', 'CALLER ENDS CALL', 'COMPLETION CHECK']
   for (const section of requiredSections) {
     if (!prompt.includes(section)) {
