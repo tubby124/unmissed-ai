@@ -14,6 +14,7 @@ import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import { useCallContext } from "@/contexts/CallContext"
 import { useOnboarding } from "@/hooks/useOnboarding"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext"
 
@@ -362,9 +363,9 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
                 {callResult.ai_summary && (
                   <p className="text-[11px] t2 leading-relaxed">{callResult.ai_summary}</p>
                 )}
-                <a href="/dashboard/calls" className="text-[11px] font-medium hover:opacity-75 transition-opacity" style={{ color: "var(--color-primary)" }}>
+                <Link href="/dashboard/calls" className="text-[11px] font-medium hover:opacity-75 transition-opacity" style={{ color: "var(--color-primary)" }}>
                   View full call log →
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="mt-4 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ backgroundColor: "var(--color-hover)" }}>

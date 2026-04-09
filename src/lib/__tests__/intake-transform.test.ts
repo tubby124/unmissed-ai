@@ -208,12 +208,12 @@ describe('real_estate — booking_enabled', () => {
 
 describe('real_estate — niche field passthrough', () => {
   test('niche_brokerage present in payload', () => {
-    const r = toIntakePayload(realEstateBase())
+    const r = toIntakePayload(realEstateBase()) as Record<string, unknown>
     assert.equal(r.niche_brokerage, 'eXp Realty')
   })
 
   test('niche_focus present in payload', () => {
-    const r = toIntakePayload(realEstateBase())
+    const r = toIntakePayload(realEstateBase()) as Record<string, unknown>
     assert.equal(r.niche_focus, 'commercial')
   })
 })
