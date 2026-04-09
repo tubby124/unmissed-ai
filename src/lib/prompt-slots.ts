@@ -1118,6 +1118,14 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   // Completion fields
   const completionFields = intake.completion_fields as string | undefined
   if (completionFields?.trim()) variables.COMPLETION_FIELDS = completionFields
+  // Phase E.5 Wave 1: fields_to_collect array (Day-1 editable, Wave 3 dashboard)
+  // overrides the legacy completion_fields string when populated.
+  if (Array.isArray(intake.fields_to_collect) && (intake.fields_to_collect as unknown[]).length > 0) {
+    const fields = (intake.fields_to_collect as unknown[])
+      .map(f => (typeof f === 'string' ? f.trim() : ''))
+      .filter(Boolean)
+    if (fields.length > 0) variables.COMPLETION_FIELDS = fields.join(', ')
+  }
 
   // Location string
   const rawCity = variables.CITY || ''
