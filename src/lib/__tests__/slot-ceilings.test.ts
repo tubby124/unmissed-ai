@@ -38,6 +38,8 @@ import {
   buildInlineExamples,
   buildCallHandlingMode,
   buildRecencyAnchor,
+  buildTodayUpdate,
+  buildBusinessNotes,
 } from '../prompt-slots.js'
 import { buildPromptFromIntake } from '../prompt-builder.js'
 
@@ -69,6 +71,12 @@ const SLOT_CEILINGS = {
   INLINE_EXAMPLES: 1_400,     // Phase D: 1,084 — safety-preserving trim helper
   CALL_HANDLING_MODE: 300,    // Phase D: 207
   RECENCY_ANCHOR: 500,        // Phase D: 374
+  // Phase E.5 Wave 6 — Phase E Wave 5 slots. Both collapse to '' when the
+  // underlying intake field is empty, so these ceilings only bite when owners
+  // actually populate today_update (200-char UI cap + ~282 chars wrapper) or
+  // business_notes (3000-char UI cap + ~275 chars wrapper).
+  TODAY_UPDATE: 550,          // 200-char raw + header + tags + wrapSection padding (measured: 482)
+  BUSINESS_NOTES: 3_400,      // 3000-char raw + header + tags + wrapSection padding
 } as const
 
 // Total prompt ceiling for auto_glass baseline.
@@ -155,6 +163,28 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
     const len = buildRecencyAnchor(ctx).length
     assert.ok(len <= SLOT_CEILINGS.RECENCY_ANCHOR,
       `RECENCY_ANCHOR is ${len} chars, exceeds ceiling ${SLOT_CEILINGS.RECENCY_ANCHOR}`)
+  })
+
+  // Phase E.5 Wave 6 — TODAY_UPDATE slot regression guard (populated).
+  test('TODAY_UPDATE under ceiling (populated with max 200 chars)', () => {
+    const populatedCtx = buildSlotContext({
+      ...AUTO_GLASS_INTAKE,
+      today_update: 'a'.repeat(200),
+    })
+    const len = buildTodayUpdate(populatedCtx).length
+    assert.ok(len <= SLOT_CEILINGS.TODAY_UPDATE,
+      `TODAY_UPDATE is ${len} chars, exceeds ceiling ${SLOT_CEILINGS.TODAY_UPDATE}`)
+  })
+
+  // Phase E.5 Wave 6 — BUSINESS_NOTES slot regression guard (populated).
+  test('BUSINESS_NOTES under ceiling (populated with max 3000 chars)', () => {
+    const populatedCtx = buildSlotContext({
+      ...AUTO_GLASS_INTAKE,
+      business_notes: 'b'.repeat(3000),
+    })
+    const len = buildBusinessNotes(populatedCtx).length
+    assert.ok(len <= SLOT_CEILINGS.BUSINESS_NOTES,
+      `BUSINESS_NOTES is ${len} chars, exceeds ceiling ${SLOT_CEILINGS.BUSINESS_NOTES}`)
   })
 })
 

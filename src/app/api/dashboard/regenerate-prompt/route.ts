@@ -26,6 +26,17 @@ import { rowsToCatalogItems } from '@/lib/service-catalog'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
+// Phase E.5 Wave 7 — extracted for unit testing. Founding-4 clients
+// (hand_tuned=true) are protected from silent overwrite. Admins can force with
+// { force: true } after an explicit confirm modal. This predicate has to stay
+// in lockstep with the 409 branch below — the shared helper prevents drift.
+export function shouldBlockHandTunedRegen(
+  handTuned: boolean | null | undefined,
+  force: boolean,
+): boolean {
+  return handTuned === true && !force
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
@@ -104,7 +115,7 @@ export async function POST(req: NextRequest) {
   // hand_tuned = true so their hand-crafted prompts cannot be silently clobbered
   // via the dashboard sync button or an owner-triggered regenerate. Admins can
   // force the overwrite by passing { force: true } from a confirmation modal.
-  if (client.hand_tuned === true && !force) {
+  if (shouldBlockHandTunedRegen(client.hand_tuned as boolean | null, force)) {
     return NextResponse.json(
       {
         error: 'This client has a hand-tuned system prompt. Regenerating would overwrite the custom text. Pass { force: true } to confirm.',

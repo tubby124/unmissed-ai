@@ -650,8 +650,9 @@ export function buildPromptFromSlots(ctx: SlotContext): string {
 }
 
 // ── Hours normalization — GBP returns 24h strings like "11:00–23:00" ─────────
+// Exported for Phase E.5 Wave 7 regression tests.
 
-function normalize24hHours(raw: string): string {
+export function normalize24hHours(raw: string): string {
   return raw.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => {
     const hour = parseInt(h, 10)
     if (hour === 0) return `12:${m} AM`
@@ -1394,7 +1395,10 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     linguisticAnchors: variables.LINGUISTIC_ANCHORS || '',
     // Phase E Wave 5 — free-form owner context. Read directly from intake so the provision,
     // dashboard edit, and regenerate-prompt paths all flow through the same slot plumbing.
-    todayUpdate: (intake.today_update as string) || '',
+    // Phase E.5 Wave 3 — injected_note is the legacy QuickInject column. today_update
+    // (Phase E Wave 1) is the canonical Day-1 daily context field. Fall back to
+    // injected_note so existing QuickInject writes stay visible in the slot.
+    todayUpdate: (intake.today_update as string) || (intake.injected_note as string) || '',
     businessNotes: (intake.business_notes as string) || '',
     variables,
     intake,

@@ -333,3 +333,67 @@ describe('Shadow — No crash across niche × mode matrix', () => {
     }
   }
 })
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase E.5 Wave 7 — Day-1 slot tag emission
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Shadow — Phase E.5 today_update / business_notes tag emission', () => {
+  test('populated today_update emits <today_update> tag', () => {
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(intake('auto_glass', undefined, { today_update: 'Running 30 min late' })),
+    )
+    assert.ok(
+      prompt.includes('<today_update>'),
+      'expected <today_update> tag when today_update is populated',
+    )
+    assert.ok(
+      prompt.includes('Running 30 min late'),
+      'expected today_update content in prompt',
+    )
+  })
+
+  test('populated business_notes emits <business_notes> tag', () => {
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(
+        intake('auto_glass', undefined, { business_notes: 'Family-run since 2005, mobile service only.' }),
+      ),
+    )
+    assert.ok(
+      prompt.includes('<business_notes>'),
+      'expected <business_notes> tag when business_notes is populated',
+    )
+    assert.ok(
+      prompt.includes('Family-run since 2005'),
+      'expected business_notes content in prompt',
+    )
+  })
+
+  test('both empty → neither tag present', () => {
+    const prompt = buildPromptFromSlots(buildSlotContext(intake('auto_glass')))
+    assert.ok(
+      !prompt.includes('<today_update>'),
+      'expected no <today_update> tag when empty',
+    )
+    assert.ok(
+      !prompt.includes('<business_notes>'),
+      'expected no <business_notes> tag when empty',
+    )
+  })
+
+  test('Phase E.5 Wave 3 — injected_note fallback for today_update slot', () => {
+    // When today_update is empty but injected_note is populated (legacy QuickInject
+    // path), the todayUpdate slot should render injected_note content.
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(intake('auto_glass', undefined, { injected_note: 'Shop closed Wednesday' })),
+    )
+    assert.ok(
+      prompt.includes('<today_update>'),
+      'expected <today_update> tag when injected_note fallback fires',
+    )
+    assert.ok(
+      prompt.includes('Shop closed Wednesday'),
+      'expected injected_note content to flow through today_update slot',
+    )
+  })
+})

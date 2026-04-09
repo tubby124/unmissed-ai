@@ -17,6 +17,7 @@ import AgentTestCard from '@/components/dashboard/AgentTestCard'
 import QuickInject from '@/components/dashboard/settings/QuickInject'
 import AgentAnswerabilityCard from '@/components/dashboard/agent/AgentAnswerabilityCard'
 import { DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
+import { VOICE_TONE_PRESETS } from '@/lib/prompt-config/voice-tone-presets'
 
 // ─── Bot animation keyframes (required by AgentIdentityHeader CSS classes) ────
 
@@ -110,6 +111,15 @@ const VOICE_PRESETS_LEGACY = [
   { id: 'empathetic_care',    label: 'Empathetic & Patient' },
 ] as const
 
+// Phase E.5 Wave 5 — expose the 4 Wave B.6 founding-4 presets alongside legacy.
+// Sourced from src/lib/prompt-config/voice-tone-presets.ts (labels live there).
+const VOICE_PRESETS_NEW = [
+  { id: 'casual_confident',     label: VOICE_TONE_PRESETS.casual_confident.label },
+  { id: 'polished_professional', label: VOICE_TONE_PRESETS.polished_professional.label },
+  { id: 'alert_relaxed',        label: VOICE_TONE_PRESETS.alert_relaxed.label },
+  { id: 'upbeat_confident',     label: VOICE_TONE_PRESETS.upbeat_confident.label },
+] as const
+
 const PRICING_POLICY_OPTIONS = [
   { value: 'quote_range',       label: 'Quote a range' },
   { value: 'no_quote_callback', label: 'No quote — call back' },
@@ -165,9 +175,12 @@ function DarkChipGroup({ options, value, onChange, disabled }: {
 type HandTunedConfirm = { pending: Record<string, unknown> } | null
 
 function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
+  // Phase E.5 Wave 3 — today_update textarea was removed from this panel to
+  // resolve overlap with <QuickInject> (rendered in AgentCards), which already
+  // writes to clients.injected_note. buildSlotContext now falls back to
+  // injected_note when today_update is empty, so both surfaces keep working
+  // without shipping two editors for the same slot.
   const [voicePreset, setVoicePreset] = useState<string>(client.voice_style_preset ?? 'casual_friendly')
-  const [todayUpdate, setTodayUpdate] = useState<string>(client.today_update ?? '')
-  const [savedTodayUpdate, setSavedTodayUpdate] = useState<string>(client.today_update ?? '')
   const [pricingPolicy, setPricingPolicy] = useState<string | null>(client.pricing_policy ?? null)
   const [unknownAnswer, setUnknownAnswer] = useState<string | null>(client.unknown_answer_behavior ?? null)
   const [calendarMode, setCalendarMode] = useState<string | null>(client.calendar_mode ?? null)
@@ -180,13 +193,11 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   // Reset state when client changes (e.g. admin dropdown switch)
   useEffect(() => {
     setVoicePreset(client.voice_style_preset ?? 'casual_friendly')
-    setTodayUpdate(client.today_update ?? '')
-    setSavedTodayUpdate(client.today_update ?? '')
     setPricingPolicy(client.pricing_policy ?? null)
     setUnknownAnswer(client.unknown_answer_behavior ?? null)
     setCalendarMode(client.calendar_mode ?? null)
     setFieldsToCollectText(Array.isArray(client.fields_to_collect) ? client.fields_to_collect.join(', ') : '')
-  }, [client.id, client.voice_style_preset, client.today_update, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect])
+  }, [client.id, client.voice_style_preset, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect])
 
   // ── Save chain: PATCH settings → POST regenerate-prompt → 409 handTuned flow ─
   const runSaveChain = useCallback(async (
@@ -253,12 +264,6 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     await runSaveChain('voice_style_preset', { voice_style_preset: next })
   }
 
-  const handleTodayUpdateSave = async () => {
-    const trimmed = todayUpdate.trim().slice(0, 200)
-    const result = await runSaveChain('today_update', { today_update: trimmed || null })
-    if (result.ok) setSavedTodayUpdate(trimmed)
-  }
-
   const handleFieldsToCollectSave = async () => {
     const list = fieldsToCollectText
       .split(',')
@@ -295,7 +300,6 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     toast('Hand-tuned prompt preserved — settings saved to DB but agent not rebuilt')
   }
 
-  const todayUpdateDirty = todayUpdate !== savedTodayUpdate
   const isSaving = saving !== null
 
   return (
@@ -322,42 +326,18 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
             disabled={isSaving}
             className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
           >
-            {VOICE_PRESETS_LEGACY.map(p => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
+            <optgroup label="New (B.6)">
+              {VOICE_PRESETS_NEW.map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Legacy">
+              {VOICE_PRESETS_LEGACY.map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
           </select>
           <p className="text-[10px] t3 mt-1.5">Changes the personality and pacing on every call.</p>
-        </div>
-
-        {/* ── 2. Today's update (new today_update column) ─────────────────── */}
-        <div>
-          <label className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 block mb-2">
-            Today&apos;s update
-          </label>
-          <div className="relative">
-            <textarea
-              value={todayUpdate}
-              onChange={e => setTodayUpdate(e.target.value.slice(0, 200))}
-              rows={2}
-              maxLength={200}
-              disabled={isSaving}
-              placeholder="E.g. Running 30 min late today — apologies."
-              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 resize-none focus:outline-none focus:border-blue-500/40 transition-colors disabled:opacity-40"
-            />
-            <span className="absolute bottom-2 right-3 text-[10px] t3 tabular-nums pointer-events-none">
-              {todayUpdate.length}/200
-            </span>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-[10px] t3">Baked into the prompt until you clear it.</p>
-            <button
-              onClick={handleTodayUpdateSave}
-              disabled={isSaving || !todayUpdateDirty}
-              className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-40 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-            >
-              {saving === 'today_update' ? 'Saving…' : 'Save'}
-            </button>
-          </div>
         </div>
 
         {/* ── 3. Fields to collect ────────────────────────────────────────── */}
