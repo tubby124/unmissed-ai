@@ -10,6 +10,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
+import { VOICE_TONE_PRESETS } from '@/lib/prompt-config/voice-tone-presets'
 import { rowsToCatalogItems } from '@/lib/service-catalog'
 import {
   patchCalendarBlock,
@@ -226,7 +227,7 @@ export async function buildAgentModeRebuildPrompt(
   // 4. Voice style preset (tone + personality — D275)
   const voicePreset = client.voice_style_preset as string | null
   if (voicePreset) {
-    const preset = VOICE_PRESETS[voicePreset]
+    const preset = VOICE_PRESETS[voicePreset] || VOICE_TONE_PRESETS[voicePreset]
     if (preset) {
       newPrompt = patchVoiceStyleSection(newPrompt, preset.toneStyleBlock, preset.fillerStyle)
       if (preset.personalityLine) {

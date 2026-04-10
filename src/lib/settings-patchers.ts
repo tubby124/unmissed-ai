@@ -27,6 +27,7 @@ import {
 } from './prompt-patcher'
 import { replacePromptSection } from './prompt-sections'
 import { VOICE_PRESETS } from './voice-presets'
+import { VOICE_TONE_PRESETS } from './prompt-config/voice-tone-presets'
 import { validatePrompt, type PromptWarning, type SettingsBody } from './settings-schema'
 
 // ── Types ───────────────────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ export async function applyPromptPatches(
 
   // ── 4. Sensory patches (voice_style_preset) ─────────────────────────────
   if (typeof body.voice_style_preset === 'string' && body.voice_style_preset) {
-    const preset = VOICE_PRESETS[body.voice_style_preset]
+    const preset = VOICE_PRESETS[body.voice_style_preset] || VOICE_TONE_PRESETS[body.voice_style_preset]
     if (preset) {
       const patched = patchVoiceStyleSection(prompt, preset.toneStyleBlock, preset.fillerStyle)
       if (patched !== prompt) {

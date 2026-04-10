@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
+import { VOICE_TONE_PRESETS } from '@/lib/prompt-config/voice-tone-presets'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { patchCalendarBlock, patchSmsBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
@@ -247,9 +248,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Voice style: re-patch the tone/style section if a preset was applied
+    // Check both legacy VOICE_PRESETS and founding-4 VOICE_TONE_PRESETS
     const voicePreset = client.voice_style_preset as string | null
     if (voicePreset) {
-      const preset = VOICE_PRESETS[voicePreset]
+      const preset = VOICE_PRESETS[voicePreset] || VOICE_TONE_PRESETS[voicePreset]
       if (preset) {
         newPrompt = patchVoiceStyleSection(newPrompt, preset.toneStyleBlock, preset.fillerStyle)
         console.log(`[regenerate-prompt] Re-applied voice style preset: "${voicePreset}"`)
