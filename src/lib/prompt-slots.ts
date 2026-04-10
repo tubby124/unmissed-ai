@@ -22,6 +22,7 @@ import { MODE_INSTRUCTIONS, getSmsBlock, getVipBlock } from './prompt-patcher'
 import { NICHE_DEFAULTS, resolveProductionNiche } from './prompt-config/niche-defaults'
 import { INSURANCE_PRESETS, PRICING_POLICY_MAP, UNKNOWN_ANSWER_MAP } from './prompt-config/insurance-presets'
 import { type ServiceCatalogItem, parseServiceCatalog, formatServiceCatalog, buildBookingNotesBlock } from './service-catalog'
+import { collapseIdenticalHours } from './intake-transform'
 import { buildKnowledgeBase, buildAfterHoursBlock, buildCalendarBlock, applyModeVariableOverrides } from './prompt-helpers'
 import { wrapSection } from '@/lib/prompt-sections'
 
@@ -714,8 +715,9 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   }
 
   // Normalize HOURS_WEEKDAY from 24h → 12h AM/PM (GBP returns "11:00–23:00" style)
+  // T4: Also collapse per-day hours into ranges at render time (existing intake_json may have per-day format)
   if (variables.HOURS_WEEKDAY) {
-    variables.HOURS_WEEKDAY = normalize24hHours(variables.HOURS_WEEKDAY)
+    variables.HOURS_WEEKDAY = collapseIdenticalHours(normalize24hHours(variables.HOURS_WEEKDAY))
   }
   // D.6 Fix 3: Same normalization for weekend hours so both lines render consistently.
   if (variables.HOURS_WEEKEND) {
