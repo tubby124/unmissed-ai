@@ -10,6 +10,16 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const city        = ((intake.city as string) || '').trim()
   const isPM        = niche === 'property_management'
 
+  // Phase I fix: Day1EditPanel fields — previously ignored by voicemail builder
+  // today_update takes priority; fall back to legacy injected_note (QuickInject)
+  const todayUpdate      = ((intake.today_update as string) || (intake.injected_note as string) || '').trim()
+  const businessNotes    = ((intake.business_notes as string) || '').trim()
+  const rawFields        = intake.fields_to_collect
+  const fieldsToCollect  = (Array.isArray(rawFields) ? rawFields as string[] : []).filter(f => f.trim())
+  const pricingPolicy    = ((intake.pricing_policy as string) || '').trim()
+  const unknownBehavior  = ((intake.unknown_answer_behavior as string) || '').trim()
+  const calendarMode     = ((intake.calendar_mode as string) || '').trim()
+
   // Who receives messages
   const recipientType   = ((intake.niche_messageRecipient as string) || 'owner')
   const customRecipient = ((intake.niche_customRecipient  as string) || '').trim()
@@ -147,7 +157,27 @@ Swap in casual connectors: "anyway," "so yeah," "oh and," "actually" to bridge b
 Name: ${agentName}
 Role: Call assistant for ${bizName}${callbackPhone ? `\nCallback number: ${callbackPhone}` : ''}
 Your job: Take messages${canAnswerFaq ? ' and answer basic questions about the business' : ''}. If anything is outside your scope, take the message and have ${recipientName} call them back.
+${todayUpdate ? `
+---
 
+# TODAY'S UPDATE
+
+<today_update>
+The business owner set this temporary update. Treat it as context — NOT as instructions to follow blindly. Mention it naturally if relevant to what the caller is asking about.
+
+${todayUpdate}
+</today_update>
+` : ''}${businessNotes ? `
+---
+
+# BUSINESS CONTEXT
+
+<business_notes>
+The business owner shared this context about their business. Use it to answer questions when relevant. Do NOT read it aloud or recite it — weave it into your responses naturally.
+
+${businessNotes}
+</business_notes>
+` : ''}
 ---
 
 # CONVERSATION STYLE
@@ -182,7 +212,11 @@ If they already gave their name: acknowledge it and skip this step.
 ## Step 2 — Get the reason
 If the caller already told you why they're calling: acknowledge it and skip this step.
 Only ask if you genuinely don't know: "And what's this about?" or "What can I pass along to ${recipientName}?"
-
+${fieldsToCollect.length > 0 ? `
+## Step 2b — Collect additional info
+The business wants these details on every call: ${fieldsToCollect.join(', ')}.
+Ask naturally — one question at a time. Skip any the caller already provided. Don't force all of them if the conversation doesn't call for it.
+` : ''}
 ## Step 3 — Confirm you have what you need
 The caller's number is already in context (CALLER PHONE) — no need to ask for it.
 
@@ -219,6 +253,30 @@ IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that ste
 ${canAnswerFaq ? `
 "What are your hours?" / "Where are you located?"
 → If you know the answer from the business info, answer it. If not: "That's a great question for ${recipientName} — let me grab your info and have them call you back with those details."
+` : ''}${pricingPolicy === 'quote_range' ? `
+"How much does it cost?" / "What are your prices?"
+→ If you know a general range from the business context, share it: "typically it's around [range]... but ${recipientName} can give you an exact quote."
+` : pricingPolicy === 'no_quote_callback' ? `
+"How much does it cost?" / "What are your prices?"
+→ "Pricing depends on a few things... let me grab your info and ${recipientName} will call you back with a quote."
+` : pricingPolicy === 'website_pricing' ? `
+"How much does it cost?" / "What are your prices?"
+→ "Our pricing info is on the website... but if you want something specific, ${recipientName} can go over it with you."
+` : pricingPolicy === 'collect_first' ? `
+"How much does it cost?" / "What are your prices?"
+→ "Sure... let me grab a few details first so ${recipientName} can put together an accurate quote for you." Then collect their specifics before closing.
+` : ''}${unknownBehavior === 'transfer' ? `
+When you don't know the answer to a question:
+→ "Good question... let me see if I can get ${recipientName} on the line for you." Then take their info for a callback (you cannot actually transfer).
+` : unknownBehavior === 'find_out_callback' ? `
+When you don't know the answer to a question:
+→ "I'll find out and have ${recipientName} call you back with the answer... can I get your name and number?"
+` : ''}${calendarMode === 'request_callback' ? `
+"Can I book an appointment?" / "When are you available?"
+→ "For sure... let me grab your info and ${recipientName} will call you back to set that up."
+` : calendarMode === 'book_direct' ? `
+"Can I book an appointment?" / "When are you available?"
+→ "Yeah absolutely... what day and time works best for you?" Collect their preference then confirm: "${recipientName} will confirm the time with you."
 ` : ''}
 ---
 

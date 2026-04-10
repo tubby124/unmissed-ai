@@ -131,11 +131,14 @@ export async function POST(req: NextRequest) {
     : 0
 
   // ── S6f: Get latest intake submission (with fallback) ──────────────────────
+  // Fix: intake_submissions uses `submitted_at`, not `created_at`. The wrong
+  // column name caused PostgREST to 400 silently, making every dashboard-triggered
+  // regen fall through to the S6f fallback (prompt-unchanged) path.
   const { data: intake } = await svc
     .from('intake_submissions')
     .select('intake_json')
     .eq('client_slug', client.slug)
-    .order('created_at', { ascending: false })
+    .order('submitted_at', { ascending: false })
     .limit(1)
     .single()
 
