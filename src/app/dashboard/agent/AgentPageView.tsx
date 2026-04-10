@@ -193,6 +193,12 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   const [saving, setSaving] = useState<string | null>(null) // holds the field key currently being saved
   const [handTunedConfirm, setHandTunedConfirm] = useState<HandTunedConfirm>(null)
 
+  // Phase I fix (B2): debounced regen — chip clicks batch into ONE regen instead
+  // of each firing independently (which 429s all but the first).
+  const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Cleanup on unmount
+  useEffect(() => () => { if (regenTimerRef.current) clearTimeout(regenTimerRef.current) }, [])
+
   // Reset state when client changes (e.g. admin dropdown switch)
   useEffect(() => {
     setVoicePreset(client.voice_style_preset ?? 'casual_friendly')
@@ -204,15 +210,57 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     setSavedBusinessNotes(client.business_notes ?? '')
   }, [client.id, client.voice_style_preset, client.pricing_policy, client.unknown_answer_behavior, client.calendar_mode, client.fields_to_collect, client.business_notes])
 
-  // ── Save chain: PATCH settings → POST regenerate-prompt → 409 handTuned flow ─
-  const runSaveChain = useCallback(async (
+  // ── Regen helper (called immediately or via debounce) ───────────────────────
+  const fireRegen = useCallback(async (
+    opts?: { force?: boolean; patchBody?: Record<string, unknown> },
+  ): Promise<{ ok: boolean; handTuned?: boolean }> => {
+    const regenRes = await fetch('/api/dashboard/regenerate-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id, ...(opts?.force ? { force: true } : {}) }),
+    })
+
+    if (regenRes.status === 409) {
+      const body = await regenRes.json().catch(() => ({})) as { handTuned?: boolean; error?: string }
+      if (body.handTuned && opts?.patchBody) {
+        setHandTunedConfirm({ pending: opts.patchBody })
+        return { ok: false, handTuned: true }
+      }
+      toast.error(body.error || 'Regeneration blocked')
+      return { ok: false }
+    }
+    if (regenRes.status === 429) {
+      const body = await regenRes.json().catch(() => ({})) as { error?: string; cooldown_seconds?: number }
+      toast.warning(body.error || `Slow down — wait ${body.cooldown_seconds ?? 60}s before saving again`)
+      return { ok: true }
+    }
+    if (!regenRes.ok) {
+      const body = await regenRes.json().catch(() => ({})) as { error?: string }
+      toast.warning(body.error || 'Saved — but agent sync failed')
+      return { ok: true }
+    }
+    toast.success('Saved — agent updated')
+    return { ok: true }
+  }, [client.id])
+
+  // ── Schedule a debounced regen (2s after last call) ────────────────────────
+  // Phase I fix (B2): chip clicks each fire PATCH immediately but batch the
+  // regen into one call. Prevents 429 cascade when user clicks 3 chips fast.
+  const scheduleRegen = useCallback(() => {
+    if (regenTimerRef.current) clearTimeout(regenTimerRef.current)
+    regenTimerRef.current = setTimeout(() => {
+      regenTimerRef.current = null
+      fireRegen()
+    }, 2000)
+  }, [fireRegen])
+
+  // ── PATCH-only helper (saves to DB, schedules debounced regen) ─────────────
+  const patchAndScheduleRegen = useCallback(async (
     fieldKey: string,
     patchBody: Record<string, unknown>,
-    opts?: { force?: boolean },
-  ): Promise<{ ok: boolean; handTuned?: boolean }> => {
+  ): Promise<{ ok: boolean }> => {
     setSaving(fieldKey)
     try {
-      // 1) PATCH clients row via shared settings route
       const patchPayload = { ...patchBody, ...(isAdmin ? { client_id: client.id } : {}) }
       const patchRes = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
@@ -224,36 +272,7 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
         toast.error(body.error || `Save failed (${patchRes.status})`)
         return { ok: false }
       }
-
-      // 2) POST regenerate-prompt (rebuilds slots, chains Ultravox sync internally)
-      const regenRes = await fetch('/api/dashboard/regenerate-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: client.id, ...(opts?.force ? { force: true } : {}) }),
-      })
-
-      if (regenRes.status === 409) {
-        const body = await regenRes.json().catch(() => ({})) as { handTuned?: boolean; error?: string }
-        if (body.handTuned) {
-          // Surface confirm modal — caller can retry with force:true
-          setHandTunedConfirm({ pending: patchBody })
-          return { ok: false, handTuned: true }
-        }
-        toast.error(body.error || 'Regeneration blocked')
-        return { ok: false }
-      }
-      if (regenRes.status === 429) {
-        const body = await regenRes.json().catch(() => ({})) as { error?: string; cooldown_seconds?: number }
-        toast.warning(body.error || `Slow down — wait ${body.cooldown_seconds ?? 60}s before saving again`)
-        // DB update already landed; treat as soft-success for UI state
-        return { ok: true }
-      }
-      if (!regenRes.ok) {
-        const body = await regenRes.json().catch(() => ({})) as { error?: string }
-        toast.warning(body.error || 'Saved — but agent sync failed')
-        return { ok: true }
-      }
-      toast.success('Saved — agent updated')
+      scheduleRegen()
       return { ok: true }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Network error')
@@ -261,12 +280,42 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
     } finally {
       setSaving(null)
     }
-  }, [client.id, isAdmin])
+  }, [client.id, isAdmin, scheduleRegen])
+
+  // ── Full save chain (PATCH + immediate regen) — for explicit Save buttons ──
+  const runSaveChain = useCallback(async (
+    fieldKey: string,
+    patchBody: Record<string, unknown>,
+    opts?: { force?: boolean },
+  ): Promise<{ ok: boolean; handTuned?: boolean }> => {
+    // Cancel any pending debounced regen — this explicit save supersedes it
+    if (regenTimerRef.current) { clearTimeout(regenTimerRef.current); regenTimerRef.current = null }
+    setSaving(fieldKey)
+    try {
+      const patchPayload = { ...patchBody, ...(isAdmin ? { client_id: client.id } : {}) }
+      const patchRes = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload),
+      })
+      if (!patchRes.ok) {
+        const body = await patchRes.json().catch(() => ({})) as { error?: string }
+        toast.error(body.error || `Save failed (${patchRes.status})`)
+        return { ok: false }
+      }
+      return await fireRegen({ force: opts?.force, patchBody })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Network error')
+      return { ok: false }
+    } finally {
+      setSaving(null)
+    }
+  }, [client.id, isAdmin, fireRegen])
 
   // ── Per-field save handlers ────────────────────────────────────────────────
   const handleVoicePresetChange = async (next: string) => {
     setVoicePreset(next)
-    await runSaveChain('voice_style_preset', { voice_style_preset: next })
+    await patchAndScheduleRegen('voice_style_preset', { voice_style_preset: next })
   }
 
   const handleFieldsToCollectSave = async () => {
@@ -275,7 +324,7 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
       .map(s => s.trim())
       .filter(s => s.length > 0)
       .slice(0, 20)
-    await runSaveChain('fields_to_collect', { fields_to_collect: list })
+    await patchAndScheduleRegen('fields_to_collect', { fields_to_collect: list })
   }
 
   // Phase E.7 — business_notes save handler. Server-side cap enforcement
@@ -289,15 +338,15 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
 
   const handlePricingChange = async (next: string) => {
     setPricingPolicy(next)
-    await runSaveChain('pricing_policy', { pricing_policy: next })
+    await patchAndScheduleRegen('pricing_policy', { pricing_policy: next })
   }
   const handleUnknownChange = async (next: string) => {
     setUnknownAnswer(next)
-    await runSaveChain('unknown_answer_behavior', { unknown_answer_behavior: next })
+    await patchAndScheduleRegen('unknown_answer_behavior', { unknown_answer_behavior: next })
   }
   const handleCalendarChange = async (next: string) => {
     setCalendarMode(next)
-    await runSaveChain('calendar_mode', { calendar_mode: next })
+    await patchAndScheduleRegen('calendar_mode', { calendar_mode: next })
   }
 
   // ── Hand-tuned confirm modal handlers ──────────────────────────────────────
