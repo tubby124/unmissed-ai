@@ -19,6 +19,7 @@ import SalonNiche from "./niches/salon";
 import RealEstateNiche from "./niches/real-estate";
 import OutboundIsaRealtorNiche from "./niches/outbound-isa-realtor";
 import VoicemailNiche from "./niches/voicemail";
+import WebsiteScrapePreview from "@/components/onboard/WebsiteScrapePreview";
 
 // Map niche key → component
 const NICHE_COMPONENTS: Partial<Record<Niche, React.ComponentType<{
@@ -73,6 +74,9 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
 
   // Serialize services to stable string for dep comparison
   const servicesKey = JSON.stringify((data.nicheAnswers?.services as string[]) ?? []);
+
+  // Stable key for scrape result — re-triggers intelligence when scrape finishes
+  const scrapeKey = data.websiteScrapeResult?.scrapedAt ?? '';
 
   // Play 3s voice preview on tap
   const playVoicePreview = useCallback((voiceId: string) => {
@@ -179,7 +183,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [servicesKey, data.businessName, data.niche]);
+  }, [servicesKey, data.businessName, data.niche, scrapeKey]);
 
   // Prop bridge: niche files use onChange(key, value); step registry uses onUpdate(Partial<OnboardingData>)
   const onChange = (key: string, value: string | string[] | boolean) => {
@@ -208,8 +212,13 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
         </div>
       )}
 
-      {/* Voice style picker */}
-      <div className="space-y-2 pt-4 border-t border-border">
+      {/* Website scrape preview — shows extracted facts for user approval */}
+      {data.websiteUrl?.trim() && (
+        <WebsiteScrapePreview data={data} onUpdate={onUpdate} />
+      )}
+
+      {/* Voice style picker — hidden for voicemail niche which has its own curated picker */}
+      {niche !== "voicemail" && <div className="space-y-2 pt-4 border-t border-border">
         <Label>Voice style</Label>
         <div className="grid grid-cols-2 gap-3">
           {VOICE_STYLES.map((v) => {
@@ -246,7 +255,7 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
         <p className="text-xs text-muted-foreground">
           Tap to preview. More voices available in your dashboard.
         </p>
-      </div>
+      </div>}
 
       {/* Caller reasons */}
       <div className="space-y-2">

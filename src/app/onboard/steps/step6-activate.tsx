@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAgentMode } from "@/lib/capabilities";
 import { Shield, CalendarOff, X, Check, Rocket, Brain, ChevronDown, Phone } from "lucide-react";
+import { normalize24hHours } from "@/lib/prompt-slots";
 
 interface Props {
   data: OnboardingData;
@@ -41,8 +42,15 @@ function getFallbackGreeting(niche: string, agentName: string): string {
 function AhaMomentPanel({ data, agentName, businessName }: { data: OnboardingData; agentName: string; businessName: string }) {
   const [timedOut, setTimedOut] = useState(false);
 
+  // Prefer AI-generated greeting when available; voicemail fallback only when no intelligence seed exists.
+  const isVoicemailNiche = data.niche === 'voicemail';
+  const voicemailFallbackGreeting = isVoicemailNiche
+    ? `Hey there! This is ${agentName} from ${businessName}... how can I help ya?`
+    : null;
+
   const greeting = data.agentIntelligenceSeed?.GREETING_LINE
-    || data.nicheCustomVariables?.GREETING_LINE;
+    || data.nicheCustomVariables?.GREETING_LINE
+    || voicemailFallbackGreeting;
 
   const isGenerating = !greeting && !!(data.businessName && data.niche) && !timedOut;
 
@@ -144,21 +152,32 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
         </span>
       </div>
 
-      {/* Knowledge counts */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-bold text-foreground">{factsCount}</p>
-          <p className="text-[10px] t3">{factsCount === 1 ? 'fact' : 'facts'}</p>
+      {/* Knowledge counts — hide bare zeros when no knowledge yet (scrape fires at provision time) */}
+      {factsCount === 0 && qaCount === 0 ? (
+        <div className="rounded-lg bg-muted/50 px-3 py-2.5 flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            {hasWebsite
+              ? 'Will learn from your website after launch'
+              : 'Teach your agent more from your dashboard after launch'}
+          </p>
         </div>
-        <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-bold text-foreground">{qaCount}</p>
-          <p className="text-[10px] t3">{qaCount === 1 ? 'Q&A' : 'Q&As'}</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center p-2 rounded-lg bg-muted/50">
+            <p className="text-lg font-bold text-foreground">{factsCount}</p>
+            <p className="text-[10px] t3">{factsCount === 1 ? 'fact' : 'facts'}</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-muted/50">
+            <p className="text-lg font-bold text-foreground">{qaCount}</p>
+            <p className="text-[10px] t3">{qaCount === 1 ? 'Q&A' : 'Q&As'}</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-muted/50">
+            <p className="text-lg font-bold text-foreground">{hasHours ? 'Set' : '--'}</p>
+            <p className="text-[10px] t3">hours</p>
+          </div>
         </div>
-        <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-bold text-foreground">{hasHours ? 'Set' : '--'}</p>
-          <p className="text-[10px] t3">hours</p>
-        </div>
-      </div>
+      )}
 
       {/* Active capabilities */}
       <div className="flex flex-wrap gap-1.5">
@@ -470,7 +489,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
               <span>{data.placesRating} rating{data.placesReviewCount ? ` (${data.placesReviewCount} reviews)` : ''}</span>
             )}
             {data.businessHoursText && (
-              <span>{data.businessHoursText}</span>
+              <span>{normalize24hHours(data.businessHoursText)}</span>
             )}
             {data.callbackPhone && (
               <span>{data.callbackPhone}</span>

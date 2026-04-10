@@ -21,6 +21,22 @@ import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
 
 const trialRateLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000) // 3/hr/IP
 
+/**
+ * I2: Returns email variants to check for dedup.
+ * For Gmail/Google domains, strips +tag and dots from the local part.
+ * Returns [rawEmail] for non-Gmail, [rawEmail, strippedEmail] for Gmail.
+ */
+function dedupEmailVariants(email: string): string[] {
+  const [local, domain] = email.split('@')
+  if (!local || !domain) return [email]
+  const gmailDomains = ['gmail.com', 'googlemail.com']
+  if (!gmailDomains.includes(domain.toLowerCase())) return [email]
+  // Strip +tag and dots from local part
+  const base = local.split('+')[0].replace(/\./g, '')
+  const canonical = `${base}@${domain.toLowerCase()}`
+  return canonical === email ? [email] : [email, canonical]
+}
+
 export async function POST(req: NextRequest) {
   const supa = createServiceClient()
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -47,29 +63,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Business phone number is required" }, { status: 400 });
   }
 
-  // Email uniqueness: check intake_submissions for existing non-abandoned entries
-  const { data: existingIntake } = await supa
-    .from('intake_submissions')
-    .select('id, progress_status')
-    .eq('contact_email', data.contactEmail.trim())
-    .neq('progress_status', 'abandoned')
-    .limit(1)
-    .single()
+  // I2: Canonicalize email for dedup — strips +tag aliases (Gmail/Google) to prevent
+  // user+1@gmail.com, user+2@gmail.com from creating unlimited trials.
+  const rawEmail = data.contactEmail.trim().toLowerCase()
+  const emailsToCheck = dedupEmailVariants(rawEmail)
 
-  if (existingIntake) {
-    return NextResponse.json({ error: "An account with this email already exists. Please log in instead." }, { status: 409 })
+  // Email uniqueness: check intake_submissions for existing non-abandoned entries
+  for (const emailVariant of emailsToCheck) {
+    const { data: existingIntake } = await supa
+      .from('intake_submissions')
+      .select('id')
+      .eq('contact_email', emailVariant)
+      .neq('progress_status', 'abandoned')
+      .limit(1)
+      .maybeSingle()
+    if (existingIntake) {
+      return NextResponse.json({ error: "An account with this email already exists. Please log in instead." }, { status: 409 })
+    }
   }
 
   // W1-B: Guard against auth users from prior trials where intake row was cleared but client row persists
-  const { data: existingClientByEmail } = await supa
-    .from('clients')
-    .select('id')
-    .eq('contact_email', data.contactEmail.trim())
-    .limit(1)
-    .maybeSingle()
-
-  if (existingClientByEmail) {
-    return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 409 })
+  for (const emailVariant of emailsToCheck) {
+    const { data: existingClient } = await supa
+      .from('clients')
+      .select('id')
+      .eq('contact_email', emailVariant)
+      .limit(1)
+      .maybeSingle()
+    if (existingClient) {
+      return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 409 })
+    }
   }
 
   trialRateLimiter.record(ip)

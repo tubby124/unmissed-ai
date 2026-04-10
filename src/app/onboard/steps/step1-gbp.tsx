@@ -77,12 +77,10 @@ function condenseHours(hours: string[]): string {
   function fmtTime(t: string): string {
     const m = t.trim().match(/^(\d+)(?::(\d+))?\s*(AM|PM)$/i);
     if (!m) return t.trim();
-    let h = parseInt(m[1]);
+    const h = parseInt(m[1]);
     const min = m[2] && m[2] !== "00" ? `:${m[2]}` : "";
-    const period = m[3].toUpperCase();
-    if (period === "PM" && h !== 12) h += 12;
-    if (period === "AM" && h === 12) h = 0;
-    return `${h}${min}${period === "PM" || h >= 12 ? "pm" : "am"}`;
+    const period = m[3].toLowerCase();
+    return `${h}${min}${period}`;
   }
   function fmtRange(r: string): string {
     // Split on em-dash or hyphen separator
@@ -253,6 +251,35 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
     setGbpConfirmed(true);
     setPendingPlace(null);
     if (detectedNiche === 'other') setNichePickerDismissed(false);
+
+    // Fire website scrape in the background so data is ready for Step 2 intelligence generation.
+    // Non-blocking — user continues while scrape runs.
+    const scrapeUrl = pendingPlace.website || data.websiteUrl;
+    if (scrapeUrl && scrapeUrl.startsWith('http')) {
+      fetch('/api/onboard/scrape-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ websiteUrl: scrapeUrl, niche: detectedNiche || 'other' }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body) => {
+          if (!body?.businessFacts) return;
+          onUpdate({
+            websiteScrapeResult: {
+              businessFacts: body.businessFacts,
+              extraQa: body.extraQa,
+              serviceTags: body.serviceTags,
+              warnings: body.warnings,
+              scrapedAt: body.scrapedAt,
+              scrapedUrl: body.scrapedUrl,
+              contextData: body.contextData ?? null,
+              approvedFacts: Array(body.businessFacts.length).fill(true),
+              approvedQa: Array(body.extraQa.length).fill(true),
+            },
+          });
+        })
+        .catch(() => { /* non-blocking — provision fallback will scrape if this fails */ });
+    }
   };
 
   const handleManual = () => {

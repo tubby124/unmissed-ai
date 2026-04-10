@@ -494,3 +494,94 @@ describe('P2 — voicemail recipientName uses "the team at" when ownerName is em
     )
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T6: Scenario test cases for live-call findings
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('T6a — hours natural grouping at render time via buildSlotContext', () => {
+  test('per-day hours in intake collapse to range in slot context', () => {
+    const ctx = buildSlotContext(intake('auto_glass', undefined, {
+      hours_weekday: 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 9:00 AM–5:00 PM, Thursday 9:00 AM–5:00 PM, Friday 9:00 AM–5:00 PM',
+    }))
+    assert.strictEqual(
+      ctx.hoursWeekday,
+      'Monday–Friday 9:00 AM–5:00 PM',
+      'expected per-day hours to collapse into range at render time',
+    )
+  })
+
+  test('mixed hours preserve day-specific times', () => {
+    const ctx = buildSlotContext(intake('auto_glass', undefined, {
+      hours_weekday: 'Monday 8:00 AM–6:00 PM, Tuesday 8:00 AM–6:00 PM, Wednesday 10:00 AM–4:00 PM',
+    }))
+    assert.strictEqual(
+      ctx.hoursWeekday,
+      'Monday–Tuesday 8:00 AM–6:00 PM, Wednesday 10:00 AM–4:00 PM',
+    )
+  })
+
+  test('24h format hours normalize to 12h and collapse', () => {
+    const ctx = buildSlotContext(intake('auto_glass', undefined, {
+      hours_weekday: 'Monday 09:00–17:00, Tuesday 09:00–17:00, Wednesday 09:00–17:00',
+    }))
+    assert.strictEqual(
+      ctx.hoursWeekday,
+      'Monday–Wednesday 9:00 AM–5:00 PM',
+    )
+  })
+
+  test('collapsed hours appear in full prompt output', () => {
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(intake('auto_glass', undefined, {
+        hours_weekday: 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 9:00 AM–5:00 PM, Thursday 9:00 AM–5:00 PM, Friday 9:00 AM–5:00 PM',
+      })),
+    )
+    assert.ok(
+      prompt.includes('Monday–Friday 9:00 AM–5:00 PM'),
+      'expected collapsed hours in final prompt',
+    )
+    assert.ok(
+      !prompt.includes('Tuesday 9:00 AM–5:00 PM'),
+      'expected per-day Tuesday to be collapsed away',
+    )
+  })
+})
+
+describe('T6b — calendar_mode flows into voicemail prompt', () => {
+  test('calendar_mode=request_callback produces callback phrasing', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      calendar_mode: 'request_callback',
+    })
+    assert.ok(
+      prompt.includes('call you back to set that up'),
+      'expected request_callback calendar phrasing in voicemail prompt',
+    )
+  })
+
+  test('calendar_mode=book_direct produces direct booking phrasing', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      calendar_mode: 'book_direct',
+    })
+    assert.ok(
+      prompt.includes('what day and time works best'),
+      'expected book_direct calendar phrasing in voicemail prompt',
+    )
+  })
+
+  test('no calendar_mode produces no appointment section', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      calendar_mode: '',
+    })
+    assert.ok(
+      !prompt.includes('Can I book an appointment'),
+      'expected no appointment section when calendar_mode is empty',
+    )
+  })
+})

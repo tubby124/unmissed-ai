@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { OnboardingData } from "@/types/onboarding";
-import VoicePicker from "@/components/onboard/VoicePicker";
+import GenderVoicePicker from "@/components/onboard/GenderVoicePicker";
 
 interface Props {
   data: OnboardingData;
@@ -44,8 +44,8 @@ export default function VoicemailNiche({ data, onChange }: Props) {
       {/* Voice selection */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">Pick a voice for your agent</Label>
-        <p className="text-xs text-slate-500 -mt-1">Click the play button to preview, then click to select. You can change this anytime in your dashboard.</p>
-        <VoicePicker
+        <p className="text-xs text-slate-500 -mt-1">Tap to preview. You can change this anytime in your dashboard.</p>
+        <GenderVoicePicker
           selectedVoiceId={selectedVoiceId}
           onSelect={(voiceId, voiceName) => { onChange("voiceId", voiceId); onChange("voiceName", voiceName); }}
         />

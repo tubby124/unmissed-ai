@@ -255,6 +255,8 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   }, [fireRegen])
 
   // ── PATCH-only helper (saves to DB, schedules debounced regen) ─────────────
+  // For voicemail clients, the PATCH route does a full rebuild (prompt_rebuilt=true),
+  // so the separate regen call is skipped to avoid a redundant 429 cooldown hit.
   const patchAndScheduleRegen = useCallback(async (
     fieldKey: string,
     patchBody: Record<string, unknown>,
@@ -267,12 +269,12 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patchPayload),
       })
+      const patchData = await patchRes.json().catch(() => ({})) as { ok?: boolean; error?: string; prompt_rebuilt?: boolean }
       if (!patchRes.ok) {
-        const body = await patchRes.json().catch(() => ({})) as { error?: string }
-        toast.error(body.error || `Save failed (${patchRes.status})`)
+        toast.error(patchData.error || `Save failed (${patchRes.status})`)
         return { ok: false }
       }
-      scheduleRegen()
+      if (!patchData.prompt_rebuilt) scheduleRegen()
       return { ok: true }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Network error')
@@ -283,6 +285,8 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
   }, [client.id, isAdmin, scheduleRegen])
 
   // ── Full save chain (PATCH + immediate regen) — for explicit Save buttons ──
+  // For voicemail clients, the PATCH route does a full rebuild (prompt_rebuilt=true),
+  // so the separate regen call is skipped.
   const runSaveChain = useCallback(async (
     fieldKey: string,
     patchBody: Record<string, unknown>,
@@ -298,11 +302,12 @@ function Day1EditPanel({ client, isAdmin }: { client: ClientConfig; isAdmin: boo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patchPayload),
       })
+      const patchData = await patchRes.json().catch(() => ({})) as { ok?: boolean; error?: string; prompt_rebuilt?: boolean }
       if (!patchRes.ok) {
-        const body = await patchRes.json().catch(() => ({})) as { error?: string }
-        toast.error(body.error || `Save failed (${patchRes.status})`)
+        toast.error(patchData.error || `Save failed (${patchRes.status})`)
         return { ok: false }
       }
+      if (patchData.prompt_rebuilt) return { ok: true }
       return await fireRegen({ force: opts?.force, patchBody })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Network error')
@@ -626,10 +631,11 @@ function AgentCards({
     })
   }
   if (client.subscription_status === 'trialing' && daysRemaining !== undefined && daysRemaining <= 7) {
+    const keepWhat = client.twilio_number ? 'your number' : 'your agent'
     attentionItems.push({
       label: daysRemaining === 0
-        ? 'Trial expired — upgrade now to keep your number'
-        : `Trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — upgrade to keep your number`,
+        ? `Trial expired — upgrade now to keep ${keepWhat}`
+        : `Trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} — upgrade to keep ${keepWhat}`,
       href: '/dashboard/settings',
       urgency: daysRemaining <= 1 ? 'high' : daysRemaining <= 3 ? 'medium' : 'low',
     })

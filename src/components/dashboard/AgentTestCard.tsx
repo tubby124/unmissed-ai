@@ -121,11 +121,19 @@ export default function AgentTestCard({ agentName, businessName, clientStatus, i
     if (callState === "ended" && !hasRecordedCallEnd.current) {
       hasRecordedCallEnd.current = true
       incrementTestCalls()
+      // T5: Mark call as ended in call_logs (on localhost, Ultravox callback may not fire)
+      if (returnedCallId) {
+        fetch('/api/dashboard/agent-test/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ callId: returnedCallId }),
+        }).catch(() => { /* best-effort — webhook may have already handled it */ })
+      }
     }
     if (callState === "idle") {
       hasRecordedCallEnd.current = false
     }
-  }, [callState, incrementTestCalls])
+  }, [callState, incrementTestCalls, returnedCallId])
 
   // Poll for classification + AI summary after call ends (aha moment)
   useEffect(() => {

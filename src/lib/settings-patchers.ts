@@ -29,6 +29,7 @@ import { replacePromptSection } from './prompt-sections'
 import { VOICE_PRESETS } from './voice-presets'
 import { VOICE_TONE_PRESETS } from './prompt-config/voice-tone-presets'
 import { validatePrompt, type PromptWarning, type SettingsBody } from './settings-schema'
+import { buildPromptFromIntake } from './prompt-builder'
 
 // ── Types ───────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ interface PatchOrchestratorInput {
 
 interface PatchOrchestratorResult {
   warnings: PromptWarning[]
+  /** True when voicemail full rebuild was applied — caller can skip separate regen */
+  promptRebuilt?: boolean
 }
 
 // ── Patcher context (fetched once) ──────────────────────────────────────────────
@@ -48,6 +51,7 @@ interface PatchOrchestratorResult {
 interface PatcherContext {
   currentPrompt: string | null
   currentNiche: string | null
+  currentSlug: string | null
   currentAgentName: string | null
   currentBusinessName: string | null
   currentOwnerName: string | null
@@ -87,7 +91,7 @@ async function fetchPatcherContext(
 ): Promise<PatcherContext> {
   const { data } = await supabase
     .from('clients')
-    .select('system_prompt, niche, agent_name, business_name, owner_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number, business_hours_weekday')
+    .select('system_prompt, niche, slug, agent_name, business_name, owner_name, call_handling_mode, agent_mode, sms_enabled, forwarding_number, business_hours_weekday')
     .eq('id', clientId)
     .single()
 
@@ -97,6 +101,7 @@ async function fetchPatcherContext(
       ? updates.system_prompt as string
       : (data?.system_prompt as string) ?? null,
     currentNiche: (data?.niche as string) ?? null,
+    currentSlug: (data?.slug as string) ?? null,
     // Use OLD names from DB — needed for replacement patching
     currentAgentName: (data?.agent_name as string) ?? null,
     currentBusinessName: (data?.business_name as string) ?? null,
@@ -132,6 +137,95 @@ function applyPatch(
   return null
 }
 
+// ── Voicemail full rebuild ───────────────────────────────────────────────────────
+
+/**
+ * Day1EditPanel fields that the voicemail builder reads.
+ * When any of these are in the PATCH body for a voicemail/message_only client,
+ * we do a full rebuild instead of surgical section patching (which silently
+ * fails because voicemail prompts have different section headers).
+ */
+const VOICEMAIL_REBUILD_FIELDS = [
+  'today_update', 'business_notes', 'fields_to_collect',
+  'pricing_policy', 'unknown_answer_behavior', 'calendar_mode',
+] as const
+
+/**
+ * Full rebuild for voicemail/message_only clients.
+ *
+ * The voicemail prompt is built by buildVoicemailPrompt() — a standalone
+ * template with section headers (# VOICE NATURALNESS, # CONVERSATION STYLE)
+ * that don't match the slot-pipeline headers the surgical patchers target.
+ * Instead of patching, we rebuild the entire prompt from intake + client state.
+ */
+async function voicemailFullRebuild(
+  supabase: SupabaseClient,
+  clientId: string,
+  slug: string,
+  body: SettingsBody,
+  updates: Record<string, unknown>,
+): Promise<PatchOrchestratorResult & { error?: string }> {
+  const warnings: PromptWarning[] = []
+
+  // Fetch intake + current client state in parallel
+  const [{ data: intake }, { data: clientRow }] = await Promise.all([
+    supabase
+      .from('intake_submissions')
+      .select('intake_json')
+      .eq('client_slug', slug)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('clients')
+      .select('agent_name, business_name, owner_name, niche, twilio_number, callback_phone, today_update, business_notes, fields_to_collect, pricing_policy, unknown_answer_behavior, calendar_mode, status')
+      .eq('id', clientId)
+      .single(),
+  ])
+
+  if (!intake?.intake_json) {
+    // No intake — can't rebuild. Leave prompt as-is.
+    return { warnings }
+  }
+
+  // Build merged intake dict: intake_json ← clients row ← this PATCH's updates
+  const intakeData = { ...(intake.intake_json as Record<string, unknown>) }
+
+  // Layer 1: clients row values override intake_json (prior dashboard edits)
+  if (clientRow) {
+    const cr = clientRow as Record<string, unknown>
+    for (const f of ['agent_name', 'business_name', 'owner_name', 'twilio_number', 'callback_phone',
+                      'today_update', 'business_notes', 'fields_to_collect', 'pricing_policy',
+                      'unknown_answer_behavior', 'calendar_mode']) {
+      if (cr[f] !== null && cr[f] !== undefined) intakeData[f] = cr[f]
+    }
+    if (cr.agent_name && cr.status === 'active') intakeData.db_agent_name = cr.agent_name
+  }
+
+  // Layer 2: this PATCH's updates (most recent, not yet saved to DB)
+  for (const f of ['agent_name', 'business_name', 'owner_name',
+                    'today_update', 'business_notes', 'fields_to_collect', 'pricing_policy',
+                    'unknown_answer_behavior', 'calendar_mode']) {
+    if (updates[f] !== undefined) {
+      intakeData[f] = updates[f]
+      if (f === 'agent_name') intakeData.db_agent_name = updates[f]
+    }
+  }
+
+  const newPrompt = buildPromptFromIntake(intakeData)
+
+  const v = validatePrompt(newPrompt)
+  if (!v.valid) return { warnings, error: v.error ?? 'Prompt too long after voicemail rebuild' }
+  if (v.warnings.length) warnings.push(...v.warnings)
+
+  updates.system_prompt = newPrompt
+  updates.updated_at = new Date().toISOString()
+
+  console.log(`[settings] Voicemail full rebuild: client=${clientId} chars=${newPrompt.length}`)
+
+  return { warnings, promptRebuilt: true }
+}
+
 // ── Main orchestrator ───────────────────────────────────────────────────────────
 
 /**
@@ -149,12 +243,28 @@ export async function applyPromptPatches(
   const { supabase, clientId, body, updates } = input
   const warnings: PromptWarning[] = []
 
-  if (!needsPromptPatching(body)) {
+  const hasPatchTrigger = needsPromptPatching(body)
+  const hasVoicemailField = VOICEMAIL_REBUILD_FIELDS.some(f => body[f] !== undefined)
+
+  if (!hasPatchTrigger && !hasVoicemailField) {
     return { warnings }
   }
 
   // Single DB fetch for all patcher context
   const ctx = await fetchPatcherContext(supabase, clientId, updates)
+
+  // Voicemail/message_only clients: full rebuild instead of surgical patching.
+  // The voicemail template has different section headers than the slot pipeline,
+  // so patchVoiceStyleSection, patchCalendarBlock, etc. are silent no-ops.
+  const isVoicemail = ctx.currentNiche === 'voicemail' || ctx.currentCallHandlingMode === 'message_only'
+  if (isVoicemail && ctx.currentSlug) {
+    return voicemailFullRebuild(supabase, clientId, ctx.currentSlug, body, updates)
+  }
+
+  // Slot-pipeline path: surgical patching only when patcher trigger fields are present
+  if (!hasPatchTrigger) {
+    return { warnings }
+  }
 
   if (!ctx.currentPrompt) {
     return { warnings }

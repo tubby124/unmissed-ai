@@ -191,11 +191,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   // 5 — Apply prompt auto-patches (identity → sensory → operational)
+  // For voicemail/message_only clients, this does a full rebuild instead of surgical patching.
   const patchResult = await applyPromptPatches({ supabase, clientId: targetClientId, body, updates })
   if (patchResult.error) {
     return NextResponse.json({ error: patchResult.error }, { status: 400 })
   }
   promptWarnings = [...promptWarnings, ...patchResult.warnings]
+  const promptRebuilt = patchResult.promptRebuilt === true
 
   // 6 — Empty check
   if (!Object.keys(updates).length) {
@@ -347,6 +349,7 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     ultravox_synced,
+    ...(promptRebuilt ? { prompt_rebuilt: true } : {}),
     ...(ultravox_synced ? { last_sync_at: new Date().toISOString() } : {}),
     ...(ultravox_error ? { ultravox_error } : {}),
     ...(promptWarnings.length ? { warnings: promptWarnings } : {}),
