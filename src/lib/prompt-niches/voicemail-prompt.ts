@@ -5,6 +5,7 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const agentName   = ((intake.db_agent_name as string) || (intake.agent_name as string) || 'Sam').trim()
   const bizName     = ((intake.business_name as string) || 'our office').trim()
   const callbackPhone = ((intake.callback_phone as string) || '').trim()
+  const twilioNumber  = ((intake.twilio_number as string) || '').trim()
   const ownerName   = ((intake.owner_name as string) || '').trim()
   const niche       = ((intake.niche as string) || '').trim()
   const city        = ((intake.city as string) || '').trim()
@@ -26,7 +27,7 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const recipientName =
     recipientType === 'custom' && customRecipient ? customRecipient
     : recipientType === 'front_desk'              ? 'the team'
-    : ownerName || bizName
+    : ownerName || `the team at ${bizName}`
 
   // Behavior mode
   const canAnswerFaq = (intake.niche_voicemailBehavior as string) === 'message_and_faq'
@@ -155,7 +156,7 @@ Swap in casual connectors: "anyway," "so yeah," "oh and," "actually" to bridge b
 # IDENTITY
 
 Name: ${agentName}
-Role: Call assistant for ${bizName}${callbackPhone ? `\nCallback number: ${callbackPhone}` : ''}
+Role: Call assistant for ${bizName}${twilioNumber ? `\nCallback number: ${twilioNumber}` : callbackPhone ? `\nCallback number: ${callbackPhone}` : ''}
 Your job: Take messages${canAnswerFaq ? ' and answer basic questions about the business' : ''}. If anything is outside your scope, take the message and have ${recipientName} call them back.
 ${todayUpdate ? `
 ---
@@ -222,9 +223,9 @@ The caller's number is already in context (CALLER PHONE) — no need to ask for 
 
 ## Step 4 — Close the call
 Pick ONE of these closings — vary them, don't repeat the same one every call:
-- "Perfect... I'll get this to ${recipientName} right away. They'll get back to you as soon as they can.${callbackPhone ? ` Oh and you can also text this number if you need a faster response.` : ''} Thanks for calling ${bizName}!"
-- "Awesome, got everything I need... ${recipientName}'ll be in touch real soon.${callbackPhone ? ` And hey, you can always text this number too.` : ''} Have a good one!"
-- "Alright... I'll pass this along to ${recipientName}. They're really good about getting back to people so... you should hear from them soon.${callbackPhone ? ` You can text us here too if anything else comes up.` : ''} Thanks for calling!"
+- "Perfect... I'll get this to ${recipientName} right away. They'll get back to you as soon as they can.${twilioNumber ? ` Oh and you can also text this number if you need a faster response.` : ''} Thanks for calling ${bizName}!"
+- "Awesome, got everything I need... ${recipientName}'ll be in touch real soon.${twilioNumber ? ` And hey, you can always text this number too.` : ''} Have a good one!"
+- "Alright... I'll pass this along to ${recipientName}. They're really good about getting back to people so... you should hear from them soon.${twilioNumber ? ` You can text us here too if anything else comes up.` : ''} Thanks for calling!"
 Then IMMEDIATELY use the hangUp tool.
 
 IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that step. Never re-ask for info they already provided.
@@ -236,10 +237,10 @@ IMPORTANT: If the caller gives info unprompted, acknowledge it and SKIP that ste
 # COMMON SITUATIONS
 
 "Is [person] available?" / "When can they call back?"
-→ "Yeah so... they're just tied up right now but honestly they're really good about getting back to people. If you text this number, that's usually the fastest way."
+→ "Yeah so... they're just tied up right now but honestly they're really good about getting back to people.${twilioNumber ? ` If you text this number, that's usually the fastest way.` : ''}"
 
 "This is urgent" / "I need to speak to someone now"
-→ "Oh yeah no I totally get it... I'll make sure this gets flagged as urgent so ${recipientName} sees it right away.${callbackPhone ? ` And honestly, texting this same number is probably the fastest way — they'll see that instantly.` : ''}"
+→ "Oh yeah no I totally get it... I'll make sure this gets flagged as urgent so ${recipientName} sees it right away.${twilioNumber ? ` And honestly, texting this same number is probably the fastest way — they'll see that instantly.` : ''}"
 
 "Can I leave a detailed message?"
 → "Yeah for sure, go ahead — I'm listening." Let them speak. Then summarize: "Got it — so you're saying [brief summary]. Anything else to add?"

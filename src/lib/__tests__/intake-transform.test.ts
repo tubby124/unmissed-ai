@@ -236,3 +236,37 @@ describe('slugify', () => {
     assert.strictEqual(slugify('Hasan & Sharif — Real Estate'), 'hasan-sharif-real-estate')
   })
 })
+
+// ── T4: collapseIdenticalHours ───────────────────────────────────────────
+import { collapseIdenticalHours } from '../intake-transform.js'
+
+describe('collapseIdenticalHours', () => {
+  test('collapses Mon-Fri with identical times', () => {
+    const input = 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 9:00 AM–5:00 PM, Thursday 9:00 AM–5:00 PM, Friday 9:00 AM–5:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Friday 9:00 AM–5:00 PM')
+  })
+
+  test('keeps days with different times separate', () => {
+    const input = 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 10:00 AM–4:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Tuesday 9:00 AM–5:00 PM, Wednesday 10:00 AM–4:00 PM')
+  })
+
+  test('Mon-Fri same + Saturday different', () => {
+    const input = 'Monday 8:00 AM–6:00 PM, Tuesday 8:00 AM–6:00 PM, Wednesday 8:00 AM–6:00 PM, Thursday 8:00 AM–6:00 PM, Friday 8:00 AM–6:00 PM, Saturday 9:00 AM–3:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Friday 8:00 AM–6:00 PM, Saturday 9:00 AM–3:00 PM')
+  })
+
+  test('single day passthrough', () => {
+    assert.strictEqual(collapseIdenticalHours('Monday 9:00 AM–5:00 PM'), 'Monday 9:00 AM–5:00 PM')
+  })
+
+  test('returns unchanged if format is unrecognized', () => {
+    const input = 'Mon-Fri 9-5'
+    assert.strictEqual(collapseIdenticalHours(input), 'Mon-Fri 9-5')
+  })
+
+  test('all 7 days same hours', () => {
+    const input = 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 9:00 AM–5:00 PM, Thursday 9:00 AM–5:00 PM, Friday 9:00 AM–5:00 PM, Saturday 9:00 AM–5:00 PM, Sunday 9:00 AM–5:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Sunday 9:00 AM–5:00 PM')
+  })
+})

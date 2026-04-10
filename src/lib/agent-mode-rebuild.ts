@@ -187,6 +187,8 @@ export async function buildAgentModeRebuildPrompt(
   if (client.pricing_policy !== null) intakeData.pricing_policy = client.pricing_policy
   if (client.calendar_mode !== null) intakeData.calendar_mode = client.calendar_mode
   if (client.fields_to_collect !== null) intakeData.fields_to_collect = client.fields_to_collect
+  // P1: voicemail builder needs twilio_number to gate "text this number" lines
+  if (client.twilio_number) intakeData.twilio_number = client.twilio_number
 
   // Fetch knowledge docs (same as regen route)
   let knowledgeDocs = ''

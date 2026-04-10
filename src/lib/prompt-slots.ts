@@ -800,6 +800,19 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     }
   }
 
+  // Auto glass — insurance chip interpolation (T3: niche_insurance chip must override niche default)
+  if (niche === 'auto_glass' || niche === 'auto-glass') {
+    const autoInsurance = (intake.niche_insurance as string)?.trim()
+    if (autoInsurance) {
+      const insuranceLabelMap: Record<string, string> = {
+        all_major: 'set up with most insurance providers',
+        sgi_only: 'SGI approved',
+        pending: 'working on getting set up with insurance — private pay for now',
+      }
+      variables.INSURANCE_STATUS = insuranceLabelMap[autoInsurance] || autoInsurance
+    }
+  }
+
   // HVAC
   if (niche === 'hvac') {
     const hvacEmergency = (intake.niche_emergency as string) || ''

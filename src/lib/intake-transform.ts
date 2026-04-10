@@ -71,6 +71,49 @@ export function mapInsuranceToPreset(nicheInsurance: string): string {
 }
 
 /**
+ * T4: Collapse per-day hours into natural ranges.
+ * "Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, ..., Friday 9:00 AM–5:00 PM"
+ * → "Monday–Friday 9:00 AM–5:00 PM"
+ */
+export function collapseIdenticalHours(perDayStr: string): string {
+  // Parse "DayName HH:MM AM–HH:MM PM" entries
+  const entries = perDayStr.split(',').map(s => s.trim()).filter(Boolean)
+  const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+  const parsed: Array<{ day: string; hours: string }> = []
+  for (const entry of entries) {
+    const spaceIdx = entry.indexOf(' ')
+    if (spaceIdx === -1) return perDayStr // can't parse, return unchanged
+    const day = entry.slice(0, spaceIdx)
+    const hours = entry.slice(spaceIdx + 1)
+    if (!dayOrder.includes(day)) return perDayStr // unexpected format
+    parsed.push({ day, hours })
+  }
+  if (parsed.length === 0) return perDayStr
+
+  // Group consecutive days with identical hours
+  const groups: Array<{ days: string[]; hours: string }> = []
+  for (const { day, hours } of parsed) {
+    const last = groups[groups.length - 1]
+    if (last && last.hours === hours) {
+      const lastDayIdx = dayOrder.indexOf(last.days[last.days.length - 1])
+      const thisDayIdx = dayOrder.indexOf(day)
+      if (thisDayIdx === lastDayIdx + 1) {
+        last.days.push(day)
+        continue
+      }
+    }
+    groups.push({ days: [day], hours })
+  }
+
+  // Format ranges
+  return groups.map(g => {
+    if (g.days.length === 1) return `${g.days[0]} ${g.hours}`
+    return `${g.days[0]}–${g.days[g.days.length - 1]} ${g.hours}`
+  }).join(', ')
+}
+
+/**
  * Transform OnboardingData (camelCase, from wizard) into
  * intake payload (snake_case) stored in intake_json.
  */
@@ -91,7 +134,7 @@ export function toIntakePayload(data: OnboardingData) {
       const openDays = dayNames
         .filter(d => !data.hours[d].closed)
         .map(d => `${d.charAt(0).toUpperCase() + d.slice(1)} ${to12h(data.hours[d].open)}–${to12h(data.hours[d].close)}`);
-      hoursStr = openDays.length > 0 ? openDays.join(", ") : "By appointment";
+      hoursStr = openDays.length > 0 ? collapseIdenticalHours(openDays.join(", ")) : "By appointment";
     } catch {
       hoursStr = data.businessHoursText || "By appointment";
     }

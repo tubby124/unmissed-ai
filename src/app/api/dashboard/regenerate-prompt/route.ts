@@ -190,6 +190,8 @@ export async function POST(req: NextRequest) {
     if (client.pricing_policy !== null && client.pricing_policy !== undefined) intakeData.pricing_policy = client.pricing_policy
     if (client.calendar_mode !== null && client.calendar_mode !== undefined) intakeData.calendar_mode = client.calendar_mode
     if (client.fields_to_collect !== null && client.fields_to_collect !== undefined) intakeData.fields_to_collect = client.fields_to_collect
+    // P1: voicemail builder needs twilio_number to gate "text this number" lines
+    if (client.twilio_number) intakeData.twilio_number = client.twilio_number
 
     // Fetch knowledge docs
     let knowledgeDocs = ''

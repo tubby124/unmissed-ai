@@ -397,3 +397,100 @@ describe('Shadow — Phase E.5 today_update / business_notes tag emission', () =
     )
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T3/T4/P1/P2: Live-call finding regression tests
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('T3 — auto_glass insurance chip interpolation', () => {
+  test('niche_insurance=all_major resolves to "set up with most insurance providers"', () => {
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(intake('auto_glass', undefined, { niche_insurance: 'all_major' })),
+    )
+    assert.ok(
+      prompt.includes('set up with most insurance providers'),
+      'expected "all major insurance" chip to resolve in FILTER_EXTRA',
+    )
+    assert.ok(
+      !prompt.includes('we work with SGI'),
+      'expected no hardcoded SGI when niche_insurance=all_major',
+    )
+  })
+
+  test('no niche_insurance falls back to niche default (private pay)', () => {
+    const prompt = buildPromptFromSlots(buildSlotContext(intake('auto_glass')))
+    assert.ok(
+      prompt.includes('private pay right now'),
+      'expected default INSURANCE_STATUS in FILTER_EXTRA',
+    )
+  })
+
+  test('niche_insurance=sgi_only resolves to "SGI approved"', () => {
+    const prompt = buildPromptFromSlots(
+      buildSlotContext(intake('auto_glass', undefined, { niche_insurance: 'sgi_only' })),
+    )
+    assert.ok(
+      prompt.includes('SGI approved'),
+      'expected sgi_only chip to resolve to "SGI approved"',
+    )
+  })
+})
+
+describe('P1 — voicemail "text this number" gated on twilio_number', () => {
+  test('without twilio_number, no "text this number" in voicemail prompt', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      callback_phone: '(403) 555-0188',
+    })
+    assert.ok(
+      !prompt.includes('text this number'),
+      'expected no "text this number" when twilio_number is absent',
+    )
+  })
+
+  test('with twilio_number, includes "text this number"', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      callback_phone: '(403) 555-0188',
+      twilio_number: '+14035550199',
+    })
+    assert.ok(
+      prompt.includes('text this number'),
+      'expected "text this number" when twilio_number is present',
+    )
+  })
+})
+
+describe('P2 — voicemail recipientName uses "the team at" when ownerName is empty', () => {
+  test('empty owner_name → "the team at [business]"', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      business_name: 'Mountain View Dental',
+      owner_name: '',
+    })
+    assert.ok(
+      prompt.includes('the team at Mountain View Dental'),
+      'expected "the team at [bizName]" when owner_name is empty',
+    )
+  })
+
+  test('populated owner_name → owner name used directly', () => {
+    const prompt = buildPromptFromIntake({
+      ...intake('voicemail'),
+      call_handling_mode: 'message_only',
+      business_name: 'Mountain View Dental',
+      owner_name: 'Dr. Patel',
+    })
+    assert.ok(
+      prompt.includes('Dr. Patel'),
+      'expected owner_name to appear in prompt',
+    )
+    assert.ok(
+      !prompt.includes('the team at Mountain View Dental'),
+      'expected no "the team at" prefix when owner_name is set',
+    )
+  })
+})

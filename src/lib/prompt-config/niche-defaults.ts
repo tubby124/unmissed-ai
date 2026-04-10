@@ -36,7 +36,7 @@ export const NICHE_DEFAULTS: Record<string, NicheDefaults> = {
       "Always say \"v-i-n\" (spell it out), never \"vin.\"",
     ].join('\n'),
     FILTER_EXTRA: `INSURANCE / BILLING QUESTION:
-"we work with SGI and also do regular payment. let me grab your vehicle info and the team will sort out the details for you."
+"we're {{INSURANCE_STATUS}}... let me grab your vehicle info and the team will sort out the details for you."
 then continue to triage and vehicle info. If hesitant or more questions: "no problem — I'll have {{CLOSE_PERSON}} call you back with more details." then use hangUp tool.
 
 DELIVERY or PACKAGE:
