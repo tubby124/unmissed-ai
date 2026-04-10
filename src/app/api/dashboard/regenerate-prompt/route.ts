@@ -75,13 +75,15 @@ export async function POST(req: NextRequest) {
   // ── S6e: Rate limiting — check last regeneration timestamp ─────────────────
   const { data: lastRegen } = await svc
     .from('prompt_versions')
-    .select('created_at')
+    .select('created_at, triggered_by_role')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
 
-  if (lastRegen?.created_at && cu.role !== 'admin') {
+  // Skip cooldown for admins and when the only prior regen was system-initiated
+  // (e.g. provisioning). Without this, a fresh trial's first Day1 edit is blocked.
+  if (lastRegen?.created_at && cu.role !== 'admin' && lastRegen.triggered_by_role !== 'system') {
     const elapsed = Date.now() - new Date(lastRegen.created_at).getTime()
     if (elapsed < REGEN_COOLDOWN_MS) {
       const remainingSeconds = Math.ceil((REGEN_COOLDOWN_MS - elapsed) / 1000)

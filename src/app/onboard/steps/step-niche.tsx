@@ -41,7 +41,7 @@ const NICHE_COMPONENTS: Partial<Record<Niche, React.ComponentType<{
 // Voice picker — two curated options (style-first, not gender-first)
 const VOICE_STYLES = [
   { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline", style: "Warm & Friendly" },
-  { id: "b0e6b5c1-0be8-47c5-8e21-e5e11c6f4ab0", name: "Mark", style: "Confident & Clear" },
+  { id: "b0e6b5c1-3100-44d5-8578-9015aa3023ae", name: "Mark", style: "Confident & Clear" },
 ] as const;
 
 // Niche-adaptive placeholder text for caller reasons
