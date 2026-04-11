@@ -42,9 +42,9 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
       setInjectedNote(confirmed)
       setSavedNote(confirmed)
       if (confirmed) {
-        toast.success("Today's Update saved — active on next call")
+        toast.success("Quick note saved — active on next call")
       } else {
-        toast.success("Today's Update cleared")
+        toast.success("Quick note cleared")
       }
     } else {
       toast.error('Failed to save — try again')
@@ -56,8 +56,8 @@ export default function QuickInject({ client, isAdmin }: QuickInjectProps) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Today&apos;s Update</p>
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/70 border border-amber-500/15">Temporary</span>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Quick Note</p>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/70 border border-amber-500/15">Per-call · clears on update</span>
             {isActive && (
               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">
                 ACTIVE

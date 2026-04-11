@@ -791,9 +791,9 @@ function AgentCards({
       {/* ── 2.25. Phase E Wave 3 — Day-1 Edit Panel ────────── */}
       <Day1EditPanel client={client} isAdmin={isAdmin} />
 
-      {/* ── 2.5. Today's Update ────────────────────────────── */}
+      {/* ── 2.5. Quick Note (per-call runtime injection) ───── */}
       <div>
-        <SectionLabel>Today&apos;s Update</SectionLabel>
+        <SectionLabel>Quick Note</SectionLabel>
         <div className="rounded-2xl border b-theme bg-surface px-5 pb-4">
           <QuickInject client={client} isAdmin={isAdmin} />
         </div>

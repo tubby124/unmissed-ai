@@ -213,7 +213,10 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
       const { city, state, streetAddress } = parseAddressParts(pendingPlace.address);
       if (city) updates.city = city;
       if (state) updates.state = state;
-      if (streetAddress) updates.streetAddress = streetAddress;
+      if (streetAddress) {
+        updates.streetAddress = streetAddress;
+        updates.businessAddress = streetAddress;
+      }
     }
     if (pendingPlace.phone) updates.callbackPhone = pendingPlace.phone;
     if (pendingPlace.hours?.length) updates.businessHoursText = condenseHours(pendingPlace.hours);

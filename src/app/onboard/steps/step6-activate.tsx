@@ -433,24 +433,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
           >
             <option value="email">Email (instant — recommended)</option>
-            <option value="sms">SMS text</option>
             <option value="telegram">Telegram</option>
             <option value="both">Telegram + Email</option>
           </select>
-
-          {/* SMS: require phone number */}
-          {['sms'].includes(data.notificationMethod || '') && (
-            <div className="space-y-1.5 mt-2">
-              <Label htmlFor="notificationPhone">Mobile number for SMS alerts <span className="text-red-500">*</span></Label>
-              <Input
-                id="notificationPhone"
-                type="tel"
-                value={data.notificationPhone || ''}
-                onChange={(e) => onUpdate({ notificationPhone: e.target.value })}
-                placeholder="(306) 555-1234"
-              />
-            </div>
-          )}
 
           {/* Telegram: show connect instructions inline */}
           {['telegram', 'both'].includes(data.notificationMethod || '') && (

@@ -104,7 +104,6 @@ export const STEP_DEFS: StepDef[] = [
     component: Step6Activate,
     canAdvance: (d) => {
       if (!d.businessName?.trim() || !d.contactEmail?.trim() || !d.callbackPhone?.trim()) return false;
-      if (d.notificationMethod === 'sms' && !d.notificationPhone?.trim()) return false;
       return true;
     },
     hideFooterCta: true,
