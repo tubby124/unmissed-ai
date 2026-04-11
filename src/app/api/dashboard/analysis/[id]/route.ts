@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { classifyCall } from '@/lib/openrouter'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 export const maxDuration = 120
 
@@ -91,10 +92,10 @@ export async function POST(
   if (typeof recommendation_index === 'number' && Array.isArray(report.recommendations)) {
     const rec = report.recommendations[recommendation_index] as Record<string, unknown> | undefined
     if (rec?.change_type === 'prompt' && typeof rec.suggested_value === 'string') {
-      // Append the suggested value to the system prompt
+      // Append the suggested value to the system prompt + sync to Ultravox
       const { data: client } = await supabase
         .from('clients')
-        .select('system_prompt')
+        .select('system_prompt, ultravox_agent_id, slug, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status, niche, agent_voice_id')
         .eq('id', report.client_id)
         .single()
 
@@ -102,6 +103,37 @@ export async function POST(
         const newPrompt = `${client.system_prompt}\n\n// Auto-applied recommendation (${new Date().toLocaleDateString()}):\n${rec.suggested_value}`
         await supabase.from('clients').update({ system_prompt: newPrompt, updated_at: new Date().toISOString() }).eq('id', report.client_id)
         promptApplied = true
+
+        // Sync to Ultravox so the change is immediately live (was missing — invisible for up to 6 hours)
+        if (client.ultravox_agent_id) {
+          try {
+            const { count: knowledgeChunkCount } = await supabase
+              .from('knowledge_chunks')
+              .select('id', { count: 'exact', head: true })
+              .eq('client_id', report.client_id)
+              .eq('status', 'approved')
+            const agentFlags: Parameters<typeof updateAgent>[1] = {
+              systemPrompt: newPrompt,
+              ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
+              booking_enabled: client.booking_enabled ?? false,
+              slug: client.slug,
+              forwarding_number: (client.forwarding_number as string | null) || undefined,
+              sms_enabled: client.sms_enabled ?? false,
+              twilio_number: (client.twilio_number as string | null) || undefined,
+              knowledge_backend: client.knowledge_backend,
+              knowledge_chunk_count: knowledgeChunkCount ?? 0,
+              transfer_conditions: client.transfer_conditions,
+              selectedPlan: (client.selected_plan as string | null) || undefined,
+              subscriptionStatus: (client.subscription_status as string | null) || undefined,
+              niche: (client.niche as string | null) || undefined,
+            }
+            await updateAgent(client.ultravox_agent_id, agentFlags)
+            const syncTools = buildAgentTools(agentFlags)
+            await supabase.from('clients').update({ tools: syncTools }).eq('id', report.client_id)
+          } catch (err) {
+            console.error('[analysis] Ultravox sync failed:', err instanceof Error ? err.message : err)
+          }
+        }
       }
     }
   }

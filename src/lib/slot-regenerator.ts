@@ -112,6 +112,7 @@ export function clientRowToIntake(
 
     // Hours
     hours_weekday: client.business_hours_weekday,
+    hours_weekend: client.business_hours_weekend,
 
     // Services
     services_offered: client.services_offered,
@@ -143,6 +144,13 @@ export function clientRowToIntake(
     unknown_answer_behavior: client.unknown_answer_behavior,
     caller_faq: client.caller_faq,
     common_objections: client.common_objections,
+
+    // Day-1 editable fields (needed for slot regeneration round-trip)
+    today_update: client.today_update,
+    business_notes: client.business_notes,
+    fields_to_collect: client.fields_to_collect,
+    twilio_number: client.twilio_number,
+    injected_note: client.injected_note,
 
     // FAQ pairs (extra_qa → niche_faq_pairs format)
     niche_faq_pairs: client.extra_qa ? JSON.stringify(client.extra_qa) : undefined,

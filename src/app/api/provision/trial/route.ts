@@ -217,6 +217,9 @@ export async function POST(req: NextRequest) {
       // Capability flags — must be written at provision time so syncClientTools() picks them up
       booking_enabled: intakePayload.booking_enabled ?? false,
       sms_enabled: data.callerAutoText !== false,
+      // Day-1 editable fields — must be in clients.* so dashboard reads them (not just intake_json)
+      calendar_mode: intakePayload.calendar_mode || 'none',
+      business_notes: intakePayload.business_notes || null,
       // Per-call context injection fields
       timezone: intakePayload.timezone || 'America/Edmonton',
       context_data: intakePayload.context_data || null,
