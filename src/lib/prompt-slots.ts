@@ -1145,9 +1145,18 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     if (fields.length > 0) variables.COMPLETION_FIELDS = fields.join(', ')
   }
 
-  // Location string
+  // Location string — include street address from onboarding if available
   const rawCity = variables.CITY || ''
-  variables.LOCATION_STRING = rawCity && rawCity !== 'N/A' ? ` in ${rawCity}` : ''
+  const rawAddress = ((intake.niche_businessAddress as string) || '').trim()
+  if (rawAddress && rawCity && rawCity !== 'N/A') {
+    variables.LOCATION_STRING = ` at ${rawAddress}, ${rawCity}`
+  } else if (rawAddress) {
+    variables.LOCATION_STRING = ` at ${rawAddress}`
+  } else if (rawCity && rawCity !== 'N/A') {
+    variables.LOCATION_STRING = ` in ${rawCity}`
+  } else {
+    variables.LOCATION_STRING = ''
+  }
 
   // Call handling mode
   const rawAgentMode = (intake.agent_mode as string) || null

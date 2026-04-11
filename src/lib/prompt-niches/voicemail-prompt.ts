@@ -81,7 +81,10 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const extraContext = pmContext || ((intake.niche_voicemailContext as string) || '').trim()
 
   // Opening greetings — AI-generated greeting takes priority, then PM location-aware, then generic rotating
-  const locationStr = city ? ` in ${city}` : ''
+  const businessAddress = ((intake.niche_businessAddress as string) || '').trim()
+  const locationStr = businessAddress && city ? ` at ${businessAddress}, ${city}`
+    : businessAddress ? ` at ${businessAddress}`
+    : city ? ` in ${city}` : ''
   const openingGreetings = aiGreeting
     ? `Use this greeting:\n- "${aiGreeting}"`
     : isPM
