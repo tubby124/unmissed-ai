@@ -101,6 +101,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   service_catalog:               { mutationClass: 'DB_ONLY', triggersSync: false },
   owner_name:                    { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'owner_name' },
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
+  city:                          { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Outbound calling structured fields ───────────────────────────────────
@@ -244,6 +245,7 @@ export const settingsBodySchema = z.object({
   // Post-provision editable
   owner_name: z.string().optional(),
   callback_phone: z.string().optional(),
+  city: z.string().optional(),
   website_url: z.string().optional(),
 
   // Section editor (B1)
@@ -345,7 +347,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     'forwarding_number', 'business_hours_weekday', 'business_hours_weekend',
     'after_hours_emergency_phone', 'transfer_conditions', 'voicemail_greeting_text',
     'voicemail_greeting_audio_url', 'ivr_prompt', 'owner_name', 'callback_phone',
-    'website_url', 'context_data', 'context_data_label',
+    'city', 'website_url', 'context_data', 'context_data_label',
   ]
 
   // String fields that get trimmed + nullable, but require non-empty

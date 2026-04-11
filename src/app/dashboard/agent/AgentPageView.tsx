@@ -89,6 +89,86 @@ function AgentNameField({
   )
 }
 
+// ─── Business Profile card (P1 — edits for business_name, owner_name, callback_phone, city, website_url) ──
+
+function BusinessProfileCard({ client, isAdmin }: { client: ClientConfig; isAdmin: boolean }) {
+  const [fields, setFields] = useState({
+    business_name: client.business_name ?? '',
+    owner_name: client.owner_name ?? '',
+    callback_phone: client.callback_phone ?? '',
+    city: client.city ?? '',
+    website_url: client.website_url ?? '',
+  })
+  const saved = useRef({ ...fields })
+  const { saving, saved: justSaved, patch } = usePatchSettings(client.id, isAdmin)
+
+  useEffect(() => {
+    const next = {
+      business_name: client.business_name ?? '',
+      owner_name: client.owner_name ?? '',
+      callback_phone: client.callback_phone ?? '',
+      city: client.city ?? '',
+      website_url: client.website_url ?? '',
+    }
+    setFields(next)
+    saved.current = next
+  }, [client.id, client.business_name, client.owner_name, client.callback_phone, client.city, client.website_url])
+
+  const hasChanges = Object.keys(fields).some(
+    k => fields[k as keyof typeof fields] !== saved.current[k as keyof typeof fields],
+  )
+
+  const handleSave = () => {
+    const updates: Record<string, string> = {}
+    for (const [k, v] of Object.entries(fields)) {
+      if (v !== saved.current[k as keyof typeof saved.current]) updates[k] = v
+    }
+    patch(updates)
+    saved.current = { ...fields }
+  }
+
+  const rows: { key: keyof typeof fields; label: string; placeholder: string; type?: string }[] = [
+    { key: 'business_name', label: 'Business name', placeholder: 'e.g. Acme Plumbing' },
+    { key: 'owner_name', label: 'Owner / contact name', placeholder: 'e.g. Sarah Johnson' },
+    { key: 'callback_phone', label: 'Callback phone', placeholder: '+1 (306) 555-1234', type: 'tel' },
+    { key: 'city', label: 'City / service area', placeholder: 'e.g. Calgary, AB' },
+    { key: 'website_url', label: 'Website', placeholder: 'https://example.com', type: 'url' },
+  ]
+
+  return (
+    <div className="pt-4 border-t b-theme">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Business Profile</p>
+        <button
+          onClick={handleSave}
+          disabled={saving || !hasChanges}
+          className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+            justSaved
+              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
+          } disabled:opacity-40`}
+        >
+          {saving ? 'Saving…' : justSaved ? '✓' : 'Save Changes'}
+        </button>
+      </div>
+      <div className="space-y-2.5">
+        {rows.map(({ key, label, placeholder, type }) => (
+          <div key={key}>
+            <label className="text-[11px] t3 mb-0.5 block">{label}</label>
+            <input
+              type={type || 'text'}
+              value={fields[key]}
+              onChange={e => setFields(prev => ({ ...prev, [key]: e.target.value }))}
+              className="w-full bg-black/20 border b-theme rounded-xl px-3 py-1.5 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
+              placeholder={placeholder}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Section label ────────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -765,6 +845,7 @@ function AgentCards({
             isAdmin={isAdmin}
             initialName={client.agent_name ?? ''}
           />
+          <BusinessProfileCard client={client} isAdmin={isAdmin} />
         </div>
       </div>
 
