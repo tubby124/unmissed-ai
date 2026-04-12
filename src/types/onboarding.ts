@@ -1,24 +1,10 @@
 // Onboarding wizard types — shared across all steps
 
-export type Niche =
-  | "auto_glass"
-  | "hvac"
-  | "plumbing"
-  | "dental"
-  | "legal"
-  | "salon"
-  | "real_estate"
-  | "property_management"
-  | "outbound_isa_realtor"
-  | "restaurant"
-  | "voicemail"
-  | "print_shop"
-  | "mechanic_shop"
-  | "pest_control"
-  | "electrician"
-  | "locksmith"
-  | "barbershop"
-  | "other";
+// Niche type and metadata — single source of truth is src/lib/niche-registry.ts.
+// To add a niche: update NICHE_REGISTRY — build fails if any required field is missing.
+import type { Niche } from '@/lib/niche-registry'
+export type { Niche }
+export { nicheLabels, nicheEmojis, defaultAgentNames, NICHE_PRODUCTION_READY } from '@/lib/niche-registry'
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
 
@@ -188,32 +174,10 @@ export interface OnboardingData {
   businessAddress?: string;
 }
 
-// ── Niche metadata — controls which fields are shown per niche ────────────────
-// Step sequence logic lives in getStepSequence() in page.tsx.
-// All standard niches use 3-step fast-track [1, 2, 7].
-// voicemail + real_estate use [1, 2, 4, 7] (their niche Q's feed custom prompt builders).
-export const NICHE_CONFIG: Record<Niche, {
-  hasPhysicalAddress: boolean;  // show streetAddress in step 2
-}> = {
-  auto_glass:           { hasPhysicalAddress: true  },
-  hvac:                 { hasPhysicalAddress: false },
-  plumbing:             { hasPhysicalAddress: false },
-  dental:               { hasPhysicalAddress: true  },
-  legal:                { hasPhysicalAddress: true  },
-  salon:                { hasPhysicalAddress: true  },
-  real_estate:          { hasPhysicalAddress: false },
-  property_management:  { hasPhysicalAddress: true  },
-  outbound_isa_realtor: { hasPhysicalAddress: false },
-  restaurant:           { hasPhysicalAddress: true  },
-  voicemail:            { hasPhysicalAddress: false },
-  print_shop:           { hasPhysicalAddress: true  },
-  mechanic_shop:        { hasPhysicalAddress: true  },
-  pest_control:         { hasPhysicalAddress: false },
-  electrician:          { hasPhysicalAddress: false },
-  locksmith:            { hasPhysicalAddress: false },
-  barbershop:           { hasPhysicalAddress: true  },
-  other:                { hasPhysicalAddress: false },
-};
+// ── Niche physical-address flag — re-exported from niche-registry for consumers ──
+// hasPhysicalAddress controls whether streetAddress is shown in onboarding step 2.
+// Source of truth is NICHE_REGISTRY[niche].hasPhysicalAddress in src/lib/niche-registry.ts.
+export { NICHE_REGISTRY } from '@/lib/niche-registry'
 
 export const defaultHours: BusinessHours = {
   open: "09:00",
@@ -280,65 +244,3 @@ export const defaultOnboardingData: OnboardingData = {
   priceRange: '',
 };
 
-export const nicheLabels: Record<Niche, string> = {
-  auto_glass: "Auto Glass Shop",
-  hvac: "HVAC / Heating & Cooling",
-  plumbing: "Plumbing",
-  dental: "Dental Office",
-  legal: "Law Firm",
-  salon: "Salon / Barbershop",
-  real_estate: "Real Estate Agent",
-  property_management: "Property Management",
-  outbound_isa_realtor: "Realtor ISA (Outbound)",
-  restaurant: "Restaurant / Food Service",
-  voicemail: "Voicemail / Message Taking",
-  print_shop: "Print Shop",
-  mechanic_shop: "Auto Mechanic Shop",
-  pest_control: "Pest Control",
-  electrician: "Electrician",
-  locksmith: "Locksmith",
-  barbershop: "Barbershop",
-  other: "Other Business",
-};
-
-export const nicheEmojis: Record<Niche, string> = {
-  auto_glass: "🚗",
-  hvac: "❄️",
-  plumbing: "🔧",
-  dental: "🦷",
-  legal: "⚖️",
-  salon: "✂️",
-  real_estate: "🏠",
-  property_management: "🏘️",
-  outbound_isa_realtor: "📞",
-  restaurant: "🍕",
-  voicemail: "📬",
-  print_shop: "🖨️",
-  mechanic_shop: "🔩",
-  pest_control: "🐛",
-  electrician: "⚡",
-  locksmith: "🔑",
-  barbershop: "💈",
-  other: "🏢",
-};
-
-export const defaultAgentNames: Record<Niche, string> = {
-  auto_glass: "Mark",
-  hvac: "Mike",
-  plumbing: "Dave",
-  dental: "Ashley",
-  legal: "Jordan",
-  salon: "Jamie",
-  real_estate: "Alex",
-  property_management: "Jade",
-  outbound_isa_realtor: "Fatima",
-  restaurant: "Sofia",
-  voicemail: "Sam",
-  print_shop: "Alex",
-  mechanic_shop: "Jake",
-  pest_control: "Tyler",
-  electrician: "Ryan",
-  locksmith: "Chris",
-  barbershop: "Jake",
-  other: "Sam",
-};

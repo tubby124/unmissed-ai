@@ -765,6 +765,7 @@ export default function UnifiedHomeSection({
               pendingKnowledgeCount={pendingKnowledgeCount}
               hasTriage={data.hasTriage ?? false}
             />
+            <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
           </div>
 
           {/* Center: Test Call orb + Unanswered Questions — mobile first */}
@@ -796,6 +797,178 @@ export default function UnifiedHomeSection({
             )}
             {/* D354 — Unanswered Questions under orb for tight feedback loop */}
             <UnansweredQuestionsTile clientId={data.clientId} />
+
+            {/* Recent Calls — moved from TIER 3 into center column */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+            >
+              {/* Header */}
+              <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
+                  <span className="text-[11px] t3">
+                    {data.recentCalls.length} call{data.recentCalls.length !== 1 ? 's' : ''}
+                    {data.stats.lastCallAt && ` · last ${timeAgo(data.stats.lastCallAt)}`}
+                  </span>
+                </div>
+                <Link
+                  href="/dashboard/calls"
+                  className="text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  View all
+                </Link>
+              </div>
+
+              {/* Filter tabs */}
+              <div className="px-4 pb-2 flex items-center gap-1 flex-wrap">
+                {CALL_FILTER_TABS.map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => { setCallFilter(tab); setCallMoreOpen(false) }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer ${
+                      callFilter === tab
+                        ? 'bg-white/10 t1'
+                        : 'hover:bg-white/5 t3'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+                {/* More dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setCallMoreOpen(o => !o)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer flex items-center gap-1 ${
+                      CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
+                        ? 'bg-white/10 t1'
+                        : 'hover:bg-white/5 t3'
+                    }`}
+                  >
+                    {CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
+                      ? callFilter.replace(/_/g, ' ')
+                      : 'More'}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {callMoreOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 rounded-lg py-1 z-10 min-w-[120px] shadow-lg"
+                      style={{ backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
+                    >
+                      {CALL_FILTER_MORE.map(item => (
+                        <button
+                          key={item}
+                          onClick={() => { setCallFilter(item); setCallMoreOpen(false) }}
+                          className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5 transition-colors duration-200 cursor-pointer t2 capitalize"
+                        >
+                          {item.toLowerCase().replace(/_/g, ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Call list */}
+              {filteredCalls.length > 0 ? (
+                <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                  {filteredCalls.slice(0, 8).map(call => {
+                    const isTestCall = call.call_status === 'test'
+                    const isExpanded = expandedCallId === call.id
+                    const statusClass = STATUS_BADGE[call.call_status] ?? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                    const sentimentDot = call.sentiment === 'positive' ? 'bg-emerald-400' :
+                      call.sentiment === 'negative' ? 'bg-red-400' :
+                      call.sentiment === 'neutral' ? 'bg-slate-400' : null
+
+                    const cardContent = (
+                      <div
+                        className="px-4 py-3 hover:bg-hover transition-colors duration-200 cursor-pointer"
+                        onClick={isTestCall ? () => setExpandedCallId(isExpanded ? null : call.id) : undefined}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-[12px] font-medium t1">
+                                {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
+                              </p>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${statusClass}`}>
+                                {call.call_status.toUpperCase().replace(/_/g, ' ')}
+                              </span>
+                              {sentimentDot && (
+                                <span className={`w-1.5 h-1.5 rounded-full ${sentimentDot}`} title={`Sentiment: ${call.sentiment}`} />
+                              )}
+                            </div>
+                            {call.ai_summary && (
+                              <p className="text-[11px] t3 leading-snug line-clamp-1 mt-1">&ldquo;{call.ai_summary}&rdquo;</p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0 flex items-center gap-3">
+                            <div>
+                              <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
+                              <p className="text-[10px] t3">{timeAgo(call.started_at)}</p>
+                            </div>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+                              <path d={isExpanded ? 'M6 15l6-6 6 6' : 'M9 18l6-6-6-6'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        </div>
+                        {/* Expanded detail */}
+                        {isExpanded && call.ai_summary && (
+                          <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                            <p className="text-[11px] t2 leading-relaxed">{call.ai_summary}</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+
+                    return isTestCall ? (
+                      <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{cardContent}</div>
+                    ) : (
+                      <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>
+                        <Link
+                          href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
+                          className="block cursor-pointer"
+                          onClick={e => {
+                            if (!isExpanded) {
+                              e.preventDefault()
+                              setExpandedCallId(call.id)
+                            }
+                          }}
+                        >
+                          {cardContent}
+                        </Link>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="border-t px-4 py-8 text-center" style={{ borderColor: 'var(--color-border)' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2" style={{ color: 'var(--color-text-3)' }}>
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p className="text-[12px] t2 mb-1">
+                    {callFilter !== 'All' ? `No ${callFilter} calls yet` : 'No calls yet'}
+                  </p>
+                  <p className="text-[11px] t3">
+                    {callFilter !== 'All'
+                      ? 'Try a different filter or wait for more calls'
+                      : 'Forward your number to get started'}
+                  </p>
+                  {callFilter === 'All' && data.twilioNumber && (
+                    <Link
+                      href="/dashboard/settings?tab=general#forwarding"
+                      className="inline-block mt-2 text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
+                      style={{ color: 'var(--color-primary)' }}
+                    >
+                      Forwarding guide
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Voice + Today's Update + Stats + Trial Mode */}
@@ -899,229 +1072,45 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          TIER 3 — Call Log + Bookings (2-col)
+          Bottom — Plan + Trial CTA (2-col side by side on md+)
           ════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-      >
-        {/* Header */}
-        <div className="px-4 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
-            <span className="text-[11px] t3">
-              {data.recentCalls.length} call{data.recentCalls.length !== 1 ? 's' : ''}
-              {data.stats.lastCallAt && ` · last ${timeAgo(data.stats.lastCallAt)}`}
-            </span>
-          </div>
-          <Link
-            href="/dashboard/calls"
-            className="text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity shrink-0"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            View all
-          </Link>
-        </div>
-
-        {/* Filter tabs */}
-        <div className="px-4 pb-2 flex items-center gap-1 flex-wrap">
-          {CALL_FILTER_TABS.map(tab => (
+        <BillingTile
+          selectedPlan={data.selectedPlan}
+          subscriptionStatus={onboarding.subscriptionStatus}
+          onOpenSheet={() => sheet.open('billing')}
+        />
+        {isTrial && (
+          <div className="rounded-2xl p-4 card-surface">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-3">When you&apos;re ready to go live</p>
+            <div className="space-y-1.5 mb-4">
+              {[
+                'Your own business phone number',
+                'Real call forwarding from your existing line',
+                'Live call dashboard + hot lead tracking',
+                'Instant Telegram, email & SMS alerts',
+              ].map((feat, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
+                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="text-xs t2">{feat}</span>
+                </div>
+              ))}
+            </div>
             <button
-              key={tab}
-              onClick={() => { setCallFilter(tab); setCallMoreOpen(false) }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer ${
-                callFilter === tab
-                  ? 'bg-white/10 t1'
-                  : 'hover:bg-white/5 t3'
-              }`}
+              onClick={() => openUpgradeModal('unified_upgrade_cta', data.clientId, daysRemaining, data.selectedPlan)}
+              className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
-              {tab}
-            </button>
-          ))}
-          {/* More dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setCallMoreOpen(o => !o)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer flex items-center gap-1 ${
-                CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
-                  ? 'bg-white/10 t1'
-                  : 'hover:bg-white/5 t3'
-              }`}
-            >
-              {CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
-                ? callFilter.replace(/_/g, ' ')
-                : 'More'}
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              Get a real phone number — upgrade to go live
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {callMoreOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 rounded-lg py-1 z-10 min-w-[120px] shadow-lg"
-                style={{ backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
-              >
-                {CALL_FILTER_MORE.map(item => (
-                  <button
-                    key={item}
-                    onClick={() => { setCallFilter(item); setCallMoreOpen(false) }}
-                    className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5 transition-colors duration-200 cursor-pointer t2 capitalize"
-                  >
-                    {item.toLowerCase().replace(/_/g, ' ')}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Call list */}
-        {filteredCalls.length > 0 ? (
-          <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-            {filteredCalls.slice(0, 8).map(call => {
-              const isTestCall = call.call_status === 'test'
-              const isExpanded = expandedCallId === call.id
-              const statusClass = STATUS_BADGE[call.call_status] ?? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-              const sentimentDot = call.sentiment === 'positive' ? 'bg-emerald-400' :
-                call.sentiment === 'negative' ? 'bg-red-400' :
-                call.sentiment === 'neutral' ? 'bg-slate-400' : null
-
-              const cardContent = (
-                <div
-                  className="px-4 py-3 hover:bg-hover transition-colors duration-200 cursor-pointer"
-                  onClick={isTestCall ? () => setExpandedCallId(isExpanded ? null : call.id) : undefined}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[12px] font-medium t1">
-                          {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
-                        </p>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${statusClass}`}>
-                          {call.call_status.toUpperCase().replace(/_/g, ' ')}
-                        </span>
-                        {sentimentDot && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${sentimentDot}`} title={`Sentiment: ${call.sentiment}`} />
-                        )}
-                      </div>
-                      {call.ai_summary && (
-                        <p className="text-[11px] t3 leading-snug line-clamp-1 mt-1">&ldquo;{call.ai_summary}&rdquo;</p>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0 flex items-center gap-3">
-                      <div>
-                        <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
-                        <p className="text-[10px] t3">{timeAgo(call.started_at)}</p>
-                      </div>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-                        <path d={isExpanded ? 'M6 15l6-6 6 6' : 'M9 18l6-6-6-6'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                  {/* Expanded detail */}
-                  {isExpanded && call.ai_summary && (
-                    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                      <p className="text-[11px] t2 leading-relaxed">{call.ai_summary}</p>
-                    </div>
-                  )}
-                </div>
-              )
-
-              return isTestCall ? (
-                <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{cardContent}</div>
-              ) : (
-                <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>
-                  <Link
-                    href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                    className="block cursor-pointer"
-                    onClick={e => {
-                      // Allow expand on click, navigate on second click or link icon
-                      if (!isExpanded) {
-                        e.preventDefault()
-                        setExpandedCallId(call.id)
-                      }
-                    }}
-                  >
-                    {cardContent}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="border-t px-4 py-8 text-center" style={{ borderColor: 'var(--color-border)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2" style={{ color: 'var(--color-text-3)' }}>
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-[12px] t2 mb-1">
-              {callFilter !== 'All' ? `No ${callFilter} calls yet` : 'No calls yet'}
-            </p>
-            <p className="text-[11px] t3">
-              {callFilter !== 'All'
-                ? 'Try a different filter or wait for more calls'
-                : 'Forward your number to get started'}
-            </p>
-            {callFilter === 'All' && data.twilioNumber && (
-              <Link
-                href="/dashboard/settings?tab=general#forwarding"
-                className="inline-block mt-2 text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                Forwarding guide
-              </Link>
-            )}
           </div>
         )}
       </div>
-
-      {/* Right column: Bookings */}
-      <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
-      </div>
-
-      {/* TIER 4 removed — Unanswered Questions moved to center column under orb (D354) */}
-
-      {/* ════════════════════════════════════════════════════════════
-          TIER 5 — Plan (bottom)
-          ════════════════════════════════════════════════════════════ */}
-      <BillingTile
-        selectedPlan={data.selectedPlan}
-        subscriptionStatus={onboarding.subscriptionStatus}
-        onOpenSheet={() => sheet.open('billing')}
-      />
-
-      {/* ════════════════════════════════════════════════════════════
-          Trial: bottom upgrade CTA
-          ════════════════════════════════════════════════════════════ */}
-      {isTrial && (
-        <div className="rounded-2xl p-4 card-surface">
-          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-3">When you&apos;re ready to go live</p>
-          <div className="space-y-1.5 mb-4">
-            {[
-              'Your own business phone number',
-              'Real call forwarding from your existing line',
-              'Live call dashboard + hot lead tracking',
-              'Instant Telegram, email & SMS alerts',
-            ].map((feat, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-green-400 shrink-0">
-                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="text-xs t2">{feat}</span>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => openUpgradeModal('unified_upgrade_cta', data.clientId, daysRemaining, data.selectedPlan)}
-            className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
-            style={{ backgroundColor: 'var(--color-primary)' }}
-          >
-            Get a real phone number — upgrade to go live
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      )}
     </>
   )
 }

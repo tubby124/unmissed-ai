@@ -6,7 +6,8 @@ import {
   Home, Building2, PhoneCall, Voicemail, HelpCircle,
   UtensilsCrossed, Printer, Settings, Bug, Zap, KeyRound, type LucideIcon,
 } from "lucide-react";
-import { OnboardingData, Niche, nicheLabels, defaultAgentNames } from "@/types/onboarding";
+import { OnboardingData } from "@/types/onboarding";
+import { type Niche, nicheLabels, defaultAgentNames, getNicheHexColor, nicheShortLabels } from "@/lib/niche-registry";
 
 const nicheIcons: Record<Niche, LucideIcon> = {
   auto_glass: Car,
@@ -29,36 +30,6 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   other: HelpCircle,
 };
 
-const NICHE_COLOR: Record<string, string> = {
-  auto_glass: "#3B82F6", hvac: "#F59E0B", plumbing: "#06B6D4",
-  dental: "#8B5CF6", legal: "#6B7280", salon: "#EC4899",
-  real_estate: "#10B981", property_management: "#8B5CF6",
-  outbound_isa_realtor: "#10B981", voicemail: "#6366F1",
-  restaurant: "#EF4444", print_shop: "#14B8A6",
-  mechanic_shop: "#EF4444", pest_control: "#84CC16",
-  electrician: "#EAB308", locksmith: "#94A3B8",
-  other: "#6366F1",
-};
-
-const NICHE_INDUSTRY_LABEL: Partial<Record<Niche, string>> = {
-  auto_glass: "Auto Glass",
-  hvac: "HVAC",
-  plumbing: "Plumbing",
-  dental: "Dental",
-  legal: "Legal",
-  salon: "Salon",
-  real_estate: "Real Estate",
-  property_management: "Property Mgmt",
-  outbound_isa_realtor: "ISA Realtor",
-  voicemail: "Voicemail",
-  restaurant: "Restaurant",
-  print_shop: "Print Shop",
-  mechanic_shop: "Auto Repair",
-  pest_control: "Pest Control",
-  electrician: "Electrician",
-  locksmith: "Locksmith",
-  other: "General",
-};
 
 interface Props {
   data: OnboardingData;
@@ -79,8 +50,8 @@ export default function AgentBuildCard({ data, currentStep, stepIndex }: Props) 
   if (!niche) return null;
 
   const NicheIcon = nicheIcons[niche];
-  const nicheColor = NICHE_COLOR[niche] ?? "#6366F1";
-  const nicheLabel = NICHE_INDUSTRY_LABEL[niche] ?? nicheLabels[niche];
+  const nicheColor = getNicheHexColor(niche);
+  const nicheLabel = nicheShortLabels[niche] ?? nicheLabels[niche];
   const agentName = data.agentName || (defaultAgentNames[niche] ?? "Sam");
   const hasBusinessName = !!data.businessName;
   const hasVoice = !!data.voiceName && stepIndex >= 2;

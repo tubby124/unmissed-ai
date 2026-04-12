@@ -8,6 +8,7 @@
  *
  * Used by: settings PATCH handler, Google OAuth callback.
  */
+import { getNicheServiceType } from '@/lib/niche-registry'
 
 // ── Calendar booking block ──────────────────────────────────────────────────
 
@@ -405,27 +406,12 @@ export function patchServicesOffered(
 
 // ── Service type lookup ─────────────────────────────────────────────────────
 
-const NICHE_SERVICE_TYPES: Record<string, string> = {
-  auto_glass: 'service appointment',
-  'auto-glass': 'service appointment',
-  plumbing: 'service call',
-  hvac: 'service call',
-  electrical: 'service call',
-  dental: 'appointment',
-  real_estate: 'consultation',
-  property_mgmt: 'appointment',
-  'property-management': 'appointment',
-  salon: 'appointment',
-  restaurant: 'reservation',
-  other: 'appointment',
-}
-
 /**
  * Get the service appointment type for a niche.
+ * Source of truth: NICHE_REGISTRY[niche].serviceType
  */
 export function getServiceType(niche: string | null | undefined): string {
-  if (!niche) return 'appointment'
-  return NICHE_SERVICE_TYPES[niche] || 'appointment'
+  return getNicheServiceType(niche)
 }
 
 /**

@@ -10,6 +10,8 @@
  * (e.g. "3rd booking attempt — offer callback instead").
  */
 
+import { getNicheWorkflowType } from '@/lib/niche-registry'
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type ToolOutcome =
@@ -41,17 +43,10 @@ export interface CallState {
 
 // ── Niche → workflow type mapping ────────────────────────────────────────────
 
-const NICHE_WORKFLOW: Record<string, CallState['workflowType']> = {
-  auto_glass: 'intake',
-  real_estate: 'triage',
-  property_mgmt: 'support',
-  voicemail: 'support',
-}
-
 /** Build the initial call state for a given niche. Passed as `initialState` on call creation. */
 export function defaultCallState(niche?: string | null): CallState {
   return {
-    workflowType: NICHE_WORKFLOW[niche || ''] || 'support',
+    workflowType: getNicheWorkflowType(niche),
     step: 0,
     fieldsCollected: [],
     escalationFlag: false,
