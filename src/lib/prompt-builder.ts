@@ -1285,6 +1285,11 @@ function buildNicheFaqDefaults(niche: string, variables: Record<string, string>)
     ],
   }
 
+  // For AI-generated 'other' niche config — use the generated FAQ pairs directly
+  if (niche === 'other' && variables.CUSTOM_FAQ_DEFAULTS) {
+    return variables.CUSTOM_FAQ_DEFAULTS
+  }
+
   const lines = faqMap[niche]
   if (!lines) return ''
   return lines.join('\n')
@@ -1909,6 +1914,7 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
       INFO_TO_COLLECT: custom.info_to_collect,
       CLOSE_PERSON: custom.close_person,
       CLOSE_ACTION: custom.close_action,
+      CUSTOM_FAQ_DEFAULTS: custom.faq_defaults.join('\n'),
     }
   }
 

@@ -27,9 +27,11 @@ const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
   // legal / consultation intake
   lawyer: "legal", legal_services: "legal",
   accounting: "legal", financial_planner: "legal", insurance_agency: "legal", notary_public: "legal",
+  // barbershop
+  barber_shop: "barbershop",
   // salon / appointment booking
   hair_care: "salon", beauty_salon: "salon", nail_salon: "salon", spa: "salon",
-  barber_shop: "salon", chiropractor: "salon", massage_therapist: "salon",
+  chiropractor: "salon", massage_therapist: "salon",
   gym: "salon", fitness_center: "salon", yoga_studio: "salon",
   // real estate
   real_estate_agency: "real_estate", real_estate: "real_estate",
