@@ -211,6 +211,7 @@ export const NICHE_CONFIG: Record<Niche, {
   pest_control:         { hasPhysicalAddress: false },
   electrician:          { hasPhysicalAddress: false },
   locksmith:            { hasPhysicalAddress: false },
+  barbershop:           { hasPhysicalAddress: true  },
   other:                { hasPhysicalAddress: false },
 };
 

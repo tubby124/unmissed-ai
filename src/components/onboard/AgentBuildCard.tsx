@@ -25,6 +25,7 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   pest_control: Bug,
   electrician: Zap,
   locksmith: KeyRound,
+  barbershop: Scissors,
   other: HelpCircle,
 };
 
