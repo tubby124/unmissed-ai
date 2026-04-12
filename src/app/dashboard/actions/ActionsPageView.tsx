@@ -10,6 +10,7 @@ import IvrMenuCard from '@/components/dashboard/settings/IvrMenuCard'
 import VoicemailGreetingCard from '@/components/dashboard/settings/VoicemailGreetingCard'
 import AdminDropdown from '@/components/dashboard/AdminDropdown'
 import ServiceCatalogEditor from '@/components/dashboard/actions/ServiceCatalogEditor'
+import OutboundSchedulingCard from '@/components/dashboard/actions/OutboundSchedulingCard'
 
 // ─── Behavior summary ─────────────────────────────────────────────────────────
 
@@ -124,7 +125,13 @@ function ActionCards({
         />
       </div>
 
-      {/* Row 5: Behavior summary — full width */}
+      {/* Row 5: Outbound Scheduling — full width */}
+      <div id="outbound" className="sm:col-span-2">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-text-3)' }}>Outbound</p>
+        <OutboundSchedulingCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
+
+      {/* Row 6: Behavior summary — full width */}
       <div className="sm:col-span-2 rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
         <p className="text-[10px] uppercase tracking-[0.15em] t3 font-semibold">What happens after calls</p>
         <p className="text-xs t2 leading-relaxed">{summary}</p>

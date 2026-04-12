@@ -18,6 +18,22 @@ import { SLOT_IDS, type SlotId } from '@/lib/prompt-sections'
 
 // ── Agent sync helper ────────────────────────────────────────────────────────────
 
+// Retry once on transient 5xx from Ultravox (e.g. 503 during deploy)
+function isRetryableUltravoxError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return /\s5\d{2}\b/.test(msg)
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 1, delayMs = 2000): Promise<T> {
+  try { return await fn() } catch (err) {
+    if (retries > 0 && isRetryableUltravoxError(err)) {
+      await new Promise(r => setTimeout(r, delayMs))
+      return withRetry(fn, retries - 1, delayMs)
+    }
+    throw err
+  }
+}
+
 interface SyncResult { synced: boolean; error?: string }
 
 async function syncToUltravox(
@@ -78,7 +94,7 @@ async function syncToUltravox(
       niche: (clientRow.niche as string | null) || undefined,
     }
 
-    await updateAgent(clientRow.ultravox_agent_id, agentFlags)
+    await withRetry(() => updateAgent(clientRow.ultravox_agent_id, agentFlags))
 
     // Keep clients.tools in sync — runtime-authoritative for live calls (Finding 6)
     const syncTools = buildAgentTools(agentFlags)
@@ -233,12 +249,12 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // 8b — Slot regeneration for niche_custom_variables (D283c)
+  // 8b — Slot regeneration for niche_custom_variables (D283c) and city
   // niche_custom_variables can affect ANY slot (TRIAGE_DEEP, FORBIDDEN_EXTRA, etc.)
-  // so we regenerate ALL slots from current DB state (which now has the new values).
+  // city is consumed by slot-regenerator and must trigger full regen on change.
   // Only fires on slot-composed prompts (new clients). Old clients use patchers.
   let slotRegenResult: RegenerateSlotResult | null = null
-  if ('niche_custom_variables' in updates) {
+  if ('niche_custom_variables' in updates || 'city' in updates) {
     try {
       slotRegenResult = await regenerateSlots(
         targetClientId,

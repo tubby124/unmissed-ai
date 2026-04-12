@@ -53,6 +53,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   agent_mode:           { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true, triggersPatch: 'agent_mode' },
   agent_voice_id:       { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
   knowledge_backend:    { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true, adminOnly: true },
+  // sms_enabled is intentionally preserved — infrastructure for per-client dashboard toggle (not dead code)
   sms_enabled:          { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true, triggersPatch: 'sms' },
   twilio_number:        { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true, adminOnly: true },
 
@@ -105,11 +106,17 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Outbound calling structured fields ───────────────────────────────────
-  outbound_goal:       { mutationClass: 'DB_ONLY', triggersSync: false },
-  outbound_opening:    { mutationClass: 'DB_ONLY', triggersSync: false },
-  outbound_vm_script:  { mutationClass: 'DB_ONLY', triggersSync: false },
-  outbound_tone:       { mutationClass: 'DB_ONLY', triggersSync: false },
-  outbound_notes:      { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_goal:               { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_opening:            { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_vm_script:          { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_tone:               { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_notes:              { mutationClass: 'DB_ONLY', triggersSync: false },
+  // Outbound scheduling config (backed by 20260412 migration)
+  outbound_enabled:            { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_number:             { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_time_window_start:  { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_time_window_end:    { mutationClass: 'DB_ONLY', triggersSync: false },
+  outbound_max_attempts:       { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
   // D283c: was DB_ONLY (fake-control). Now triggers slot regeneration → prompt rebuild → sync.
@@ -259,6 +266,12 @@ export const settingsBodySchema = z.object({
   outbound_vm_script: z.union([z.string().max(500), z.null()]).optional(),
   outbound_tone: z.enum(['warm', 'professional', 'direct']).optional(),
   outbound_notes: z.union([z.string(), z.null()]).optional(),
+  // Outbound scheduling config
+  outbound_enabled: z.boolean().optional(),
+  outbound_number: z.union([z.string(), z.null()]).optional(),
+  outbound_time_window_start: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.null()]).optional(),
+  outbound_time_window_end: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.null()]).optional(),
+  outbound_max_attempts: z.union([z.number().int().min(1).max(10), z.null()]).optional(),
 
   // Admin-only: God Mode
   telegram_bot_token: z.string().min(1).optional(),
@@ -436,6 +449,24 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   if (body.outbound_notes !== undefined) {
     const val = typeof body.outbound_notes === 'string' ? body.outbound_notes.trim() : null
     updates.outbound_notes = val || null
+  }
+
+  // Outbound scheduling config
+  if (body.outbound_enabled !== undefined) {
+    updates.outbound_enabled = body.outbound_enabled
+  }
+  if (body.outbound_number !== undefined) {
+    const val = typeof body.outbound_number === 'string' ? body.outbound_number.trim() : null
+    updates.outbound_number = val || null
+  }
+  if (body.outbound_time_window_start !== undefined) {
+    updates.outbound_time_window_start = body.outbound_time_window_start ?? null
+  }
+  if (body.outbound_time_window_end !== undefined) {
+    updates.outbound_time_window_end = body.outbound_time_window_end ?? null
+  }
+  if (body.outbound_max_attempts !== undefined) {
+    updates.outbound_max_attempts = body.outbound_max_attempts ?? null
   }
 
   // system_prompt — validated separately (may be overwritten by prompt patchers)

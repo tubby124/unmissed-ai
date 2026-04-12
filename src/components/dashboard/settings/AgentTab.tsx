@@ -36,6 +36,7 @@ import OutboundAgentConfigCard from '@/components/dashboard/OutboundAgentConfigC
 import PromptVersionsCard from '@/components/dashboard/settings/PromptVersionsCard'
 import AgentKnowledgeCard from '@/components/dashboard/settings/AgentKnowledgeCard'
 import ServicesOfferedCard from '@/components/dashboard/settings/ServicesOfferedCard'
+import ContextDataCard from '@/components/dashboard/settings/ContextDataCard'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import WebsiteSourcesList from '@/components/dashboard/settings/WebsiteSourcesList'
 import QuickSetupStrip from '@/components/dashboard/settings/QuickSetupStrip'
@@ -49,6 +50,7 @@ import BillingCard from '@/components/dashboard/settings/BillingCard'
 import { useDirtyGuardEffect } from './useDirtyGuard'
 import { usePatchSettings } from './usePatchSettings'
 import type { GodConfigEntry } from './constants'
+import { TIMEZONES } from './constants'
 import { fmtPhone } from '@/lib/settings-utils'
 import PmSetupChecklist from '@/components/dashboard/settings/PmSetupChecklist'
 import PmConfigCard from '@/components/dashboard/settings/PmConfigCard'
@@ -191,6 +193,7 @@ export default function AgentTab({
 }: AgentTabProps) {
   useDirtyGuardEffect()
   const { patch: patchSettings } = usePatchSettings(client.id, isAdmin)
+  const [timezone, setTimezone] = useState(client.timezone ?? 'America/Edmonton')
 
   // Compute once — used by CapabilitiesCard and TestCallCard (avoids duplicate inline logic)
   const capabilities = buildCapabilityFlags(client)
@@ -522,13 +525,20 @@ export default function AgentTab({
           />
         </>
       ) : (
-        <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium t1">Facts, FAQs &amp; website knowledge</p>
-            <p className="text-[11px] t3">Manage everything your agent knows about your business</p>
+        <>
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium t1">Facts, FAQs &amp; website knowledge</p>
+              <p className="text-[11px] t3">Manage everything your agent knows about your business</p>
+            </div>
+            <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Manage →</a>
           </div>
-          <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Manage →</a>
-        </div>
+          {niche === 'property_management' && (
+            <div className="rounded-2xl border b-theme bg-surface p-5">
+              <ContextDataCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+            </div>
+          )}
+        </>
       )}
 
       {/* ═══════ CAPABILITIES & ROUTING ═════════════════════════════ */}
@@ -604,7 +614,7 @@ export default function AgentTab({
         </PlanGate>
       )}
 
-      {hasCapability(niche, 'bookAppointments') && isAdmin && (
+      {hasCapability(niche, 'bookAppointments') && (
         <PlanGate clientId={client.id} selectedPlan={client.selected_plan} subscriptionStatus={client.subscription_status} feature="booking">
           <StaffRosterCard
             clientId={client.id}
@@ -764,6 +774,26 @@ export default function AgentTab({
       {/* ═══════ BILLING & SETUP (non-admin, bottom) ═══════════════ */}
       {!isAdmin && (
         <>
+          <div className="col-span-full pt-2">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Settings</p>
+          </div>
+          <div className="rounded-2xl border b-theme bg-surface px-5 py-4 space-y-1.5">
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Timezone</p>
+            <p className="text-[11px] t3 mb-2">Used for business hours and after-hours routing.</p>
+            <select
+              value={timezone}
+              onChange={async e => {
+                setTimezone(e.target.value)
+                await patchSettings({ timezone: e.target.value })
+              }}
+              className="w-full bg-transparent border b-theme rounded-lg px-3 py-2 text-xs t1 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+            >
+              {TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="col-span-full pt-2">
             <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Plan & Billing</p>
           </div>

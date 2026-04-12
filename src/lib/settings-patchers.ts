@@ -63,15 +63,18 @@ interface PatcherContext {
 }
 
 /**
- * Fields that trigger prompt auto-patching.
+ * Fields that trigger prompt auto-patching (surgical patcher OR slot regen).
  * If any of these are present in the body, we need to fetch the current prompt.
+ * Exported for parity tests — do not remove.
  */
-const PATCH_TRIGGER_FIELDS = [
+export const PATCH_TRIGGER_FIELDS = [
   'section_id', 'booking_enabled', 'sms_enabled', 'voice_style_preset',
   'agent_name', 'business_name', 'owner_name', 'services_offered', 'call_handling_mode', 'agent_mode',
   'forwarding_number', 'business_hours_weekday',
   // D283c: triggers slot regeneration instead of individual patcher
   'niche_custom_variables',
+  // city is consumed by slot-regenerator — must trigger full regen on change
+  'city',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {
@@ -144,8 +147,12 @@ function applyPatch(
  * When any of these are in the PATCH body for a voicemail/message_only client,
  * we do a full rebuild instead of surgical section patching (which silently
  * fails because voicemail prompts have different section headers).
+ *
+ * PARITY RULE: every prompt-affecting field in FIELD_REGISTRY with triggersPatch must be in
+ * PATCH_TRIGGER_FIELDS (hasPatchTrigger) or here (hasVoicemailField). voicemail-slot-parity.test.ts enforces this.
+ * Exported for parity tests — do not remove.
  */
-const VOICEMAIL_REBUILD_FIELDS = [
+export const VOICEMAIL_REBUILD_FIELDS = [
   'today_update', 'business_notes', 'fields_to_collect',
   'pricing_policy', 'unknown_answer_behavior', 'calendar_mode',
 ] as const

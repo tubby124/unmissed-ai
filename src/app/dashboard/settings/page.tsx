@@ -136,6 +136,12 @@ export interface ClientConfig {
   calendar_mode: string | null
   fields_to_collect: string[] | null
   hand_tuned: boolean | null
+  // Outbound scheduling
+  outbound_enabled: boolean | null
+  outbound_number: string | null
+  outbound_time_window_start: string | null
+  outbound_time_window_end: string | null
+  outbound_max_attempts: number | null
 }
 
 export default async function SettingsPage({

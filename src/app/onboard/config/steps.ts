@@ -65,7 +65,7 @@ export interface StepDef {
 import Step1GBP from '../steps/step1-gbp'
 import StepNiche from '../steps/step-niche'
 import StepPlan from '../steps/step-plan'
-import Step6Activate from '../steps/step6-activate'
+import Step6Activate from '../steps/step4-activate'
 
 /**
  * 4-step onboarding — Your business → Your agent → Your plan → Launch

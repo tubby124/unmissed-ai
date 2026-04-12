@@ -950,10 +950,15 @@ export type Database = {
           monthly_minute_limit: number | null
           niche: string | null
           niche_custom_variables: Json | null
+          outbound_enabled: boolean | null
           outbound_goal: string | null
+          outbound_max_attempts: number | null
           outbound_notes: string | null
+          outbound_number: string | null
           outbound_opening: string | null
           outbound_prompt: string | null
+          outbound_time_window_end: string | null
+          outbound_time_window_start: string | null
           outbound_tone: string | null
           outbound_vm_script: string | null
           owner_name: string | null
@@ -1071,10 +1076,15 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           niche_custom_variables?: Json | null
+          outbound_enabled?: boolean | null
           outbound_goal?: string | null
+          outbound_max_attempts?: number | null
           outbound_notes?: string | null
+          outbound_number?: string | null
           outbound_opening?: string | null
           outbound_prompt?: string | null
+          outbound_time_window_end?: string | null
+          outbound_time_window_start?: string | null
           outbound_tone?: string | null
           outbound_vm_script?: string | null
           owner_name?: string | null
@@ -1192,10 +1202,15 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           niche_custom_variables?: Json | null
+          outbound_enabled?: boolean | null
           outbound_goal?: string | null
+          outbound_max_attempts?: number | null
           outbound_notes?: string | null
+          outbound_number?: string | null
           outbound_opening?: string | null
           outbound_prompt?: string | null
+          outbound_time_window_end?: string | null
+          outbound_time_window_start?: string | null
           outbound_tone?: string | null
           outbound_vm_script?: string | null
           owner_name?: string | null
