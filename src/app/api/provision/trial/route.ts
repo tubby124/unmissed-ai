@@ -15,6 +15,8 @@ import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
+import { generateNicheConfig, CustomNicheConfig } from "@/lib/niche-generator";
+import { enrichWithSonar } from "@/lib/sonar-enrichment";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
 
@@ -208,6 +210,21 @@ export async function POST(req: NextRequest) {
     knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join("\n\n---\n\n");
   }
 
+  // For 'other' niche — try to generate a custom niche config before building the prompt
+  let customNicheConfig: CustomNicheConfig | null = null
+  if ((data.niche || 'other') === 'other') {
+    customNicheConfig = await generateNicheConfig(
+      data.businessName || '',
+      '',  // gbpCategory not persisted in OnboardingData; gbpDescription carries the signal
+      data.gbpDescription || '',
+      websiteContent,
+      data.city || '',
+    )
+    if (customNicheConfig) {
+      intakeData.custom_niche_config = customNicheConfig
+    }
+  }
+
   let prompt: string;
   try {
     prompt = buildPromptFromIntake(intakeData, websiteContent, knowledgeDocs);
@@ -252,7 +269,9 @@ export async function POST(req: NextRequest) {
 
   // Update clients row with agent/prompt data
   const niche = data.niche || "other";
-  const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other;
+  const classificationRules = (niche === 'other' && customNicheConfig?.classification_rule)
+    ? customNicheConfig.classification_rule
+    : (NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other);
   const timezone = data.timezone || "America/Edmonton";
 
   const { error: updateErr } = await supa
@@ -263,6 +282,7 @@ export async function POST(req: NextRequest) {
       agent_voice_id: voiceId,
       classification_rules: classificationRules,
       timezone,
+      ...(customNicheConfig ? { custom_niche_config: customNicheConfig } : {}),
     })
     .eq("id", clientId);
 
@@ -306,6 +326,24 @@ export async function POST(req: NextRequest) {
   }
 
   // Telegram alert handled by activateClient() — no duplicate needed
+
+  // Phase 2.5: Non-blocking Sonar enrichment — fire-and-forget, never blocks activation
+  const sonarBusinessName = data.businessName || '';
+  const sonarCity = data.city || '';
+  const sonarNiche = data.niche || 'other';
+  if (sonarBusinessName && sonarCity) {
+    enrichWithSonar(sonarBusinessName, sonarCity, sonarNiche, websiteUrl || undefined)
+      .then(sonarResult => {
+        if (sonarResult) {
+          supa.from('clients')
+            .update({ business_facts: sonarResult })
+            .eq('id', clientId)
+            .then(() => console.log(`[provision/trial] Sonar enrichment saved for ${clientSlug}`))
+            .catch(err => console.error('[provision/trial] Sonar DB save failed:', err))
+        }
+      })
+      .catch(() => {}) // never throw — non-blocking
+  }
 
   // SCRAPE2/K2: Seed knowledge chunks from website scrape data
   let knowledgeCount = 0;

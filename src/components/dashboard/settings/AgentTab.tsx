@@ -693,6 +693,8 @@ export default function AgentTab({
           <GodModeCard
             clientId={client.id}
             initialConfig={godConfig[client.id]}
+            niche={client.niche ?? undefined}
+            customNicheConfig={(client.custom_niche_config as Record<string, unknown> | null | undefined) ?? null}
             previewMode={previewMode}
           />
         )}

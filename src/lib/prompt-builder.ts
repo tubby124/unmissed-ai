@@ -2,6 +2,7 @@ import { wrapSection } from '@/lib/prompt-sections'
 import { getCapabilities } from '@/lib/niche-capabilities'
 import { PROMPT_CHAR_TARGET, PROMPT_CHAR_HARD_MAX } from '@/lib/knowledge-summary'
 import { VOICE_PRESETS } from './voice-presets'
+import type { CustomNicheConfig } from '@/lib/niche-generator'
 
 /**
  * prompt-builder.ts — TypeScript port of PROVISIONING/app/prompt_builder.py
@@ -1895,7 +1896,21 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   // Real estate uses its own persona-style template
   if (niche === 'real_estate') return buildRealEstatePrompt(intake)
 
-  const nicheDefaults = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS.other
+  let nicheDefaults = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS.other
+
+  // For 'other' niche with AI-generated custom config — overlay the generated fields
+  if (niche === 'other' && intake.custom_niche_config) {
+    const custom = intake.custom_niche_config as CustomNicheConfig
+    nicheDefaults = {
+      ...NICHE_DEFAULTS.other,
+      INDUSTRY: custom.industry,
+      PRIMARY_CALL_REASON: custom.primary_call_reason,
+      TRIAGE_DEEP: custom.triage_deep,
+      INFO_TO_COLLECT: custom.info_to_collect,
+      CLOSE_PERSON: custom.close_person,
+      CLOSE_ACTION: custom.close_action,
+    }
+  }
 
   // Layer: common → niche → intake overrides
   const variables: Record<string, string> = {

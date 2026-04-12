@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -103,6 +103,12 @@ export async function POST(req: NextRequest) {
     // For active clients, preserve the current agent_name
     if (client.agent_name && client.status === 'active') {
       intakeData.db_agent_name = client.agent_name
+    }
+
+    // For 'other' niche: inject custom_niche_config from client row so admin overrides are respected
+    const clientNiche = (client.niche as string | null) || 'other'
+    if (clientNiche === 'other' && client.custom_niche_config && !intakeData.custom_niche_config) {
+      intakeData.custom_niche_config = client.custom_niche_config
     }
 
     // Fetch knowledge docs

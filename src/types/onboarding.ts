@@ -13,6 +13,7 @@ export type Niche =
   | "restaurant"
   | "voicemail"
   | "print_shop"
+  | "barbershop"
   | "other";
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
@@ -225,6 +226,7 @@ export const nicheLabels: Record<Niche, string> = {
   restaurant: "Restaurant / Food Service",
   voicemail: "Voicemail / Message Taking",
   print_shop: "Print Shop",
+  barbershop: "Barbershop",
   other: "Other Business",
 };
 
@@ -241,6 +243,7 @@ export const nicheEmojis: Record<Niche, string> = {
   restaurant: "🍕",
   voicemail: "📬",
   print_shop: "🖨️",
+  barbershop: "💈",
   other: "🏢",
 };
 
@@ -257,5 +260,6 @@ export const defaultAgentNames: Record<Niche, string> = {
   restaurant: "Sofia",
   voicemail: "Sam",
   print_shop: "Alex",
+  barbershop: "Jake",
   other: "Sam",
 };

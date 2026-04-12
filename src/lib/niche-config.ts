@@ -15,6 +15,7 @@ export const NICHE_CONFIG: Record<string, { label: string; color: string; border
   'plumbing':            { label: 'Plumbing',           color: 'text-cyan-400',   border: 'border-cyan-500/30',   bg: 'bg-cyan-500/10' },
   'legal':               { label: 'Legal',              color: 'text-rose-400',   border: 'border-rose-500/30',   bg: 'bg-rose-500/10' },
   'print_shop':          { label: 'Print Shop',         color: 'text-indigo-400', border: 'border-indigo-500/30', bg: 'bg-indigo-500/10' },
+  'barbershop':          { label: 'Barbershop',         color: 'text-green-400',  border: 'border-green-500/30',  bg: 'bg-green-500/10' },
   'voicemail':           { label: 'Voicemail',          color: 'text-zinc-400',   border: 'border-zinc-500/30',   bg: 'bg-zinc-500/10' },
   'other':               { label: 'Other',              color: 'text-zinc-400',   border: 'border-zinc-500/30',   bg: 'bg-zinc-500/10' },
 }
@@ -32,6 +33,7 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   'real-estate':        'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
   outbound_isa_realtor: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a',
   print_shop:           'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
+  barbershop:           'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — confident, conversational
   dental:               'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', // Jacqueline — warm for patients
   hvac:                 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
   plumbing:             'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark
@@ -53,6 +55,7 @@ export const NICHE_PRODUCTION_READY: Record<Niche, boolean> = {
   restaurant:           true,
   voicemail:            true,
   print_shop:           true,
+  barbershop:           true,
   other:                true,
 }
 

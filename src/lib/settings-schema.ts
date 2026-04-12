@@ -197,6 +197,9 @@ export const settingsBodySchema = z.object({
   // Knowledge backend (admin-only)
   knowledge_backend: z.union([z.literal('pgvector'), z.null()]).optional(),
 
+  // Custom niche config override (admin-only, 'other' niche clients)
+  custom_niche_config: z.record(z.unknown()).optional(),
+
   // Audit trail (not a DB field, passed for prompt versioning)
   change_description: z.string().optional(),
 }).passthrough() // Allow unknown fields without failing — they'll be ignored by buildUpdates
@@ -363,6 +366,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     if (body.twilio_number !== undefined) updates.twilio_number = body.twilio_number
     if (body.monthly_minute_limit !== undefined) updates.monthly_minute_limit = body.monthly_minute_limit
     if (body.knowledge_backend !== undefined) updates.knowledge_backend = body.knowledge_backend
+    if (body.custom_niche_config !== undefined) updates.custom_niche_config = body.custom_niche_config
   }
 
   return updates
