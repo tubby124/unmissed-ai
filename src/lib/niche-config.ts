@@ -20,6 +20,7 @@ export const NICHE_CONFIG: Record<string, { label: string; color: string; border
   'pest_control':        { label: 'Pest Control',       color: 'text-lime-400',   border: 'border-lime-500/30',   bg: 'bg-lime-500/10' },
   'electrician':         { label: 'Electrician',        color: 'text-yellow-400', border: 'border-yellow-500/30', bg: 'bg-yellow-500/10' },
   'locksmith':           { label: 'Locksmith',          color: 'text-slate-400',  border: 'border-slate-500/30',  bg: 'bg-slate-500/10' },
+  'barbershop':          { label: 'Barbershop',         color: 'text-green-400',  border: 'border-green-500/30',  bg: 'bg-green-500/10' },
   'other':               { label: 'Other',              color: 'text-zinc-400',   border: 'border-zinc-500/30',   bg: 'bg-zinc-500/10' },
 }
 
@@ -45,6 +46,7 @@ export const NICHE_VOICE_MAP: Record<string, string> = {
   pest_control:         'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — practical, calm
   electrician:          'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — direct, reassuring
   locksmith:            'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — fast, direct (lockouts = speed)
+  barbershop:           'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — confident, energetic
   other:                'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Mark — safe default
 }
 
@@ -65,6 +67,7 @@ export const NICHE_PRODUCTION_READY: Record<Niche, boolean> = {
   pest_control:         true,
   electrician:          true,
   locksmith:            true,
+  barbershop:           true,
   other:                true,
 }
 

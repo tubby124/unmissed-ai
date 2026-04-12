@@ -17,6 +17,7 @@ export type Niche =
   | "pest_control"
   | "electrician"
   | "locksmith"
+  | "barbershop"
   | "other";
 
 export type NotificationMethod = "telegram" | "sms" | "email" | "both";
@@ -295,6 +296,7 @@ export const nicheLabels: Record<Niche, string> = {
   pest_control: "Pest Control",
   electrician: "Electrician",
   locksmith: "Locksmith",
+  barbershop: "Barbershop",
   other: "Other Business",
 };
 
@@ -315,6 +317,7 @@ export const nicheEmojis: Record<Niche, string> = {
   pest_control: "🐛",
   electrician: "⚡",
   locksmith: "🔑",
+  barbershop: "💈",
   other: "🏢",
 };
 
@@ -335,5 +338,6 @@ export const defaultAgentNames: Record<Niche, string> = {
   pest_control: "Tyler",
   electrician: "Ryan",
   locksmith: "Chris",
+  barbershop: "Jake",
   other: "Sam",
 };

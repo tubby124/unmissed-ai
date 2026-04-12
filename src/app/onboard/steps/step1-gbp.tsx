@@ -14,17 +14,42 @@ import { agentNameIsAutoSet } from "@/lib/intake-transform";
 const FEMALE_DEFAULT = { id: "aa601962-1cbd-4bbd-9d96-3c7a93c3414a", name: "Jacqueline" };
 
 const PLACES_TYPE_TO_NICHE: Record<string, Niche> = {
+  // auto glass
   auto_glass_shop: "auto_glass", car_repair: "auto_glass", car_wash: "auto_glass", glass_repair_service: "auto_glass",
-  hvac_contractor: "hvac", electrician: "hvac", heating_contractor: "hvac", air_conditioning_contractor: "hvac", roofing_contractor: "hvac",
+  // hvac / emergency dispatch
+  hvac_contractor: "hvac", heating_contractor: "hvac", air_conditioning_contractor: "hvac", roofing_contractor: "hvac",
+  moving_company: "hvac",
+  // plumbing
   plumber: "plumbing", drain_cleaning_service: "plumbing",
+  // dedicated emergency trade niches
+  electrician: "electrician", electrical_contractor: "electrician",
+  locksmith: "locksmith",
+  pest_control: "pest_control",
+  // dental / appointment + emergency split
   dentist: "dental", dental_clinic: "dental", orthodontist: "dental", cosmetic_dentist: "dental",
+  physiotherapist: "dental", veterinarian: "dental", animal_hospital: "dental", optometrist: "dental",
+  // legal / consultation intake
   lawyer: "legal", legal_services: "legal", attorney: "legal",
-  hair_care: "salon", beauty_salon: "salon", nail_salon: "salon", spa: "salon", barber_shop: "salon",
+  accounting: "legal", financial_planner: "legal", insurance_agency: "legal", notary_public: "legal",
+  // barbershop (dedicated niche — booking, barber routing)
+  barber_shop: "barbershop",
+  // salon / appointment booking
+  hair_care: "salon", beauty_salon: "salon", nail_salon: "salon", spa: "salon",
+  chiropractor: "salon", massage_therapist: "salon", gym: "salon", fitness_center: "salon", yoga_studio: "salon",
+  // real estate
   real_estate_agency: "real_estate", real_estate: "real_estate",
+  // property management / tenant triage
   property_management_company: "property_management",
   apartment_rental_agency: "property_management", real_estate_rental_agency: "property_management", condominium_complex: "property_management",
-  restaurant: "restaurant", food: "restaurant", cafe: "restaurant", meal_takeaway: "restaurant", bakery: "restaurant", bar: "restaurant", fast_food_restaurant: "restaurant",
+  storage: "property_management", self_storage: "property_management", storage_facility: "property_management",
+  commercial_real_estate_agency: "property_management",
+  // restaurant
+  restaurant: "restaurant", food: "restaurant", cafe: "restaurant", meal_takeaway: "restaurant",
+  bakery: "restaurant", bar: "restaurant", fast_food_restaurant: "restaurant",
+  // print shop
   print_shop: "print_shop",
+  // mechanic
+  car_dealer: "mechanic_shop", auto_parts_store: "mechanic_shop",
 };
 
 function detectNicheFromTypes(types: string[]): Niche | null {
