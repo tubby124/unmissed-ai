@@ -736,6 +736,14 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     if (val?.trim()) variables[varKey] = val
   }
 
+  // Phone hallucination guard: when callback_phone is missing, forbid the agent from inventing one
+  if (!variables.CALLBACK_PHONE?.trim()) {
+    const noPhoneRule = 'NEVER state or invent a phone number for the business — you do not have that information.'
+    variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
+      ? variables.FORBIDDEN_EXTRA + '\n' + noPhoneRule
+      : noPhoneRule
+  }
+
   // Normalize HOURS_WEEKDAY from 24h → 12h AM/PM (GBP returns "11:00–23:00" style)
   // T4: Also collapse per-day hours into ranges at render time (existing intake_json may have per-day format)
   if (variables.HOURS_WEEKDAY) {

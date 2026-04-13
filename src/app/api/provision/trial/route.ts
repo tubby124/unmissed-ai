@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
 
   // For 'other' niche — try to generate a custom niche config before building the prompt
   let customNicheConfig: CustomNicheConfig | null = null
-  if ((data.niche || 'other') === 'other') {
+  if (['other', 'restaurant'].includes(data.niche || 'other')) {
     customNicheConfig = await generateNicheConfig(
       data.businessName || '',
       '',  // gbpCategory not persisted in OnboardingData; gbpDescription carries the signal
