@@ -521,8 +521,11 @@ You: "thanks, but we're not interested. have a good day."
 // ── Slot 13: CALL_HANDLING_MODE ────────────────────────────────────────────
 
 export function buildCallHandlingMode(ctx: SlotContext): string {
-  return wrapSection(`## CALL HANDLING MODE
-${ctx.callHandlingModeInstructions}`, 'call_handling_mode')
+  let instructions = ctx.callHandlingModeInstructions
+  if (ctx.effectiveMode === 'triage' || ctx.effectiveMode === 'lead_capture') {
+    instructions += '\nIMPORTANT: Once the caller has given their name, do NOT ask for it again. Track what you have already collected and only ask for missing info.'
+  }
+  return wrapSection(`## CALL HANDLING MODE\n${instructions}`, 'call_handling_mode')
 }
 
 // ── Slot 14: FAQ_PAIRS ─────────────────────────────────────────────────────

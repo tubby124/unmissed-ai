@@ -69,7 +69,7 @@ const SLOT_CEILINGS = {
   CONVERSATION_FLOW: 5_000,   // Phase D: 3,996 — includes niche triageDeep
   ESCALATION_TRANSFER: 550,   // Phase D: 418
   INLINE_EXAMPLES: 1_400,     // Phase D: 1,084 — safety-preserving trim helper
-  CALL_HANDLING_MODE: 300,    // Phase D: 207
+  CALL_HANDLING_MODE: 450,    // Phase D: 207 — bumped for triage no-repeat-name guardrail (+113 chars)
   RECENCY_ANCHOR: 500,        // Phase D: 374
   // Phase E.5 Wave 6 — Phase E Wave 5 slots. Both collapse to '' when the
   // underlying intake field is empty, so these ceilings only bite when owners
