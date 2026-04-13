@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
   // clients row but the next regenerate would read only intake_json and miss them.
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, service_catalog, agent_mode, hand_tuned, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config, service_catalog, agent_mode, hand_tuned, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -192,6 +192,12 @@ export async function POST(req: NextRequest) {
     if (client.fields_to_collect !== null && client.fields_to_collect !== undefined) intakeData.fields_to_collect = client.fields_to_collect
     // P1: voicemail builder needs twilio_number to gate "text this number" lines
     if (client.twilio_number) intakeData.twilio_number = client.twilio_number
+
+    // For 'other' niche: inject custom_niche_config from client row so admin overrides are respected
+    const clientNiche = (client.niche as string | null) || 'other'
+    if (clientNiche === 'other' && client.custom_niche_config && !intakeData.custom_niche_config) {
+      intakeData.custom_niche_config = client.custom_niche_config
+    }
 
     // Fetch knowledge docs
     let knowledgeDocs = ''

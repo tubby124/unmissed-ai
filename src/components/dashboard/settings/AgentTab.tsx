@@ -765,6 +765,8 @@ export default function AgentTab({
               previewMode={previewMode}
               currentAgentMode={(client.agent_mode as string | null) ?? null}
               currentCallHandlingMode={(client.call_handling_mode as string | null) ?? null}
+              niche={client.niche ?? undefined}
+              customNicheConfig={(client.custom_niche_config as Record<string, unknown> | null | undefined) ?? null}
             />
           )}
           <RuntimeCard client={client} />

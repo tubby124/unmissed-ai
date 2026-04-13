@@ -16,6 +16,7 @@ import { rowsToCatalogItems } from "@/lib/service-catalog";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
+import { generateNicheConfig, CustomNicheConfig } from "@/lib/niche-generator";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
 
@@ -315,6 +316,21 @@ export async function POST(req: NextRequest) {
     knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join("\n\n---\n\n");
   }
 
+  // For 'other' niche — try to generate a custom niche config before building the prompt
+  let customNicheConfig: CustomNicheConfig | null = null
+  if ((data.niche || 'other') === 'other') {
+    customNicheConfig = await generateNicheConfig(
+      data.businessName || '',
+      '',  // gbpCategory not persisted in OnboardingData; gbpDescription carries the signal
+      data.gbpDescription || '',
+      websiteContent,
+      data.city || '',
+    )
+    if (customNicheConfig) {
+      intakeData.custom_niche_config = customNicheConfig
+    }
+  }
+
   // 3-tier prompt size guard: full → no websiteContent → no knowledgeDocs → fail 422
   let prompt = '';
   let promptCharCount = 0;
@@ -377,7 +393,9 @@ export async function POST(req: NextRequest) {
 
   // Update clients row with agent/prompt data
   const niche = data.niche || "other";
-  const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other;
+  const classificationRules = (niche === 'other' && customNicheConfig?.classification_rule)
+    ? customNicheConfig.classification_rule
+    : (NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other);
   const timezone = data.timezone || "America/Edmonton";
 
   const { error: updateErr } = await supa
@@ -388,6 +406,7 @@ export async function POST(req: NextRequest) {
       agent_voice_id: voiceId,
       classification_rules: classificationRules,
       timezone,
+      ...(customNicheConfig ? { custom_niche_config: customNicheConfig } : {}),
     })
     .eq("id", clientId);
 

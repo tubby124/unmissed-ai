@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from '@/lib/prompt-builder'
+import type { CustomNicheConfig } from '@/lib/niche-generator'
 import { createAgent, updateAgent, buildAgentTools, resolveVoiceId } from '@/lib/ultravox'
 import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
@@ -137,6 +138,18 @@ export async function POST(req: NextRequest) {
     knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
   }
 
+  // For 'other' niche — pull custom_niche_config from existing client row if not already in intakeData
+  if ((intake.niche || 'other') === 'other' && intake.client_slug && !intakeData.custom_niche_config) {
+    const { data: customRow } = await svc
+      .from('clients')
+      .select('custom_niche_config')
+      .eq('slug', intake.client_slug)
+      .maybeSingle()
+    if (customRow?.custom_niche_config) {
+      intakeData.custom_niche_config = customRow.custom_niche_config
+    }
+  }
+
   let prompt: string
   try {
     prompt = buildPromptFromIntake(intakeData, websiteContent, knowledgeDocs)
@@ -166,7 +179,10 @@ export async function POST(req: NextRequest) {
   )
 
   // ── Look up existing client (needed before agent create/update) ────────────
-  const classificationRules = NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other
+  const customConfig = intakeData.custom_niche_config as CustomNicheConfig | undefined
+  const classificationRules = (niche === 'other' && customConfig?.classification_rule)
+    ? customConfig.classification_rule
+    : (NICHE_CLASSIFICATION_RULES[niche] || NICHE_CLASSIFICATION_RULES.other)
   const timezone = (intakeData.timezone as string) || 'America/Chicago'
 
   const { data: existingClient } = await svc

@@ -141,6 +141,7 @@ describe('FIELD_REGISTRY', () => {
 
     const expected = [
       'calendar_beta_enabled',
+      'custom_niche_config',
       'knowledge_backend',
       'monthly_minute_limit',
       'telegram_bot_token',

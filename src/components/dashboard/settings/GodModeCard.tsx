@@ -6,20 +6,39 @@ import { TIMEZONES } from './constants'
 import { usePatchSettings } from './usePatchSettings'
 import { AGENT_MODE_VALUES, AGENT_MODE_LABELS, type AgentMode } from '@/lib/agent-mode-rebuild'
 
+interface NicheOverride {
+  industry: string
+  triage_deep: string
+  classification_rule: string
+}
+
 interface GodModeCardProps {
   clientId: string
   initialConfig: GodConfigEntry
   previewMode?: boolean
   currentAgentMode?: string | null
   currentCallHandlingMode?: string | null
+  niche?: string
+  customNicheConfig?: Record<string, unknown> | null
 }
 
 type DeepModeStep = 'idle' | 'previewing' | 'preview_ready' | 'deploying' | 'done' | 'error'
 
-export default function GodModeCard({ clientId, initialConfig, previewMode, currentAgentMode, currentCallHandlingMode }: GodModeCardProps) {
+export default function GodModeCard({ clientId, initialConfig, previewMode, currentAgentMode, currentCallHandlingMode, niche, customNicheConfig }: GodModeCardProps) {
   const [config, setConfig] = useState<GodConfigEntry>(initialConfig)
   const { saving, saved, patch } = usePatchSettings(clientId, true)
   const [telegramTest, setTelegramTest] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
+
+  // Niche override state
+  const detectedIndustry = (customNicheConfig?.industry as string | undefined) || niche || 'other'
+  const [showNicheOverride, setShowNicheOverride] = useState(false)
+  const [nicheOverride, setNicheOverride] = useState<NicheOverride>({
+    industry: (customNicheConfig?.industry as string) || '',
+    triage_deep: (customNicheConfig?.triage_deep as string) || '',
+    classification_rule: (customNicheConfig?.classification_rule as string) || '',
+  })
+  const [nicheSaving, setNicheSaving] = useState(false)
+  const [nicheRebuildState, setNicheRebuildState] = useState<'idle' | 'rebuilding' | 'done' | 'fail'>('idle')
 
   // ── Deep Mode Activation state ─────────────────────────────────────────────
   const [deepModeStep, setDeepModeStep] = useState<DeepModeStep>('idle')
@@ -118,6 +137,33 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
     const data = await res.json().catch(() => ({ ok: false }))
     setTelegramTest(data.ok ? 'ok' : 'fail')
     setTimeout(() => setTelegramTest('idle'), 3000)
+  }
+
+  async function saveNicheOverride() {
+    setNicheSaving(true)
+    const merged = {
+      ...(customNicheConfig as Record<string, unknown> || {}),
+      industry: nicheOverride.industry.trim(),
+      triage_deep: nicheOverride.triage_deep.trim(),
+      classification_rule: nicheOverride.classification_rule.trim(),
+    }
+    await patch({ custom_niche_config: merged })
+    setNicheSaving(false)
+  }
+
+  async function rebuildPrompt() {
+    setNicheRebuildState('rebuilding')
+    try {
+      const res = await fetch('/api/dashboard/regenerate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+      setNicheRebuildState(res.ok ? 'done' : 'fail')
+    } catch {
+      setNicheRebuildState('fail')
+    }
+    setTimeout(() => setNicheRebuildState('idle'), 4000)
   }
 
   return (
@@ -376,6 +422,86 @@ export default function GodModeCard({ clientId, initialConfig, previewMode, curr
                 </div>
               )
             })()}
+          </div>
+        )}
+      </div>
+
+      {/* ── Niche Correction ── */}
+      <div className="mt-5 pt-4 border-t border-amber-500/20">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <span className="text-[11px] t3">Detected niche: </span>
+            <span className="text-[11px] font-mono text-amber-400">{detectedIndustry}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNicheOverride(v => !v)}
+            className="text-[10px] px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+          >
+            {showNicheOverride ? 'Hide Override' : 'Override Niche Config'}
+          </button>
+        </div>
+
+        {showNicheOverride && (
+          <div className="space-y-2 mt-2">
+            <div>
+              <label className="text-[11px] t3 block mb-1">Industry label</label>
+              <input
+                type="text"
+                value={nicheOverride.industry}
+                onChange={e => setNicheOverride(v => ({ ...v, industry: e.target.value }))}
+                placeholder="e.g. daycare, tattoo studio, dog groomer"
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] t3 block mb-1">Triage rules (HOT/WARM/COLD/JUNK)</label>
+              <textarea
+                value={nicheOverride.triage_deep}
+                onChange={e => setNicheOverride(v => ({ ...v, triage_deep: e.target.value }))}
+                rows={3}
+                placeholder="HOT = urgent immediate need. WARM = wants callback. COLD = info only. JUNK = spam."
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] t3 block mb-1">Classification rule (one sentence)</label>
+              <input
+                type="text"
+                value={nicheOverride.classification_rule}
+                onChange={e => setNicheOverride(v => ({ ...v, classification_rule: e.target.value }))}
+                placeholder="HOT = ..., WARM = ..., COLD = ..., JUNK = ..."
+                className="w-full bg-black/30 border b-theme rounded-lg px-3 py-2 text-xs t1 font-mono focus:outline-none focus:border-amber-500/40 transition-colors"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={saveNicheOverride}
+                disabled={nicheSaving || previewMode}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 disabled:opacity-40 transition-all"
+              >
+                {nicheSaving ? 'Saving\u2026' : 'Save Override'}
+              </button>
+              <button
+                type="button"
+                onClick={rebuildPrompt}
+                disabled={nicheRebuildState !== 'idle' || previewMode}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 ${
+                  nicheRebuildState === 'done'
+                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                    : nicheRebuildState === 'fail'
+                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                    : 'bg-hover t2 b-theme hover:bg-hover'
+                }`}
+              >
+                {nicheRebuildState === 'rebuilding' ? 'Rebuilding\u2026'
+                  : nicheRebuildState === 'done' ? '\u2713 Rebuilt'
+                  : nicheRebuildState === 'fail' ? '\u2717 Failed'
+                  : 'Rebuild Prompt'}
+              </button>
+            </div>
+            <p className="text-[10px] t3">Save Override first, then Rebuild Prompt to apply changes to the live agent.</p>
           </div>
         )}
       </div>

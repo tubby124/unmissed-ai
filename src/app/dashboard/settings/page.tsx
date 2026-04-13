@@ -142,6 +142,8 @@ export interface ClientConfig {
   outbound_time_window_start: string | null
   outbound_time_window_end: string | null
   outbound_max_attempts: number | null
+  // AI-generated niche config for 'other' businesses
+  custom_niche_config: Record<string, unknown> | null
 }
 
 export default async function SettingsPage({

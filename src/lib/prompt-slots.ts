@@ -16,6 +16,7 @@
  */
 
 import { getCapabilities } from '@/lib/niche-capabilities'
+import type { CustomNicheConfig } from '@/lib/niche-generator'
 import { VOICE_PRESETS } from './voice-presets'
 import { VOICE_TONE_PRESETS } from './prompt-config/voice-tone-presets'
 import { MODE_INSTRUCTIONS, getSmsBlock, getVipBlock } from './prompt-patcher'
@@ -671,9 +672,25 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   const niche = (intake.niche as string) || 'other'
   // Use niche-specific defaults if they exist (restaurant, dental, salon, legal, real_estate, etc.)
   // Fall back to production template mapping only for unknown/other niches
-  const nicheDefaults = (niche !== 'other' && niche in NICHE_DEFAULTS)
+  let nicheDefaults = (niche !== 'other' && niche in NICHE_DEFAULTS)
     ? NICHE_DEFAULTS[niche as keyof typeof NICHE_DEFAULTS]
     : (NICHE_DEFAULTS[resolveProductionNiche(niche)] ?? NICHE_DEFAULTS.other)
+
+  // For 'other' niche with AI-generated custom config — overlay the generated fields
+  if (niche === 'other' && intake.custom_niche_config) {
+    const custom = intake.custom_niche_config as CustomNicheConfig
+    nicheDefaults = {
+      ...NICHE_DEFAULTS.other,
+      INDUSTRY: custom.industry,
+      PRIMARY_CALL_REASON: custom.primary_call_reason,
+      TRIAGE_DEEP: custom.triage_deep,
+      INFO_TO_COLLECT: custom.info_to_collect,
+      CLOSE_PERSON: custom.close_person,
+      CLOSE_ACTION: custom.close_action,
+      ...(custom.faq_defaults?.length ? { CUSTOM_FAQ_DEFAULTS: custom.faq_defaults.join('\n') } : {}),
+    }
+  }
+
   const caps = getCapabilities(niche)
 
   // Layer: common → niche → AI-inferred custom vars → intake overrides
@@ -1200,14 +1217,18 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     } catch { /* invalid JSON */ }
   }
   const legacyFaq = (intake.caller_faq as string)?.trim() || ''
-  variables.FAQ_PAIRS = [faqPairsFormatted, legacyFaq].filter(Boolean).join('\n\n') || 'No FAQ pairs configured yet.'
+  // For AI-generated 'other' niche config — use the generated FAQ pairs when no other FAQ source exists
+  const customFaqDefaults = variables.CUSTOM_FAQ_DEFAULTS?.trim() || ''
+  variables.FAQ_PAIRS = [faqPairsFormatted, legacyFaq, customFaqDefaults].filter(Boolean).join('\n\n') || 'No FAQ pairs configured yet.'
 
   // Defaults
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
   variables.URGENCY_KEYWORDS = variables.URGENCY_KEYWORDS || '"emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"'
   // HOURS_WEEKDAY fallback — prevents {{HOURS_WEEKDAY}} leaking raw when client hasn't configured hours
-  if (!variables.HOURS_WEEKDAY) variables.HOURS_WEEKDAY = 'our regular business hours'
+  if (!variables.HOURS_WEEKDAY?.trim()) {
+    variables.HOURS_WEEKDAY = "hours aren't posted yet — i can have someone call ya back with that info"
+  }
 
   // Pre-resolve variable cross-references
   for (const key of Object.keys(variables)) {

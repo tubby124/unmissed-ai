@@ -134,6 +134,9 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   calendar_mode:             { mutationClass: 'DB_ONLY', triggersSync: false },
   fields_to_collect:         { mutationClass: 'DB_ONLY', triggersSync: false },
 
+  // Custom niche config override (admin-only, 'other' niche clients)
+  custom_niche_config:     { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
+
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
   telegram_bot_token:      { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -281,6 +284,9 @@ export const settingsBodySchema = z.object({
 
   // Knowledge backend (admin-only)
   knowledge_backend: z.union([z.literal('pgvector'), z.null()]).optional(),
+
+  // Custom niche config override (admin-only, 'other' niche clients)
+  custom_niche_config: z.record(z.unknown()).optional(),
 
   // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
   niche_custom_variables: z.record(z.string()).optional(),
@@ -565,6 +571,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     if (body.twilio_number !== undefined) updates.twilio_number = body.twilio_number
     if (body.monthly_minute_limit !== undefined) updates.monthly_minute_limit = body.monthly_minute_limit
     if (body.knowledge_backend !== undefined) updates.knowledge_backend = body.knowledge_backend
+    if (body.custom_niche_config !== undefined) updates.custom_niche_config = body.custom_niche_config
   }
 
   return updates
