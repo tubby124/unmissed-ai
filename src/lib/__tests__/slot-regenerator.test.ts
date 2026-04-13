@@ -410,6 +410,45 @@ describe('D302: niche intake fields survive round-trip via niche_custom_variable
     assert.equal(matches.length, 1, `Delivery rule should appear exactly once, found ${matches.length} times`)
   })
 
+  test('restaurant triage mode: no-repeat-name guardrail present', () => {
+    // Regression: name-asking loop bug (Treasure House audit — caller asked for name 6-7x per call)
+    // Fix: buildCallHandlingMode appends "do NOT ask for it again" for triage + lead_capture modes
+    const intake: Record<string, unknown> = {
+      niche: 'restaurant',
+      business_name: 'Treasure House',
+      agent_name: 'Sofia',
+      city: 'Saskatoon',
+      call_handling_mode: 'triage',
+      niche_cuisineType: 'Mexican bakery',
+    }
+    const ctx = buildSlotContext(intake)
+    const prompt = buildPromptFromSlots(ctx)
+    assert.ok(
+      prompt.includes('do NOT ask for it again') || prompt.includes('do not ask for it again'),
+      'Triage mode should include no-repeat-name guardrail to prevent name-asking loop',
+    )
+  })
+
+  test('restaurant with no callback_phone: phone hallucination guard in FORBIDDEN', () => {
+    // Regression: phone hallucination (Treasure House audit — agent fabricated 306-555-0100)
+    // Fix: FORBIDDEN_EXTRA gains "NEVER state or invent a phone number" when callback_phone is NULL
+    const intake: Record<string, unknown> = {
+      niche: 'restaurant',
+      business_name: 'Treasure House',
+      agent_name: 'Sofia',
+      city: 'Saskatoon',
+      call_handling_mode: 'triage',
+      niche_cuisineType: 'Mexican bakery',
+      // callback_phone intentionally absent
+    }
+    const ctx = buildSlotContext(intake)
+    const prompt = buildPromptFromSlots(ctx)
+    assert.ok(
+      prompt.includes('NEVER state or invent a phone number'),
+      'When callback_phone is absent, prompt must forbid phone number fabrication',
+    )
+  })
+
   test('property_management niche_propertyType + niche_hasEmergencyLine survive', () => {
     const intake: Record<string, unknown> = {
       niche: 'property_management',

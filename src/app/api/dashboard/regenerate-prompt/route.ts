@@ -190,6 +190,10 @@ export async function POST(req: NextRequest) {
     if (client.pricing_policy !== null && client.pricing_policy !== undefined) intakeData.pricing_policy = client.pricing_policy
     if (client.calendar_mode !== null && client.calendar_mode !== undefined) intakeData.calendar_mode = client.calendar_mode
     if (client.fields_to_collect !== null && client.fields_to_collect !== undefined) intakeData.fields_to_collect = client.fields_to_collect
+    // Bug #12 fix: voice_style_preset can be changed in settings after onboarding. DB column
+    // is source of truth — merge it into intakeData so buildPromptFromIntake picks it up
+    // directly, rather than relying solely on the step-4 patchVoiceStyleSection call.
+    if (client.voice_style_preset !== null && client.voice_style_preset !== undefined) intakeData.voice_style_preset = client.voice_style_preset
     // P1: voicemail builder needs twilio_number to gate "text this number" lines
     if (client.twilio_number) intakeData.twilio_number = client.twilio_number
 

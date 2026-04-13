@@ -8,12 +8,6 @@
  *
  * Run: npx tsx --test src/lib/__tests__/prompt-builder-golden.test.ts
  *
- * LATENT BUG (restaurant niche — still present after Phase 3):
- *   buildPromptFromIntake for niche='restaurant' leaves {{HOURS_WEEKDAY}} unresolved
- *   in two example dialogue lines. This is a pre-existing condition.
- *   The "no raw placeholder" assertion for restaurant is intentionally omitted.
- *   Track separately before the next client is onboarded on the restaurant niche.
- *
  * D296 FIX (Phase 3): FORBIDDEN_EXTRA niche modifications (restaurant delivery,
  *   dental waitlist, legal referral) are NOW correctly included in prompts.
  *   The 3 canary tests in Layer 4B have been flipped to assert presence.
@@ -201,14 +195,12 @@ describe('Layer 2 — Other niche', () => {
 })
 
 describe('Layer 2 — Restaurant', () => {
-  // NOTE: restaurant niche has a pre-existing {{HOURS_WEEKDAY}} leak in two example
-  // dialogue lines. The "no raw placeholder" assertion is intentionally omitted here.
-  // See file-level LATENT BUG comment above.
-  test('restaurant (no menu): non-empty, size OK', () => {
+  test('restaurant (no menu): non-empty, size OK, no raw placeholder', () => {
     const p = buildPromptFromIntake(intake('restaurant'))
     assert.ok(p.length > 100, 'restaurant prompt is empty')
     assert.ok(p.length <= 25_000, `prompt too long: ${p.length}`)
     assert.ok(!p.includes('TRANSFER_ENABLED'))
+    assert.ok(!p.includes('{{'), 'raw placeholder in restaurant niche')
   })
 })
 
@@ -462,11 +454,10 @@ describe('Layer 3 — Char count baseline (pre-Phase 3)', () => {
 
 describe('Layer 3 — No unresolved {{VARIABLE}} per niche', () => {
   // Every niche should produce a prompt with no raw {{VARIABLE}} placeholders.
-  // Exception: restaurant (known LATENT BUG — {{HOURS_WEEKDAY}} leak, tracked separately).
   const NICHES_NO_LEAK = [
     'auto_glass', 'hvac', 'plumbing', 'dental', 'legal', 'salon',
     'real_estate', 'property_management', 'print_shop', 'barbershop',
-    'other', 'voicemail', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith',
+    'restaurant', 'other', 'voicemail', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith',
   ] as const
 
   for (const niche of NICHES_NO_LEAK) {
@@ -477,8 +468,6 @@ describe('Layer 3 — No unresolved {{VARIABLE}} per niche', () => {
         `${niche} has unresolved variables: ${matches.join(', ')}`)
     })
   }
-
-  // restaurant intentionally skipped — see LATENT BUG comment at top of file
 })
 
 describe('Layer 3 — Section order validation', () => {
@@ -529,9 +518,6 @@ describe('Layer 4A — voicemail_replacement × all standard niches', () => {
     'restaurant', 'other', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith',
   ] as const
 
-  // restaurant has known {{HOURS_WEEKDAY}} leak — skip raw-placeholder check for it
-  const RESTAURANT_NICHE = 'restaurant'
-
   for (const niche of STANDARD_NICHES) {
     test(`${niche} + voicemail_replacement: size OK, TRIAGE_DEEP text present, no raw placeholder`, () => {
       const p = buildPromptFromIntake(intake(niche, 'voicemail_replacement'))
@@ -541,9 +527,7 @@ describe('Layer 4A — voicemail_replacement × all standard niches', () => {
         p.includes('Do not ask about services') || p.includes('Do not triage or diagnose'),
         `${niche} + voicemail_replacement missing mode TRIAGE_DEEP text ("Do not ask about services" or "Do not triage or diagnose")`,
       )
-      if (niche !== RESTAURANT_NICHE) {
-        assert.ok(!p.includes('{{'), `raw {{placeholder}} found in ${niche} + voicemail_replacement`)
-      }
+      assert.ok(!p.includes('{{'), `raw {{placeholder}} found in ${niche} + voicemail_replacement`)
       assert.ok(!p.includes('TRANSFER_ENABLED'), `TRANSFER_ENABLED literal in ${niche} + voicemail_replacement`)
     })
   }

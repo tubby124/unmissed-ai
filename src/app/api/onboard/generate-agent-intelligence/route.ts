@@ -42,6 +42,8 @@ interface AgentIntelligenceSeed {
   GREETING_LINE: string
   URGENCY_KEYWORDS: string
   FORBIDDEN_EXTRA: string
+  CLOSE_ACTION?: string
+  INFO_TO_COLLECT?: string
 }
 
 // Labels for the Haiku prompt
@@ -167,10 +169,21 @@ FIELD 4 — FORBIDDEN_EXTRA
 Format each rule on its own line starting with "NEVER".
 Focus on things that would create liability or false expectations for THIS kind of business.
 
+FIELD 5 — CLOSE_ACTION
+One sentence describing what happens after the agent collects caller info. Must name ${ownerName}.
+Be specific to THIS business type — not generic "someone will follow up."
+Example: "${ownerName} will call you back within the hour with a quote."
+Keep it under 15 words.
+
+FIELD 6 — INFO_TO_COLLECT
+Comma-separated list of 3-5 specific pieces of information THIS business needs from callers.
+Not generic "name and phone" — include business-specific fields based on the services offered.
+Example for a plumber: "name, phone number, address, what's leaking, how long it's been happening"
+
 ---
 
 Return ONLY valid JSON with no other text:
-{"TRIAGE_DEEP":"...","GREETING_LINE":"...","URGENCY_KEYWORDS":"...","FORBIDDEN_EXTRA":"..."}`
+{"TRIAGE_DEEP":"...","GREETING_LINE":"...","URGENCY_KEYWORDS":"...","FORBIDDEN_EXTRA":"...","CLOSE_ACTION":"...","INFO_TO_COLLECT":"..."}`
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -182,7 +195,7 @@ Return ONLY valid JSON with no other text:
       body: JSON.stringify({
         model: 'anthropic/claude-haiku-4-5',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1500,
+        max_tokens: 2000,
         temperature: 0.1,
       }),
       signal: AbortSignal.timeout(15000),
@@ -255,6 +268,10 @@ Return ONLY valid JSON with no other text:
       GREETING_LINE: typeof parsed.GREETING_LINE === 'string' ? parsed.GREETING_LINE.trim() : '',
       URGENCY_KEYWORDS: typeof parsed.URGENCY_KEYWORDS === 'string' ? parsed.URGENCY_KEYWORDS.trim() : '',
       FORBIDDEN_EXTRA: typeof parsed.FORBIDDEN_EXTRA === 'string' ? parsed.FORBIDDEN_EXTRA.trim() : '',
+      ...(typeof parsed.CLOSE_ACTION === 'string' && parsed.CLOSE_ACTION.trim()
+        ? { CLOSE_ACTION: parsed.CLOSE_ACTION.trim() } : {}),
+      ...(typeof parsed.INFO_TO_COLLECT === 'string' && parsed.INFO_TO_COLLECT.trim()
+        ? { INFO_TO_COLLECT: parsed.INFO_TO_COLLECT.trim() } : {}),
     }
 
     // Validate: only use fields that look reasonable

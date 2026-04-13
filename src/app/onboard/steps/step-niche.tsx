@@ -173,6 +173,8 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
               ? existingVars.FORBIDDEN_EXTRA + "\n" + seed.FORBIDDEN_EXTRA
               : seed.FORBIDDEN_EXTRA;
           }
+          if (seed.CLOSE_ACTION) newVars.CLOSE_ACTION = seed.CLOSE_ACTION;
+          if (seed.INFO_TO_COLLECT) newVars.INFO_TO_COLLECT = seed.INFO_TO_COLLECT;
 
           onUpdate({ nicheCustomVariables: newVars, agentIntelligenceSeed: seed });
         })
@@ -324,6 +326,8 @@ export default function StepNiche({ data, onUpdate }: BaseStepProps) {
                         ? existingVars.FORBIDDEN_EXTRA + "\n" + seed.FORBIDDEN_EXTRA
                         : seed.FORBIDDEN_EXTRA;
                     }
+                    if (seed.CLOSE_ACTION) newVars.CLOSE_ACTION = seed.CLOSE_ACTION;
+                    if (seed.INFO_TO_COLLECT) newVars.INFO_TO_COLLECT = seed.INFO_TO_COLLECT;
                     onUpdate({ nicheCustomVariables: newVars, agentIntelligenceSeed: seed });
                   })
                   .catch(() => { /* non-blocking */ });
