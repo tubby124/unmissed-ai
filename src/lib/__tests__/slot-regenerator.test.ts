@@ -387,6 +387,29 @@ describe('D302: niche intake fields survive round-trip via niche_custom_variable
     assert.ok(!/You work at a Pizza(?! restaurant)/.test(prompt), 'Should not contain bare "You work at a Pizza" without restaurant suffix')
   })
 
+  test('restaurant FORBIDDEN_EXTRA has no duplicate lines', () => {
+    const deliveryRule = 'NEVER take delivery or takeout orders over the phone — direct to online ordering.'
+    const intake: Record<string, unknown> = {
+      niche: 'restaurant',
+      business_name: 'Treasure House',
+      agent_name: 'Sofia',
+      city: 'Saskatoon',
+      call_handling_mode: 'triage',
+      niche_cuisineType: 'Mexican bakery',
+      // Including delivery triggers the niche block to append the exact same deliveryRule string
+      niche_orderTypes: 'dine-in, delivery',
+      niche_cancelPolicy: '24h',
+      // Simulates AI-generated FORBIDDEN_EXTRA that duplicates what the niche block will append
+      niche_custom_variables: {
+        FORBIDDEN_EXTRA: deliveryRule,
+      },
+    }
+    const ctx = buildSlotContext(intake)
+    const prompt = buildPromptFromSlots(ctx)
+    const matches = [...prompt.matchAll(/NEVER take delivery or takeout orders/g)]
+    assert.equal(matches.length, 1, `Delivery rule should appear exactly once, found ${matches.length} times`)
+  })
+
   test('property_management niche_propertyType + niche_hasEmergencyLine survive', () => {
     const intake: Record<string, unknown> = {
       niche: 'property_management',

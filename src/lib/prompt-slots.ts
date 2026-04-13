@@ -795,6 +795,19 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     if (walkInPolicy) variables.WALK_IN_POLICY = walkInPolicy
   }
 
+  // Deduplicates newline-separated rule lines (case-insensitive, ignores blanks)
+  function dedupLines(text: string): string {
+    const seen = new Set<string>()
+    return text.split('\n')
+      .filter(line => {
+        const key = line.trim().toLowerCase()
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .join('\n')
+  }
+
   // Restaurant
   if (niche === 'restaurant') {
     const cuisineType = (intake.niche_cuisineType as string)?.trim()
@@ -818,6 +831,9 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     if (partySize && partySize !== 'No limit') {
       variables.FORBIDDEN_EXTRA = (variables.FORBIDDEN_EXTRA ? variables.FORBIDDEN_EXTRA + '\n' : '') +
         `Maximum party size for reservations is ${partySize} — for larger groups, take a message for a callback.`
+    }
+    if (variables.FORBIDDEN_EXTRA) {
+      variables.FORBIDDEN_EXTRA = dedupLines(variables.FORBIDDEN_EXTRA)
     }
   }
 
