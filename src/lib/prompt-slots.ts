@@ -798,7 +798,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   // Restaurant
   if (niche === 'restaurant') {
     const cuisineType = (intake.niche_cuisineType as string)?.trim()
-    if (cuisineType) variables.INDUSTRY = cuisineType
+    if (cuisineType) variables.INDUSTRY = `${cuisineType} restaurant`
     const orderTypes = (intake.niche_orderTypes as string) || ''
     if (orderTypes.includes('delivery') || orderTypes.includes('takeout')) {
       const deliveryNote = 'NEVER take delivery or takeout orders over the phone — direct to online ordering.'

@@ -372,6 +372,21 @@ describe('D302: niche intake fields survive round-trip via niche_custom_variable
     assert.strictEqual(promptA, promptB, 'Restaurant prompt should match after round-trip with niche fields')
   })
 
+  test('restaurant cuisineType produces "X restaurant" not bare "X"', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'restaurant',
+      business_name: 'Treasure House',
+      agent_name: 'Sofia',
+      city: 'Saskatoon',
+      call_handling_mode: 'triage',
+      niche_cuisineType: 'Pizza',
+    }
+    const ctx = buildSlotContext(intake)
+    const prompt = buildPromptFromSlots(ctx)
+    assert.ok(prompt.includes('Pizza restaurant'), 'INDUSTRY slot should say "Pizza restaurant"')
+    assert.ok(!/You work at a Pizza(?! restaurant)/.test(prompt), 'Should not contain bare "You work at a Pizza" without restaurant suffix')
+  })
+
   test('property_management niche_propertyType + niche_hasEmergencyLine survive', () => {
     const intake: Record<string, unknown> = {
       niche: 'property_management',
