@@ -114,7 +114,7 @@ export async function clientToSyntheticIntake(
     agent_name: row.agent_name || '',
     city: row.city || '',
     timezone: row.timezone || 'America/Edmonton',
-    hours_weekday: row.business_hours_weekday || 'Monday–Friday 9 AM–5 PM',
+    hours_weekday: row.business_hours_weekday || 'Hours not posted — ask the owner for current hours',
     hours_weekend: row.business_hours_weekend || null,
     weekend_policy: deriveWeekendPolicy(row.business_hours_weekend),
     services_offered: row.services_offered || '',

@@ -100,12 +100,26 @@ function condenseHours(hours: string[]): string {
 
   // Format a time range like "8:00 AM – 6:00 PM" → "8am–6pm"
   function fmtTime(t: string): string {
-    const m = t.trim().match(/^(\d+)(?::(\d+))?\s*(AM|PM)$/i);
-    if (!m) return t.trim();
-    const h = parseInt(m[1]);
-    const min = m[2] && m[2] !== "00" ? `:${m[2]}` : "";
-    const period = m[3].toLowerCase();
-    return `${h}${min}${period}`;
+    const s = t.trim();
+    // 12-hour format: "1:00 PM", "10:30 AM"
+    const m12 = s.match(/^(\d+)(?::(\d+))?\s*(AM|PM)$/i);
+    if (m12) {
+      const h = parseInt(m12[1]);
+      const min = m12[2] && m12[2] !== "00" ? `:${m12[2]}` : "";
+      const period = m12[3].toLowerCase();
+      return `${h}${min}${period}`;
+    }
+    // 24-hour format: "13:00", "9:00"
+    const m24 = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24) {
+      const h24 = parseInt(m24[1]);
+      const min = m24[2] !== "00" ? `:${m24[2]}` : "";
+      if (h24 === 0) return `12${min}am`;
+      if (h24 < 12) return `${h24}${min}am`;
+      if (h24 === 12) return `12${min}pm`;
+      return `${h24 - 12}${min}pm`;
+    }
+    return s;
   }
   function fmtRange(r: string): string {
     // Split on em-dash or hyphen separator
