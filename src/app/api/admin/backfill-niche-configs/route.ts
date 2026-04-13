@@ -1,8 +1,8 @@
 /**
  * POST /api/admin/backfill-niche-configs
  *
- * One-shot admin route to backfill custom_niche_config for existing 'other' clients.
- * Queries clients WHERE niche='other' AND custom_niche_config IS NULL AND status != 'paused'.
+ * One-shot admin route to backfill custom_niche_config for existing 'other' + 'restaurant' clients.
+ * Queries clients WHERE niche IN ('other','restaurant') AND custom_niche_config IS NULL AND status != 'paused'.
  * Calls generateNicheConfig() per client with a 100ms delay between calls.
  *
  * Auth: Admin only (role=admin).
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   const { data: clients, error: queryErr } = await svc
     .from('clients')
     .select('id, slug, business_name, gbp_summary, business_facts, city, niche')
-    .eq('niche', 'other')
+    .in('niche', ['other', 'restaurant'])
     .is('custom_niche_config', null)
     .neq('status', 'paused')
     .limit(batchLimit)

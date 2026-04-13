@@ -889,6 +889,7 @@ You: "thanks, we're all set." [use hangUp immediately — do not engage]`,
       "NEVER confirm reservation availability — always route to team callback for confirmation.",
       "NEVER quote wait times or guarantee a table — always route to team callback.",
       "NEVER discuss catering pricing in detail — route to team callback.",
+      "NEVER quote prices for items NOT listed in your knowledge base. For items with known prices, you may state them.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
 MENU QUESTION:
