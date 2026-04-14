@@ -2111,6 +2111,10 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
   variables.AGENT_NAME = variables.AGENT_NAME || 'Alex'
   variables.SERVICES_NOT_OFFERED = variables.SERVICES_NOT_OFFERED || ''
   variables.URGENCY_KEYWORDS = variables.URGENCY_KEYWORDS || '"emergency", "flooding", "no heat", "electrical fire", "burst pipe", "gas leak", "water everywhere"'
+  // Hours fallback: if no real hours data exists, tell the agent to defer rather than state wrong hours
+  if (!variables.HOURS_WEEKDAY?.trim()) {
+    variables.HOURS_WEEKDAY = "hours aren't posted yet — i can have someone call ya back with that info"
+  }
 
   // Pre-resolve variable values that reference other variables.
   // e.g. voicemail niche sets CLOSE_PERSON = '{{BUSINESS_NAME}}' — must resolve before template fill
@@ -2296,6 +2300,18 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
     const serviceType = variables.SERVICE_APPOINTMENT_TYPE || 'appointment'
     const closePerson = variables.CLOSE_PERSON || 'the team'
     prompt += '\n\n' + buildCalendarBlock(serviceType, closePerson)
+  }
+
+  // Inject GBP summary — stored at signup from Google Business Profile, ignored until now
+  const gbpSummary = (intake.gbp_summary as string | undefined)?.trim()
+  if (gbpSummary) {
+    prompt += '\n\n## Google Business Profile\n' + gbpSummary
+  }
+
+  // Inject Sonar enrichment — web research at signup, stored in sonar_content column
+  const sonarContent = (intake.sonar_content as string | undefined)?.trim()
+  if (sonarContent) {
+    prompt += '\n\n## Web Research\n' + sonarContent
   }
 
   // B4 — Wrap named sections in markers so clients can edit them via the settings UI.
