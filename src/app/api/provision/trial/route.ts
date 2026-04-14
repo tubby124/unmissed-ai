@@ -338,8 +338,10 @@ export async function POST(req: NextRequest) {
           supa.from('clients')
             .update({ sonar_content: sonarResult })
             .eq('id', clientId)
-            .then(() => console.log(`[provision/trial] Sonar content saved for ${clientSlug}`))
-            .catch(err => console.error('[provision/trial] Sonar DB save failed:', err))
+            .then(
+              () => console.log(`[provision/trial] Sonar content saved for ${clientSlug}`),
+              err => console.error('[provision/trial] Sonar DB save failed:', err),
+            )
         } else {
           console.log(`[provision/trial] Sonar returned empty for ${clientSlug} — skipping save`)
         }
