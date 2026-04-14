@@ -340,6 +340,8 @@ export async function POST(req: NextRequest) {
             .eq('id', clientId)
             .then(() => console.log(`[provision/trial] Sonar content saved for ${clientSlug}`))
             .catch(err => console.error('[provision/trial] Sonar DB save failed:', err))
+        } else {
+          console.log(`[provision/trial] Sonar returned empty for ${clientSlug} — skipping save`)
         }
       })
       .catch(() => {}) // never throw — non-blocking

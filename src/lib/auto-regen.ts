@@ -52,9 +52,20 @@ async function runAutoRegen(clientId: string, reason: string): Promise<void> {
     return
   }
 
+  // Guard: skip clients with post-build patched features (calendar, SMS, voice preset)
+  // auto-regen uses buildPromptFromIntake only — it doesn't apply the patch sequence
+  // that regenerate-prompt/route.ts runs. Those clients should use manual regen only.
+  const hasPatchedFeatures = client.booking_enabled || client.sms_enabled ||
+    (client.voice_style_preset && client.voice_style_preset !== 'default')
+  if (hasPatchedFeatures) {
+    console.log(`[auto-regen] ${client.slug} has patched features (booking/SMS/voice) — skipping auto rebuild, use manual regen`)
+    return
+  }
+
+  // Single query — used for both cooldown check and prevCharCount audit
   const { data: lastVersion } = await svc
     .from('prompt_versions')
-    .select('created_at')
+    .select('created_at, char_count')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -102,14 +113,6 @@ async function runAutoRegen(clientId: string, reason: string): Promise<void> {
 
   const newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
 
-  const { data: prevVersion } = await svc
-    .from('prompt_versions')
-    .select('char_count')
-    .eq('client_id', clientId)
-    .order('version', { ascending: false })
-    .limit(1)
-    .single()
-
   const { error: saveErr } = await svc
     .from('clients')
     .update({ system_prompt: newPrompt })
@@ -126,7 +129,7 @@ async function runAutoRegen(clientId: string, reason: string): Promise<void> {
     changeDescription: reason,
     triggeredByUserId: null,
     triggeredByRole: 'system',
-    prevCharCount: prevVersion?.char_count ?? null,
+    prevCharCount: lastVersion?.char_count ?? null,
   })
 
   if (newVersion) {
