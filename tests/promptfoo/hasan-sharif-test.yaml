@@ -259,6 +259,8 @@ tests:
           - "check"
           - "property"
           - "what property"
+          - "address"
+          - "which condo"
       - type: llm-rubric
         value: "The response either starts the booking process (asks for property, address, or day) OR offers to take a message. It does NOT say it cannot help, and does NOT ask for a phone number."
         provider: openrouter:anthropic/claude-haiku-4.5

@@ -18,8 +18,9 @@ defaultTest:
     system_prompt: "file://../../clients/exp-realty/SYSTEM_PROMPT.txt"
   assert:
     # Agent must NEVER ask for callback number
+    # Note: removed "need" from first alternation — too broad, matched "need a plumber...wrong number"
     - type: javascript
-      value: "!/(what's|what is|can i get|need|grab|share).*(your|the).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|omar|him|them)/i.test(output)"
+      value: "!/(what's|what is|can i get|grab|share).*(your|the).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|omar|him|them)/i.test(output)"
       threshold: 1
     # VOICE LOCK — forbidden filler words for Fatema (professional tone allows "of course")
     - type: not-icontains

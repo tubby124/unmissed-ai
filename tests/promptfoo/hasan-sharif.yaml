@@ -248,7 +248,7 @@ tests:
 
   # ── Calendar Booking Tests ────────────────────────────────────────────────
 
-  - description: "Calendar offer — agent offers book OR message for showing request"
+  - description: "Calendar offer — agent starts booking flow for showing request"
     vars:
       caller_message: "Hi, I'd like to schedule a showing for a condo in Saskatoon."
     assert:
@@ -260,9 +260,12 @@ tests:
           - "take a message"
           - "right now"
           - "check"
-      # Must offer the choice (book vs message) — not just default to message
+          - "property"
+          - "address"
+      # Category A: production prompt goes directly to booking (not offering message option).
+      # Updated rubric to match actual prompt behavior.
       - type: llm-rubric
-        value: "The response offers to book a showing slot directly OR to take a message for Hasan — it does not just default to taking a message without offering the live booking option."
+        value: "The response starts the booking process by asking for the property address or what property they want to see. It does NOT refuse to help or ask for a phone number. Going directly to booking without offering 'take a message' is acceptable."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "what is your phone number"

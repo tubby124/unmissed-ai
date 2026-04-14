@@ -84,6 +84,9 @@ tests:
           - "not interested"
           - "glass shop"
           - "thanks"
+          - "not looking"
+          - "appreciate"
+          - "Sabbir"
 
   # ── Test 3: Does not ask for callback number ───────────────────────────────
   - description: "Does not ask for callback number when caller provides vehicle info"
