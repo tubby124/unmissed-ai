@@ -332,21 +332,25 @@ export async function POST(req: NextRequest) {
   const sonarCity = data.city || '';
   const sonarNiche = data.niche || 'other';
   if (sonarBusinessName && sonarCity) {
-    enrichWithSonar(sonarBusinessName, sonarCity, sonarNiche, websiteUrl || undefined)
-      .then(sonarResult => {
+    void (async () => {
+      try {
+        const sonarResult = await enrichWithSonar(sonarBusinessName, sonarCity, sonarNiche, websiteUrl || undefined)
         if (sonarResult) {
-          supa.from('clients')
+          const { error: dbErr } = await supa.from('clients')
             .update({ sonar_content: sonarResult })
             .eq('id', clientId)
-            .then(
-              () => console.log(`[provision/trial] Sonar content saved for ${clientSlug}`),
-              err => console.error('[provision/trial] Sonar DB save failed:', err),
-            )
+          if (dbErr) {
+            console.error('[provision/trial] Sonar DB save failed:', dbErr)
+          } else {
+            console.log(`[provision/trial] Sonar content saved for ${clientSlug}`)
+          }
         } else {
           console.log(`[provision/trial] Sonar returned empty for ${clientSlug} — skipping save`)
         }
-      })
-      .catch(() => {}) // never throw — non-blocking
+      } catch {
+        // never throw — non-blocking
+      }
+    })()
   }
 
   // SCRAPE2/K2: Seed knowledge chunks from website scrape data
