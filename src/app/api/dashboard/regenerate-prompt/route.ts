@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   // ── Get client — include all fields needed for buildAgentTools ─────────────
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config, gbp_summary, sonar_content')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -104,6 +104,10 @@ export async function POST(req: NextRequest) {
     if (client.agent_name && client.status === 'active') {
       intakeData.db_agent_name = client.agent_name
     }
+
+    // Inject enrichment sources stored on the client row (gap fix — these were previously ignored)
+    if (client.gbp_summary) intakeData.gbp_summary = client.gbp_summary
+    if (client.sonar_content) intakeData.sonar_content = client.sonar_content
 
     // For 'other' niche: inject custom_niche_config from client row so admin overrides are respected
     const clientNiche = (client.niche as string | null) || 'other'
