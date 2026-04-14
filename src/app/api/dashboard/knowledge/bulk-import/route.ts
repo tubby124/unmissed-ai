@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 import { syncClientTools } from '@/lib/sync-client-tools'
+import { scheduleAutoRegen } from '@/lib/auto-regen'
 
 const MAX_CHUNKS = 100
 const MAX_CONTENT_LENGTH = 5000
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
     try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[knowledge/bulk-import] tools sync failed: ${err}`)
     }
+    scheduleAutoRegen(clientId, 'auto:bulk_import')
   }
 
   return NextResponse.json({
