@@ -336,9 +336,9 @@ export async function POST(req: NextRequest) {
       .then(sonarResult => {
         if (sonarResult) {
           supa.from('clients')
-            .update({ business_facts: sonarResult })
+            .update({ sonar_content: sonarResult })
             .eq('id', clientId)
-            .then(() => console.log(`[provision/trial] Sonar enrichment saved for ${clientSlug}`))
+            .then(() => console.log(`[provision/trial] Sonar content saved for ${clientSlug}`))
             .catch(err => console.error('[provision/trial] Sonar DB save failed:', err))
         }
       })
