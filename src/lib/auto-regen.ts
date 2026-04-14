@@ -12,6 +12,7 @@
  */
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
+import { applyPromptPatches } from '@/lib/prompt-patches'
 import { updateAgent } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 
@@ -49,16 +50,6 @@ async function runAutoRegen(clientId: string, reason: string): Promise<void> {
   const activeStatuses = ['active', 'trialing']
   if (!activeStatuses.includes(client.status as string)) {
     console.log(`[auto-regen] ${client.slug} status=${client.status} — skipping`)
-    return
-  }
-
-  // Guard: skip clients with post-build patched features (calendar, SMS, voice preset)
-  // auto-regen uses buildPromptFromIntake only — it doesn't apply the patch sequence
-  // that regenerate-prompt/route.ts runs. Those clients should use manual regen only.
-  const hasPatchedFeatures = client.booking_enabled || client.sms_enabled ||
-    (client.voice_style_preset && client.voice_style_preset !== 'default')
-  if (hasPatchedFeatures) {
-    console.log(`[auto-regen] ${client.slug} has patched features (booking/SMS/voice) — skipping auto rebuild, use manual regen`)
     return
   }
 
@@ -111,7 +102,16 @@ async function runAutoRegen(clientId: string, reason: string): Promise<void> {
     knowledgeDocs = kDocs.map((d: { content_text: string }) => d.content_text).join('\n\n---\n\n')
   }
 
-  const newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
+  let newPrompt = buildPromptFromIntake(intakeData, undefined, knowledgeDocs)
+  const intakeAgentName = (intake.intake_json as Record<string, unknown>)?.agent_name as string | undefined
+  newPrompt = applyPromptPatches(newPrompt, {
+    agent_name: client.agent_name as string | null,
+    intake_agent_name: intakeAgentName,
+    niche: (client.niche as string | null),
+    booking_enabled: client.booking_enabled ?? false,
+    sms_enabled: client.sms_enabled ?? false,
+    voice_style_preset: client.voice_style_preset as string | null,
+  })
 
   const { error: saveErr } = await svc
     .from('clients')
