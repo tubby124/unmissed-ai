@@ -13,6 +13,7 @@ import {
   type PromptWarning,
 } from '@/lib/settings-schema'
 import { applyPromptPatches } from '@/lib/settings-patchers'
+import { scheduleAutoRegen } from '@/lib/auto-regen'
 
 // ── Agent sync helper ────────────────────────────────────────────────────────────
 
@@ -199,6 +200,13 @@ export async function PATCH(req: NextRequest) {
     return new NextResponse('Nothing to update', { status: 400 })
   }
 
+  // Fields that trigger auto prompt rebuild (low-stakes, additive changes)
+  const LOW_STAKES_REGEN_FIELDS = new Set([
+    'business_hours_weekday', 'business_hours_weekend', 'services_offered',
+    'context_data', 'business_facts', 'owner_name', 'after_hours_behavior',
+    'after_hours_emergency_phone', 'callback_phone',
+  ])
+
   // 7 — Save to Supabase
   const { error } = await supabase
     .from('clients')
@@ -206,6 +214,15 @@ export async function PATCH(req: NextRequest) {
     .eq('id', targetClientId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Auto-rebuild prompt for low-stakes field changes (non-blocking)
+  // Skips: direct system_prompt edits (already saved), voice/persona patches, hand_tuned clients
+  const hasLowStakesChange = Object.keys(updates).some(k => LOW_STAKES_REGEN_FIELDS.has(k))
+  const hasDirectPromptEdit = 'system_prompt' in updates
+  const hasVoicePatch = 'voice_style_preset' in updates || 'agent_name' in updates || 'business_name' in updates
+  if (hasLowStakesChange && !hasDirectPromptEdit && !hasVoicePatch) {
+    scheduleAutoRegen(targetClientId, 'auto:settings_update')
+  }
 
   // 8 — Reseed knowledge chunks when business_facts or extra_qa changed
   let knowledgeReseeded = false
