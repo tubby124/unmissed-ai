@@ -269,4 +269,15 @@ describe('collapseIdenticalHours', () => {
     const input = 'Monday 9:00 AM–5:00 PM, Tuesday 9:00 AM–5:00 PM, Wednesday 9:00 AM–5:00 PM, Thursday 9:00 AM–5:00 PM, Friday 9:00 AM–5:00 PM, Saturday 9:00 AM–5:00 PM, Sunday 9:00 AM–5:00 PM'
     assert.strictEqual(collapseIdenticalHours(input), 'Monday–Sunday 9:00 AM–5:00 PM')
   })
+
+  // T4: GBP weekday_text colon format ("Monday: 9:00 AM – 5:00 PM")
+  test('collapses GBP colon-format Mon-Fri', () => {
+    const input = 'Monday: 9:00 AM – 5:00 PM, Tuesday: 9:00 AM – 5:00 PM, Wednesday: 9:00 AM – 5:00 PM, Thursday: 9:00 AM – 5:00 PM, Friday: 9:00 AM – 5:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Friday 9:00 AM – 5:00 PM')
+  })
+
+  test('collapses GBP colon-format with different Saturday', () => {
+    const input = 'Monday: 8:00 AM – 6:00 PM, Tuesday: 8:00 AM – 6:00 PM, Wednesday: 8:00 AM – 6:00 PM, Thursday: 8:00 AM – 6:00 PM, Friday: 8:00 AM – 6:00 PM, Saturday: 9:00 AM – 3:00 PM'
+    assert.strictEqual(collapseIdenticalHours(input), 'Monday–Friday 8:00 AM – 6:00 PM, Saturday 9:00 AM – 3:00 PM')
+  })
 })
