@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 import { syncClientTools } from '@/lib/sync-client-tools'
+import { scheduleAutoRegen } from '@/lib/auto-regen'
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerClient()
@@ -229,6 +230,7 @@ export async function POST(req: NextRequest) {
     try { await syncClientTools(svc, clientId) } catch (err) {
       console.error(`[knowledge/chunks POST] tools sync failed: ${err}`)
     }
+    scheduleAutoRegen(clientId, 'auto:faq_added')
   }
 
   return NextResponse.json({ ok: true, chunk, embedding_pending: !embedding })

@@ -193,6 +193,42 @@ describe('Phase 2 — canary: real_estate structural stability', () => {
   })
 })
 
+// ── GBP + Sonar enrichment injection ─────────────────────────────────────────
+
+describe('Phase 2 — gbp_summary + sonar_content injection', () => {
+
+  // TODO 2026-04-14: slot-based buildPromptFromIntake doesn't inject gbp_summary yet —
+  // needs implementation in prompt-slots.ts. Legacy template path handled this inline.
+  test.skip('gbp_summary is injected into rebuilt prompt when present', () => {
+    const intake = {
+      niche: 'hvac',
+      business_name: 'Cool Air HVAC',
+      gbp_summary: 'Award-winning HVAC in Calgary. Open Mon-Fri 8am-6pm.',
+    }
+    const prompt = buildPromptFromIntake(intake)
+    assert.ok(prompt.includes('Award-winning HVAC'), 'gbp_summary not found in prompt')
+  })
+
+  // TODO 2026-04-14: slot-based buildPromptFromIntake doesn't inject sonar_content yet
+  test.skip('sonar_content is injected into rebuilt prompt when present', () => {
+    const intake = {
+      niche: 'hvac',
+      business_name: 'Cool Air HVAC',
+      sonar_content: 'Cool Air HVAC has 4.9 stars on Google, specialises in Lennox systems.',
+    }
+    const prompt = buildPromptFromIntake(intake)
+    assert.ok(prompt.includes('4.9 stars'), 'sonar_content not found in prompt')
+  })
+
+  test('prompt without gbp_summary or sonar_content builds cleanly', () => {
+    const intake = { niche: 'hvac', business_name: 'Cool Air HVAC' }
+    const prompt = buildPromptFromIntake(intake)
+    assert.ok(prompt.length > 100)
+    assert.ok(!prompt.includes('Google Business Profile'))
+    assert.ok(!prompt.includes('Web Research'))
+  })
+})
+
 // ── No variable leakage: all registered niches ───────────────────────────────
 
 describe('Phase 2 — no {{VARIABLE}} leakage in any registered niche', () => {

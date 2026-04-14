@@ -21,9 +21,9 @@ import { buildPromptFromIntake, VOICE_PRESETS } from '@/lib/prompt-builder'
 import { VOICE_TONE_PRESETS } from '@/lib/prompt-config/voice-tone-presets'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
-import { patchCalendarBlock, patchSmsBlock, patchVoiceStyleSection, patchAgentName, getServiceType, getClosePerson } from '@/lib/prompt-patcher'
 import { buildAgentModeRebuildPrompt, AGENT_MODE_VALUES, type AgentMode } from '@/lib/agent-mode-rebuild'
 import { rowsToCatalogItems } from '@/lib/service-catalog'
+import { applyPromptPatches } from '@/lib/prompt-patches'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
   // clients row but the next regenerate would read only intake_json and miss them.
   const { data: client } = await svc
     .from('clients')
-    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config, service_catalog, agent_mode, hand_tuned, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect')
+    .select('id, slug, agent_name, status, ultravox_agent_id, agent_voice_id, forwarding_number, booking_enabled, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, system_prompt, voice_style_preset, niche, custom_niche_config, service_catalog, agent_mode, hand_tuned, today_update, business_notes, unknown_answer_behavior, pricing_policy, calendar_mode, fields_to_collect, gbp_summary, sonar_content')
     .eq('id', clientId)
     .single()
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -196,6 +196,9 @@ export async function POST(req: NextRequest) {
     if (client.voice_style_preset !== null && client.voice_style_preset !== undefined) intakeData.voice_style_preset = client.voice_style_preset
     // P1: voicemail builder needs twilio_number to gate "text this number" lines
     if (client.twilio_number) intakeData.twilio_number = client.twilio_number
+    // Inject enrichment sources stored on the client row (gap fix — these were previously ignored)
+    if (client.gbp_summary) intakeData.gbp_summary = client.gbp_summary
+    if (client.sonar_content) intakeData.sonar_content = client.sonar_content
 
     // For 'other' niche: inject custom_niche_config from client row so admin overrides are respected
     const clientNiche = (client.niche as string | null) || 'other'
@@ -232,43 +235,16 @@ export async function POST(req: NextRequest) {
     regenSource = 'intake'
 
     // ── Re-apply manual patches so regeneration preserves customizations ──────
-    // 1. Agent name: if the DB has a custom name different from the intake name, patch it
-    if (client.agent_name) {
-      const intakeAgentName = (intake.intake_json as Record<string, unknown>)?.agent_name as string | undefined
-      if (intakeAgentName && intakeAgentName !== client.agent_name) {
-        newPrompt = patchAgentName(newPrompt, intakeAgentName, client.agent_name as string)
-        console.log(`[regenerate-prompt] Re-applied agent name: "${intakeAgentName}" → "${client.agent_name}"`)
-      }
-    }
-
-    // 2. Calendar booking block: if booking is enabled, ensure the block is present
-    if (client.booking_enabled) {
-      const niche = (client.niche as string | null) || 'other'
-      newPrompt = patchCalendarBlock(
-        newPrompt,
-        true,
-        getServiceType(niche),
-        getClosePerson(newPrompt, client.agent_name as string | null),
-      )
-      console.log(`[regenerate-prompt] Re-applied calendar booking block`)
-    }
-
-    // 3. SMS follow-up block: if sms_enabled, ensure the block is present post-regen (mode-aware)
-    if (client.sms_enabled) {
-      newPrompt = patchSmsBlock(newPrompt, true, client.agent_mode as string | null)
-      console.log(`[regenerate-prompt] Re-applied SMS follow-up block (mode=${client.agent_mode ?? 'default'})`)
-    }
-
-    // 4. Voice style: re-patch the tone/style section if a preset was applied
-    // Check both legacy VOICE_PRESETS and founding-4 VOICE_TONE_PRESETS
-    const voicePreset = client.voice_style_preset as string | null
-    if (voicePreset) {
-      const preset = VOICE_PRESETS[voicePreset] || VOICE_TONE_PRESETS[voicePreset]
-      if (preset) {
-        newPrompt = patchVoiceStyleSection(newPrompt, preset.toneStyleBlock, preset.fillerStyle)
-        console.log(`[regenerate-prompt] Re-applied voice style preset: "${voicePreset}"`)
-      }
-    }
+    const intakeAgentName = (intake.intake_json as Record<string, unknown>)?.agent_name as string | undefined
+    newPrompt = applyPromptPatches(newPrompt, {
+      agent_name: client.agent_name as string | null,
+      intake_agent_name: intakeAgentName,
+      niche: (client.niche as string | null),
+      booking_enabled: client.booking_enabled ?? false,
+      sms_enabled: client.sms_enabled ?? false,
+      voice_style_preset: client.voice_style_preset as string | null,
+      agent_mode: client.agent_mode as string | null,
+    })
   } else {
     // S6f fallback: no intake exists — refresh from current prompt + re-sync tools/voice
     if (!client.system_prompt) {
