@@ -185,9 +185,23 @@ HANG-UP RULES (mandatory — follow exactly):
       }
       const knowledgeBackend = client.knowledge_backend as string | null
       const corpusAvailable = knowledgeBackend === 'pgvector'
-      const ctx = buildAgentContext(clientRow, '+15555550100', [], new Date(), corpusAvailable)
+      // Pass 'unknown' — synthetic +15555550100 must not appear in Zara's context
+      const ctx = buildAgentContext(clientRow, 'unknown', [], new Date(), corpusAvailable)
 
-      const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
+      // Build demo-specific callerContext with DEMO MODE signal FIRST.
+      // Zara's OPENING checks "if [DEMO MODE] in callerContext" — it must be in {{callerContext}},
+      // not the separately-appended block, for GLM-4.6 to detect it.
+      const demoNow = new Date()
+      const demoTz = (client.timezone as string | null) || 'America/Regina'
+      const demoToday = demoNow.toLocaleDateString('en-CA', { timeZone: demoTz })
+      const demoDow = demoNow.toLocaleDateString('en-US', { timeZone: demoTz, weekday: 'long' })
+      const demoTime = demoNow.toLocaleTimeString('en-US', {
+        timeZone: demoTz, hour: 'numeric', minute: '2-digit', hour12: true,
+      })
+      let callerContextRaw = `DEMO MODE — BROWSER\nCALLER NAME: ${callerName}\nTODAY: ${demoToday} (${demoDow})\nCURRENT TIME: ${demoTime} (${demoTz})`
+      if (callerPhone) callerContextRaw += `\nCALLER PHONE: ${callerPhone}`
+      else callerContextRaw += `\nNo caller phone — browser visitor`
+
       let knowledgeBlockStr = ctx.knowledge.block
       if (ctx.retrieval.enabled && ctx.retrieval.promptInstruction) {
         knowledgeBlockStr = knowledgeBlockStr
