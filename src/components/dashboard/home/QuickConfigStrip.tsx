@@ -393,7 +393,7 @@ export default function QuickConfigStrip({
       {/* ── Pills Row ─────────────────────────────────────────── */}
       <div className="px-3 py-2 flex items-center gap-1 flex-wrap">
         <span className="text-[10px] font-semibold tracking-[0.12em] uppercase t3 mr-1">Config</span>
-        {pills.map(pill => {
+        {pills.filter(p => !(p.id === 'telegram' && !telegramConnected)).map(pill => {
           const isActive = pill.active
           const isExpanded = expanded === pill.id
           const statusColor = isActive
