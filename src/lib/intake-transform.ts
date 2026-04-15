@@ -84,7 +84,8 @@ export function collapseIdenticalHours(perDayStr: string): string {
   for (const entry of entries) {
     const spaceIdx = entry.indexOf(' ')
     if (spaceIdx === -1) return perDayStr // can't parse, return unchanged
-    const day = entry.slice(0, spaceIdx)
+    // Strip trailing colon to handle "Monday: 9am–5pm" format from GBP weekday_text
+    const day = entry.slice(0, spaceIdx).replace(/:$/, '')
     const hours = entry.slice(spaceIdx + 1)
     if (!dayOrder.includes(day)) return perDayStr // unexpected format
     parsed.push({ day, hours })

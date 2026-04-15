@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import LiveDuration from './LiveDuration'
@@ -16,6 +17,20 @@ interface LiveCall {
 const BARS = [0.35, 0.8, 0.55, 1, 0.65, 0.9, 0.4, 0.75, 0.5, 0.85, 0.45, 0.7]
 
 export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
+  const [ending, setEnding] = useState<Record<string, boolean>>({})
+
+  async function handleEndCall(ultravoxCallId: string) {
+    if (ending[ultravoxCallId]) return
+    setEnding(prev => ({ ...prev, [ultravoxCallId]: true }))
+    try {
+      await fetch(`/api/dashboard/calls/${ultravoxCallId}/whisper`, { method: 'DELETE' })
+    } catch {
+      // fire-and-forget; poll will update banner when call disappears
+    } finally {
+      setEnding(prev => ({ ...prev, [ultravoxCallId]: false }))
+    }
+  }
+
   return (
     <AnimatePresence>
       {calls.length > 0 && (
@@ -140,17 +155,30 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
                     ))}
                   </div>
 
-                  {/* Monitor CTA */}
-                  <Link
-                    href={`/dashboard/calls/${call.ultravox_call_id}`}
-                    className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/35 hover:bg-green-500/30 hover:border-green-500/55 hover:text-green-200 transition-all"
-                  >
-                    <span className="relative flex w-1.5 h-1.5 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
-                    </span>
-                    Open Monitor
-                  </Link>
+                  {/* Actions row */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* End call — D378 */}
+                    <button
+                      onClick={() => handleEndCall(call.ultravox_call_id)}
+                      disabled={!!ending[call.ultravox_call_id]}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20 hover:border-red-500/40 transition-all disabled:opacity-40"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                      {ending[call.ultravox_call_id] ? 'Ending…' : 'End'}
+                    </button>
+
+                    {/* Monitor CTA */}
+                    <Link
+                      href={`/dashboard/calls/${call.ultravox_call_id}`}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/35 hover:bg-green-500/30 hover:border-green-500/55 hover:text-green-200 transition-all"
+                    >
+                      <span className="relative flex w-1.5 h-1.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                      </span>
+                      Open Monitor
+                    </Link>
+                  </div>
                 </div>
               </div>
             </motion.div>

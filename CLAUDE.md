@@ -1,5 +1,8 @@
 # Unmissed.ai — Claude Code Router
 
+@/Users/owner/Downloads/Obsidian Vault/memory/memory.md
+@/Users/owner/Downloads/Obsidian Vault/knowledge/concepts/unmissed/index-unmissed.md
+
 This file is intentionally thin.
 Use imported rules and commands instead of bloating this file.
 

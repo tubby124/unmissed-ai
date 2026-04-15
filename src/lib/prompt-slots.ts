@@ -787,10 +787,13 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   else if (niche_mobile === 'no') variables.MOBILE_POLICY = "you'd bring it to us"
   else if (niche_mobile === 'emergency_only') variables.MOBILE_POLICY = "usually you'd come to us, but we can come out for emergencies"
 
-  // Salon booking type
-  const niche_booking = intake.niche_bookingType as string | undefined
-  if (niche_booking === 'appointment_only') variables.SERVICE_TIMING_PHRASE = 'book an appointment'
-  else if (niche_booking === 'walk_in') variables.SERVICE_TIMING_PHRASE = 'come on in'
+  // Salon walk-in policy (niche_walkIns: "yes" | "limited" | "no")
+  if (niche === 'salon') {
+    const niche_walkIns = intake.niche_walkIns as string | undefined
+    if (niche_walkIns === 'yes') variables.SERVICE_TIMING_PHRASE = 'come on in — walk-ins welcome'
+    else if (niche_walkIns === 'limited') variables.SERVICE_TIMING_PHRASE = 'call ahead first — walk-ins are hit or miss'
+    else if (niche_walkIns === 'no') variables.SERVICE_TIMING_PHRASE = 'book an appointment'
+  }
 
   // Print shop
   if (niche === 'print_shop') {
@@ -824,7 +827,8 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     const cuisineType = (intake.niche_cuisineType as string)?.trim()
     if (cuisineType) variables.INDUSTRY = `${cuisineType} restaurant`
     const orderTypes = (intake.niche_orderTypes as string) || ''
-    if (orderTypes.includes('delivery') || orderTypes.includes('takeout')) {
+    const orderTypesLower = orderTypes.toLowerCase()
+    if (orderTypesLower.includes('delivery') || orderTypesLower.includes('takeout')) {
       const deliveryNote = 'NEVER take delivery or takeout orders over the phone — direct to online ordering.'
       variables.FORBIDDEN_EXTRA = variables.FORBIDDEN_EXTRA
         ? variables.FORBIDDEN_EXTRA + '\n' + deliveryNote
