@@ -14,6 +14,22 @@
 
 ---
 
+## P0 — April 14 Pivot (Trust Fixes + Concierge $29/mo)
+> **Do these before resuming Phase 7+.** Pivot context: `memory/project_april14_pivot.md` | Full audit: `CALLINGAGENTS/Product/April-14-Audit-Pivot.md`
+> **Rule:** No new features until these are done or explicitly deferred. Manual concierge onboarding at $29/mo is the path to first revenue.
+> **Note:** D291 (GBP auto-import) is superseded by D380 until concierge model is validated.
+
+| # | Summary | Priority | Status |
+|---|---------|----------|--------|
+| D375 | **Fix Zara WebRTC context** — Zara says "I called you" instead of knowing she's a browser widget. Hard-baked callback number. Read `memory/zara-demo-agent.md` first. | CRITICAL | NOT STARTED |
+| D376 | **Hide broken config buttons** — Telegram/IVR/Booking/Transfer buttons on dashboard are broken/blank. Dead buttons = trust loss. Remove from DOM until functional. | CRITICAL | ✅ 2026-04-15 — Telegram pill hidden when not connected; IVR/Booking/Transfer pills removed from client nav until functional |
+| D377 | **Expose triage box to client dashboard** — Agent Intelligence triage box (urgent/pricing/hours/booking tags) exists but hidden from client view. Just remove the admin-only gate. D243 is the full redesign (Phase 9). | HIGH | ✅ 2026-04-15 — AgentIntelligenceSection was orphaned (never imported); wired into SettingsView for client view |
+| D378 | **Fix live call "End" button** — End button on live call monitor does nothing. Wire to Ultravox call termination. | MEDIUM | ✅ 2026-04-15 — End button wired to Ultravox call termination in LiveCallBanner |
+| D379 | **Strip landing page to 2-tier pricing** — Remove 3rd tier (it doesn't exist). Solo ($29/mo) + AI Receptionist ($40-50/mo) only. D208 (feature messaging) stays BLOCKED on domain. | HIGH | ✅ 2026-04-15 — Front Desk Pro tier removed; 2-tier pricing live |
+| D380 | **Manual concierge onboarding SOP** — Step-by-step doc: collect info → provision Twilio → create client → build prompt → collect $29/mo via Wave/Stripe. Save to `CALLINGAGENTS/Product/Concierge-Onboarding-SOP.md`. | CRITICAL | ✅ 2026-04-15 — SOP + client tracker doc created |
+
+---
+
 ## ACTIVE: Prompt Architecture Refactor (6 gated phases)
 > **Execution plan:** `docs/architecture/prompt-architecture-execution-plan.md`
 > **Revised:** 2026-03-31 — Sonar research + Obsidian tracking + handoff discipline baked in.
