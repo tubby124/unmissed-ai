@@ -19,6 +19,7 @@ import QuickConfigStrip from './QuickConfigStrip'
 import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import VoicePickerDropdown from './VoicePickerDropdown'
+import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -766,6 +767,22 @@ export default function UnifiedHomeSection({
               hasTriage={data.hasTriage ?? false}
             />
             <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
+
+            {/* D377 — Agent intelligence / triage box (was orphaned) */}
+            <AgentIntelligenceSection
+              agentName={agent.name}
+              businessName={onboarding.businessName}
+              hoursWeekday={data.editableFields.hoursWeekday}
+              faqs={data.editableFields.faqs}
+              businessFacts={data.editableFields.businessFacts}
+              websiteUrl={data.editableFields.websiteUrl ?? null}
+              hasKnowledge={capabilities.hasKnowledge}
+              hasSms={capabilities.hasSms}
+              hasBooking={capabilities.hasBooking}
+              hasTransfer={capabilities.hasTransfer}
+              isTrial={isTrial}
+              clientId={data.clientId}
+            />
           </div>
 
           {/* Center: Test Call orb + Unanswered Questions — mobile first */}
