@@ -74,10 +74,10 @@
 
 *Settings page (2026-04-01):*
 - ✅ DONE. Non-admin overview section: Capabilities (2-col) + Orb + Prompt Editor + Notifications (1-col) above tab bar. Agent tab kept for all users.
-- **D283b** — PromptVariablesCard (read-only variable display)
-- ~~**D305 frontend**~~ — ✅ 2026-04-22 — `RecomposeConfirmDialog` shows section-level diff (added/removed/modified) + current/new tabs consuming `POST /api/dashboard/variables/preview` with `{recompose:true}`
-- ~~**D307**~~ — ✅ 2026-04-22 — `AdminRecomposePanel` now opens `RecomposeConfirmDialog`; preview-first flow; disables confirm when no change or >12K chars; blocks dialog close during mutation
-- **D286** — Dashboard settings reorganization
+- ~~**D283b**~~ — ✅ PromptVariablesCard shipped (editable + grouped + admin-aware) at [AgentTab.tsx:465](src/components/dashboard/settings/AgentTab.tsx#L465). Tracker note was stale — card has been live since D358.
+- ~~**D305 frontend**~~ — ✅ 2026-04-23 (PR #10, commit 1db07c7) Inline diff preview for per-variable edits: shared [PromptDiffPreview.tsx](src/components/dashboard/settings/PromptDiffPreview.tsx) wired into PromptVariablesCard VariableRow as opt-in "Preview diff" button. Save relabels to "Confirm & save" once diff is loaded.
+- ~~**D307**~~ — ✅ 2026-04-23 (PR #6) Recompose confirm+diff dialog: [RecomposeConfirmDialog.tsx](src/components/dashboard/settings/RecomposeConfirmDialog.tsx) modal with char-count delta, 12K-limit warning, section-level diff (added/removed/modified), current/new prompt tabs. Confirm disabled on no-change / preview fail / >12K chars. Destructive recompose keeps modal friction; per-variable edits get inline context (D305 FE).
+- **D286** — Dashboard settings reorganization (scope remaining unclear; needs user input on what reorg means beyond the 2026-04-01 non-admin overview layout)
 
 **Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
 
@@ -101,8 +101,8 @@
 | D318 | Step 3 bloat — trim to mode selection only | CRITICAL | ✅ 2026-04-01 — Phase 7 collapsed to 3 steps; mode via plan card in step-plan.tsx |
 | D319 | Simplify voice picker to Male/Female first | MEDIUM | NOT STARTED |
 | D320 | urgencyWords not stored independently | MEDIUM | NOT STARTED |
-| D321 | Step 3 + Step 5 duplicate FAQ collection | HIGH | NOT STARTED |
-| D322 | Loading orb during GBP lookup | MEDIUM | NOT STARTED |
+| D321 | Step 3 + Step 5 duplicate FAQ collection | HIGH | ✅ 2026-04-23 — RESOLVED BY D318. Verified: only 4 step files exist (step1-gbp, step-niche, step-plan, step4-activate). No onboard UI writes `data.faqPairs`; only `step4-activate.tsx:124` reads it for a count. Sole Q&A surface in onboard is `WebsiteScrapePreview.tsx` (approve-only, writes `websiteScrapeResult.approvedQa`). FAQ pair creation lives exclusively in post-activation `dashboard/knowledge/InlineFaqEditor.tsx`. |
+| D322 | Loading orb during GBP lookup | MEDIUM | ✅ 2026-04-23 (PR #11, commit 37de791) — pulsing indigo orb card renders below PlacesAutocomplete while Places Details API fetches; exits when confirm card appears |
 
 **Total D-items closed:** 35+ (D235 ✅ D285 ✅ D274 ✅ D265 ✅ D269 ✅ D272 ✅ D268 ✅ D296 ✅ D260 ✅ D281 ✅ D282 ✅ D283a ✅ D283c ✅ D300 ✅ D302 ✅ D280 ✅ D303 ✅ D305-be ✅ D276 ✅ D233 ✅ D241 ✅ D245 ✅ D247 ✅ D249 ✅ D251 ✅ D252 ✅ D254 ✅ D257 ✅ D275 ✅ D283b/D358 ✅ D317 ✅ D318 ✅ D368 ✅ D180 ✅ + D283 partial-done + removed: D240 D277 D228)
 **Completed phases archived:** `docs/architecture/prompt-architecture-completed-phases.md`
@@ -157,8 +157,8 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D293 | **Paste URL → agent ready** — single-step scrape + compose. UX streamlining of existing pipeline. | HIGH |
 | D273 | **Pre-populate from best source** — GBP, website scrape, or manual entry → variable system | HIGH |
 | D255 | **Guided context data entry** — fallback form when no website. Prices, policies, urgency words. | HIGH |
-| D294 | **Post-activation summary** — "Your Agent Is Live" page. Capabilities, knowledge, test CTA. | HIGH |
-| D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH |
+| D294 | **Post-activation summary** — "Your Agent Is Live" page. Capabilities, knowledge, test CTA. | HIGH — ✅ 2026-04-23 RESOLVED BY EXISTING WORK. Two surfaces cover this: (1) [WelcomeWizard.tsx](src/app/dashboard/welcome/WelcomeWizard.tsx) (D88, post-Stripe path) — 3 steps, first titled literally "Your agent is live", with assigned number → forwarding → test it now. (2) [TrialSuccessScreen.tsx](src/components/onboard/TrialSuccessScreen.tsx) (trial auto-login fallback) — `AgentSnapshot` interface with capabilities, `topFacts`/`faqCount`/`hasWebsite` knowledge, embedded `BrowserTestCall`, trial countdown. Both branches of `handleActivate()` in [onboard/page.tsx:188,195](src/app/onboard/page.tsx#L188) land users on one of these. No new page needed; future polish goes into the existing surfaces. |
+| D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH — PARTIAL. WelcomeWizard step 1 already has carrier-specific star codes (mobile/rogers/bell/telus/sasktel/other) with copy buttons + deactivation codes. **MISSING:** automated "did your forwarding actually work?" test — needs a button that triggers an outbound Twilio call to user's `callback_phone` and verifies it lands at the agent. Distinct from WelcomeWizard step 2 which only tells the user to dial the agent's number manually. |
 | D242 | **Haiku intent inference for niche='other'** — auto-suggest closest niche + PRIMARY GOAL | MEDIUM |
 | D185 | **Mode-first onboarding** — skip irrelevant steps per mode (voicemail vs receptionist vs booking) | MEDIUM |
 | D304 | **Old-client prompt migration** — add section markers to 4 live clients. Do after Phase 6 proven. | MEDIUM |
