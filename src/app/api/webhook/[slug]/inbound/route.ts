@@ -68,6 +68,39 @@ export async function POST(
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
   }
 
+  // ── D292 forwarding-verify correlation ─────────────────────────────────────
+  // If From === TWILIO_FROM_NUMBER AND a pending forwarding_verify_tests row exists
+  // for this client within the last 90s, this is the forwarded leg of a test call.
+  // Mark the row 'forwarded' and return a short success TwiML. Do NOT connect to agent.
+  const verifyFromNumber = process.env.TWILIO_FROM_NUMBER
+  if (verifyFromNumber && callerPhone === verifyFromNumber) {
+    const { data: pendingTest } = await supabase
+      .from('forwarding_verify_tests')
+      .select('id')
+      .eq('client_id', client.id)
+      .eq('status', 'pending')
+      .gte('started_at', new Date(Date.now() - 90_000).toISOString())
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (pendingTest) {
+      console.log(`[inbound] Forwarding verify hit: slug=${slug} test=${pendingTest.id}`)
+      await supabase
+        .from('forwarding_verify_tests')
+        .update({
+          status: 'forwarded',
+          inbound_twilio_sid: callSid,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', pendingTest.id)
+        .eq('status', 'pending')
+
+      const twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Forwarding is working. Your calls will reach your assistant. Goodbye.</Say><Hangup/></Response>'
+      return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
+    }
+  }
+
   // ── IVR pre-filter gate ────────────────────────────────────────────────────
   // For clients whose callers are voicemail-trained: plays a menu before connecting
   // to the AI agent. Press 1 → voicemail. No digit/other → connect to agent.
