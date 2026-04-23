@@ -75,8 +75,8 @@
 *Settings page (2026-04-01):*
 - ✅ DONE. Non-admin overview section: Capabilities (2-col) + Orb + Prompt Editor + Notifications (1-col) above tab bar. Agent tab kept for all users.
 - **D283b** — PromptVariablesCard (read-only variable display)
-- **D305 frontend** — Diff preview UI (current vs proposed)
-- **D307** — Recompose warning UX (confirmation + diff before nuke — ships WITH recompose button)
+- ~~**D305 frontend**~~ — ✅ 2026-04-22 — `RecomposeConfirmDialog` shows section-level diff (added/removed/modified) + current/new tabs consuming `POST /api/dashboard/variables/preview` with `{recompose:true}`
+- ~~**D307**~~ — ✅ 2026-04-22 — `AdminRecomposePanel` now opens `RecomposeConfirmDialog`; preview-first flow; disables confirm when no change or >12K chars; blocks dialog close during mutation
 - **D286** — Dashboard settings reorganization
 
 **Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
