@@ -95,7 +95,7 @@
 
 | # | Summary | Priority | Status |
 |---|---------|----------|--------|
-| D315 | Niche badge on confirmed GBP card | HIGH | NOT STARTED |
+| D315 | Niche badge on confirmed GBP card | HIGH | ✅ 2026-04-22 — emoji + niche label shown inline next to business name on confirmed GBP card in step1-gbp.tsx |
 | D316 | Voice preview cards are fake controls | HIGH | NOT STARTED |
 | D317 | Placeholder examples hardcoded to auto_glass | HIGH | ✅ 2026-04-03 — REASON_PLACEHOLDERS in step1-gbp.tsx:145, niche-adaptive for all niches |
 | D318 | Step 3 bloat — trim to mode selection only | CRITICAL | ✅ 2026-04-01 — Phase 7 collapsed to 3 steps; mode via plan card in step-plan.tsx |
@@ -153,7 +153,7 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 
 | # | Summary | Priority |
 |---|---------|----------|
-| D291 | **GBP auto-import** — business name → Apify → auto-populate everything. Flagship "2-minute agent." | CRITICAL |
+| D291 | **GBP auto-import** — business name → Apify → auto-populate everything. Flagship "2-minute agent." | CRITICAL — ✅ 2026-04-22 core path shipped: Google Places autocomplete → `/api/onboard/places-details` auto-fills name/address/phone/hours/website/rating/photo, Places types → niche auto-detect, Haiku niche inference for 'other', website scrape fires in background. Apify path deprioritized (Google Places API is faster + higher quality). Still open: D316 (voice preview fake control), D319 (simplify voice picker), D292 (call forwarding wizard) |
 | D293 | **Paste URL → agent ready** — single-step scrape + compose. UX streamlining of existing pipeline. | HIGH |
 | D273 | **Pre-populate from best source** — GBP, website scrape, or manual entry → variable system | HIGH |
 | D255 | **Guided context data entry** — fallback form when no website. Prices, policies, urgency words. | HIGH |

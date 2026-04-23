@@ -445,14 +445,22 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
             className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 p-4"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">{data.businessName}</p>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 truncate">{data.businessName}</p>
+                    {data.niche && data.niche !== 'other' && nicheLabels[data.niche] && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200 shrink-0">
+                        <span>{nicheEmojis[data.niche]}</span>
+                        <span>{nicheLabels[data.niche]}</span>
+                      </span>
+                    )}
+                  </div>
                   {data.city && (
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">
                       {data.city}{data.state ? `, ${data.state}` : ""}
