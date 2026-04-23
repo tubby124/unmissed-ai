@@ -177,6 +177,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
   const [placesKey, setPlacesKey] = useState(0);
   const [gbpConfirmed, setGbpConfirmed] = useState(!!(data.placeId || data.businessName));
   const [showManual, setShowManual] = useState(!!(data.businessName && !data.placeId));
+  const [loadingPlaceDetails, setLoadingPlaceDetails] = useState(false);
   const [nichePickerDismissed, setNichePickerDismissed] = useState(false);
   const [inferredNiche, setInferredNiche] = useState<Niche | null>(null);
   const [inferring, setInferring] = useState(false);
@@ -355,6 +356,7 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
             <PlacesAutocomplete
               key={placesKey}
               initialValue={data.businessName}
+              onLoadingChange={setLoadingPlaceDetails}
               onSelect={(result) =>
                 setPendingPlace({
                   name: result.name, address: result.address, phone: result.phone,
@@ -364,6 +366,40 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                 })
               }
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Loading orb — while Google Places details are being fetched (D322) */}
+      <AnimatePresence>
+        {loadingPlaceDetails && !pendingPlace && (
+          <motion.div
+            key="gbp-loading-orb"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="rounded-xl border-2 border-indigo-200/60 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 p-5 flex flex-col items-center justify-center gap-3"
+            aria-live="polite"
+            role="status"
+          >
+            <div className="relative w-12 h-12 flex items-center justify-center">
+              <motion.div
+                className="absolute inset-0 rounded-full bg-indigo-500/20"
+                animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0.1, 0.6] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute inset-1 rounded-full bg-indigo-500/30"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.8, 0.3, 0.8] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+              />
+              <div className="relative w-5 h-5 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/40" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Pulling your details from Google…</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Hours, phone, website, photos — all at once.</p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -33,10 +33,11 @@ interface PlaceResult {
 
 interface Props {
   onSelect: (result: PlaceResult & { placeId: string }) => void
+  onLoadingChange?: (loading: boolean) => void
   initialValue?: string
 }
 
-export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Props) {
+export default function PlacesAutocomplete({ onSelect, onLoadingChange, initialValue = '' }: Props) {
   const [input, setInput] = useState(initialValue)
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -89,6 +90,7 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
     setIsOpen(false)
     setPredictions([])
     setLoadingDetails(true)
+    onLoadingChange?.(true)
 
     try {
       const nextToken = newUUID()
@@ -106,6 +108,7 @@ export default function PlacesAutocomplete({ onSelect, initialValue = '' }: Prop
       // Silent
     } finally {
       setLoadingDetails(false)
+      onLoadingChange?.(false)
     }
   }
 
