@@ -74,10 +74,10 @@
 
 *Settings page (2026-04-01):*
 - ✅ DONE. Non-admin overview section: Capabilities (2-col) + Orb + Prompt Editor + Notifications (1-col) above tab bar. Agent tab kept for all users.
-- **D283b** — PromptVariablesCard (read-only variable display)
-- **D305 frontend** — Diff preview UI (current vs proposed)
-- **D307** — Recompose warning UX (confirmation + diff before nuke — ships WITH recompose button)
-- **D286** — Dashboard settings reorganization
+- ~~**D283b**~~ — ✅ PromptVariablesCard shipped (editable + grouped + admin-aware) at [AgentTab.tsx:465](src/components/dashboard/settings/AgentTab.tsx#L465). Tracker note was stale — card has been live since D358.
+- ~~**D305 frontend**~~ — ✅ 2026-04-23 Diff preview UI: shared [PromptDiffPreview.tsx](src/components/dashboard/settings/PromptDiffPreview.tsx) + wired into PromptVariablesCard VariableRow as "Preview diff" step before save
+- ~~**D307**~~ — ✅ 2026-04-23 Recompose confirm+diff flow shipped: [AdminRecomposePanel.tsx](src/components/dashboard/settings/AdminRecomposePanel.tsx) now 3-state (idle → preview → confirm) with amber destructive warning + full diff before commit
+- **D286** — Dashboard settings reorganization (scope remaining unclear; needs user input on what reorg means beyond the 2026-04-01 non-admin overview layout)
 
 **Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
 
