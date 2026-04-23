@@ -21,7 +21,7 @@
 
 | # | Summary | Priority | Status |
 |---|---------|----------|--------|
-| D375 | **Fix Zara WebRTC context** — Zara says "I called you" instead of knowing she's a browser widget. Hard-baked callback number. Read `memory/zara-demo-agent.md` first. | CRITICAL | NOT STARTED |
+| D375 | **Fix Zara WebRTC context** — Zara says "I called you" instead of knowing she's a browser widget. Hard-baked callback number. Read `memory/zara-demo-agent.md` first. | CRITICAL | ✅ 2026-04-15 — DEMO MODE injected into {{callerContext}}; synthetic +15555550100 replaced with 'unknown'; Zara opens correctly as browser widget |
 | D376 | **Hide broken config buttons** — Telegram/IVR/Booking/Transfer buttons on dashboard are broken/blank. Dead buttons = trust loss. Remove from DOM until functional. | CRITICAL | ✅ 2026-04-15 — Telegram pill hidden when not connected; IVR/Booking/Transfer pills removed from client nav until functional |
 | D377 | **Expose triage box to client dashboard** — Agent Intelligence triage box (urgent/pricing/hours/booking tags) exists but hidden from client view. Just remove the admin-only gate. D243 is the full redesign (Phase 9). | HIGH | ✅ 2026-04-15 — AgentIntelligenceSection was orphaned (never imported); wired into SettingsView for client view |
 | D378 | **Fix live call "End" button** — End button on live call monitor does nothing. Wire to Ultravox call termination. | MEDIUM | ✅ 2026-04-15 — End button wired to Ultravox call termination in LiveCallBanner |
