@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { PromptVariable } from '@/lib/prompt-variable-registry'
+import PromptDiffPreview from './PromptDiffPreview'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -71,13 +72,25 @@ const DEDICATED_CARD_KEYS = new Set([
 
 // ── Variable row (inline editable) ─────────────────────────────────────────────
 
+interface DiffState {
+  currentPrompt: string
+  previewPrompt: string
+  charCount: number
+  promptChanged: boolean
+  affectedSlots: string[]
+}
+
 function VariableRow({
   varKey,
   resolved,
+  isAdmin,
+  clientId,
   onSave,
 }: {
   varKey: string
   resolved: ResolvedVar | undefined
+  isAdmin: boolean
+  clientId: string
   onSave: (key: string, value: string) => Promise<boolean>
 }) {
   const meta = resolved?.meta
@@ -86,6 +99,9 @@ function VariableRow({
   const [draft, setDraft] = useState(currentValue)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+  const [diff, setDiff] = useState<DiffState | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   // Reset draft when currentValue changes from outside
   useEffect(() => {
@@ -95,16 +111,54 @@ function VariableRow({
   const isMultiline = currentValue.length > 80 || currentValue.includes('\n')
   const isDirty = draft !== currentValue
 
+  async function handlePreview() {
+    if (!isDirty) return
+    setPreviewing(true)
+    setPreviewError(null)
+    setDiff(null)
+    try {
+      const body: Record<string, unknown> = { variableKey: varKey, value: draft }
+      if (isAdmin) body.client_id = clientId
+      const res = await fetch('/api/dashboard/variables/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Preview failed')
+      setDiff({
+        currentPrompt: data.currentPrompt ?? '',
+        previewPrompt: data.preview ?? '',
+        charCount: data.charCount ?? 0,
+        promptChanged: Boolean(data.promptChanged),
+        affectedSlots: Array.isArray(data.affectedSlots) ? data.affectedSlots : [],
+      })
+    } catch (e) {
+      setPreviewError(e instanceof Error ? e.message : 'Preview error')
+    } finally {
+      setPreviewing(false)
+    }
+  }
+
   async function handleSave() {
-    if (!isDirty) { setEditing(false); return }
+    if (!isDirty) { setEditing(false); setDiff(null); return }
     setSaving(true)
     const ok = await onSave(varKey, draft)
     setSaving(false)
     if (ok) {
       setSaved(true)
       setEditing(false)
+      setDiff(null)
+      setPreviewError(null)
       setTimeout(() => setSaved(false), 2000)
     }
+  }
+
+  function handleCancel() {
+    setDraft(currentValue)
+    setEditing(false)
+    setDiff(null)
+    setPreviewError(null)
   }
 
   if (!meta) return null
@@ -178,19 +232,45 @@ function VariableRow({
           )}
           <div className="flex items-center justify-end gap-2 mt-1.5">
             <button
-              onClick={() => { setDraft(currentValue); setEditing(false) }}
+              onClick={handleCancel}
               className="text-[10px] t3 hover:t2 px-2 py-1"
             >
               Cancel
+            </button>
+            <button
+              onClick={handlePreview}
+              disabled={!isDirty || previewing || saving}
+              className="text-[10px] font-medium px-2.5 py-1 rounded-md transition-all disabled:opacity-40 border b-theme hover:bg-hover t2"
+            >
+              {previewing ? 'Previewing…' : diff ? 'Re-preview' : 'Preview diff'}
             </button>
             <button
               onClick={handleSave}
               disabled={!isDirty || saving}
               className="text-[10px] font-semibold px-3 py-1 rounded-md transition-all disabled:opacity-40 bg-blue-500 hover:bg-blue-400 text-white"
             >
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? 'Saving...' : diff ? 'Confirm & save' : 'Save'}
             </button>
           </div>
+          {previewError && (
+            <p className="text-[10px] text-red-400 mt-2">{previewError}</p>
+          )}
+          {diff && (
+            <div className="mt-2">
+              {!diff.promptChanged ? (
+                <div className="rounded-lg border b-theme bg-surface p-3">
+                  <p className="text-[10px] t3">This change produces no prompt diff. Safe to save.</p>
+                </div>
+              ) : (
+                <PromptDiffPreview
+                  currentPrompt={diff.currentPrompt}
+                  previewPrompt={diff.previewPrompt}
+                  charCountPreview={diff.charCount}
+                  affectedSlots={diff.affectedSlots}
+                />
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-1">
@@ -363,6 +443,8 @@ export default function PromptVariablesCard({
                           key={key}
                           varKey={key}
                           resolved={vars[key]}
+                          isAdmin={isAdmin}
+                          clientId={client.id}
                           onSave={handleSave}
                         />
                       ))}
