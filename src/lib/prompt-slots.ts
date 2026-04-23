@@ -42,6 +42,9 @@ export interface SlotContext {
   fillerStyle: string
   greetingLine: string
   closingLine: string
+  /** S16a — call recording consent disclosure. Spoken on the first turn, after the greeting line.
+   *  Empty string opts out (for jurisdictions handled differently or trusted callback scenarios). */
+  recordingDisclosure: string
 
   // Goal / mode
   primaryGoal: string
@@ -332,11 +335,14 @@ export function buildConversationFlow(ctx: SlotContext): string {
   // instructions as higher priority in long prompts, so TRIAGE was overriding message_only.
   // Note: voicemail_replacement has its own mode-specific TRIAGE_DEEP text and must NOT be guarded.
   if (ctx.effectiveMode === 'message_only') {
+    const greetingBlock = ctx.recordingDisclosure
+      ? `${ctx.greetingLine}\n${ctx.recordingDisclosure}`
+      : ctx.greetingLine
     const content = `# DYNAMIC CONVERSATION FLOW
 
 ## 1. GREETING
 
-${ctx.greetingLine}
+${greetingBlock}
 
 ## 2. MESSAGE COLLECTION
 
@@ -411,11 +417,14 @@ COMPLETION CHECK: have you collected ${ctx.completionFields}? If anything is mis
 ${ctx.closingLine} then hangUp.`
   }
 
+  const greetingBlock = ctx.recordingDisclosure
+    ? `${ctx.greetingLine}\n${ctx.recordingDisclosure}`
+    : ctx.greetingLine
   const content = `# DYNAMIC CONVERSATION FLOW
 
 ## 1. GREETING
 
-${ctx.greetingLine}
+${greetingBlock}
 
 ${filter}
 
@@ -1424,6 +1433,11 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     fillerStyle: variables.FILLER_STYLE || '',
     greetingLine: resolveVars(variables.GREETING_LINE || ''),
     closingLine: resolveVars(variables.CLOSING_LINE || ''),
+    // S16a: one-sentence recording consent disclosure — spoken after greeting on the first turn.
+    // Opt-in. Default empty so existing niches + snapshots stay stable. Enable per-client via
+    // niche_custom_variables.RECORDING_DISCLOSURE, or bake into a niche default for new clients.
+    // Suggested value: "and heads up — this call's being recorded for quality."
+    recordingDisclosure: resolveVars(variables.RECORDING_DISCLOSURE ?? ''),
     primaryGoal,
     completionFields: variables.COMPLETION_FIELDS || '',
     closePerson: variables.CLOSE_PERSON || 'the team',

@@ -126,7 +126,7 @@
 | Item | Status |
 |------|--------|
 | S13-REC2 | NOT STARTED — backfill recording_url from full URLs to paths |
-| S16a | NOT STARTED — call recording consent disclosure |
+| S16a | ✅ 2026-04-22 mechanism shipped (opt-in, default empty) — `SlotContext.recordingDisclosure` renders after greeting when set via `niche_custom_variables.RECORDING_DISCLOSURE`. See `CALLINGAGENTS/Tracker/S16a.md` for turn-on SQL + jurisdiction notes. Not yet enabled on live clients (standing no-redeploy rule). |
 
 > GATE-3: PASS | GATE-4: PASS | GATE-5: PASS
 
