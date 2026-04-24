@@ -211,19 +211,19 @@ export default function BookingCalendarTile({ hasBooking, calendarConnected }: P
         {/* Mini calendar — always visible; dots only when booking is live */}
         <MiniCalendar bookedDates={bookedDates} />
 
-        {/* State: booking disabled */}
+        {/* State: booking disabled — D306 empty-state formula */}
         {!hasBooking ? (
           <div className="flex flex-col items-center justify-center py-4 text-center gap-2">
             <p className="text-[12px] t2 font-medium">Let your agent book appointments</p>
-            <p className="text-[11px] t3 max-w-[200px] leading-relaxed">
-              Connect Google Calendar and your agent handles scheduling automatically.
+            <p className="text-[11px] t3 max-w-[220px] leading-relaxed">
+              Connect Google Calendar and your agent can book appointments.
             </p>
             <Link
               href="/dashboard/settings?tab=general"
               className="mt-1 text-[11px] font-semibold hover:opacity-70 transition-opacity"
               style={{ color: 'var(--color-primary)' }}
             >
-              Set up booking →
+              Connect calendar →
             </Link>
           </div>
         ) : !calendarConnected ? (
