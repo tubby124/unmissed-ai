@@ -12,7 +12,6 @@ import StatsHeroCard from './StatsHeroCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
-import KnowledgeInlineTile from './KnowledgeInlineTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
 import PendingReviewTile from './PendingReviewTile'
 import QuickConfigStrip from './QuickConfigStrip'
@@ -20,6 +19,11 @@ import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import VoicePickerDropdown from './VoicePickerDropdown'
 import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
+// Wave 2 — unified overview bands
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import AgentKnowsCard from './AgentKnowsCard'
+import AgentRoutesOnCard from './AgentRoutesOnCard'
+import OverviewCallLog from './OverviewCallLog'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -740,48 +744,24 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          TIER 1 — Hero (3-col: Call Stats | Test Call | Today + Stats)
+          TIER 1 — Hero (3-col: Capabilities | Orb | Today + Stats)
+          Wave 2 rewire — D278/D288/D290/D341/D266/D306
           ════════════════════════════════════════════════════════════ */}
-      {onboarding.hasAgent && data.clientId && (
+      {onboarding.hasAgent && data.clientId && (<>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-          {/* Left: Knowledge Base + Agent Readiness */}
+          {/* Left: CapabilitiesCard (D288 reframing) */}
           <div className="flex flex-col gap-3 order-2 md:order-1">
-            <KnowledgeInlineTile
-              knowledgeStats={data.knowledge}
-              gbpData={data.gbpData}
-              businessFacts={(data.editableFields.businessFacts ?? '').split('\n').filter(Boolean)}
-              faqCount={data.editableFields.faqs?.length ?? 0}
-              websiteUrl={data.editableFields.websiteUrl}
-              websiteScrapeStatus={data.websiteScrapeStatus}
-            />
-
-            {/* Agent readiness — below knowledge base */}
-            <AgentReadinessRow
-              hoursWeekday={data.editableFields.hoursWeekday}
-              activeServicesCount={data.activeServicesCount ?? 0}
-              faqCount={faqCount}
-              calendarConnected={calendarConnected}
-              callHandlingMode={callHandlingMode}
-              approvedKnowledgeCount={data.knowledge.approved_chunk_count}
-              pendingKnowledgeCount={pendingKnowledgeCount}
-              hasTriage={data.hasTriage ?? false}
-            />
-            <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
-
-            {/* D377 — Agent intelligence / triage box (was orphaned) */}
-            <AgentIntelligenceSection
+            <CapabilitiesCard
+              capabilities={capabilities}
               agentName={agent.name}
-              businessName={onboarding.businessName}
-              hoursWeekday={data.editableFields.hoursWeekday}
-              faqs={data.editableFields.faqs}
-              businessFacts={data.editableFields.businessFacts}
-              websiteUrl={data.editableFields.websiteUrl ?? null}
-              hasKnowledge={capabilities.hasKnowledge}
-              hasSms={capabilities.hasSms}
-              hasBooking={capabilities.hasBooking}
-              hasTransfer={capabilities.hasTransfer}
+              voiceStylePreset={data.agent.voiceStylePreset}
               isTrial={isTrial}
               clientId={data.clientId}
+              hasPhoneNumber={onboarding.hasPhoneNumber}
+              hasIvr={data.editableFields.ivrEnabled}
+              hasContextData={data.editableFields.hasContextData}
+              selectedPlan={data.selectedPlan}
+              hasTelegramAlerts={onboarding.telegramConnected}
             />
           </div>
 
@@ -815,9 +795,8 @@ export default function UnifiedHomeSection({
             {/* D354 — Unanswered Questions under orb for tight feedback loop */}
             <UnansweredQuestionsTile clientId={data.clientId} />
 
-            {/* Recent Calls — moved from TIER 3 into center column */}
-            <div
-              className="rounded-2xl overflow-hidden"
+            {/* (Recent Calls moved to the full-width "Call Log" band below — D266) */}
+            <div className="hidden"
               style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
             >
               {/* Header */}
@@ -1076,7 +1055,70 @@ export default function UnifiedHomeSection({
             />
           </div>
         </div>
-      )}
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: What your agent knows (D290)
+            ════════════════════════════════════════════════════════════ */}
+        <AgentKnowsCard
+          factsText={data.editableFields.businessFacts}
+          faqCount={faqCount}
+          servicesCount={data.activeServicesCount ?? 0}
+          approvedChunkCount={data.knowledge.approved_chunk_count}
+          clientId={data.clientId}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: What your agent routes on (D341)
+            ════════════════════════════════════════════════════════════ */}
+        <AgentRoutesOnCard
+          nicheCustomVariables={data.nicheCustomVariables ?? null}
+          onboardingIncomplete={!onboarding.hasPhoneNumber && isTrial}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: Call Log (D266) — shared CallRow with /dashboard/calls
+            ════════════════════════════════════════════════════════════ */}
+        <OverviewCallLog
+          clientId={data.clientId}
+          limit={12}
+          hasTwilioNumber={!!data.twilioNumber}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Lower supporting band — readiness + booking + triage
+            ════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <AgentReadinessRow
+              hoursWeekday={data.editableFields.hoursWeekday}
+              activeServicesCount={data.activeServicesCount ?? 0}
+              faqCount={faqCount}
+              calendarConnected={calendarConnected}
+              callHandlingMode={callHandlingMode}
+              approvedKnowledgeCount={data.knowledge.approved_chunk_count}
+              pendingKnowledgeCount={pendingKnowledgeCount}
+              hasTriage={data.hasTriage ?? false}
+            />
+            <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
+          </div>
+          <div>
+            <AgentIntelligenceSection
+              agentName={agent.name}
+              businessName={onboarding.businessName}
+              hoursWeekday={data.editableFields.hoursWeekday}
+              faqs={data.editableFields.faqs}
+              businessFacts={data.editableFields.businessFacts}
+              websiteUrl={data.editableFields.websiteUrl ?? null}
+              hasKnowledge={capabilities.hasKnowledge}
+              hasSms={capabilities.hasSms}
+              hasBooking={capabilities.hasBooking}
+              hasTransfer={capabilities.hasTransfer}
+              isTrial={isTrial}
+              clientId={data.clientId}
+            />
+          </div>
+        </div>
+      </>)}
 
       {/* Agent sync badge */}
       {data.clientId && data.agentSync && (

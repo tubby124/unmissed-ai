@@ -436,5 +436,7 @@ export async function GET(request: Request) {
       } catch { /* noop */ }
       return []
     })(),
+    // D341 — read-only surface for AgentRoutesOnCard; edits happen via PATCH /api/dashboard/variables
+    nicheCustomVariables: (client.niche_custom_variables as Record<string, string> | null) ?? null,
   })
 }
