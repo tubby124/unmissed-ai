@@ -380,7 +380,7 @@ export default function CapabilitiesCard({
               className="text-[11px] font-semibold tracking-[0.14em] uppercase"
               style={{ color: 'var(--color-text-2)' }}
             >
-              What your agent can do
+              What your agent can do right now
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
