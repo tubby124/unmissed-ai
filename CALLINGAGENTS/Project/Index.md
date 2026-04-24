@@ -1,7 +1,7 @@
 ---
 type: moc
 tags: [index, project]
-updated: 2026-04-01
+updated: 2026-04-24
 cleaned: 2026-04-01
 last-tracker-cleanup: 2026-04-01
 ---
@@ -10,7 +10,14 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-01 — Tracker Cleanup)
+## Latest Session (2026-04-24 — Wave 2 Chat A — Overview Surface)
+- Branch `ship/wave2-overview-surface` shipped — 8 narrow commits, build green (1683/1683 tests, tsc clean, next build OK)
+- **Closed:** D308 (label kept), D266 (shared `useCallLog` + `CallRow` reuse), D290 (`AgentKnowsCard`), D288 (Capabilities reframe), D341 (`AgentRoutesOnCard`), D306 (empty-state sweep)
+- **Deleted:** `AgentKnowledgeTile`, `KnowledgeInlineTile`, `KnowledgeSourcesTile`, `TrialActiveSection` (orphans after rewire) + dead Recent-Calls inline block in `UnifiedHomeSection`
+- **Deferred:** D286 (Settings reorg) → Wave 2 Chat B, separate PR
+- Handoff doc: [[Tracker/Wave2-Chat-A-Handoff]]
+
+## Previous Session (2026-04-01 — Tracker Cleanup)
 - **53 DONE items archived** → [[Tracker/Archive-Done]]
 - **5 removed/superseded items** cleaned out
 - **5 duplicate clusters merged** (D283b→D341, D264→D346, D270→D359, D322→D345, D284→D297)

@@ -169,6 +169,8 @@ export interface HomeData {
   } | null
   hasTriage?: boolean
   callerReasons?: string[]
+  /** Read-only routing variables surfaced on Overview via AgentRoutesOnCard (D341). */
+  nicheCustomVariables?: Record<string, string> | null
 }
 
 

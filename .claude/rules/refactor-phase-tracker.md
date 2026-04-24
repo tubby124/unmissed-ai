@@ -59,11 +59,11 @@
 
 *Overview page (5-tier layout — Sonar-validated 2026-03-31):*
 - ~~**D278**~~ — ✅ DONE. Overview page redesign: CONFIG-first layout, 3-col hero, call log + bookings 2-col, 8-pill QuickConfigStrip (Telegram/Email/IVR/Voicemail/Auto-text/Booking/Transfer/Routing)
-- **D308** — Tab stays "Overview" (not "Agent Brain"). Decision: `CALLINGAGENTS/Decisions/Dashboard-Tab-Naming.md`
-- **D306** — Empty states for every card (trial vs paid same layout, data replaces empty states)
-- **D266** — Rich call log on Overview (call log + bookings now side-by-side in 2-col grid)
-- **D288** — Capability preview (CapabilitiesCard now on Settings overview section; partial)
-- **D290** — "What Your Agent Knows" condensed to KB source list on Overview (KnowledgeInlineTile; partial)
+- ~~**D308**~~ — ✅ 2026-04-24 (Wave 2 Chat A). Kept "Overview" label. `ship/wave2-overview-surface`.
+- ~~**D306**~~ — ✅ 2026-04-24 (Wave 2 Chat A). Empty-state formula applied to CapabilitiesCard, AgentKnowsCard, AgentRoutesOnCard, OverviewCallLog, BookingCalendarTile. Binary switch enforced per tile.
+- ~~**D266**~~ — ✅ 2026-04-24 (Wave 2 Chat A). Shared `useCallLog` hook + new `OverviewCallLog` component reuse canonical `CallRow` with /dashboard/calls.
+- ~~**D288**~~ — ✅ 2026-04-24 (Wave 2 Chat A). `CapabilitiesCard` reframed to "What your agent can do right now" + D306 forwarding nudge.
+- ~~**D290**~~ — ✅ 2026-04-24 (Wave 2 Chat A). New `AgentKnowsCard.tsx` — unified Facts · FAQ · Services · KB · inline Gaps. Replaces three legacy tiles (all deleted in PR).
 
 *Knowledge page (full redesign — Sonar-validated 2026-03-31):*
 - ~~**D309**~~ — ✅ DONE. Knowledge page redesign: 3-col layout, TestCallCard orb in center, health score + drawer pattern + inline edit/delete + bulk AI answers
@@ -74,7 +74,7 @@
 
 *Settings page (2026-04-01):*
 - ✅ DONE. Non-admin overview section: Capabilities (2-col) + Orb + Prompt Editor + Notifications (1-col) above tab bar. Agent tab kept for all users.
-- **D283b** — PromptVariablesCard (read-only variable display)
+- **D283b** — PromptVariablesCard (read-only variable display) — see also D341 (Overview preview card) ✅ 2026-04-24
 - ~~**D305 frontend**~~ — ✅ 2026-04-22 — `RecomposeConfirmDialog` shows section-level diff (added/removed/modified) + current/new tabs consuming `POST /api/dashboard/variables/preview` with `{recompose:true}`
 - ~~**D307**~~ — ✅ 2026-04-22 — `AdminRecomposePanel` now opens `RecomposeConfirmDialog`; preview-first flow; disables confirm when no change or >12K chars; blocks dialog close during mutation
 - **D286** — Dashboard settings reorganization

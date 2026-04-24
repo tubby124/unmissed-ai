@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
@@ -12,7 +12,6 @@ import StatsHeroCard from './StatsHeroCard'
 import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
-import KnowledgeInlineTile from './KnowledgeInlineTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
 import PendingReviewTile from './PendingReviewTile'
 import QuickConfigStrip from './QuickConfigStrip'
@@ -20,27 +19,16 @@ import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import VoicePickerDropdown from './VoicePickerDropdown'
 import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
+// Wave 2 — unified overview bands
+import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
+import AgentKnowsCard from './AgentKnowsCard'
+import AgentRoutesOnCard from './AgentRoutesOnCard'
+import OverviewCallLog from './OverviewCallLog'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
 // ── Inline helpers ───────────────────────────────────────────────
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds) return '—'
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return m > 0 ? `${m}m ${s}s` : `${s}s`
-}
-
+// Phone formatter retained — still used by the "Share your number" + call-me panels.
 function formatPhone(phone: string | null): string {
   if (!phone) return 'Unknown'
   const digits = phone.replace(/\D/g, '')
@@ -52,44 +40,6 @@ function formatPhone(phone: string | null): string {
   }
   return phone
 }
-
-function formatNiche(niche: string | null): string {
-  if (!niche) return 'General'
-  return niche.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
-}
-
-const VOICE_PRESET_LABELS: Record<string, string> = {
-  casual_friendly: 'Casual & friendly',
-  professional_warm: 'Professional & warm',
-  formal: 'Formal',
-  energetic: 'Energetic',
-  empathetic: 'Empathetic',
-}
-function formatVoicePreset(preset: string | null): string {
-  if (!preset) return 'Professional & warm'
-  return VOICE_PRESET_LABELS[preset] ?? preset.replace(/_/g, ' ')
-}
-
-function formatTimeSaved(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  HOT: 'bg-red-500/10 text-red-400 border border-red-500/20',
-  WARM: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  COLD: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-  JUNK: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  missed: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  VOICEMAIL: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  voicemail: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  test: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
-}
-
-const CALL_FILTER_TABS = ['All', 'HOT', 'WARM'] as const
-const CALL_FILTER_MORE = ['COLD', 'JUNK', 'missed', 'VOICEMAIL'] as const
 
 // ── Props ────────────────────────────────────────────────────────
 interface Props {
@@ -129,11 +79,6 @@ export default function UnifiedHomeSection({
   // D363 — Share number inline expand + copy
   const [shareExpanded, setShareExpanded] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
-
-  // Tier 3 — call log filter
-  const [callFilter, setCallFilter] = useState<string>('All')
-  const [callMoreOpen, setCallMoreOpen] = useState(false)
-  const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
 
   // D143 — scroll target for test call nudge
   const testCallRef = useRef<HTMLDivElement>(null)
@@ -235,15 +180,6 @@ export default function UnifiedHomeSection({
   const setupComplete = setupDimensions.filter(Boolean).length
   const setupTotal = setupDimensions.length
   const setupPct = Math.round((setupComplete / setupTotal) * 100)
-
-  // Tier 3 — filtered calls
-  const filteredCalls = callFilter === 'All'
-    ? data.recentCalls
-    : data.recentCalls.filter(c => {
-        const status = c.call_status.toLowerCase()
-        const filter = callFilter.toLowerCase()
-        return status === filter
-      })
 
   // ── Build action nudge items for the compact grid ─────────────
   const nudgeItems: { key: string; icon: React.ReactNode; label: string; sub?: string; cta: string; color: string; bg: string; border: string; href?: string; onClick?: () => void; dismiss?: () => void }[] = []
@@ -740,48 +676,24 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          TIER 1 — Hero (3-col: Call Stats | Test Call | Today + Stats)
+          TIER 1 — Hero (3-col: Capabilities | Orb | Today + Stats)
+          Wave 2 rewire — D278/D288/D290/D341/D266/D306
           ════════════════════════════════════════════════════════════ */}
-      {onboarding.hasAgent && data.clientId && (
+      {onboarding.hasAgent && data.clientId && (<>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-          {/* Left: Knowledge Base + Agent Readiness */}
+          {/* Left: CapabilitiesCard (D288 reframing) */}
           <div className="flex flex-col gap-3 order-2 md:order-1">
-            <KnowledgeInlineTile
-              knowledgeStats={data.knowledge}
-              gbpData={data.gbpData}
-              businessFacts={(data.editableFields.businessFacts ?? '').split('\n').filter(Boolean)}
-              faqCount={data.editableFields.faqs?.length ?? 0}
-              websiteUrl={data.editableFields.websiteUrl}
-              websiteScrapeStatus={data.websiteScrapeStatus}
-            />
-
-            {/* Agent readiness — below knowledge base */}
-            <AgentReadinessRow
-              hoursWeekday={data.editableFields.hoursWeekday}
-              activeServicesCount={data.activeServicesCount ?? 0}
-              faqCount={faqCount}
-              calendarConnected={calendarConnected}
-              callHandlingMode={callHandlingMode}
-              approvedKnowledgeCount={data.knowledge.approved_chunk_count}
-              pendingKnowledgeCount={pendingKnowledgeCount}
-              hasTriage={data.hasTriage ?? false}
-            />
-            <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
-
-            {/* D377 — Agent intelligence / triage box (was orphaned) */}
-            <AgentIntelligenceSection
+            <CapabilitiesCard
+              capabilities={capabilities}
               agentName={agent.name}
-              businessName={onboarding.businessName}
-              hoursWeekday={data.editableFields.hoursWeekday}
-              faqs={data.editableFields.faqs}
-              businessFacts={data.editableFields.businessFacts}
-              websiteUrl={data.editableFields.websiteUrl ?? null}
-              hasKnowledge={capabilities.hasKnowledge}
-              hasSms={capabilities.hasSms}
-              hasBooking={capabilities.hasBooking}
-              hasTransfer={capabilities.hasTransfer}
+              voiceStylePreset={data.agent.voiceStylePreset}
               isTrial={isTrial}
               clientId={data.clientId}
+              hasPhoneNumber={onboarding.hasPhoneNumber}
+              hasIvr={data.editableFields.ivrEnabled}
+              hasContextData={data.editableFields.hasContextData}
+              selectedPlan={data.selectedPlan}
+              hasTelegramAlerts={onboarding.telegramConnected}
             />
           </div>
 
@@ -814,179 +726,8 @@ export default function UnifiedHomeSection({
             )}
             {/* D354 — Unanswered Questions under orb for tight feedback loop */}
             <UnansweredQuestionsTile clientId={data.clientId} />
-
-            {/* Recent Calls — moved from TIER 3 into center column */}
-            <div
-              className="rounded-2xl overflow-hidden"
-              style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-            >
-              {/* Header */}
-              <div className="px-4 py-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">Recent Calls</p>
-                  <span className="text-[11px] t3">
-                    {data.recentCalls.length} call{data.recentCalls.length !== 1 ? 's' : ''}
-                    {data.stats.lastCallAt && ` · last ${timeAgo(data.stats.lastCallAt)}`}
-                  </span>
-                </div>
-                <Link
-                  href="/dashboard/calls"
-                  className="text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity shrink-0"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  View all
-                </Link>
-              </div>
-
-              {/* Filter tabs */}
-              <div className="px-4 pb-2 flex items-center gap-1 flex-wrap">
-                {CALL_FILTER_TABS.map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => { setCallFilter(tab); setCallMoreOpen(false) }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer ${
-                      callFilter === tab
-                        ? 'bg-white/10 t1'
-                        : 'hover:bg-white/5 t3'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-                {/* More dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setCallMoreOpen(o => !o)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-200 cursor-pointer flex items-center gap-1 ${
-                      CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
-                        ? 'bg-white/10 t1'
-                        : 'hover:bg-white/5 t3'
-                    }`}
-                  >
-                    {CALL_FILTER_MORE.includes(callFilter as typeof CALL_FILTER_MORE[number])
-                      ? callFilter.replace(/_/g, ' ')
-                      : 'More'}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {callMoreOpen && (
-                    <div
-                      className="absolute top-full left-0 mt-1 rounded-lg py-1 z-10 min-w-[120px] shadow-lg"
-                      style={{ backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
-                    >
-                      {CALL_FILTER_MORE.map(item => (
-                        <button
-                          key={item}
-                          onClick={() => { setCallFilter(item); setCallMoreOpen(false) }}
-                          className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5 transition-colors duration-200 cursor-pointer t2 capitalize"
-                        >
-                          {item.toLowerCase().replace(/_/g, ' ')}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Call list */}
-              {filteredCalls.length > 0 ? (
-                <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                  {filteredCalls.slice(0, 8).map(call => {
-                    const isTestCall = call.call_status === 'test'
-                    const isExpanded = expandedCallId === call.id
-                    const statusClass = STATUS_BADGE[call.call_status] ?? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                    const sentimentDot = call.sentiment === 'positive' ? 'bg-emerald-400' :
-                      call.sentiment === 'negative' ? 'bg-red-400' :
-                      call.sentiment === 'neutral' ? 'bg-slate-400' : null
-
-                    const cardContent = (
-                      <div
-                        className="px-4 py-3 hover:bg-hover transition-colors duration-200 cursor-pointer"
-                        onClick={isTestCall ? () => setExpandedCallId(isExpanded ? null : call.id) : undefined}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-[12px] font-medium t1">
-                                {isTestCall ? 'Browser test call' : formatPhone(call.caller_phone)}
-                              </p>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${statusClass}`}>
-                                {call.call_status.toUpperCase().replace(/_/g, ' ')}
-                              </span>
-                              {sentimentDot && (
-                                <span className={`w-1.5 h-1.5 rounded-full ${sentimentDot}`} title={`Sentiment: ${call.sentiment}`} />
-                              )}
-                            </div>
-                            {call.ai_summary && (
-                              <p className="text-[11px] t3 leading-snug line-clamp-1 mt-1">&ldquo;{call.ai_summary}&rdquo;</p>
-                            )}
-                          </div>
-                          <div className="text-right shrink-0 flex items-center gap-3">
-                            <div>
-                              <p className="text-[11px] t2">{formatDuration(call.duration_seconds)}</p>
-                              <p className="text-[10px] t3">{timeAgo(call.started_at)}</p>
-                            </div>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
-                              <path d={isExpanded ? 'M6 15l6-6 6 6' : 'M9 18l6-6-6-6'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        </div>
-                        {/* Expanded detail */}
-                        {isExpanded && call.ai_summary && (
-                          <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                            <p className="text-[11px] t2 leading-relaxed">{call.ai_summary}</p>
-                          </div>
-                        )}
-                      </div>
-                    )
-
-                    return isTestCall ? (
-                      <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>{cardContent}</div>
-                    ) : (
-                      <div key={call.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>
-                        <Link
-                          href={`/dashboard/calls/${call.ultravox_call_id ?? call.id}`}
-                          className="block cursor-pointer"
-                          onClick={e => {
-                            if (!isExpanded) {
-                              e.preventDefault()
-                              setExpandedCallId(call.id)
-                            }
-                          }}
-                        >
-                          {cardContent}
-                        </Link>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="border-t px-4 py-8 text-center" style={{ borderColor: 'var(--color-border)' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2" style={{ color: 'var(--color-text-3)' }}>
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <p className="text-[12px] t2 mb-1">
-                    {callFilter !== 'All' ? `No ${callFilter} calls yet` : 'No calls yet'}
-                  </p>
-                  <p className="text-[11px] t3">
-                    {callFilter !== 'All'
-                      ? 'Try a different filter or wait for more calls'
-                      : 'Forward your number to get started'}
-                  </p>
-                  {callFilter === 'All' && data.twilioNumber && (
-                    <Link
-                      href="/dashboard/settings?tab=general#forwarding"
-                      className="inline-block mt-2 text-[11px] font-medium cursor-pointer hover:opacity-75 transition-opacity"
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      Forwarding guide
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
+
 
           {/* Right: Voice + Today's Update + Stats + Trial Mode */}
           <div className="space-y-3 order-3">
@@ -1076,7 +817,70 @@ export default function UnifiedHomeSection({
             />
           </div>
         </div>
-      )}
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: What your agent knows (D290)
+            ════════════════════════════════════════════════════════════ */}
+        <AgentKnowsCard
+          factsText={data.editableFields.businessFacts}
+          faqCount={faqCount}
+          servicesCount={data.activeServicesCount ?? 0}
+          approvedChunkCount={data.knowledge.approved_chunk_count}
+          clientId={data.clientId}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: What your agent routes on (D341)
+            ════════════════════════════════════════════════════════════ */}
+        <AgentRoutesOnCard
+          nicheCustomVariables={data.nicheCustomVariables ?? null}
+          onboardingIncomplete={!onboarding.hasPhoneNumber && isTrial}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Full-width: Call Log (D266) — shared CallRow with /dashboard/calls
+            ════════════════════════════════════════════════════════════ */}
+        <OverviewCallLog
+          clientId={data.clientId}
+          limit={12}
+          hasTwilioNumber={!!data.twilioNumber}
+        />
+
+        {/* ════════════════════════════════════════════════════════════
+            Lower supporting band — readiness + booking + triage
+            ════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <AgentReadinessRow
+              hoursWeekday={data.editableFields.hoursWeekday}
+              activeServicesCount={data.activeServicesCount ?? 0}
+              faqCount={faqCount}
+              calendarConnected={calendarConnected}
+              callHandlingMode={callHandlingMode}
+              approvedKnowledgeCount={data.knowledge.approved_chunk_count}
+              pendingKnowledgeCount={pendingKnowledgeCount}
+              hasTriage={data.hasTriage ?? false}
+            />
+            <BookingCalendarTile hasBooking={capabilities.hasBooking} calendarConnected={calendarConnected} />
+          </div>
+          <div>
+            <AgentIntelligenceSection
+              agentName={agent.name}
+              businessName={onboarding.businessName}
+              hoursWeekday={data.editableFields.hoursWeekday}
+              faqs={data.editableFields.faqs}
+              businessFacts={data.editableFields.businessFacts}
+              websiteUrl={data.editableFields.websiteUrl ?? null}
+              hasKnowledge={capabilities.hasKnowledge}
+              hasSms={capabilities.hasSms}
+              hasBooking={capabilities.hasBooking}
+              hasTransfer={capabilities.hasTransfer}
+              isTrial={isTrial}
+              clientId={data.clientId}
+            />
+          </div>
+        </div>
+      </>)}
 
       {/* Agent sync badge */}
       {data.clientId && data.agentSync && (
