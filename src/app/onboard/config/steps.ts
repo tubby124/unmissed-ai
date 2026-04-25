@@ -75,7 +75,13 @@ export const STEP_DEFS: StepDef[] = [
   {
     label: 'Your business',
     component: Step1GBP,
-    canAdvance: (d) => !!d.businessName && !!d.agentName?.trim(),
+    canAdvance: (d) => {
+      if (!d.businessName || !d.agentName?.trim()) return false;
+      // Property management requires an explicit callback contact (owner_name → CLOSE_PERSON
+      // in the prompt). Other niches can fall back to a generic "us" if blank.
+      if (d.niche === 'property_management' && !d.ownerName?.trim()) return false;
+      return true;
+    },
   },
   {
     label: 'Your agent',

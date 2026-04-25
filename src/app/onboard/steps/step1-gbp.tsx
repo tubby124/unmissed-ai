@@ -677,6 +677,34 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
               <p className="text-xs text-muted-foreground">What your agent introduces itself as on calls.</p>
             </motion.div>
 
+            {/* Your name (owner / callback contact) — always asked so we never silently
+                inherit a stale value from localStorage or another field. Required for
+                property_management; optional but recommended for other niches. */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.13 }}
+              className="space-y-1.5"
+            >
+              <Label htmlFor="ownerName">
+                Your name{" "}
+                {data.niche === 'property_management' ? (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-normal">(required)</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground font-normal">(who calls back)</span>
+                )}
+              </Label>
+              <Input
+                id="ownerName"
+                value={data.ownerName || ''}
+                onChange={(e) => onUpdate({ ownerName: e.target.value })}
+                placeholder="e.g. Brian, Eric, Alisha"
+              />
+              <p className="text-xs text-muted-foreground">
+                The person callers will be told to expect a call back from. Different from your agent&apos;s name above.
+              </p>
+            </motion.div>
+
             {/* Business address */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -726,19 +754,6 @@ export default function Step1GBP({ data, onUpdate, onGbpUsed }: Props) {
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
                     Your agent is pre-configured for property management calls — no website needed.
                   </p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pmManagerName" className="text-sm font-medium">
-                      Property manager name{" "}
-                      <span className="text-xs text-amber-700 dark:text-amber-400 font-normal">(becomes the callback contact)</span>
-                    </Label>
-                    <Input
-                      id="pmManagerName"
-                      value={data.ownerName || ''}
-                      onChange={(e) => onUpdate({ ownerName: e.target.value })}
-                      placeholder="e.g. Ray, Alisha, Jordan"
-                      className="text-sm"
-                    />
-                  </div>
                   {!data.city && (
                     <div className="space-y-1.5">
                       <Label htmlFor="pmCity" className="text-sm font-medium">

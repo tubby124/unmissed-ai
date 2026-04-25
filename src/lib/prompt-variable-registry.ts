@@ -30,6 +30,15 @@ export interface PromptVariable {
   label: string
   /** Which slot function consumes this variable */
   slotId: SlotId
+  /**
+   * Additional slots whose generated content references this variable and
+   * therefore needs regeneration when the variable changes. Names like
+   * AGENT_NAME and CLOSE_PERSON are baked into greetings, examples,
+   * escalation lines, after-hours blocks, and FAQ answers — far beyond
+   * the single owning `slotId`. Without this list, edits leave stale
+   * names in unrelated slots (root cause of D371 / Brian "Emon" bug).
+   */
+  extraAffectedSlots?: SlotId[]
   /** DB column on `clients` table that sources this value (null = derived/computed) */
   dbField: string | null
   /** Intake data key that populates this during onboarding (null = niche default only) */
@@ -54,6 +63,11 @@ export const PROMPT_VARIABLE_REGISTRY: PromptVariable[] = [
     key: 'AGENT_NAME',
     label: 'Agent name',
     slotId: 'identity',
+    extraAffectedSlots: [
+      'conversation_flow', 'inline_examples', 'after_hours',
+      'returning_caller', 'vip_protocol', 'call_handling_mode',
+      'escalation_transfer', 'faq_pairs',
+    ],
     dbField: 'agent_name',
     intakeField: 'agent_name',
     editable: true,
@@ -66,6 +80,10 @@ export const PROMPT_VARIABLE_REGISTRY: PromptVariable[] = [
     key: 'BUSINESS_NAME',
     label: 'Business name',
     slotId: 'identity',
+    extraAffectedSlots: [
+      'conversation_flow', 'inline_examples', 'after_hours',
+      'returning_caller', 'knowledge', 'faq_pairs',
+    ],
     dbField: 'business_name',
     intakeField: 'business_name',
     editable: true,
@@ -126,6 +144,10 @@ export const PROMPT_VARIABLE_REGISTRY: PromptVariable[] = [
     key: 'CLOSE_PERSON',
     label: 'Callback contact name',
     slotId: 'goal',
+    extraAffectedSlots: [
+      'conversation_flow', 'inline_examples', 'escalation_transfer',
+      'after_hours', 'faq_pairs', 'call_handling_mode',
+    ],
     dbField: 'owner_name',
     intakeField: 'owner_name',
     editable: true,
@@ -577,9 +599,19 @@ export function getVariablesForDbField(dbField: string): PromptVariable[] {
 /**
  * Get all slots that would need regeneration when a given DB field changes.
  * Returns unique slot IDs.
+ *
+ * Merges each variable's primary `slotId` with its `extraAffectedSlots` list —
+ * required because identity-class variables (AGENT_NAME, BUSINESS_NAME,
+ * CLOSE_PERSON) are baked into many slots beyond their owning slot
+ * (greetings, examples, escalation, after-hours, FAQ). Without merging,
+ * regen leaves the old name across most of the prompt.
  */
 export function getSlotsAffectedByDbField(dbField: string): SlotId[] {
   const vars = getVariablesForDbField(dbField)
-  const slots = new Set(vars.map(v => v.slotId))
+  const slots = new Set<SlotId>()
+  for (const v of vars) {
+    slots.add(v.slotId)
+    for (const extra of v.extraAffectedSlots ?? []) slots.add(extra)
+  }
   return Array.from(slots)
 }

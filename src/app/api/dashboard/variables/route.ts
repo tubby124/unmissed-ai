@@ -25,6 +25,8 @@ import { regenerateSlots } from '@/lib/slot-regenerator'
 import { clientRowToIntake } from '@/lib/slot-regenerator'
 import { buildSlotContext } from '@/lib/prompt-slots'
 import type { SlotId } from '@/lib/prompt-sections'
+import { patchAgentName, patchBusinessName, patchOwnerName } from '@/lib/prompt-patcher'
+import { updateAgent, buildAgentTools } from '@/lib/ultravox'
 
 // ── GET — Resolve current variable values ─────────────────────────────────────
 
@@ -125,6 +127,23 @@ export async function PATCH(req: NextRequest) {
   const svc = createServiceClient()
   let affectedSlots: SlotId[] = []
 
+  // Safety-net inputs — capture the OLD value of identity-class fields BEFORE the
+  // DB write so we can word-boundary patch the stored prompt across every slot
+  // afterward. Slot regen alone only touches the slots tagged in the registry,
+  // but AGENT_NAME / OWNER_NAME / BUSINESS_NAME appear in conversation_flow,
+  // inline_examples, escalation_transfer, after_hours, faq_pairs, etc.
+  // Without this backstop the live prompt retains stale names (D371 root cause).
+  const NAME_FIELDS = new Set(['agent_name', 'owner_name', 'business_name'])
+  let oldName: string | null = null
+  if (varDef.dbField && NAME_FIELDS.has(varDef.dbField)) {
+    const { data: priorRow } = await svc
+      .from('clients')
+      .select(`${varDef.dbField}`)
+      .eq('id', clientId)
+      .single()
+    oldName = (priorRow?.[varDef.dbField as keyof typeof priorRow] as string | null) ?? null
+  }
+
   if (varDef.dbField) {
     // Variable maps to a dedicated DB column — write directly
     const { error: updateErr } = await svc
@@ -190,6 +209,65 @@ export async function PATCH(req: NextRequest) {
     })
   }
 
+  // 5b — Safety-net cross-slot patch for name fields.
+  // CLOSE_PERSON / AGENT_NAME / BUSINESS_NAME appear across many slots that
+  // aren't tagged in the registry. Regen only rebuilt the slots tagged with
+  // dbField — every other slot still references the old name. Word-boundary
+  // patch the stored prompt and re-sync Ultravox so the live agent stops
+  // saying the old name.
+  let safetyNetApplied = false
+  if (oldName && varDef.dbField && NAME_FIELDS.has(varDef.dbField) && oldName !== trimmedValue) {
+    const { data: latest } = await svc
+      .from('clients')
+      .select('id, system_prompt, ultravox_agent_id, agent_name, business_name, owner_name, agent_voice_id, booking_enabled, forwarding_number, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, slug, niche, selected_plan, subscription_status, tools, after_hours_behavior')
+      .eq('id', clientId)
+      .single()
+
+    if (latest?.system_prompt) {
+      let patched = latest.system_prompt as string
+      if (varDef.dbField === 'agent_name')    patched = patchAgentName(patched, oldName, trimmedValue)
+      if (varDef.dbField === 'owner_name')    patched = patchOwnerName(patched, oldName, trimmedValue)
+      if (varDef.dbField === 'business_name') patched = patchBusinessName(patched, oldName, trimmedValue)
+
+      if (patched !== latest.system_prompt) {
+        await svc
+          .from('clients')
+          .update({ system_prompt: patched, updated_at: new Date().toISOString() })
+          .eq('id', clientId)
+
+        // Push the patched prompt to the live Ultravox agent.
+        if (latest.ultravox_agent_id) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const flags: any = {
+              systemPrompt: patched,
+              voice: latest.agent_voice_id ?? undefined,
+              slug: latest.slug,
+              niche: latest.niche,
+              business_name: latest.business_name,
+              agent_name: latest.agent_name,
+              booking_enabled: !!latest.booking_enabled,
+              forwarding_number: latest.forwarding_number ?? null,
+              transfer_conditions: latest.transfer_conditions ?? null,
+              sms_enabled: !!latest.sms_enabled,
+              twilio_number: latest.twilio_number ?? null,
+              knowledge_backend: latest.knowledge_backend ?? null,
+              selected_plan: latest.selected_plan,
+              subscription_status: latest.subscription_status,
+              after_hours_behavior: latest.after_hours_behavior ?? null,
+            }
+            await updateAgent(latest.ultravox_agent_id, flags)
+            const syncTools = buildAgentTools(flags)
+            await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
+          } catch (e) {
+            console.error('[variables] safety-net Ultravox sync failed:', (e as Error).message)
+          }
+        }
+        safetyNetApplied = true
+      }
+    }
+  }
+
   // If diff requested: read back the current prompt for comparison
   // (regenerateSlots already saved the new prompt to DB)
   let newPrompt: string | undefined
@@ -206,7 +284,8 @@ export async function PATCH(req: NextRequest) {
     ok: true,
     affectedSlots,
     charCount: result.charCount,
-    promptChanged: result.promptChanged,
+    promptChanged: result.promptChanged || safetyNetApplied,
+    safetyNetApplied,
     ...(newPrompt ? { newPrompt } : {}),
   })
 }
