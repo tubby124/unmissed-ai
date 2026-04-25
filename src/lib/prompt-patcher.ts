@@ -353,6 +353,33 @@ export function patchAgentName(
   return prompt.replace(re, safeNew)
 }
 
+// ── Owner name patcher ──────────────────────────────────────────────────────
+
+/**
+ * Replace all occurrences of the old owner / callback-contact name with the new
+ * name throughout the prompt. CLOSE_PERSON (the first-name form of owner_name)
+ * appears in many slots beyond `goal`: conversation_flow, inline_examples,
+ * escalation_transfer, after_hours, faq_pairs, etc. Slot regen alone leaves
+ * residue across the rest — this patcher is the safety net.
+ *
+ * Uses word-boundary matching so "Eric" doesn't match "America" or "generic".
+ * Returns the original prompt unchanged if oldName equals newName (case-insensitive)
+ * or if no occurrences are found.
+ */
+export function patchOwnerName(
+  prompt: string,
+  oldName: string,
+  newName: string,
+): string {
+  if (!oldName || !newName) return prompt
+  if (oldName.trim().toLowerCase() === newName.trim().toLowerCase()) return prompt
+
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`\\b${escaped}\\b`, 'g')
+  const safeNew = newName.trim().replace(/\$/g, '$$$$')
+  return prompt.replace(re, safeNew)
+}
+
 // ── Business name patcher ───────────────────────────────────────────────────
 
 /**
