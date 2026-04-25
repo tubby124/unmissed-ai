@@ -5,7 +5,7 @@ import { parseCallState, setStateUpdate, knowledgeInstruction, readCallStateFrom
 
 const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
-const SIMILARITY_FLOOR = 0.60 // Results without a keyword match must exceed this cosine similarity
+const SIMILARITY_FLOOR = 0.45 // Results without a keyword match must exceed this cosine similarity. Loosened 2026-04-25 from 0.60 — limited call data + middle-tier clients with rich website knowledge were getting empty results when caller phrasing didn't share keywords with chunks (e.g. "rent guarantee program" vs chunk "rent guarantee, tenant screening...").
 
 // Trust tier sort order — high-trust chunks surface first at equal RRF scores
 const TRUST_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
