@@ -112,12 +112,16 @@ function OnboardPageInner() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Prefill from demo visitor localStorage
+  // Prefill from demo visitor localStorage.
+  // NOTE: visitor.name is intentionally NOT prefilled into ownerName — the demo widget
+  // captures the marketing-lead's name, which is rarely the business owner / callback
+  // person. Silent prefill caused recurring drift (D371) where every onboarding
+  // inherited a stale name from a previous demo session in the same browser.
+  // owner_name is now an explicit Step 1 question.
   useEffect(() => {
     const visitor = loadVisitor();
     if (!visitor) return;
     const prefill: Partial<OnboardingData> = {};
-    if (visitor.name && !data.ownerName) prefill.ownerName = visitor.name;
     if (visitor.email && !data.contactEmail) prefill.contactEmail = visitor.email;
     if (visitor.phone && !data.callbackPhone) prefill.callbackPhone = visitor.phone;
     if (Object.keys(prefill).length > 0) update(prefill);
