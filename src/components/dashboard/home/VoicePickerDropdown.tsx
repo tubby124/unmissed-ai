@@ -20,7 +20,6 @@ interface VoicePickerDropdownProps {
   clientId: string
   currentVoiceId: string | null
   currentPreset: string | null
-  agentName: string
   isAdmin?: boolean
   onVoiceChanged?: () => void
 }
@@ -47,7 +46,6 @@ export default function VoicePickerDropdown({
   clientId,
   currentVoiceId,
   currentPreset,
-  agentName,
   isAdmin = false,
   onVoiceChanged,
 }: VoicePickerDropdownProps) {
@@ -194,7 +192,7 @@ export default function VoicePickerDropdown({
         {/* Label + current voice info */}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>
-            How {agentName || 'Your Agent'} Sounds
+            Choose Voice
           </p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[12px] font-medium truncate" style={{ color: 'var(--color-text-1)' }}>

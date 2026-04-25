@@ -18,6 +18,7 @@ import QuickConfigStrip from './QuickConfigStrip'
 import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import VoicePickerDropdown from './VoicePickerDropdown'
+import AgentSpeaksCard from './AgentSpeaksCard'
 import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
 // Wave 2 — unified overview bands
 import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
@@ -323,6 +324,30 @@ export default function UnifiedHomeSection({
               {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
             </span>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          TOP — Agent Speaks (Greeting + SMS) + Voice picker
+          What end users actually edit. Front and center.
+          Per Omar (2026-04-25): greeting + voice + auto-text only on Overview.
+          ════════════════════════════════════════════════════════════ */}
+      {data.clientId && onboarding.hasAgent && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <AgentSpeaksCard
+            clientId={data.clientId}
+            agentName={agent.name}
+            smsEnabled={data.editableFields.smsEnabled}
+            smsTemplate={data.editableFields.smsTemplate}
+            hasTwilioNumber={data.activation.twilio_number_present}
+            onChanged={fetchData}
+          />
+          <VoicePickerDropdown
+            clientId={data.clientId}
+            currentVoiceId={data.onboarding.agentVoiceId}
+            currentPreset={data.agent.voiceStylePreset}
+            onVoiceChanged={fetchData}
+          />
         </div>
       )}
 
@@ -729,16 +754,8 @@ export default function UnifiedHomeSection({
           </div>
 
 
-          {/* Right: Voice + Today's Update + Stats + Trial Mode */}
+          {/* Right: Today's Update + Stats + Trial Mode (voice picker moved to top band) */}
           <div className="space-y-3 order-3">
-            <VoicePickerDropdown
-              clientId={data.clientId}
-              currentVoiceId={data.onboarding.agentVoiceId}
-              currentPreset={data.agent.voiceStylePreset}
-              agentName={data.agent.name}
-              onVoiceChanged={fetchData}
-            />
-
             {/* D163 — "Hear your agent on a real phone call" */}
             {!callMeSuccess ? (
               <div

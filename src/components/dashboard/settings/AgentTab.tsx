@@ -209,7 +209,6 @@ export default function AgentTab({
   })
 
   const [activePanel, setActivePanel] = useState<string | null>(null)
-  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'ok' | 'error'>('idle')
 
   const toggleSection = useCallback((id: string) => {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
@@ -660,45 +659,6 @@ export default function AgentTab({
           onPromptChange={(value) => setPrompt(prev => ({ ...prev, [client.id]: value }))}
           previewMode={previewMode}
         />
-      </div>
-
-      {/* Sync agent — push current DB prompt to Ultravox */}
-      <div className="md:col-span-2 xl:col-span-3">
-        <div className="card-surface rounded-2xl p-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold t1">Push changes to agent</p>
-            <p className="text-[11px] t3 mt-0.5">Pushes stored prompt to Ultravox — does NOT apply recent setting changes. Use &ldquo;Rebuild Prompt&rdquo; first if you changed owner name, hours, or services.</p>
-          </div>
-          <button
-            onClick={async () => {
-              setSyncState('syncing')
-              try {
-                const res = await fetch('/api/dashboard/settings/sync-agent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
-                setSyncState(res.ok ? 'ok' : 'error')
-                setTimeout(() => setSyncState('idle'), 3000)
-              } catch {
-                setSyncState('error')
-                setTimeout(() => setSyncState('idle'), 3000)
-              }
-            }}
-            disabled={syncState === 'syncing'}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
-            style={
-              syncState === 'ok'    ? { background: 'rgba(34,197,94,0.1)',  borderColor: 'rgba(34,197,94,0.3)',  color: '#4ade80' } :
-              syncState === 'error' ? { background: 'rgba(239,68,68,0.1)',  borderColor: 'rgba(239,68,68,0.3)',  color: '#f87171' } :
-                                      { background: 'rgba(99,102,241,0.1)', borderColor: 'rgba(99,102,241,0.3)', color: 'var(--color-primary)' }
-            }
-          >
-            {syncState === 'syncing' ? (
-              <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
-            ) : syncState === 'ok' ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-            )}
-            {syncState === 'syncing' ? 'Syncing…' : syncState === 'ok' ? 'Synced!' : syncState === 'error' ? 'Failed' : 'Re-sync Agent'}
-          </button>
-        </div>
       </div>
 
       {isAdmin && (

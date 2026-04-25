@@ -77,7 +77,7 @@
 - **D283b** — PromptVariablesCard (read-only variable display) — see also D341 (Overview preview card) ✅ 2026-04-24
 - ~~**D305 frontend**~~ — ✅ 2026-04-22 — `RecomposeConfirmDialog` shows section-level diff (added/removed/modified) + current/new tabs consuming `POST /api/dashboard/variables/preview` with `{recompose:true}`
 - ~~**D307**~~ — ✅ 2026-04-22 — `AdminRecomposePanel` now opens `RecomposeConfirmDialog`; preview-first flow; disables confirm when no change or >12K chars; blocks dialog close during mutation
-- **D286** — Dashboard settings reorganization
+- ~~**D286**~~ — Original tier-collapse REJECTED 2026-04-25; rewritten as Dashboard Hardening (3 tracks). Tracks 1 (Overview AgentSpeaksCard greeting+voice+SMS), 2 (Re-sync button deleted), 3 (DashboardCard manifest primitive) ✅ 2026-04-25. Tracks 4 (AI Compiler elevation) + 5 (tracker cleanup) deferred. See [[Architecture/Dashboard-Hardening-Plan]].
 
 **Rule:** All Wave 2 items must go through `/ui-ux-pro-max` before marking done (per `memory/feedback_ui_ux_pro_max_gate.md`). Design them as a batch against working Wave 1 APIs — no mocking endpoints.
 
