@@ -21,6 +21,7 @@ import { enrichWithSonar } from '@/lib/sonar-enrichment'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
+import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -98,10 +99,12 @@ export async function POST(req: NextRequest) {
 
   // ── Optional website scraping ──────────────────────────────────────────────
   let websiteContent = ''
+  let scrapeResultForSeed: Awaited<ReturnType<typeof scrapeWebsite>> | null = null
   const websiteUrl = (intakeData.website_url as string) || (intakeData.websiteUrl as string) || ''
   if (websiteUrl) {
     const niche = intake.niche || 'other'
     const scrapeResult = await scrapeWebsite(websiteUrl, niche)
+    scrapeResultForSeed = scrapeResult
     if (scrapeResult.rawContent) {
       // Combine structured facts into a text block for prompt injection
       const factLines = scrapeResult.businessFacts.map(f => `- ${f}`).join('\n')
@@ -313,6 +316,59 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error('[generate-prompt] Knowledge doc seeding failed:', err)
+    }
+  }
+
+  // ── Seed website scrape into pgvector + merge business_facts/extra_qa ─────
+  // Mirrors approve-website-knowledge so admin-driven generate-prompt path
+  // (formerly skipped this) produces the same searchable knowledge surface.
+  if (scrapeResultForSeed && clientId) {
+    try {
+      await seedKnowledgeFromScrape(svc, {
+        clientId,
+        clientSlug,
+        scrapeData: null,
+        rawScrapeResult: scrapeResultForSeed,
+        runId: `generate-prompt-${Date.now()}`,
+        routeLabel: 'generate-prompt',
+        chunkStatus: 'approved',
+        trustTier: 'medium',
+        sourceUrl: websiteUrl,
+      })
+
+      const { data: clientForMerge } = await svc
+        .from('clients')
+        .select('business_facts, extra_qa')
+        .eq('id', clientId)
+        .maybeSingle()
+
+      const existingFacts = typeof clientForMerge?.business_facts === 'string' ? clientForMerge.business_facts : ''
+      const existingQa: { q: string; a: string }[] = Array.isArray(clientForMerge?.extra_qa) ? clientForMerge!.extra_qa : []
+
+      const newFactLines = (scrapeResultForSeed.businessFacts || []).filter(f => f?.trim())
+      const existingFactSet = new Set(existingFacts.split('\n').map(l => l.trim().toLowerCase()))
+      const dedupedNewFacts = newFactLines.filter(f => !existingFactSet.has(f.trim().toLowerCase()))
+      const mergedFacts = dedupedNewFacts.length > 0
+        ? (existingFacts ? existingFacts + '\n' : '') + dedupedNewFacts.join('\n')
+        : existingFacts
+
+      const existingQaSet = new Set(existingQa.map(q => q.q.trim().toLowerCase()))
+      const dedupedNewQa = (scrapeResultForSeed.extraQa || []).filter(q => q.q?.trim() && !existingQaSet.has(q.q.trim().toLowerCase()))
+      const mergedQa = [...existingQa, ...dedupedNewQa]
+
+      await svc
+        .from('clients')
+        .update({
+          business_facts: mergedFacts,
+          extra_qa: mergedQa,
+          website_scrape_status: 'approved',
+        })
+        .eq('id', clientId)
+
+      console.log(`[generate-prompt] Website knowledge seeded for ${clientSlug}: facts=${mergedFacts.split('\n').filter(l => l.trim()).length} qa=${mergedQa.length}`)
+    } catch (err) {
+      console.error('[generate-prompt] seedKnowledgeFromScrape failed:', err)
+      // Do not block agent creation
     }
   }
 

@@ -19,7 +19,7 @@ export async function syncClientTools(
   try {
     const { data: client } = await svc
       .from('clients')
-      .select('id, slug, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status')
+      .select('id, slug, niche, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status')
       .eq('id', clientId)
       .single()
     if (!client) return
@@ -31,6 +31,7 @@ export async function syncClientTools(
       .eq('status', 'approved')
 
     const tools = buildAgentTools({
+      niche: (client.niche as string | null) || undefined,
       booking_enabled: client.booking_enabled ?? false,
       slug: client.slug,
       forwarding_number: (client.forwarding_number as string | null) || undefined,
