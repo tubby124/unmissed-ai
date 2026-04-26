@@ -17,7 +17,7 @@ import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } fro
 import { createAgent, deleteAgent, resolveVoiceId } from '@/lib/ultravox'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
-import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
+import { seedKnowledgeFromScrape, upsertOnboardingWebsiteSource } from '@/lib/seed-knowledge'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
@@ -366,8 +366,9 @@ export async function POST(req: NextRequest) {
     console.log(`[create-public-checkout] Auto-provisioned: ${clientSlug} (${clientId}) agent=${agentId}`)
 
     // SCRAPE2/K2: Seed knowledge chunks from website scrape data
+    let checkoutKnowledgeCount = 0;
     try {
-      await seedKnowledgeFromScrape(svc, {
+      const seedResult = await seedKnowledgeFromScrape(svc, {
         clientId,
         clientSlug,
         scrapeData: intakeData.websiteScrapeResult ?? null,
@@ -377,10 +378,32 @@ export async function POST(req: NextRequest) {
         // D45: Only auto-approve when user explicitly reviewed during onboarding.
         // Fresh-scrape fallback (no websiteScrapeResult) goes to pending for dashboard review.
         ...(!intakeData.websiteScrapeResult && rawScrapeResult ? { chunkStatus: 'pending' as const } : {}),
+        // Per-URL attribution so chunks delete with the source row from the dashboard.
+        ...(websiteUrlForScrape ? { sourceUrl: websiteUrlForScrape } : {}),
       });
+      checkoutKnowledgeCount = seedResult?.chunkCount ?? 0;
     } catch (seedErr) {
       // Chunk seeding failure should NOT block checkout
       console.error(`[create-public-checkout] Knowledge seeding failed for ${clientSlug}:`, seedErr);
+    }
+
+    // Record the website URL as a tracked source so it appears in the multi-URL
+    // dashboard list. Mirrors `clients.website_scrape_status` logic written below.
+    if (websiteUrlForScrape) {
+      const sourceStatus = scrapePreview
+        ? 'approved' as const
+        : rawScrapeResult?.rawContent
+          ? 'extracted' as const
+          : null;
+      if (sourceStatus) {
+        await upsertOnboardingWebsiteSource(svc, {
+          clientId,
+          url: websiteUrlForScrape,
+          status: sourceStatus,
+          chunkCount: checkoutKnowledgeCount,
+          routeLabel: 'create-public-checkout',
+        });
+      }
     }
 
     // Save approved scrape facts to business_facts/extra_qa so KnowledgeSummary works at call-time
