@@ -667,6 +667,7 @@ export default function UnifiedHomeSection({
             calendarConnected={calendarConnected}
             hasTransfer={capabilities.hasTransfer}
             forwardingNumber={data.editableFields.forwardingNumber}
+            twilioNumber={data.twilioNumber}
             hasTriage={data.hasTriage ?? false}
             niche={data.agent.niche}
             callerReasons={data.callerReasons}

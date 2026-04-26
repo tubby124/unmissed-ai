@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
+import { trackEvent } from '@/lib/analytics'
 
 interface Props {
   clientId: string
@@ -29,6 +30,8 @@ interface Props {
   hasTransfer?: boolean
   forwardingNumber?: string | null
   transferConditions?: string | null
+  // Go Live (forward existing line → agent number)
+  twilioNumber?: string | null
   // Call routing
   hasTriage?: boolean
   niche?: string | null
@@ -37,7 +40,7 @@ interface Props {
   onOpenNotificationsSheet: () => void
 }
 
-type PillId = 'telegram' | 'email' | 'ivr' | 'voicemail' | 'sms' | 'booking' | 'transfer' | 'routing'
+type PillId = 'goLive' | 'telegram' | 'email' | 'ivr' | 'voicemail' | 'sms' | 'booking' | 'transfer' | 'routing'
 
 const DEFAULT_IVR = (name: string) =>
   `Hi, you've reached ${name}. Press 1 for voicemail, or stay on the line to speak with our AI assistant.`
@@ -127,6 +130,14 @@ function ChevronDown({ open }: { open: boolean }) {
   )
 }
 
+function GoLiveIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14M13 5l7 7-7 7"/>
+    </svg>
+  )
+}
+
 // ── Component ────────────────────────────────────────────────────
 export default function QuickConfigStrip({
   clientId,
@@ -147,6 +158,7 @@ export default function QuickConfigStrip({
   hasTransfer = false,
   forwardingNumber = null,
   transferConditions = null,
+  twilioNumber = null,
   hasTriage = false,
   niche = null,
   callerReasons: initialCallerReasons,
@@ -166,6 +178,43 @@ export default function QuickConfigStrip({
   const [fwdNumber, setFwdNumber] = useState(forwardingNumber ?? '')
   const [xferConditions, setXferConditions] = useState(transferConditions ?? '')
   const [transferDirty, setTransferDirty] = useState(false)
+
+  // Go Live — surface a prominent forwarding-codes pill until forwarding is set.
+  // Track local "savedForwarding" so the pill hides the moment a save succeeds,
+  // without waiting for a server round-trip / page reload.
+  const [savedForwarding, setSavedForwarding] = useState<string | null>(forwardingNumber)
+  const showGoLive = !!twilioNumber && !savedForwarding
+  const twilioDigits = twilioNumber ? twilioNumber.replace(/\D/g, '') : ''
+  const [verifyState, setVerifyState] = useState<'idle' | 'dialing' | 'success' | 'error'>('idle')
+  const [verifyError, setVerifyError] = useState<string | null>(null)
+  const verifyForwarding = useCallback(async () => {
+    setVerifyState('dialing')
+    setVerifyError(null)
+    try {
+      const res = await fetch('/api/dashboard/forwarding/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error((j as { error?: string }).error ?? 'Test failed')
+      }
+      setVerifyState('success')
+      trackEvent('go_live_verify_started', { client_id: clientId })
+    } catch (err) {
+      setVerifyState('error')
+      setVerifyError(err instanceof Error ? err.message : 'Test failed')
+    }
+  }, [clientId])
+
+  const goLiveTrackedRef = useRef(false)
+  useEffect(() => {
+    if (showGoLive && !goLiveTrackedRef.current) {
+      goLiveTrackedRef.current = true
+      trackEvent('go_live_pill_shown', { client_id: clientId })
+    }
+  }, [showGoLive, clientId])
 
   // Call routing
   const NICHE_PH: Record<string, string[]> = {
@@ -260,7 +309,12 @@ export default function QuickConfigStrip({
   const saveTransfer = useCallback(async () => {
     await patch({ forwarding_number: fwdNumber || null, transfer_conditions: xferConditions || null })
     setTransferDirty(false)
-  }, [fwdNumber, xferConditions, patch])
+    setSavedForwarding(fwdNumber || null)
+    if (fwdNumber) {
+      trackEvent('go_live_forwarding_saved', { client_id: clientId })
+      setExpanded(null)
+    }
+  }, [fwdNumber, xferConditions, patch, clientId])
 
   const generateRouting = useCallback(async () => {
     const filled = routingReasons.map(r => r.trim()).filter(Boolean)
@@ -298,7 +352,19 @@ export default function QuickConfigStrip({
     statusText: string
     hasExpand: boolean
     onPillClick?: (e: React.MouseEvent) => void
+    hidden?: boolean
+    pulse?: boolean
   }[] = [
+    {
+      id: 'goLive',
+      icon: <GoLiveIcon />,
+      label: 'Go Live',
+      active: false,
+      statusText: 'Forward calls',
+      hasExpand: true,
+      hidden: !showGoLive,
+      pulse: true,
+    },
     {
       id: 'telegram',
       icon: <TelegramIcon />,
@@ -409,25 +475,32 @@ export default function QuickConfigStrip({
       {/* ── Pills Row ─────────────────────────────────────────── */}
       <div className="px-3 py-2 flex items-center gap-1 flex-wrap">
         <span className="text-[10px] font-semibold tracking-[0.12em] uppercase t3 mr-1">Config</span>
-        {pills.map(pill => {
+        {pills.filter(p => !p.hidden).map(pill => {
           const isActive = pill.active
           const isExpanded = expanded === pill.id
+          const isPulse = pill.pulse
           const statusColor = isActive
             ? 'bg-emerald-500/15 text-emerald-400'
-            : pill.statusText === 'Set up' || pill.statusText === 'Upgrade'
-              ? 'bg-amber-500/15 text-amber-400'
-              : 'bg-white/5 t3'
+            : isPulse
+              ? 'bg-amber-500/20 text-amber-300'
+              : pill.statusText === 'Set up' || pill.statusText === 'Upgrade'
+                ? 'bg-amber-500/15 text-amber-400'
+                : 'bg-white/5 t3'
 
           return (
             <button
               key={pill.id}
               onClick={() => handlePillClick(pill)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer ${
-                isExpanded ? 'bg-white/10' : 'hover:bg-white/5'
+                isExpanded
+                  ? 'bg-white/10'
+                  : isPulse
+                    ? 'bg-amber-500/10 hover:bg-amber-500/15 ring-1 ring-amber-500/40'
+                    : 'hover:bg-white/5'
               }`}
             >
-              <span className={isActive ? 'text-emerald-400' : 't3'}>{pill.icon}</span>
-              <span className="text-[11px] font-medium t2">{pill.label}</span>
+              <span className={isActive ? 'text-emerald-400' : isPulse ? 'text-amber-300' : 't3'}>{pill.icon}</span>
+              <span className={`text-[11px] font-medium ${isPulse ? 'text-amber-200' : 't2'}`}>{pill.label}</span>
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${statusColor}`}>
                 {saving ? '...' : pill.statusText}
               </span>
@@ -439,6 +512,98 @@ export default function QuickConfigStrip({
 
       {/* ── Expanded Panel ────────────────────────────────────── */}
       <AnimatePresence initial={false}>
+        {expanded === 'goLive' && showGoLive && (
+          <motion.div
+            key="goLive"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t px-4 py-3 space-y-4" style={{ borderColor: 'var(--color-border)' }}>
+              <div>
+                <p className="text-[12px] font-medium t1">Go live — forward your existing number</p>
+                <p className="text-[11px] t3">
+                  Your agent number <span className="font-mono t2">{twilioNumber}</span> is ready. Dial one of the codes below on your existing business line to redirect missed calls to your agent.
+                </p>
+              </div>
+
+              <div className="rounded-xl border p-3 space-y-2.5" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
+                <p className="text-[10px] uppercase tracking-[0.15em] font-semibold t3">Carrier codes</p>
+                <div className="flex items-start gap-3">
+                  <span className="text-[10px] font-semibold t3 w-16 shrink-0 mt-0.5">Bell / Telus</span>
+                  <div className="flex-1 space-y-1">
+                    <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*72 {twilioDigits}</code>
+                    <p className="text-[10px] t3">Cancel: <code className="font-mono">*92 {twilioDigits}</code></p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-[10px] font-semibold t3 w-16 shrink-0 mt-0.5">Rogers / GSM</span>
+                  <div className="flex-1 space-y-1">
+                    <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>**21*{twilioDigits}#</code>
+                    <p className="text-[10px] t3">Cancel: <code className="font-mono">##21#</code></p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium t2">Forwarding number (where calls land if your agent transfers)</label>
+                <input
+                  type="tel"
+                  value={fwdNumber}
+                  onChange={e => { setFwdNumber(e.target.value); setTransferDirty(true) }}
+                  placeholder="+1 (555) 555-5555"
+                  className="w-full px-3 py-2 rounded-lg text-[12px] outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors duration-200"
+                  style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-1)' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {transferDirty && (
+                  <button
+                    onClick={saveTransfer}
+                    disabled={!!saving}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-opacity disabled:opacity-50 cursor-pointer"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    {saving ? 'Saving...' : 'Save forwarding number'}
+                  </button>
+                )}
+                <button
+                  onClick={verifyForwarding}
+                  disabled={verifyState === 'dialing'}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-opacity disabled:opacity-50 cursor-pointer border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-1)', backgroundColor: 'transparent' }}
+                >
+                  {verifyState === 'dialing' ? 'Dialing your line...' : 'Test forwarding'}
+                </button>
+                {verifyState === 'success' && (
+                  <span className="text-[11px] text-emerald-400">Test call placed — your phone should ring.</span>
+                )}
+                {verifyState === 'error' && verifyError && (
+                  <span className="text-[11px] text-amber-400">{verifyError}</span>
+                )}
+              </div>
+
+              <p className="text-[10px] t3">
+                Already dialed the codes on your business line?{' '}
+                <button
+                  onClick={() => {
+                    if (!fwdNumber) return
+                    saveTransfer()
+                  }}
+                  disabled={!fwdNumber || !!saving}
+                  className="underline t2 hover:t1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Mark as live
+                </button>{' '}
+                — saves your forwarding number and clears this banner.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {expanded === 'ivr' && (
           <motion.div
             key="ivr"
