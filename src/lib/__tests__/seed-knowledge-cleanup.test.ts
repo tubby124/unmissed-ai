@@ -23,7 +23,8 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..')
 describe('SCRAPE7: stale website_scrape chunk cleanup', () => {
   test('seed-knowledge.ts: deleteClientChunks(website_scrape) called BEFORE embedding', () => {
     const src = fs.readFileSync(path.join(PROJECT_ROOT, 'src/lib/seed-knowledge.ts'), 'utf-8')
-    const deleteMatch = /deleteClientChunks\(.+,\s*'website_scrape'\)/.exec(src)
+    // Allow optional 3rd arg (sourceUrl) added for per-URL multi-URL approve scoping.
+    const deleteMatch = /deleteClientChunks\([^)]*,\s*'website_scrape'(?:\s*,\s*[^)]+)?\)/.exec(src)
     const embedMatch = /embedChunks\(/.exec(src)
     assert.ok(deleteMatch, 'seed-knowledge.ts must call deleteClientChunks with website_scrape')
     assert.ok(embedMatch, 'seed-knowledge.ts must call embedChunks')

@@ -37,8 +37,10 @@ export async function POST(req: NextRequest) {
     clientId?: string
     approved?: ApprovedPackage
     auto_approve?: boolean
+    sourceUrl?: string
   }
   const clientId = body.clientId?.trim()
+  const bodySourceUrl = body.sourceUrl?.trim() || null
 
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
@@ -104,8 +106,13 @@ export async function POST(req: NextRequest) {
   const chunkStatus = cu.role === 'admin' || cu.role === 'owner' ? 'approved' : 'pending'
   const runId = `website-scrape-${Date.now()}`
 
+  // ── Resolve sourceUrl ─────────────────────────────────────────────────────
+  // Prefer URL passed in body (multi-URL flow). Fall back to client.website_url
+  // for backward compat with callers that don't thread the URL through.
+  const effectiveSourceUrl = bodySourceUrl ?? (client.website_url as string | null) ?? undefined
+
   // ── Seed knowledge chunks via shared utility ──────────────────────────────
-  // Handles: SCRAPE7 cleanup, serviceTags, embeddings, syncClientTools
+  // Handles: SCRAPE7 cleanup (per-URL when sourceUrl is set), serviceTags, embeddings, syncClientTools
   const seedResult = await seedKnowledgeFromScrape(svc, {
     clientId,
     clientSlug: client.slug as string,
@@ -116,7 +123,7 @@ export async function POST(req: NextRequest) {
     routeLabel: 'approve-website-knowledge',
     chunkStatus,
     trustTier: 'medium',
-    sourceUrl: client.website_url ?? undefined,
+    sourceUrl: effectiveSourceUrl,
   })
 
   // ── Also merge into business_facts/extra_qa for prompt injection ──────────
@@ -154,6 +161,21 @@ export async function POST(req: NextRequest) {
   if (updateErr) {
     console.error(`[approve-website-knowledge] Failed to update client ${clientId}:`, updateErr)
     return NextResponse.json({ error: 'Failed to save approved knowledge' }, { status: 500 })
+  }
+
+  // Sync the matching client_website_sources row so the dashboard list reflects
+  // the approve. Without this, the row stays at 'extracted'/chunk_count=0 even
+  // though chunks are live in knowledge_chunks. Non-blocking: a failure here is
+  // a UI cosmetic issue, not a data integrity issue.
+  if (effectiveSourceUrl && seedResult.stored > 0) {
+    const { error: sourceUpdateErr } = await svc
+      .from('client_website_sources')
+      .update({ scrape_status: 'approved', chunk_count: seedResult.stored })
+      .eq('client_id', clientId)
+      .eq('url', effectiveSourceUrl)
+    if (sourceUpdateErr) {
+      console.warn(`[approve-website-knowledge] client_website_sources sync failed for ${effectiveSourceUrl}:`, sourceUpdateErr.message)
+    }
   }
 
   console.log(`[approve-website-knowledge] client=${client.slug} stored=${seedResult.stored} failed=${seedResult.failed} facts=${mergedFacts.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)

@@ -90,7 +90,14 @@ export default function WebsiteScrapePanel({
       const res = await fetch('/api/dashboard/approve-website-knowledge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, approved: approvedPackage, auto_approve: isAdmin }),
+        body: JSON.stringify({
+          clientId,
+          approved: approvedPackage,
+          auto_approve: isAdmin,
+          // Thread the URL through so per-URL chunk delete and source row sync
+          // target the right row in client_website_sources.
+          sourceUrl: websiteUrl.trim() || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Approval failed')
