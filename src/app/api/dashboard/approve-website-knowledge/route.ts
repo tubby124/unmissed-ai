@@ -120,16 +120,21 @@ export async function POST(req: NextRequest) {
   })
 
   // ── Also merge into business_facts/extra_qa for prompt injection ──────────
-  // agent-context.ts still reads these for inline prompt injection
-  const existingFacts = typeof client.business_facts === 'string' ? client.business_facts : ''
+  // agent-context.ts still reads these for inline prompt injection.
+  // business_facts schema is text[] — handle both array (current) and legacy string
+  // (older rows where it was newline-joined). Normalize to string[] for merge + write.
+  const rawFacts = client.business_facts as string[] | string | null
+  const existingFacts: string[] = Array.isArray(rawFacts)
+    ? rawFacts.filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+    : typeof rawFacts === 'string'
+      ? rawFacts.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+      : []
   const existingQa: { q: string; a: string }[] = Array.isArray(client.extra_qa) ? client.extra_qa : []
 
-  const newFactLines = approved.businessFacts.filter(f => f?.trim())
-  const existingFactSet = new Set(existingFacts.split('\n').map(l => l.trim().toLowerCase()))
-  const dedupedNewFacts = newFactLines.filter(f => !existingFactSet.has(f.trim().toLowerCase()))
-  const mergedFacts = dedupedNewFacts.length > 0
-    ? (existingFacts ? existingFacts + '\n' : '') + dedupedNewFacts.join('\n')
-    : existingFacts
+  const newFactLines = approved.businessFacts.filter(f => f?.trim()).map(f => f.trim())
+  const existingFactSet = new Set(existingFacts.map(l => l.toLowerCase()))
+  const dedupedNewFacts = newFactLines.filter(f => !existingFactSet.has(f.toLowerCase()))
+  const mergedFacts: string[] = [...existingFacts, ...dedupedNewFacts]
 
   const existingQaSet = new Set(existingQa.map(q => q.q.trim().toLowerCase()))
   const dedupedNewQa = approved.extraQa.filter(q => q.q?.trim() && !existingQaSet.has(q.q.trim().toLowerCase()))
@@ -151,13 +156,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save approved knowledge' }, { status: 500 })
   }
 
-  const factLines = mergedFacts.split('\n').filter((l: string) => l.trim().length > 0)
-
-  console.log(`[approve-website-knowledge] client=${client.slug} stored=${seedResult.stored} failed=${seedResult.failed} facts=${factLines.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
+  console.log(`[approve-website-knowledge] client=${client.slug} stored=${seedResult.stored} failed=${seedResult.failed} facts=${mergedFacts.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
 
   return NextResponse.json({
     success: true,
-    mergedFacts: factLines.length,
+    mergedFacts: mergedFacts.length,
     mergedQa: mergedQa.length,
     chunksStored: seedResult.stored,
     chunksFailed: seedResult.failed,
