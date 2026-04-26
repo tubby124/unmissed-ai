@@ -37,7 +37,15 @@ export async function GET() {
 
   const isAdmin = cu?.role === 'admin'
 
-  const voices = await fetchAllEnglishVoices()
+  const rawVoices = await fetchAllEnglishVoices() as Array<Record<string, unknown>>
+
+  // Strip previewUrl — Ultravox direct URLs require X-API-Key which a browser <audio> tag
+  // cannot send. Frontend must use /api/dashboard/voices/[voiceId]/preview proxy instead.
+  // Without this, voices that have a previewUrl in the API response silently fail to play.
+  const voices = rawVoices.map(v => {
+    const { previewUrl: _previewUrl, ...rest } = v
+    return rest
+  })
 
   let clients: object[] = []
   let myVoiceId: string | null = null

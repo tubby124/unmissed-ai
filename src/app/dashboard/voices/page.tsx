@@ -9,7 +9,6 @@ interface UltravoxVoice {
   primaryLanguage: string
   languageLabel: string
   provider: 'Cartesia' | 'Eleven Labs' | 'Inworld'
-  previewUrl: string
 }
 
 interface Client {
@@ -67,7 +66,7 @@ function VoiceCard({
   isPlaying: boolean
   myVoiceId: string | null
   myPreviousVoiceId: string | null
-  onPlay: (voiceId: string, previewUrl: string) => void
+  onPlay: (voiceId: string) => void
   onStop: () => void
   onUseVoice: (voiceId: string) => Promise<void>
 }) {
@@ -136,7 +135,7 @@ function VoiceCard({
       <div className="flex items-start gap-3">
         {/* Play button */}
         <button
-          onClick={() => (isPlaying ? onStop() : onPlay(voice.voiceId, voice.previewUrl))}
+          onClick={() => (isPlaying ? onStop() : onPlay(voice.voiceId))}
           className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
             isPlaying
               ? 'bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]'
@@ -322,14 +321,17 @@ export default function VoicesPage() {
     }
   }
 
-  function playVoice(voiceId: string, previewUrl: string) {
+  function playVoice(voiceId: string) {
     if (audioRef.current) {
       audioRef.current.onended = null  // clear BEFORE src change — prevents stale onerror firing
       audioRef.current.onerror = null
       audioRef.current.pause()
       audioRef.current.src = ''
     }
-    const url = previewUrl || `/api/dashboard/voices/${voiceId}/preview`
+    // Always use the authenticated proxy — Ultravox direct previewUrl requires X-API-Key
+    // which a browser <audio> tag can't send. Without this, voices that have a previewUrl
+    // in the API response silently fail to play; only voices missing previewUrl worked.
+    const url = `/api/dashboard/voices/${voiceId}/preview`
     const audio = new Audio(url)
     audio.onended = () => setPlayingId(null)
     audio.onerror = () => setPlayingId(null)
@@ -463,7 +465,7 @@ export default function VoicesPage() {
               isPlaying={playingId === voice.voiceId}
               myVoiceId={myVoiceId}
               myPreviousVoiceId={myPreviousVoiceId}
-              onPlay={(id, url) => playVoice(id, url)}
+              onPlay={id => playVoice(id)}
               onStop={stopVoice}
               onUseVoice={useVoice}
             />
