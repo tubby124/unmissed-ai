@@ -85,10 +85,13 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Upsert source record + mark scraping ──────────────────────────────────
+  // Reset chunk_count to 0 on every (re)scrape — old chunks for this URL will be
+  // wiped on next approve, and showing the prior count during scraping/extracted
+  // is misleading (UI implies the live state still reflects the prior approve).
   await svc
     .from('client_website_sources')
     .upsert(
-      { client_id: clientId, url, scrape_status: 'scraping', scrape_error: null },
+      { client_id: clientId, url, scrape_status: 'scraping', scrape_error: null, chunk_count: 0 },
       { onConflict: 'client_id,url' }
     )
 

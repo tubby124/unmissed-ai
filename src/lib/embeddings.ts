@@ -148,9 +148,13 @@ export async function embedChunks(
 }
 
 /**
- * Delete chunks for a client, optionally filtered by source.
+ * Delete chunks for a client, optionally filtered by source and source_url.
+ *
+ * `sourceUrl` scopes the delete to a single URL — required for multi-URL website
+ * approve flows so approving URL B doesn't wipe URL A's chunks. Without it, all
+ * chunks matching `source` are deleted (legacy behavior).
  */
-export async function deleteClientChunks(clientId: string, source?: string): Promise<number> {
+export async function deleteClientChunks(clientId: string, source?: string, sourceUrl?: string): Promise<number> {
   const supabase = createServiceClient()
   let query = supabase
     .from('knowledge_chunks')
@@ -158,13 +162,14 @@ export async function deleteClientChunks(clientId: string, source?: string): Pro
     .eq('client_id', clientId)
 
   if (source) query = query.eq('source', source)
+  if (sourceUrl) query = query.eq('source_url', sourceUrl)
 
   const { data, error } = await query.select('id')
   if (error) {
-    throw new Error(`deleteClientChunks failed for client=${clientId} source=${source ?? 'all'}: ${error.message}`)
+    throw new Error(`deleteClientChunks failed for client=${clientId} source=${source ?? 'all'} sourceUrl=${sourceUrl ?? 'all'}: ${error.message}`)
   }
   const count = data?.length ?? 0
-  console.log(`[embeddings] deleteClientChunks: clientId=${clientId} source=${source ?? 'all'} deleted=${count}`)
+  console.log(`[embeddings] deleteClientChunks: clientId=${clientId} source=${source ?? 'all'} sourceUrl=${sourceUrl ?? 'all'} deleted=${count}`)
   return count
 }
 

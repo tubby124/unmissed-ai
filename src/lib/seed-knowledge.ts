@@ -118,13 +118,15 @@ export async function seedKnowledgeFromScrape(
   }
 
   // SCRAPE7: Remove stale website-derived chunks before reseeding.
+  // When sourceUrl is provided, scope delete to that URL only — multi-URL approve
+  // flows rely on this so approving URL B doesn't wipe URL A's live chunks.
   // Only deletes source='website_scrape' — manual, bulk_import, gap_resolution chunks are preserved.
   // SCRAPE9: deleteClientChunks now throws on DB error — abort reseed if cleanup fails
   // to prevent stale+new chunk accumulation (upsert only dedupes by content_hash).
   try {
-    const deleted = await deleteClientChunks(clientId, 'website_scrape')
+    const deleted = await deleteClientChunks(clientId, 'website_scrape', sourceUrl)
     if (deleted > 0) {
-      console.log(`[${routeLabel}] SCRAPE7: Cleared ${deleted} stale website_scrape chunks for ${clientSlug}`)
+      console.log(`[${routeLabel}] SCRAPE7: Cleared ${deleted} stale website_scrape chunks for ${clientSlug}${sourceUrl ? ` (url=${sourceUrl})` : ''}`)
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
