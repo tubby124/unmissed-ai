@@ -306,12 +306,28 @@ export default function QuickConfigStrip({
       active: telegramConnected,
       statusText: telegramConnected ? 'Connected' : 'Set up',
       hasExpand: false,
-      onPillClick: () => {
+      onPillClick: async () => {
         if (telegramConnected && telegramBotUrl) {
           window.open(telegramBotUrl, '_blank', 'noopener')
-        } else {
-          onOpenNotificationsSheet()
+          return
         }
+        // Not connected — fetch the deep link and open Telegram in one tap.
+        // No sheet detour. Matches AlertsTab "Open Telegram & Connect" pattern.
+        try {
+          const res = await fetch('/api/dashboard/telegram-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId }),
+          })
+          const data = await res.json() as { deepLink?: string }
+          if (data.deepLink) {
+            window.open(data.deepLink, '_blank', 'noopener')
+            return
+          }
+        } catch {
+          // fall through to sheet on failure
+        }
+        onOpenNotificationsSheet()
       },
     },
     {
@@ -393,7 +409,7 @@ export default function QuickConfigStrip({
       {/* ── Pills Row ─────────────────────────────────────────── */}
       <div className="px-3 py-2 flex items-center gap-1 flex-wrap">
         <span className="text-[10px] font-semibold tracking-[0.12em] uppercase t3 mr-1">Config</span>
-        {pills.filter(p => !(p.id === 'telegram' && !telegramConnected)).map(pill => {
+        {pills.map(pill => {
           const isActive = pill.active
           const isExpanded = expanded === pill.id
           const statusColor = isActive
