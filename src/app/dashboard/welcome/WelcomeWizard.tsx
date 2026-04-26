@@ -7,7 +7,7 @@
  * Dismisses to /dashboard.
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -15,6 +15,8 @@ interface Props {
   agentName: string
   selectedPlan: string
 }
+
+type VerifyState = 'idle' | 'dialing' | 'waiting' | 'success' | 'timeout' | 'failed'
 
 type Carrier = 'mobile' | 'rogers' | 'bell' | 'telus' | 'sasktel' | 'other'
 
@@ -133,6 +135,62 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [carrier, setCarrier] = useState<Carrier>('mobile')
+  const [verifyState, setVerifyState] = useState<VerifyState>('idle')
+  const [verifyError, setVerifyError] = useState<string | null>(null)
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+    }
+  }, [])
+
+  async function startVerify() {
+    setVerifyState('dialing')
+    setVerifyError(null)
+    try {
+      const res = await fetch('/api/dashboard/forwarding/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(15_000),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setVerifyState('failed')
+        setVerifyError(body.error || `Request failed (${res.status})`)
+        return
+      }
+      const { test_id } = await res.json()
+      setVerifyState('waiting')
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/dashboard/forwarding/verify/${test_id}`, {
+            signal: AbortSignal.timeout(8_000),
+          })
+          if (!statusRes.ok) return
+          const { status, error_message } = await statusRes.json()
+          if (status === 'forwarded') {
+            setVerifyState('success')
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+          } else if (status === 'timeout') {
+            setVerifyState('timeout')
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+          } else if (status === 'failed') {
+            setVerifyState('failed')
+            setVerifyError(error_message || 'Test failed')
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+          }
+        } catch {
+          // swallow transient polling errors
+        }
+      }, 2_500)
+    } catch (err) {
+      setVerifyState('failed')
+      setVerifyError(err instanceof Error ? err.message : 'Request failed')
+    }
+  }
 
   const formatted = fmtNumber(twilioNumber)
   const planLabel = selectedPlan === 'pro' ? 'Pro' : selectedPlan === 'core' ? 'Core' : 'Lite'
@@ -217,6 +275,46 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
                 </select>
               </div>
               <ForwardingInstructions carrier={carrier} number={twilioNumber} />
+
+              <div className="rounded-xl border b-theme bg-hover px-3 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold t1">Verify forwarding works</p>
+                    <p className="text-[10px] t3 leading-snug mt-0.5">
+                      We&apos;ll call your business line. Don&apos;t answer — your agent should pick up instead.
+                    </p>
+                  </div>
+                  <button
+                    onClick={startVerify}
+                    disabled={verifyState === 'dialing' || verifyState === 'waiting'}
+                    className="shrink-0 text-[11px] px-3 py-1.5 rounded-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    {verifyState === 'dialing' || verifyState === 'waiting' ? 'Testing…' : verifyState === 'success' ? 'Test again' : 'Test now'}
+                  </button>
+                </div>
+
+                {verifyState === 'dialing' && (
+                  <p className="text-[10px] t3">Dialing your number…</p>
+                )}
+                {verifyState === 'waiting' && (
+                  <p className="text-[10px] t3">Phone ringing. Let it forward to your agent — up to 60 seconds.</p>
+                )}
+                {verifyState === 'success' && (
+                  <p className="text-[10px] font-semibold" style={{ color: 'var(--color-success, #10b981)' }}>
+                    ✓ Forwarding works. Your agent answered the forwarded call.
+                  </p>
+                )}
+                {verifyState === 'timeout' && (
+                  <p className="text-[10px] t3">
+                    No forwarded call arrived. Make sure the star code was confirmed, then try again.
+                  </p>
+                )}
+                {verifyState === 'failed' && (
+                  <p className="text-[10px] t3">Test failed{verifyError ? `: ${verifyError}` : ''}.</p>
+                )}
+              </div>
+
               <p className="text-[10px] t3">You can skip this for now and set it up later from Settings → Setup.</p>
             </div>
           )}
