@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
+import WebsiteSourcesList from '@/components/dashboard/settings/WebsiteSourcesList'
 import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
 import ChunkBrowser from '@/components/dashboard/knowledge/ChunkBrowser'
 import KnowledgeSourceRegistry from '@/components/dashboard/knowledge/KnowledgeSourceRegistry'
@@ -822,7 +823,10 @@ export default function KnowledgePageView({
           </div>
         )}
         {drawerContent === 'scrape' && (
-          <WebsiteKnowledgeCard key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
+          <div className="space-y-4">
+            <WebsiteSourcesList client={client} isAdmin={isAdmin} />
+            <WebsiteKnowledgeCard key={client.id} client={client} isAdmin={isAdmin} previewMode={previewMode} />
+          </div>
         )}
         {drawerContent === 'compile' && (
           <KnowledgeCompiler key={client.id} clientId={client.id} isAdmin={isAdmin} />
