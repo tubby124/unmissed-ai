@@ -147,6 +147,53 @@ export async function seedKnowledgeFromScrape(
   }
 }
 
+// ── Onboarding source-tracking ───────────────────────────────────────────────
+
+/**
+ * Records a website URL in `client_website_sources` after onboarding scrape.
+ *
+ * Mirrors the upsert pattern in `src/app/api/dashboard/scrape-website/route.ts`
+ * so the URL appears in `WebsiteSourcesList` and per-URL deletes work. Without
+ * this, onboarding seeds chunks into `knowledge_chunks` but the multi-URL UI
+ * shows zero sources until the user manually re-scrapes from the dashboard.
+ *
+ * Non-fatal: any error is logged and swallowed. Onboarding must not abort
+ * because source-tracking write failed.
+ */
+export async function upsertOnboardingWebsiteSource(
+  svc: SupabaseClient,
+  params: {
+    clientId: string
+    url: string
+    status: 'approved' | 'extracted' | 'pending' | 'failed' | 'scraping'
+    chunkCount?: number
+    routeLabel: string
+  },
+): Promise<void> {
+  const { clientId, url, status, chunkCount, routeLabel } = params
+  const trimmedUrl = url?.trim()
+  if (!trimmedUrl) return
+
+  const { error } = await svc
+    .from('client_website_sources')
+    .upsert(
+      {
+        client_id: clientId,
+        url: trimmedUrl,
+        scrape_status: status,
+        scrape_error: null,
+        last_scraped_at: new Date().toISOString(),
+        ...(typeof chunkCount === 'number' ? { chunk_count: chunkCount } : {}),
+      },
+      { onConflict: 'client_id,url' },
+    )
+  if (error) {
+    console.warn(
+      `[${routeLabel}] client_website_sources upsert failed for client=${clientId} url=${trimmedUrl}: ${error.message}`,
+    )
+  }
+}
+
 // ── GBP ingestion ─────────────────────────────────────────────────────────────
 
 export interface SeedGBPParams {

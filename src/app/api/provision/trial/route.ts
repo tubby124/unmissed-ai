@@ -15,7 +15,7 @@ import { createAgent, deleteAgent, resolveVoiceId } from "@/lib/ultravox";
 import { rowsToCatalogItems } from "@/lib/service-catalog";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
-import { seedKnowledgeFromScrape } from "@/lib/seed-knowledge";
+import { seedKnowledgeFromScrape, upsertOnboardingWebsiteSource } from "@/lib/seed-knowledge";
 import { generateNicheConfig, CustomNicheConfig } from "@/lib/niche-generator";
 import { enrichWithSonar } from "@/lib/sonar-enrichment";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
@@ -491,11 +491,33 @@ export async function POST(req: NextRequest) {
       // D45: Only auto-approve when user explicitly reviewed during onboarding.
       // Fresh-scrape fallback (no websiteScrapeResult) goes to pending for dashboard review.
       ...(!data.websiteScrapeResult && rawScrapeResult ? { chunkStatus: 'pending' as const } : {}),
+      // Per-URL attribution so chunks delete with the source row from the dashboard.
+      ...(websiteUrl ? { sourceUrl: websiteUrl } : {}),
     });
     knowledgeCount = seedResult?.chunkCount ?? 0;
   } catch (seedErr) {
     // Chunk seeding failure should NOT block activation
     console.error(`[provision/trial] Knowledge seeding failed for ${clientSlug}:`, seedErr);
+  }
+
+  // Record the website URL as a tracked source so it appears in the multi-URL
+  // dashboard list. Mirrors `clients.website_scrape_status` logic written below.
+  // Without this row, onboarding-seeded chunks exist but the UI shows zero sources.
+  if (websiteUrl) {
+    const sourceStatus = data.websiteScrapeResult
+      ? 'approved' as const
+      : rawScrapeResult?.rawContent
+        ? 'extracted' as const
+        : null;
+    if (sourceStatus) {
+      await upsertOnboardingWebsiteSource(supa, {
+        clientId,
+        url: websiteUrl,
+        status: sourceStatus,
+        chunkCount: knowledgeCount,
+        routeLabel: 'provision/trial',
+      });
+    }
   }
 
   // Save approved scrape facts to business_facts/extra_qa so KnowledgeSummary works at call-time
