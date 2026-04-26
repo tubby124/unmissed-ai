@@ -154,5 +154,6 @@ last-tracker-cleanup: 2026-04-01
 ## Decisions
 - [[Decisions/Prompt Sandwich Ownership Model]]
 - [[Decisions/Overview-5-Tier-Layout]]
+- [[Decisions/2026-04-26-overview-2col-quickadd-beside-orb]] — Hero 3-col → 2-col, Quick Add beside orb
 - [[Decisions/Dashboard-Tab-Naming]]
 - [[Decisions/Plan-Equals-Mode]]

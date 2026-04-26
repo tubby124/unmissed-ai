@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import WebsiteKnowledgeCard from '@/components/dashboard/settings/WebsiteKnowledgeCard'
 import WebsiteSourcesList from '@/components/dashboard/settings/WebsiteSourcesList'
@@ -391,6 +392,24 @@ export default function KnowledgePageView({
       setSelectedId(initialClientId)
     }
   }, [initialClientId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Overview Quick Add deep link — open drawer when ?quickAdd=upload|scrape|compile|chunks
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  useEffect(() => {
+    const qa = searchParams.get('quickAdd')
+    if (!qa) return
+    const valid = ['upload', 'scrape', 'compile', 'chunks'] as const
+    if ((valid as readonly string[]).includes(qa)) {
+      setDrawerContent(qa as DrawerContent)
+      setDrawerOpen(true)
+      // strip query so reload/back doesn't re-trigger
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('quickAdd')
+      const q = params.toString()
+      router.replace(q ? `/dashboard/knowledge?${q}` : '/dashboard/knowledge')
+    }
+  }, [searchParams, router])
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
 

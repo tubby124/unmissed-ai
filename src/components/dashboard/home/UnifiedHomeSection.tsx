@@ -9,7 +9,6 @@ import { useCallContext } from '@/contexts/CallContext'
 import ActivationTile from './ActivationTile'
 import BillingTile from './BillingTile'
 import StatsHeroCard from './StatsHeroCard'
-import TodayUpdateCard from './TodayUpdateCard'
 import TrialModeSwitcher from './TrialModeSwitcher'
 import BookingCalendarTile from './BookingCalendarTile'
 import UnansweredQuestionsTile from './UnansweredQuestionsTile'
@@ -17,14 +16,14 @@ import PendingReviewTile from './PendingReviewTile'
 import QuickConfigStrip from './QuickConfigStrip'
 import AgentReadinessRow from './AgentReadinessRow'
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
-import VoicePickerDropdown from './VoicePickerDropdown'
-import AgentSpeaksCard from './AgentSpeaksCard'
+import AgentIdentityCard from './AgentIdentityCard'
 import AgentIntelligenceSection from '@/components/dashboard/AgentIntelligenceSection'
 // Wave 2 — unified overview bands
 import CapabilitiesCard from '@/components/dashboard/CapabilitiesCard'
 import AgentKnowsCard from './AgentKnowsCard'
 import AgentRoutesOnCard from './AgentRoutesOnCard'
 import OverviewCallLog from './OverviewCallLog'
+import KnowledgeQuickAddCard from './KnowledgeQuickAddCard'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
 
@@ -328,27 +327,27 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          TOP — Agent Speaks (Greeting + SMS) + Voice picker
-          What end users actually edit. Front and center.
-          Per Omar (2026-04-25): greeting + voice + auto-text only on Overview.
+          TOP — Agent Identity Card (Phase 2 v3 launch cut)
+          Consolidates greeting, voice, identity vars, after-call SMS,
+          Telegram pill, and "today's update" in one inline-editable card.
+          Replaces AgentSpeaksCard + VoicePickerDropdown + TodayUpdateCard.
           ════════════════════════════════════════════════════════════ */}
       {data.clientId && onboarding.hasAgent && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <AgentSpeaksCard
-            clientId={data.clientId}
-            agentName={agent.name}
-            smsEnabled={data.editableFields.smsEnabled}
-            smsTemplate={data.editableFields.smsTemplate}
-            hasTwilioNumber={data.activation.twilio_number_present}
-            onChanged={fetchData}
-          />
-          <VoicePickerDropdown
-            clientId={data.clientId}
-            currentVoiceId={data.onboarding.agentVoiceId}
-            currentPreset={data.agent.voiceStylePreset}
-            onVoiceChanged={fetchData}
-          />
-        </div>
+        <AgentIdentityCard
+          clientId={data.clientId}
+          agentName={agent.name}
+          businessName={onboarding.businessName}
+          currentVoiceId={data.onboarding.agentVoiceId}
+          currentPreset={data.agent.voiceStylePreset}
+          smsEnabled={data.editableFields.smsEnabled}
+          smsTemplate={data.editableFields.smsTemplate}
+          hasTwilioNumber={data.activation.twilio_number_present}
+          telegramConnected={onboarding.telegramConnected}
+          telegramBotUrl={onboarding.telegramBotUrl}
+          injectedNote={data.editableFields.injectedNote}
+          injectedNoteExpiresAt={data.editableFields.injectedNoteExpiresAt}
+          onChanged={fetchData}
+        />
       )}
 
       {/* D169 — Trial expiry + D218 — Minutes warning + Sync error: slim inline toasts */}
@@ -655,15 +654,8 @@ export default function UnifiedHomeSection({
             clientId={data.clientId}
             telegramConnected={onboarding.telegramConnected}
             telegramBotUrl={onboarding.telegramBotUrl}
-            emailEnabled={onboarding.emailNotificationsEnabled}
-            ivrEnabled={data.editableFields.ivrEnabled}
-            ivrPrompt={data.editableFields.ivrPrompt}
-            voicemailGreetingText={data.editableFields.voicemailGreetingText}
             businessName={onboarding.businessName}
             agentName={agent.name}
-            smsEnabled={data.editableFields.smsEnabled}
-            hasSms={capabilities.hasSms}
-            smsTemplate={data.editableFields.smsTemplate}
             bookingEnabled={capabilities.hasBooking}
             calendarConnected={calendarConnected}
             hasTransfer={capabilities.hasTransfer}
@@ -701,29 +693,14 @@ export default function UnifiedHomeSection({
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          TIER 1 — Hero (3-col: Capabilities | Orb | Today + Stats)
-          Wave 2 rewire — D278/D288/D290/D341/D266/D306
+          TIER 1 — Hero (2-col: Orb+UnansweredQs | Quick Add)
+          Mockup parity 2026-04-26 — Quick Add beside the orb,
+          page restructured from 3-col to 2-col flow.
           ════════════════════════════════════════════════════════════ */}
       {onboarding.hasAgent && data.clientId && (<>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-          {/* Left: CapabilitiesCard (D288 reframing) */}
-          <div className="flex flex-col gap-3 order-2 md:order-1">
-            <CapabilitiesCard
-              capabilities={capabilities}
-              agentName={agent.name}
-              voiceStylePreset={data.agent.voiceStylePreset}
-              isTrial={isTrial}
-              clientId={data.clientId}
-              hasPhoneNumber={onboarding.hasPhoneNumber}
-              hasIvr={data.editableFields.ivrEnabled}
-              hasContextData={data.editableFields.hasContextData}
-              selectedPlan={data.selectedPlan}
-              hasTelegramAlerts={onboarding.telegramConnected}
-            />
-          </div>
-
-          {/* Center: Test Call orb + Unanswered Questions — mobile first */}
-          <div ref={testCallRef} className="order-1 md:order-2 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+          {/* Left: Test Call orb + Unanswered Questions */}
+          <div ref={testCallRef} className="space-y-3">
             <TestCallCard
               clientId={data.clientId}
               isAdmin={false}
@@ -753,9 +730,31 @@ export default function UnifiedHomeSection({
             <UnansweredQuestionsTile clientId={data.clientId} />
           </div>
 
+          {/* Right: Knowledge Quick Add — buttons link out to /dashboard/knowledge with quickAdd query */}
+          <div className="space-y-3">
+            <KnowledgeQuickAddCard />
+          </div>
+        </div>
 
-          {/* Right: Today's Update + Stats + Trial Mode (voice picker moved to top band) */}
-          <div className="space-y-3 order-3">
+        {/* ════════════════════════════════════════════════════════════
+            TIER 1.5 — Capabilities + Stats/CallMe (2-col)
+            ════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+          <CapabilitiesCard
+            capabilities={capabilities}
+            agentName={agent.name}
+            voiceStylePreset={data.agent.voiceStylePreset}
+            isTrial={isTrial}
+            clientId={data.clientId}
+            hasPhoneNumber={onboarding.hasPhoneNumber}
+            hasIvr={data.editableFields.ivrEnabled}
+            hasContextData={data.editableFields.hasContextData}
+            selectedPlan={data.selectedPlan}
+            hasTelegramAlerts={onboarding.telegramConnected}
+            hideIds={['sms', 'voicemail', 'ivr']}
+          />
+
+          <div className="space-y-3">
             {/* D163 — "Hear your agent on a real phone call" */}
             {!callMeSuccess ? (
               <div
@@ -815,11 +814,6 @@ export default function UnifiedHomeSection({
                 onRetest={resetCall}
               />
             )}
-            <TodayUpdateCard
-              clientId={data.clientId}
-              currentNote={data.editableFields.injectedNote}
-              currentNoteExpiresAt={data.editableFields.injectedNoteExpiresAt}
-            />
             <StatsHeroCard
               agentName={agent.name}
               agentStatus={agent.status}
