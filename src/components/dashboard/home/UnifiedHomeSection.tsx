@@ -654,8 +654,15 @@ export default function UnifiedHomeSection({
             clientId={data.clientId}
             telegramConnected={onboarding.telegramConnected}
             telegramBotUrl={onboarding.telegramBotUrl}
+            emailEnabled={onboarding.emailNotificationsEnabled}
+            ivrEnabled={data.editableFields.ivrEnabled}
+            ivrPrompt={data.editableFields.ivrPrompt}
+            voicemailGreetingText={data.editableFields.voicemailGreetingText}
             businessName={onboarding.businessName}
             agentName={agent.name}
+            smsEnabled={data.editableFields.smsEnabled}
+            hasSms={capabilities.hasSms}
+            smsTemplate={data.editableFields.smsTemplate}
             bookingEnabled={capabilities.hasBooking}
             calendarConnected={calendarConnected}
             hasTransfer={capabilities.hasTransfer}
@@ -751,7 +758,6 @@ export default function UnifiedHomeSection({
             hasContextData={data.editableFields.hasContextData}
             selectedPlan={data.selectedPlan}
             hasTelegramAlerts={onboarding.telegramConnected}
-            hideIds={['sms', 'voicemail', 'ivr']}
           />
 
           <div className="space-y-3">
