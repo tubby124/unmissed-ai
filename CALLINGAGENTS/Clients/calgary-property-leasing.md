@@ -70,6 +70,25 @@ shipped: 2026-04-25
 - Twilio status_callback empty (matches other Railway clients — no policy gap).
 - `website_scrape_status='approved'` but `website_last_scraped_at=NULL` — partial onboard state. 11 chunks seeded but page never re-scraped end-to-end. User to retrigger via dashboard Knowledge tab.
 
+## 2026-04-25 — Multi-URL knowledge surface + onboarding source-tracking
+
+### What was broken
+- New `WebsiteSourcesList` component existed but was orphaned (never imported anywhere). User saw the legacy `WebsiteKnowledgeCard` showing only most-recent scrape, no list view, no "+ Add URL" button. `client_website_sources` backend (D85, shipped 2026-03-30) had no UI.
+- Brian's row in `client_website_sources` was empty — onboarding bypass. The 11 chunks lived in `knowledge_chunks` from his trial provisioning but the source-tracking row never got written. Hand-backfilled in prod to unblock his demo.
+
+### Fixes shipped
+| Fix | PR | Merge SHA | Status |
+|-----|-----|-----------|--------|
+| Wire `WebsiteSourcesList` into knowledge drawer (above legacy `WebsiteKnowledgeCard`) | [#20](https://github.com/tubby124/unmissed-ai/pull/20) | `7a4c2752` | ✅ deployed |
+| Backfill Brian's `client_website_sources` row directly | (DB write) | — | ✅ |
+| Patch `provision/trial` + `stripe/create-public-checkout` to write `client_website_sources` during initial scrape; pass `sourceUrl` to `seedKnowledgeFromScrape()` so chunks get URL attribution | [#21](https://github.com/tubby124/unmissed-ai/pull/21) | `cc91bc9d` | ✅ deployed |
+| Add `upsertOnboardingWebsiteSource()` shared helper in [src/lib/seed-knowledge.ts](src/lib/seed-knowledge.ts) | #21 | — | ✅ |
+| Static-analysis regression test [src/lib/__tests__/onboarding-source-tracking.test.ts](src/lib/__tests__/onboarding-source-tracking.test.ts) — asserts both onboarding routes write source rows AFTER seeding chunks | #21 | — | ✅ |
+
+### Still to do for Brian
+- [x] User can now manually add `/properties` or other URLs via the new dashboard UI ("+ Add URL" button in scrape drawer)
+- [ ] If recall problems surface on real-customer traffic (not test calls): drop `SIMILARITY_FLOOR` 0.45 → 0.40 in [src/lib/embeddings.ts](src/lib/embeddings.ts) and `PATCH /api/dashboard/settings { business_name: 'Calgary Edmonton Property Leasing' }` to canonicalize brand name in prompt patches
+
 ## 2026-04-25 — Test call audit + middle-tier knowledge fix
 
 ### What broke
