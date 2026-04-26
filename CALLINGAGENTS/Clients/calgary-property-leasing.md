@@ -84,6 +84,8 @@ shipped: 2026-04-25
 | Patch `provision/trial` + `stripe/create-public-checkout` to write `client_website_sources` during initial scrape; pass `sourceUrl` to `seedKnowledgeFromScrape()` so chunks get URL attribution | [#21](https://github.com/tubby124/unmissed-ai/pull/21) | `cc91bc9d` | ✅ deployed |
 | Add `upsertOnboardingWebsiteSource()` shared helper in [src/lib/seed-knowledge.ts](src/lib/seed-knowledge.ts) | #21 | — | ✅ |
 | Static-analysis regression test [src/lib/__tests__/onboarding-source-tracking.test.ts](src/lib/__tests__/onboarding-source-tracking.test.ts) — asserts both onboarding routes write source rows AFTER seeding chunks | #21 | — | ✅ |
+| Fix `clients.business_facts` array-vs-string bug in [src/app/api/dashboard/approve-website-knowledge/route.ts](src/app/api/dashboard/approve-website-knowledge/route.ts) — surfaced when Brian retried scrape approve and hit "Failed to save approved knowledge" toast (Postgres rejected string write to text[] column) | [#22](https://github.com/tubby124/unmissed-ai/pull/22) | `9841000` | ✅ deployed |
+| Regression test [src/lib/__tests__/approve-website-knowledge-array.test.ts](src/lib/__tests__/approve-website-knowledge-array.test.ts) | #22 | — | ✅ |
 
 ### Still to do for Brian
 - [x] User can now manually add `/properties` or other URLs via the new dashboard UI ("+ Add URL" button in scrape drawer)
