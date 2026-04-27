@@ -25,6 +25,16 @@ const CLIENT_TABS = [
     ),
   },
   {
+    href: '/dashboard/go-live',
+    label: 'Go Live',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M5.64 5.64a9 9 0 000 12.72M18.36 5.64a9 9 0 010 12.72M8.46 8.46a5 5 0 000 7.07M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/knowledge',
     label: 'Knowledge',
     icon: (
