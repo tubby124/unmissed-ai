@@ -126,3 +126,58 @@ Ray called at 22:12 asking *"tell me about the rent guarantee program"*. Eric ca
 **Leasing scenario:** call DID, say "I'm looking at the place at 9302 98th Street NW, the 3-bedroom" → expect `mmhmm... that one isn't available right now... Brian will call ya back at the number you're calling from...`
 
 **Maintenance scenario:** call DID, say "I have a leak in my unit" → severity check fires → "yeah water's coming out fast" → collect name + unit → `submitMaintenanceRequest urgent` → close.
+
+
+## 2026-04-26 PM — Welcome email sent + DB aligned
+
+**Recipient:** `edmontonpropertyleasing@gmail.com` (Brian's real inbox, NOT the dashboard login string `calgarypropertyleasing@gmail.com`). CC'd `urbanvibe.ca@gmail.com` (Ray Kassam, who connected us). Sent from `hasan.sharif.realtor@gmail.com` via `gmail.py`.
+
+**Subject:** `Brian — Eric is ready, 3 quick steps to start`
+
+**Email format = new snowflake-onboarding template** (use for next ~9 manual clients):
+3 numbered step-cards: (1) required forward `**004*16397393885#` big-blue card, (2) Telegram for "see what Eric is doing" white card, (3) Stripe card-on-file white card framed as no-charge-today / first-charge-May-1. Dashboard creds tucked in muted grey footer with "username is just a login string" disclaimer. Source files: `clients/calgary-property-leasing/welcome-email-brian.{html,txt}`.
+
+### DB writes before send (Supabase prod `qwhvblomlgeapzhnuwlb`, service-role PATCH)
+| Field | Before | After | Why |
+|-------|--------|-------|-----|
+| `monthly_minute_limit` | 50 | **250** | 200 plan + 50 April bonus matches email promise |
+| `seconds_used_this_month` | 1406 | **0** | Band-aid for trial→paid reset bug — Brian had 23 min of test calls that would have carried into May |
+| `minutes_used_this_month` | (non-zero) | **0** | Same |
+
+`twilio_number=+16397393885`, `ultravox_agent_id=a30e9023-9dc5-4aa7-b7cf-b1cf623fb082`, `subscription_status=trialing`, `status=active` all unchanged.
+
+### Pricing locked tonight
+- $119/mo from May 1, anchored to 1st of month forever
+- 200 min plan + 50 bonus minutes for Apr 26-30 (partial month)
+- ~88% gross margin at ~$0.065/min variable cost
+- Future $0.10/min overage policy deferred this week
+
+### Stripe webhook safety verified
+[ensure-twilio-provisioned.ts:55-72](src/lib/ensure-twilio-provisioned.ts#L55-L72) — when Brian pays via Payment Link, webhook calls `activateClient()` which calls `ensureTwilioProvisioned()` which reads `clients.twilio_number` first and returns immediately with `skipped: true, skipReason: 'already provisioned'` since Brian's row has `+16397393885` set. **No double-buy of a number.** activateClient still writes `stripe_customer_id` + `stripe_subscription_id` and flips status, sends Hasan the `🎉 Trial converted` Telegram alert.
+
+### Why we did NOT pre-flip status to active
+[webhook/stripe/route.ts:596-604](src/app/api/webhook/stripe/route.ts#L596-L604) skip-guard requires BOTH `status=active` AND `stripe_subscription_id`. Pre-flipping without the subscription_id would cause activateClient to run an empty/half activation when Brian pays, potentially failing to write the Stripe IDs. Cleaner to let webhook do everything when card hits.
+
+### Open issues (deferred, not blocking tonight)
+- [ ] Trial → paid first-invoice reset bug — `webhook/stripe/route.ts:127` only matches `subscription_cycle`, not `subscription_create`. Tonight's manual zero is the band-aid; ship the ~10 line fix this week.
+- [ ] Global `CORE.minutes` 400 → 200 drop in `src/lib/plan-entitlements.ts` + add $0.10/min overage. Verify founding-4 `hand_tuned=true` rows unaffected.
+- [ ] Future: Telegram-driven self-serve (minute balance + renewal/top-up via stored Stripe card).
+
+### Brian's actual onboarding priorities (in his order, not ours)
+1. Forward business number to `+1 (639) 739-3885` — without this, nothing works
+2. Tap Stripe link, enter card (no charge until May 1)
+3. (Recommended) Tap Telegram deep link for call summaries
+4. Feedback to Hasan directly via text/call — dashboard non-functional, no expectation Brian uses it
+
+### Snowflake template — durable
+Same 3-step format for next ~9 manually-onboarded clients. Per-client swaps: name + business + DID digits + Telegram token + Stripe link + login creds. Then automate via dashboard onboarding (D291 / Phase 7 territory).
+
+### Send confirmation
+**Sent 2026-04-26 PM** — Gmail msg `19dcca67408e3c0c`. TO `edmontonpropertyleasing@gmail.com`, CC `urbanvibe.ca@gmail.com`. Watch for `clients.telegram_chat_id` populate (Telegram tap), `checkout.session.completed` Stripe event (card hit), first real inbound call_log row (forward activated).
+
+### `setup_complete` ≠ payment (clarified 2026-04-26 PM)
+`setup_complete` tracks **phone forwarding**, not Stripe. Per [derive-activation-state.ts:11-12](src/lib/derive-activation-state.ts#L11-L12) the 3 states are `awaiting_number` / `forwarding_needed` (Brian's current) / `ready`. Per [activate-client.ts:355-356](src/lib/activate-client.ts#L355-L356), `activateClient()` re-writes `setup_complete: false` on paid activation — Stripe webhook never sets it true. Field is `mutationClass: DB_ONLY`, only flips via manual dashboard PATCH or DB write.
+
+**Rule:** leave false until real (non-test) inbound `call_logs` rows arrive from Brian's actual customer phone numbers. That's the only ground-truth proof the `**004*` forward landed. Pre-flipping is pointless — Stripe payment overwrites it back to false anyway.
+
+Payment (Stripe → `subscription_status` + `stripe_*_id`) and setup (Brian → `setup_complete`) are independent. He could pay and never forward, or forward and never pay. Tracked separately by design.

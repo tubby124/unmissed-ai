@@ -15,6 +15,7 @@ interface TabBarProps {
 
 const CLIENT_TABS = [
   { href: '/dashboard', label: 'Overview' },
+  { href: '/dashboard/go-live', label: 'Go Live' },
   { href: '/dashboard/knowledge', label: 'Knowledge' },
   { href: '/dashboard/calls', label: 'Calls & Leads' },
   { href: '/dashboard/billing', label: 'Billing' },

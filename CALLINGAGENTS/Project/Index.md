@@ -117,6 +117,8 @@ last-tracker-cleanup: 2026-04-01
 | [[Tracker/D301]] | 29 prompt variables locked post-onboarding | HIGH |
 | [[Tracker/D287]] | Niche-adaptive onboarding (chips, checkboxes) | CRITICAL |
 | [[Tracker/D289]] | Services input UX (structured chips, not text) | HIGH |
+| [[Tracker/forwarding-verify-twilio]] | Verify-call infra on disk, UI dropped 2026-04-27 | MEDIUM |
+| [[Tracker/after-hours-emergency-forward]] | Runtime routing unverified — Go Live UI deferred | LOW |
 | [[Tracker/D344]] | Niche promptfoo test registry | MEDIUM |
 | [[Tracker/D283]] | Variable visibility (D283b remaining = D341) | PARTIAL |
 

@@ -7,6 +7,66 @@
  * prompt-builder.ts re-exports from this file for backwards compatibility.
  */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Go Live tab voice catalog audit
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// EXPERIMENTAL_VOICES is a list of Ultravox voiceIds whose preview audio
+// cannot be reliably played back through `/api/dashboard/voices/[voiceId]/preview`.
+//
+// The full Ultravox catalog is fetched at runtime from `/api/dashboard/voices`
+// and proxied through that route (the upstream `previewUrl` requires an
+// `X-API-Key` header that browsers cannot send, hence the proxy).
+//
+// Audit criterion (default): a voiceId is added here when its proxy preview
+// is empirically known to return a non-audio response or hang. We do NOT have
+// a static URL HEAD check for the full upstream catalog at import time — the
+// catalog is dynamic.
+//
+// Used by:
+//   - <VoicePickerCompact /> in the Go Live tab — filters EXPERIMENTAL voices out.
+//   - The deep settings VoicePicker / VoiceTab keep showing all voices.
+//
+// Add a voiceId here only after manual confirmation that its preview fails.
+// Removing a voiceId here re-exposes it on Go Live with no other change.
+//
+// Default: empty. The Go Live picker additionally cross-references
+// GO_LIVE_VOICES (below) — a curated catalog of voices that have been
+// confirmed to work end-to-end (preview + production calls). When the
+// upstream Ultravox catalog has not been audited, only voices in
+// GO_LIVE_VOICES are shown on Go Live.
+//
+export const EXPERIMENTAL_VOICES: string[] = []
+
+/**
+ * GO_LIVE_VOICES — curated catalog used by the Go Live tab voice picker.
+ *
+ * Mirrors the onboarding GenderVoicePicker (`src/components/onboard/GenderVoicePicker.tsx`)
+ * — these are the voiceIds that have shipped to production clients and have
+ * verified preview playback through `/api/dashboard/voices/[voiceId]/preview`.
+ *
+ * The deep settings page (`VoicePicker`/`VoiceTab`) continues to show the
+ * full upstream Ultravox catalog. Only the Go Live tab filters down to this
+ * curated list.
+ */
+export interface GoLiveVoice {
+  voiceId: string
+  name: string
+  gender: 'female' | 'male'
+  vibe: string
+}
+
+export const GO_LIVE_VOICES: GoLiveVoice[] = [
+  // Female
+  { voiceId: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', name: 'Jacqueline', gender: 'female', vibe: 'Warm, friendly, empathetic' },
+  { voiceId: '87edb04c-06d4-47c2-bd94-683bc47e8fbe', name: 'Monika',     gender: 'female', vibe: 'Energetic, confident, upbeat' },
+  { voiceId: 'df0b14d7-945f-41b2-989a-7c8c57688ddf', name: 'Ashley',     gender: 'female', vibe: 'Calm, professional, reassuring' },
+  // Male
+  { voiceId: 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', name: 'Mark',  gender: 'male', vibe: 'Clear, direct, professional' },
+  { voiceId: 'd766b9e3-69df-4727-b62f-cd0b6772c2ad', name: 'Nour',  gender: 'male', vibe: 'Warm, patient, trustworthy' },
+  { voiceId: '5f8e97b1-cd48-431a-b6a1-3b94306d8914', name: 'Grant', gender: 'male', vibe: 'Confident, authoritative, steady' },
+]
+
 export interface VoicePreset {
   id: string
   label: string

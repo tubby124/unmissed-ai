@@ -15,9 +15,17 @@ interface TestCallCardProps {
   isTrial?: boolean
   onScrollTo?: (section: string) => void
   onCallEnded?: () => void
+  /**
+   * Visual scale of the orb / card. 'default' keeps the existing dashboard
+   * settings sizing untouched. 'xl' is used by the Go Live tab Section 5
+   * (spec 2026-04-26 §5.5) — bumps padding and proportionally enlarges the
+   * inner orb cluster via CSS transform so the orb fills the section on
+   * mobile. Pure visual prop; no behavioral impact.
+   */
+  size?: 'default' | 'xl'
 }
 
-export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo, onCallEnded }: TestCallCardProps) {
+export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo, onCallEnded, size = 'default' }: TestCallCardProps) {
   const [showPhone, setShowPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [callState, setCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -57,7 +65,7 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.02 }}
     >
-      <div className="rounded-2xl border b-theme bg-surface p-5">
+      <div className={`rounded-2xl border b-theme bg-surface ${size === 'xl' ? 'p-7 sm:p-8' : 'p-5'}`}>
         <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">
           {mode === 'onboarding' ? 'Hear Your Agent' : 'Talk to Your Agent'}
         </p>
@@ -69,7 +77,17 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
 
         {/* Primary: WebRTC voice orb */}
         {!previewMode ? (
-          <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} onEnd={onCallEnded} />
+          size === 'xl' ? (
+            // Go Live Section 5 — scale the entire AgentVoiceTest cluster up so the orb
+            // fills the section per spec §5.5. Centered to avoid layout drift.
+            <div className="origin-top flex justify-center">
+              <div className="w-full" style={{ transform: 'scale(1.4)', transformOrigin: 'top center', marginBottom: '6rem' }}>
+                <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} onEnd={onCallEnded} />
+              </div>
+            </div>
+          ) : (
+            <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} onEnd={onCallEnded} />
+          )
         ) : (
           <div className="flex flex-col items-center gap-2 py-6 opacity-40">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">

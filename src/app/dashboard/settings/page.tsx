@@ -144,6 +144,9 @@ export interface ClientConfig {
   outbound_max_attempts: number | null
   // AI-generated niche config for 'other' businesses
   custom_niche_config: Record<string, unknown> | null
+  // Go Live Tab Section 4 — carrier-chain forwarding verification status (DB_ONLY)
+  forwarding_verified_at: string | null
+  forwarding_self_attested: boolean | null
 }
 
 export default async function SettingsPage({
