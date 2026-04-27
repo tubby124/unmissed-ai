@@ -529,22 +529,44 @@ export default function QuickConfigStrip({
                 </p>
               </div>
 
-              <div className="rounded-xl border p-3 space-y-2.5" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
-                <p className="text-[10px] uppercase tracking-[0.15em] font-semibold t3">Carrier codes</p>
+              <div className="rounded-xl border p-3 space-y-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
+                <p className="text-[10px] uppercase tracking-[0.15em] font-semibold t3">Carrier codes — dial on your existing line</p>
+
+                {/* Landline / VoIP / Bell-family mobile (CFV) */}
                 <div className="flex items-start gap-3">
-                  <span className="text-[10px] font-semibold t3 w-16 shrink-0 mt-0.5">Bell / Telus</span>
+                  <div className="w-20 shrink-0">
+                    <p className="text-[10px] font-semibold t2">Landline / VoIP</p>
+                    <p className="text-[9px] t3 leading-tight mt-0.5">Bell · Telus · SaskTel · MTS · Cogeco · Rogers Home · AT&amp;T · Verizon</p>
+                  </div>
                   <div className="flex-1 space-y-1">
                     <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*72 {twilioDigits}</code>
-                    <p className="text-[10px] t3">Cancel: <code className="font-mono">*92 {twilioDigits}</code></p>
+                    <p className="text-[10px] t3">Cancel: <code className="font-mono">*73</code> (or <code className="font-mono">*92 {twilioDigits}</code> on Bell/Telus)</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-[10px] font-semibold t3 w-16 shrink-0 mt-0.5">Rogers / GSM</span>
-                  <div className="flex-1 space-y-1">
-                    <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>**21*{twilioDigits}#</code>
-                    <p className="text-[10px] t3">Cancel: <code className="font-mono">##21#</code></p>
+
+                {/* GSM mobile — covers nearly every Canadian + US mobile carrier */}
+                <div className="flex items-start gap-3 pt-1 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="w-20 shrink-0 pt-1">
+                    <p className="text-[10px] font-semibold t2">Mobile (GSM)</p>
+                    <p className="text-[9px] t3 leading-tight mt-0.5">Rogers · Fido · Bell · Telus · Koodo · Virgin · Freedom · Public · Chatr · T-Mobile · AT&amp;T</p>
+                  </div>
+                  <div className="flex-1 space-y-1.5 pt-1">
+                    <div>
+                      <p className="text-[10px] t3 mb-0.5">Always forward (immediate):</p>
+                      <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>**21*{twilioDigits}#</code>
+                      <span className="text-[10px] t3 ml-2">Cancel: <code className="font-mono">##21#</code></span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] t3 mb-0.5">Forward only when busy / no-answer / unreachable:</p>
+                      <code className="text-[12px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>**004*{twilioDigits}#</code>
+                      <span className="text-[10px] t3 ml-2">Cancel: <code className="font-mono">##004#</code></span>
+                    </div>
                   </div>
                 </div>
+
+                <p className="text-[10px] t3 pt-1 border-t leading-snug" style={{ borderColor: 'var(--color-border)' }}>
+                  <span className="font-semibold t2">Tip:</span> the conditional code (<code className="font-mono">**004*</code>) is what most businesses want — your line still rings first, agent only picks up if you can&apos;t. Press <span className="font-mono">SEND</span> / <span className="font-mono">CALL</span> after dialing.
+                </p>
               </div>
 
               <div className="space-y-2">
