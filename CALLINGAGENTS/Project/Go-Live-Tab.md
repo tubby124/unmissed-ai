@@ -8,7 +8,9 @@ updated: 2026-04-27
 
 # Go Live Tab
 
-## Status — slimmed 2026-04-27
+## Status — slimmed 2026-04-27 ✅ shipped
+
+Merged via [PR #29](https://github.com/tubby124/unmissed-ai/pull/29) on 2026-04-27 19:18 UTC. Railway deploy `9a7c8058-9852-4dd0-825b-0e48e13ef6b8` SUCCESS. Squash commit `7f6d059d` on main.
 
 After first user review, framing was revised from **"5-section minimum-needed-to-take-a-real-call flow"** to **"forwarding setup + how-you'll-be-notified"** — Go Live is the operator's setup checklist, Overview/Settings is where the same data is edited and monitored.
 
