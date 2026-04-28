@@ -43,6 +43,8 @@ last-tracker-cleanup: 2026-04-01
 - [[Clients/urban-vibe]] — Alisha · Ashley · `5f88f03b`
 - [[Clients/manzil-isa]] — Fatima · Nour · TEST MODE
 - [[Clients/plumber-calgary-nw]] — Test client · Dave · `d863d0c5` · plumbing niche
+- [[Clients/calgary-property-leasing]] — Brian · Eric · `a30e9023` (demo / property_management)
+- [[Clients/velly-remodeling]] — **Kausar Imam · Eric** · TBD (provisioning 2026-04-28; renovation/`other`; **first client with transferCall enabled**) — see [[Decisions/Manual-Concierge-Velly-2026-04-28]]
 
 ---
 
