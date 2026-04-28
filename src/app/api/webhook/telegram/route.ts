@@ -107,5 +107,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     `✅ <b>Connected!</b>\n\nYou'll now receive call alerts for <b>${client.business_name}</b> here.\n\nEvery time someone calls your AI agent, you'll get an instant notification with call details.`
   )
 
+  // Operator ping — alert Hasan when any client connects Telegram
+  try {
+    const { data: adminClient } = await adminSupa
+      .from('clients')
+      .select('telegram_bot_token, telegram_chat_id')
+      .eq('slug', 'hasan-sharif')
+      .single()
+    const adminBot = adminClient?.telegram_bot_token as string | null
+    const adminChat = adminClient?.telegram_chat_id as string | null
+    if (adminBot && adminChat) {
+      await fetch(`https://api.telegram.org/bot${adminBot}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: adminChat,
+          parse_mode: 'HTML',
+          text: `🔔 <b>${client.business_name}</b> just connected Telegram\n\nchatId=<code>${chatId}</code> · client_id=<code>${client.id}</code>`,
+        }),
+      })
+    }
+  } catch (err) {
+    console.warn(`[telegram-webhook] Operator ping failed: ${(err as Error).message}`)
+  }
+
   return new NextResponse('OK', { status: 200 })
 }
