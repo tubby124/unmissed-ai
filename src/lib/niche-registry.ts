@@ -176,7 +176,7 @@ export const NICHE_REGISTRY = {
     serviceType:        'consultation',
     workflowType:       'triage',
     minuteLimit:        100,
-    hasBuiltinTriage:   false,
+    hasBuiltinTriage:   true,
   },
   property_management: {
     label:              'Property Management',
