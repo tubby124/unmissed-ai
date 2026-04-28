@@ -210,7 +210,10 @@ describe('Phase D total prompt ceilings', () => {
       `hvac baseline prompt is ${prompt.length} chars, exceeds Phase D ceiling ${TOTAL_PROMPT_CEILING}`)
   })
 
-  test('real_estate baseline total under 13,500 chars', () => {
+  // Wave 4 (2026-04-28) — real_estate niche rebuilt to property_management parity:
+  // 10-branch TRIAGE_DEEP (Buy / Sell / Eval / Rent + 6 edge intents) + INFO_FLOW_OVERRIDE
+  // + CLOSING_OVERRIDE + 7 NICHE_EXAMPLES. Same complexity tier as PM, same higher ceiling.
+  test('real_estate baseline under 19,500 chars (niche-specific higher ceiling — Wave 4)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'real_estate',
       business_name: 'Sharif Realty',
@@ -221,8 +224,8 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       callback_phone: '+17805550000',
     })
-    assert.ok(prompt.length <= TOTAL_PROMPT_CEILING,
-      `real_estate baseline prompt is ${prompt.length} chars, exceeds Phase D ceiling ${TOTAL_PROMPT_CEILING}`)
+    assert.ok(prompt.length <= 19_500,
+      `real_estate baseline is ${prompt.length} chars, exceeds Wave 4 ceiling 19,500`)
   })
 
   test('plumbing baseline total under 13,500 chars', () => {
