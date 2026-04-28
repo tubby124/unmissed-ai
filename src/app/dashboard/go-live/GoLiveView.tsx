@@ -13,9 +13,12 @@
  * Layout (mobile-first, single column):
  *   HERO          — Twilio number tap-to-copy (or trial CTA)
  *   FORWARDING    — <CallForwardingCard /> — carrier dial code + self-attest
- *   NOTIFICATIONS — <NotificationsBlock /> — Telegram + SMS reply + voicemail summaries
- *   VOICE         — <GoLiveVoicePicker /> — full Ultravox catalog, 2-col, search
+ *   NOTIFICATIONS — <NotificationsBlock /> — Telegram advisory + inline-editable
+ *                    SMS auto-text reply + inline-editable voicemail greeting
  *   BANNER        — <GoLiveBanner /> sticky pill when forwarding is attested
+ *
+ * Voice section removed 2026-04-27 — pending owner decision on whether to keep
+ * a voice picker on Go Live. Settings → Voice card still owns voice editing.
  *
  * Live definition (derived, no `is_live` DB column):
  *   isLive = forwarding_self_attested || forwarding_verified_at is set.
@@ -40,7 +43,10 @@ import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettin
 import CallForwardingCard from '@/components/dashboard/go-live/CallForwardingCard'
 import GoLiveBanner from '@/components/dashboard/go-live/GoLiveBanner'
 import NotificationsBlock from '@/components/dashboard/go-live/NotificationsBlock'
-import GoLiveVoicePicker from '@/components/dashboard/go-live/GoLiveVoicePicker'
+// Voice picker temporarily removed from Go Live (2026-04-27). Owner will decide
+// later whether to bring it back as an inline picker. Keep import path stable —
+// re-add `import GoLiveVoicePicker from '@/components/dashboard/go-live/GoLiveVoicePicker'`
+// and the section below if reinstating.
 
 interface Props {
   client: ClientConfig
@@ -93,12 +99,6 @@ export default function GoLiveView({ client, isAdmin }: Props) {
     if (callbackTimerRef.current) clearTimeout(callbackTimerRef.current)
   }, [])
 
-  // ── Voice select — single click, no debounce ────────────────────────────
-  const onVoiceSelect = useCallback(
-    (voiceId: string) => { void patch({ agent_voice_id: voiceId }) },
-    [patch],
-  )
-
   // ── Live derivation ─────────────────────────────────────────────────────
   const isLive = !!client.forwarding_verified_at || !!client.forwarding_self_attested
 
@@ -117,17 +117,26 @@ export default function GoLiveView({ client, isAdmin }: Props) {
   }, [twilioNumber])
 
   // ── Notifications block inputs ──────────────────────────────────────────
+  // hasSms gates the SMS auto-text editor — sending requires a Twilio number.
+  // (Mirrors the Overview tile rule; see PostCallActionsTile.)
   const telegramConnected = !!client.telegram_chat_id
+  const hasSms = !!client.twilio_number
   const notifications = useMemo(() => ({
     telegramConnected,
+    hasSms,
     smsEnabled: !!client.sms_enabled,
     smsTemplate: client.sms_template,
     voicemailGreetingText: client.voicemail_greeting_text,
+    agentName: client.agent_name,
+    businessName: client.business_name,
   }), [
     telegramConnected,
+    hasSms,
     client.sms_enabled,
     client.sms_template,
     client.voicemail_greeting_text,
+    client.agent_name,
+    client.business_name,
   ])
 
   return (
@@ -197,21 +206,19 @@ export default function GoLiveView({ client, isAdmin }: Props) {
         <section aria-labelledby="go-live-notifications-heading">
           <SectionHeader id="go-live-notifications-heading" title="How you'll be notified" />
           <NotificationsBlock
+            clientId={client.id}
+            isAdmin={isAdmin}
             telegramConnected={notifications.telegramConnected}
+            hasSms={notifications.hasSms}
             smsEnabled={notifications.smsEnabled}
             smsTemplate={notifications.smsTemplate}
             voicemailGreetingText={notifications.voicemailGreetingText}
+            agentName={notifications.agentName}
+            businessName={notifications.businessName}
           />
         </section>
 
-        {/* ═══════════ Voice ═══════════ */}
-        <section aria-labelledby="go-live-voice-heading-section">
-          <SectionHeader id="go-live-voice-heading-section" title="Voice" />
-          <GoLiveVoicePicker
-            currentVoiceId={client.agent_voice_id}
-            onSelect={onVoiceSelect}
-          />
-        </section>
+        {/* Voice section removed 2026-04-27 — owner deciding whether to keep. */}
 
         {/* Spacer so the sticky banner doesn't cover the last block. */}
         <div aria-hidden="true" className="h-24 lg:h-32" />
