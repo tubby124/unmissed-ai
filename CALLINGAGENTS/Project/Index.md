@@ -10,7 +10,18 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-28 — Realtor onboarding polish + universal recording consent)
+## Latest Session (2026-04-28 PM — Telegram Tier 1 LIVE)
+- PR #41 squash-merged at 2026-04-28T23:01:52Z, sha `03ad11c0` — Railway auto-deploys
+- Migration `20260428100000_create_telegram_updates_seen` applied to prod Supabase
+- @hassitant_1bot now responds to `/help`, `/calls`, `/today`, `/missed`, `/lastcall`, `/minutes` for any registered client chat_id
+- Hardening: private-chat-only guard, 10/min per-chat_id rate limit, update_id idempotency, multi-tenant scoping
+- 11/11 unit tests + green build
+- Audit doc: [[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]
+- Feature note: [[Features/Telegram-Two-Way-Assistant]]
+- Decision: [[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]]
+- **Next:** Tier 2 (NL Q&A via OpenRouter) — cold-start at [[00-Inbox/NEXT-CHAT-Telegram-Tier2]]
+
+## Previous Session (2026-04-28 — Realtor onboarding polish + universal recording consent)
 - 6 waves shipped in one session, build green (`npm run build` 6.2s)
 - **Wave 1** — UI/copy fixes: "WebRTC" → "Web Browser Call" everywhere, inline "Save snippet" on call detail (call_snippet source), trial-clarity caption + forwarding note above chip grid, AgentIdentityCardCompact gets `isTrial` + `hasForwarding` props
 - **Wave 1.5** — Universal recording consent (legal protection): migration `20260428010953_add_recording_consent.sql` + onboarding checkbox + grandfathered backfill modal + voicemail pipeline mirror + outbound `/api/dashboard/leads/dial-out` 403 gate. Auto-enables `RECORDING_DISCLOSURE` for new clients only — 4 grandfathered clients keep prompts untouched. See [[Features/Recording-Consent]] + [[Tracker/S16a]]
