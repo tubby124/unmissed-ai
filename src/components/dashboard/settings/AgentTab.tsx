@@ -338,19 +338,21 @@ export default function AgentTab({
         />
       )}
 
-      {/* ═══════ CAPABILITIES (wide) ════════════════════════════════= */}
-      <div className="md:col-span-2">
-        <CapabilitiesCard
-          capabilities={capabilities}
-          agentName={client.agent_name ?? client.business_name}
-          voiceStylePreset={client.voice_style_preset ?? null}
-          isTrial={client.subscription_status === 'trialing'}
-          clientId={client.id}
-          hasPhoneNumber={!!client.twilio_number}
-          hasIvr={!!client.ivr_enabled}
-          hasContextData={!!(client.context_data?.trim())}
-        />
-      </div>
+      {/* ═══════ CAPABILITIES (admin only — non-admin sees it in Overview hero) ══ */}
+      {isAdmin && (
+        <div className="md:col-span-2">
+          <CapabilitiesCard
+            capabilities={capabilities}
+            agentName={client.agent_name ?? client.business_name}
+            voiceStylePreset={client.voice_style_preset ?? null}
+            isTrial={client.subscription_status === 'trialing'}
+            clientId={client.id}
+            hasPhoneNumber={!!client.twilio_number}
+            hasIvr={!!client.ivr_enabled}
+            hasContextData={!!(client.context_data?.trim())}
+          />
+        </div>
+      )}
 
       {/* TEST CALL — sits next to capabilities */}
       <TestCallCard
@@ -398,15 +400,18 @@ export default function AgentTab({
         </div>
       )}
 
-      <CallHandlingModeCard
-        clientId={client.id}
-        isAdmin={isAdmin}
-        initialMode={(client.call_handling_mode as 'message_only' | 'triage' | 'full_service') ?? 'triage'}
-        selectedPlan={client.selected_plan}
-        subscriptionStatus={client.subscription_status}
-        previewMode={previewMode}
-        onPromptChange={handlePromptChange}
-      />
+      {/* CallHandlingModeCard — admin only. Non-admin uses AgentModeCard which auto-syncs call_handling_mode. */}
+      {isAdmin && (
+        <CallHandlingModeCard
+          clientId={client.id}
+          isAdmin={isAdmin}
+          initialMode={(client.call_handling_mode as 'message_only' | 'triage' | 'full_service') ?? 'triage'}
+          selectedPlan={client.selected_plan}
+          subscriptionStatus={client.subscription_status}
+          previewMode={previewMode}
+          onPromptChange={handlePromptChange}
+        />
+      )}
 
       {!isAdmin && (
         <AgentModeCard
