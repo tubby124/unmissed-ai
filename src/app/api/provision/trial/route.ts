@@ -65,6 +65,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Business phone number is required" }, { status: 400 });
   }
 
+  // Wave 1.5 — Recording consent acknowledgment is required before provisioning.
+  // Operator confirmed they have authority to record callers in their jurisdiction.
+  if (!data.recordingConsentAcknowledged) {
+    return NextResponse.json({
+      error: "Recording authorization is required to launch your agent.",
+    }, { status: 400 });
+  }
+
   // I2: Canonicalize email for dedup — strips +tag aliases (Gmail/Google) to prevent
   // user+1@gmail.com, user+2@gmail.com from creating unlimited trials.
   const rawEmail = data.contactEmail.trim().toLowerCase()
@@ -118,6 +126,9 @@ export async function POST(req: NextRequest) {
     ...nicheIntakeFields,
     ...(data.nicheCustomVariables ?? {}),
     ...(ownerFirstName ? { CLOSE_PERSON: ownerFirstName } : {}),
+    // Wave 1.5 — Auto-enable the in-call recording disclosure since operator
+    // acknowledged consent on the activate step. Empty string = disabled.
+    RECORDING_DISCLOSURE: "and heads up — this call's being recorded for quality.",
   }
 
   // Gate-13: Enforce plan entitlements server-side — UI can show toggles as disabled
@@ -228,6 +239,9 @@ export async function POST(req: NextRequest) {
       context_data_label: intakePayload.context_data_label || null,
       // D302: Preserve niche intake fields for slot regeneration round-trip
       ...(Object.keys(mergedNicheVars).length > 0 ? { niche_custom_variables: mergedNicheVars } : {}),
+      // Wave 1.5 — record consent acknowledgment timestamp + version
+      recording_consent_acknowledged_at: new Date().toISOString(),
+      recording_consent_version: 1,
     })
     .select("id")
     .single();

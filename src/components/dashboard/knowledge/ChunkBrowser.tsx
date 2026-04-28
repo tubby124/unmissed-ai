@@ -227,6 +227,8 @@ export default function ChunkBrowser({ clientId, isAdmin, initialSourceFilter }:
             <option value="bulk_import">bulk_import</option>
             <option value="dashboard_manual">dashboard_manual</option>
             <option value="manual_entry">manual_entry</option>
+            <option value="call_snippet">call_snippet</option>
+            <option value="manual_text">manual_text</option>
           </select>
           <select
             value={statusFilter}

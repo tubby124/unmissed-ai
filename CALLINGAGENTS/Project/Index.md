@@ -1,7 +1,7 @@
 ---
 type: moc
 tags: [index, project]
-updated: 2026-04-24
+updated: 2026-04-28
 cleaned: 2026-04-01
 last-tracker-cleanup: 2026-04-01
 ---
@@ -10,7 +10,19 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-24 — Wave 2 Chat A — Overview Surface)
+## Latest Session (2026-04-28 — Realtor onboarding polish + universal recording consent)
+- 6 waves shipped in one session, build green (`npm run build` 6.2s)
+- **Wave 1** — UI/copy fixes: "WebRTC" → "Web Browser Call" everywhere, inline "Save snippet" on call detail (call_snippet source), trial-clarity caption + forwarding note above chip grid, AgentIdentityCardCompact gets `isTrial` + `hasForwarding` props
+- **Wave 1.5** — Universal recording consent (legal protection): migration `20260428010953_add_recording_consent.sql` + onboarding checkbox + grandfathered backfill modal + voicemail pipeline mirror + outbound `/api/dashboard/leads/dial-out` 403 gate. Auto-enables `RECORDING_DISCLOSURE` for new clients only — 4 grandfathered clients keep prompts untouched. See [[Features/Recording-Consent]] + [[Tracker/S16a]]
+- **Wave 2** — GBP modal shows extracted fields (name, hours, website, rating), Knowledge page reads `?source=` param + Website chip deep-links to filtered Browse view
+- **Wave 3** — AI Receptionist 400 → 200 minutes across pricing.ts + plan-entitlements.ts + UpgradeModal + BillingTab. Existing subs grandfathered. ADR: [[Decisions/2026-04-28-ai-receptionist-200-minutes]]
+- **Wave 5 (DOC ONLY)** — Outbound Realtor ISA + Market RAG fully spec'd at [[Features/Outbound-Realtor-ISA-Market-RAG]] for future multi-month build
+- **Deferred to next session:** Wave 4 (realtor prompt rebuild + Buy/Sell/Eval/Rent intent branching), Wave 5 implementation
+- Manual ops pending (next session A1-A6): apply migration to prod Supabase `qwhvblomlgeapzhnuwlb`, update Stripe `prod_UCl8nni05Nk9lB` description, sweep marketing pages for "400 min" copy, smoke-test backfill modal on grandfathered clients
+- Plan file: `/Users/owner/.claude/plans/yeah-okay-sounds-good-mellow-mountain.md`
+- Handoff doc: [[Tracker/Session-2026-04-28-Realtor-Polish]]
+
+## Previous Session (2026-04-24 — Wave 2 Chat A — Overview Surface)
 - Branch `ship/wave2-overview-surface` shipped — 8 narrow commits, build green (1683/1683 tests, tsc clean, next build OK)
 - **Closed:** D308 (label kept), D266 (shared `useCallLog` + `CallRow` reuse), D290 (`AgentKnowsCard`), D288 (Capabilities reframe), D341 (`AgentRoutesOnCard`), D306 (empty-state sweep)
 - **Deleted:** `AgentKnowledgeTile`, `KnowledgeInlineTile`, `KnowledgeSourcesTile`, `TrialActiveSection` (orphans after rewire) + dead Recent-Calls inline block in `UnifiedHomeSection`
@@ -152,10 +164,14 @@ last-tracker-cleanup: 2026-04-01
 - [[Features/SMS]] — sms_logs, opt-out, sendSmsTracked()
 - [[Features/Transfer]] — HTTP transferCall → Twilio redirect → recovery
 - [[Features/IVR]] — ivr_enabled, ivr_prompt, digit routing
+- [[Features/Recording-Consent]] — universal acknowledgment + RECORDING_DISCLOSURE auto-enable + outbound gate (shipped 2026-04-28)
+- [[Features/Outbound-Realtor-ISA-Market-RAG]] — future-roadmap spec for outbound dialer + per-realtor MLS RAG
 
 ## Decisions
 - [[Decisions/Prompt Sandwich Ownership Model]]
 - [[Decisions/Overview-5-Tier-Layout]]
 - [[Decisions/2026-04-26-overview-2col-quickadd-beside-orb]] — Hero 3-col → 2-col, Quick Add beside orb
+- [[Decisions/2026-04-27-ai-receptionist-119-standard-plan]]
+- [[Decisions/2026-04-28-ai-receptionist-200-minutes]] — 400 → 200 min, grandfathered (2026-04-28)
 - [[Decisions/Dashboard-Tab-Naming]]
 - [[Decisions/Plan-Equals-Mode]]

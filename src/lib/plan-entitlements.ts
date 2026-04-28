@@ -64,7 +64,7 @@ const LITE: PlanEntitlements = {
 
 const CORE: PlanEntitlements = {
   name: 'AI Receptionist',
-  minutes: 400,
+  minutes: 200,
   defaultMode: 'lead_capture',
   bookingEnabled: true,       // Phase 7: Core now includes booking
   transferEnabled: true,      // D416: Transfer enabled for Core

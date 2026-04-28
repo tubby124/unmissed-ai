@@ -80,6 +80,10 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   // Extra context: PM context takes priority; fall back to voicemail niche custom field
   const extraContext = pmContext || ((intake.niche_voicemailContext as string) || '').trim()
 
+  // Wave 1.5 — Recording disclosure (S16a). Empty string = disabled. When set, the line
+  // is rendered after the OPENING greeting on the first turn. Mirror of slot pipeline.
+  const recordingDisclosure = (customVars.RECORDING_DISCLOSURE || '').trim()
+
   // Opening greetings — AI-generated greeting takes priority, then PM location-aware, then generic rotating
   const businessAddress = ((intake.niche_businessAddress as string) || '').trim()
   const locationStr = businessAddress && city ? ` at ${businessAddress}, ${city}`
@@ -208,7 +212,7 @@ Add a thinking beat before answering something — "yeah so..." or "okay so..." 
 
 Say this first within the first 2 seconds. Keep it under 4 seconds total.
 ${openingGreetings}
-
+${recordingDisclosure ? `\nImmediately after the greeting, add this short line in the same turn: "${recordingDisclosure}"\n` : ''}
 Do NOT wait silently. Speak immediately when the call connects.
 
 CRITICAL: This OPENING fires ONLY on the very first turn when a call connects with no message yet. If the caller has ALREADY said something in their first message (introduced themselves, stated a reason, asked a question), skip the opening entirely and respond DIRECTLY to what they said. Never re-introduce yourself if the caller has already started talking.

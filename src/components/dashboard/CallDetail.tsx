@@ -14,6 +14,7 @@ import { WaveformBars, createSoundCues, type AgentStatus } from '@/components/De
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 import QuickAddFaq from './QuickAddFaq'
 import CallGapReview from './CallGapReview'
+import { formatPhone } from '@/lib/format-phone'
 
 interface TranscriptMessage {
   role: 'agent' | 'user'
@@ -416,7 +417,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
           Back
         </button>
         <div className="flex-1 flex items-center gap-3 min-w-0 flex-wrap">
-          <span className="font-mono text-sm shrink-0" style={{ color: "var(--color-text-1)" }}>{displayCall.caller_phone || 'Unknown'}</span>
+          <span className="font-mono text-sm shrink-0" style={{ color: "var(--color-text-1)" }}>{formatPhone(displayCall.caller_phone)}</span>
           {isActuallyLive ? (
             <>
               <span className="flex items-center gap-1.5 shrink-0">
@@ -600,6 +601,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                 clientId={displayCall.client_id}
                 topics={displayCall.key_topics}
                 transcript={displayCall.transcript}
+                callId={displayCall.id}
               />
             )}
 

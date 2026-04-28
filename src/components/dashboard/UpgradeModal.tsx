@@ -18,7 +18,7 @@ const PLAN_MODAL_HIGHLIGHTS: Record<string, string[]> = {
   ],
   core: [
     'Full AI receptionist — live call handling',
-    '400 minutes/month included',
+    '200 minutes/month included',
     'Website & Google Business knowledge',
   ],
   pro: [

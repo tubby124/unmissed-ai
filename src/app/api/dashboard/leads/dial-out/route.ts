@@ -61,11 +61,20 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at')
     .eq('id', clientId)
     .single()
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+
+  // Wave 1.5 — Outbound calling requires explicit consent acknowledgment.
+  // Operator must have confirmed authority to record callers in their jurisdiction.
+  if (!client.recording_consent_acknowledged_at) {
+    return NextResponse.json(
+      { error: 'Recording authorization is required before placing outbound calls. Acknowledge from your dashboard to enable.' },
+      { status: 403 },
+    )
+  }
 
   // If outbound_prompt is null but structured fields exist, assemble on the fly and backfill DB
   let outboundPrompt = client.outbound_prompt as string | null

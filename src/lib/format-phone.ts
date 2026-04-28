@@ -7,8 +7,8 @@
 
 /** Known test call marker values stored in call_logs.caller_phone */
 const TEST_CALL_LABELS: Record<string, string> = {
-  'trial-test': 'Trial Test',
-  'webrtc-test': 'Browser Test',
+  'trial-test': 'Web Browser Call',
+  'webrtc-test': 'Web Browser Call',
 }
 
 /**

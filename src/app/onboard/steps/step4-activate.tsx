@@ -508,6 +508,25 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
         <p className="text-xs text-muted-foreground">7-day free trial · No credit card required</p>
       </div>
 
+      {/* Wave 1.5 — Recording consent acknowledgment.
+          Why: every inbound call is recorded. Operator confirms they have authority
+          to record callers in their jurisdiction and accepts liability. Auto-enables
+          the in-call disclosure line in the agent's greeting. */}
+      <label className="flex items-start gap-3 rounded-xl border border-border bg-card p-3 cursor-pointer hover:border-muted-foreground/40 transition-colors">
+        <input
+          type="checkbox"
+          checked={!!data.recordingConsentAcknowledged}
+          onChange={(e) => onUpdate({ recordingConsentAcknowledged: e.target.checked })}
+          className="mt-0.5 h-4 w-4 rounded border-border text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+        />
+        <span className="text-xs text-foreground leading-snug">
+          <strong className="font-semibold">I confirm I have authorization to record incoming calls</strong> on behalf of this business and accept responsibility for caller-consent compliance in my jurisdiction.
+          <span className="block mt-1 text-muted-foreground">
+            {agentName} will add a brief disclosure to the greeting (e.g. &ldquo;heads up — this call&apos;s being recorded for quality.&rdquo;). Required to launch.
+          </span>
+        </span>
+      </label>
+
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
           {error}
@@ -520,12 +539,17 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
           Fill in business name, phone, and email above to launch.
         </p>
       )}
+      {canActivate && !data.recordingConsentAcknowledged && !isSubmitting && (
+        <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+          Confirm the recording authorization above to launch.
+        </p>
+      )}
 
       {/* Activate button */}
       <motion.button
         type="button"
         onClick={() => onActivate("trial")}
-        disabled={isSubmitting || !canActivate}
+        disabled={isSubmitting || !canActivate || !data.recordingConsentAcknowledged}
         whileTap={{ scale: 0.97 }}
         whileHover={{ scale: canActivate ? 1.01 : 1 }}
         className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 hover:shadow-xl hover:shadow-indigo-600/30 transition-shadow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"

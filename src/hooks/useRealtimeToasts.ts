@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { formatPhone, isTestCallPhone } from '@/lib/format-phone'
 
 /**
  * Subscribe to Supabase realtime and show dashboard toasts for:
@@ -58,9 +59,9 @@ export function useRealtimeToasts(clientId: string | null, isAdmin: boolean) {
           if (shownRef.current.has(`hot:${row.id}`)) return
           shownRef.current.add(`hot:${row.id}`)
 
-          const phone = row.caller_phone || 'Unknown'
+          if (isTestCallPhone(row.caller_phone)) return
           toast('Hot lead detected', {
-            description: `Caller ${phone} — ready to buy`,
+            description: `Caller ${formatPhone(row.caller_phone)} — ready to buy`,
             duration: 10000,
           })
         }
@@ -84,17 +85,9 @@ export function useRealtimeToasts(clientId: string | null, isAdmin: boolean) {
           if (shownRef.current.has(`completed:${row.id}`)) return
           shownRef.current.add(`completed:${row.id}`)
 
-          const isTestCall = row.caller_phone === 'webrtc-test'
-          if (isTestCall) return
-          const raw = row.caller_phone || ''
-          const digits = raw.replace(/\D/g, '')
-          const phone = digits.length === 11 && digits[0] === '1'
-            ? `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-            : digits.length === 10
-            ? `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-            : raw || 'Unknown caller'
+          if (isTestCallPhone(row.caller_phone)) return
           toast('New call recorded', {
-            description: phone,
+            description: formatPhone(row.caller_phone),
             action: { label: 'View', onClick: () => { window.location.href = '/dashboard/calls' } },
             duration: 8000,
           })
