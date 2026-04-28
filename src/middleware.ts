@@ -53,10 +53,12 @@ export async function middleware(request: NextRequest) {
         .maybeSingle()
 
       if (!cu) {
+        // Match on contact_email (provisioning email) OR login_emails[] (real login emails
+        // for manually-provisioned clients where login email differs from contact email).
         const { data: matchedClient } = await supabase
           .from('clients')
           .select('id')
-          .eq('contact_email', user.email)
+          .or(`contact_email.eq.${user.email},login_emails.cs.{${user.email}}`)
           .limit(1)
           .maybeSingle()
 
