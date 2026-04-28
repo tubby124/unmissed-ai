@@ -31,7 +31,10 @@ export const TRIAL = {
   description: "Full access to your plan. No credit card required to start.",
 };
 
-// ─── Plans (3-tier) ─────────────────────────────────────────────────
+// ─── Plans (3-tier public + 1 hidden tester tier) ──────────────────
+// `hidden: true` excludes a tier from public marketing surfaces (PUBLIC_PLANS).
+// Internal lookups (Stripe webhook, billing display, entitlements) iterate PLANS directly
+// so hidden tiers still resolve correctly for users provisioned on them.
 export const PLANS = [
   {
     id: "lite" as const,
@@ -114,7 +117,37 @@ export const PLANS = [
     cta: "Start Free Trial",
     href: "/onboard",
   },
+  {
+    id: "tester" as const,
+    name: "Tester",
+    tagline: "Internal — friends & family pilot tier (hidden).",
+    monthly: 10,
+    annual: 10,
+    annualBilledTotal: 120,
+    minutes: 100,
+    description: "At-cost tier for testers and feedback partners. Same features as AI Receptionist, lower minute cap.",
+    isPopular: false,
+    hidden: true,
+    stripeMonthlyPriceId: "TODO_TESTER_MONTHLY_PRICE_ID", // Hasan: create $10/mo CAD recurring price in Stripe dashboard, paste here
+    stripeAnnualPriceId: "",
+    stripeProductId: "TODO_TESTER_PRODUCT_ID",
+    features: [
+      "100 minutes/month included",
+      "All AI Receptionist features",
+      "Calendar booking, transfer, knowledge base, learning loop",
+      "Direct support from Hasan",
+    ],
+    notIncluded: [],
+    cta: "Tester Plan",
+    href: "/onboard",
+  },
 ];
+
+/**
+ * PUBLIC_PLANS — tiers shown on marketing/onboarding/upgrade surfaces.
+ * Excludes `hidden: true` tiers (Tester). Use PLANS for internal lookups by ID.
+ */
+export const PUBLIC_PLANS = PLANS.filter((p) => !("hidden" in p) || !p.hidden);
 
 // ─── Guarantee & Policies ───────────────────────────────────────────
 export const POLICIES = {
@@ -200,11 +233,23 @@ export const NICHES = {
 };
 
 // ─── Minute Reload Packs ────────────────────────────────────────────
+// 3-tier reload ladder. Middle tier ($15/100min) is the dominant rational pick:
+// "double the minutes for only $5 more" — anchors against the 50-min pack.
+// Each pack maps to its own pre-defined Stripe price ID for invoice consistency.
 export const MINUTE_RELOAD = {
   price: 10,
   minutes: 50,
   label: "$10 for 50 extra minutes",
   perMinuteRate: 0.20,
+  stripePriceIdKey: "minuteReload10" as const,
+};
+
+export const MINUTE_RELOAD_MID = {
+  price: 15,
+  minutes: 100,
+  label: "$15 for 100 extra minutes",
+  perMinuteRate: 0.15,
+  stripePriceIdKey: "minuteReload15" as const,
 };
 
 export const MINUTE_RELOAD_LARGE = {
@@ -212,9 +257,10 @@ export const MINUTE_RELOAD_LARGE = {
   minutes: 200,
   label: "$30 for 200 extra minutes",
   perMinuteRate: 0.15,
+  stripePriceIdKey: "minuteReload30" as const,
 };
 
-export const MINUTE_RELOAD_PACKS = [MINUTE_RELOAD, MINUTE_RELOAD_LARGE];
+export const MINUTE_RELOAD_PACKS = [MINUTE_RELOAD, MINUTE_RELOAD_MID, MINUTE_RELOAD_LARGE];
 
 // ─── Stripe IDs (LIVE MODE) ──────────────────────────────────────────
 // Keep this section updated whenever you create/change Stripe objects.
@@ -231,6 +277,17 @@ export const STRIPE_IDS = {
   setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
   setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)
   minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
+  minuteReload15: "TODO_RELOAD_15_PRICE_ID",          // $15 one-time (100 min reload) — Hasan: create in Stripe dashboard
+  minuteReload30: "TODO_RELOAD_30_PRICE_ID",          // $30 one-time (200 min reload) — Hasan: create in Stripe dashboard (replaces broken qty-multiplier path)
+
+  // Custom Founding Concierge Prices (LIVE) — manual concierge clients on bespoke combos
+  // First created 2026-04-28 for Velly Remodeling (Kausar) per
+  // CALLINGAGENTS/Decisions/Core-Founding-29-Price-2026-04-28.md
+  // Reuse this same price for any future $29/mo Core founding client. Do NOT use
+  // the FOUNDING29 coupon for this — it's tied to the Lite product (would yield
+  // $99 on Core, not $29). New price-on-Core is the clean path.
+  coreFounding29: "price_1TRKma0tFbm4ZBYUJi5p69s4", // $29/mo CAD recurring under prod_UCl8nni05Nk9lB
+  coreFounding29PaymentLink: "https://buy.stripe.com/bJeeV5dzu43Z16J6z22VG01", // plink_1TRKmr0tFbm4ZBYUB9B4GmXf
 
   // Coupons & Promo Codes (LIVE)
   betaCoupon: "WFO1Xm9V",                        // $10 off/mo forever → $20/mo (legacy)

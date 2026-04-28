@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Check, Star } from "lucide-react";
 import { OnboardingData } from "@/types/onboarding";
-import { PLANS } from "@/lib/pricing";
+import { PUBLIC_PLANS } from "@/lib/pricing";
 import { planToMode } from "@/lib/plan-entitlements";
 
 interface Props {
@@ -69,7 +69,7 @@ export default function StepPlan({ data, onUpdate }: Props) {
       </div>
 
       <div className="space-y-3">
-        {PLANS.map((plan) => {
+        {PUBLIC_PLANS.map((plan) => {
           const id = plan.id as PlanId;
           const isSelected = selected === id;
           const isCenterStage = id === 'core';

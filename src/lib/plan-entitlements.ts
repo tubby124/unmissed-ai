@@ -11,7 +11,9 @@
 import { PLANS, TRIAL } from '@/lib/pricing'
 
 // ── Plan IDs ────────────────────────────────────────────────────────
-export type PlanId = 'lite' | 'core' | 'pro'
+// 'tester' is a hidden friends-and-family tier. Same entitlements as Core,
+// 100-min cap. Not shown on public pricing surfaces (filtered via PUBLIC_PLANS).
+export type PlanId = 'lite' | 'core' | 'pro' | 'tester'
 export type PlanIdOrTrial = PlanId | 'trial'
 
 // ── Entitlements ────────────────────────────────────────────────────
@@ -94,6 +96,23 @@ const PRO: PlanEntitlements = {
   maxKnowledgeDocs: 20,
 }
 
+/** Tester entitlements — hidden friends-and-family tier. Same as Core, 100-min cap. */
+const TESTER: PlanEntitlements = {
+  name: 'Tester',
+  minutes: 100,
+  defaultMode: 'lead_capture',
+  bookingEnabled: true,
+  transferEnabled: true,
+  smsEnabled: true,
+  knowledgeEnabled: true,
+  learningLoopEnabled: true,
+  leadScoringEnabled: true,
+  maxKnowledgeSources: 3,
+  maxWebsiteUrls: 3,
+  fileUploadEnabled: true,
+  maxKnowledgeDocs: 5,
+}
+
 /** Trial entitlements — all features unlocked for evaluation */
 const TRIAL_ENTITLEMENTS: PlanEntitlements = {
   name: 'Trial',
@@ -115,6 +134,7 @@ export const PLAN_ENTITLEMENTS: Record<PlanIdOrTrial, PlanEntitlements> = {
   lite: LITE,
   core: CORE,
   pro: PRO,
+  tester: TESTER,
   trial: TRIAL_ENTITLEMENTS,
 }
 
@@ -280,6 +300,7 @@ export function getUpgradePlan(currentPlanId: string | null | undefined): typeof
   if (!currentPlanId || currentPlanId === 'pro') return null
   if (currentPlanId === 'lite') return PLANS[1] // Core
   if (currentPlanId === 'core') return PLANS[2] // Pro
+  if (currentPlanId === 'tester') return PLANS[1] // Tester upgrades to Core
   if (currentPlanId === 'trial') return PLANS[1] // Core (recommended)
   return null
 }
