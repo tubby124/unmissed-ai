@@ -116,6 +116,7 @@ export default function UnifiedHomeSectionV2({
   const callHandlingMode = data.callHandlingMode
   // Show calendar CTA when plan includes booking (Core+, or trial which unlocks all) but calendar not connected
   const planSupportsBooking = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
+  const planSupportsTransfer = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
   const showCalendarConnect = planSupportsBooking && !calendarConnected
 
   const nextAction: { text: string; cta: string; href: string | null; onUpgrade?: boolean } | null = (() => {
@@ -859,6 +860,7 @@ export default function UnifiedHomeSectionV2({
         fetchData={fetchData}
         openUpgrade={() => openUpgradeModal('overview_inline_modal', data.clientId, daysRemaining, data.selectedPlan)}
         planSupportsBooking={planSupportsBooking}
+        planSupportsTransfer={planSupportsTransfer}
       />
     </>
   )
