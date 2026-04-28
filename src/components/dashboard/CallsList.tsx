@@ -90,6 +90,8 @@ interface CallsListProps {
   minutesUsed?: number
   minuteLimit?: number
   bonusMinutes?: number
+  hideAnalytics?: boolean
+  hideMinuteUsage?: boolean
 }
 
 function dateGroupLabel(iso: string): string {
@@ -140,7 +142,7 @@ function CallsListSkeleton() {
   )
 }
 
-export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = DEFAULT_MINUTE_LIMIT, bonusMinutes = 0 }: CallsListProps) {
+export default function CallsList({ initialCalls, phone, isAdmin, adminClients = [], clientSlug, clientBusinessName, clientId, clientStatus, minutesUsed = 0, minuteLimit = DEFAULT_MINUTE_LIMIT, bonusMinutes = 0, hideAnalytics = false, hideMinuteUsage = false }: CallsListProps) {
   const searchParams = useSearchParams()
   const [calls, setCalls] = useState<CallLog[]>(initialCalls)
   const [loading, setLoading] = useState(initialCalls.length === 0)
@@ -391,7 +393,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
       </AnimatePresence>
 
       {/* Minute usage — prominent display */}
-      {(() => {
+      {!hideMinuteUsage && (() => {
         if (isAdmin && clientFilter !== 'all') {
           const sel = adminClients.find(c => c.id === clientFilter)
           if (sel) return <MinuteUsage minutesUsed={Math.ceil((sel.seconds_used_this_month ?? 0) / 60)} minuteLimit={sel.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT} bonusMinutes={sel.bonus_minutes ?? 0} />
@@ -400,22 +402,26 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
         return null
       })()}
 
-      {/* Stats — reactive, updates with every call change */}
-      <StatsGrid
-        totalCalls={stats.totalCalls}
-        hotLeads={stats.hotLeads}
-        missedCalls={stats.missedCalls}
-        calls={calls}
-      />
+      {!hideAnalytics && (
+        <>
+          {/* Stats — reactive, updates with every call change */}
+          <StatsGrid
+            totalCalls={stats.totalCalls}
+            hotLeads={stats.hotLeads}
+            missedCalls={stats.missedCalls}
+            calls={calls}
+          />
 
-      {/* Outcome charts with day click */}
-      <OutcomeCharts calls={calls} onDayClick={setDateFilter} selectedDay={dateFilter} />
+          {/* Outcome charts with day click */}
+          <OutcomeCharts calls={calls} onDayClick={setDateFilter} selectedDay={dateFilter} />
 
-      {/* Revenue-at-risk urgency banner */}
-      <RevenueAtRisk calls={calls} />
+          {/* Revenue-at-risk urgency banner */}
+          <RevenueAtRisk calls={calls} />
 
-      {/* Admin client health bar */}
-      {isAdmin && <ClientHealthBar adminClients={adminClients} hotLeads={calls.filter(c => c.call_status === 'HOT').map(c => ({ client_id: c.client_id, started_at: c.started_at }))} />}
+          {/* Admin client health bar */}
+          {isAdmin && <ClientHealthBar adminClients={adminClients} hotLeads={calls.filter(c => c.call_status === 'HOT').map(c => ({ client_id: c.client_id, started_at: c.started_at }))} />}
+        </>
+      )}
 
       <div>
 
