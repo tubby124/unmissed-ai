@@ -18,11 +18,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SUPPORT_EMAIL } from '@/lib/brand'
+import { routeTelegramMessage } from '@/lib/telegram/router'
 
 interface TelegramUpdate {
+  update_id?: number
   message?: {
     text?: string
-    chat: { id: number }
+    chat: { id: number; type?: string }
     from?: { first_name?: string; username?: string }
   }
 }
@@ -50,10 +52,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const text = message.text.trim()
   const chatId = message.chat.id
+  const chatType = message.chat.type ?? 'private'
   const firstName = message.from?.first_name ?? 'there'
+  const updateId = update.update_id ?? 0
 
-  // Only handle /start commands
+  // ── Tier 1 router: slash commands (everything except /start) ──────────────
   if (!text.startsWith('/start')) {
+    try {
+      const result = await routeTelegramMessage(
+        { update_id: updateId, text, chatId, chatType, firstName },
+        { supa: adminSupa, timezone: 'America/Regina' }
+      )
+      if (result.kind === 'reply') {
+        await sendTelegramMessage(chatId, result.text)
+      }
+    } catch (err) {
+      console.error(`[telegram-webhook] Router error for chatId=${chatId}: ${(err as Error).message}`)
+    }
     return new NextResponse('OK', { status: 200 })
   }
 
