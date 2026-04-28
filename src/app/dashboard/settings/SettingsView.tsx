@@ -127,8 +127,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
   // D54: active paid clients default to general, not billing
   const initialClient = clients.find(c => c.id === selectedId) ?? clients[0]
   const defaultTab: SettingsTab = 'general'
+  // Non-admin always lands on Agent — SMS/Alerts/Billing/Knowledge live on dedicated pages
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    (normalizedInitialTab && validTabs.includes(normalizedInitialTab)) ? normalizedInitialTab : defaultTab
+    !isAdmin
+      ? defaultTab
+      : (normalizedInitialTab && validTabs.includes(normalizedInitialTab)) ? normalizedInitialTab : defaultTab
   )
   const [reloadSuccess, setReloadSuccess] = useState<number | null>(null)
   const [knowledgeGapCount, setKnowledgeGapCount] = useState(0)
@@ -247,12 +250,12 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
 
       {/* ─── Quick Setup Strip (non-admin, non-trial, hides when all done) ─── */}
       {!isAdmin && client.subscription_status !== 'trialing' && (() => {
-        const qsItems = [
+        const qsItems: Array<{ key: string; label: string; done: boolean; href?: string; tab?: SettingsTab; icon: React.ReactNode }> = [
           {
             key: 'voice',
             label: 'Voice',
             done: !!client.agent_voice_id,
-            tab: 'voice' as const,
+            href: '/dashboard/agent',
             icon: (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -276,7 +279,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             key: 'notifications',
             label: 'Alerts',
             done: !!(client.telegram_notifications_enabled || client.email_notifications_enabled),
-            tab: 'notifications' as const,
+            href: '/dashboard/notifications',
             icon: (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -288,7 +291,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             key: 'knowledge',
             label: 'Knowledge',
             done: !!(client.knowledge_backend === 'pgvector' && (client.approved_knowledge_chunk_count ?? 0) > 0),
-            tab: 'knowledge' as const,
+            href: '/dashboard/knowledge',
             icon: (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -315,7 +318,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
               {qsItems.map(item => (
                 <button
                   key={item.key}
-                  onClick={() => setActiveTab(item.tab)}
+                  onClick={() => {
+                    if (item.href) {
+                      window.location.href = item.href
+                    } else if (item.tab) {
+                      setActiveTab(item.tab)
+                    }
+                  }}
                   className={`flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer ${
                     item.done
                       ? 'border-green-500/20 bg-green-500/[0.04]'
@@ -398,48 +407,50 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
-      {/* ─── Tab bar ─────────────────────────────────────────────────── */}
-      <div className="border-b b-theme">
-        <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
-          {([
-            { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
-            { id: 'sms',           label: 'SMS',      adminOnly: false, icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
-            { id: 'voice',         label: 'Voice',    adminOnly: true,  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
-            { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
-            { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
-            { id: 'knowledge',     label: 'Knowledge', adminOnly: true, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
-          ] as { id: SettingsTab; label: string; adminOnly: boolean; icon: string }[])
-            .filter(t => !t.adminOnly || isAdmin)
-            .map(({ id, label, icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`relative flex items-center gap-1.5 px-3 pb-3 pt-1 text-sm font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
-                activeTab === id
-                  ? 'text-blue-400'
-                  : 't3 hover:t1'
-              }`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className={`transition-colors duration-200 ${activeTab === id ? 'text-blue-400' : ''}`}>
-                <path d={icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {label}
-              {id === 'knowledge' && knowledgeGapCount > 0 && (
-                <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
-                  {knowledgeGapCount}
-                </span>
-              )}
-              {activeTab === id && (
-                <motion.div
-                  layoutId="settings-tab-indicator"
-                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-blue-500"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                />
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* ─── Tab bar (admin only — non-admin SMS/Alerts/Billing/Knowledge live on their own pages) ─── */}
+      {isAdmin && (
+        <div className="border-b b-theme">
+          <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
+            {([
+              { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
+              { id: 'sms',           label: 'SMS',      adminOnly: false, icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
+              { id: 'voice',         label: 'Voice',    adminOnly: true,  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
+              { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
+              { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
+              { id: 'knowledge',     label: 'Knowledge', adminOnly: true, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
+            ] as { id: SettingsTab; label: string; adminOnly: boolean; icon: string }[])
+              .filter(t => !t.adminOnly || isAdmin)
+              .map(({ id, label, icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`relative flex items-center gap-1.5 px-3 pb-3 pt-1 text-sm font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
+                  activeTab === id
+                    ? 'text-blue-400'
+                    : 't3 hover:t1'
+                }`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className={`transition-colors duration-200 ${activeTab === id ? 'text-blue-400' : ''}`}>
+                  <path d={icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {label}
+                {id === 'knowledge' && knowledgeGapCount > 0 && (
+                  <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
+                    {knowledgeGapCount}
+                  </span>
+                )}
+                {activeTab === id && (
+                  <motion.div
+                    layoutId="settings-tab-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-blue-500"
+                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  />
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
       {/* Preview mode banner */}
       {previewMode && (
