@@ -41,9 +41,13 @@ interface AgentVoiceTestProps {
   isTrial?: boolean
   onEnd?: () => void
   onScrollTo?: (section: string) => void
+  /** v2 mockup parity: override the idle caption ("Tap to start a conversation"). */
+  idleLabel?: string
+  /** v2 mockup parity: render idle as a primary button beneath the orb instead of the orb-as-button. */
+  idleVariant?: 'orb' | 'button'
 }
 
-export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, onEnd, onScrollTo }: AgentVoiceTestProps) {
+export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, onEnd, onScrollTo, idleLabel, idleVariant = 'orb' }: AgentVoiceTestProps) {
   const { openUpgradeModal } = useUpgradeModal()
   const [callState, setCallState] = useState<CallState>('idle')
   const [agentStatus, setAgentStatus] = useState<AgentStatus>('idle')
@@ -276,24 +280,43 @@ export default function AgentVoiceTest({ clientId, isAdmin, knowledge, isTrial, 
             exit={{ opacity: 0 }}
             className="flex flex-col items-center gap-4 py-6"
           >
-            <button
-              onClick={startCall}
-              className="group relative cursor-pointer w-20 h-20 sm:w-28 sm:h-28"
-              aria-label="Start voice test"
-            >
-              <div className="w-full h-full rounded-full overflow-hidden">
-                <VoicePoweredOrb externalEnergy={0.2} />
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-indigo-300 group-hover:text-white transition-colors">
-                  <path d="M12 18.75a6.75 6.75 0 006.75-6.75V6a6.75 6.75 0 00-13.5 0v6A6.75 6.75 0 0012 18.75z" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M12 22.5v-3.75M8.25 22.5h7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-            </button>
-            <p className="text-xs t3 text-center">
-              Tap to start a conversation
-            </p>
+            {idleVariant === 'button' ? (
+              <>
+                {/* Decorative orb (no click target — button below is the CTA) */}
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden pointer-events-none">
+                  <VoicePoweredOrb externalEnergy={0.2} />
+                </div>
+                <button
+                  onClick={startCall}
+                  className="px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                  aria-label={idleLabel || 'Start test call'}
+                >
+                  {idleLabel || 'Start test call'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={startCall}
+                  className="group relative cursor-pointer w-20 h-20 sm:w-28 sm:h-28"
+                  aria-label="Start voice test"
+                >
+                  <div className="w-full h-full rounded-full overflow-hidden">
+                    <VoicePoweredOrb externalEnergy={0.2} />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-indigo-300 group-hover:text-white transition-colors">
+                      <path d="M12 18.75a6.75 6.75 0 006.75-6.75V6a6.75 6.75 0 00-13.5 0v6A6.75 6.75 0 0012 18.75z" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M12 22.5v-3.75M8.25 22.5h7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                </button>
+                <p className="text-xs t3 text-center">
+                  {idleLabel || 'Tap to start a conversation'}
+                </p>
+              </>
+            )}
             {/* Pre-call: what to try (Slice 2d — max 4 chips, dynamic based on config) */}
             {knowledge && (
               <TryAskingChips knowledge={knowledge} />

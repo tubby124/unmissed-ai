@@ -23,9 +23,16 @@ interface TestCallCardProps {
    * mobile. Pure visual prop; no behavioral impact.
    */
   size?: 'default' | 'xl'
+  /**
+   * v2 mockup parity (2026-04-27). Renders the slim "Talk to your agent" card —
+   * orb + headline + subline + Start Test Call. Hides TRY ASKING chips and the
+   * "Or call me on my phone" expandable. Used by /dashboard/v2 only; v1 is
+   * untouched. Save flow inside AgentVoiceTest remains identical.
+   */
+  compact?: boolean
 }
 
-export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo, onCallEnded, size = 'default' }: TestCallCardProps) {
+export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 'settings', knowledge, isTrial, onScrollTo, onCallEnded, size = 'default', compact = false }: TestCallCardProps) {
   const [showPhone, setShowPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [callState, setCallState] = useState<'idle' | 'calling' | 'done' | 'error'>('idle')
@@ -65,15 +72,24 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.02 }}
     >
-      <div className={`rounded-2xl border b-theme bg-surface ${size === 'xl' ? 'p-7 sm:p-8' : 'p-5'}`}>
-        <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">
-          {mode === 'onboarding' ? 'Hear Your Agent' : 'Talk to Your Agent'}
-        </p>
-        <p className="text-[11px] t3 mb-4">
-          {mode === 'onboarding'
-            ? 'Click the orb below to have a live conversation with your agent right in your browser.'
-            : 'Have a live conversation with your agent directly in the browser — hear exactly what your callers experience.'}
-        </p>
+      <div className={`rounded-2xl border b-theme bg-surface ${size === 'xl' ? 'p-7 sm:p-8' : compact ? 'p-6 flex flex-col items-center text-center h-full justify-center' : 'p-5'}`}>
+        {compact ? (
+          <>
+            <h3 className="text-[15px] font-bold t1">Talk to your agent</h3>
+            <p className="text-[11px] t3 mt-1 mb-4">Test the live prompt right now</p>
+          </>
+        ) : (
+          <>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">
+              {mode === 'onboarding' ? 'Hear Your Agent' : 'Talk to Your Agent'}
+            </p>
+            <p className="text-[11px] t3 mb-4">
+              {mode === 'onboarding'
+                ? 'Click the orb below to have a live conversation with your agent right in your browser.'
+                : 'Have a live conversation with your agent directly in the browser — hear exactly what your callers experience.'}
+            </p>
+          </>
+        )}
 
         {/* Primary: WebRTC voice orb */}
         {!previewMode ? (
@@ -86,7 +102,18 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
               </div>
             </div>
           ) : (
-            <AgentVoiceTest clientId={clientId} isAdmin={isAdmin} knowledge={knowledge} isTrial={isTrial} onScrollTo={onScrollTo} onEnd={onCallEnded} />
+            // compact mode passes knowledge=undefined so AgentVoiceTest skips the
+            // TRY ASKING chip rail (mockup parity 2026-04-27).
+            <AgentVoiceTest
+              clientId={clientId}
+              isAdmin={isAdmin}
+              knowledge={compact ? undefined : knowledge}
+              isTrial={isTrial}
+              onScrollTo={onScrollTo}
+              onEnd={onCallEnded}
+              idleLabel={compact ? 'Start test call' : undefined}
+              idleVariant={compact ? 'button' : 'orb'}
+            />
           )
         ) : (
           <div className="flex flex-col items-center gap-2 py-6 opacity-40">
@@ -100,7 +127,8 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
           </div>
         )}
 
-        {/* Divider + phone fallback */}
+        {/* Divider + phone fallback (hidden in compact mockup mode) */}
+        {!compact && (
         <div className="mt-4 pt-3 border-t b-theme">
           <button
             onClick={() => setShowPhone(v => !v)}
@@ -182,6 +210,7 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
             )}
           </AnimatePresence>
         </div>
+        )}
       </div>
     </motion.div>
   )

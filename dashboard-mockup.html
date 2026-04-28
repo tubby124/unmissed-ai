@@ -1,0 +1,1722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Unmissed Overview — Simplification Mockup</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #111419;
+    --surface-2: #161a21;
+    --hover: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --t1: #e8eaf0;
+    --t2: #a5acba;
+    --t3: #6e7585;
+    --primary: #818cf8;
+    --primary-tint: rgba(99,102,241,0.10);
+    --success: #34d399;
+    --warning: #f59e0b;
+    --danger: #f87171;
+    --shadow: 0 1px 0 rgba(255,255,255,0.03), 0 8px 24px -16px rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--t1);
+    line-height: 1.45;
+    font-size: 13px;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(180deg, #1a1d24, #14171c);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-strong);
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .topbar h1 { font-size: 12px; margin: 0; letter-spacing: 0.02em; color: var(--t2); font-weight: 600; }
+  .topbar h1::before { content: '🎨 '; }
+  .topbar .pill { font-size: 10px; color: var(--t3); }
+  .view-tabs {
+    display: flex; gap: 4px; padding: 3px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-left: auto;
+  }
+  .view-tabs button {
+    background: transparent; border: 0;
+    color: var(--t3);
+    font: inherit; font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: 7px;
+    cursor: pointer; transition: all .15s;
+  }
+  .view-tabs button:hover { color: var(--t2); }
+  .view-tabs button.active {
+    background: var(--surface-2);
+    color: var(--t1);
+    box-shadow: var(--shadow);
+  }
+  .canvas {
+    max-width: 1180px; margin: 0 auto; padding: 24px;
+  }
+  .real-canvas { padding: 24px 28px 40px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Layout helpers */
+  .stack > * + * { margin-top: 12px; }
+  .stack-lg > * + * { margin-top: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+  .grid-2-start { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 800px) {
+    .grid-2, .grid-2-start, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .card.tight { padding: 12px; }
+  .card-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: var(--t3);
+    margin: 0 0 8px;
+  }
+  .card h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--t1); }
+  .card p { margin: 0; color: var(--t2); }
+  .card .sub { font-size: 11px; color: var(--t3); }
+  .num { font-size: 22px; font-weight: 700; color: var(--t1); }
+
+  /* Trial pill */
+  .trial-row { display: flex; align-items: center; gap: 8px; }
+  .trial-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); }
+  .trial-days {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(245,158,11,0.10); color: var(--warning);
+    font-weight: 600;
+  }
+
+  /* Identity card */
+  .identity {
+    background: linear-gradient(180deg, rgba(99,102,241,0.06), transparent 60%), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px;
+  }
+  .identity-header { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #818cf8, #a78bfa);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff;
+  }
+  .identity-name { font-size: 14px; font-weight: 600; }
+  .identity-sub { font-size: 11px; color: var(--t3); margin-top: 2px; }
+  .identity-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--hover); border: 1px solid var(--border);
+    font-size: 11px; color: var(--t2);
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .chip.off .dot { background: var(--t3); }
+
+  /* Toasts */
+  .toast {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 10px;
+    font-size: 11px; font-weight: 500;
+  }
+  .toast.danger { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); }
+  .toast.warn { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); color: var(--warning); }
+
+  /* Nudge grid (compact 2-3-4 cells) */
+  .nudge {
+    background: var(--primary-tint);
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 64px;
+  }
+  .nudge .l1 { font-size: 11px; font-weight: 600; color: var(--t1); }
+  .nudge .l2 { font-size: 10px; color: var(--t3); }
+  .nudge .cta { font-size: 10px; font-weight: 700; color: var(--primary); align-self: flex-end; margin-top: 6px; }
+  .nudge.hot { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); }
+  .nudge.hot .cta { color: var(--danger); }
+  .nudge.warn { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.25); }
+  .nudge.warn .cta { color: var(--warning); }
+  .nudge.ok { background: rgba(52,211,153,0.06); border-color: rgba(52,211,153,0.25); }
+  .nudge.ok .cta { color: var(--success); }
+
+  /* Test call orb */
+  .orb-card {
+    background: radial-gradient(circle at 50% 0%, rgba(99,102,241,0.18), transparent 60%), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px; text-align: center;
+  }
+  .orb {
+    width: 96px; height: 96px; border-radius: 50%; margin: 8px auto 14px;
+    background: radial-gradient(circle at 30% 30%, #a78bfa, #6366f1 60%, #1e1b4b);
+    box-shadow: 0 0 40px rgba(99,102,241,0.4);
+    animation: pulse 3s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 40px rgba(99,102,241,0.4); }
+    50% { box-shadow: 0 0 60px rgba(99,102,241,0.6); }
+  }
+  .orb-card h3 { font-size: 14px; }
+
+  /* Status row inside cards */
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-top: 1px solid var(--border);
+  }
+  .row:first-of-type { border-top: 0; }
+  .row .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .row .text { font-size: 12px; color: var(--t2); }
+  .row .meta { font-size: 11px; color: var(--t3); }
+  .badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600;
+  }
+  .badge.live { background: rgba(52,211,153,0.12); color: var(--success); }
+  .badge.test { background: var(--primary-tint); color: var(--primary); }
+  .badge.hot { background: rgba(239,68,68,0.12); color: var(--danger); }
+
+  /* Capabilities pills */
+  .cap-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .cap-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 10px;
+    background: var(--hover); border: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .cap-pill.on { border-color: rgba(52,211,153,0.25); background: rgba(52,211,153,0.05); }
+  .cap-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--t3); }
+  .cap-pill.on .dot { background: var(--success); }
+
+  /* Setup progress */
+  .progress-band { padding: 10px 14px; }
+  .progress-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.05); overflow: hidden; margin: 6px 0; }
+  .progress-fill { height: 100%; width: 50%; background: var(--warning); border-radius: 999px; }
+
+  /* Quick config strip (8 pills) */
+  .qcs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  @media (max-width: 800px) { .qcs { grid-template-columns: repeat(2, 1fr); } }
+  .qcs .pill {
+    background: var(--hover); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 10px; font-size: 10px; color: var(--t2);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Numbered annotation chip (mirror to original 19 items) */
+  .anno {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 6px;
+    background: var(--primary); color: #fff;
+    border-radius: 999px; font-size: 10px; font-weight: 700;
+    margin-right: 8px;
+  }
+  .anno.idle { background: var(--t3); }
+  .anno.warn { background: var(--warning); }
+  .anno.ok { background: var(--success); }
+  .anno.danger { background: var(--danger); }
+
+  /* Section header for the mockup */
+  .mock-h {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; color: var(--t3);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin: 4px 0 6px;
+  }
+  .mock-note {
+    font-size: 11px; color: var(--t3); margin: 4px 0 0; font-style: italic;
+  }
+
+  /* Drawer (option 2) */
+  .summary-tile {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    transition: border-color .15s;
+  }
+  .summary-tile:hover { border-color: var(--border-strong); }
+  .summary-tile .left { display: flex; align-items: center; gap: 10px; }
+  .summary-tile .arrow { color: var(--t3); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 420px; max-width: 92vw;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    padding: 20px; overflow-y: auto;
+    z-index: 100;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+    z-index: 99;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .drawer-close {
+    background: var(--hover); border: 0; color: var(--t1);
+    border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+  }
+
+  /* Phase tabs (option 3) */
+  .phase-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .phase-tabs button {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--t2); font: inherit; font-size: 11px; font-weight: 500;
+    padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .phase-tabs button.active { background: var(--primary-tint); border-color: rgba(99,102,241,0.3); color: var(--primary); }
+
+  /* Section divider in drawer */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* Hero stats inside cards */
+  .stat-block {
+    padding: 12px;
+    background: var(--hover); border-radius: 10px;
+    text-align: center;
+  }
+  .stat-block .num { font-size: 24px; }
+  .stat-block .lbl { font-size: 10px; color: var(--t3); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+  /* AgentIdentityCard 2-col layout — name+voice on left, pills on right */
+  .identity-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+  @media (max-width: 720px) {
+    .identity-2col { grid-template-columns: 1fr; gap: 14px; }
+  }
+  .identity-pill-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  @media (max-width: 720px) {
+    .identity-pill-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .identity-pill-grid .chip {
+    justify-content: center;
+    padding: 6px 8px;
+  }
+
+  /* AgentIdentityCard rows */
+  .id-rows { margin-top: 14px; border-top: 1px solid var(--border); }
+  .id-row {
+    display: grid; grid-template-columns: 140px 1fr auto;
+    gap: 12px; align-items: center;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background-color .12s;
+  }
+  .id-row:hover { background: rgba(99,102,241,0.04); }
+  .id-row:last-child { border-bottom: 0; }
+  .id-label { font-size: 11px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .id-value { font-size: 12px; color: var(--t1); display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .id-edit { font-size: 11px; font-weight: 600; color: var(--primary); padding: 4px 10px; border-radius: 6px; background: rgba(99,102,241,0.08); }
+  .voice-tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(59,130,246,0.10); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+  .dot-on { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+  .dot-off { width: 7px; height: 7px; border-radius: 50%; background: var(--t3); }
+
+  /* Quick Add buttons (mirrors KnowledgeQuickAddCard.tsx production styling) */
+  .qa-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border);
+    color: var(--t2);
+    font-size: 11px; font-weight: 500;
+    cursor: pointer; transition: border-color .12s, color .12s;
+  }
+  .qa-btn:hover { border-color: var(--primary); color: var(--t1); }
+  .qa-btn span { white-space: nowrap; }
+
+  /* Clickable indicator */
+  .clickable { cursor: pointer; transition: background-color .12s; }
+  .clickable:hover { background: rgba(99,102,241,0.04); border-radius: 8px; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    padding: 22px;
+    width: 480px; max-width: 92vw;
+    max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal h2 { font-size: 15px; margin: 0 0 4px; color: var(--t1); }
+  .modal .modal-sub { font-size: 11px; color: var(--t3); margin: 0 0 16px; }
+  .modal label { font-size: 11px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px; }
+  .modal input[type=text], .modal input[type=tel], .modal textarea, .modal select {
+    width: 100%; padding: 10px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--t1); font-size: 13px;
+    font-family: inherit;
+  }
+  .modal textarea { min-height: 70px; resize: vertical; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .btn-primary {
+    background: var(--primary); color: #fff; border: 0;
+    padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;
+  }
+  .btn-secondary {
+    background: var(--hover); color: var(--t2); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 12px; cursor: pointer;
+  }
+  .modal-list { margin: 0; padding: 0; list-style: none; }
+  .modal-list li {
+    padding: 10px 12px; border-radius: 8px;
+    background: var(--hover); margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px;
+  }
+  .modal-list li .q { color: var(--t1); font-weight: 500; flex: 1; }
+  .modal-list li .a { color: var(--t3); font-size: 11px; margin-left: 12px; }
+  .voice-list .voice-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: var(--hover); border: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .voice-list .voice-item.selected { border-color: var(--primary); background: rgba(99,102,241,0.08); }
+  .voice-list .voice-item .name { color: var(--t1); font-weight: 600; }
+  .voice-list .voice-item .desc { color: var(--t3); font-size: 11px; }
+  .voice-list .voice-item .play { color: var(--primary); cursor: pointer; font-size: 11px; }
+  .play-btn {
+    background: rgba(99,102,241,0.12); color: var(--primary);
+    border: 1px solid rgba(99,102,241,0.25);
+    padding: 6px 12px; border-radius: 8px;
+    font: inherit; font-size: 11px; font-weight: 600;
+    cursor: pointer;
+  }
+  .play-btn.playing { background: var(--primary); color: #fff; }
+  .play-btn:hover { border-color: var(--primary); }
+
+  /* FAQ accordion */
+  .faq-list details {
+    background: var(--hover); border-radius: 8px; margin-bottom: 6px;
+    border: 1px solid var(--border);
+  }
+  .faq-list details[open] { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.04); }
+  .faq-list summary {
+    list-style: none; cursor: pointer;
+    padding: 10px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--t1);
+  }
+  .faq-list summary::-webkit-details-marker { display: none; }
+  .faq-list summary .a { color: var(--t3); font-size: 11px; }
+  .faq-list summary::after {
+    content: '▾'; color: var(--t3); margin-left: 8px;
+    transition: transform .15s;
+  }
+  .faq-list details[open] summary::after { transform: rotate(180deg); }
+  .faq-answer { padding: 0 12px 12px; }
+
+  /* Plan tier */
+  .plan-tier {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--hover); border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .plan-tier.featured { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); }
+  .plan-tier strong { color: var(--t1); font-size: 13px; }
+  .plan-tier .desc { font-size: 11px; color: var(--t3); margin-top: 2px; }
+  .plan-tier button { margin-left: 12px; }
+
+  /* Filter pills (knowledge browse) */
+  .filter-pill {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    background: var(--hover); border: 1px solid var(--border);
+    color: var(--t2); cursor: pointer;
+  }
+  .filter-pill.active { background: var(--primary-tint); border-color: rgba(99,102,241,0.3); color: var(--primary); }
+
+  /* Real chrome — top bar + tab nav (mirrors current production layout) */
+  .real-topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: var(--surface);
+  }
+  .real-topbar .left { display: flex; align-items: center; gap: 10px; }
+  .real-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700;
+  }
+  .real-brand { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .real-slash { color: var(--t3); }
+  .real-business { font-size: 13px; color: var(--t2); }
+  .real-topbar .right { display: flex; align-items: center; gap: 12px; }
+  .real-topbar .right svg { color: var(--t3); cursor: pointer; }
+  .real-topbar .avatar-sm {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg,#6366f1,#a78bfa);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 600;
+  }
+  .real-tabs {
+    display: flex; gap: 0; padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    overflow-x: auto;
+  }
+  .real-tabs a {
+    position: relative;
+    padding: 18px 18px 16px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--t3);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .12s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .real-tabs a:hover { color: var(--t2); }
+  .real-tabs a.active {
+    color: var(--success);
+  }
+  .real-tabs a.active::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 18px; right: 18px;
+    height: 2px; background: var(--success); border-radius: 2px;
+  }
+  .real-tabs .badge-count {
+    background: var(--success);
+    color: #052e16;
+    font-size: 10px; font-weight: 700; letter-spacing: 0;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-transform: none;
+  }
+  .real-canvas {
+    background: var(--bg);
+    min-height: 70vh;
+    padding: 20px 24px 40px;
+  }
+
+  /* Footer note */
+  .legend {
+    margin-top: 24px; padding: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    font-size: 12px; color: var(--t2);
+  }
+  .legend ol { margin: 8px 0 0 18px; padding: 0; }
+  .legend li { margin: 3px 0; font-size: 11px; }
+  .legend code { background: var(--hover); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--t1); }
+
+  /* Comparison meta */
+  .meta-block {
+    background: rgba(99,102,241,0.04);
+    border: 1px dashed rgba(99,102,241,0.22);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+    font-size: 12px; color: var(--t2);
+  }
+  .meta-block strong { color: var(--t1); }
+  .meta-block .count { color: var(--primary); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Mockup preview — Overview simplification</h1>
+  <span class="pill">Production chrome below · 4 design directions</span>
+  <div class="view-tabs">
+    <button data-view="opt1" class="active">★ Option 1 — Collapse (recommended)</button>
+    <button data-view="current">Current (19 surfaces)</button>
+    <button data-view="opt2">Option 2 — Drawer</button>
+    <button data-view="opt3">Option 3 — Phase</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     REAL CHROME — TopBar + Tab nav (mirrors production)
+     Rendered once, shared across all 4 views via JS swap
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="real-topbar">
+  <div class="left">
+    <div class="real-logo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 8.96a19.79 19.79 0 01-3.07-8.67A2 2 0 012.88 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="real-brand">unmissed.ai</span>
+    <span class="real-slash">/</span>
+    <span class="real-business">Hasan Sharif Real Estate</span>
+  </div>
+  <div class="right">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    <div class="avatar-sm">HS</div>
+  </div>
+</div>
+<div class="real-tabs">
+  <a class="active">Overview</a>
+  <a>Go Live</a>
+  <a>Knowledge <span class="badge-count">4</span></a>
+  <a>Calls &amp; Leads</a>
+  <a>Billing</a>
+  <a>Settings</a>
+  <a>Other</a>
+</div>
+
+<div class="canvas real-canvas">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 1 — CURRENT (mirrors UnifiedHomeSection.tsx exactly)
+     19 surfaces, numbered, in render order
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="view" id="view-current">
+  <div class="meta-block">
+    <strong>Current state:</strong> renders <span class="count">19 vertical surfaces</span> on first paint for a paid trial client.
+    Every numbered chip below maps to a top-level component in
+    <code>UnifiedHomeSection.tsx</code>. Scroll the page to see how dense it is.
+  </div>
+
+  <!-- 1. Trial pill -->
+  <div class="trial-row"><span class="anno">1</span><span class="trial-label">Trial</span><span class="trial-days">5 days left</span></div>
+
+  <!-- 2. AgentIdentityCard -->
+  <div class="identity" style="margin-top:12px">
+    <div class="identity-header">
+      <span class="anno">2</span>
+      <div class="avatar">A</div>
+      <div>
+        <div class="identity-name">Aisha · Hasan Sharif Real Estate</div>
+        <div class="identity-sub">Voice: Mara · Friendly · Phone +1 (306) 555-0182</div>
+      </div>
+    </div>
+    <div class="identity-row">
+      <span class="chip"><span class="dot"></span>Greeting set</span>
+      <span class="chip"><span class="dot"></span>SMS follow-up on</span>
+      <span class="chip off"><span class="dot"></span>Telegram not connected</span>
+      <span class="chip">Today's update: empty</span>
+    </div>
+  </div>
+
+  <!-- 3. Toast row -->
+  <div style="margin-top:12px"><span class="anno">3</span>
+    <span class="toast warn">⚠ 78% minutes used · Buy more</span>
+    <span class="toast danger" style="margin-left:6px">⚠ Trial expires in 5d · Upgrade</span>
+  </div>
+
+  <!-- 4. Compact action grid (8 nudges) -->
+  <div style="margin-top:12px"><span class="anno">4</span><span class="mock-h">Compact action grid (up to 8 cells)</span></div>
+  <div class="grid-4">
+    <div class="nudge"><div class="l1">Agent ready</div><div class="l2">Get your phone number</div><div class="cta">Upgrade</div></div>
+    <div class="nudge warn"><div class="l1">Calendar booking</div><div class="l2">Connect Google Calendar</div><div class="cta">Connect</div></div>
+    <div class="nudge"><div class="l1">Add your hours</div><div class="l2">So agent can answer</div><div class="cta">Set hours</div></div>
+    <div class="nudge hot"><div class="l1">3 HOT leads</div><div class="l2">This month</div><div class="cta">View</div></div>
+    <div class="nudge"><div class="l1">Test your agent</div><div class="l2">Hear how it sounds</div><div class="cta">Test</div></div>
+    <div class="nudge ok"><div class="l1">First call received!</div><div class="l2">Check how it went</div><div class="cta">View</div></div>
+    <div class="nudge"><div class="l1">Share your number</div><div class="l2">+1 (306) 555-0182</div><div class="cta">View</div></div>
+    <div class="nudge ok"><div class="l1">Forwarding active</div><div class="l2">Calls reaching agent</div><div class="cta">Calls</div></div>
+  </div>
+
+  <!-- 5. Share number expanded -->
+  <div class="card" style="margin-top:12px"><span class="anno">5</span><strong>Share number panel</strong><div class="sub" style="margin-top:6px">Expanded carrier code list (Rogers/Bell/Telus) — only when "Share your number" nudge is clicked.</div></div>
+
+  <!-- 6. Weekly ROI -->
+  <div class="card tight" style="margin-top:12px;background:rgba(99,102,241,0.04);border-color:rgba(99,102,241,0.10)">
+    <span class="anno">6</span>
+    <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--t3)">This week</span>
+    &nbsp;<span style="font-size:11px">12 calls</span> ·
+    <span style="font-size:11px;color:var(--primary)">3 HOT</span> ·
+    <span style="font-size:11px;color:var(--t2)">~4h saved</span>
+  </div>
+
+  <!-- 7. ActivationTile (paid awaiting only) -->
+  <div class="card" style="margin-top:12px"><span class="anno idle">7</span><strong>ActivationTile</strong><div class="sub" style="margin-top:6px">Only renders when paid + no Twilio number yet. Hidden in this state.</div></div>
+
+  <!-- 8. Forwarding guide -->
+  <div class="card" style="margin-top:12px"><span class="anno">8</span><strong>Forward your existing number to your agent</strong><div class="sub" style="margin-top:6px">Expandable: landline / mobile carrier codes (*72, *21*…)</div></div>
+
+  <!-- 9. QuickConfigStrip 8 pills -->
+  <div style="margin-top:12px"><span class="anno">9</span><span class="mock-h">QuickConfigStrip — 8 capability pills</span></div>
+  <div class="qcs">
+    <div class="pill">📨 Telegram</div>
+    <div class="pill">✉️ Email</div>
+    <div class="pill">☎️ IVR</div>
+    <div class="pill">🎙️ Voicemail</div>
+    <div class="pill">📱 SMS follow-up</div>
+    <div class="pill">📅 Booking</div>
+    <div class="pill">🔁 Transfer</div>
+    <div class="pill">🎯 Routing</div>
+  </div>
+
+  <!-- 10. Setup progress -->
+  <div class="card progress-band" style="margin-top:12px">
+    <span class="anno">10</span>
+    <div style="display:flex;justify-content:space-between"><span class="card-label" style="margin:0">Setup Progress</span><span class="sub">50%</span></div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+    <div class="sub">3 of 6 ready — add your hours</div>
+  </div>
+
+  <!-- 11. TIER 1 — 2-col Hero -->
+  <div style="margin-top:12px"><span class="anno">11</span><span class="mock-h">Tier 1 hero — 2 columns</span></div>
+  <div class="grid-2">
+    <div class="orb-card">
+      <div class="orb"></div>
+      <h3>Talk to your agent</h3>
+      <div class="sub">Test the live prompt right now</div>
+    </div>
+    <div class="card stack">
+      <div class="card-label">Knowledge quick-add</div>
+      <div class="row"><span class="text">📄 Upload PDF</span><span class="meta">→</span></div>
+      <div class="row"><span class="text">🔗 Add website</span><span class="meta">→</span></div>
+      <div class="row"><span class="text">💬 Add FAQ</span><span class="meta">→</span></div>
+      <div class="row"><span class="text">⭐ Add fact</span><span class="meta">→</span></div>
+    </div>
+  </div>
+
+  <!-- 12. Pending review tile + 13. Unanswered Qs (under orb) -->
+  <div class="grid-2" style="margin-top:12px">
+    <div class="card"><span class="anno">12</span><strong>Pending knowledge review</strong> · 4 chunks scraped</div>
+    <div class="card"><span class="anno">13</span><strong>Unanswered questions</strong> · 2 gaps</div>
+  </div>
+
+  <!-- 14. TIER 1.5 — Capabilities + CallMe + Stats -->
+  <div style="margin-top:12px"><span class="anno">14</span><span class="mock-h">Tier 1.5 — capabilities + call-me + stats (2-col)</span></div>
+  <div class="grid-2">
+    <div class="card" style="border-color:rgba(239,68,68,0.4);position:relative">
+      <span style="position:absolute;top:-9px;right:10px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:0.08em;text-transform:uppercase">Redundant — kill in Option 1</span>
+      <div class="card-label">What your agent can do right now</div>
+      <div class="cap-grid">
+        <div class="cap-pill on"><span class="dot"></span>Knowledge</div>
+        <div class="cap-pill on"><span class="dot"></span>Hours</div>
+        <div class="cap-pill"><span class="dot"></span>Booking</div>
+        <div class="cap-pill on"><span class="dot"></span>SMS follow-up</div>
+        <div class="cap-pill"><span class="dot"></span>Transfer</div>
+        <div class="cap-pill on"><span class="dot"></span>Website</div>
+      </div>
+      <p style="font-size:10px;color:var(--danger);margin-top:8px;font-style:italic">Same info as the chip pills in AgentIdentityCard at the top. Option 1 = source of truth = chip pills only.</p>
+    </div>
+    <div class="stack">
+      <div class="card tight">
+        <strong style="font-size:11px">Hear your agent on a real phone call</strong>
+        <div class="sub" style="margin:4px 0 8px">We'll dial your phone and connect you.</div>
+        <div style="display:flex;gap:6px"><span class="cap-pill" style="flex:1">+1&nbsp;306…</span><span class="cap-pill" style="background:var(--success);color:#000;font-weight:600;border-color:var(--success)">Call me</span></div>
+      </div>
+      <div class="card tight">
+        <div class="card-label">Trial mode</div>
+        <div class="text">Lead capture · switch mode</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Stats</div>
+        <div class="grid-3" style="margin-top:6px">
+          <div class="stat-block"><div class="num">12</div><div class="lbl">Calls</div></div>
+          <div class="stat-block"><div class="num">3</div><div class="lbl">Hot</div></div>
+          <div class="stat-block"><div class="num">38m</div><div class="lbl">Used</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. AgentKnowsCard (full-width) -->
+  <div class="card" style="margin-top:12px">
+    <span class="anno">15</span>
+    <div class="card-label">What your agent knows</div>
+    <div class="grid-4" style="margin-top:6px">
+      <div class="stat-block"><div class="num">14</div><div class="lbl">Facts</div></div>
+      <div class="stat-block"><div class="num">8</div><div class="lbl">FAQs</div></div>
+      <div class="stat-block"><div class="num">5</div><div class="lbl">Services</div></div>
+      <div class="stat-block"><div class="num">23</div><div class="lbl">KB chunks</div></div>
+    </div>
+  </div>
+
+  <!-- 16. AgentRoutesOnCard (full-width) -->
+  <div class="card" style="margin-top:12px">
+    <span class="anno">16</span>
+    <div class="card-label">What your agent routes on</div>
+    <div class="row"><span class="text">URGENT_KEYWORDS</span><span class="meta">leak, water, emergency</span></div>
+    <div class="row"><span class="text">PRICING_TRIGGERS</span><span class="meta">cost, quote, estimate</span></div>
+    <div class="row"><span class="text">CALLBACK_PREFERENCE</span><span class="meta">morning / afternoon</span></div>
+  </div>
+
+  <!-- 17. OverviewCallLog (full-width) -->
+  <div class="card" style="margin-top:12px">
+    <span class="anno">17</span>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-label" style="margin:0">Recent calls</div>
+      <span class="sub" style="color:var(--primary)">View all</span>
+    </div>
+    <div class="row"><div class="left"><span class="badge live">Live</span><span class="text">+1 (403) 555-0142</span></div><span class="meta">just now</span></div>
+    <div class="row"><div class="left"><span class="badge hot">HOT</span><span class="text">+1 (306) 555-0177 — interested in 3-bed listing</span></div><span class="meta">2h ago</span></div>
+    <div class="row"><div class="left"><span class="badge test">Test</span><span class="text">Browser test call</span></div><span class="meta">1d ago</span></div>
+  </div>
+
+  <!-- 18. AgentReadinessRow + BookingCalendarTile (left) | AgentIntelligenceSection (right) -->
+  <div style="margin-top:12px"><span class="anno">18</span><span class="mock-h">Lower band — readiness + intelligence (2-col)</span></div>
+  <div class="grid-2">
+    <div class="stack">
+      <div class="card">
+        <div class="card-label">Agent readiness</div>
+        <div class="row"><div class="left">✅ Hours</div><span class="meta">set</span></div>
+        <div class="row"><div class="left">⚠️ Services</div><span class="meta">missing</span></div>
+        <div class="row"><div class="left">✅ FAQs</div><span class="meta">8</span></div>
+        <div class="row"><div class="left">⚠️ Booking</div><span class="meta">connect calendar</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Booking calendar</div>
+        <div class="text">Not connected</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Agent intelligence (triage)</div>
+      <div class="row"><div class="left">Urgent</div><span class="meta">3 calls</span></div>
+      <div class="row"><div class="left">Pricing</div><span class="meta">5 calls</span></div>
+      <div class="row"><div class="left">Hours</div><span class="meta">2 calls</span></div>
+      <div class="row"><div class="left">Booking</div><span class="meta">1 call</span></div>
+    </div>
+  </div>
+
+  <!-- 19. Sync badge + Billing + Trial CTA -->
+  <div style="margin-top:12px"><span class="anno">19</span><span class="mock-h">Footer — sync · billing · upgrade CTA</span></div>
+  <div class="sub" style="padding:0 4px">⏱ Last sync: 14m ago · ✓ healthy</div>
+  <div class="grid-2-start" style="margin-top:8px">
+    <div class="card">
+      <div class="card-label">Plan</div>
+      <strong style="font-size:14px">Trial · 5 days left</strong>
+      <div class="sub" style="margin-top:4px">Manage billing →</div>
+    </div>
+    <div class="card" style="background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)">
+      <div class="card-label">When you're ready to go live</div>
+      <div class="sub" style="margin:8px 0">✓ Real phone number · ✓ Forwarding · ✓ HOT leads · ✓ Telegram alerts</div>
+      <button style="width:100%;padding:10px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer">Upgrade to go live →</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong>The 19 numbered surfaces (in render order):</strong>
+    <ol>
+      <li>Trial countdown pill</li>
+      <li>AgentIdentityCard (greeting + voice + SMS + Telegram + today's update)</li>
+      <li>Toast row (trial expiry, minutes warn, sync error)</li>
+      <li>Compact action grid — up to 8 nudge cells</li>
+      <li>Share-number expanded panel (carrier codes)</li>
+      <li>Weekly ROI strip</li>
+      <li>ActivationTile (paid awaiting only)</li>
+      <li>Forwarding guide expandable</li>
+      <li>QuickConfigStrip — 8 capability pills</li>
+      <li>Setup Progress bar</li>
+      <li>TestCallCard orb (hero left)</li>
+      <li>PendingReviewTile</li>
+      <li>UnansweredQuestionsTile</li>
+      <li>CapabilitiesCard + CallMe + TrialModeSwitcher + StatsHeroCard (2-col)</li>
+      <li>AgentKnowsCard (facts/FAQs/services/KB)</li>
+      <li>AgentRoutesOnCard (routing variables)</li>
+      <li>OverviewCallLog</li>
+      <li>AgentReadinessRow + BookingCalendarTile + AgentIntelligenceSection (2-col)</li>
+      <li>AgentSyncBadge + BillingTile + Upgrade CTA</li>
+    </ol>
+    <div style="margin-top:8px;color:var(--t3)">
+      <strong style="color:var(--warning)">Redundancy:</strong> #4 nudges, #9 QuickConfigStrip, #10 Setup Progress, #18 AgentReadinessRow all answer the same question — "what should I do next?"
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 2 — OPTION 1: COLLAPSE REDUNDANT "NEXT ACTION" SURFACES
+     Removes #4 (mostly), #9, #10. Keeps AgentReadinessRow as the
+     single source of truth for "what's next".
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="view active" id="view-opt1">
+  <div class="meta-block">
+    <strong>Option 1 — Collapse (recommended).</strong>
+    Surface count: <span class="count">19 → 9</span>.
+    Every editable item below opens a <strong>real edit modal</strong> on click — try it.
+    Mirrors actual production fields (real Knowledge quick-add: Upload · Scrape · AI Compile · Browse;
+    real AgentIdentityCard rows: agent name · business name · callback contact · greeting · voice · after-call SMS · Telegram).
+  </div>
+
+  <!-- Trial pill with explicit X/Y minute counter -->
+  <div class="trial-row">
+    <span class="trial-label">Trial</span>
+    <span class="trial-days">5 days left</span>
+    <span style="font-size:11px;color:var(--t3);margin-left:14px">·</span>
+    <span style="font-size:11px;color:var(--t2)"><strong style="color:var(--t1)">29 calls</strong> this month</span>
+    <span style="font-size:11px;color:var(--t3)">·</span>
+    <span style="font-size:11px;color:var(--t2)"><strong style="color:var(--t1)">38 / 100</strong> minutes used</span>
+  </div>
+
+  <!-- AgentIdentityCard — chip layout (clean) with 2-col body + click-to-edit pills -->
+  <div class="identity" style="margin-top:12px">
+    <div class="identity-2col">
+      <div class="identity-header" style="margin:0">
+        <div class="avatar">A</div>
+        <div>
+          <div class="identity-name">Aisha · Hasan Sharif Real Estate</div>
+          <div class="identity-sub clickable" data-modal="voice"><span class="voice-tag">Mara voice</span> · +1 (306) 555-0182 <span style="color:var(--primary);margin-left:4px">change</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="identity-pill-grid">
+          <span class="chip clickable" data-modal="greeting"><span class="dot"></span>Greeting</span>
+          <span class="chip clickable" data-modal="aftercall"><span class="dot"></span>SMS</span>
+          <span class="chip off clickable" data-modal="telegram"><span class="dot"></span>Telegram</span>
+          <span class="chip off clickable" data-modal="ivr"><span class="dot"></span>IVR</span>
+          <span class="chip off clickable" data-modal="voicemail"><span class="dot"></span>Voicemail</span>
+          <span class="chip off clickable" data-modal="calendar"><span class="dot"></span>Booking</span>
+          <span class="chip off clickable" data-modal="transfer"><span class="dot"></span>Transfer</span>
+          <span class="chip clickable" data-modal="qa-scrape"><span class="dot"></span>Website</span>
+          <span class="chip clickable" data-modal="gbp"><span class="dot"></span>Google profile</span>
+          <span class="chip clickable" data-modal="today">Today: empty</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Critical toasts only — auto-stacked, only visible when there's something urgent -->
+  <div style="margin-top:12px">
+    <span class="toast warn">⚠ 78% minutes used · <strong style="color:var(--warning);text-decoration:underline;cursor:pointer">Buy more</strong></span>
+    <span class="toast danger" style="margin-left:6px">⚠ Trial expires in 5d · <strong style="color:var(--danger);text-decoration:underline;cursor:pointer">Upgrade</strong></span>
+  </div>
+
+  <!-- TIER 1: TestCallCard orb + REAL Knowledge Quick-Add (4 buttons matching production) -->
+  <div class="grid-2" style="margin-top:12px">
+    <div class="orb-card">
+      <div class="orb"></div>
+      <h3>Talk to your agent</h3>
+      <div class="sub">Test the live prompt right now</div>
+      <button style="margin-top:14px;background:var(--primary);color:#fff;border:0;padding:10px 24px;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px">Start test call</button>
+    </div>
+    <div class="card stack">
+      <div>
+        <div class="card-label">Quick Add</div>
+        <div class="sub">Teach your agent something new in one tap.</div>
+      </div>
+      <div class="grid-2" style="gap:8px;margin-top:6px">
+        <div class="qa-btn" data-modal="qa-upload">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          <span>Upload</span>
+        </div>
+        <div class="qa-btn" data-modal="qa-scrape">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Scrape</span>
+        </div>
+        <div class="qa-btn" data-modal="qa-compile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>AI Compile</span>
+        </div>
+        <div class="qa-btn" data-modal="qa-browse">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/></svg>
+          <span>Browse</span>
+        </div>
+      </div>
+      <div class="sub">Each opens the right drawer on Knowledge.</div>
+    </div>
+  </div>
+
+  <!-- (REMOVED) "What your agent can do right now" + "This trial" stats —
+       redundant with pills inside AgentIdentityCard + minute counter in trial pill.
+       User caught the duplicate; don't re-add. -->
+
+  <!-- Single readiness band — replaces nudge grid + Setup Progress + QuickConfigStrip + AgentReadinessRow -->
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-label" style="margin:0">Agent readiness — 3 of 6 ready</div>
+      <div class="sub">50%</div>
+    </div>
+    <div class="progress-bar" style="margin:8px 0 12px"><div class="progress-fill"></div></div>
+    <div class="row clickable" data-modal="hours">
+      <div class="left">✅ <strong style="color:var(--t1);font-weight:600">Hours</strong></div>
+      <span class="meta">M–F 9am–5pm · Sat–Sun closed</span>
+    </div>
+    <div class="row clickable" data-modal="services">
+      <div class="left">⚠️ <strong style="color:var(--t1);font-weight:600">Services missing</strong> <span class="sub" style="margin-left:6px">— what do you sell?</span></div>
+      <span style="color:var(--primary);font-size:11px;font-weight:600">Add now →</span>
+    </div>
+    <div class="row clickable" data-modal="faqs">
+      <div class="left">✅ <strong style="color:var(--t1);font-weight:600">FAQs (8)</strong></div>
+      <span class="meta">tap to view list</span>
+    </div>
+    <div class="row clickable" data-modal="calendar">
+      <div class="left">⚠️ <strong style="color:var(--t1);font-weight:600">Booking</strong> — connect calendar</div>
+      <span style="color:var(--primary);font-size:11px;font-weight:600">Connect →</span>
+    </div>
+    <div class="row clickable" data-modal="knowledge">
+      <div class="left">✅ <strong style="color:var(--t1);font-weight:600">Knowledge (23 chunks)</strong></div>
+      <span class="meta">tap to browse</span>
+    </div>
+    <div class="row clickable" data-modal="gaps">
+      <div class="left">⚠️ <strong style="color:var(--t1);font-weight:600">2 unanswered questions</strong> this week</div>
+      <span style="color:var(--primary);font-size:11px;font-weight:600">Answer →</span>
+    </div>
+  </div>
+
+  <!-- What your agent knows — clickable into detail -->
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-label" style="margin:0">What your agent knows</div>
+      <span class="sub">click any tile</span>
+    </div>
+    <div class="grid-4" style="margin-top:6px">
+      <div class="stat-block clickable" data-modal="facts"><div class="num">14</div><div class="lbl">Facts</div></div>
+      <div class="stat-block clickable" data-modal="faqs"><div class="num">8</div><div class="lbl">FAQs</div></div>
+      <div class="stat-block clickable" data-modal="services"><div class="num">5</div><div class="lbl">Services</div></div>
+      <div class="stat-block clickable" data-modal="knowledge"><div class="num">23</div><div class="lbl">KB chunks</div></div>
+    </div>
+  </div>
+
+  <!-- Call log -->
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-label" style="margin:0">Recent calls</div>
+      <span class="sub" style="color:var(--primary);cursor:pointer">View all →</span>
+    </div>
+    <div class="row clickable" data-modal="call">
+      <div class="left"><span class="badge live">Live</span><span class="text">+1 (403) 555-0142</span></div>
+      <span class="meta">just now</span>
+    </div>
+    <div class="row clickable" data-modal="call">
+      <div class="left"><span class="badge hot">HOT</span><span class="text">+1 (306) 555-0177 — interested in 3-bed listing</span></div>
+      <span class="meta">2h ago</span>
+    </div>
+    <div class="row clickable" data-modal="call">
+      <div class="left"><span class="badge test">Test</span><span class="text">Browser test call</span></div>
+      <span class="meta">1d ago</span>
+    </div>
+  </div>
+
+  <!-- Footer (compressed) -->
+  <div class="grid-2-start" style="margin-top:12px">
+    <div class="card clickable" data-modal="billing">
+      <div class="card-label">Plan</div>
+      <strong style="font-size:14px">Trial · 5 days left</strong>
+      <div class="sub" style="margin-top:4px">3 / 250 minutes used · Manage billing →</div>
+    </div>
+    <div class="card clickable" data-modal="billing" style="background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)">
+      <div class="card-label">When you're ready to go live</div>
+      <p style="font-size:11px;color:var(--t2);margin-top:6px">Solo $49/mo or AI Receptionist $119/mo. Pick one to keep your number live.</p>
+      <button style="margin-top:8px;width:100%;padding:10px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer">See plans →</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong style="color:var(--success)">Where we're at right now (be honest):</strong>
+    <ul style="margin:8px 0 0 18px;padding:0;font-size:11px;line-height:1.6">
+      <li><strong style="color:var(--t1)">What's real:</strong> the layout, the chip pattern, every modal's field list (mirrors actual production form fields and DB columns from <code>clients</code> + <code>knowledge_chunks</code> + <code>extra_qa</code>).</li>
+      <li><strong style="color:var(--t1)">What's faked:</strong> the data shown (Aisha · 8 FAQs · 23 chunks · etc.) is illustrative for the demo. Voice preview audio doesn't actually play — it animates the button to show what the interaction looks like.</li>
+      <li><strong style="color:var(--t1)">What already exists in production:</strong> the data flows behind every modal (<code>/api/dashboard/variables</code>, <code>/api/dashboard/voices/[id]/preview</code>, <code>/api/dashboard/scrape-website</code>, <code>/api/dashboard/knowledge/compile/apply</code>, the GBP Places API import, the Stripe upgrade flow). None of these need to be built — they exist.</li>
+      <li><strong style="color:var(--t1)">What needs to ship to make this real:</strong> ~4–6 hours of code. Delete <code>QuickConfigStrip.tsx</code>, the <code>nudgeItems</code> block, the <code>setupPct</code> band, <code>CapabilitiesCard.tsx</code> (the redundant "What your agent can do right now" you flagged), <code>AgentRoutesOnCard.tsx</code>. Merge <code>PendingReviewTile</code> + <code>UnansweredQuestionsTile</code> into the <code>AgentReadinessRow</code> rows. Add the GBP + Website chips into <code>AgentIdentityCard</code>'s pill grid. Wire each pill to the existing settings sheet (which already exists in <code>HomeSideSheet.tsx</code>) — no new components.</li>
+      <li><strong style="color:var(--t1)">Result:</strong> production looks identical to this mockup. The reviewer can compare side-by-side after the PR ships.</li>
+    </ul>
+    <div style="margin-top:14px;padding:10px;background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.2);border-radius:8px;color:var(--t2)">
+      <strong style="color:var(--success)">Reviewer guide:</strong> click anything that's labeled or has a chip — every interactive element in this Option 1 view opens a modal showing the real production form. The modals are not just visual — they describe the actual DB column, API endpoint, and sync behavior in the subhead.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 3 — OPTION 2: DRAWER PATTERN
+     Above-fold = identity, hero, call log, plan. Everything else
+     becomes a clickable summary tile that opens HomeSideSheet.
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="view" id="view-opt2">
+  <div class="meta-block">
+    <strong>Option 2 — Drawer pattern.</strong>
+    Surface count: <span class="count">19 → 6 tiles + 5 drawers</span>.
+    Above-fold = identity, hero, call log, plan, upgrade. Everything else (capabilities, knowledge, routing, intelligence, billing detail) becomes a clickable summary tile that opens
+    <code>HomeSideSheet</code>. <em>Click any summary tile below to see the drawer.</em>
+  </div>
+
+  <div class="trial-row"><span class="trial-label">Trial</span><span class="trial-days">5 days left</span></div>
+
+  <div class="identity" style="margin-top:12px">
+    <div class="identity-header">
+      <div class="avatar">A</div>
+      <div>
+        <div class="identity-name">Aisha · Hasan Sharif Real Estate</div>
+        <div class="identity-sub">Mara voice · +1 (306) 555-0182 · 50% setup</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Above-fold hero -->
+  <div class="grid-2" style="margin-top:12px">
+    <div class="orb-card">
+      <div class="orb"></div>
+      <h3>Talk to your agent</h3>
+      <div class="sub">Test the live prompt</div>
+    </div>
+    <div class="card stack">
+      <div class="card-label">Quick-add knowledge</div>
+      <div class="row"><span class="text">📄 PDF · 🔗 Website · 💬 FAQ</span><span class="meta">→</span></div>
+      <div class="row"><span class="text">⚠️ 2 unanswered questions</span><span style="color:var(--primary);font-size:11px;font-weight:600">Answer</span></div>
+      <div class="row"><span class="text">⚠️ Services missing</span><span style="color:var(--primary);font-size:11px;font-weight:600">Add</span></div>
+    </div>
+  </div>
+
+  <!-- Recent calls (kept above fold) -->
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-label" style="margin:0">Recent calls</div>
+      <span class="sub" style="color:var(--primary)">View all</span>
+    </div>
+    <div class="row"><div class="left"><span class="badge live">Live</span><span class="text">+1 (403) 555-0142</span></div><span class="meta">just now</span></div>
+    <div class="row"><div class="left"><span class="badge hot">HOT</span><span class="text">+1 (306) 555-0177</span></div><span class="meta">2h ago</span></div>
+    <div class="row"><div class="left"><span class="badge test">Test</span><span class="text">Browser test call</span></div><span class="meta">1d ago</span></div>
+  </div>
+
+  <!-- 5 summary tiles → drawers -->
+  <div style="margin-top:14px"><span class="mock-h">Tap any tile to open the detail drawer</span></div>
+  <div class="stack">
+    <div class="summary-tile" data-drawer="capabilities">
+      <div class="left">
+        <span class="cap-pill on" style="padding:2px 8px"><span class="dot"></span></span>
+        <div>
+          <strong style="font-size:12px">Capabilities · 4 of 6 active</strong>
+          <div class="sub">Knowledge, Hours, SMS, Website</div>
+        </div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="summary-tile" data-drawer="knowledge">
+      <div class="left">
+        <div>
+          <strong style="font-size:12px">What agent knows · 50 items</strong>
+          <div class="sub">14 facts · 8 FAQs · 5 services · 23 KB chunks</div>
+        </div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="summary-tile" data-drawer="routing">
+      <div class="left">
+        <div>
+          <strong style="font-size:12px">Routing rules · 3 set</strong>
+          <div class="sub">Urgent keywords · pricing triggers · callback pref</div>
+        </div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="summary-tile" data-drawer="intelligence">
+      <div class="left">
+        <div>
+          <strong style="font-size:12px">Triage activity · 11 calls tagged this week</strong>
+          <div class="sub">3 urgent · 5 pricing · 2 hours · 1 booking</div>
+        </div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="summary-tile" data-drawer="setup">
+      <div class="left">
+        <div>
+          <strong style="font-size:12px">Setup &amp; alerts · 50% complete</strong>
+          <div class="sub">Telegram off · Calendar off · Hours set · 8 FAQs</div>
+        </div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="grid-2-start" style="margin-top:14px">
+    <div class="card">
+      <div class="card-label">Plan</div>
+      <strong style="font-size:14px">Trial · 5 days left</strong>
+      <div class="sub" style="margin-top:4px">Manage billing →</div>
+    </div>
+    <div class="card" style="background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)">
+      <div class="card-label">When you're ready to go live</div>
+      <button style="margin-top:8px;width:100%;padding:10px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer">Upgrade →</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong style="color:var(--success)">What changed:</strong>
+    <ul style="margin:8px 0 0 18px;padding:0;font-size:11px">
+      <li>Above fold = 4 surfaces (identity, hero, call log, plan + upgrade)</li>
+      <li>5 summary tiles each open a sheet on click — sheets reuse the existing <code>HomeSideSheet</code> infrastructure</li>
+      <li>Hidden until needed: capabilities, knowledge breakdown, routing rules, intelligence triage, setup checklist</li>
+      <li>Critical toasts and the action grid still appear — but only when there's something to act on</li>
+    </ul>
+    <div style="margin-top:8px;color:var(--t3)"><strong>Implementation cost:</strong> half day. Build 5 summary-tile components + extend <code>useHomeSheet</code> with 4 new keys. Existing sheets stay.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 4 — OPTION 3: PHASE-BASED LAYOUT
+     Different layout per homePhase — switcher above
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="view" id="view-opt3">
+  <div class="meta-block">
+    <strong>Option 3 — Phase-based layout.</strong>
+    <code>deriveHomePhase()</code> already returns 4 phases. Each renders a tailored set instead of stacking everything.
+    <em>Click a phase below to see what each user actually sees.</em>
+  </div>
+
+  <div class="phase-tabs">
+    <button data-phase="trial-first" class="active">trial · first visit</button>
+    <button data-phase="trial-active">trial · active</button>
+    <button data-phase="paid-awaiting">paid · awaiting number</button>
+    <button data-phase="paid-ready">paid · ready</button>
+  </div>
+
+  <!-- Phase: trial first visit -->
+  <div data-phase-view="trial-first" style="display:block">
+    <div class="trial-row"><span class="trial-label">Trial · first visit</span><span class="trial-days">7 days left</span></div>
+    <div class="card" style="margin-top:12px;background:radial-gradient(circle at 0% 0%, rgba(99,102,241,0.12), transparent 60%)">
+      <h3 style="font-size:18px;margin:0 0 4px">Welcome — let's get your agent ready</h3>
+      <div class="sub">3 quick steps · 2 minutes</div>
+    </div>
+    <div class="grid-3" style="margin-top:12px">
+      <div class="card"><div class="num" style="font-size:18px">1</div><strong style="font-size:12px">Add your hours</strong><div class="sub">So agent can answer time questions</div></div>
+      <div class="card"><div class="num" style="font-size:18px">2</div><strong style="font-size:12px">Add 3 FAQs</strong><div class="sub">Common caller questions</div></div>
+      <div class="card"><div class="num" style="font-size:18px">3</div><strong style="font-size:12px">Test your agent</strong><div class="sub">Hear how it sounds</div></div>
+    </div>
+    <div class="orb-card" style="margin-top:12px">
+      <div class="orb"></div>
+      <h3>Talk to your agent</h3>
+    </div>
+    <div class="legend"><strong>Renders only 4 surfaces.</strong> Hides: capabilities, call log, knowledge breakdown, routing, intelligence, billing — they're meaningless before any setup.</div>
+  </div>
+
+  <!-- Phase: trial active -->
+  <div data-phase-view="trial-active" style="display:none">
+    <div class="trial-row"><span class="trial-label">Trial · active</span><span class="trial-days">5 days left</span></div>
+    <div class="identity" style="margin-top:12px">
+      <div class="identity-header">
+        <div class="avatar">A</div>
+        <div><div class="identity-name">Aisha · Hasan Sharif Real Estate</div><div class="identity-sub">Mara voice · 50% setup</div></div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="orb-card"><div class="orb"></div><h3>Test your agent</h3></div>
+      <div class="card">
+        <div class="card-label">Finish setup — 3 of 6</div>
+        <div class="row"><div class="left">⚠️ Services missing</div><span style="color:var(--primary);font-weight:600;font-size:11px">Add</span></div>
+        <div class="row"><div class="left">⚠️ Booking off</div><span style="color:var(--primary);font-weight:600;font-size:11px">Connect</span></div>
+        <div class="row"><div class="left">⚠️ 2 unanswered Qs</div><span style="color:var(--primary);font-weight:600;font-size:11px">Answer</span></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)">
+      <div class="card-label">When you're ready</div>
+      <button style="margin-top:8px;width:100%;padding:10px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer">Upgrade to go live →</button>
+    </div>
+    <div class="legend"><strong>Renders 5 surfaces.</strong> Focus = finish setup + upgrade. Hides: full capabilities grid, intelligence, routing — moved to settings.</div>
+  </div>
+
+  <!-- Phase: paid awaiting -->
+  <div data-phase-view="paid-awaiting" style="display:none">
+    <div class="card" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2)">
+      <strong style="color:var(--warning)">⚠ Phone number provisioning</strong>
+      <div class="sub" style="margin-top:6px">Your Twilio number is being assigned. This usually takes &lt;5 minutes.</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-label">Next step — set up call forwarding</div>
+      <div class="sub" style="margin-top:8px">Once your number is live, dial <strong>*72 +1 (306) 555-0182</strong> from your business phone.</div>
+    </div>
+    <div class="orb-card" style="margin-top:12px"><div class="orb"></div><h3>Meanwhile, test your agent</h3></div>
+    <div class="legend"><strong>Renders 3 surfaces.</strong> Single-purpose: provisioning status + forwarding instructions + test call.</div>
+  </div>
+
+  <!-- Phase: paid ready -->
+  <div data-phase-view="paid-ready" style="display:none">
+    <div class="identity">
+      <div class="identity-header">
+        <div class="avatar">A</div>
+        <div><div class="identity-name">Aisha · Hasan Sharif Real Estate</div><div class="identity-sub">Live · forwarding active · +1 (306) 555-0182</div></div>
+      </div>
+    </div>
+    <!-- Metrics-first -->
+    <div class="card" style="margin-top:12px">
+      <div class="card-label">This week</div>
+      <div class="grid-4" style="margin-top:6px">
+        <div class="stat-block"><div class="num">42</div><div class="lbl">Calls</div></div>
+        <div class="stat-block"><div class="num">11</div><div class="lbl">Hot</div></div>
+        <div class="stat-block"><div class="num">8</div><div class="lbl">Booked</div></div>
+        <div class="stat-block"><div class="num">3.2h</div><div class="lbl">Saved</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-label" style="margin:0">Recent calls</div>
+        <span class="sub" style="color:var(--primary)">View all</span>
+      </div>
+      <div class="row"><div class="left"><span class="badge live">Live</span><span class="text">+1 (403) 555-0142</span></div><span class="meta">just now</span></div>
+      <div class="row"><div class="left"><span class="badge hot">HOT</span><span class="text">+1 (306) 555-0177</span></div><span class="meta">2h ago</span></div>
+      <div class="row"><div class="left"><span class="badge hot">HOT</span><span class="text">+1 (306) 555-0203</span></div><span class="meta">3h ago</span></div>
+      <div class="row"><div class="left">+1 (587) 555-0118</div><span class="meta">5h ago</span></div>
+    </div>
+    <div class="orb-card" style="margin-top:12px;padding:14px"><div class="orb" style="width:64px;height:64px;margin:0 auto 8px"></div><h3 style="font-size:12px">Test agent</h3></div>
+    <div class="legend"><strong>Renders 4 surfaces.</strong> Metrics-first. Setup checklist hidden (it's done). Capabilities/knowledge/routing all moved to settings — power users access via tabs.</div>
+  </div>
+
+  <div class="legend">
+    <strong>Implementation cost:</strong> 1-2 days. Add a <code>renderPhase()</code> switch in <code>UnifiedHomeSection</code>. Each phase wires only its own components. Components stay where they are — what changes is the parent's import + render logic per phase.
+  </div>
+</section>
+
+</div>
+
+<!-- Modal (option 1 click-to-edit) -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h2 id="modal-title">Edit</h2>
+    <p class="modal-sub" id="modal-sub">Changes auto-sync to your live agent.</p>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="modal-save">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Drawers (option 2) -->
+<div class="drawer-backdrop" id="backdrop"></div>
+<div class="drawer" id="drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <strong id="drawer-title">Capabilities</strong>
+    <button class="drawer-close" id="drawer-close">Close</button>
+  </div>
+  <div class="divider"></div>
+  <div id="drawer-body"></div>
+</div>
+
+<script>
+  // View tabs
+  document.querySelectorAll('.view-tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.view-tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + b.dataset.view).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // Phase tabs (option 3)
+  document.querySelectorAll('.phase-tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.phase-tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.querySelectorAll('[data-phase-view]').forEach(v => v.style.display = 'none');
+      document.querySelector('[data-phase-view="' + b.dataset.phase + '"]').style.display = 'block';
+    });
+  });
+
+  // Drawer (option 2)
+  const drawerContent = {
+    capabilities: {
+      title: 'What your agent can do right now',
+      body: `
+        <div class="cap-grid">
+          <div class="cap-pill on"><span class="dot"></span>Knowledge (pgvector)</div>
+          <div class="cap-pill on"><span class="dot"></span>Hours</div>
+          <div class="cap-pill"><span class="dot"></span>Booking — calendar off</div>
+          <div class="cap-pill on"><span class="dot"></span>SMS follow-up</div>
+          <div class="cap-pill"><span class="dot"></span>Transfer — no forwarding number</div>
+          <div class="cap-pill on"><span class="dot"></span>Website (scraped)</div>
+        </div>
+        <div class="divider"></div>
+        <div class="sub">Inactive capabilities show what's blocking. Each pill links to the relevant settings card.</div>
+      `
+    },
+    knowledge: {
+      title: 'What your agent knows',
+      body: `
+        <div class="grid-4">
+          <div class="stat-block"><div class="num">14</div><div class="lbl">Facts</div></div>
+          <div class="stat-block"><div class="num">8</div><div class="lbl">FAQs</div></div>
+          <div class="stat-block"><div class="num">5</div><div class="lbl">Services</div></div>
+          <div class="stat-block"><div class="num">23</div><div class="lbl">KB chunks</div></div>
+        </div>
+        <div class="divider"></div>
+        <strong style="font-size:12px">Top FAQs</strong>
+        <div class="row"><span class="text">What hours are you open?</span><span class="meta">42 hits</span></div>
+        <div class="row"><span class="text">Do you offer rentals?</span><span class="meta">18 hits</span></div>
+        <div class="row"><span class="text">Where are you located?</span><span class="meta">12 hits</span></div>
+      `
+    },
+    routing: {
+      title: 'What your agent routes on',
+      body: `
+        <div class="row"><div class="left">URGENT_KEYWORDS</div><span class="meta">leak, water, emergency</span></div>
+        <div class="row"><div class="left">PRICING_TRIGGERS</div><span class="meta">cost, quote, estimate</span></div>
+        <div class="row"><div class="left">CALLBACK_PREFERENCE</div><span class="meta">morning / afternoon</span></div>
+        <div class="row"><div class="left">EMERGENCY_PHONE</div><span class="meta">+1 (306) 555-0199</span></div>
+        <div class="divider"></div>
+        <div class="sub">Edit these in Settings → Agent → Routing</div>
+      `
+    },
+    intelligence: {
+      title: 'Triage activity',
+      body: `
+        <div class="row"><div class="left">Urgent</div><span class="meta">3 calls</span></div>
+        <div class="row"><div class="left">Pricing</div><span class="meta">5 calls</span></div>
+        <div class="row"><div class="left">Hours</div><span class="meta">2 calls</span></div>
+        <div class="row"><div class="left">Booking</div><span class="meta">1 call</span></div>
+        <div class="divider"></div>
+        <strong style="font-size:12px">Top callback themes</strong>
+        <div class="sub" style="margin-top:6px">"Looking at the 3-bedroom listing", "When can you show me?"</div>
+      `
+    },
+    setup: {
+      title: 'Setup &amp; alerts',
+      body: `
+        <strong style="font-size:12px">3 of 6 ready · 50%</strong>
+        <div class="progress-bar" style="margin:8px 0 14px"><div class="progress-fill"></div></div>
+        <div class="row"><div class="left">✅ Hours set</div><span class="meta">M-F 9-5</span></div>
+        <div class="row"><div class="left">⚠️ Services missing</div><span style="color:var(--primary);font-weight:600;font-size:11px">Add →</span></div>
+        <div class="row"><div class="left">✅ FAQs (8)</div><span class="meta">good</span></div>
+        <div class="row"><div class="left">⚠️ Calendar not connected</div><span style="color:var(--primary);font-weight:600;font-size:11px">Connect →</span></div>
+        <div class="row"><div class="left">✅ Knowledge (23)</div><span class="meta">good</span></div>
+        <div class="row"><div class="left">⚠️ Telegram not connected</div><span style="color:var(--primary);font-weight:600;font-size:11px">Set up →</span></div>
+      `
+    }
+  };
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('backdrop');
+  document.querySelectorAll('.summary-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      const k = t.dataset.drawer;
+      document.getElementById('drawer-title').innerHTML = drawerContent[k].title;
+      document.getElementById('drawer-body').innerHTML = drawerContent[k].body;
+      drawer.classList.add('open');
+      backdrop.classList.add('open');
+    });
+  });
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Click-to-edit modals (Option 1)
+  // Each entry mirrors the actual production form for that field.
+  // ─────────────────────────────────────────────────────────────────────
+  const modalContent = {
+    'agent-name': {
+      title: 'Agent name',
+      sub: 'Variable: AGENT_NAME → /api/dashboard/variables. Word-boundary patched throughout system_prompt.',
+      body: `<label>Agent name</label><input type="text" value="Aisha" />`
+    },
+    'business-name': {
+      title: 'Business name',
+      sub: 'Variable: BUSINESS_NAME → /api/dashboard/variables. Used in greeting + Telegram alerts.',
+      body: `<label>Business name</label><input type="text" value="Hasan Sharif Real Estate" />`
+    },
+    'callback': {
+      title: 'Callback contact',
+      sub: 'Variable: CLOSE_PERSON. Who the agent says will call back. Phone is for the transfer tool.',
+      body: `<label>Person who calls back</label><input type="text" value="Hasan" /><label style="margin-top:12px">Callback phone</label><input type="tel" value="+1 (306) 850-7687" />`
+    },
+    'greeting': {
+      title: 'Greeting line',
+      sub: 'Variable: GREETING_LINE. First sentence agent says when the call connects.',
+      body: `<label>Greeting</label><textarea>Hi! This is Aisha at Hasan Sharif Real Estate, how can I help?</textarea>`
+    },
+    'voice': {
+      title: 'Choose voice — currently Mara (Cartesia)',
+      sub: 'Click ▶ Play to hear each voice with your real greeting line. Save to sync to Ultravox.',
+      body: `<input type="text" placeholder="Filter by gender, accent, vibe…" style="margin-bottom:10px"/>
+        <div class="voice-list" id="voice-list-real">
+          <div class="voice-item selected" data-voice="mara"><div><div class="name">Mara <span class="voice-tag" style="margin-left:6px">SELECTED</span></div><div class="desc">Cartesia · Female · Casual & Friendly · 24kHz</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="riley"><div><div class="name">Riley</div><div class="desc">Cartesia · Female · Professional & Warm</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="atlas"><div><div class="name">Atlas</div><div class="desc">Cartesia · Male · Formal · low pitch</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="sage"><div><div class="name">Sage</div><div class="desc">Eleven Labs · Female · Empathetic · slow tempo</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="echo"><div><div class="name">Echo</div><div class="desc">Inworld · Male · Energetic · high pitch</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="luna"><div><div class="name">Luna</div><div class="desc">Cartesia · Female · Soft · slow · British</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="kai"><div><div class="name">Kai</div><div class="desc">Eleven Labs · Male · Conversational</div></div><button class="play-btn">▶ Play</button></div>
+          <div class="voice-item" data-voice="nova"><div><div class="name">Nova</div><div class="desc">Inworld · Female · Bubbly · upbeat</div></div><button class="play-btn">▶ Play</button></div>
+        </div>
+        <p style="font-size:11px;color:var(--t3);margin-top:10px">Preview audio uses <strong>your actual greeting line</strong>: "Hi! This is Aisha at Hasan Sharif Real Estate, how can I help?" — proxied through <code>/api/dashboard/voices/[id]/preview</code> for cookie auth.</p>`
+    },
+    'aftercall': {
+      title: 'After-call SMS',
+      sub: 'sms_enabled + sms_template. Sent to caller within 60s of hangup. Requires plan SMS entitlement + Twilio number.',
+      body: `<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked /> Send after-call SMS</label><label style="margin-top:14px">Template (caller name + business auto-injected)</label><textarea>Thanks for calling Hasan Sharif Real Estate — Hasan will reach out within 1h.</textarea>`
+    },
+    'telegram': {
+      title: 'Connect Telegram alerts',
+      sub: 'Get instant notifications when calls finish. One-tap deep link via @unmissedaibot.',
+      body: `<p style="font-size:12px;color:var(--t2)">Click below to open Telegram and link your account. The bot will then send you HOT lead alerts, missed call notifications, and daily digests.</p><div style="margin-top:14px;text-align:center"><button class="btn-primary" style="padding:12px 24px">Open Telegram → @unmissedaibot</button></div>`
+    },
+    'today': {
+      title: "Today's update",
+      sub: 'injected_note → live agent context (RIGHT NOW: …). Cleared automatically after expiry.',
+      body: `<label>What should the agent know about today?</label><textarea placeholder="e.g. We're closing at 3pm today for a private event."></textarea><label style="margin-top:14px">Auto-clear after</label><select><option>End of today</option><option>End of tomorrow</option><option>End of week</option><option>Never (manual clear)</option></select>`
+    },
+    'hours': {
+      title: 'Business hours',
+      sub: 'business_hours_weekday + business_hours_weekend. Injected as OFFICE HOURS at call time.',
+      body: `<label>Weekday hours</label><input type="text" value="Monday–Friday 9:00 AM – 5:00 PM" /><label style="margin-top:12px">Weekend hours</label><input type="text" value="Closed" /><label style="margin-top:12px">After-hours behavior</label><select><option selected>Take a message</option><option>Route emergencies to phone</option><option>Voicemail only</option></select>`
+    },
+    'services': {
+      title: 'Services your business offers',
+      sub: 'Active services count = 0. Add what you sell so the agent can describe it to callers.',
+      body: `<p style="font-size:12px;color:var(--warning);margin:0 0 12px">⚠️ No services added yet — agent currently says "I'm not sure what services we offer".</p><label>Add a service</label><input type="text" placeholder="e.g. Residential listings — buying & selling homes in Saskatoon" /><button class="btn-primary" style="margin-top:8px">Add service</button>`
+    },
+    'faqs': {
+      title: 'FAQs (8) — what your agent says',
+      sub: 'Click any FAQ to see + edit the answer the agent uses. Sorted by hit count this month.',
+      body: `<div class="faq-list">
+        <details open><summary><span>What hours are you open?</span><span class="a">42 hits · click to edit</span></summary>
+          <div class="faq-answer"><label>Answer the agent gives</label><textarea>We're open Monday through Friday from 9 AM to 5 PM. We're closed weekends, but you can leave a message and Hasan will follow up first thing Monday.</textarea><button class="btn-primary" style="margin-top:6px">Save</button></div></details>
+        <details><summary><span>Do you handle rentals?</span><span class="a">18 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Hasan focuses on residential sales — buying and selling homes — but he can refer you to a trusted property manager if you're looking to rent.</textarea></div></details>
+        <details><summary><span>Where are you located?</span><span class="a">12 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Our office is in Saskatoon, but Hasan serves clients across Saskatoon and Calgary.</textarea></div></details>
+        <details><summary><span>Do you take pre-construction listings?</span><span class="a">9 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Yes — pre-construction is one of Hasan's specialties. He's worked with several builders in both Saskatoon and Calgary.</textarea></div></details>
+        <details><summary><span>What's your commission rate?</span><span class="a">7 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Our standard commission is 5%, but it's negotiable on listings over $1M. Hasan would be happy to discuss the specifics on a callback.</textarea></div></details>
+        <details><summary><span>Can you help me sell my house in Calgary?</span><span class="a">5 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Absolutely. Hasan is licensed in both Saskatchewan and Alberta and serves the Calgary market.</textarea></div></details>
+        <details><summary><span>Do you work with first-time buyers?</span><span class="a">4 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Yes — first-time buyers are a big part of our practice. Hasan will walk you through FHSA, HBP, and the stress test.</textarea></div></details>
+        <details><summary><span>What languages do you speak?</span><span class="a">2 hits</span></summary>
+          <div class="faq-answer"><label>Answer</label><textarea>Hasan speaks English and Bengali fluently.</textarea></div></details>
+      </div>
+      <button class="btn-primary" style="margin-top:10px;width:100%">+ Add new FAQ</button>`
+    },
+    'calendar': {
+      title: 'Connect Google Calendar',
+      sub: 'Required for the booking tool. Agent will check availability + book directly into your calendar.',
+      body: `<p style="font-size:12px;color:var(--t2)">Once connected, callers can book appointments directly. The agent uses checkCalendarAvailability + bookAppointment tools.</p><div style="margin-top:14px;text-align:center"><button class="btn-primary" style="padding:12px 24px">Connect Google Calendar →</button></div>`
+    },
+    'knowledge': {
+      title: 'Knowledge base — 23 chunks · all sources',
+      sub: 'pgvector embedded chunks searched by the queryKnowledge tool. Tap any chunk to see + edit the actual text.',
+      body: `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <span class="filter-pill active">All (23)</span>
+        <span class="filter-pill">🔗 Website (12)</span>
+        <span class="filter-pill">📄 PDF (5)</span>
+        <span class="filter-pill">⭐ Manual (3)</span>
+        <span class="filter-pill">🤖 AI Compiled (3)</span>
+      </div>
+      <ul class="modal-list">
+        <li><span class="q">Service area: Saskatoon + Calgary</span><span class="a">⭐ manual</span></li>
+        <li><span class="q">Listings page → 3-bed Aspen Ridge $589K</span><span class="a">🔗 hasansharif.com/listings</span></li>
+        <li><span class="q">About Hasan — licensed since 2018, eXp Realty</span><span class="a">🔗 hasansharif.com/about</span></li>
+        <li><span class="q">Pre-construction process &amp; timeline</span><span class="a">📄 pre-con-guide.pdf p.2</span></li>
+        <li><span class="q">Commission rates: 5% standard, neg. on $1M+</span><span class="a">🤖 AI compiled from email</span></li>
+        <li><span class="q">FHSA + HBP first-time buyer programs</span><span class="a">📄 buyer-checklist.pdf p.4</span></li>
+        <li><span class="q">Stress test: qualifying rate ≥ contract+2%</span><span class="a">🤖 AI compiled</span></li>
+        <li><span class="q">… 16 more chunks</span><span class="a">tap to browse</span></li>
+      </ul>
+      <p style="font-size:11px;color:var(--t3);margin-top:10px"><strong style="color:var(--t1)">How it works:</strong> when a caller asks something, the agent calls <code>queryKnowledge</code> → hybrid pgvector search → returns the top match → speaks the answer.</p>`
+    },
+    'gaps': {
+      title: '2 unanswered questions',
+      sub: 'Caller asked something the agent could not answer. Promote to FAQ to fix the gap.',
+      body: `<ul class="modal-list">
+        <li><span class="q">Do you offer property management?</span><span class="a">2 callers</span></li>
+        <li><span class="q">Can I tour the listing on Sunday?</span><span class="a">1 caller</span></li>
+      </ul><button class="btn-primary" style="margin-top:8px">→ Open Knowledge to answer</button>`
+    },
+    'facts': {
+      title: 'Business facts (14)',
+      sub: 'business_facts column. Injected per-call as KnowledgeSummary. Agent reads these verbatim.',
+      body: `<ul class="modal-list">
+        <li><span class="q">Service area: Saskatoon + Calgary</span></li>
+        <li><span class="q">Licensed since 2018</span></li>
+        <li><span class="q">eXp Realty — branch 8723</span></li>
+        <li><span class="q">Commission: 5% (negotiable on listings &gt;$1M)</span></li>
+        <li><span class="q">Specializes in pre-construction + first-time buyers</span></li>
+        <li><span class="q">Languages: English, Bengali</span></li>
+        <li><span class="q">… 8 more</span></li>
+      </ul>`
+    },
+    'call': {
+      title: 'Call detail',
+      sub: 'Full transcript + AI summary + classification.',
+      body: `<p style="font-size:12px;color:var(--t1);font-weight:600">+1 (306) 555-0177 · 2h ago · 4m 12s</p>
+        <p style="font-size:11px;color:var(--success);margin-top:4px">🔥 Classified HOT</p>
+        <div style="margin-top:14px;padding:12px;background:var(--hover);border-radius:8px;font-size:12px;color:var(--t2);line-height:1.5">
+        <strong style="color:var(--t1)">Summary:</strong> Caller is interested in the 3-bed listing on Aspen Ridge. Wants to tour Saturday morning. Pre-approved for mortgage. Asked about commission rates. Aisha booked a callback for tomorrow 10am with Hasan.
+        </div>
+        <button class="btn-secondary" style="margin-top:12px;width:100%">View full transcript →</button>`
+    },
+    'billing': {
+      title: 'Billing & plan — Trial · 5 days left',
+      sub: 'Real call usage from your Twilio + Ultravox webhooks. Two plans available — pick one to go live.',
+      body: `<div class="grid-3" style="margin-bottom:14px">
+        <div class="stat-block"><div class="num">29</div><div class="lbl">Calls this month</div></div>
+        <div class="stat-block"><div class="num">38</div><div class="lbl">Min used</div></div>
+        <div class="stat-block"><div class="num">62</div><div class="lbl">Min left</div></div>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-bottom:10px">Choose a plan to keep your number, agent, and forwarding live after the trial:</p>
+      <div class="plan-tier">
+        <div><strong>Solo</strong> · $49/mo<div class="desc">Voice agent · voicemail · SMS follow-up · Telegram alerts · 100 min/mo</div></div>
+        <button class="btn-primary">Upgrade →</button>
+      </div>
+      <div class="plan-tier featured">
+        <div><strong>AI Receptionist</strong> · $119/mo <span class="voice-tag" style="margin-left:6px">recommended</span><div class="desc">Everything in Solo + Booking · Live transfer · Knowledge base · Triage · 200 min/mo</div></div>
+        <button class="btn-primary">Upgrade →</button>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:10px">Add-on minutes: $0.15/min over your plan limit. Cancel anytime.</p>`
+    },
+    'qa-upload': {
+      title: 'Upload PDF',
+      sub: '/dashboard/knowledge?quickAdd=upload — opens upload drawer.',
+      body: `<label>Upload pricing sheet, policy doc, FAQ, or any reference PDF</label><div style="border:2px dashed var(--border);padding:24px;text-align:center;border-radius:10px;color:var(--t3);font-size:12px;margin-top:6px">📄 Drag and drop a PDF here<br/>or click to browse</div>`
+    },
+    'qa-scrape': {
+      title: 'Website — hasansharif.com (already scraped)',
+      sub: 'Last scraped 4 days ago · 12 chunks approved · tap any page to view the actual text the agent uses.',
+      body: `<div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:12px">
+        <span style="color:var(--success)">✓</span>
+        <span style="font-size:12px;color:var(--t1)">hasansharif.com — 12 pages indexed, 12 approved, 0 pending review</span>
+      </div>
+      <ul class="modal-list">
+        <li><span class="q">/ — Home</span><span class="a">view chunks (3)</span></li>
+        <li><span class="q">/about — About Hasan</span><span class="a">view chunks (2)</span></li>
+        <li><span class="q">/listings — Active listings (8)</span><span class="a">view chunks (4)</span></li>
+        <li><span class="q">/services — Buying / Selling</span><span class="a">view chunks (2)</span></li>
+        <li><span class="q">/contact — Contact info + hours</span><span class="a">view chunks (1)</span></li>
+      </ul>
+      <button class="btn-secondary" style="margin-top:10px;width:100%">🔄 Re-scrape now</button>
+      <button class="btn-primary" style="margin-top:6px;width:100%">+ Add another website</button>`
+    },
+    'gbp': {
+      title: 'Google Business Profile — connected',
+      sub: 'Auto-imported via Places API at onboarding. Refreshes nightly.',
+      body: `<div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:12px">
+        <span style="color:var(--success)">✓</span>
+        <span style="font-size:12px;color:var(--t1)">Hasan Sharif Real Estate · 4.9★ (47 reviews)</span>
+      </div>
+      <ul class="modal-list">
+        <li><span class="q">Business name</span><span class="a">Hasan Sharif Real Estate</span></li>
+        <li><span class="q">Phone</span><span class="a">+1 (306) 850-7687</span></li>
+        <li><span class="q">Address</span><span class="a">123 Main St, Saskatoon SK</span></li>
+        <li><span class="q">Hours</span><span class="a">Mon–Fri 9–5</span></li>
+        <li><span class="q">Categories</span><span class="a">Real estate agent</span></li>
+        <li><span class="q">Website</span><span class="a">hasansharif.com</span></li>
+        <li><span class="q">Rating</span><span class="a">4.9★ from 47 reviews</span></li>
+      </ul>
+      <button class="btn-secondary" style="margin-top:10px;width:100%">🔄 Refresh from Google</button>`
+    },
+    'qa-compile': {
+      title: 'AI Compile — extract knowledge from anything',
+      sub: 'Paste an email, transcript, brochure, or notes. Claude classifies into facts / FAQs / services / hours and queues for your approval.',
+      body: `<label>Source text</label>
+        <textarea style="min-height:140px" placeholder="e.g. 'Hi clients — quick reminder we just relisted the Aspen Ridge property at $589K (was $605K). Open house this Saturday 2-4pm. Hasan can show midweek by appointment too. Commission still 5%, neg on listings over $1M.'"></textarea>
+        <button class="btn-primary" style="margin-top:8px;width:100%">🤖 Extract knowledge</button>
+        <div style="margin-top:14px;padding:10px;background:var(--hover);border-radius:8px">
+          <strong style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.1em">Preview of what would be extracted:</strong>
+          <ul class="modal-list" style="margin-top:8px">
+            <li><span class="q">⭐ Fact: Aspen Ridge property relisted at $589K</span><span class="a">trust: high</span></li>
+            <li><span class="q">⭐ Fact: Open house Sat 2-4pm</span><span class="a">expires Sun</span></li>
+            <li><span class="q">💬 FAQ: Can I see it midweek? → Yes, by appointment</span><span class="a">trust: high</span></li>
+            <li><span class="q">⚠️ Pricing FAQ: 5% commission, neg over $1M</span><span class="a">trust: medium · review</span></li>
+          </ul>
+          <p style="font-size:11px;color:var(--t3);margin-top:8px">High-risk kinds (pricing, hours, location) get <code>trust_tier='medium'</code> + require explicit verification before approve. Blocked kinds (call_behavior_instruction) never written.</p>
+        </div>`
+    },
+    'qa-browse': {
+      title: 'Browse knowledge',
+      sub: '/dashboard/knowledge?quickAdd=chunks — opens chunk browser.',
+      body: `<p style="font-size:12px;color:var(--t2)">Search and edit any of the 23 approved knowledge chunks the agent uses to answer questions.</p><input type="text" placeholder="Search chunks…" style="margin-top:10px"/>`
+    },
+    'ivr': {
+      title: 'IVR pre-filter',
+      sub: 'ivr_enabled + ivr_prompt. Plays a digit menu before connecting to the agent.',
+      body: `<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" /> Enable IVR pre-filter</label><label style="margin-top:14px">IVR prompt</label><textarea placeholder="Press 1 to leave a message, or hold to speak with our agent."></textarea>`
+    },
+    'voicemail': {
+      title: 'Voicemail greeting',
+      sub: 'voicemail_greeting_text. Played when caller chooses to leave a message or when agent is unreachable.',
+      body: `<label>Greeting text (or upload audio)</label><textarea placeholder="You've reached Hasan Sharif Real Estate. Please leave your name and number — we'll call you back within 24 hours."></textarea><button class="btn-secondary" style="margin-top:8px">📁 Upload audio file instead</button>`
+    },
+    'transfer': {
+      title: 'Live call transfer',
+      sub: 'forwarding_number + transfer_conditions. Agent uses transferCall tool when caller meets criteria.',
+      body: `<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" /> Enable live transfer</label><label style="margin-top:14px">Forward to</label><input type="tel" placeholder="+1 (306) 850-7687" /><label style="margin-top:12px">When to transfer</label><textarea placeholder="Transfer if caller is asking for a property tour, urgent timeline, or specifically requests Hasan."></textarea>`
+    },
+  };
+
+  const modalBackdrop = document.getElementById('modal-backdrop');
+  const modalTitle = document.getElementById('modal-title');
+  const modalSub = document.getElementById('modal-sub');
+  const modalBody = document.getElementById('modal-body');
+  document.querySelectorAll('[data-modal]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const k = el.dataset.modal;
+      const c = modalContent[k];
+      if (!c) return;
+      modalTitle.textContent = c.title;
+      modalSub.textContent = c.sub;
+      modalBody.innerHTML = c.body;
+      modalBackdrop.classList.add('open');
+    });
+  });
+  function closeModal() { modalBackdrop.classList.remove('open'); }
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', closeModal);
+  modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+  // Wire voice picker interactions inside the modal
+  document.addEventListener('click', (e) => {
+    const playBtn = e.target.closest('.play-btn');
+    if (playBtn) {
+      e.stopPropagation();
+      document.querySelectorAll('.play-btn').forEach(b => { b.classList.remove('playing'); b.textContent = '▶ Play'; });
+      playBtn.classList.add('playing');
+      playBtn.textContent = '◼ Playing…';
+      setTimeout(() => {
+        playBtn.classList.remove('playing');
+        playBtn.textContent = '▶ Play';
+      }, 1800);
+      return;
+    }
+    const voiceItem = e.target.closest('.voice-item');
+    if (voiceItem) {
+      document.querySelectorAll('.voice-item').forEach(i => i.classList.remove('selected'));
+      voiceItem.classList.add('selected');
+      const tag = voiceItem.querySelector('.voice-tag');
+      document.querySelectorAll('.voice-tag').forEach(t => t.remove());
+      const newTag = document.createElement('span');
+      newTag.className = 'voice-tag';
+      newTag.style.marginLeft = '6px';
+      newTag.textContent = 'SELECTED';
+      voiceItem.querySelector('.name').appendChild(newTag);
+    }
+    const filterPill = e.target.closest('.filter-pill');
+    if (filterPill) {
+      filterPill.parentElement.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      filterPill.classList.add('active');
+    }
+  });
+</script>
+
+</body>
+</html>

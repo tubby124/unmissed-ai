@@ -4,7 +4,7 @@ import SystemPulse from '@/components/dashboard/SystemPulse'
 import ActionItems from '@/components/dashboard/ActionItems'
 import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
-import ClientHome from '@/components/dashboard/ClientHome'
+import ClientHomeV2 from '@/components/dashboard/ClientHomeV2'
 import PageHeader from '@/components/dashboard/PageHeader'
 import SectionLabel from '@/components/dashboard/SectionLabel'
 
@@ -26,12 +26,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const isAdmin = cu?.role === 'admin'
 
   if (!isAdmin) {
-    return <ClientHome />
+    return <ClientHomeV2 />
   }
 
   // Admin in preview mode: show client's dashboard
   const isPreview = params.preview === 'true' && typeof params.client_id === 'string'
-  if (isPreview) return <ClientHome />
+  if (isPreview) return <ClientHomeV2 />
 
   // Fetch admin data for Command Center
   const { data: allClients } = await supabase

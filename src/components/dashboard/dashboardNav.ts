@@ -20,11 +20,13 @@ export const GROUP_LABELS: Record<number, string | null> = {
 export const NAV_ITEMS: NavItem[] = [
   // ── Group 1 — CLIENT MAIN ─────────────────────────────────────────────────
   { href: '/dashboard', label: 'Overview', adminLabel: 'Command Center', adminOnly: false, group: 1, iconName: 'command-center' },
+  { href: '/dashboard/v2', label: 'Overview v2', adminOnly: false, group: 1, iconName: 'command-center' },
   { href: '/dashboard/go-live', label: 'Go Live', adminOnly: false, group: 1, iconName: 'broadcast' },
   { href: '/dashboard/knowledge', label: 'Knowledge', adminOnly: false, group: 1, iconName: 'book' },
   { href: '/dashboard/actions', label: 'Call Handling', adminOnly: false, group: 1, iconName: 'bolt' },
   { href: '/dashboard/calls', label: 'Calls', adminOnly: false, group: 1, iconName: 'phone' },
   { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 1, iconName: 'bell' },
+  { href: '/dashboard/voices', label: 'Voices', adminOnly: false, group: 1, iconName: 'microphone' },
   // ── Group 2 — OPS ─────────────────────────────────────────────────────────
   { href: '/dashboard/setup', label: 'Setup', adminOnly: false, group: 2, iconName: 'wrench' },
   { href: '/dashboard/maintenance', label: 'Maintenance', adminOnly: false, group: 2, iconName: 'clipboard-list' },
@@ -41,7 +43,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/lab', label: 'Lab', adminOnly: true, group: 4, iconName: 'grid' },
   { href: '/dashboard/costs', label: 'Cost Intel', adminOnly: true, group: 4, iconName: 'dollar' },
   { href: '/dashboard/numbers', label: 'Numbers', adminOnly: true, group: 4, iconName: 'smartphone' },
-  { href: '/dashboard/voices', label: 'Voices', adminOnly: true, group: 4, iconName: 'microphone' },
   { href: '/dashboard/insights', label: 'Insights', adminOnly: true, group: 4, iconName: 'bar-chart' },
   // ── Group 5 — BOTTOM ──────────────────────────────────────────────────────
   { href: '/dashboard/advisor', label: 'Advisor', adminOnly: false, group: 5, iconName: 'message-dots' },

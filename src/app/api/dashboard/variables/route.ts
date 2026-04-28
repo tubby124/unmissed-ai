@@ -258,12 +258,79 @@ export async function PATCH(req: NextRequest) {
             }
             await updateAgent(latest.ultravox_agent_id, flags)
             const syncTools = buildAgentTools(flags)
-            await svc.from('clients').update({ tools: syncTools }).eq('id', clientId)
+            await svc.from('clients').update({
+              tools: syncTools,
+              last_agent_sync_at: new Date().toISOString(),
+              last_agent_sync_status: 'success',
+              last_agent_sync_error: null,
+            }).eq('id', clientId)
           } catch (e) {
-            console.error('[variables] safety-net Ultravox sync failed:', (e as Error).message)
+            const errMsg = (e as Error).message
+            console.error('[variables] safety-net Ultravox sync failed:', errMsg)
+            await svc.from('clients').update({
+              last_agent_sync_at: new Date().toISOString(),
+              last_agent_sync_status: 'error',
+              last_agent_sync_error: errMsg.slice(0, 500),
+            }).eq('id', clientId)
           }
         }
         safetyNetApplied = true
+      }
+    }
+  }
+
+  // 5c — Generalized Ultravox sync. regenerateSlots already wrote the new prompt to
+  // clients.system_prompt for any variable change; the live agent still runs the
+  // previously-deployed template until updateAgent() is called. The 5b NAME_FIELDS
+  // block only covers identity-class vars and only when patchAgent/Owner/BusinessName
+  // produces a delta — it skips most vars (GREETING_LINE in JSONB, hours, etc.) and
+  // also skips name-class edits when the old name doesn't word-boundary match. This
+  // catches everything the safety-net misses so the next call uses the new prompt.
+  let promptSyncApplied = false
+  if (result.promptChanged === true && !safetyNetApplied) {
+    const { data: latest } = await svc
+      .from('clients')
+      .select('id, system_prompt, ultravox_agent_id, agent_name, business_name, owner_name, agent_voice_id, booking_enabled, forwarding_number, transfer_conditions, sms_enabled, twilio_number, knowledge_backend, slug, niche, selected_plan, subscription_status, after_hours_behavior')
+      .eq('id', clientId)
+      .single()
+
+    if (latest?.ultravox_agent_id && latest?.system_prompt) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const flags: any = {
+          systemPrompt: latest.system_prompt,
+          voice: latest.agent_voice_id ?? undefined,
+          slug: latest.slug,
+          niche: latest.niche,
+          business_name: latest.business_name,
+          agent_name: latest.agent_name,
+          booking_enabled: !!latest.booking_enabled,
+          forwarding_number: latest.forwarding_number ?? null,
+          transfer_conditions: latest.transfer_conditions ?? null,
+          sms_enabled: !!latest.sms_enabled,
+          twilio_number: latest.twilio_number ?? null,
+          knowledge_backend: latest.knowledge_backend ?? null,
+          selected_plan: latest.selected_plan,
+          subscription_status: latest.subscription_status,
+          after_hours_behavior: latest.after_hours_behavior ?? null,
+        }
+        await updateAgent(latest.ultravox_agent_id, flags)
+        const syncTools = buildAgentTools(flags)
+        await svc.from('clients').update({
+          tools: syncTools,
+          last_agent_sync_at: new Date().toISOString(),
+          last_agent_sync_status: 'success',
+          last_agent_sync_error: null,
+        }).eq('id', clientId)
+        promptSyncApplied = true
+      } catch (e) {
+        const errMsg = (e as Error).message
+        console.error('[variables] generalized Ultravox sync failed:', errMsg)
+        await svc.from('clients').update({
+          last_agent_sync_at: new Date().toISOString(),
+          last_agent_sync_status: 'error',
+          last_agent_sync_error: errMsg.slice(0, 500),
+        }).eq('id', clientId)
       }
     }
   }
@@ -286,6 +353,7 @@ export async function PATCH(req: NextRequest) {
     charCount: result.charCount,
     promptChanged: result.promptChanged || safetyNetApplied,
     safetyNetApplied,
+    promptSyncApplied,
     ...(newPrompt ? { newPrompt } : {}),
   })
 }
