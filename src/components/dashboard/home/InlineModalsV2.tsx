@@ -30,6 +30,7 @@ type CommonProps = {
   fetchData: () => void
   openUpgrade: () => void
   planSupportsBooking: boolean
+  planSupportsTransfer: boolean
 }
 
 type RowSnapshot = {
@@ -634,6 +635,25 @@ function ForwardingModal(p: CommonProps) {
   async function save() {
     const res = await patch({ forwarding_number: enabled ? number : null })
     if (res?.ok) { p.edit.markClean(); setTimeout(() => p.edit.forceClose(), 700) }
+  }
+
+  if (!p.planSupportsTransfer) {
+    return (
+      <>
+        <p className="text-[12px] t2 leading-relaxed">
+          Live call transfer is part of the AI Receptionist plan. Upgrade to let your agent route urgent callers and people asking for you by name straight to your phone.
+        </p>
+        <button
+          type="button"
+          onClick={() => { p.edit.forceClose(); p.openUpgrade() }}
+          className="block w-full mt-4 text-center px-5 py-3 rounded-lg text-[13px] font-semibold text-white"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          See plans →
+        </button>
+        <ModalActions onCancel={p.edit.closeModal} dirty={false} syncedHint={syncedHint(p.data)} />
+      </>
+    )
   }
 
   return (
@@ -1375,6 +1395,7 @@ interface RouterProps {
   fetchData: () => void
   openUpgrade: () => void
   planSupportsBooking: boolean
+  planSupportsTransfer: boolean
 }
 
 export default function InlineModalsV2({
@@ -1385,6 +1406,7 @@ export default function InlineModalsV2({
   fetchData,
   openUpgrade,
   planSupportsBooking,
+  planSupportsTransfer,
 }: RouterProps) {
   const { openModalId } = edit
   if (!openModalId || !clientId) return null
@@ -1398,6 +1420,7 @@ export default function InlineModalsV2({
     fetchData,
     openUpgrade,
     planSupportsBooking,
+    planSupportsTransfer,
   }
 
   let body: React.ReactNode = null

@@ -48,13 +48,11 @@ Expected: `202 Accepted` with `{ "jobId": "<uuid>" }`. Telegram alert pings Hasa
 4. Wait for prompt generation (creates Ultravox agent, inserts `clients` row with `status='pending'`)
 
 ### Step 3 — Admin: Set transfer + minute cap (BEFORE activation)
-1. Open Velly's client row in admin → **God Mode**
-2. Set:
-   - `forwarding_number = +13062416312`
-   - `transfer_conditions` = paste from `Clients/velly-remodeling.md` (the 4-rule block under "Transfer rule")
-   - `monthly_minute_limit = 100`
-   - Verify `selected_plan = pro` (required for transferCall to register)
-3. Save
+**FIRST decide plan path (see [[Clients/velly-remodeling]] § Plan tier):**
+- **Path A (real Lite, no transfer):** skip `forwarding_number` + `transfer_conditions`. Eric just message-takes. Just set `monthly_minute_limit = 100` and verify `selected_plan = lite`.
+- **Path B (DB override for transfer at $29 price):** set `selected_plan = pro` at DB level + `forwarding_number = +13062416312` + `monthly_minute_limit = 100`. `transfer_conditions` is OPTIONAL — leave it null to use the default trigger ("caller asks for a person / VIP / emergency"), or paste the 4-rule block from [[Clients/velly-remodeling]] for name-specific routing.
+
+Save in admin God Mode.
 
 ### Step 4 — Admin: Activate + get Stripe URL
 1. `/dashboard/clients` → Velly → **Activate**
@@ -96,9 +94,11 @@ Send Hasan: Twilio number + Stripe URL + carrier-forwarding instructions for 306
 - ❌ **Stripe checkout URL distribution — REQUIRES explicit ask** (same reason)
 
 ## Risk callouts
-- **Velly is the first production client to exercise `transferCall`.** Watch first 5 transfer events carefully. If `transfer_status` gets stuck at `'transferring'`, check `/transfer-status` callback logs.
-- **`niche=other` may produce a thinner prompt** than templated niches. Sonar enrichment partially compensates. If Eric sounds generic on first test calls, consider scaffolding a real `renovation` niche before more concierge clients sign on.
-- **PR #39 has unrelated commits.** If telegram/settings work was incomplete, splitting the PR (cherry-pick just `299a15f` to main) is the safer path. Decide before merging.
+- **Plan path question is open** — see Step 3. Confirm with Hasan before activation; "this light plan" in his 2026-04-28 PM message is ambiguous.
+- **If Path B (DB override):** Velly is the first production client to exercise `transferCall`. Watch first 5 transfer events. If `transfer_status` gets stuck at `'transferring'`, check `/transfer-status` callback logs.
+- **`niche=other` may produce a thinner prompt** than templated niches. Sonar enrichment partially compensates.
+- **PR #39 already merged + Railway deployed 2026-04-28 PM** — this risk callout is stale, leaving for history.
+- **Lite fake-control fix shipped 2026-04-28 PM** (separate PR, branch `fix/transfer-plan-gate`). Confirms Lite users see upgrade modal instead of working-looking toggle.
 
 ## What NOT to do
 - ❌ Do NOT POST `/api/provision` until PR #39 is merged + redeployed

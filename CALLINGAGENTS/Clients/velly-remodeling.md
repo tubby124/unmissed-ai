@@ -38,14 +38,21 @@ updated: 2026-04-28
 | Hours behavior | Always answer 24/7. Business hours Mon–Fri 8am–5pm, weekends by appointment — used as callback timing context, not as gating. |
 
 ## Active Features (target state)
-- [x] Transfer — **first production client with `transferCall` enabled**
+- [?] Transfer — **plan-tier-dependent**, see Plan Tier note below
 - [ ] Booking
 - [ ] SMS
 - [ ] IVR
 - [x] Knowledge RAG — pgvector seeded from website scrape
 - [x] Returning caller detection — auto via `agent-context.ts` (no config needed)
 
-## Transfer rule (`transfer_conditions`)
+## Plan tier — needs Hasan's confirmation before activation
+FOUNDING29 coupon = $29/mo, built for Lite. Lite has `transferEnabled: false`. Two paths:
+- **Path A — real Lite**: Eric just message-takes, no transferCall, no manual "Take this call" button (Overview toggle now blocks Lite users with an upgrade modal).
+- **Path B — DB override**: admin sets `selected_plan='pro'` at DB level after Stripe checkout, keeping the $29 price via coupon. Transfer + manual button work. Hacky — bypasses plan gating.
+
+Hasan said 2026-04-28 PM: most clients on $119 Core (transfer-eligible). Kausar specifically named "this light plan." If literal, Path A. If "light plan" = $29 founding price regardless of underlying tier, Path B.
+
+## Transfer rule (`transfer_conditions`) — only used if Path B in Plan tier above
 > Transfer the call only when ONE of these is true:
 > 1. Caller asks for Kausar by name, asks for "the owner," or asks to "speak to a person"
 > 2. Caller mentions a deposit they already paid, an ongoing project, or a problem on an active jobsite
@@ -53,6 +60,8 @@ updated: 2026-04-28
 > 4. Caller refuses to give project details after one offer to take a quote intake AND gives a specific reason they need a human (not just "I want a person")
 >
 > Do NOT transfer for general info, pricing curiosity, or first-time quote requests — collect the intake first.
+
+**Note:** [buildTransferTools()](src/lib/ultravox.ts#L463-L465) already has a working default ("caller asks for a person, says 'put me through', 'connect me'"). Setting custom `transfer_conditions` above adds the deposit/returning-customer/name-specific branches on top. If only the default behavior is wanted, leave `transfer_conditions` null.
 
 ## Intake to collect on every call (`completion_fields`)
 1. Project type (renovation / new build / basement suite / kitchen / bathroom / addition / other)
@@ -86,10 +95,11 @@ Warm/concierge. After-hours: same greeting — never says "we're closed."
 - → [[Tracker/D-NEW-renovation-niche]] (candidate — scaffold real `renovation` niche after Velly proves the pattern)
 - → [[Tracker/D-NEW-mid-call-transfer-button]] (candidate — manual "transfer this call to me" button on LiveCallBanner; deferred per 2026-04-28 decision)
 
-## Lessons from this provisioning session (2026-04-28)
-- **`transferCall` tool is fully built but unused on existing clients.** Hasan and Omar both have `Transfer = [ ]` unchecked. Velly will be the first production client to actually exercise the agent-initiated transfer path.
-- **There is no manual "transfer this call to me" button.** The `LiveCallBanner` only has End + Open Monitor. The Overview "Live call transfer" sheet (`ForwardingSheet`) is **config**, not a real-time trigger.
-- **Omar's IVR is press-1-voicemail / else-AI.** Not "press 2 to dial Omar." That feature doesn't exist.
-- **Niche=other works fine** as the fallback for niches we haven't scaffolded — falls back to generic NICHE_DEFAULTS in `prompt-config/niche-defaults.ts`. After Velly stabilizes, scaffold a real `renovation` niche via `/niche-new` so future contractors (drywall, electrical, framing) inherit a richer template.
-- **24/7 answering with weekday business hours is a config pattern**, not a special mode — set `business_hours_weekday`, `business_hours_weekend`, and leave `after_hours_behavior` unset/`always_answer`. The agent uses hours as callback-timing context, not as a "we're closed" gate.
-- **Founding $29/mo with custom minute cap** is a manual override pattern — Stripe coupon FOUNDING29 sets the price, then admin sets `monthly_minute_limit=100` directly on the clients row.
+## Lessons from this provisioning session (2026-04-28, revised PM)
+- **Plan tier gates transfer at runtime, not just at billing.** Lite has `transferEnabled: false` per [plan-entitlements.ts:54](src/lib/plan-entitlements.ts#L54). Setting `forwarding_number` on a Lite client used to be a fake-control bug; now the Overview toggle is plan-gated and shows an upgrade modal for Lite users.
+- **`transferCall` default trigger language is good enough for most cases** — VIP / extreme emergency / "I want to speak to someone" all fire it without setting custom `transfer_conditions`. Custom conditions only matter for name-specific or deposit-specific routing.
+- **Manual "Take this call" button shipped 2026-04-28** as POST `/api/dashboard/calls/[id]/transfer-now` + LiveCallBanner button. Requires same prerequisites as agent-initiated: `forwarding_number` + plan supports transfer.
+- **Omar's IVR is press-1-voicemail / else-AI.** Not "press 2 to dial Omar."
+- **Niche=other works fine** as the fallback for niches we haven't scaffolded — falls back to generic NICHE_DEFAULTS in `prompt-config/niche-defaults.ts`. After Velly stabilizes, scaffold a real `renovation` niche via `/niche-new`.
+- **24/7 answering with weekday business hours is a config pattern**, not a special mode — set `business_hours_weekday`, `business_hours_weekend`, and leave `after_hours_behavior=always_answer`.
+- **Founding $29/mo + Stripe coupon FOUNDING29 = Lite price.** If transfer is needed at $29, that's a DB-level override of `selected_plan` after Stripe activation, not something the coupon does on its own.
