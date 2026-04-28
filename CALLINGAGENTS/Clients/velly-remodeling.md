@@ -33,7 +33,7 @@ updated: 2026-04-28
 | Website | https://www.vellyremodeling.com/ |
 | Niche | `other` (no `renovation` niche scaffolded yet — D-NEW candidate) |
 | Agent name | Eric |
-| Plan | $29/mo Founding Member (FOUNDING29 coupon, Stripe `i0s7bCCd`) |
+| Plan | $29/mo, Core feature gates, 100-minute cap (custom combo — see "Plan combo" section) |
 | Monthly minute limit | 100 |
 | Hours behavior | Always answer 24/7. Business hours Mon–Fri 8am–5pm, weekends by appointment — used as callback timing context, not as gating. |
 
@@ -45,12 +45,19 @@ updated: 2026-04-28
 - [x] Knowledge RAG — pgvector seeded from website scrape
 - [x] Returning caller detection — auto via `agent-context.ts` (no config needed)
 
-## Plan tier — needs Hasan's confirmation before activation
-FOUNDING29 coupon = $29/mo, built for Lite. Lite has `transferEnabled: false`. Two paths:
-- **Path A — real Lite**: Eric just message-takes, no transferCall, no manual "Take this call" button (Overview toggle now blocks Lite users with an upgrade modal).
-- **Path B — DB override**: admin sets `selected_plan='pro'` at DB level after Stripe checkout, keeping the $29 price via coupon. Transfer + manual button work. Hacky — bypasses plan gating.
+## Plan combo — LOCKED 2026-04-28 PM
+Hasan locked the three-way combo:
+| Lever | Value |
+|---|---|
+| Stripe price | $29/mo CAD (custom price under Core product `prod_UCl8nni05Nk9lB` — needs to be created in Stripe) |
+| `selected_plan` | `core` (gives transfer + booking + knowledge + learning loop) |
+| `monthly_minute_limit` | `100` (manual override, less than Core default 200) |
 
-Hasan said 2026-04-28 PM: most clients on $119 Core (transfer-eligible). Kausar specifically named "this light plan." If literal, Path A. If "light plan" = $29 founding price regardless of underlying tier, Path B.
+Not a hack — `selected_plan` controls features, `monthly_minute_limit` controls usage cap, Stripe price controls billing. Three independent levers. Trial uses the same `monthly_minute_limit` lever to cap at 50 regardless of plan.
+
+**Do NOT use FOUNDING29 coupon** — it's a Lite-tier coupon ($49 - $20 = $29). Applied to Core ($119 - $20 = $99) it gives the wrong price. New Stripe price needed under Core product.
+
+Activation path detailed in [[00-Inbox/NEXT-CHAT-Kausar-Velly-Activation]].
 
 ## Transfer rule (`transfer_conditions`) — only used if Path B in Plan tier above
 > Transfer the call only when ONE of these is true:
