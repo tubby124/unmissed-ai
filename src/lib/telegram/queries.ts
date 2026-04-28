@@ -7,6 +7,8 @@ export interface TelegramClientRow {
   monthly_minute_limit: number | null
   bonus_minutes: number | null
   seconds_used_this_month: number | null
+  business_facts?: string | null
+  extra_qa?: unknown
 }
 
 export interface CallRow {
@@ -34,7 +36,7 @@ export async function fetchClientByChatId(
 ): Promise<TelegramClientRow | null> {
   const { data } = await supa
     .from('clients')
-    .select('id, slug, business_name, monthly_minute_limit, bonus_minutes, seconds_used_this_month')
+    .select('id, slug, business_name, monthly_minute_limit, bonus_minutes, seconds_used_this_month, business_facts, extra_qa')
     .eq('telegram_chat_id', String(chatId))
     .limit(1)
     .maybeSingle()
