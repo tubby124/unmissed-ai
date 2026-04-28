@@ -20,14 +20,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SUPPORT_EMAIL } from '@/lib/brand'
 import { routeTelegramMessage, dispatchCommand } from '@/lib/telegram/router'
-import { fetchClientByChatId } from '@/lib/telegram/queries'
+import { fetchClientByChatId, type TelegramClientRow } from '@/lib/telegram/queries'
 import {
   buildQuickActionsKeyboard,
+  buildContextActionsKeyboard,
   CALLBACK_CODE_TO_COMMAND,
   isTier3ReservedCode,
   renderTier3ComingSoon,
 } from '@/lib/telegram/menu'
+import { answerForClient } from '@/lib/telegram/assistant'
 import type { InlineKeyboardMarkup } from '@/lib/telegram/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 interface TelegramUpdate {
   update_id?: number
@@ -78,6 +81,51 @@ async function answerCallbackQuery(callbackQueryId: string): Promise<void> {
   } catch (err) {
     // Silent ack failure is non-fatal — the user just sees a spinner for a moment.
     console.warn(`[telegram-webhook] answerCallbackQuery failed: ${(err as Error).message}`)
+  }
+}
+
+async function sendChatAction(chatId: number, action: 'typing'): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN!
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, action }),
+    })
+  } catch (err) {
+    console.warn(`[telegram-webhook] sendChatAction failed: ${(err as Error).message}`)
+  }
+}
+
+async function handleAssistantRequest(
+  supa: SupabaseClient,
+  chatId: number,
+  client: TelegramClientRow,
+  text: string
+): Promise<void> {
+  await sendChatAction(chatId, 'typing')
+  const result = await answerForClient(client, text, {
+    supa,
+    timezone: 'America/Regina',
+  })
+
+  await sendTelegramMessage(chatId, result.reply, {
+    reply_markup: buildContextActionsKeyboard(result.intent),
+  })
+
+  // PII-free cost telemetry — token counts + outcome only, no message text.
+  try {
+    await supa.from('telegram_assistant_log').insert({
+      chat_id: chatId,
+      client_id: client.id,
+      model: result.model,
+      input_tokens: result.inputTokens,
+      output_tokens: result.outputTokens,
+      latency_ms: result.latencyMs,
+      outcome: result.outcome,
+    })
+  } catch (err) {
+    console.warn(`[telegram-webhook] assistant log insert failed: ${(err as Error).message}`)
   }
 }
 
@@ -152,7 +200,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const firstName = message.from?.first_name ?? 'there'
   const updateId = update.update_id ?? 0
 
-  // ── Tier 1 router: slash commands (everything except /start) ──────────────
+  // ── Router: slash commands + keyword shortcuts + Tier 2 NL Q&A ───────────
   if (!text.startsWith('/start')) {
     try {
       const result = await routeTelegramMessage(
@@ -161,6 +209,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
       if (result.kind === 'reply') {
         await sendTelegramMessage(chatId, result.text, { reply_markup: result.reply_markup })
+      } else if (result.kind === 'assistant') {
+        await handleAssistantRequest(adminSupa, chatId, result.client, result.text)
       }
     } catch (err) {
       console.error(`[telegram-webhook] Router error for chatId=${chatId}: ${(err as Error).message}`)

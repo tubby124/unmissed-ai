@@ -21,6 +21,7 @@ import {
   renderCallsHeader,
 } from './format'
 import { buildQuickActionsKeyboard } from './menu'
+import { matchKeywordShortcut } from './shortcuts'
 import type { InlineKeyboardMarkup } from './types'
 
 const rateLimiter = new SlidingWindowRateLimiter(10, 60_000)
@@ -40,6 +41,7 @@ export interface RouterContext {
 
 export type RouterResult =
   | { kind: 'reply'; text: string; reply_markup?: InlineKeyboardMarkup }
+  | { kind: 'assistant'; text: string; client: TelegramClientRow }
   | { kind: 'noop' }
   | { kind: 'fallthrough' } // not a slash command — let the existing /start handler take it
 
@@ -79,7 +81,20 @@ export async function routeTelegramMessage(
     return { kind: 'reply', text: renderUnregistered() }
   }
 
-  return dispatchCommand(msg.text, client, ctx)
+  // Slash command path — handled directly
+  if (msg.text.startsWith('/')) {
+    return dispatchCommand(msg.text, client, ctx)
+  }
+
+  // Keyword shortcut (no-LLM fast path). Single-word "calls" → /calls.
+  const shortcut = matchKeywordShortcut(msg.text)
+  if (shortcut) {
+    return dispatchCommand(shortcut, client, ctx)
+  }
+
+  // Anything else → Tier 2 assistant (handled by the webhook layer so it
+  // can also fire sendChatAction("typing") and log token usage).
+  return { kind: 'assistant', text: msg.text, client }
 }
 
 /**

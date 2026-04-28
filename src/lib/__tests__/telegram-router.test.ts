@@ -163,14 +163,25 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     assert.match(blocked.text, /Slow down/i)
   })
 
-  it('unknown command points back to /help and includes keyboard', async () => {
+  it('multi-word free text routes to assistant (Tier 2)', async () => {
     const result = await routeTelegramMessage(
-      makeMsg({ text: 'yo whats up' }),
+      makeMsg({ text: 'anything urgent today?' }),
       { supa: makeFakeSupa(state), timezone: 'America/Regina' }
     )
-    if (result.kind !== 'reply') throw new Error('expected reply')
-    assert.match(result.text, /\/help/)
-    assert.ok(result.reply_markup, 'unknown reply must include keyboard for discoverability')
+    if (result.kind !== 'assistant') throw new Error(`expected assistant, got ${result.kind}`)
+    assert.equal(result.text, 'anything urgent today?')
+    assert.equal(result.client.id, 'client-1')
+  })
+
+  it('single-word "calls" hits keyword shortcut (no LLM)', async () => {
+    const result = await routeTelegramMessage(
+      makeMsg({ text: 'calls' }),
+      { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+    )
+    if (result.kind !== 'reply') throw new Error('expected reply (shortcut, not assistant)')
+    assert.match(result.text, /<pre>/)
+    assert.match(result.text, /John/)
+    assert.ok(result.reply_markup)
   })
 
   it('rate-limited reply still includes keyboard for discoverability', async () => {
