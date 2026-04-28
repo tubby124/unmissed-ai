@@ -19,6 +19,8 @@ const BARS = [0.35, 0.8, 0.55, 1, 0.65, 0.9, 0.4, 0.75, 0.5, 0.85, 0.45, 0.7]
 
 export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
   const [ending, setEnding] = useState<Record<string, boolean>>({})
+  const [transferring, setTransferring] = useState<Record<string, boolean>>({})
+  const [transferError, setTransferError] = useState<Record<string, string>>({})
 
   async function handleEndCall(ultravoxCallId: string) {
     if (ending[ultravoxCallId]) return
@@ -29,6 +31,27 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
       // fire-and-forget; poll will update banner when call disappears
     } finally {
       setEnding(prev => ({ ...prev, [ultravoxCallId]: false }))
+    }
+  }
+
+  async function handleTakeCall(ultravoxCallId: string) {
+    if (transferring[ultravoxCallId]) return
+    setTransferring(prev => ({ ...prev, [ultravoxCallId]: true }))
+    setTransferError(prev => ({ ...prev, [ultravoxCallId]: '' }))
+    try {
+      const res = await fetch(`/api/dashboard/calls/${ultravoxCallId}/transfer-now`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = (body as { error?: string }).error || 'Could not transfer the call.'
+        setTransferError(prev => ({ ...prev, [ultravoxCallId]: msg }))
+      }
+      // On success: realtime channel picks up transfer_status='transferring' and
+      // the existing overlay at lines below renders automatically. The button
+      // hides itself because we render based on call.transfer_status.
+    } catch {
+      setTransferError(prev => ({ ...prev, [ultravoxCallId]: 'Network error. Please try again.' }))
+    } finally {
+      setTransferring(prev => ({ ...prev, [ultravoxCallId]: false }))
     }
   }
 
@@ -168,6 +191,19 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
                       {ending[call.ultravox_call_id] ? 'Ending…' : 'End'}
                     </button>
 
+                    {/* Take this call (manual mid-call transfer) — hidden once transfer is in-flight */}
+                    {call.transfer_status !== 'transferring' && (
+                      <button
+                        onClick={() => handleTakeCall(call.ultravox_call_id)}
+                        disabled={!!transferring[call.ultravox_call_id]}
+                        title="Pull the caller off the agent and ring your phone"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/35 hover:bg-blue-500/25 hover:border-blue-500/55 hover:text-blue-200 transition-all disabled:opacity-40"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                        {transferring[call.ultravox_call_id] ? 'Transferring…' : 'Take this call'}
+                      </button>
+                    )}
+
                     {/* Monitor CTA */}
                     <Link
                       href={`/dashboard/calls/${call.ultravox_call_id}`}
@@ -177,10 +213,19 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
                       </span>
-                      Open Monitor
+                      Just listen
                     </Link>
                   </div>
                 </div>
+
+                {/* Transfer error — surfaces 412/409/502 messages from /transfer-now */}
+                {transferError[call.ultravox_call_id] && (
+                  <div className="px-4 pb-3">
+                    <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+                      {transferError[call.ultravox_call_id]}
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
