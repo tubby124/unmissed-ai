@@ -18,6 +18,7 @@ function planBadgeStyle(plan: string): { bg: string; text: string } {
     case 'pro':    return { bg: 'bg-purple-500/10', text: 'text-purple-400' }
     case 'core':   return { bg: 'bg-blue-500/10',   text: 'text-blue-400' }
     case 'lite':   return { bg: 'bg-slate-500/10',  text: 'text-slate-400' }
+    case 'tester': return { bg: 'bg-teal-500/10',   text: 'text-teal-400' }
     case 'trial':  return { bg: 'bg-amber-500/10',  text: 'text-amber-400' }
     default:       return { bg: 'bg-amber-500/10',  text: 'text-amber-400' }
   }

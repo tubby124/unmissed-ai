@@ -22,6 +22,12 @@ interface BillingCardProps {
   stripeDiscountName: string | null
   effectiveMonthlyRate: number | null
   cancelAt: string | null
+  /**
+   * Twilio number provisioned for the client. Required for minute reload purchase
+   * — minutes only matter if the agent has a phone number to take calls on.
+   * When null, the reload buttons render disabled with an explanation.
+   */
+  twilioNumber: string | null
   isAdmin?: boolean
 }
 
@@ -34,8 +40,11 @@ export default function BillingCard({
   stripeDiscountName,
   effectiveMonthlyRate,
   cancelAt,
+  twilioNumber,
   isAdmin,
 }: BillingCardProps) {
+  const hasNumber = !!twilioNumber
+  const reloadsAllowed = (subscriptionStatus === 'active' || subscriptionStatus === 'past_due') && hasNumber
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
   const [showInvoices, setShowInvoices] = useState(false)
@@ -198,14 +207,27 @@ export default function BillingCard({
       {/* Minute packs */}
       {(isActive || isPastDue) && (
         <div>
-          <p className="text-[11px] t3 mb-2">Extra minutes</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] t3">Extra minutes</p>
+            {!hasNumber && (
+              <span className="text-[10px] text-amber-400">Phone number required</span>
+            )}
+          </div>
           <div className="flex gap-2">
             {MINUTE_RELOAD_PACKS.map((pack, i) => (
               <button
                 key={pack.minutes}
-                onClick={() => handleBuyMinutes(i)}
-                disabled={buyingMinutes}
-                className="flex-1 text-center text-[10px] font-medium px-2.5 py-2 rounded-lg border b-theme bg-surface hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                onClick={() => reloadsAllowed && handleBuyMinutes(i)}
+                disabled={buyingMinutes || !reloadsAllowed}
+                title={!hasNumber
+                  ? 'You need a provisioned phone number before you can buy minutes.'
+                  : `Buy ${pack.minutes} extra minutes for $${pack.price} CAD`}
+                aria-disabled={!reloadsAllowed}
+                className={`flex-1 text-center text-[10px] font-medium px-2.5 py-2 rounded-lg border b-theme bg-surface transition-colors ${
+                  reloadsAllowed
+                    ? 'hover:bg-zinc-800 disabled:opacity-50'
+                    : 'opacity-40 cursor-not-allowed'
+                }`}
               >
                 <span className="block t1 text-[12px] font-semibold">+{pack.minutes} min</span>
                 <span className="t3">${pack.price} CAD</span>

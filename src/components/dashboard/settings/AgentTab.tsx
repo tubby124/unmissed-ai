@@ -334,6 +334,7 @@ export default function AgentTab({
           stripeDiscountName={client.stripe_discount_name ?? null}
           effectiveMonthlyRate={client.effective_monthly_rate ?? null}
           cancelAt={client.cancel_at ?? null}
+          twilioNumber={client.twilio_number ?? null}
           isAdmin={isAdmin}
         />
       )}
@@ -784,6 +785,7 @@ export default function AgentTab({
             stripeDiscountName={client.stripe_discount_name ?? null}
             effectiveMonthlyRate={client.effective_monthly_rate ?? null}
             cancelAt={client.cancel_at ?? null}
+            twilioNumber={client.twilio_number ?? null}
             isAdmin={isAdmin}
           />
           <SetupProgressRing client={client} isAdmin={isAdmin} />
