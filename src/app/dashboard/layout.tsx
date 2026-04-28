@@ -19,6 +19,7 @@ import UpgradeModal from '@/components/dashboard/UpgradeModal'
 import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
 import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
+import RecordingConsentGate from '@/components/dashboard/RecordingConsentGate'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -40,11 +41,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let minutesUsed = 0
   let minuteLimit: number | null = null
   let bonusMinutes = 0
+  let needsRecordingConsent = false
 
   if (user) {
     const { data: cuRows } = await supabase
       .from('client_users')
-      .select('client_id, role, clients(business_name, status, subscription_status, trial_expires_at, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche, seconds_used_this_month, monthly_minute_limit, bonus_minutes)')
+      .select('client_id, role, clients(business_name, status, subscription_status, trial_expires_at, telegram_bot_token, telegram_chat_id, setup_complete, twilio_number, niche, seconds_used_this_month, monthly_minute_limit, bonus_minutes, recording_consent_acknowledged_at)')
       .eq('user_id', user.id)
       .order('role').limit(1)
     const cu = cuRows?.[0] ?? null
@@ -56,7 +58,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
     isAdmin = cu?.role === 'admin'
     clientId = isAdmin ? null : (cu?.client_id as string | null) ?? null
-    const clientData = cu?.clients as { business_name?: string; status?: string; subscription_status?: string | null; trial_expires_at?: string | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null } | null
+    const clientData = cu?.clients as { business_name?: string; status?: string; subscription_status?: string | null; trial_expires_at?: string | null; telegram_bot_token?: string | null; telegram_chat_id?: string | null; setup_complete?: boolean; twilio_number?: string | null; niche?: string | null; seconds_used_this_month?: number | null; monthly_minute_limit?: number | null; bonus_minutes?: number | null; recording_consent_acknowledged_at?: string | null } | null
     businessName = isAdmin ? undefined : clientData?.business_name ?? undefined
     clientStatus = isAdmin ? null : clientData?.status ?? null
     subscriptionStatus = isAdmin ? null : clientData?.subscription_status ?? null
@@ -70,6 +72,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       minuteLimit = clientData?.monthly_minute_limit ?? null
       bonusMinutes = clientData?.bonus_minutes ?? 0
     }
+    needsRecordingConsent = !isAdmin && !!clientId && !clientData?.recording_consent_acknowledged_at
 
     if (isAdmin) {
       const { data: allClients } = await supabase
@@ -180,6 +183,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </Suspense>
       <DashboardToaster />
       <RealtimeToasts clientId={clientId} isAdmin={isAdmin} />
+      {needsRecordingConsent && clientId && (
+        <RecordingConsentGate clientId={clientId} />
+      )}
     </div>
   )
 }

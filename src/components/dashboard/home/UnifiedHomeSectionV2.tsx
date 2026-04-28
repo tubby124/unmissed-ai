@@ -370,6 +370,8 @@ export default function UnifiedHomeSectionV2({
               if (h < 24) return `Synced ${h}h ago`
               return `Synced ${Math.floor(h / 24)}d ago`
             })()}
+            isTrial={isTrial}
+            hasForwarding={!!data.editableFields.forwardingNumber}
             openModal={inlineEdit.openModal}
           />
         </>

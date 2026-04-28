@@ -407,6 +407,15 @@ function VoicemailModal(p: CommonProps) {
 function GbpModal(p: CommonProps) {
   const gbp = p.data.gbpData
   const connected = !!gbp?.placeId
+  const ef = p.data.editableFields
+  // Rows reflect what's currently stored on the client from the Google Places import.
+  const rows: { label: string; value: string | null }[] = [
+    { label: 'Business name', value: p.data.onboarding.businessName || null },
+    { label: 'Hours (weekday)', value: ef.hoursWeekday || null },
+    { label: 'Hours (weekend)', value: ef.hoursWeekend || null },
+    { label: 'Website', value: ef.websiteUrl || null },
+    { label: 'Rating', value: gbp?.rating != null ? `${gbp.rating.toFixed(1)} ★ (${gbp.reviewCount ?? 0} reviews)` : null },
+  ]
   return (
     <>
       {connected ? (
@@ -417,17 +426,39 @@ function GbpModal(p: CommonProps) {
           >
             <span style={{ color: 'rgb(52,211,153)' }}>✓</span>
             <span className="text-[12px] t1">
-              {p.data.onboarding.businessName}
-              {gbp?.rating != null && (
-                <span className="t3"> · {gbp.rating.toFixed(1)}★ ({gbp.reviewCount ?? 0} reviews)</span>
-              )}
+              Imported from Google
             </span>
           </div>
+
+          {/* Wave 2.1 — surface the actual extracted fields, not just "connected" */}
+          <div className="mt-3 space-y-1.5">
+            {rows.map(r => (
+              <div key={r.label} className="grid grid-cols-[110px_1fr] gap-2 text-[11px] leading-relaxed">
+                <span className="t3">{r.label}</span>
+                <span className="t1 break-words">
+                  {r.value ? (
+                    r.label === 'Website' && r.value.startsWith('http') ? (
+                      <a href={r.value} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--color-primary)' }}>
+                        {r.value.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    ) : r.value
+                  ) : (
+                    <span className="t3 italic">not set</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+
           {gbp?.summary && (
-            <p className="text-[11px] t2 mt-3 leading-relaxed">{gbp.summary}</p>
+            <div className="mt-3 px-3 py-2 rounded-lg bg-hover">
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase t3 mb-1">Summary</p>
+              <p className="text-[11px] t2 leading-relaxed italic">{gbp.summary}</p>
+            </div>
           )}
-          <p className="text-[11px] t3 mt-4">
-            Auto-imported via Google Places at onboarding. To re-import, contact support — refresh from dashboard is coming soon.
+
+          <p className="text-[10px] t3 mt-3 leading-snug">
+            Auto-imported via Google Places at onboarding. Edit any field by clicking its chip on the overview.
           </p>
         </>
       ) : (
@@ -1148,11 +1179,13 @@ function KnowledgeModal(p: CommonProps) {
         </p>
       )}
       <Link
-        href="/dashboard/knowledge"
+        href={active === 'all' ? '/dashboard/knowledge' : `/dashboard/knowledge?source=${encodeURIComponent(active)}`}
         className="block mt-4 text-center px-5 py-3 rounded-lg text-[13px] font-semibold text-white"
         style={{ backgroundColor: 'var(--color-primary)' }}
       >
-        Open Knowledge to browse / edit chunks →
+        {active === 'all'
+          ? 'Open Knowledge to browse / edit chunks →'
+          : `Open ${active === 'website_scrape' ? 'website' : active === 'compiled_import' ? 'AI compiled' : active} chunks →`}
       </Link>
       <ModalActions onCancel={p.edit.closeModal} dirty={false} syncedHint={syncedHint(p.data)} />
     </>

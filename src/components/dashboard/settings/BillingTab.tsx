@@ -42,7 +42,7 @@ interface PeriodStats {
 const PLAN_CHIPS: Record<string, string[]> = {
   trial: [`${TRIAL.minutes} min trial`, 'Basic agent', 'SMS follow-up', 'Telegram alerts'],
   lite: ['100 min/mo', 'Call summaries', 'Lead scoring', 'SMS follow-up'],
-  core: ['400 min/mo', 'Website knowledge', 'Caller ranking', 'Daily digest'],
+  core: ['200 min/mo', 'Website knowledge', 'Caller ranking', 'Daily digest'],
   pro: ['1,000 min/mo', 'Calendar booking', 'Live transfer', 'Priority support'],
 }
 

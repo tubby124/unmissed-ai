@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import LiveDuration from './LiveDuration'
+import { formatPhone } from '@/lib/format-phone'
 
 interface LiveCall {
   id: string
@@ -105,12 +106,12 @@ export default function LiveCallBanner({ calls }: { calls: LiveCall[] }) {
                           {call.business_name}
                         </p>
                         <p className="font-mono text-base text-green-100 font-semibold tracking-tight truncate">
-                          {call.caller_phone || 'Unknown caller'}
+                          {formatPhone(call.caller_phone)}
                         </p>
                       </>
                     ) : (
                       <p className="font-mono text-base text-green-100 font-semibold tracking-tight truncate">
-                        {call.caller_phone || 'Unknown caller'}
+                        {formatPhone(call.caller_phone)}
                       </p>
                     )}
                   </div>

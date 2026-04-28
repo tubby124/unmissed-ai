@@ -69,14 +69,14 @@ export const PLANS = [
     monthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
-    minutes: 400,
+    minutes: 200,
     description: "Your agent knows your business and never forgets it. Answers caller questions, books appointments, ranks every lead, and tells you who's worth calling back.",
     isPopular: true,
     stripeMonthlyPriceId: "price_1TQdWK0tFbm4ZBYUz7JyvVpe", // $119/mo CAD (Core Monthly v2)
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
-      "400 minutes/month included",
+      "200 minutes/month included",
       "Everything in Solo",
       "Answers from your own business info — website, hours, services",
       "Books appointments into your Google Calendar",

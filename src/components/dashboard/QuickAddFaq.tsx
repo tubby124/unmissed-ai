@@ -8,6 +8,7 @@ interface QuickAddFaqProps {
   clientId: string
   topics: string[]
   transcript: Array<{ role: string; text: string }> | null
+  callId?: string
 }
 
 interface FaqItem {
@@ -62,13 +63,15 @@ function buildTranscriptContext(topic: string, transcript: Array<{ role: string;
   return lines.join('\n')
 }
 
-export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFaqProps) {
+export default function QuickAddFaq({ clientId, topics, transcript, callId }: QuickAddFaqProps) {
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [suggesting, setSuggesting] = useState(false)
   const [aiSuggested, setAiSuggested] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [snippetSavingTopic, setSnippetSavingTopic] = useState<string | null>(null)
+  const [snippetSavedTopics, setSnippetSavedTopics] = useState<Set<string>>(new Set())
   const [addedTopics, setAddedTopics] = useState<Set<string>>(new Set())
 
   async function handleExpand(topic: string) {
@@ -108,6 +111,30 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
       // Non-fatal — user can still type their own answer
     } finally {
       setSuggesting(false)
+    }
+  }
+
+  async function handleSaveSnippet(topic: string) {
+    if (snippetSavingTopic) return
+    setSnippetSavingTopic(topic)
+    try {
+      const snippet = buildTranscriptContext(topic, transcript) || topic
+      const res = await fetch('/api/dashboard/knowledge/add-snippet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, topic, snippet, call_id: callId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Failed to save snippet' }))
+        throw new Error(data.error ?? 'Failed to save snippet')
+      }
+      toast.success('Snippet saved — agent can now search this on the next call')
+      setSnippetSavedTopics(prev => new Set(prev).add(topic))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save snippet'
+      toast.error(msg)
+    } finally {
+      setSnippetSavingTopic(null)
     }
   }
 
@@ -207,27 +234,57 @@ export default function QuickAddFaq({ clientId, topics, transcript }: QuickAddFa
                   <span className="text-[10px] text-green-400">Added</span>
                 </span>
               ) : (
-                <button
-                  onClick={() => handleExpand(topic)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer"
-                  style={{
-                    color: isExpanded ? 'var(--color-text-1)' : 'var(--color-text-2)',
-                    backgroundColor: isExpanded ? 'rgba(99,102,241,0.05)' : 'transparent',
-                    borderColor: isExpanded ? 'rgba(99,102,241,0.25)' : 'var(--color-border)',
-                  }}
-                >
-                  {topic}
-                  <span
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                <span className="inline-flex items-center gap-1">
+                  <button
+                    onClick={() => handleExpand(topic)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer"
                     style={{
-                      backgroundColor: 'rgba(99,102,241,0.1)',
-                      color: 'rgb(129,140,248)',
-                      border: '1px solid rgba(99,102,241,0.2)',
+                      color: isExpanded ? 'var(--color-text-1)' : 'var(--color-text-2)',
+                      backgroundColor: isExpanded ? 'rgba(99,102,241,0.05)' : 'transparent',
+                      borderColor: isExpanded ? 'rgba(99,102,241,0.25)' : 'var(--color-border)',
                     }}
                   >
-                    {isExpanded ? 'Cancel' : 'Add as FAQ'}
-                  </span>
-                </button>
+                    {topic}
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: 'rgba(99,102,241,0.1)',
+                        color: 'rgb(129,140,248)',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                      }}
+                    >
+                      {isExpanded ? 'Cancel' : 'Add as FAQ'}
+                    </span>
+                  </button>
+                  {!isExpanded && !snippetSavedTopics.has(topic) && (
+                    <button
+                      onClick={() => handleSaveSnippet(topic)}
+                      disabled={snippetSavingTopic === topic}
+                      title="Save the transcript snippet to your agent's knowledge so it can search it next time"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer disabled:opacity-40"
+                      style={{
+                        color: 'var(--color-text-3)',
+                        borderColor: 'var(--color-border)',
+                      }}
+                    >
+                      {snippetSavingTopic === topic ? (
+                        <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                          <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                          <polyline points="17 21 17 13 7 13 7 21"/>
+                          <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  {snippetSavedTopics.has(topic) && (
+                    <span className="text-[10px] text-green-400 px-1">snippet saved</span>
+                  )}
+                </span>
               )}
 
               {/* Inline form */}

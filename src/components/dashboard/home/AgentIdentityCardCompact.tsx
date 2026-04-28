@@ -37,6 +37,10 @@ interface Props {
   injectedNote: string | null
   /** Optional "Synced X ago" trust string sourced from agentSync.last_agent_sync_at. */
   syncedLabel?: string | null
+  /** True when subscription_status === 'trialing'. Shows trial-clarity caption above chips. */
+  isTrial?: boolean
+  /** True when client has an active forwarding_number wired (paid + verified). */
+  hasForwarding?: boolean
   openModal: (id: Exclude<ModalId, null>) => void
 }
 
@@ -68,6 +72,8 @@ export default function AgentIdentityCardCompact({
   capabilities,
   injectedNote,
   syncedLabel,
+  isTrial = false,
+  hasForwarding = false,
   openModal,
 }: Props) {
   const [voiceName, setVoiceName] = useState<string | null>(null)
@@ -186,7 +192,15 @@ export default function AgentIdentityCardCompact({
         </div>
 
         {/* RIGHT — 10 chips, 4-col grid (4×3 on desktop, 2×5 on mobile) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="space-y-2 min-w-0">
+          {(isTrial || !hasForwarding) && twilioNumber && (
+            <p className="text-[10px] t3 leading-snug px-0.5">
+              {isTrial
+                ? 'Trial — your agent is live. Forward your business line to the number above to start receiving real calls. SMS / Voicemail / Telegram activate when you upgrade.'
+                : 'Calls to the number above reach your agent. Forwarding from your business line activates after upgrade.'}
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {chips.map(chip => (
             <button
               key={chip.key}
@@ -210,6 +224,7 @@ export default function AgentIdentityCardCompact({
               </span>
             </button>
           ))}
+          </div>
         </div>
       </div>
     </div>

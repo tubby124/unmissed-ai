@@ -143,6 +143,10 @@ export interface OnboardingData {
   callForwardingEnabled: boolean;
   agentJob?: 'message_taker' | 'receptionist' | 'booking_agent';
 
+  // Wave 1.5 — Universal recording consent. True when operator clicked the checkbox
+  // on the activate step. Required to launch the trial.
+  recordingConsentAcknowledged?: boolean;
+
   // Plan selection (step 4)
   selectedPlan: 'lite' | 'core' | 'pro' | null;
 

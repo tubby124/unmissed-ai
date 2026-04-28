@@ -411,6 +411,20 @@ export default function KnowledgePageView({
     }
   }, [searchParams, router])
 
+  // Wave 2.2 — Source deep link. ?source=website_scrape opens the chunks drawer
+  // pre-filtered to that source. Used by Website card + GBP card on overview.
+  useEffect(() => {
+    const src = searchParams.get('source')
+    if (!src) return
+    setSourceDrawerFilter(src)
+    setDrawerContent('chunks')
+    setDrawerOpen(true)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('source')
+    const q = params.toString()
+    router.replace(q ? `/dashboard/knowledge?${q}` : '/dashboard/knowledge')
+  }, [searchParams, router])
+
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
 
   // Fetch conflicts
