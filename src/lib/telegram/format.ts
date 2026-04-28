@@ -1,4 +1,11 @@
 import type { CallRow } from './queries'
+import type { InlineKeyboardMarkup } from './types'
+import { buildQuickActionsKeyboard } from './menu'
+
+export interface FormattedReply {
+  text: string
+  reply_markup?: InlineKeyboardMarkup
+}
 
 const STATUS_EMOJI: Record<string, string> = {
   HOT: '🔥',
@@ -73,6 +80,8 @@ export function renderHelp(): string {
     '/lastcall — full summary of most recent call',
     '/minutes — minutes used this cycle',
     '/help — this list',
+    '',
+    '<i>Or just tap a button below.</i>',
   ].join('\n')
 }
 
@@ -102,7 +111,7 @@ export function renderUnregistered(): string {
 }
 
 export function renderUnknown(): string {
-  return 'I didn\'t catch that. Try /help for commands.'
+  return "I didn't catch that. Try /help or tap a button below."
 }
 
 export function urgentCount(rows: CallRow[]): number {
@@ -112,4 +121,8 @@ export function urgentCount(rows: CallRow[]): number {
 export function renderCallsHeader(rows: CallRow[]): string {
   const urgent = urgentCount(rows)
   return urgent > 0 ? `<b>${urgent} urgent</b>` : ''
+}
+
+export function withQuickActions(text: string): FormattedReply {
+  return { text, reply_markup: buildQuickActionsKeyboard() }
 }

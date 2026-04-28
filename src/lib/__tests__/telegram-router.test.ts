@@ -1,89 +1,7 @@
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { routeTelegramMessage, _resetRateLimiterForTests, type TelegramMessage } from '../telegram/router'
-
-interface FakeRow {
-  id: string
-  slug: string
-  business_name: string | null
-  monthly_minute_limit: number | null
-  bonus_minutes: number | null
-  seconds_used_this_month: number | null
-}
-
-interface FakeCall {
-  id: string
-  client_id: string
-  started_at: string | null
-  caller_phone: string | null
-  caller_name: string | null
-  ai_summary: string | null
-  call_status: string | null
-  lead_status: string | null
-  service_type: string | null
-  duration_seconds: number | null
-  next_steps: string | null
-  callback_preference: string | null
-  recording_url: string | null
-  ultravox_call_id: string | null
-}
-
-interface FakeState {
-  clientByChatId: Map<number, FakeRow>
-  calls: FakeCall[]
-  seen: Set<number>
-  callsQueriedFor: string[]
-}
-
-function makeFakeSupa(state: FakeState) {
-  return {
-    from(table: string) {
-      if (table === 'clients') {
-        return {
-          select() { return this },
-          eq(_col: string, val: string) {
-            this._chatId = Number(val); return this
-          },
-          limit() { return this },
-          maybeSingle() {
-            const row = state.clientByChatId.get(this._chatId) ?? null
-            return Promise.resolve({ data: row })
-          },
-          _chatId: 0,
-        }
-      }
-      if (table === 'call_logs') {
-        const filters: Record<string, unknown> = {}
-        return {
-          select() { return this },
-          eq(col: string, val: unknown) { filters[col] = val; return this },
-          in() { return this },
-          gte() { return this },
-          or() { return this },
-          order() { return this },
-          limit() {
-            const cid = filters.client_id as string | undefined
-            if (cid) state.callsQueriedFor.push(cid)
-            const matched = state.calls.filter((c) => c.client_id === cid)
-            return Promise.resolve({ data: matched })
-          },
-        }
-      }
-      if (table === 'telegram_updates_seen') {
-        return {
-          insert(row: { update_id: number }) {
-            if (state.seen.has(row.update_id)) {
-              return Promise.resolve({ error: { code: '23505' } })
-            }
-            state.seen.add(row.update_id)
-            return Promise.resolve({ error: null })
-          },
-        }
-      }
-      throw new Error(`Unexpected table: ${table}`)
-    },
-  } as unknown as Parameters<typeof routeTelegramMessage>[1]['supa']
-}
+import { makeFakeSupa, type FakeState } from './_helpers/fake-supabase'
 
 function makeMsg(over: Partial<TelegramMessage> = {}): TelegramMessage {
   return {
@@ -161,6 +79,8 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     assert.equal(result.kind, 'reply')
     if (result.kind !== 'reply') return
     assert.match(result.text, /\/calls/)
+    assert.ok(result.reply_markup, '/help reply must include keyboard')
+    assert.equal(result.reply_markup?.inline_keyboard.length, 2)
   })
 
   it('returns table for /calls and scopes to client_id', async () => {
@@ -172,6 +92,7 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     if (result.kind !== 'reply') return
     assert.match(result.text, /<pre>/)
     assert.match(result.text, /John/)
+    assert.ok(result.reply_markup, '/calls reply must include keyboard')
     assert.deepEqual(state.callsQueriedFor, ['client-1'])
   })
 
@@ -242,12 +163,40 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     assert.match(blocked.text, /Slow down/i)
   })
 
-  it('unknown command points back to /help', async () => {
+  it('multi-word free text routes to assistant (Tier 2)', async () => {
     const result = await routeTelegramMessage(
-      makeMsg({ text: 'yo whats up' }),
+      makeMsg({ text: 'anything urgent today?' }),
       { supa: makeFakeSupa(state), timezone: 'America/Regina' }
     )
-    if (result.kind !== 'reply') throw new Error('expected reply')
-    assert.match(result.text, /\/help/)
+    if (result.kind !== 'assistant') throw new Error(`expected assistant, got ${result.kind}`)
+    assert.equal(result.text, 'anything urgent today?')
+    assert.equal(result.client.id, 'client-1')
+  })
+
+  it('single-word "calls" hits keyword shortcut (no LLM)', async () => {
+    const result = await routeTelegramMessage(
+      makeMsg({ text: 'calls' }),
+      { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+    )
+    if (result.kind !== 'reply') throw new Error('expected reply (shortcut, not assistant)')
+    assert.match(result.text, /<pre>/)
+    assert.match(result.text, /John/)
+    assert.ok(result.reply_markup)
+  })
+
+  it('rate-limited reply still includes keyboard for discoverability', async () => {
+    for (let i = 0; i < 10; i++) {
+      await routeTelegramMessage(
+        makeMsg({ text: '/help', update_id: 9000 + i }),
+        { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+      )
+    }
+    const blocked = await routeTelegramMessage(
+      makeMsg({ text: '/help', update_id: 9999 }),
+      { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+    )
+    if (blocked.kind !== 'reply') throw new Error('expected reply')
+    assert.match(blocked.text, /Slow down/i)
+    assert.ok(blocked.reply_markup, 'rate-limit reply must include keyboard')
   })
 })
