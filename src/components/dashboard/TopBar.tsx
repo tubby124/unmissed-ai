@@ -12,6 +12,9 @@ interface TopBarProps {
   isAdmin?: boolean
   failedNotifCount?: number
   userEmail?: string
+  minutesUsed?: number
+  minuteLimit?: number | null
+  bonusMinutes?: number
   onOpenPalette?: () => void
 }
 
@@ -20,8 +23,16 @@ export default function TopBar({
   isAdmin = false,
   failedNotifCount = 0,
   userEmail,
+  minutesUsed,
+  minuteLimit,
+  bonusMinutes = 0,
   onOpenPalette,
 }: TopBarProps) {
+  const showMinutes = !isAdmin && typeof minutesUsed === 'number' && typeof minuteLimit === 'number' && minuteLimit > 0
+  const totalLimit = (minuteLimit ?? 0) + bonusMinutes
+  const remaining = showMinutes ? Math.max(0, totalLimit - (minutesUsed ?? 0)) : 0
+  const pct = showMinutes && totalLimit > 0 ? (minutesUsed ?? 0) / totalLimit : 0
+  const minutesColor = pct >= 0.9 ? '#ef4444' : pct >= 0.75 ? '#f59e0b' : 'var(--color-text-2)'
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
   const supabase = createBrowserClient()
@@ -84,8 +95,24 @@ export default function TopBar({
         )}
       </div>
 
-      {/* Right: ⌘K + bell + theme + avatar */}
+      {/* Right: minutes + ⌘K + bell + theme + avatar */}
       <div className="flex items-center gap-1">
+        {/* Minutes counter pill — non-admin only */}
+        {showMinutes && (
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] mr-1 tabular-nums"
+            style={{
+              color: minutesColor,
+              border: '1px solid var(--color-border)',
+            }}
+            title={`${remaining} min remaining this period`}
+          >
+            <span className="text-[9px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-3)' }}>Min</span>
+            <span className="font-semibold">{minutesUsed}</span>
+            <span style={{ color: 'var(--color-text-3)' }}>/{totalLimit}</span>
+          </div>
+        )}
+
         {/* Cmd+K trigger pill — desktop only */}
         {onOpenPalette && (
           <button

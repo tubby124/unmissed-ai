@@ -9,6 +9,9 @@ interface DashboardShellClientProps {
   isAdmin?: boolean
   failedNotifCount?: number
   userEmail?: string
+  minutesUsed?: number
+  minuteLimit?: number | null
+  bonusMinutes?: number
 }
 
 export default function DashboardShellClient({
@@ -16,6 +19,9 @@ export default function DashboardShellClient({
   isAdmin = false,
   failedNotifCount = 0,
   userEmail,
+  minutesUsed,
+  minuteLimit,
+  bonusMinutes,
 }: DashboardShellClientProps) {
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -37,6 +43,9 @@ export default function DashboardShellClient({
         isAdmin={isAdmin}
         failedNotifCount={failedNotifCount}
         userEmail={userEmail}
+        minutesUsed={minutesUsed}
+        minuteLimit={minuteLimit}
+        bonusMinutes={bonusMinutes}
         onOpenPalette={() => setPaletteOpen(true)}
       />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

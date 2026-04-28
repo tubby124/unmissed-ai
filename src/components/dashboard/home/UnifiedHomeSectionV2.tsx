@@ -15,8 +15,6 @@ import BillingTile from './BillingTile'
 import AgentIdentityCardCompact from './AgentIdentityCardCompact'
 // v2: removed AgentIntelligenceSection (not in mockup Option 1)
 // Wave 2 — unified overview bands (v2: CapabilitiesCard + AgentRoutesOnCard removed)
-import AgentKnowsCard from './AgentKnowsCard'
-import KnowledgeQuickAddCard from './KnowledgeQuickAddCard'
 import V2CallList from './V2CallList'
 import InlineModalsV2 from './InlineModalsV2'
 import { useInlineEdit, type ModalId } from '@/hooks/useInlineEdit'
@@ -651,34 +649,29 @@ export default function UnifiedHomeSectionV2({
             {/* v2: PendingReviewTile + UnansweredQuestionsTile moved into the single readiness band below */}
           </div>
 
-          {/* Right: Knowledge Quick Add — buttons link out to /dashboard/knowledge with quickAdd query */}
+          {/* Right: Recent calls (moved from bottom row 2026-04-27) */}
           <div className="space-y-3">
-            <KnowledgeQuickAddCard />
+            <V2CallList
+              clientId={data.clientId}
+              hasTwilioNumber={!!data.twilioNumber}
+              twilioNumber={data.twilioNumber ?? null}
+              limit={5}
+              onRowClick={(snapshot) => inlineEdit.openModal('call', snapshot)}
+            />
           </div>
         </div>
 
         {/* v2: TIER 1.5 (CallMe + StatsHeroCard + TrialModeSwitcher) removed.
             Stats now surfaced inline in the trial pill at the top per mockup. */}
 
-        {/* ════════════════════════════════════════════════════════════
-            Full-width: What your agent knows (D290)
-            ════════════════════════════════════════════════════════════ */}
-        <AgentKnowsCard
-          factsText={data.editableFields.businessFacts}
-          faqCount={faqCount}
-          servicesCount={data.activeServicesCount ?? 0}
-          approvedChunkCount={data.knowledge.approved_chunk_count}
-          clientId={data.clientId}
-        />
-
-        {/* v2: AgentRoutesOnCard removed — routing surfaced via Routing chip in AgentReadinessRow */}
+        {/* v2: AgentKnowsCard ("What your agent knows") removed 2026-04-27 —
+            users go to /dashboard/knowledge directly for that view. */}
 
         {/* ════════════════════════════════════════════════════════════
-            v2 — Readiness band (left col) + Recent calls (right col).
-            2-col on md+ matches the mockup view-opt1 layout.
+            v2 — Readiness band (full-width, internal 2-col grid).
+            Recent calls moved to top hero (2026-04-27).
             ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-          {/* LEFT — single readiness band */}
+        <div>
           {(() => {
             const readyDims = [
               !!data.editableFields.hoursWeekday,
@@ -772,13 +765,14 @@ export default function UnifiedHomeSectionV2({
                     }}
                   />
                 </div>
-                <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-6">
                   {rows.map(r => (
                     <button
                       key={r.key}
                       type="button"
                       onClick={() => inlineEdit.openModal(r.modalId)}
-                      className="flex items-center justify-between gap-3 py-2.5 hover:bg-hover transition-colors -mx-4 px-4 w-full text-left"
+                      className="flex items-center justify-between gap-3 py-2.5 hover:bg-hover transition-colors px-2 -mx-2 rounded-lg w-full text-left border-b md:border-b-0 md:border-t"
+                      style={{ borderColor: 'var(--color-border)' }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base shrink-0">{r.done ? '✅' : r.urgent ? '⚠️' : '⚪'}</span>
@@ -797,15 +791,6 @@ export default function UnifiedHomeSectionV2({
               </div>
             )
           })()}
-
-          {/* RIGHT — slim recent calls list (click row → call detail modal) */}
-          <V2CallList
-            clientId={data.clientId}
-            hasTwilioNumber={!!data.twilioNumber}
-            twilioNumber={data.twilioNumber ?? null}
-            limit={5}
-            onRowClick={(snapshot) => inlineEdit.openModal('call', snapshot)}
-          />
         </div>
       </>)}
 
