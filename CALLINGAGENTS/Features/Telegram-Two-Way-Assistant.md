@@ -1,6 +1,9 @@
 ---
 type: feature
-status: proposed
+status: tier1-shipped
+tier1_pr: https://github.com/tubby124/unmissed-ai/pull/41
+tier1_merge_sha: 03ad11c09b2a42e5a8de63e4a0438df023976bd6
+tier1_shipped: 2026-04-28
 tags:
   - telegram
   - assistant
@@ -13,7 +16,21 @@ related:
   - "[[Architecture/per-call-context-contract]]"
   - "[[Architecture/webhook-security-and-idempotency]]"
   - "[[Clients/calgary-property-leasing]]"
+  - "[[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]"
+  - "[[00-Inbox/NEXT-CHAT-Telegram-Tier2]]"
 updated: 2026-04-28
+---
+
+## Status — 2026-04-28
+
+**Tier 1 LIVE** ✅ — PR #41 squash-merged at 2026-04-28T23:01:52Z, sha `03ad11c0`. Migration `20260428100000_create_telegram_updates_seen` applied to prod (qwhvblomlgeapzhnuwlb). Railway auto-deploys from main.
+
+Active commands: `/help`, `/calls`, `/today`, `/missed`, `/lastcall`, `/minutes`. Group-chat guard, 10/min rate limit, update_id idempotency, multi-tenant client_id scoping. 11/11 tests green.
+
+**Tier 2** — cold-start prompt at [[00-Inbox/NEXT-CHAT-Telegram-Tier2]]. Resume: paste that prompt into a fresh chat at the repo root.
+
+**Tier 3** — defer until Tier 2 ships and free-text reads are proven; first action will be `mark_called_back` (one-column update, idempotent), second will be `add_vip` (existing contacts endpoint, instant dashboard reflection).
+
 ---
 
 # Telegram Two-Way Assistant
