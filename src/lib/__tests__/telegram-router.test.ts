@@ -161,6 +161,8 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     assert.equal(result.kind, 'reply')
     if (result.kind !== 'reply') return
     assert.match(result.text, /\/calls/)
+    assert.ok(result.reply_markup, '/help reply must include keyboard')
+    assert.equal(result.reply_markup?.inline_keyboard.length, 2)
   })
 
   it('returns table for /calls and scopes to client_id', async () => {
@@ -172,6 +174,7 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     if (result.kind !== 'reply') return
     assert.match(result.text, /<pre>/)
     assert.match(result.text, /John/)
+    assert.ok(result.reply_markup, '/calls reply must include keyboard')
     assert.deepEqual(state.callsQueriedFor, ['client-1'])
   })
 
@@ -242,12 +245,29 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     assert.match(blocked.text, /Slow down/i)
   })
 
-  it('unknown command points back to /help', async () => {
+  it('unknown command points back to /help and includes keyboard', async () => {
     const result = await routeTelegramMessage(
       makeMsg({ text: 'yo whats up' }),
       { supa: makeFakeSupa(state), timezone: 'America/Regina' }
     )
     if (result.kind !== 'reply') throw new Error('expected reply')
     assert.match(result.text, /\/help/)
+    assert.ok(result.reply_markup, 'unknown reply must include keyboard for discoverability')
+  })
+
+  it('rate-limited reply still includes keyboard for discoverability', async () => {
+    for (let i = 0; i < 10; i++) {
+      await routeTelegramMessage(
+        makeMsg({ text: '/help', update_id: 9000 + i }),
+        { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+      )
+    }
+    const blocked = await routeTelegramMessage(
+      makeMsg({ text: '/help', update_id: 9999 }),
+      { supa: makeFakeSupa(state), timezone: 'America/Regina' }
+    )
+    if (blocked.kind !== 'reply') throw new Error('expected reply')
+    assert.match(blocked.text, /Slow down/i)
+    assert.ok(blocked.reply_markup, 'rate-limit reply must include keyboard')
   })
 })

@@ -1,17 +1,29 @@
 /**
  * POST /api/admin/setup-telegram-webhook
  *
- * One-time setup: registers the Telegram bot webhook URL with Telegram's API.
- * Must be called once (or after any URL change) to point @hassitant_1bot
- * at /api/webhook/telegram on this Railway deployment.
+ * One-time setup (idempotent):
+ *   1. setWebhook        — points @hassitant_1bot at /api/webhook/telegram
+ *   2. setMyCommands     — populates the bot's slash-command menu (the "Menu"
+ *                          button next to the input + "/" autocomplete)
+ *   3. setChatMenuButton — sets the persistent menu icon to "commands"
  *
- * Idempotent — safe to call multiple times.
+ * Must be re-run after URL change OR when the command list is updated.
  * Admin only.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { BOT_COMMANDS } from '@/lib/telegram/menu'
+
+async function tgPost(token: string, method: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -35,17 +47,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const webhookUrl = `${APP_URL}/api/webhook/telegram`
 
-  const body: Record<string, unknown> = { url: webhookUrl }
-  if (webhookSecret) body.secret_token = webhookSecret
+  // 1. setWebhook
+  const webhookBody: Record<string, unknown> = { url: webhookUrl }
+  if (webhookSecret) webhookBody.secret_token = webhookSecret
+  const setWebhookRes = await tgPost(botToken, 'setWebhook', webhookBody)
+  console.log(`[setup-telegram-webhook] setWebhook → ${webhookUrl} | result:`, setWebhookRes)
 
-  const res = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  // 2. setMyCommands — populates the bot's slash menu
+  const setCommandsRes = await tgPost(botToken, 'setMyCommands', {
+    commands: BOT_COMMANDS,
   })
+  console.log('[setup-telegram-webhook] setMyCommands result:', setCommandsRes)
 
-  const data = await res.json()
-  console.log(`[setup-telegram-webhook] setWebhook → ${webhookUrl} | result:`, data)
+  // 3. setChatMenuButton — surfaces the "Menu" button next to the input
+  const setMenuButtonRes = await tgPost(botToken, 'setChatMenuButton', {
+    menu_button: { type: 'commands' },
+  })
+  console.log('[setup-telegram-webhook] setChatMenuButton result:', setMenuButtonRes)
 
-  return NextResponse.json({ webhookUrl, telegramResponse: data })
+  return NextResponse.json({
+    webhookUrl,
+    setWebhook: setWebhookRes,
+    setMyCommands: setCommandsRes,
+    setChatMenuButton: setMenuButtonRes,
+  })
 }

@@ -20,6 +20,8 @@ import {
   renderUnknown,
   renderCallsHeader,
 } from './format'
+import { buildQuickActionsKeyboard } from './menu'
+import type { InlineKeyboardMarkup } from './types'
 
 const rateLimiter = new SlidingWindowRateLimiter(10, 60_000)
 
@@ -37,9 +39,13 @@ export interface RouterContext {
 }
 
 export type RouterResult =
-  | { kind: 'reply'; text: string }
+  | { kind: 'reply'; text: string; reply_markup?: InlineKeyboardMarkup }
   | { kind: 'noop' }
   | { kind: 'fallthrough' } // not a slash command — let the existing /start handler take it
+
+function withKeyboard(text: string): RouterResult {
+  return { kind: 'reply', text, reply_markup: buildQuickActionsKeyboard() }
+}
 
 export async function routeTelegramMessage(
   msg: TelegramMessage,
@@ -63,7 +69,7 @@ export async function routeTelegramMessage(
   const rateKey = `tg:${msg.chatId}`
   const rate = rateLimiter.check(rateKey)
   if (!rate.allowed) {
-    return { kind: 'reply', text: renderRateLimited(Math.ceil(rate.retryAfterMs / 1000)) }
+    return withKeyboard(renderRateLimited(Math.ceil(rate.retryAfterMs / 1000)))
   }
   rateLimiter.record(rateKey)
 
@@ -73,11 +79,25 @@ export async function routeTelegramMessage(
     return { kind: 'reply', text: renderUnregistered() }
   }
 
-  const cmd = msg.text.split(/\s+/)[0]?.toLowerCase() ?? ''
+  return dispatchCommand(msg.text, client, ctx)
+}
+
+/**
+ * Dispatches a command string (e.g. "/calls") for an already-resolved client.
+ * Used by both routeTelegramMessage (after rate-limit + client lookup) and
+ * the callback_query branch in the webhook (which resolves the client itself
+ * and skips rate-limit + idempotency since callbacks are user-initiated taps).
+ */
+export async function dispatchCommand(
+  text: string,
+  client: TelegramClientRow,
+  ctx: RouterContext
+): Promise<RouterResult> {
+  const cmd = text.split(/\s+/)[0]?.toLowerCase() ?? ''
 
   switch (cmd) {
     case '/help':
-      return { kind: 'reply', text: renderHelp() }
+      return withKeyboard(renderHelp())
 
     case '/calls':
       return handleCalls(ctx, client)
@@ -95,41 +115,41 @@ export async function routeTelegramMessage(
       return handleMinutes(client)
 
     default:
-      return { kind: 'reply', text: renderUnknown() }
+      return withKeyboard(renderUnknown())
   }
 }
 
 async function handleCalls(ctx: RouterContext, client: TelegramClientRow): Promise<RouterResult> {
   const rows = await fetchLastNCalls(ctx.supa, client.id, 5)
-  if (rows.length === 0) return { kind: 'reply', text: renderEmptyCalls() }
+  if (rows.length === 0) return withKeyboard(renderEmptyCalls())
   const header = renderCallsHeader(rows)
   const table = renderCallTable(rows, ctx.timezone)
   const footer = '/lastcall for full summary · /missed for callbacks'
   const parts = [header, table, footer].filter(Boolean)
-  return { kind: 'reply', text: parts.join('\n\n') }
+  return withKeyboard(parts.join('\n\n'))
 }
 
 async function handleToday(ctx: RouterContext, client: TelegramClientRow): Promise<RouterResult> {
   const rows = await fetchTodayCalls(ctx.supa, client.id, ctx.timezone)
-  if (rows.length === 0) return { kind: 'reply', text: 'No calls yet today.' }
+  if (rows.length === 0) return withKeyboard('No calls yet today.')
   const header = `<b>${rows.length} call${rows.length === 1 ? '' : 's'} today</b>`
   const table = renderCallTable(rows.slice(0, 10), ctx.timezone)
-  return { kind: 'reply', text: `${header}\n\n${table}` }
+  return withKeyboard(`${header}\n\n${table}`)
 }
 
 async function handleMissed(ctx: RouterContext, client: TelegramClientRow): Promise<RouterResult> {
   const rows = await fetchMissedCalls(ctx.supa, client.id)
   if (rows.length === 0) {
-    return { kind: 'reply', text: '✅ No missed callbacks.' }
+    return withKeyboard('✅ No missed callbacks.')
   }
   const header = `<b>${rows.length} to call back</b>`
   const table = renderCallTable(rows.slice(0, 10), ctx.timezone)
-  return { kind: 'reply', text: `${header}\n\n${table}` }
+  return withKeyboard(`${header}\n\n${table}`)
 }
 
 async function handleLastCall(ctx: RouterContext, client: TelegramClientRow): Promise<RouterResult> {
   const rows = await fetchLastNCalls(ctx.supa, client.id, 1)
-  if (rows.length === 0) return { kind: 'reply', text: renderEmptyCalls() }
+  if (rows.length === 0) return withKeyboard(renderEmptyCalls())
   const r = rows[0]!
   let recUrl: string | null = null
   if (r.recording_url) {
@@ -139,14 +159,14 @@ async function handleLastCall(ctx: RouterContext, client: TelegramClientRow): Pr
       recUrl = null
     }
   }
-  return { kind: 'reply', text: renderCallSummary(r, ctx.timezone, recUrl) }
+  return withKeyboard(renderCallSummary(r, ctx.timezone, recUrl))
 }
 
 function handleMinutes(client: TelegramClientRow): RouterResult {
   const used = Math.ceil((client.seconds_used_this_month ?? 0) / 60)
   const limit = client.monthly_minute_limit ?? 0
   const bonus = client.bonus_minutes ?? 0
-  return { kind: 'reply', text: renderMinutes(used, limit, bonus, client.business_name) }
+  return withKeyboard(renderMinutes(used, limit, bonus, client.business_name))
 }
 
 // Test hook
