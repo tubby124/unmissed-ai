@@ -360,7 +360,7 @@ export async function POST(req: NextRequest) {
 
   // ── Generate Telegram token ────────────────────────────────────────────────
   const telegramRegToken = randomUUID()
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
   await svc.from('clients').update({ telegram_registration_token: telegramRegToken }).eq('id', clientId)
 
   const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`

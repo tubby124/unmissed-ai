@@ -364,7 +364,7 @@ export async function GET(request: Request) {
       hasAgent: !!client.ultravox_agent_id,
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
       telegramBotUrl: (client.telegram_bot_token && client.telegram_chat_id)
-        ? `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'}`
+        ? `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'}`
         : null,
       emailNotificationsEnabled: (c.email_notifications_enabled as boolean | null) ?? true,
       telegramNotificationsEnabled: (c.telegram_notifications_enabled as boolean | null) ?? true,

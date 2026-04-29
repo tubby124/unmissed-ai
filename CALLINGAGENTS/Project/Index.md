@@ -15,6 +15,7 @@ last-tracker-cleanup: 2026-04-01
 - **Tier 2** PR #47 squash-merged sha `74f1ac4`. Migration `telegram_assistant_log` applied. `OPENROUTER_API_KEY` set in Railway. Bot menu + persistent inline keyboard + `callback_query` re-dispatch + Haiku 4.5 NL Q&A + citation guard + keyword shortcuts + PII-free cost telemetry. 32+ tests green.
 - **Tier 2 cleanup** — PR #48 (`const outcome` lint, sha `a0e409f`).
 - **Tier 3 READY** — cold-start at [[00-Inbox/NEXT-CHAT-Telegram-Tier3]]. Scope: confirmable mutations (`cb:<id>`/`mk:<id>`/`cf:<uuid>`), DB-backed `telegram_pending_actions`, operator `/clients` `/health` `/spend` gated by slug='hasan-sharif', per-client spend cap, 1% reply-audit, group-chat `/start` guard. 9 commits planned. Followups + gaps: [[00-Inbox/Telegram-Tier3-Followups-2026-04-28]].
+- **Bot renamed** 2026-04-28 evening: `@hassitant_1bot` → **`@AIReceptionist_bot`** via @BotFather. Token unchanged → zero disruption to registered clients. Railway env vars `TELEGRAM_BOT_USERNAME` + `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` set to `AIReceptionist_bot`; all 7 code fallbacks updated. Rename ops plan: [[00-Inbox/Telegram-Bot-Rename-Plan-2026-04-28]].
 - Decisions: [[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]] · [[Decisions/2026-04-28-Telegram-Tier2-NL-Assistant]] · [[Decisions/2026-04-28-Telegram-Tier3-Mutation-Surface]]
 - Feature note: [[Features/Telegram-Two-Way-Assistant]]
 - Audit doc: [[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]

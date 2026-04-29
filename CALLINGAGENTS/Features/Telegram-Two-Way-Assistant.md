@@ -31,6 +31,8 @@ updated: 2026-04-28
 
 ## Status — 2026-04-28
 
+**Bot renamed 2026-04-28 evening:** `@hassitant_1bot` → **`@AIReceptionist_bot`**. Token unchanged; all 6 registered clients (Hasan, Aisha, Brian, Mark, Alisha, Fatima) saw the display name refresh on next message — zero disruption. Code paths now read from `TELEGRAM_BOT_USERNAME` + `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` env vars (fallback default also updated to `AIReceptionist_bot`). Rename plan + manual ops at [[00-Inbox/Telegram-Bot-Rename-Plan-2026-04-28]].
+
 **Tier 1 LIVE** ✅ — PR #41 squash-merged 2026-04-28T23:01:52Z, sha `03ad11c0`. Migration `20260428100000_create_telegram_updates_seen` applied to prod (qwhvblomlgeapzhnuwlb).
 Active commands: `/help`, `/calls`, `/today`, `/missed`, `/lastcall`, `/minutes`. Group-chat guard, 10/min rate limit, update_id idempotency, multi-tenant client_id scoping. 11/11 tests green.
 
@@ -48,7 +50,7 @@ Out of Tier 3 scope (flagged Tier 4): webhook secret + per-client white-label bo
 
 # Telegram Two-Way Assistant
 
-> **Goal:** Turn the @hassitant_1bot Telegram bot from a passive one-way notifier into the **primary product surface** — a chat where each client can audit calls, ask questions about their leads, and (later) take actions, all from their phone. Telegram is the only channel until domain ships; WhatsApp is the eventual successor (same architecture).
+> **Goal:** Turn the @AIReceptionist_bot Telegram bot (renamed from @hassitant_1bot 2026-04-28) from a passive one-way notifier into the **primary product surface** — a chat where each client can audit calls, ask questions about their leads, and (later) take actions, all from their phone. Telegram is the only channel until domain ships; WhatsApp is the eventual successor (same architecture).
 
 ---
 
@@ -67,7 +69,7 @@ Out of Tier 3 scope (flagged Tier 4): webhook secret + per-client white-label bo
 |---|---|---|
 | Webhook receiver | [src/app/api/webhook/telegram/route.ts](../src/app/api/webhook/telegram/route.ts) | Handles `/start <token>` only. Ignores all other text. |
 | Outbound notify | `notifyTelegram()` (search across `lib/`) | Post-call summaries fire when `telegram_chat_id` populated. Working on 5 clients today. |
-| Deep-link generator | `/api/dashboard/telegram-link` | UUID token → `https://t.me/hassitant_1bot?start=<token>`. |
+| Deep-link generator | `/api/dashboard/telegram-link` | UUID token → `https://t.me/AIReceptionist_bot?start=<token>`. |
 | Per-client config | `clients.telegram_chat_id`, `telegram_bot_token`, `telegram_registration_token`, `telegram_notifications_enabled`, `telegram_style` | All present. |
 | Operator alerts | `clients` row WHERE `slug='hasan-sharif'` is the operator inbox (pattern in [activate-client.ts:82-87](../src/lib/activate-client.ts#L82-L87)) | Used for trial-converted, payment-received pings. |
 
@@ -235,7 +237,7 @@ The router, multi-tenant lookup, OpenRouter call, and call_log fetch are all ~10
 ## 7. Risks + open questions
 
 1. **PII in OpenRouter prompts.** Call logs include caller names, phone numbers, summaries. OpenRouter's data-handling stance is acceptable for current volume; revisit when domain + PIPEDA work lands (S16c-d).
-2. **Bot username discovery.** Anyone can DM @hassitant_1bot. Non-registered chat_ids should get a polite *"This bot only responds to clients of unmissed.ai. Reply STOP to opt out."* and a chat_id-based rate limit.
+2. **Bot username discovery.** Anyone can DM @AIReceptionist_bot. Non-registered chat_ids should get a polite *"This bot only responds to clients of unmissed.ai. Reply STOP to opt out."* and a chat_id-based rate limit.
 3. **Conversation memory.** Single-turn is good enough for v1 but follow-up questions ("and the one before that?") will fail. Add `telegram_conversations` table when this becomes the top complaint.
 4. **Markdown rendering.** Telegram parses HTML tags in `parse_mode: 'HTML'` but not all clients render the same. Stick to `<b>`, `<i>`, `<code>`, `<pre>`. No nested formatting.
 5. **Operator vs client mode.** Hasan's chat_id (slug=hasan-sharif) should unlock admin commands (`/clients`, `/health`, `/revenue`). Rest of the world gets client-mode only.
