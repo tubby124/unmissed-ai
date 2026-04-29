@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createHash } from 'node:crypto'
 import type { CallRow } from './queries'
 import { fetchLastNCalls, type TelegramClientRow } from './queries'
 import type { AssistantIntent } from './types'
@@ -208,6 +209,60 @@ export interface AnswerOptions {
   timezone: string
   fetchImpl?: typeof fetch // injectable for tests
   apiKey?: string // injectable for tests; defaults to process.env.OPENROUTER_API_KEY
+  // Tier 3 reply-audit sampling. Default = Math.random; tests inject a
+  // deterministic stub to verify the 1% rate.
+  randomImpl?: () => number
+  // Tier 3 sample rate. Default 0.01 (1%). Tests can pass 1.0 to force
+  // sampling on every call.
+  auditSampleRate?: number
+}
+
+const DEFAULT_AUDIT_SAMPLE_RATE = 0.01
+
+export function sha256Hex(input: string): string {
+  return createHash('sha256').update(input).digest('hex')
+}
+
+/**
+ * Sample a reply into telegram_reply_audit at the configured rate.
+ * Fire-and-forget — explicit exception to the project's "All DB writes
+ * awaited" rule (command-routing.md). The exception holds because:
+ *  (a) outcome is non-blocking — user already sees the reply,
+ *  (b) failure to log is non-user-facing,
+ *  (c) at 1% across 5 active clients, the volume is ~3 rows/mo.
+ *
+ * NEVER stores the user's free-text question. system_prompt is hashed
+ * because it embeds business_facts + extra_qa which the customer owns.
+ */
+function maybeSampleReplyAudit(
+  supa: SupabaseClient,
+  rng: () => number,
+  rate: number,
+  payload: {
+    client_id: string
+    system_prompt: string
+    reply: string
+    recent_calls_count: number
+    citation_passed: boolean
+    intent: AssistantIntent
+  },
+): void {
+  if (rng() >= rate) return
+  void supa
+    .from('telegram_reply_audit')
+    .insert({
+      client_id: payload.client_id,
+      system_prompt_hash: sha256Hex(payload.system_prompt),
+      reply: payload.reply,
+      recent_calls_count: payload.recent_calls_count,
+      citation_passed: payload.citation_passed,
+      intent: payload.intent,
+    })
+    .then((res: { error: { message: string } | null } | undefined) => {
+      if (res?.error) {
+        console.warn(`[telegram-audit] insert failed: ${res.error.message}`)
+      }
+    })
 }
 
 export async function answerForClient(
@@ -326,14 +381,43 @@ export async function answerForClient(
   const outputTokens = raw?.usage?.completion_tokens ?? 0
   const latencyMs = Date.now() - start
   const topUrgent = intent === 'urgent' ? pickTopUrgent(recentCalls) : undefined
+  const rng = opts.randomImpl ?? Math.random
+  const sampleRate = opts.auditSampleRate ?? DEFAULT_AUDIT_SAMPLE_RATE
 
   if (!content) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
+    const finalReply = FALLBACK_REPLY
+    maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+      client_id: client.id,
+      system_prompt: systemPrompt,
+      reply: finalReply,
+      recent_calls_count: recentCalls.length,
+      citation_passed: false,
+      intent,
+    })
+    return { reply: finalReply, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
-  if (!citationGuardOk(content, recentCalls)) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
+  const cited = citationGuardOk(content, recentCalls)
+  if (!cited) {
+    const finalReply = FALLBACK_REPLY
+    maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+      client_id: client.id,
+      system_prompt: systemPrompt,
+      reply: finalReply,
+      recent_calls_count: recentCalls.length,
+      citation_passed: false,
+      intent,
+    })
+    return { reply: finalReply, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
+  maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+    client_id: client.id,
+    system_prompt: systemPrompt,
+    reply: content,
+    recent_calls_count: recentCalls.length,
+    citation_passed: true,
+    intent,
+  })
   return { reply: content, outcome, intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
 }

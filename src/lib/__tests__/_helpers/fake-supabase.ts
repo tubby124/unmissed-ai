@@ -39,12 +39,22 @@ export interface FakeAssistantLogRow {
   created_at?: string
 }
 
+export interface FakeReplyAuditRow {
+  client_id: string
+  system_prompt_hash: string
+  reply: string
+  recent_calls_count: number
+  citation_passed: boolean
+  intent: string
+}
+
 export interface FakeState {
   clientByChatId: Map<number, FakeRow>
   calls: FakeCall[]
   seen: Set<number>
   callsQueriedFor: string[]
   assistantLog?: FakeAssistantLogRow[]
+  replyAudit?: FakeReplyAuditRow[]
 }
 
 type SupaForRouter = Parameters<typeof routeTelegramMessage>[1]['supa']
@@ -95,6 +105,15 @@ export function makeFakeSupa(state: FakeState): SupaForRouter {
               return Promise.resolve({ error: { code: '23505' } })
             }
             state.seen.add(row.update_id)
+            return Promise.resolve({ error: null })
+          },
+        }
+      }
+      if (table === 'telegram_reply_audit') {
+        return {
+          insert(row: FakeReplyAuditRow) {
+            if (!state.replyAudit) state.replyAudit = []
+            state.replyAudit.push(row)
             return Promise.resolve({ error: null })
           },
         }
