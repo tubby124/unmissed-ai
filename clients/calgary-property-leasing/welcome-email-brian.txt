@@ -18,6 +18,20 @@ You'll see "Forwarding activated" or hear a short beep. Done — Eric will now a
 
 Test it: have a friend call your number and don't answer — Eric picks up after a few rings. Or dial +1 (639) 739-3885 from any phone right now to talk to him directly.
 
+IF ERIC DOESN'T PICK UP ON TEST (calls go to your carrier voicemail instead):
+Your carrier voicemail is blocking the forward. Call your carrier and ask them to FULLY REMOVE voicemail from this line — not pause it, fully remove it. Say:
+
+  "Please fully remove voicemail from my line. I'm using a third-party
+   answering service and it's blocking my call forwarding."
+
+Takes 5 min, free on postpaid plans. After they confirm removal, Eric will start picking up automatically — no need to re-dial the code above.
+
+Carrier numbers:
+  Rogers: 1-800-764-3771
+  Bell:   1-800-668-6878
+  Telus:  1-866-558-2273
+  Fido:   1-888-481-3436
+
 
 ==========================================
 STEP 2 — SEE WHAT ERIC IS DOING
