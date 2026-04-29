@@ -163,7 +163,7 @@ function makeTier3Supa(state: Tier3State): SupabaseClient {
           },
           then(onFulfilled: (v: { data: FleetClientRow[]; error: null }) => unknown) {
             const matched = state.fleet.filter((c) => {
-              if (inFilter && !inFilter.vals.includes((c as Record<string, unknown>)[inFilter.col])) return false
+              if (inFilter && !inFilter.vals.includes((c as unknown as Record<string, unknown>)[inFilter.col])) return false
               return true
             })
             return Promise.resolve(onFulfilled({ data: matched, error: null }))
