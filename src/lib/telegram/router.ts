@@ -22,6 +22,7 @@ import {
 } from './format'
 import { buildQuickActionsKeyboard } from './menu'
 import { matchKeywordShortcut } from './shortcuts'
+import { isOperatorCommand, isOperatorSlug, dispatchOperatorCommand } from './operator'
 import type { InlineKeyboardMarkup } from './types'
 
 const rateLimiter = new SlidingWindowRateLimiter(10, 60_000)
@@ -98,10 +99,15 @@ export async function routeTelegramMessage(
 }
 
 /**
+ * @internal
  * Dispatches a command string (e.g. "/calls") for an already-resolved client.
  * Used by both routeTelegramMessage (after rate-limit + client lookup) and
  * the callback_query branch in the webhook (which resolves the client itself
  * and skips rate-limit + idempotency since callbacks are user-initiated taps).
+ *
+ * Auth, rate-limit, idempotency, and chat_id → client_id resolution are
+ * the CALLER'S responsibility (B.7). Do NOT call this from a cron — it
+ * does no IP/IP-rate or auth checks of its own.
  */
 export async function dispatchCommand(
   text: string,
@@ -109,6 +115,23 @@ export async function dispatchCommand(
   ctx: RouterContext
 ): Promise<RouterResult> {
   const cmd = text.split(/\s+/)[0]?.toLowerCase() ?? ''
+
+  // ── Tier 3 operator commands (gated by slug='hasan-sharif') ─────────────
+  // A non-operator typing /clients gets routed to the NL assistant with
+  // the original text, NOT a 404 or "command not found" — that way the
+  // command surface stays invisible from outside the operator's chat.
+  if (isOperatorCommand(cmd)) {
+    if (!isOperatorSlug(client.slug)) {
+      return { kind: 'assistant', text, client }
+    }
+    const capUsd = Number(client.telegram_assistant_cap_usd ?? 5.0)
+    const reply = await dispatchOperatorCommand(cmd, ctx, {
+      id: client.id,
+      slug: client.slug,
+      capUsd,
+    })
+    return { kind: 'reply', text: reply.text, reply_markup: reply.reply_markup }
+  }
 
   switch (cmd) {
     case '/help':
