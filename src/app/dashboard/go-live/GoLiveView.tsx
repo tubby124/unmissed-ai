@@ -37,7 +37,7 @@ interface Props {
   isAdmin: boolean
 }
 
-export default function GoLiveView({ client }: Props) {
+export default function GoLiveView({ client, isAdmin }: Props) {
   const router = useRouter()
 
   // ── Carrier dropdown — local UI state (not a DB column) ─────────────────
