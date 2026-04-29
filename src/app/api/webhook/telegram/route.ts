@@ -27,15 +27,15 @@ import {
   buildQuickActionsKeyboard,
   buildContextActionsKeyboard,
   CALLBACK_CODE_TO_COMMAND,
-  isTier3ReservedCode,
-  renderTier3ComingSoon,
 } from '@/lib/telegram/menu'
 import { answerForClient } from '@/lib/telegram/assistant'
 import type { InlineKeyboardMarkup } from '@/lib/telegram/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
+  createPendingAction,
   resolvePendingAction,
   cancelPendingAction,
+  type PendingActionKind,
   type PendingActionRow,
 } from '@/lib/telegram/pending-actions'
 import { updateLeadStatusForClient } from '@/lib/calls/lead-status'
@@ -132,7 +132,7 @@ async function handleAssistantRequest(
   })
 
   await sendTelegramMessage(chatId, result.reply, {
-    reply_markup: buildContextActionsKeyboard(result.intent),
+    reply_markup: buildContextActionsKeyboard(result.intent, { topUrgent: result.topUrgent }),
   })
 
   // PII-free cost telemetry — token counts + outcome only, no message text.
@@ -148,6 +148,107 @@ async function handleAssistantRequest(
     })
   } catch (err) {
     console.warn(`[telegram-webhook] assistant log insert failed: ${(err as Error).message}`)
+  }
+}
+
+/**
+ * Tier 3: cb:<id> / mk:<id> create a pending action and reply with a
+ * confirm prompt (✅ Confirm cf:<token> / ❌ Cancel cancel:<token>).
+ *
+ * Look up the call by id scoped to the chat's client_id (multi-tenant
+ * guard). A code referencing a call from another client returns silently
+ * — no info leak. The confirm prompt uses the call's caller_name and
+ * caller_phone for clarity, plus an HH:MM timestamp from started_at when
+ * available so the owner sees what they're confirming.
+ */
+async function handleCbMkTap(
+  supa: SupabaseClient,
+  chatId: number,
+  code: string,
+): Promise<void> {
+  const isCb = code.startsWith('cb:')
+  const callId = code.slice(3).trim()
+  if (!callId) return
+
+  // Resolve chat_id → client_id, then scope the call_logs lookup to that
+  // client. Two reads but they're indexed and cheap.
+  const client = await fetchClientByChatId(supa, chatId)
+  if (!client) return
+
+  const { data: call, error } = await supa
+    .from('call_logs')
+    .select('id, caller_name, caller_phone, started_at')
+    .eq('id', callId)
+    .eq('client_id', client.id)
+    .maybeSingle()
+  if (error || !call) {
+    console.warn(`[telegram-webhook] cb/mk lookup failed code=${code} client=${client.id} err=${error?.message ?? 'no row'}`)
+    await sendTelegramMessage(
+      chatId,
+      "I can't find that call anymore. It may have moved off the recent list — try /missed.",
+      { reply_markup: buildQuickActionsKeyboard() },
+    )
+    return
+  }
+
+  const name = (call.caller_name as string | null) ?? 'top lead'
+  const phone = (call.caller_phone as string | null) ?? ''
+  const kind: PendingActionKind = isCb ? 'call_back_lead' : 'mark_called_back'
+
+  const token = await createPendingAction(supa, {
+    client_id: client.id,
+    chat_id: chatId,
+    kind,
+    payload: { call_id: call.id as string, name: name === 'top lead' ? null : name, phone },
+  })
+  if (!token) {
+    await sendTelegramMessage(
+      chatId,
+      "Something went wrong setting up that confirmation. Try again, or update from the dashboard.",
+      { reply_markup: buildQuickActionsKeyboard() },
+    )
+    return
+  }
+
+  const lastCallAt = formatHHMM(call.started_at as string | null)
+  const phoneSuffix = phone ? ` (${phone})` : ''
+  const lastCallSuffix = lastCallAt ? `\n\nLast call ${lastCallAt}.` : ''
+
+  const prompt = isCb
+    ? `📞 Call back <b>${escapeHtml(name)}</b>${escapeHtml(phoneSuffix)}?${lastCallSuffix}`
+    : `✅ Mark <b>${escapeHtml(name)}</b> called back?`
+
+  const confirmKeyboard: InlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        { text: '✅ Confirm', callback_data: `cf:${token}` },
+        { text: '❌ Cancel', callback_data: `cancel:${token}` },
+      ],
+    ],
+  }
+
+  await sendTelegramMessage(chatId, prompt, { reply_markup: confirmKeyboard })
+}
+
+/**
+ * Format a timestamp string as HH:MM in the client's timezone. Returns ''
+ * when the input is null/undefined or unparseable. Uses America/Regina
+ * (the project default) — every active client today shares this tz, and
+ * a per-client timezone read here would cost an extra query for a label.
+ */
+function formatHHMM(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Regina',
+    }).format(d)
+  } catch {
+    return ''
   }
 }
 
@@ -277,15 +378,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return new NextResponse('OK', { status: 200 })
     }
 
-    // Always ack first to remove the loading spinner on the tapped button
-    await answerCallbackQuery(cq.id)
-
-    if (isTier3ReservedCode(code)) {
-      await sendTelegramMessage(chatId, renderTier3ComingSoon(), {
-        reply_markup: buildQuickActionsKeyboard(),
-      })
+    // ── Tier 3: cb:<id> / mk:<id> open a confirm prompt ──────────────────
+    // Both kinds end at lead_status='called_back'. cb: surfaces phone +
+    // last-call time so the owner can tap-to-call before confirming.
+    if (code.startsWith('cb:') || code.startsWith('mk:')) {
+      // Silent ack now — toast text comes from the confirm message body
+      // for cb/mk, not the tap. This keeps the spinner-clear instant.
+      await answerCallbackQuery(cq.id)
+      try {
+        await handleCbMkTap(adminSupa, chatId, code)
+      } catch (err) {
+        console.error(`[telegram-webhook] cb/mk error chatId=${chatId} code=${code}: ${(err as Error).message}`)
+      }
       return new NextResponse('OK', { status: 200 })
     }
+
+    // Always ack first to remove the loading spinner on the tapped button
+    await answerCallbackQuery(cq.id)
 
     const cmd = CALLBACK_CODE_TO_COMMAND[code]
     if (!cmd) {

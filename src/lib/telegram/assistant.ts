@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CallRow } from './queries'
 import { fetchLastNCalls, type TelegramClientRow } from './queries'
 import type { AssistantIntent } from './types'
+import type { TopUrgent } from './menu'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-haiku-4-5'
@@ -22,6 +23,37 @@ export interface AssistantResult {
   inputTokens: number
   outputTokens: number
   latencyMs: number
+  /**
+   * Tier 3: top open HOT/WARM call (lead_status null or 'new'), set only
+   * when intent='urgent'. Lets the webhook render tap-to-act buttons in
+   * the urgent reply keyboard. Undefined when no urgent row exists; the
+   * keyboard falls back to the static "see all missed" set.
+   */
+  topUrgent?: TopUrgent
+}
+
+/**
+ * Pick the top open urgent call from the recent-calls window.
+ *
+ * Definition of urgent (must match the system prompt's # OUTPUT RULES line
+ * for "anything urgent?" — we use the same definition end-to-end so the
+ * keyboard CTA never points at a row the model didn't surface):
+ *   call_status IN ('HOT', 'WARM')
+ *   AND (lead_status IS NULL OR lead_status = 'new')
+ *
+ * recentCalls is already ordered newest-first by fetchLastNCalls, so the
+ * first match is the most recent open urgent — that's the one the owner
+ * would call back first. Returns undefined when nothing matches.
+ */
+export function pickTopUrgent(rows: CallRow[]): TopUrgent | undefined {
+  for (const r of rows) {
+    const isHotOrWarm = r.call_status === 'HOT' || r.call_status === 'WARM'
+    const isOpen = r.lead_status === null || r.lead_status === 'new'
+    if (isHotOrWarm && isOpen) {
+      return { id: r.id, name: r.caller_name ?? null }
+    }
+  }
+  return undefined
 }
 
 interface OpenRouterResponse {
@@ -269,14 +301,15 @@ export async function answerForClient(
   const inputTokens = raw?.usage?.prompt_tokens ?? 0
   const outputTokens = raw?.usage?.completion_tokens ?? 0
   const latencyMs = Date.now() - start
+  const topUrgent = intent === 'urgent' ? pickTopUrgent(recentCalls) : undefined
 
   if (!content) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
   if (!citationGuardOk(content, recentCalls)) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
-  return { reply: content, outcome, intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+  return { reply: content, outcome, intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
 }
