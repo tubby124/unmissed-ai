@@ -104,7 +104,7 @@ export async function activateClient(params: {
   const intakeState = (intakeJson.state as string | null) || null
 
   const appUrl = APP_URL
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
 
   // Generate Telegram registration token upfront (needed in SMS + Step 2)
   const telegramRegToken = randomUUID()

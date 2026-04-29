@@ -34,7 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const clientId = body.clientId?.trim()
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
 
   // ── Generate token ─────────────────────────────────────────────────────────
   const token = randomUUID()

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'hassitant_1bot'
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
   const deepLink = `https://t.me/${botUsername}?start=${token}`
 
   return NextResponse.json({ deepLink, token })
