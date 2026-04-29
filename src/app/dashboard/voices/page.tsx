@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useClientScope } from '@/lib/admin-scope'
+import { isAdminRedesignEnabledClient } from '@/lib/feature-flags'
 
 interface UltravoxVoice {
   voiceId: string
@@ -287,6 +289,14 @@ function VoiceCard({
 export default function VoicesPage() {
   const [voices, setVoices] = useState<UltravoxVoice[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  // Phase 3 Wave A — when admin has a scope set via switcher, narrow the assign
+  // picker to that one client. Flag-gated so legacy multi-pick path is preserved.
+  const { scopedClientId } = useClientScope()
+  const visibleClients = useMemo(() => {
+    if (!isAdminRedesignEnabledClient()) return clients
+    if (!scopedClientId || scopedClientId === 'all') return clients
+    return clients.filter(c => c.id === scopedClientId)
+  }, [clients, scopedClientId])
   const [isAdmin, setIsAdmin] = useState(false)
   const [myVoiceId, setMyVoiceId] = useState<string | null>(null)
   const [myPreviousVoiceId, setMyPreviousVoiceId] = useState<string | null>(null)
@@ -460,7 +470,7 @@ export default function VoicesPage() {
             <VoiceCard
               key={voice.voiceId}
               voice={voice}
-              clients={clients}
+              clients={visibleClients}
               isAdmin={isAdmin}
               isPlaying={playingId === voice.voiceId}
               myVoiceId={myVoiceId}
