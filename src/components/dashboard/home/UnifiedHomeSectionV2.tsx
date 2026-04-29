@@ -20,20 +20,6 @@ import InlineModalsV2 from './InlineModalsV2'
 import { useInlineEdit, type ModalId } from '@/hooks/useInlineEdit'
 import type { HomeData } from '../ClientHomeV2'
 
-// ── Inline helpers ───────────────────────────────────────────────
-// Phone formatter retained — still used by the "Share your number" + call-me panels.
-function formatPhone(phone: string | null): string {
-  if (!phone) return 'Unknown'
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 11 && digits[0] === '1') {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-  return phone
-}
-
 // ── Props ────────────────────────────────────────────────────────
 interface Props {
   data: HomeData
@@ -58,280 +44,22 @@ export default function UnifiedHomeSectionV2({
   const { resetCall } = useCallContext()
   const inlineEdit = useInlineEdit()
   const [syncDismissed, setSyncDismissed] = useState(false)
-  const [hotDismissed, setHotDismissed] = useState(false)
-  const [firstCallDismissed, setFirstCallDismissed] = useState(false)
   // resetCall is unused in this surface but kept in context for legacy banners
   void resetCall
 
-  // D163 — Trial "call me through your agent"
-  const [callMePhone, setCallMePhone] = useState('')
-  const [callMeLoading, setCallMeLoading] = useState(false)
-  const [callMeSuccess, setCallMeSuccess] = useState(false)
-  const [callMeError, setCallMeError] = useState<string | null>(null)
-  // D162 — Call forwarding guide expand/collapse
-  const [forwardingExpanded, setForwardingExpanded] = useState(false)
-  // D363 — Share number inline expand + copy
-  const [shareExpanded, setShareExpanded] = useState(false)
-  const [shareCopied, setShareCopied] = useState(false)
-
-  // D143 — scroll target for test call nudge
+  // Scroll target for the orb (kept — still anchors the test-call card)
   const testCallRef = useRef<HTMLDivElement>(null)
-  function scrollToTestCall() {
-    testCallRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  // D163 — outbound call-me handler
-  async function handleCallMe() {
-    const phone = callMePhone.trim()
-    if (!phone || callMeLoading) return
-    setCallMeLoading(true)
-    setCallMeError(null)
-    try {
-      const res = await fetch('/api/dashboard/test-call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to_phone: phone }),
-      })
-      const json = await res.json()
-      if (!res.ok) setCallMeError(json.error ?? 'Call failed — try again')
-      else setCallMeSuccess(true)
-    } catch {
-      setCallMeError('Network error — please try again')
-    } finally {
-      setCallMeLoading(false)
-    }
-  }
-
-  // D143 — count test calls from recent calls (includes call_status='test')
-  const testCallCount = data.recentCalls.filter(c => c.call_status === 'test').length
-
-  // D130 — show share number card when twilio_number is set and live calls < 5
-  const liveTotalCalls = data.stats.totalCalls
-  const twilioNumberDigits = data.twilioNumber ? data.twilioNumber.replace(/^\+/, '') : ''
-  const showShareNumber = !!(data.twilioNumber) && liveTotalCalls < 5
 
   const faqCount = data.editableFields.faqs.length
   const pendingKnowledgeCount = data.knowledge?.pending_review_count ?? 0
-  const openGapsCount = data.insights?.openGaps ?? 0
-  const callHandlingMode = data.callHandlingMode
-  // Show calendar CTA when plan includes booking (Core+, or trial which unlocks all) but calendar not connected
   const planSupportsBooking = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
   const planSupportsTransfer = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
-  const showCalendarConnect = planSupportsBooking && !calendarConnected
-
-  const nextAction: { text: string; cta: string; href: string | null; onUpgrade?: boolean } | null = (() => {
-    if (!capabilities.hasFacts && faqCount === 0 && !capabilities.hasWebsite) {
-      return { text: "Agent doesn't know your business yet", cta: 'Add facts', href: '/dashboard/knowledge?tab=add&source=manual' }
-    }
-    if (!capabilities.hasHours) {
-      return { text: "Agent can't tell callers your hours", cta: 'Set hours', href: '/dashboard/actions#hours' }
-    }
-    if (pendingKnowledgeCount > 0) {
-      return {
-        text: `Review ${pendingKnowledgeCount} page${pendingKnowledgeCount !== 1 ? 's' : ''} scraped from your website`,
-        cta: 'Review',
-        href: '/dashboard/settings?tab=general#knowledge',
-      }
-    }
-    if (!capabilities.hasWebsite && !capabilities.hasKnowledge) {
-      return { text: 'Add your website to teach your agent more', cta: 'Add website', href: '/dashboard/knowledge' }
-    }
-    if (isTrial && !onboarding.hasPhoneNumber) {
-      return { text: 'Upgrade to go live with a real phone number', cta: 'Upgrade', href: null, onUpgrade: true }
-    }
-    if (callHandlingMode === 'info_hub' && !data.editableFields.hasContextData) {
-      return { text: 'Add your menu or reference document', cta: 'Add', href: '/dashboard/settings?tab=general#context' }
-    }
-    if (callHandlingMode === 'lead_capture' && faqCount === 0) {
-      return { text: 'Add FAQs so your agent can qualify leads better', cta: 'Add FAQs', href: '/dashboard/settings?tab=general#knowledge' }
-    }
-    if (openGapsCount > 0) {
-      return {
-        text: `${openGapsCount} caller question${openGapsCount !== 1 ? 's' : ''} your agent couldn't answer`,
-        cta: 'Answer',
-        href: '/dashboard/knowledge',
-      }
-    }
-    if (!onboarding.telegramConnected) {
-      return { text: 'Get instant call alerts on Telegram', cta: 'Connect', href: '/dashboard/settings?tab=notifications' }
-    }
-    return null
-  })()
-
-  // D168 — first call milestone banner: show within 24h of first_call_at
-  const showFirstCallBanner = !firstCallDismissed &&
-    !!data.firstCallAt &&
-    Date.now() - new Date(data.firstCallAt).getTime() < 24 * 60 * 60 * 1000
-
-  // Tier 2 — setup progress (percentage of readiness dimensions complete)
-  const setupDimensions = [
-    !!data.editableFields.hoursWeekday,
-    (data.activeServicesCount ?? 0) > 0,
-    faqCount > 0,
-    data.knowledge.approved_chunk_count > 0,
-    data.hasTriage ?? false,
-    planSupportsBooking ? calendarConnected : true,
-  ]
-  const setupComplete = setupDimensions.filter(Boolean).length
-  const setupTotal = setupDimensions.length
-  const setupPct = Math.round((setupComplete / setupTotal) * 100)
-
-  // ── Build action nudge items for the compact grid ─────────────
-  const nudgeItems: { key: string; icon: React.ReactNode; label: string; sub?: string; cta: string; color: string; bg: string; border: string; href?: string; onClick?: () => void; dismiss?: () => void }[] = []
-
-  // D167 — Trial upgrade CTA
-  if (isTrial && !onboarding.hasPhoneNumber && (typeof daysRemaining === 'undefined' || daysRemaining > 3)) {
-    nudgeItems.push({
-      key: 'trial-upgrade',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      label: 'Agent ready',
-      sub: 'Get your phone number',
-      cta: 'Upgrade',
-      color: 'var(--color-primary)',
-      bg: 'rgba(99,102,241,0.05)',
-      border: 'rgba(99,102,241,0.2)',
-      onClick: () => openUpgradeModal('trial_upgrade_card', data.clientId, daysRemaining, data.selectedPlan),
-    })
-  }
-
-  // D120 — Calendar connect
-  if (showCalendarConnect) {
-    nudgeItems.push({
-      key: 'calendar-connect',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(245,158,11)' }}><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
-      label: 'Calendar booking',
-      sub: 'Connect Google Calendar',
-      cta: 'Connect',
-      color: 'rgb(245,158,11)',
-      bg: 'rgba(245,158,11,0.06)',
-      border: 'rgba(245,158,11,0.2)',
-      href: '/dashboard/settings?tab=general#booking',
-    })
-  }
-
-  // Next best action
-  if (nextAction) {
-    nudgeItems.push({
-      key: 'next-action',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
-      label: nextAction.text,
-      cta: nextAction.cta,
-      color: 'var(--color-primary)',
-      bg: 'rgba(99,102,241,0.05)',
-      border: 'rgba(99,102,241,0.12)',
-      href: nextAction.onUpgrade ? undefined : (nextAction.href ?? undefined),
-      onClick: nextAction.onUpgrade ? () => openUpgradeModal('next_action_strip', data.clientId, daysRemaining, data.selectedPlan) : undefined,
-    })
-  }
-
-  // HOT leads
-  if (!hotDismissed && data.stats.hotLeads > 0) {
-    nudgeItems.push({
-      key: 'hot-leads',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(239,68,68)' }}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg>,
-      label: `${data.stats.hotLeads} HOT lead${data.stats.hotLeads !== 1 ? 's' : ''}`,
-      sub: 'This month',
-      cta: 'View',
-      color: 'rgb(239,68,68)',
-      bg: 'rgba(239,68,68,0.05)',
-      border: 'rgba(239,68,68,0.2)',
-      href: '/dashboard/calls',
-      dismiss: () => setHotDismissed(true),
-    })
-  }
-
-  // D143 — Soft test gate
-  if (onboarding.hasAgent && testCallCount === 0) {
-    nudgeItems.push({
-      key: 'test-gate',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="2"/><path d="M19 10v2a7 7 0 01-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
-      label: 'Test your agent',
-      sub: 'Hear how it sounds',
-      cta: 'Test',
-      color: 'var(--color-primary)',
-      bg: 'rgba(99,102,241,0.05)',
-      border: 'rgba(99,102,241,0.12)',
-      onClick: scrollToTestCall,
-    })
-  }
-
-  // D168 — First call milestone
-  if (showFirstCallBanner) {
-    nudgeItems.push({
-      key: 'first-call',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(52,211,153)' }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      label: 'First call received!',
-      sub: 'Check how it went',
-      cta: 'View',
-      color: 'rgb(52,211,153)',
-      bg: 'rgba(52,211,153,0.06)',
-      border: 'rgba(52,211,153,0.25)',
-      href: '/dashboard/calls',
-      dismiss: () => setFirstCallDismissed(true),
-    })
-  }
-
-  // D130 + D363 — Share number with inline copy + carrier codes
-  if (showShareNumber && data.twilioNumber) {
-    nudgeItems.push({
-      key: 'share-number',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}><circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" strokeWidth="2"/></svg>,
-      label: 'Share your number',
-      sub: formatPhone(data.twilioNumber),
-      cta: shareExpanded ? 'Close' : 'View',
-      color: 'var(--color-primary)',
-      bg: 'rgba(99,102,241,0.05)',
-      border: shareExpanded ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.12)',
-      onClick: () => setShareExpanded(o => !o),
-    })
-  }
-
-  // D172 — Forwarding confirmed
-  if (!isTrial && !!data.twilioNumber && liveTotalCalls > 0 && liveTotalCalls < 10) {
-    nudgeItems.push({
-      key: 'forwarding-ok',
-      icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'rgb(52,211,153)' }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      label: 'Forwarding active',
-      sub: 'Calls reaching your agent',
-      cta: 'Calls',
-      color: 'rgb(52,211,153)',
-      bg: 'rgba(52,211,153,0.06)',
-      border: 'rgba(52,211,153,0.25)',
-      href: '/dashboard/calls',
-    })
-  }
 
   return (
     <>
       {/* ════════════════════════════════════════════════════════════
           LAYER 1 — Inline toast alerts (slim, critical)
           ════════════════════════════════════════════════════════════ */}
-
-      {/* Trial pill — mockup parity (Trial · Xd left · Y calls this month · X/Y minutes used) */}
-      {isTrial && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--color-primary)' }}>
-            Trial
-          </span>
-          {daysRemaining !== undefined && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold leading-none whitespace-nowrap">
-              {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
-            </span>
-          )}
-          <span className="text-[11px] t3">·</span>
-          <span className="text-[11px] t2">
-            <strong className="t1">{data.stats.totalCalls} call{data.stats.totalCalls !== 1 ? 's' : ''}</strong> this month
-          </span>
-          {data.usage.totalAvailable > 0 && (
-            <>
-              <span className="text-[11px] t3">·</span>
-              <span className="text-[11px] t2">
-                <strong className="t1">{Math.round(data.usage.minutesUsed)} / {data.usage.totalAvailable}</strong> minutes used
-              </span>
-            </>
-          )}
-        </div>
-      )}
 
       {/* ════════════════════════════════════════════════════════════
           TOP — Agent Identity Card (Phase 2 v3 launch cut)
@@ -462,76 +190,6 @@ export default function UnifiedHomeSectionV2({
           LAYER 2 — Compact action grid (2-col mobile, 4-col desktop)
           ════════════════════════════════════════════════════════════ */}
 
-      {/* v2: nudgeItems grid removed — covered by AgentIdentityCard chips + AgentReadinessRow */}
-
-      {/* D363 — Share number expanded panel (copy + carrier codes) */}
-      {shareExpanded && data.twilioNumber && (() => {
-        const dialDigits = data.twilioNumber.replace(/\D/g, '')
-        const displayNum = `+1 (${dialDigits.slice(1, 4)}) ${dialDigits.slice(4, 7)}-${dialDigits.slice(7)}`
-        const carriers = [
-          { name: 'Rogers / Fido / Chatr', fwd: `*21*${dialDigits}#`, cancel: '##21#' },
-          { name: 'Bell / Virgin / Lucky', fwd: `*21*${dialDigits}#`, cancel: '#21#' },
-          { name: 'Telus / Koodo / Public Mobile', fwd: `*72${dialDigits}`, cancel: '*73' },
-        ]
-        function handleCopy() {
-          navigator.clipboard.writeText(data.twilioNumber!).catch(() => {
-            const el = document.createElement('textarea')
-            el.value = data.twilioNumber!
-            document.body.appendChild(el)
-            el.select()
-            document.execCommand('copy')
-            document.body.removeChild(el)
-          })
-          setShareCopied(true)
-          setTimeout(() => setShareCopied(false), 2000)
-        }
-        return (
-          <div className="rounded-xl" style={{ border: '1px solid rgba(99,102,241,0.2)', backgroundColor: 'rgba(99,102,241,0.03)' }}>
-            {/* Number + copy */}
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <span className="text-[14px] font-mono font-semibold t1 tracking-wide">{displayNum}</span>
-              <button
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer"
-                style={{
-                  backgroundColor: shareCopied ? 'rgba(34,197,94,0.1)' : 'rgba(99,102,241,0.1)',
-                  color: shareCopied ? 'rgb(34,197,94)' : 'var(--color-primary)',
-                  border: `1px solid ${shareCopied ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)'}`,
-                }}
-              >
-                {shareCopied ? (
-                  <>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-            {/* Carrier codes */}
-            <div className="px-4 pb-3 space-y-1.5">
-              <p className="text-[10px] t3">Dial from your business phone to forward all calls:</p>
-              {carriers.map(c => (
-                <div key={c.name} className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
-                  <p className="text-[11px] font-semibold t2 mb-0.5">{c.name}</p>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <span className="text-[11px] t3">Forward: <code className="font-mono text-[11px] t1 ml-1">{c.fwd}</code></span>
-                    <span className="text-[11px] t3">Cancel: <code className="font-mono text-[11px] t1 ml-1">{c.cancel}</code></span>
-                  </div>
-                </div>
-              ))}
-              <p className="text-[10px] t3 leading-relaxed">
-                Dial the forward code, wait for confirmation tone, then hang up.
-              </p>
-            </div>
-          </div>
-        )
-      })()}
-
       {/* D250 — Weekly ROI (compact inline strip — not a full card) */}
       {data.weeklyStats && data.weeklyStats.callsAnswered > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)' }}>
@@ -568,70 +226,20 @@ export default function UnifiedHomeSectionV2({
 
       {/* D163 — "call me through your agent" — moved to right column in 3-col grid */}
 
-      {/* D162 — Call forwarding guide */}
+      {/* Forwarding live on Go Live — slim link, single source of truth (2026-04-28). */}
       {!isTrial && !!data.twilioNumber && data.stats.totalCalls === 0 && (
-        <div
-          className="rounded-xl overflow-hidden"
+        <Link
+          href="/dashboard/go-live"
+          className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
         >
-          <button
-            onClick={() => setForwardingExpanded(x => !x)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer"
-          >
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-semibold t1">Forward your existing number to your agent</p>
-              <p className="text-[11px] t3 leading-snug">Your agent number is <span className="font-mono">{data.twilioNumber}</span></p>
-            </div>
-            <svg
-              width="12" height="12" viewBox="0 0 24 24" fill="none"
-              style={{ color: 'var(--color-text-3)', flexShrink: 0, transform: forwardingExpanded ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }}
-            >
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {forwardingExpanded && (
-            <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: 'rgba(99,102,241,0.15)' }}>
-              <div className="pt-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-3)' }}>Landline — Rogers / Bell / SaskTel / Telus</p>
-                <div className="rounded-lg px-3 py-2.5 space-y-1.5" style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                  <div className="flex items-baseline gap-2">
-                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*72 {twilioNumberDigits}</code>
-                    <span className="text-[11px] t3">all calls</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-text-2)' }}>*92 {twilioNumberDigits}</code>
-                    <span className="text-[11px] t3">no-answer only</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-3)' }}>Mobile — Rogers / Bell / Telus / Fido / Koodo</p>
-                <div className="rounded-lg px-3 py-2.5 space-y-1.5" style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                  <div className="flex items-baseline gap-2">
-                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-primary)' }}>*21*{twilioNumberDigits}#</code>
-                    <span className="text-[11px] t3">all calls</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <code className="text-[13px] font-mono font-bold" style={{ color: 'var(--color-text-2)' }}>*61*{twilioNumberDigits}#</code>
-                    <span className="text-[11px] t3">no-answer only</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] t3">To deactivate: landline <code className="font-mono text-[12px]">*73</code> · mobile <code className="font-mono text-[12px]">#21#</code></p>
-            </div>
-          )}
-        </div>
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold t1">Forward your existing number to your agent</p>
+            <p className="text-[11px] t3 leading-snug">Set it up on the Go Live page → carrier code + one-tap test.</p>
+          </div>
+          <span className="text-[11px] font-semibold shrink-0" style={{ color: 'var(--color-primary)' }}>Open Go Live →</span>
+        </Link>
       )}
-
-      {/* v2: QuickConfigStrip + setupPct removed — chip pills in AgentIdentityCard are the source of truth */}
 
       {/* ════════════════════════════════════════════════════════════
           TIER 1 — Hero (2-col: Orb+UnansweredQs | Quick Add)
@@ -824,7 +432,7 @@ export default function UnifiedHomeSectionV2({
                 : 'Active')}
           </p>
           <p className="text-[12px] t3 mt-1">
-            {Math.round(data.usage.minutesUsed)} / {data.usage.totalAvailable || 0} minutes used · Manage billing →
+            {data.stats.totalCalls} call{data.stats.totalCalls !== 1 ? 's' : ''} this month · {Math.round(data.usage.minutesUsed)} / {data.usage.totalAvailable || 0} minutes used · Manage billing →
           </p>
         </Link>
 
