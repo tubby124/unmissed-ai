@@ -209,7 +209,7 @@ export async function answerForClient(
   const systemPrompt = buildSystemPrompt(client, recentCalls, opts.timezone)
 
   let raw: OpenRouterResponse | null = null
-  let outcome: AssistantOutcome = 'ok'
+  const outcome: AssistantOutcome = 'ok'
   try {
     const res = await fetchImpl(OPENROUTER_URL, {
       method: 'POST',
