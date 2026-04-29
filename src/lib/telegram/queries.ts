@@ -9,6 +9,9 @@ export interface TelegramClientRow {
   seconds_used_this_month: number | null
   business_facts?: string | null
   extra_qa?: unknown
+  // Tier 3: per-client monthly cap on Tier 2 NL Q&A spend (USD). 0
+  // disables the throttle; default is 5.00 (set by migration).
+  telegram_assistant_cap_usd?: number | string | null
 }
 
 export interface CallRow {
@@ -36,7 +39,7 @@ export async function fetchClientByChatId(
 ): Promise<TelegramClientRow | null> {
   const { data } = await supa
     .from('clients')
-    .select('id, slug, business_name, monthly_minute_limit, bonus_minutes, seconds_used_this_month, business_facts, extra_qa')
+    .select('id, slug, business_name, monthly_minute_limit, bonus_minutes, seconds_used_this_month, business_facts, extra_qa, telegram_assistant_cap_usd')
     .eq('telegram_chat_id', String(chatId))
     .limit(1)
     .maybeSingle()

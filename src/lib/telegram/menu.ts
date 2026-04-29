@@ -18,7 +18,34 @@ export const CALLBACK_CODE_TO_COMMAND: Record<string, string> = {
   h: '/help',
 }
 
-export const TIER3_RESERVED_PREFIXES = ['cb:', 'mk:'] as const
+/**
+ * Tier 3 callback codes (live as of commit 2026-04-28):
+ *   cb:<id>      → "📞 Call back <name>" tap. Opens confirm flow.
+ *   mk:<id>      → "✅ Mark called back" tap. Opens confirm flow.
+ *   cf:<uuid>    → confirm a pending action (60s TTL).
+ *   cancel:<uuid>→ drop a pending action.
+ *
+ * The webhook route handles cf:/cancel: in handleConfirmOrCancel(); cb:/mk:
+ * are dispatched through handleCbMkTap() which creates a pending action
+ * and replies with the confirm keyboard. Per L14 of the cold-start prompt,
+ * all four formats fit Telegram's 64-byte callback_data cap (cf:<uuid> is
+ * the longest at 39 bytes).
+ */
+
+/**
+ * Top-urgent metadata used by buildContextActionsKeyboard to swap the
+ * static `urgent` keyboard for tap-to-act buttons. Pulled from the
+ * highest-priority HOT/WARM row in the recent-calls window the assistant
+ * already loaded — adding this is zero extra DB reads.
+ */
+export interface TopUrgent {
+  id: string
+  name: string | null
+}
+
+export interface ContextActionsOpts {
+  topUrgent?: TopUrgent
+}
 
 export function buildQuickActionsKeyboard(): InlineKeyboardMarkup {
   return {
@@ -35,9 +62,25 @@ export function buildQuickActionsKeyboard(): InlineKeyboardMarkup {
   }
 }
 
-export function buildContextActionsKeyboard(intent: AssistantIntent): InlineKeyboardMarkup {
+export function buildContextActionsKeyboard(
+  intent: AssistantIntent,
+  opts: ContextActionsOpts = {},
+): InlineKeyboardMarkup {
   switch (intent) {
-    case 'urgent':
+    case 'urgent': {
+      // Tier 3: when there's a top urgent call, surface tap-to-act buttons.
+      // Falls back to the static "see all missed" set when there is no
+      // open HOT/WARM row — preserves the Tier 2 contract for empty-state.
+      if (opts.topUrgent) {
+        const label = opts.topUrgent.name ?? 'top lead'
+        return {
+          inline_keyboard: [
+            [{ text: `📞 Call back ${label}`, callback_data: `cb:${opts.topUrgent.id}` }],
+            [{ text: '✅ Mark called back', callback_data: `mk:${opts.topUrgent.id}` }],
+            [{ text: '🔔 See all missed', callback_data: 'm' }],
+          ],
+        }
+      }
       return {
         inline_keyboard: [
           [{ text: '🔔 See all missed', callback_data: 'm' }],
@@ -47,6 +90,7 @@ export function buildContextActionsKeyboard(intent: AssistantIntent): InlineKeyb
           ],
         ],
       }
+    }
     case 'schedule':
       return {
         inline_keyboard: [
@@ -73,10 +117,3 @@ export function buildContextActionsKeyboard(intent: AssistantIntent): InlineKeyb
   }
 }
 
-export function isTier3ReservedCode(code: string): boolean {
-  return TIER3_RESERVED_PREFIXES.some((p) => code.startsWith(p))
-}
-
-export function renderTier3ComingSoon(): string {
-  return "That action is coming in a future update — for now use /missed to see callbacks."
-}

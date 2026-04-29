@@ -1,7 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createHash } from 'node:crypto'
 import type { CallRow } from './queries'
 import { fetchLastNCalls, type TelegramClientRow } from './queries'
 import type { AssistantIntent } from './types'
+import type { TopUrgent } from './menu'
+import { fetchMtdSpendUsd } from './operator'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-haiku-4-5'
@@ -22,6 +25,37 @@ export interface AssistantResult {
   inputTokens: number
   outputTokens: number
   latencyMs: number
+  /**
+   * Tier 3: top open HOT/WARM call (lead_status null or 'new'), set only
+   * when intent='urgent'. Lets the webhook render tap-to-act buttons in
+   * the urgent reply keyboard. Undefined when no urgent row exists; the
+   * keyboard falls back to the static "see all missed" set.
+   */
+  topUrgent?: TopUrgent
+}
+
+/**
+ * Pick the top open urgent call from the recent-calls window.
+ *
+ * Definition of urgent (must match the system prompt's # OUTPUT RULES line
+ * for "anything urgent?" — we use the same definition end-to-end so the
+ * keyboard CTA never points at a row the model didn't surface):
+ *   call_status IN ('HOT', 'WARM')
+ *   AND (lead_status IS NULL OR lead_status = 'new')
+ *
+ * recentCalls is already ordered newest-first by fetchLastNCalls, so the
+ * first match is the most recent open urgent — that's the one the owner
+ * would call back first. Returns undefined when nothing matches.
+ */
+export function pickTopUrgent(rows: CallRow[]): TopUrgent | undefined {
+  for (const r of rows) {
+    const isHotOrWarm = r.call_status === 'HOT' || r.call_status === 'WARM'
+    const isOpen = r.lead_status === null || r.lead_status === 'new'
+    if (isHotOrWarm && isOpen) {
+      return { id: r.id, name: r.caller_name ?? null }
+    }
+  }
+  return undefined
 }
 
 interface OpenRouterResponse {
@@ -175,6 +209,70 @@ export interface AnswerOptions {
   timezone: string
   fetchImpl?: typeof fetch // injectable for tests
   apiKey?: string // injectable for tests; defaults to process.env.OPENROUTER_API_KEY
+  // Tier 3 reply-audit sampling. Default = Math.random; tests inject a
+  // deterministic stub to verify the 1% rate.
+  randomImpl?: () => number
+  // Tier 3 sample rate. Default 0.01 (1%). Tests can pass 1.0 to force
+  // sampling on every call.
+  auditSampleRate?: number
+}
+
+const DEFAULT_AUDIT_SAMPLE_RATE = 0.01
+
+export function sha256Hex(input: string): string {
+  return createHash('sha256').update(input).digest('hex')
+}
+
+/**
+ * Sample a reply into telegram_reply_audit at the configured rate.
+ * Fire-and-forget — explicit exception to the project's "All DB writes
+ * awaited" rule (command-routing.md). The exception holds because:
+ *  (a) outcome is non-blocking — user already sees the reply,
+ *  (b) failure to log is non-user-facing,
+ *  (c) at 1% across 5 active clients, the volume is ~3 rows/mo.
+ *
+ * NEVER stores the user's free-text question. system_prompt is hashed
+ * because it embeds business_facts + extra_qa which the customer owns.
+ */
+function maybeSampleReplyAudit(
+  supa: SupabaseClient,
+  rng: () => number,
+  rate: number,
+  payload: {
+    client_id: string
+    system_prompt: string
+    reply: string
+    recent_calls_count: number
+    citation_passed: boolean
+    intent: AssistantIntent
+  },
+): void {
+  if (rng() >= rate) return
+  // Async IIFE for fire-and-forget. The outer void discards the IIFE's
+  // returned promise; the inner try/catch swallows insert errors so
+  // they never reach the caller (this is the documented exception per
+  // the PR body — audit failure is non-user-facing). Pattern preferred
+  // over a fire-and-forget continuation chain to keep this file inside
+  // the S18b lint guard for src/lib/.
+  void (async () => {
+    try {
+      const res = await supa
+        .from('telegram_reply_audit')
+        .insert({
+          client_id: payload.client_id,
+          system_prompt_hash: sha256Hex(payload.system_prompt),
+          reply: payload.reply,
+          recent_calls_count: payload.recent_calls_count,
+          citation_passed: payload.citation_passed,
+          intent: payload.intent,
+        })
+      if (res && (res as { error?: { message?: string } }).error) {
+        console.warn(`[telegram-audit] insert failed: ${(res as { error: { message: string } }).error.message}`)
+      }
+    } catch (err) {
+      console.warn(`[telegram-audit] insert threw: ${(err as Error).message}`)
+    }
+  })()
 }
 
 export async function answerForClient(
@@ -204,6 +302,29 @@ export async function answerForClient(
     recentCalls = await fetchLastNCalls(opts.supa, client.id, RECENT_CALLS_N)
   } catch {
     recentCalls = []
+  }
+
+  // ── Tier 3: spend-cap throttle ────────────────────────────────────────
+  // BEFORE the OpenRouter fetch — a runaway loop must not be able to
+  // bankrupt the account. Tier 1 commands (/calls, /missed, /minutes, …)
+  // bypass this code path entirely; only NL Q&A passes through here.
+  // cap === 0 disables the throttle.
+  const cap = Number(client.telegram_assistant_cap_usd ?? 5.0)
+  if (cap > 0) {
+    const { spendUsd } = await fetchMtdSpendUsd(opts.supa, client.id, opts.timezone)
+    if (spendUsd >= cap) {
+      const topUrgent = intent === 'urgent' ? pickTopUrgent(recentCalls) : undefined
+      return {
+        reply: `You've hit this month's assistant cap ($${cap.toFixed(2)}). Tier 1 commands like /calls, /missed, and /minutes still work.`,
+        outcome: 'fallback',
+        intent,
+        model: MODEL,
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: Date.now() - start,
+        topUrgent,
+      }
+    }
   }
 
   const systemPrompt = buildSystemPrompt(client, recentCalls, opts.timezone)
@@ -269,14 +390,44 @@ export async function answerForClient(
   const inputTokens = raw?.usage?.prompt_tokens ?? 0
   const outputTokens = raw?.usage?.completion_tokens ?? 0
   const latencyMs = Date.now() - start
+  const topUrgent = intent === 'urgent' ? pickTopUrgent(recentCalls) : undefined
+  const rng = opts.randomImpl ?? Math.random
+  const sampleRate = opts.auditSampleRate ?? DEFAULT_AUDIT_SAMPLE_RATE
 
   if (!content) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+    const finalReply = FALLBACK_REPLY
+    maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+      client_id: client.id,
+      system_prompt: systemPrompt,
+      reply: finalReply,
+      recent_calls_count: recentCalls.length,
+      citation_passed: false,
+      intent,
+    })
+    return { reply: finalReply, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
-  if (!citationGuardOk(content, recentCalls)) {
-    return { reply: FALLBACK_REPLY, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+  const cited = citationGuardOk(content, recentCalls)
+  if (!cited) {
+    const finalReply = FALLBACK_REPLY
+    maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+      client_id: client.id,
+      system_prompt: systemPrompt,
+      reply: finalReply,
+      recent_calls_count: recentCalls.length,
+      citation_passed: false,
+      intent,
+    })
+    return { reply: finalReply, outcome: 'fallback', intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
   }
 
-  return { reply: content, outcome, intent, model: MODEL, inputTokens, outputTokens, latencyMs }
+  maybeSampleReplyAudit(opts.supa, rng, sampleRate, {
+    client_id: client.id,
+    system_prompt: systemPrompt,
+    reply: content,
+    recent_calls_count: recentCalls.length,
+    citation_passed: true,
+    intent,
+  })
+  return { reply: content, outcome, intent, model: MODEL, inputTokens, outputTokens, latencyMs, topUrgent }
 }

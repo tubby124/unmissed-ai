@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { updateLeadStatusForClient } from '@/lib/calls/lead-status'
 
 const VALID_STATUSES = ['HOT', 'WARM', 'COLD', 'JUNK', 'MISSED']
-const VALID_LEAD_STATUSES = ['new', 'called_back', 'booked', 'closed', null]
 
 export async function PATCH(
   req: NextRequest,
@@ -29,24 +29,20 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}))
   const { call_status, lead_status } = body
 
-  // lead_status update path
+  // lead_status update path — delegated to the shared mutator so the
+  // Telegram cf:<uuid> handler can reuse the same SQL + validation
+  // without an internal HTTP roundtrip (it can't satisfy this route's
+  // user-session auth from a service-role webhook).
   if ('lead_status' in body) {
-    if (!VALID_LEAD_STATUSES.includes(lead_status)) {
-      return NextResponse.json({ error: 'Invalid lead_status' }, { status: 400 })
+    const scopedClientId = cu.role === 'admin' ? null : (cu.client_id as string)
+    const result = await updateLeadStatusForClient(supabase, id, scopedClientId, lead_status)
+    if (!result.ok) {
+      const status = result.code === 'invalid_status' ? 400
+        : result.code === 'not_found' ? 404
+        : 500
+      return NextResponse.json({ error: result.error }, { status })
     }
-
-    let q = supabase
-      .from('call_logs')
-      .update({ lead_status })
-      .eq('id', id)
-
-    if (cu.role !== 'admin') {
-      q = q.eq('client_id', cu.client_id)
-    }
-
-    const { error } = await q.select('id').single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, id, lead_status })
+    return NextResponse.json({ ok: true, id: result.id, lead_status })
   }
 
   // call_status update path
