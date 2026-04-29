@@ -22,13 +22,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CARRIER_CODES, type CarrierKey } from '@/lib/carrier-codes'
-import { normalizePhoneNA } from '@/lib/utils/phone'
 import { formatPhone } from '@/lib/format-phone'
 
 interface CallForwardingCardProps {
   twilioNumber: string | null
-  forwardingNumber: string
-  onForwardingNumberChange: (next: string) => void
   carrier: CarrierKey
   onCarrierChange: (next: CarrierKey) => void
   forwardingVerifiedAt: string | null
@@ -40,8 +37,6 @@ type AttestState = 'idle' | 'submitting' | 'failed'
 
 export default function CallForwardingCard({
   twilioNumber,
-  forwardingNumber,
-  onForwardingNumberChange,
   carrier,
   onCarrierChange,
   forwardingVerifiedAt,
@@ -71,11 +66,6 @@ export default function CallForwardingCard({
 
   return (
     <div className="rounded-3xl shadow-sm bg-white p-6 border border-zinc-100">
-      <h2 className="text-base font-semibold text-zinc-900 mb-1">Forward your phone</h2>
-      <p className="text-sm text-zinc-600 mb-4">
-        Set up call forwarding so callers reach your agent on this number.
-      </p>
-
       {showCollapsedPill ? (
         <CollapsedPill
           twilioNumber={twilioNumber}
@@ -85,8 +75,6 @@ export default function CallForwardingCard({
       ) : (
         <SetupForm
           twilioNumber={twilioNumber}
-          forwardingNumber={forwardingNumber}
-          onForwardingNumberChange={onForwardingNumberChange}
           carrier={carrier}
           onCarrierChange={onCarrierChange}
           forwardingVerifiedAt={forwardingVerifiedAt}
@@ -129,8 +117,6 @@ function CollapsedPill({
 
 function SetupForm({
   twilioNumber,
-  forwardingNumber,
-  onForwardingNumberChange,
   carrier,
   onCarrierChange,
   forwardingVerifiedAt,
@@ -138,8 +124,6 @@ function SetupForm({
   onVerified,
 }: {
   twilioNumber: string
-  forwardingNumber: string
-  onForwardingNumberChange: (next: string) => void
   carrier: CarrierKey
   onCarrierChange: (next: CarrierKey) => void
   forwardingVerifiedAt: string | null
@@ -228,10 +212,9 @@ function SetupForm({
       {/* Dial code (or fallback for "other") */}
       {isOtherCarrier ? (
         <div className="rounded-2xl bg-zinc-50 border border-zinc-100 px-5 py-4 text-sm text-zinc-700 leading-relaxed">
-          Most Canadian carriers use{' '}
-          <code className="font-mono text-zinc-900">*72&lt;your number&gt;</code> to forward and{' '}
-          <code className="font-mono text-zinc-900">*73</code> to turn off. If that doesn&apos;t work,
-          search &ldquo;[your carrier] call forwarding&rdquo; or contact us.
+          Most Canadian carriers use <span className="font-semibold text-zinc-900">*72&lt;your number&gt;</span> to forward
+          and <span className="font-semibold text-zinc-900">*73</span> to turn off. If that doesn&apos;t work, search
+          &ldquo;[your carrier] call forwarding&rdquo; or text Hasan.
         </div>
       ) : (
         enableCode && (
@@ -243,7 +226,7 @@ function SetupForm({
               className="w-full min-h-[120px] rounded-2xl bg-zinc-50 border border-zinc-200 px-5 py-6 text-center hover:bg-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 cursor-pointer"
               aria-label={`Tap to copy dial code ${enableCode}`}
             >
-              <span className="block text-3xl sm:text-4xl font-mono tracking-wider text-zinc-900 break-all">
+              <span className="block text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 break-all">
                 {enableCode}
               </span>
               <span className="mt-3 inline-block text-xs text-zinc-500">
@@ -252,97 +235,57 @@ function SetupForm({
             </button>
             {disableCode && (
               <p className="text-sm text-zinc-600 pt-2">
-                To turn it off later:{' '}
-                <code className="text-base font-mono text-zinc-900">{disableCode}</code>
+                To turn it off later: <span className="font-semibold text-zinc-900">{disableCode}</span>
               </p>
             )}
           </div>
         )
       )}
 
-      {/* Optional: where calls get forwarded TO (callback_phone) */}
-      <details className="text-sm text-zinc-600">
-        <summary className="cursor-pointer text-zinc-700 hover:text-zinc-900 select-none">
-          Your callback number (optional)
-        </summary>
-        <label className="block mt-2">
-          <span className="sr-only">Your business cell or office line</span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={forwardingNumber}
-            onChange={(e) => onForwardingNumberChange(e.target.value)}
-            onBlur={(e) => {
-              const normalized = normalizePhoneNA(e.target.value)
-              if (normalized && normalized !== forwardingNumber) {
-                onForwardingNumberChange(normalized)
-              }
-            }}
-            placeholder="Your business cell or office line"
-            className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
-          />
-          <span className="block text-xs text-zinc-500 mt-1">
-            We&apos;ll suggest this number when leaving a callback message for you.
-          </span>
-        </label>
-      </details>
-
-      {/* Test instructions + self-attest CTA */}
-      <div className="rounded-2xl bg-zinc-900 text-white p-5 space-y-3">
-        <div className="flex items-start gap-3">
-          <span className="shrink-0 mt-0.5 inline-flex w-6 h-6 rounded-full bg-white/15 items-center justify-center text-xs font-semibold">
-            !
-          </span>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">Now test it yourself</p>
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Call your own number ({formatPhone(twilioNumber)}) from another phone.
-              You should hear your agent answer. If you do, tap below.
-            </p>
-          </div>
-        </div>
+      {/* Three-step instructions + self-attest CTA */}
+      <div className="space-y-4">
+        <ol className="space-y-2 text-sm text-zinc-700">
+          <li className="flex gap-3">
+            <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">1</span>
+            <span className="pt-0.5">Open your phone keypad.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">2</span>
+            <span className="pt-0.5">Paste the code and tap call.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">3</span>
+            <span className="pt-0.5">
+              Call <span className="font-semibold text-zinc-900">{formatPhone(twilioNumber)}</span> from another phone — you should hear your agent. Tap below.
+            </span>
+          </li>
+        </ol>
 
         <button
           type="button"
           onClick={markItWorks}
           disabled={isBusy}
-          className="w-full rounded-xl bg-white text-zinc-900 px-5 py-3 text-sm font-semibold hover:bg-zinc-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+          className="w-full rounded-2xl bg-zinc-900 text-white px-5 py-4 text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
         >
           <AnimatePresence mode="wait" initial={false}>
             {isBusy ? (
-              <motion.span
-                key="busy"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.span key="busy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 Saving…
               </motion.span>
             ) : attest === 'failed' ? (
-              <motion.span
-                key="bad"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.span key="bad" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 Try again
               </motion.span>
             ) : (
-              <motion.span
-                key="idle"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 It worked — I heard the agent
               </motion.span>
             )}
           </AnimatePresence>
         </button>
-      </div>
 
-      <StatusPill tone={statusPill.tone} text={statusPill.text} />
+        <StatusPill tone={statusPill.tone} text={statusPill.text} />
+      </div>
     </div>
   )
 }

@@ -1,52 +1,32 @@
 'use client'
 
 /**
- * GoLiveView — slimmed 2026-04-27.
+ * GoLiveView — slimmed 2026-04-28.
  *
- * Original spec: docs/superpowers/specs/2026-04-26-go-live-tab-design.md (5 sections)
+ * Three blocks. Single font (Geist Sans). Anything dumber would be a screensaver.
  *
- * Revised job (after first user review): "Get this number forwarded and
- * decide how you want to be alerted." Greeting, hours, and test-orb are
- * duplicated on Overview/Settings — Go Live is the operator's setup
- * checklist, not a second editor.
- *
- * Layout (mobile-first, single column):
- *   HERO          — Twilio number tap-to-copy (or trial CTA)
- *   FORWARDING    — <CallForwardingCard /> — carrier dial code + self-attest
- *   NOTIFICATIONS — <NotificationsBlock /> — Telegram advisory + inline-editable
- *                    SMS auto-text reply + inline-editable voicemail greeting
- *   BANNER        — <GoLiveBanner /> sticky pill when forwarding is attested
- *
- * Voice section removed 2026-04-27 — pending owner decision on whether to keep
- * a voice picker on Go Live. Settings → Voice card still owns voice editing.
+ *   HERO        — Twilio number, tap to copy
+ *   FORWARDING  — <CallForwardingCard /> — carrier dial code + self-attest
+ *   TELEGRAM    — one-line connected indicator + Manage link to Settings
+ *   BANNER      — <GoLiveBanner /> sticky pill when forwarding is attested
  *
  * Live definition (derived, no `is_live` DB column):
  *   isLive = forwarding_self_attested || forwarding_verified_at is set.
- *   Honest: greeting/voice/test-call don't gate going live — only forwarding does.
+ *   Forwarding is the only thing that gates going live.
  *
- * Dropped from previous iteration:
- *   - Section 1 (greeting fields) — lives on Settings → Agent
- *   - Section 2 (hours / after-hours / weekend) — agent is 24/7 message-taking
- *   - Section 5 (test orb) — already on Overview/Settings
- *   - Twilio verify-call flow — never tested end-to-end (deferred)
- *   - GO_LIVE_VOICES curated 6 — replaced by full catalog
+ * SMS auto-text + voicemail greeting + voice picker live on Settings only —
+ * not duplicated here.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatPhone } from '@/lib/format-phone'
 import type { CarrierKey } from '@/lib/carrier-codes'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
-import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 
 import CallForwardingCard from '@/components/dashboard/go-live/CallForwardingCard'
 import GoLiveBanner from '@/components/dashboard/go-live/GoLiveBanner'
-import NotificationsBlock from '@/components/dashboard/go-live/NotificationsBlock'
-// Voice picker temporarily removed from Go Live (2026-04-27). Owner will decide
-// later whether to bring it back as an inline picker. Keep import path stable —
-// re-add `import GoLiveVoicePicker from '@/components/dashboard/go-live/GoLiveVoicePicker'`
-// and the section below if reinstating.
 
 interface Props {
   client: ClientConfig
@@ -57,13 +37,8 @@ interface Props {
   isAdmin: boolean
 }
 
-const PATCH_DEBOUNCE_MS = 800
-
-export default function GoLiveView({ client, isAdmin }: Props) {
+export default function GoLiveView({ client }: Props) {
   const router = useRouter()
-  const { patch } = usePatchSettings(client.id, isAdmin, {
-    onSave: () => router.refresh(),
-  })
 
   // ── Carrier dropdown — local UI state (not a DB column) ─────────────────
   const carrierKey = `go-live:carrier:${client.id}`
@@ -84,21 +59,6 @@ export default function GoLiveView({ client, isAdmin }: Props) {
     [carrierKey],
   )
 
-  // ── callback_phone debounced PATCH ──────────────────────────────────────
-  const callbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const onForwardingNumberChange = useCallback(
-    (next: string) => {
-      if (callbackTimerRef.current) clearTimeout(callbackTimerRef.current)
-      callbackTimerRef.current = setTimeout(() => {
-        void patch({ callback_phone: next })
-      }, PATCH_DEBOUNCE_MS)
-    },
-    [patch],
-  )
-  useEffect(() => () => {
-    if (callbackTimerRef.current) clearTimeout(callbackTimerRef.current)
-  }, [])
-
   // ── Live derivation ─────────────────────────────────────────────────────
   const isLive = !!client.forwarding_verified_at || !!client.forwarding_self_attested
 
@@ -116,28 +76,7 @@ export default function GoLiveView({ client, isAdmin }: Props) {
     } catch {/* clipboard may fail in insecure contexts — degrade silently */}
   }, [twilioNumber])
 
-  // ── Notifications block inputs ──────────────────────────────────────────
-  // hasSms gates the SMS auto-text editor — sending requires a Twilio number.
-  // (Mirrors the Overview tile rule; see PostCallActionsTile.)
   const telegramConnected = !!client.telegram_chat_id
-  const hasSms = !!client.twilio_number
-  const notifications = useMemo(() => ({
-    telegramConnected,
-    hasSms,
-    smsEnabled: !!client.sms_enabled,
-    smsTemplate: client.sms_template,
-    voicemailGreetingText: client.voicemail_greeting_text,
-    agentName: client.agent_name,
-    businessName: client.business_name,
-  }), [
-    telegramConnected,
-    hasSms,
-    client.sms_enabled,
-    client.sms_template,
-    client.voicemail_greeting_text,
-    client.agent_name,
-    client.business_name,
-  ])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white pb-[env(safe-area-inset-bottom)]">
@@ -192,8 +131,6 @@ export default function GoLiveView({ client, isAdmin }: Props) {
           <SectionHeader id="go-live-forwarding-heading" title="Forward your phone" />
           <CallForwardingCard
             twilioNumber={client.twilio_number}
-            forwardingNumber={client.callback_phone || ''}
-            onForwardingNumberChange={onForwardingNumberChange}
             carrier={localCarrier}
             onCarrierChange={onCarrierChange}
             forwardingVerifiedAt={client.forwarding_verified_at}
@@ -202,23 +139,36 @@ export default function GoLiveView({ client, isAdmin }: Props) {
           />
         </section>
 
-        {/* ═══════════ Notifications ═══════════ */}
-        <section aria-labelledby="go-live-notifications-heading">
-          <SectionHeader id="go-live-notifications-heading" title="How you'll be notified" />
-          <NotificationsBlock
-            clientId={client.id}
-            isAdmin={isAdmin}
-            telegramConnected={notifications.telegramConnected}
-            hasSms={notifications.hasSms}
-            smsEnabled={notifications.smsEnabled}
-            smsTemplate={notifications.smsTemplate}
-            voicemailGreetingText={notifications.voicemailGreetingText}
-            agentName={notifications.agentName}
-            businessName={notifications.businessName}
-          />
+        {/* ═══════════ Telegram (advisory one-liner) ═══════════ */}
+        <section aria-labelledby="go-live-telegram-heading">
+          <SectionHeader id="go-live-telegram-heading" title="Get notified" />
+          <div className="rounded-3xl shadow-sm bg-white p-6 border border-zinc-100 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                aria-hidden="true"
+                className={`shrink-0 inline-block w-2.5 h-2.5 rounded-full ${
+                  telegramConnected ? 'bg-emerald-500' : 'bg-zinc-300'
+                }`}
+              />
+              <div className="min-w-0">
+                <p className="text-base font-semibold text-zinc-900">
+                  Telegram {telegramConnected ? 'connected' : 'not set up'}
+                </p>
+                <p className="text-sm text-zinc-600 mt-0.5">
+                  {telegramConnected
+                    ? "You'll get a ping the moment a call comes in."
+                    : 'Connect Telegram to get instant call alerts on your phone.'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/settings?tab=notifications"
+              className="shrink-0 text-sm font-medium text-zinc-700 hover:text-zinc-900 underline underline-offset-2"
+            >
+              {telegramConnected ? 'Manage' : 'Connect'}
+            </Link>
+          </div>
         </section>
-
-        {/* Voice section removed 2026-04-27 — owner deciding whether to keep. */}
 
         {/* Spacer so the sticky banner doesn't cover the last block. */}
         <div aria-hidden="true" className="h-24 lg:h-32" />
