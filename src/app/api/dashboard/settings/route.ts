@@ -16,6 +16,8 @@ import { applyPromptPatches } from '@/lib/settings-patchers'
 import { regenerateSlots, type RegenerateSlotResult } from '@/lib/slot-regenerator'
 import { SLOT_IDS, type SlotId } from '@/lib/prompt-sections'
 import { scheduleAutoRegen } from '@/lib/auto-regen'
+import { evaluateAdminScopeGuard, EDIT_MODE_REQUIRED_RESPONSE } from '@/lib/admin-scope-guard'
+import { recordAdminAudit, diffFields } from '@/lib/admin-audit'
 
 // ── Agent sync helper ────────────────────────────────────────────────────────────
 
@@ -189,6 +191,19 @@ export async function PATCH(req: NextRequest) {
     targetClientId = body.client_id
   }
 
+  // 2.5 — Phase 0.5.3: cross-client edit guard (read-only by default)
+  // No-op when ADMIN_REDESIGN_ENABLED is off — preserves current admin behavior.
+  const guard = evaluateAdminScopeGuard({
+    role: cu.role,
+    ownClientId: cu.client_id,
+    targetClientId,
+    req,
+    body: body as unknown as Record<string, unknown>,
+  })
+  if (!guard.allowed) {
+    return NextResponse.json(EDIT_MODE_REQUIRED_RESPONSE, { status: 403 })
+  }
+
   // 3 — Section edit permission check
   if (body.section_id && body.section_content !== undefined) {
     if (!isSectionEditAllowed(body.section_id, cu.role)) {
@@ -228,13 +243,62 @@ export async function PATCH(req: NextRequest) {
     'after_hours_emergency_phone', 'callback_phone',
   ])
 
+  // 6.5 — Phase 0.5.1: snapshot before-state for cross-client audit log.
+  //  Only fetched when an admin is acting on another client. Cheap select scoped
+  //  to the fields actually being mutated.
+  const updateKeys = Object.keys(updates)
+  let beforeRow: Record<string, unknown> | null = null
+  if (guard.isCrossClient && updateKeys.length > 0) {
+    const { data } = await supabase
+      .from('clients')
+      .select(updateKeys.join(','))
+      .eq('id', targetClientId)
+      .maybeSingle()
+    beforeRow = (data as unknown as Record<string, unknown>) ?? null
+  }
+
   // 7 — Save to Supabase
   const { error } = await supabase
     .from('clients')
     .update(updates)
     .eq('id', targetClientId)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (guard.isCrossClient) {
+      void recordAdminAudit({
+        adminUserId: user.id,
+        targetClientId,
+        actingClientId: cu.client_id,
+        route: '/api/dashboard/settings',
+        method: 'PATCH',
+        payload: updates,
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // 7.5 — Phase 0.5.1: write the cross-client audit row (non-blocking).
+  if (guard.isCrossClient && updateKeys.length > 0) {
+    const { data: afterData } = await supabase
+      .from('clients')
+      .select(updateKeys.join(','))
+      .eq('id', targetClientId)
+      .maybeSingle()
+    const afterRow = (afterData as unknown as Record<string, unknown>) ?? null
+    const { beforeDiff, afterDiff } = diffFields(beforeRow, afterRow, updateKeys)
+    void recordAdminAudit({
+      adminUserId: user.id,
+      targetClientId,
+      actingClientId: cu.client_id,
+      route: '/api/dashboard/settings',
+      method: 'PATCH',
+      payload: updates,
+      beforeDiff,
+      afterDiff,
+    })
+  }
 
   // Auto-rebuild prompt for low-stakes field changes (non-blocking)
   // Skips: direct system_prompt edits (already saved), voice/persona patches, hand_tuned clients

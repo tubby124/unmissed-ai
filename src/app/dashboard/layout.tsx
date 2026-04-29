@@ -20,6 +20,7 @@ import { DashboardToaster } from '@/components/dashboard/DashboardToaster'
 import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
 import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
 import RecordingConsentGate from '@/components/dashboard/RecordingConsentGate'
+import ActingAsBanner from '@/components/admin/ActingAsBanner'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -135,6 +136,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <UpgradeModalProvider>
         <CallProvider>
           <AdminClientProvider isAdmin={isAdmin} clients={adminClients}>
+            {/* Phase 0.5.2 — banner self-gates on feature flag + admin scope */}
+            <ActingAsBanner />
+
             {/* Desktop tab bar — sticky below TopBar */}
             <TabBar isAdmin={isAdmin} clientId={clientId} failedNotifCount={failedNotifCount} />
 
