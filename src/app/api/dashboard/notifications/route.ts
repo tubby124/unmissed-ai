@@ -28,10 +28,16 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  // Non-admin: scope to own client
+  // Non-admin: scope to own client. Admin: optional ?client_id= filter from
+  // the top-bar switcher (Phase 3 Wave B), else returns all clients.
   if (cu.role !== 'admin') {
     if (!cu.client_id) return NextResponse.json({ notifications: [], total: 0 })
     query = query.eq('client_id', cu.client_id)
+  } else {
+    const adminScope = searchParams.get('client_id')
+    if (adminScope && adminScope !== 'all') {
+      query = query.eq('client_id', adminScope)
+    }
   }
 
   if (channel) query = query.eq('channel', channel)
