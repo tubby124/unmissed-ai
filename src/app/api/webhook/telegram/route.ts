@@ -33,6 +33,12 @@ import {
 import { answerForClient } from '@/lib/telegram/assistant'
 import type { InlineKeyboardMarkup } from '@/lib/telegram/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  resolvePendingAction,
+  cancelPendingAction,
+  type PendingActionRow,
+} from '@/lib/telegram/pending-actions'
+import { updateLeadStatusForClient } from '@/lib/calls/lead-status'
 
 interface TelegramUpdate {
   update_id?: number
@@ -72,13 +78,21 @@ async function sendTelegramMessage(
   })
 }
 
-async function answerCallbackQuery(callbackQueryId: string): Promise<void> {
+async function answerCallbackQuery(
+  callbackQueryId: string,
+  opts: { text?: string; show_alert?: boolean } = {},
+): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN!
+  const body: Record<string, unknown> = { callback_query_id: callbackQueryId }
+  // Toast text on the tapped button. Truncate to 200 chars per Telegram's
+  // hard limit on answerCallbackQuery.text.
+  if (opts.text) body.text = opts.text.slice(0, 200)
+  if (opts.show_alert) body.show_alert = true
   try {
     await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ callback_query_id: callbackQueryId }),
+      body: JSON.stringify(body),
     })
   } catch (err) {
     // Silent ack failure is non-fatal — the user just sees a spinner for a moment.
@@ -137,6 +151,95 @@ async function handleAssistantRequest(
   }
 }
 
+/**
+ * Tier 3: cf:<uuid> redeems a pending action; cancel:<uuid> drops it.
+ *
+ * Both paths terminate the callback_query interaction (toast + optional
+ * follow-up message) and return without further dispatch. Multi-tenant
+ * scope is enforced by the resolver — a stolen token is silently treated
+ * as expired (no info leak).
+ *
+ * Failure of the underlying mutator surfaces as a toast + a follow-up
+ * message so the owner knows the action did not land. We do NOT attempt
+ * to retry — confirmable mutations should be deterministic on first
+ * confirm.
+ */
+async function handleConfirmOrCancel(
+  supa: SupabaseClient,
+  callbackQueryId: string,
+  chatId: number,
+  code: string,
+): Promise<void> {
+  if (code.startsWith('cancel:')) {
+    const token = code.slice(7).trim()
+    if (token) await cancelPendingAction(supa, token, chatId)
+    await answerCallbackQuery(callbackQueryId, { text: 'Cancelled.' })
+    await sendTelegramMessage(chatId, 'Cancelled — nothing changed.', {
+      reply_markup: buildQuickActionsKeyboard(),
+    })
+    return
+  }
+
+  // code.startsWith('cf:')
+  const token = code.slice(3).trim()
+  if (!token) {
+    await answerCallbackQuery(callbackQueryId, { text: "I didn't catch that." })
+    return
+  }
+
+  const action: PendingActionRow | null = await resolvePendingAction(supa, token, chatId)
+  if (!action) {
+    await answerCallbackQuery(callbackQueryId, { text: 'That confirmation expired.' })
+    await sendTelegramMessage(
+      chatId,
+      'That confirmation expired. Tap the action again to retry.',
+      { reply_markup: buildQuickActionsKeyboard() },
+    )
+    return
+  }
+
+  const name = action.payload.name ?? 'the lead'
+
+  // Both action kinds end at lead_status='called_back'. cb:<id> additionally
+  // surfaces the phone number in the prior reply so the owner can tap-to-call;
+  // mk:<id> just flips the status. The DB write is identical.
+  const result = await updateLeadStatusForClient(
+    supa,
+    action.payload.call_id,
+    action.client_id,
+    'called_back',
+  )
+
+  if (!result.ok) {
+    console.warn(`[telegram-webhook] lead_status mutator failed code=${result.code} client=${action.client_id} call=${action.payload.call_id}`)
+    await answerCallbackQuery(callbackQueryId, { text: "Couldn't save that — try again." })
+    await sendTelegramMessage(
+      chatId,
+      `⚠️ I couldn't update <b>${escapeHtml(name)}</b>. Try the action again, or update from the dashboard.`,
+      { reply_markup: buildQuickActionsKeyboard() },
+    )
+    return
+  }
+
+  await answerCallbackQuery(callbackQueryId, {
+    text: `Done — ${name} marked called back ✅`,
+  })
+  await sendTelegramMessage(
+    chatId,
+    `✅ <b>${escapeHtml(name)}</b> marked called back.`,
+    { reply_markup: buildQuickActionsKeyboard() },
+  )
+}
+
+/**
+ * Minimal HTML-entity escape for the small set of inline-payload values
+ * we render with parse_mode=HTML (lead names, mostly). Telegram's HTML
+ * mode only requires &<> escaping; quotes are safe inside `<b>` tags.
+ */
+function escapeHtml(input: string): string {
+  return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const adminSupa = createServiceClient()
   let update: TelegramUpdate
@@ -156,11 +259,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return new NextResponse('OK', { status: 200 })
     }
 
-    // Always ack first to remove the loading spinner on the tapped button
-    await answerCallbackQuery(cq.id)
-
     const chatId = chat.id
     const code = cq.data
+
+    // ── Tier 3: cf:<uuid> confirm / cancel:<uuid> dispatch ─────────────────
+    // cf:<uuid> redeems a pending action created by a prior cb:/mk: tap.
+    // 60s TTL, multi-tenant by chat_id. Ack carries a toast so the user
+    // sees "Done — <name> ✅" without the keyboard re-rendering.
+    if (code.startsWith('cf:') || code.startsWith('cancel:')) {
+      try {
+        await handleConfirmOrCancel(adminSupa, cq.id, chatId, code)
+      } catch (err) {
+        console.error(`[telegram-webhook] cf/cancel error chatId=${chatId}: ${(err as Error).message}`)
+        // Best-effort silent ack on failure so the spinner clears.
+        await answerCallbackQuery(cq.id)
+      }
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    // Always ack first to remove the loading spinner on the tapped button
+    await answerCallbackQuery(cq.id)
 
     if (isTier3ReservedCode(code)) {
       await sendTelegramMessage(chatId, renderTier3ComingSoon(), {
