@@ -1,9 +1,12 @@
 ---
 type: feature
-status: tier1-shipped
+status: tier2-shipped
 tier1_pr: https://github.com/tubby124/unmissed-ai/pull/41
 tier1_merge_sha: 03ad11c09b2a42e5a8de63e4a0438df023976bd6
 tier1_shipped: 2026-04-28
+tier2_pr: https://github.com/tubby124/unmissed-ai/pull/47
+tier2_merge_sha: 74f1ac4
+tier2_shipped: 2026-04-28
 tags:
   - telegram
   - assistant
@@ -17,19 +20,29 @@ related:
   - "[[Architecture/webhook-security-and-idempotency]]"
   - "[[Clients/calgary-property-leasing]]"
   - "[[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]"
-  - "[[00-Inbox/NEXT-CHAT-Telegram-Tier2]]"
+  - "[[00-Inbox/Telegram-Tier2-Design-2026-04-28]]"
+  - "[[00-Inbox/Telegram-Tier3-Followups-2026-04-28]]"
+  - "[[00-Inbox/NEXT-CHAT-Telegram-Tier3]]"
+  - "[[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]]"
+  - "[[Decisions/2026-04-28-Telegram-Tier2-NL-Assistant]]"
+  - "[[Decisions/2026-04-28-Telegram-Tier3-Mutation-Surface]]"
 updated: 2026-04-28
 ---
 
 ## Status — 2026-04-28
 
-**Tier 1 LIVE** ✅ — PR #41 squash-merged at 2026-04-28T23:01:52Z, sha `03ad11c0`. Migration `20260428100000_create_telegram_updates_seen` applied to prod (qwhvblomlgeapzhnuwlb). Railway auto-deploys from main.
-
+**Tier 1 LIVE** ✅ — PR #41 squash-merged 2026-04-28T23:01:52Z, sha `03ad11c0`. Migration `20260428100000_create_telegram_updates_seen` applied to prod (qwhvblomlgeapzhnuwlb).
 Active commands: `/help`, `/calls`, `/today`, `/missed`, `/lastcall`, `/minutes`. Group-chat guard, 10/min rate limit, update_id idempotency, multi-tenant client_id scoping. 11/11 tests green.
 
-**Tier 2** — cold-start prompt at [[00-Inbox/NEXT-CHAT-Telegram-Tier2]]. Resume: paste that prompt into a fresh chat at the repo root.
+**Tier 2 LIVE** ✅ — PR #47 squash-merged 2026-04-28, sha `74f1ac4`. Migration `telegram_assistant_log` applied. `OPENROUTER_API_KEY` set in Railway env. `setMyCommands` + `setChatMenuButton` registered on production bot.
+Adds: free-text NL Q&A via `anthropic/claude-haiku-4-5` (15s timeout, 600 max_tokens), keyword shortcuts ("calls"/"today"/"missed"/"minutes" → no-LLM), persistent 4-button inline keyboard on every reply, `callback_query` branch in webhook (tap = same as type), citation guard regex, PII-free cost telemetry. 32+ tests green.
+Followup landed separately: PR #48 (`const outcome` lint nit, sha `a0e409f`).
 
-**Tier 3** — defer until Tier 2 ships and free-text reads are proven; first action will be `mark_called_back` (one-column update, idempotent), second will be `add_vip` (existing contacts endpoint, instant dashboard reflection).
+**Tier 3 READY** 🟡 — cold-start prompt at [[00-Inbox/NEXT-CHAT-Telegram-Tier3]]. Scope decision: [[Decisions/2026-04-28-Telegram-Tier3-Mutation-Surface]]. Followups + gaps captured at [[00-Inbox/Telegram-Tier3-Followups-2026-04-28]].
+Mission: confirmable mutations (`cb:<id>` / `mk:<id>` / `cf:<uuid>` callbacks) routed through dashboard PATCH endpoints, DB-backed confirm-token TTL store (`telegram_pending_actions`), operator-only `/clients` `/health` `/spend` gated by slug='hasan-sharif', per-client monthly LLM spend cap, 1% PII-free reply-audit sampling, group-chat `/start` guard (B.6 latent fix lands as commit 0).
+Out of Tier 3 scope (flagged Tier 4): webhook secret + per-client white-label bot fleet (A.1 + A.4), real `clients.telegram_owner_user_id` schema (L18).
+
+**Tier 4 (when triggered)** — webhook signature validation + per-client bot fleet + formal operator-user model. Triggers: first white-label client OR a second platform operator joining.
 
 ---
 

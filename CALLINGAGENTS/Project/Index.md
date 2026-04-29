@@ -10,16 +10,15 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-28 PM — Telegram Tier 1 LIVE)
-- PR #41 squash-merged at 2026-04-28T23:01:52Z, sha `03ad11c0` — Railway auto-deploys
-- Migration `20260428100000_create_telegram_updates_seen` applied to prod Supabase
-- @hassitant_1bot now responds to `/help`, `/calls`, `/today`, `/missed`, `/lastcall`, `/minutes` for any registered client chat_id
-- Hardening: private-chat-only guard, 10/min per-chat_id rate limit, update_id idempotency, multi-tenant scoping
-- 11/11 unit tests + green build
-- Audit doc: [[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]
+## Latest Session (2026-04-28 PM — Telegram Tier 1 + 2 LIVE, Tier 3 READY)
+- **Tier 1** PR #41 squash-merged sha `03ad11c0`. Migration `telegram_updates_seen` applied. `/help` `/calls` `/today` `/missed` `/lastcall` `/minutes` live across registered clients.
+- **Tier 2** PR #47 squash-merged sha `74f1ac4`. Migration `telegram_assistant_log` applied. `OPENROUTER_API_KEY` set in Railway. Bot menu + persistent inline keyboard + `callback_query` re-dispatch + Haiku 4.5 NL Q&A + citation guard + keyword shortcuts + PII-free cost telemetry. 32+ tests green.
+- **Tier 2 cleanup** — PR #48 (`const outcome` lint, sha `a0e409f`).
+- **Tier 3 READY** — cold-start at [[00-Inbox/NEXT-CHAT-Telegram-Tier3]]. Scope: confirmable mutations (`cb:<id>`/`mk:<id>`/`cf:<uuid>`), DB-backed `telegram_pending_actions`, operator `/clients` `/health` `/spend` gated by slug='hasan-sharif', per-client spend cap, 1% reply-audit, group-chat `/start` guard. 9 commits planned. Followups + gaps: [[00-Inbox/Telegram-Tier3-Followups-2026-04-28]].
+- Decisions: [[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]] · [[Decisions/2026-04-28-Telegram-Tier2-NL-Assistant]] · [[Decisions/2026-04-28-Telegram-Tier3-Mutation-Surface]]
 - Feature note: [[Features/Telegram-Two-Way-Assistant]]
-- Decision: [[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]]
-- **Next:** Tier 2 (NL Q&A via OpenRouter) — cold-start at [[00-Inbox/NEXT-CHAT-Telegram-Tier2]]
+- Audit doc: [[00-Inbox/Telegram-Two-Way-Assistant-Audit-2026-04-28]]
+- **Next:** Open a fresh chat, paste the Tier 3 cold-start block, ship Tier 3.
 
 ## Previous Session (2026-04-28 — Realtor onboarding polish + universal recording consent)
 - 6 waves shipped in one session, build green (`npm run build` 6.2s)
