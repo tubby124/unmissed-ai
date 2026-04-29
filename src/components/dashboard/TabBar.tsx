@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { useAdminClient } from '@/contexts/AdminClientContext'
+import { isAdminRedesignEnabledClient } from '@/lib/feature-flags'
 
 interface TabBarProps {
   isAdmin?: boolean
@@ -23,6 +24,10 @@ const CLIENT_TABS = [
   { href: '/dashboard/settings', label: 'Settings' },
   { href: '/dashboard/other', label: 'Other' },
 ]
+
+// Phase 2 — admin-only nav entry pointing at relocated Command Center.
+// Self-gates on isAdmin + ADMIN_REDESIGN flag below.
+const ADMIN_TAB = { href: '/dashboard/admin', label: 'Admin' }
 
 const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live', '/dashboard/maintenance']
 const OTHER_HREFS = ['/dashboard/other']
@@ -120,13 +125,16 @@ export default function TabBar({ isAdmin = false, clientId = null, failedNotifCo
     return 'var(--color-cta)'
   }
 
+  const showAdminTab = isAdmin && isAdminRedesignEnabledClient()
+  const tabs = showAdminTab ? [ADMIN_TAB, ...CLIENT_TABS] : CLIENT_TABS
+
   return (
     <nav
       role="tablist"
       className="hidden lg:flex sticky top-14 z-30 h-11 items-center border-b px-2"
       style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
-      {CLIENT_TABS.map((tab, idx) => {
+      {tabs.map((tab, idx) => {
         const active = isTabActive(tab.href, pathname)
         const badge = getBadge(tab.href)
         return (
