@@ -7,23 +7,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu || cu.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
-
   const body = await req.json().catch(() => ({}))
-  const targetClientId = cu.role === 'admin' ? (body.client_id ?? cu.client_id) : cu.client_id
 
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
+
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
+  const targetClientId = scope.targetClientId
   if (!targetClientId) return NextResponse.json({ error: 'No client_id' }, { status: 400 })
 
   const svc = createServiceClient()
@@ -75,10 +77,29 @@ export async function POST(req: NextRequest) {
     await svc.from('clients').update({ tools: syncTools }).eq('id', client.id)
 
     console.log(`[sync-agent] Synced client=${targetClientId} agent=${client.ultravox_agent_id}`)
+
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/settings/sync-agent',
+        method: 'POST',
+        payload: { client_id: targetClientId, agent_id: client.ultravox_agent_id },
+      })
+    }
     return NextResponse.json({ ok: true, agent_id: client.ultravox_agent_id })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[sync-agent] Failed: ${msg}`)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/settings/sync-agent',
+        method: 'POST',
+        payload: { client_id: targetClientId },
+        status: 'error',
+        errorMessage: msg,
+      })
+    }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

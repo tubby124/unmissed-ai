@@ -9,6 +9,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
 async function getAuthContext(supabase: Awaited<ReturnType<typeof createServerClient>>) {
@@ -67,10 +72,7 @@ export async function GET(req: NextRequest) {
 // ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerClient()
-  const cu = await getAuthContext(supabase)
-  if (!cu) return new NextResponse('Unauthorized', { status: 401 })
-
-  const body = await req.json().catch(() => ({})) as { clientId?: string; url?: string }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; url?: string; client_id?: string; edit_mode_confirmed?: boolean }
   const clientId = body.clientId?.trim()
   const url = body.url?.trim()
 
@@ -78,9 +80,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'clientId and url required' }, { status: 400 })
   }
 
-  if (cu.role !== 'admin' && cu.client_id !== clientId) {
+  const normalizedBody: Record<string, unknown> = { ...body, client_id: clientId }
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: normalizedBody,
+    acceptCamelCase: true,
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin' && scope.ownClientId !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
   const svc = createServiceClient()
 
@@ -99,8 +112,26 @@ export async function DELETE(req: NextRequest) {
     .eq('url', url)
 
   if (error) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/website-sources',
+        method: 'DELETE',
+        payload: { client_id: clientId, url },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/website-sources',
+      method: 'DELETE',
+      payload: { client_id: clientId, url },
+    })
+  }
   return NextResponse.json({ ok: true })
 }

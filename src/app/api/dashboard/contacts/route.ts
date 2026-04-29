@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { normalizePhoneNA } from '@/lib/utils/phone'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 // ── Shared auth helper ──────────────────────────────────────────────────────
 async function resolveAuth(supabase: Awaited<ReturnType<typeof createServerClient>>) {
@@ -43,11 +48,14 @@ export async function GET(req: NextRequest) {
 // ── POST — create contact ───────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const auth = await resolveAuth(supabase)
-  if ('error' in auth) return auth.error
-  const { cu } = auth
-
   const body = await req.json()
+
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
   const { phone, name, email, tags, notes, is_vip, vip_relationship, vip_notes, transfer_enabled, preferences } = body
 
   if (!phone || typeof phone !== 'string') {
@@ -60,7 +68,7 @@ export async function POST(req: NextRequest) {
   }
 
   const insert: Record<string, unknown> = {
-    client_id: cu.client_id,
+    client_id: scope.targetClientId,
     phone: normalized,
   }
   if (name !== undefined) insert.name = name
@@ -79,7 +87,28 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/contacts',
+        method: 'POST',
+        payload: { phone: normalized, is_vip: !!is_vip },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/contacts',
+      method: 'POST',
+      payload: { contact_id: contact.id, phone: normalized, is_vip: !!is_vip },
+    })
+  }
 
   return NextResponse.json(contact, { status: 201 })
 }
@@ -110,6 +139,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Phase 3 Wave B: if admin is editing another client's contact, run scope guard.
+  // Use the contact's client_id as the target so the guard fires correctly.
+  const scopedBody: Record<string, unknown> = { ...body, client_id: existing.client_id as string }
+  const resolved = await resolveAdminScope({ supabase, req, body: scopedBody })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
   // If phone is being updated, normalize it
   if (fields.phone) {
     const normalized = normalizePhoneNA(fields.phone)
@@ -126,7 +164,28 @@ export async function PATCH(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/contacts',
+        method: 'PATCH',
+        payload: { contact_id: id, fields: Object.keys(fields) },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/contacts',
+      method: 'PATCH',
+      payload: { contact_id: id, fields: Object.keys(fields) },
+    })
+  }
 
   return NextResponse.json(contact)
 }
@@ -157,12 +216,41 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Phase 3 Wave B scope guard
+  const scopedBody: Record<string, unknown> = { ...body, client_id: existing.client_id as string }
+  const resolved = await resolveAdminScope({ supabase, req, body: scopedBody })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
   const { error } = await supabase
     .from('client_contacts')
     .delete()
     .eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/contacts',
+        method: 'DELETE',
+        payload: { contact_id: id },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/contacts',
+      method: 'DELETE',
+      payload: { contact_id: id },
+    })
+  }
 
   return NextResponse.json({ ok: true })
 }

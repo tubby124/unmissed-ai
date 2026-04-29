@@ -3,35 +3,32 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
 import { APP_URL } from '@/lib/app-url'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 const RATE_LIMIT_MAX = 5
 const RATE_LIMIT_WINDOW_MS = 30 * 60_000
 
 export async function POST(req: NextRequest) {
-  // Auth: Supabase session
+  // Auth + Phase 3 Wave B scope guard
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const body = await req.json().catch(() => ({}))
 
-  // Lookup client_users to get client_id
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu?.client_id) {
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!scope.ownClientId && scope.role !== 'admin') {
     return NextResponse.json({ error: 'No client linked to your account' }, { status: 403 })
   }
 
-  // Admin override: allow testing any client's agent
-  const body = await req.json().catch(() => ({}))
-  let targetClientId = cu.client_id
-  if (cu.role === 'admin' && body.client_id) {
-    targetClientId = body.client_id
-  }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
+  const user = scope.user
+  const targetClientId = scope.targetClientId
 
   // Fetch client data — same columns buildAgentContext() needs + agent/tools fields
   const svc = createServiceClient()
@@ -154,6 +151,15 @@ export async function POST(req: NextRequest) {
       console.error(`[agent-test] call_logs insert failed: ${logErr instanceof Error ? logErr.message : logErr}`)
     }
 
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/agent-test',
+        method: 'POST',
+        payload: { client_id: targetClientId, ultravox_call_id: callId },
+      })
+    }
+
     return NextResponse.json({
       joinUrl,
       callId,
@@ -163,6 +169,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[agent-test] Failed: client=${client.slug} error=${msg}`)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/agent-test',
+        method: 'POST',
+        payload: { client_id: targetClientId },
+        status: 'error',
+        errorMessage: msg,
+      })
+    }
     return NextResponse.json({ error: 'Failed to start test call. Please try again.' }, { status: 502 })
   }
 }

@@ -12,33 +12,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { validateServiceWrite } from '@/lib/service-catalog'
 import { syncServiceCatalogToPrompt } from '@/lib/service-catalog-sync'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const body = await req.json().catch(() => ({})) as { drafts?: unknown[]; client_id?: string; edit_mode_confirmed?: boolean }
 
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
+  if (typeof body.client_id === 'string' &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
+    return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
+  }
 
-  if (!cu || !['admin', 'owner'].includes(cu.role)) {
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!['admin', 'owner'].includes(scope.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
-  const body = await req.json().catch(() => ({})) as { drafts?: unknown[]; client_id?: string }
-
-  let clientId: string | null
-  if (cu.role === 'admin' && body.client_id) {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
-      return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
-    }
-    clientId = body.client_id
-  } else {
-    clientId = cu.client_id
-  }
+  const clientId = scope.targetClientId
   if (!clientId) return NextResponse.json({ error: 'No client found' }, { status: 400 })
 
   if (!Array.isArray(body.drafts) || body.drafts.length === 0) {
@@ -77,6 +75,16 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[services/apply] insert error:', error.message)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/services/apply',
+        method: 'POST',
+        payload: { client_id: clientId, drafts_count: rows.length },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
     return NextResponse.json({ error: 'Failed to apply services' }, { status: 500 })
   }
 
@@ -84,6 +92,15 @@ export async function POST(req: NextRequest) {
   syncServiceCatalogToPrompt(clientId).catch(err =>
     console.error('[services/apply] Service sync failed:', err)
   )
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/services/apply',
+      method: 'POST',
+      payload: { client_id: clientId, inserted: services?.length ?? 0 },
+    })
+  }
 
   return NextResponse.json({ inserted: services?.length ?? 0, services: services ?? [] })
 }

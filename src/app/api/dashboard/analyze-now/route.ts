@@ -8,6 +8,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 const ANALYSIS_SYSTEM_PROMPT = `You are an AI voice agent performance analyst. You will receive a batch of classified call summaries for a service business and identify patterns, issues, and specific recommendations to improve the AI agent's performance.
 
@@ -20,15 +25,17 @@ export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cuRows } = await supabase.from('client_users').select('client_id,role').eq('user_id', user.id).order('role').limit(1)
-  const cu = cuRows?.[0] ?? null
-  if (!cu || !['admin', 'owner'].includes(cu.role)) return new NextResponse('Forbidden', { status: 403 })
-
   const body = await req.json().catch(() => ({}))
-  const clientId = (body.client_id as string | undefined) || cu.client_id
+
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!['admin', 'owner'].includes(scope.role)) return new NextResponse('Forbidden', { status: 403 })
+
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
+  const clientId = scope.targetClientId
 
   const svc = createServiceClient()
 
@@ -121,6 +128,15 @@ export async function POST(req: NextRequest) {
   if (client.telegram_bot_token && client.telegram_chat_id) {
     await sendAlert(client.telegram_bot_token, client.telegram_chat_id,
       `🔬 <b>New Analysis Ready — ${client.business_name || client.slug}</b>\n📊 ${calls.length} calls · 🐛 ${issuesCount} issues · 💡 ${recsCount} recs\n⭐ Quality: ${parsed.overall_quality_score ?? '?'}/100\n💬 ${(parsed.summary || '').slice(0, 200)}\n\n📋 Review → /dashboard/insights`)
+  }
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/analyze-now',
+      method: 'POST',
+      payload: { client_id: clientId, report_id: reportRow?.id, calls_analyzed: calls.length, issues_count: issuesCount, recs_count: recsCount },
+    })
   }
 
   return NextResponse.json({ ok: true, report_id: reportRow?.id, issues_count: issuesCount, recommendations_count: recsCount, calls_analyzed: calls.length })

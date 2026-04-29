@@ -27,7 +27,10 @@ interface CallLog {
   client_id?: string | null
 }
 
-export default async function LeadsPage() {
+export default async function LeadsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams
+  const adminSelectedClientId = typeof params.client_id === 'string' ? params.client_id : null
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -41,8 +44,8 @@ export default async function LeadsPage() {
 
   const isAdmin = cu?.role === 'admin'
 
-  // ── Admin path ──────────────────────────────────────────────────────────────
-  if (isAdmin) {
+  // ── Admin path (no scope) — all-clients leads queue ─────────────────────────
+  if (isAdmin && !adminSelectedClientId) {
     const { data: clients } = await supabase
       .from('clients')
       .select('id, slug, business_name')
@@ -68,8 +71,11 @@ export default async function LeadsPage() {
     )
   }
 
-  // ── Client owner path ────────────────────────────────────────────────────────
-  const clientId = cu?.client_id
+  // ── Client owner path (also: admin scoped via ?client_id=) ──────────────────
+  // Phase 3 Wave A — admin in scope sees the owner view of the scoped client.
+  // Reads only; the OutboundAgentConfigCard write surface stays gated by the
+  // existing edit-mode guard from Phase 0.5.
+  const clientId = isAdmin && adminSelectedClientId ? adminSelectedClientId : cu?.client_id
   if (!clientId) redirect('/dashboard/calls')
 
   // Fetch client config (outbound_prompt + phone number status)

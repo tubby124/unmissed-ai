@@ -12,42 +12,61 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const body = await req.json().catch(() => ({})) as { client_id?: string; edit_mode_confirmed?: boolean }
 
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu || !['admin', 'owner'].includes(cu.role)) {
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!['admin', 'owner'].includes(scope.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
-  const body = await req.json().catch(() => ({})) as { client_id?: string }
-  const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
+  const clientId = scope.targetClientId
   if (!clientId) return NextResponse.json({ error: 'client_id required' }, { status: 400 })
-  if (cu.role !== 'admin' && clientId !== cu.client_id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
 
   const svc = createServiceClient()
+  const acknowledgedAt = new Date().toISOString()
   const { error: updateErr } = await svc
     .from('clients')
     .update({
-      recording_consent_acknowledged_at: new Date().toISOString(),
+      recording_consent_acknowledged_at: acknowledgedAt,
       recording_consent_version: 1,
     })
     .eq('id', clientId)
 
   if (updateErr) {
     console.error('[recording-consent] update failed:', updateErr)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/recording-consent',
+        method: 'POST',
+        payload: { client_id: clientId },
+        status: 'error',
+        errorMessage: updateErr.message,
+      })
+    }
     return NextResponse.json({ error: 'Failed to save acknowledgment' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, acknowledged_at: new Date().toISOString() })
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/recording-consent',
+      method: 'POST',
+      payload: { client_id: clientId, acknowledged_at: acknowledgedAt },
+    })
+  }
+
+  return NextResponse.json({ ok: true, acknowledged_at: acknowledgedAt })
 }

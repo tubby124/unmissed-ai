@@ -73,6 +73,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Phase 3 Wave B note: this is a READ-only diff preview. Admins routinely
+  // pop this open while diagnosing a client without intending to edit, so the
+  // edit-mode guard is intentionally NOT applied here — only the confirm route
+  // (regenerate-prompt POST) gets it. The diff produced is shown BEFORE the
+  // admin clicks Confirm, which is the actual write moment.
+
   const agentModeOverride = body.agentModeOverride as AgentMode | undefined
   if (!agentModeOverride || !AGENT_MODE_VALUES.includes(agentModeOverride)) {
     return NextResponse.json(

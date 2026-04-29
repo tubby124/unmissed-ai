@@ -86,7 +86,9 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     .order('started_at', { ascending: false })
     .limit(500)
 
-  if (!isAdmin && clientId) q = q.eq('client_id', clientId)
+  // Phase 3 Wave A — admin in scope filters by selected client too. When admin
+  // is unscoped clientId stays null so the all-clients view is preserved.
+  if (clientId) q = q.eq('client_id', clientId)
 
   const { data: calls } = await q
 

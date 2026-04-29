@@ -1,32 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import twilio from 'twilio'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
   const body = await req.json().catch(() => ({}))
   const toPhone = body.to_phone as string | undefined
   if (!toPhone) {
     return NextResponse.json({ ok: false, error: 'to_phone is required' }, { status: 400 })
   }
 
-  const targetClientId = (cu.role === 'admin' && body.client_id) ? body.client_id : cu.client_id
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const targetClientId = scope.targetClientId
 
   // Use service client to read twilio_number (infrastructure field)
   const service = createServiceClient()
@@ -60,10 +54,28 @@ export async function POST(req: NextRequest) {
       from: client.twilio_number as string,
       to: toPhone,
     })
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/settings/test-sms',
+        method: 'POST',
+        payload: { client_id: targetClientId, to_phone: toPhone },
+      })
+    }
     return NextResponse.json({ ok: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[test-sms] Send failed:', msg)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/settings/test-sms',
+        method: 'POST',
+        payload: { client_id: targetClientId, to_phone: toPhone },
+        status: 'error',
+        errorMessage: msg,
+      })
+    }
     return NextResponse.json({ ok: false, error: msg })
   }
 }

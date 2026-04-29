@@ -2,27 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { BRAND_NAME } from '@/lib/brand'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu || cu.role !== 'admin') {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
   const body = await req.json().catch(() => ({}))
-  const targetClientId = body.client_id ?? cu.client_id
+
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin') return new NextResponse('Forbidden', { status: 403 })
+
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
+  const targetClientId = scope.targetClientId
 
   // Use service client to read sensitive fields (telegram_bot_token)
   const service = createServiceClient()
@@ -41,6 +39,17 @@ export async function POST(req: NextRequest) {
     client.telegram_chat_id,
     `<b>${BRAND_NAME} — Test Message</b>\n\nTelegram is configured correctly for <b>${client.business_name}</b>. You will receive call alerts here.`
   )
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/settings/test-telegram',
+      method: 'POST',
+      payload: { client_id: targetClientId },
+      status: ok ? 'ok' : 'error',
+      errorMessage: ok ? null : 'sendAlert returned false',
+    })
+  }
 
   return NextResponse.json({ ok })
 }

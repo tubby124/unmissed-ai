@@ -10,6 +10,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { validateServiceWrite } from '@/lib/service-catalog'
 import { syncServiceCatalogToPrompt } from '@/lib/service-catalog-sync'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -60,33 +65,27 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
 
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu || !['admin', 'owner'].includes(cu.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // Validate client_id format BEFORE the helper so we don't audit malformed UUIDs.
+  if (typeof body.client_id === 'string' &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id)) {
+    return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!['admin', 'owner'].includes(scope.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
   const validationError = validateServiceWrite(body)
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
-  let clientId: string | null
-  if (cu.role === 'admin' && body.client_id) {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(body.client_id as string)) {
-      return NextResponse.json({ error: 'Invalid client_id' }, { status: 400 })
-    }
-    clientId = body.client_id as string
-  } else {
-    clientId = cu.client_id
-  }
+  const clientId = scope.targetClientId
   if (!clientId) return NextResponse.json({ error: 'No client found' }, { status: 400 })
 
   const svc = createServiceClient()
@@ -108,6 +107,16 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[services POST] insert error:', error.message)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/services',
+        method: 'POST',
+        payload: { client_id: clientId, name: body.name },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
     return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
   }
 
@@ -115,6 +124,15 @@ export async function POST(req: NextRequest) {
   syncServiceCatalogToPrompt(clientId).catch(err =>
     console.error('[services POST] Service sync failed:', err)
   )
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/services',
+      method: 'POST',
+      payload: { client_id: clientId, service_id: service?.id, name: body.name },
+    })
+  }
 
   return NextResponse.json({ service }, { status: 201 })
 }

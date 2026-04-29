@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import NoNotifications from '@/components/dashboard/empty-states/NoNotifications'
 import NotificationsConfigSection from './NotificationsConfigSection'
+import { useClientScope } from '@/lib/admin-scope'
+import { isAdminRedesignEnabledClient } from '@/lib/feature-flags'
 
 interface Notification {
   id: string
@@ -87,14 +89,21 @@ export default function NotificationsPage() {
   const [channel, setChannel] = useState<ChannelFilter>('')
   const [status, setStatus] = useState<StatusFilter>('')
 
+  // Phase 3 Wave B: admin's switcher-selected client scopes the timeline too.
+  // Flag-OFF preserves legacy "all clients" admin view.
+  const { scopedClientId } = useClientScope()
+  const flagOn = isAdminRedesignEnabledClient()
+  const adminScope = flagOn && scopedClientId !== 'all' ? scopedClientId : null
+
   const buildParams = useCallback((offset = 0) => {
     const params = new URLSearchParams()
     params.set('limit', String(PAGE_SIZE))
     params.set('offset', String(offset))
     if (channel) params.set('channel', channel)
     if (status) params.set('status', status)
+    if (adminScope) params.set('client_id', adminScope)
     return params
-  }, [channel, status])
+  }, [channel, status, adminScope])
 
   const fetchNotifications = useCallback(async (offset = 0, append = false) => {
     if (!append) setLoading(true)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { BRAND_NAME, BRAND_REFERER } from '@/lib/brand'
+import { resolveAdminScope } from '@/lib/admin-scope-helpers'
 
 export const maxDuration = 60
 
@@ -88,20 +89,15 @@ function extractPatterns(calls: CallRow[], frictionTranscripts: TranscriptRow[])
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return new NextResponse('No client found', { status: 404 })
-
   const body = await req.json().catch(() => ({}))
-  const targetClientId = cu.role === 'admin' ? (body.client_id ?? cu.client_id) : cu.client_id
 
+  // Phase 3 Wave B: improve-prompt is read-only (returns AI suggestion only;
+  // never writes to clients). Skip the edit-mode guard but still resolve scope
+  // so admins targeting another client get the right config.
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const targetClientId = scope.targetClientId
   if (!targetClientId) return NextResponse.json({ error: 'No client_id' }, { status: 400 })
 
   const svc = createServiceClient()

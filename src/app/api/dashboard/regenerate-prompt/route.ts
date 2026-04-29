@@ -24,6 +24,11 @@ import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { buildAgentModeRebuildPrompt, AGENT_MODE_VALUES, type AgentMode } from '@/lib/agent-mode-rebuild'
 import { rowsToCatalogItems } from '@/lib/service-catalog'
 import { applyPromptPatches } from '@/lib/prompt-patches'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 const REGEN_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -40,19 +45,8 @@ export function shouldBlockHandTunedRegen(
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('role, client_id')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-  if (!cu || !['admin', 'owner'].includes(cu.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const body = await req.json().catch(() => ({})) as { clientId?: string; agentModeOverride?: string; force?: boolean }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; agentModeOverride?: string; force?: boolean; client_id?: string; edit_mode_confirmed?: boolean }
   const { clientId } = body
   // Phase E Wave 7 safety flag — callers can explicitly opt into overwriting a
   // hand-tuned prompt (e.g. admin confirmation modal). Defaults to false so the
@@ -60,10 +54,30 @@ export async function POST(req: NextRequest) {
   const force = body.force === true
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-  // Scope check: owners can only regenerate their own client
-  if (cu.role === 'owner' && cu.client_id !== clientId) {
+  // Phase 3 Wave B: resolve admin scope. The legacy contract uses `clientId`
+  // (camelCase) so we mirror it into `client_id` for the helper.
+  const normalizedBody: Record<string, unknown> = { ...body, client_id: clientId }
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: normalizedBody,
+    acceptCamelCase: true,
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (!['admin', 'owner'].includes(scope.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  // Scope check: owners can only regenerate their own client
+  if (scope.role === 'owner' && scope.ownClientId !== clientId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const user = scope.user
+  const cu = { role: scope.role, client_id: scope.ownClientId }
 
   // agentModeOverride: owners can pass this for their own client (deep-mode rebuild)
   const agentModeOverride = body.agentModeOverride as AgentMode | undefined
@@ -331,12 +345,40 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[regenerate-prompt] Ultravox sync failed:', msg)
+      if (scope.guard.isCrossClient) {
+        void auditAdminWrite({
+          scope,
+          route: '/api/dashboard/regenerate-prompt',
+          method: 'POST',
+          payload: { client_id: clientId, source: regenSource, ultravox_synced: false },
+          status: 'error',
+          errorMessage: msg,
+        })
+      }
       return NextResponse.json({ ok: true, saved: true, synced: false, source: regenSource, error: msg })
     }
   }
 
   const modeTag = agentModeWriteBack ? ` mode=${agentModeWriteBack.agent_mode}` : ''
   console.log(`[regenerate-prompt] client=${client.slug} v${newVersion?.version ?? '?'} source=${regenSource}${modeTag} role=${cu.role} chars=${newPrompt.length} delta=${delta}`)
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/regenerate-prompt',
+      method: 'POST',
+      payload: {
+        client_id: clientId,
+        source: regenSource,
+        agent_mode: agentModeWriteBack?.agent_mode,
+        force,
+        char_count: newPrompt.length,
+      },
+      beforeRow: { system_prompt_chars: prevCharCount },
+      afterRow: { system_prompt_chars: newPrompt.length },
+      fieldKeys: ['system_prompt_chars'],
+    })
+  }
 
   return NextResponse.json({ ok: true, saved: true, synced: true, source: regenSource })
 }
