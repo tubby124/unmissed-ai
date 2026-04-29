@@ -4,24 +4,26 @@ import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu || cu.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
-
   const body = await req.json().catch(() => ({}))
+
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
+
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+
   // Admin can target any client; owners can only test their own
-  const clientId = cu.role === 'admin' ? (body.client_id ?? cu.client_id) : cu.client_id
+  const clientId = scope.targetClientId
   const toPhone: string = body.to_phone
 
   if (!toPhone) return NextResponse.json({ error: 'to_phone required (E.164 format)' }, { status: 400 })
@@ -134,8 +136,26 @@ export async function POST(req: NextRequest) {
       from: fromNumber,
       twiml,
     })
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/test-call',
+        method: 'POST',
+        payload: { client_id: clientId, to_phone: toPhone, ultravox_call_id: ultravoxCall.callId, twilio_sid: call.sid },
+      })
+    }
     return NextResponse.json({ ok: true, callId: ultravoxCall.callId, twilio_sid: call.sid })
   } catch (err) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/test-call',
+        method: 'POST',
+        payload: { client_id: clientId, to_phone: toPhone },
+        status: 'error',
+        errorMessage: String(err),
+      })
+    }
     return NextResponse.json({ error: `Twilio dial failed: ${String(err)}` }, { status: 500 })
   }
 }

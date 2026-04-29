@@ -27,6 +27,11 @@ import { buildSlotContext } from '@/lib/prompt-slots'
 import type { SlotId } from '@/lib/prompt-sections'
 import { patchAgentName, patchBusinessName, patchOwnerName } from '@/lib/prompt-patcher'
 import { updateAgent, buildAgentTools } from '@/lib/ultravox'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 // ── GET — Resolve current variable values ─────────────────────────────────────
 
@@ -89,33 +94,26 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  // 1 — Auth
+  // 1 — Auth + Phase 3 Wave B scope guard
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return NextResponse.json({ error: 'No client found' }, { status: 404 })
-
-  // 2 — Parse body
   const body = await req.json().catch(() => null)
   if (!body || typeof body.variableKey !== 'string' || typeof body.value !== 'string') {
     return NextResponse.json({ error: 'Required: { variableKey: string, value: string }' }, { status: 400 })
   }
 
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const user = scope.user
+  const cu = { role: scope.role, client_id: scope.ownClientId }
+
   const { variableKey, value } = body as { variableKey: string; value: string }
   const trimmedValue = value.trim()
 
   // Admin can edit variables for any client
-  let clientId = cu.client_id
-  if (cu.role === 'admin' && typeof body.client_id === 'string') {
-    clientId = body.client_id
-  }
+  const clientId = scope.targetClientId
 
   // 3 — Look up variable in registry
   const varDef = getVariable(variableKey)
@@ -155,6 +153,16 @@ export async function PATCH(req: NextRequest) {
       .eq('id', clientId)
 
     if (updateErr) {
+      if (scope.guard.isCrossClient) {
+        void auditAdminWrite({
+          scope,
+          route: '/api/dashboard/variables',
+          method: 'PATCH',
+          payload: { client_id: clientId, variable_key: variableKey },
+          status: 'error',
+          errorMessage: updateErr.message,
+        })
+      }
       return NextResponse.json({ error: `DB update failed: ${updateErr.message}` }, { status: 500 })
     }
 
@@ -180,6 +188,16 @@ export async function PATCH(req: NextRequest) {
       .eq('id', clientId)
 
     if (updateErr) {
+      if (scope.guard.isCrossClient) {
+        void auditAdminWrite({
+          scope,
+          route: '/api/dashboard/variables',
+          method: 'PATCH',
+          payload: { client_id: clientId, variable_key: variableKey },
+          status: 'error',
+          errorMessage: updateErr.message,
+        })
+      }
       return NextResponse.json({ error: `DB update failed: ${updateErr.message}` }, { status: 500 })
     }
 
@@ -345,6 +363,15 @@ export async function PATCH(req: NextRequest) {
       .eq('id', clientId)
       .single()
     newPrompt = updatedClient?.system_prompt as string | undefined
+  }
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/variables',
+      method: 'PATCH',
+      payload: { client_id: clientId, variable_key: variableKey, char_count: result.charCount, affected_slots: affectedSlots },
+    })
   }
 
   return NextResponse.json({

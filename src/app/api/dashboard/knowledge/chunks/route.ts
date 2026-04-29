@@ -3,20 +3,14 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { scheduleAutoRegen } from '@/lib/auto-regen'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return new NextResponse('No client found', { status: 404 })
-
   const params = req.nextUrl.searchParams
   const chunkId = params.get('id')
   const clearAll = params.get('clear_all') === 'true'
@@ -26,11 +20,22 @@ export async function DELETE(req: NextRequest) {
   // ── Bulk clear ────────────────────────────────────────────────────────────
   if (clearAll) {
     const rawClientId = params.get('client_id')
-    const targetClientId = cu.role === 'admin' && rawClientId ? rawClientId : cu.client_id
+    const queryClientId = rawClientId ?? null
+    const resolved = await resolveAdminScope({
+      supabase,
+      req,
+      body: null,
+      queryClientId,
+    })
+    if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+    const { scope } = resolved
+    const targetClientId = scope.targetClientId
     if (!targetClientId) return NextResponse.json({ error: 'client_id required' }, { status: 400 })
-    if (cu.role !== 'admin' && targetClientId !== cu.client_id) {
+    if (scope.role !== 'admin' && targetClientId !== scope.ownClientId) {
       return new NextResponse('Forbidden', { status: 403 })
     }
+    const denied = rejectIfEditModeRequired(scope)
+    if (denied) return denied
 
     let query = svc.from('knowledge_chunks').delete().eq('client_id', targetClientId)
     const sourceFilter = params.get('source')
@@ -39,12 +44,32 @@ export async function DELETE(req: NextRequest) {
     if (statusFilter) query = query.eq('status', statusFilter)
 
     const { error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      if (scope.guard.isCrossClient) {
+        void auditAdminWrite({
+          scope,
+          route: '/api/dashboard/knowledge/chunks',
+          method: 'DELETE',
+          payload: { client_id: targetClientId, clear_all: true, source: sourceFilter, status: statusFilter },
+          status: 'error',
+          errorMessage: error.message,
+        })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     try { await syncClientTools(svc, targetClientId) } catch (err) {
       console.error(`[knowledge/chunks DELETE clear_all] tools sync failed: ${err}`)
     }
 
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/knowledge/chunks',
+        method: 'DELETE',
+        payload: { client_id: targetClientId, clear_all: true, source: sourceFilter, status: statusFilter },
+      })
+    }
     return NextResponse.json({ ok: true })
   }
 
@@ -59,21 +84,51 @@ export async function DELETE(req: NextRequest) {
 
   if (!chunk) return NextResponse.json({ error: 'Chunk not found' }, { status: 404 })
 
-  if (cu.role !== 'admin' && chunk.client_id !== cu.client_id) {
+  // Phase 3 Wave B scope guard: target = chunk's client_id
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: { client_id: chunk.client_id as string },
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin' && chunk.client_id !== scope.ownClientId) {
     return new NextResponse('Forbidden', { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
   const { error } = await svc
     .from('knowledge_chunks')
     .delete()
     .eq('id', chunkId)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/knowledge/chunks',
+        method: 'DELETE',
+        payload: { chunk_id: chunkId },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   try { await syncClientTools(svc, chunk.client_id) } catch (err) {
     console.error(`[knowledge/chunks DELETE] tools sync failed: ${err}`)
   }
 
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/knowledge/chunks',
+      method: 'DELETE',
+      payload: { chunk_id: chunkId },
+    })
+  }
   return NextResponse.json({ ok: true, deleted: chunkId })
 }
 
@@ -154,17 +209,6 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('client_id, role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return new NextResponse('No client found', { status: 404 })
-
   const body = await req.json().catch(() => ({})) as {
     client_id?: string
     content?: string
@@ -172,9 +216,18 @@ export async function POST(req: NextRequest) {
     trust_tier?: string
     source?: string
     auto_approve?: boolean
+    edit_mode_confirmed?: boolean
   }
 
-  const clientId = cu.role === 'admin' && body.client_id ? body.client_id : cu.client_id
+  const resolved = await resolveAdminScope({ supabase, req, body })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const user = scope.user
+  const cu = { role: scope.role, client_id: scope.ownClientId }
+
+  const clientId = scope.targetClientId
   const content = body.content?.trim()
 
   if (!content) {
@@ -221,6 +274,16 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[knowledge/chunks POST]', error)
+    if (scope.guard.isCrossClient) {
+      void auditAdminWrite({
+        scope,
+        route: '/api/dashboard/knowledge/chunks',
+        method: 'POST',
+        payload: { client_id: clientId, chunk_type: chunkType, source, status: effectiveStatus },
+        status: 'error',
+        errorMessage: error.message,
+      })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -233,6 +296,14 @@ export async function POST(req: NextRequest) {
     scheduleAutoRegen(clientId, 'auto:faq_added')
   }
 
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/knowledge/chunks',
+      method: 'POST',
+      payload: { client_id: clientId, chunk_id: chunk.id, status: effectiveStatus },
+    })
+  }
   return NextResponse.json({ ok: true, chunk, embedding_pending: !embedding })
 }
 

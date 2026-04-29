@@ -3,6 +3,11 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 import { validateApprovedPackage } from '@/lib/scrape-validation'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 type ApprovedPackage = {
   businessFacts: string[]
@@ -19,18 +24,8 @@ type ApprovedPackage = {
  * (agent-context.ts injects these into the prompt at call time).
  */
 export async function POST(req: NextRequest) {
-  // ── Auth — admin or client owner ──────────────────────────────────────────
+  // ── Auth + Phase 3 Wave B scope guard ────────────────────────────────────
   const supabase = await createServerClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('role, client_id')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // ── Parse body ────────────────────────────────────────────────────────────
   const body = await req.json().catch(() => ({})) as {
@@ -38,16 +33,29 @@ export async function POST(req: NextRequest) {
     approved?: ApprovedPackage
     auto_approve?: boolean
     sourceUrl?: string
+    client_id?: string
+    edit_mode_confirmed?: boolean
   }
   const clientId = body.clientId?.trim()
   const bodySourceUrl = body.sourceUrl?.trim() || null
 
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-  // ── Permission check ──────────────────────────────────────────────────────
-  if (cu.role !== 'admin' && cu.client_id !== clientId) {
+  const normalizedBody: Record<string, unknown> = { ...body, client_id: clientId }
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: normalizedBody,
+    acceptCamelCase: true,
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin' && scope.ownClientId !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const cu = { role: scope.role, client_id: scope.ownClientId }
 
   const svc = createServiceClient()
 
@@ -179,6 +187,21 @@ export async function POST(req: NextRequest) {
   }
 
   console.log(`[approve-website-knowledge] client=${client.slug} stored=${seedResult.stored} failed=${seedResult.failed} facts=${mergedFacts.length} qa=${mergedQa.length} chunkStatus=${chunkStatus}`)
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/approve-website-knowledge',
+      method: 'POST',
+      payload: {
+        client_id: clientId,
+        chunks_stored: seedResult.stored,
+        merged_facts: mergedFacts.length,
+        merged_qa: mergedQa.length,
+        chunk_status: chunkStatus,
+      },
+    })
+  }
 
   return NextResponse.json({
     success: true,

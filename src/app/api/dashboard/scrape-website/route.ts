@@ -3,6 +3,11 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { scrapeWebsite } from '@/lib/website-scraper'
 import { normalizeExtraction } from '@/lib/knowledge-extractor'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 const SCRAPE_TIMEOUT_MS = 45_000
 
@@ -16,21 +21,9 @@ function isValidHttpUrl(url: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  // ── Auth — admin or client owner ──────────────────────────────────────────
+  // ── Auth + Phase 3 Wave B scope guard ────────────────────────────────────
   const supabase = await createServerClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('role, client_id')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (!cu) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  // ── Parse body ────────────────────────────────────────────────────────────
-  const body = await req.json().catch(() => ({})) as { clientId?: string; url?: string }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; url?: string; client_id?: string; edit_mode_confirmed?: boolean }
   const clientId = body.clientId?.trim()
   const url = body.url?.trim()
 
@@ -38,10 +31,20 @@ export async function POST(req: NextRequest) {
   if (!url) return NextResponse.json({ error: 'url required' }, { status: 400 })
   if (!isValidHttpUrl(url)) return NextResponse.json({ error: 'url must be a valid http or https URL' }, { status: 400 })
 
-  // ── Permission check ──────────────────────────────────────────────────────
-  if (cu.role !== 'admin' && cu.client_id !== clientId) {
+  const normalizedBody: Record<string, unknown> = { ...body, client_id: clientId }
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: normalizedBody,
+    acceptCamelCase: true,
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin' && scope.ownClientId !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
 
   const svc = createServiceClient()
 
@@ -210,6 +213,15 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', clientId),
   ])
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/scrape-website',
+      method: 'POST',
+      payload: { client_id: clientId, url, status: 'extracted' },
+    })
+  }
 
   return NextResponse.json({
     preview,

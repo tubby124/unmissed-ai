@@ -199,6 +199,8 @@ export default function GoLiveView({ client, isAdmin }: Props) {
             forwardingVerifiedAt={client.forwarding_verified_at}
             forwardingSelfAttested={!!client.forwarding_self_attested}
             onVerified={() => router.refresh()}
+            scopedClientId={client.id}
+            isAdmin={isAdmin}
           />
         </section>
 

@@ -34,6 +34,11 @@ interface CallForwardingCardProps {
   forwardingVerifiedAt: string | null
   forwardingSelfAttested: boolean
   onVerified: () => void
+  /** Phase 3 Wave B: when admin scoped into another client, the self-attest POST
+   *  must include this so the row stamped is the scoped client, not the admin's
+   *  own. Pass `null` for non-admin / self-scope and the helper will omit it. */
+  scopedClientId?: string | null
+  isAdmin?: boolean
 }
 
 type AttestState = 'idle' | 'submitting' | 'failed'
@@ -47,6 +52,8 @@ export default function CallForwardingCard({
   forwardingVerifiedAt,
   forwardingSelfAttested,
   onVerified,
+  scopedClientId,
+  isAdmin,
 }: CallForwardingCardProps) {
   const verified = !!forwardingVerifiedAt || forwardingSelfAttested
   // Hooks must run unconditionally — trial early-return comes AFTER all hooks.
@@ -92,6 +99,8 @@ export default function CallForwardingCard({
           forwardingVerifiedAt={forwardingVerifiedAt}
           forwardingSelfAttested={forwardingSelfAttested}
           onVerified={onVerified}
+          scopedClientId={scopedClientId}
+          isAdmin={isAdmin}
         />
       )}
     </div>
@@ -136,6 +145,8 @@ function SetupForm({
   forwardingVerifiedAt,
   forwardingSelfAttested,
   onVerified,
+  scopedClientId,
+  isAdmin,
 }: {
   twilioNumber: string
   forwardingNumber: string
@@ -145,6 +156,8 @@ function SetupForm({
   forwardingVerifiedAt: string | null
   forwardingSelfAttested: boolean
   onVerified: () => void
+  scopedClientId?: string | null
+  isAdmin?: boolean
 }) {
   const [attest, setAttest] = useState<AttestState>('idle')
   const [copied, setCopied] = useState(false)
@@ -185,10 +198,15 @@ function SetupForm({
     inFlight.current = true
     setAttest('submitting')
     try {
+      // Phase 3 Wave B: when admin scoped into another client, forward client_id
+      // so the self-attest stamps the right row. Edit-mode confirmation flows
+      // separately via the Acting As banner header (x-admin-edit-mode).
+      const body: Record<string, unknown> = {}
+      if (isAdmin && scopedClientId) body.client_id = scopedClientId
       const res = await fetch('/api/dashboard/forwarding-verify/self-attest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       })
       if (res.ok) {
         setAttest('idle')
@@ -302,6 +320,28 @@ function SetupForm({
             </p>
           </div>
         </div>
+
+        <details className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-amber-200 select-none list-none flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Test went to voicemail instead?
+          </summary>
+          <div className="mt-2 text-[11px] text-amber-100/85 leading-relaxed space-y-2">
+            <p>
+              Your carrier voicemail is grabbing the call before the forward fires. You need to <strong>fully remove voicemail</strong> from this line at the carrier level — toggling Visual Voicemail off in iOS settings is not enough.
+            </p>
+            <p>
+              <strong>Call your carrier and say:</strong> <em>&ldquo;Please fully remove voicemail from my line. I&apos;m using a third-party answering service and it&apos;s blocking my call forwarding.&rdquo;</em> Takes 5 min, free on postpaid. Once they confirm removal, your forward starts firing automatically — no need to re-dial the code.
+            </p>
+            <p className="font-mono text-[10px] text-amber-200/70">
+              Rogers 1-800-764-3771 · Bell 1-800-668-6878 · Telus 1-866-558-2273 · Fido 1-888-481-3436 · SaskTel 1-800-727-5835
+            </p>
+          </div>
+        </details>
 
         <button
           type="button"

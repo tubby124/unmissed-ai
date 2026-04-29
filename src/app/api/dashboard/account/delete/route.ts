@@ -13,34 +13,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient, createServerClient } from '@/lib/supabase/server'
 import { deleteAgent } from '@/lib/ultravox'
+import {
+  resolveAdminScope,
+  rejectIfEditModeRequired,
+  auditAdminWrite,
+} from '@/lib/admin-scope-helpers'
 
 export async function POST(req: NextRequest) {
-  // ── Auth ───────────────────────────────────────────────────────────────────
+  // ── Auth + Phase 3 Wave B scope guard ────────────────────────────────────
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json().catch(() => ({})) as { clientId?: string; confirmText?: string }
+  const body = await req.json().catch(() => ({})) as { clientId?: string; confirmText?: string; client_id?: string; edit_mode_confirmed?: boolean }
   const { clientId, confirmText } = body
 
   if (!clientId) return NextResponse.json({ error: 'Missing clientId' }, { status: 400 })
   if (confirmText !== 'DELETE') return NextResponse.json({ error: 'Type DELETE to confirm' }, { status: 400 })
 
-  const svc = createServiceClient()
-
-  // Verify ownership (owner or admin)
-  const { data: cu } = await svc
-    .from('client_users')
-    .select('role, client_id')
-    .eq('user_id', user.id)
-    .order('role')
-    .limit(1)
-    .maybeSingle()
-
-  if (!cu) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (cu.role !== 'admin' && cu.client_id !== clientId) {
+  const normalizedBody: Record<string, unknown> = { ...body, client_id: clientId }
+  const resolved = await resolveAdminScope({
+    supabase,
+    req,
+    body: normalizedBody,
+    acceptCamelCase: true,
+  })
+  if (!resolved.ok) return NextResponse.json({ error: resolved.message }, { status: resolved.status })
+  const { scope } = resolved
+  if (scope.role !== 'admin' && scope.ownClientId !== clientId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  // Account deletion is the most destructive write — never bypass the guard.
+  const denied = rejectIfEditModeRequired(scope)
+  if (denied) return denied
+  const user = scope.user
+  const svc = createServiceClient()
 
   // ── Load client ────────────────────────────────────────────────────────────
   const { data: client } = await svc
@@ -182,6 +187,15 @@ export async function POST(req: NextRequest) {
   deleted.auth_users = authDeleted
 
   console.log(`[account/delete] ${client.slug} deleted by user ${user.id.slice(0, 8)}: ${JSON.stringify(deleted)}`)
+
+  if (scope.guard.isCrossClient) {
+    void auditAdminWrite({
+      scope,
+      route: '/api/dashboard/account/delete',
+      method: 'POST',
+      payload: { client_id: clientId, slug: client.slug, deleted, warnings: warnings.slice(0, 10) },
+    })
+  }
 
   return NextResponse.json({ success: true, deleted, warnings })
 }
