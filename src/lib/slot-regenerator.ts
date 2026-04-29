@@ -19,6 +19,12 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { type SlotId, replacePromptSection, wrapSection } from './prompt-sections'
 import {
+  fetchActivePatternsForNiche,
+  injectLearningBankBlock,
+  estimateLearningBankBlockChars,
+  LEARNING_BANK_PROMPT_BUDGET_CHARS,
+} from './learning-bank-inject'
+import {
   buildSlotContext,
   buildPromptFromSlots,
   buildSafetyPreamble,
@@ -535,7 +541,33 @@ export async function recomposePrompt(
   }
 
   // Build the entire prompt from scratch
-  const newPrompt = buildPromptFromSlots(ctx)
+  let newPrompt = buildPromptFromSlots(ctx)
+
+  // ── Learning Bank injection (gated, default OFF) ────────────────────────────
+  // W3 self-improvement loop. Only injects when the env flag is explicitly
+  // 'true' so we can validate per-niche before flipping it on. The block is
+  // small and budget-checked; if injecting would push the prompt over the
+  // soft budget the entire injection is skipped.
+  if (process.env.LEARNING_BANK_INJECT === 'true') {
+    try {
+      const svc = createServiceClient()
+      const niche = (client.niche as string | null) ?? null
+      const patterns = await fetchActivePatternsForNiche(svc, niche)
+      if (patterns.length > 0) {
+        const injectionChars = estimateLearningBankBlockChars(patterns)
+        if (newPrompt.length + injectionChars < LEARNING_BANK_PROMPT_BUDGET_CHARS) {
+          newPrompt = injectLearningBankBlock(newPrompt, patterns)
+        } else {
+          console.warn(
+            `[learning-bank] Skipping injection for client=${clientId} niche=${niche ?? 'null'}: ` +
+            `would exceed budget (${newPrompt.length} + ${injectionChars} >= ${LEARNING_BANK_PROMPT_BUDGET_CHARS})`,
+          )
+        }
+      }
+    } catch (err) {
+      console.warn(`[learning-bank] Injection failed (continuing without): ${err}`)
+    }
+  }
 
   if (newPrompt === client.system_prompt) {
     return { success: true, promptChanged: false, charCount: newPrompt.length }

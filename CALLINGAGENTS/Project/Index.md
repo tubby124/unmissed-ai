@@ -1,7 +1,7 @@
 ---
 type: moc
 tags: [index, project]
-updated: 2026-04-28
+updated: 2026-04-29
 cleaned: 2026-04-01
 last-tracker-cleanup: 2026-04-01
 ---
@@ -10,7 +10,15 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-28 PM — Telegram Tier 1 + 2 LIVE, Tier 3 READY)
+## Latest Session (2026-04-29 — Learning Bank platform + Zara rewrite)
+- **D440 Learning Bank scaffolded** — 3 migrations (`prompt_patterns`, `prompt_lessons`, `pattern_application_log`, `call_transcripts`, `v_active_patterns_by_niche` view + 24-row seed), `/completed` webhook auto-generates lessons from `call_insights` thresholds, admin UI at `/dashboard/admin/learning-bank`, gated pattern injection in `slot-regenerator.ts` behind `LEARNING_BANK_INJECT=true` (default OFF), backfill script `scripts/backfill-transcripts.ts`, `/learn` skill (audit | promote-pattern | weekly-digest | seed) registered.
+- **D441 Zara rewrite** — `clients/unmissed-demo/SYSTEM_PROMPT.txt` rewritten 11,991 → 10,844 chars; 14 NEVER rules → 5; cut EMERGENCY/RETURNING/<25w-rule/casual-forcing-function; ported 10 universal Learning Bank patterns from windshield-hub/urban-vibe/hasan-sharif. Identity drift fixed: `clients.agent_name` Aria → Zara (applied live).
+- **Pending manual ops:** `supabase db push` (3 migrations not yet applied to remote `qwhvblomlgeapzhnuwlb`), `/prompt-deploy unmissed-demo` (Zara prompt not yet deployed), `npx tsx scripts/backfill-transcripts.ts --limit 200` (transcript backfill not yet run).
+- Decisions: [[Decisions/2026-04-29-Learning-Bank]] · [[Decisions/2026-04-29-Zara-Rewrite]]
+- Feature: [[Features/Learning-Bank]]
+- Tracker: [[Tracker/D440]] · [[Tracker/D441]]
+
+## Previous Session (2026-04-28 PM — Telegram Tier 1 + 2 LIVE, Tier 3 READY)
 - **Tier 1** PR #41 squash-merged sha `03ad11c0`. Migration `telegram_updates_seen` applied. `/help` `/calls` `/today` `/missed` `/lastcall` `/minutes` live across registered clients.
 - **Tier 2** PR #47 squash-merged sha `74f1ac4`. Migration `telegram_assistant_log` applied. `OPENROUTER_API_KEY` set in Railway. Bot menu + persistent inline keyboard + `callback_query` re-dispatch + Haiku 4.5 NL Q&A + citation guard + keyword shortcuts + PII-free cost telemetry. 32+ tests green.
 - **Tier 2 cleanup** — PR #48 (`const outcome` lint, sha `a0e409f`).

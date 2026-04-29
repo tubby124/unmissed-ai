@@ -69,3 +69,9 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 12359 | **Hash:** cb6722ec3366437b
 **Supabase version_id:** b76a3bf9-aff6-42fc-bf80-1316aec04748
 **Ultravox revision:** c53ba68f-627d-4a11-bd64-c78433bc153a
+
+## v13 — 2026-04-29 03:02 UTC
+**Change:** Zara rewrite v13 — 14→5 NEVERs, cut EMERGENCY/RETURNING/<25w-rule, ported capability-triage + energy-match + confirm-back + skip-step from windshield-hub/urban-vibe/hasan-sharif (D441)
+**Chars:** 11074 | **Hash:** 3f4c790a60e4d158
+**Supabase version_id:** 58c69c38-e94c-4945-b927-179499968dbc
+**Ultravox revision:** d5325717-a53a-4bd7-9aa7-8a636f36df24

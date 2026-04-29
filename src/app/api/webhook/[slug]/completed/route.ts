@@ -19,6 +19,8 @@ import { embedText } from '@/lib/embeddings'
 import { analyzeQualityMetrics } from '@/lib/quality-metrics'
 import { tryAcquireSuggestionLock, fetchRecentInsights, isFailedCall, generateAndStoreSuggestions } from '@/lib/prompt-suggestions'
 import { generateFaqSuggestions } from '@/lib/faq-suggestion-generator'
+import { persistTranscript } from '@/lib/call-transcripts'
+import { generateLessonsFromInsight } from '@/lib/lesson-generator'
 
 export const maxDuration = 120
 
@@ -468,6 +470,49 @@ export async function POST(
 
             if (insightError) console.error(`[completed] L5 insight write failed for callId=${callId}: ${insightError.message}`)
             else console.log(`[completed] L5 insight saved: callId=${callId} gaps=${insight.unansweredQuestions.length} features=${insight.featureSuggestions.length} frustrated=${insight.callerFrustrated}`)
+
+            // ── Learning bank: persist transcript + auto-generate lessons ──
+            // Only runs when call_insights wrote successfully — feeds the lesson generator
+            // a single object that combines insight heuristics + quality metrics + call meta.
+            if (!insightError) {
+              try {
+                if (Array.isArray(transcript) && transcript.length > 0 && client?.id) {
+                  await persistTranscript(supabase, {
+                    callId: callLogId,
+                    ultravoxCallId: callId,
+                    clientId: client.id,
+                    slug,
+                    transcript,
+                  })
+
+                  if (callLogId) {
+                    const insightRow = {
+                      // L5 insight fields
+                      unanswered_questions: insight.unansweredQuestions,
+                      feature_suggestions: insight.featureSuggestions,
+                      caller_frustrated: insight.callerFrustrated,
+                      repeated_questions: insight.repeatedQuestions,
+                      agent_confused_moments: insight.agentConfusedMoments,
+                      // 8o quality metrics (used for loop_rate, agent_confidence thresholds)
+                      loop_rate: qualityMetrics.loop_rate,
+                      agent_confidence: qualityMetrics.agent_confidence,
+                      avg_agent_turn_chars: qualityMetrics.avg_agent_turn_chars,
+                      // Call meta needed by success/duration thresholds
+                      duration_seconds: durationSeconds,
+                      call_status: classification.status,
+                    }
+                    await generateLessonsFromInsight(supabase, {
+                      clientId: client.id,
+                      callId: callLogId,
+                      insight: insightRow,
+                      transcript,
+                    })
+                  }
+                }
+              } catch (e) {
+                console.error('[completed] learning bank step failed:', e)
+              }
+            }
 
             // L5→Gaps bridge: feed unanswered questions into knowledge_query_log
             if (insight.unansweredQuestions.length > 0) {
