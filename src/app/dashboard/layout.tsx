@@ -21,6 +21,7 @@ import RealtimeToasts from '@/components/dashboard/RealtimeToasts'
 import FloatingCallOrb from '@/components/dashboard/FloatingCallOrb'
 import RecordingConsentGate from '@/components/dashboard/RecordingConsentGate'
 import ActingAsBanner from '@/components/admin/ActingAsBanner'
+import ClientSwitcher from '@/components/admin/ClientSwitcher'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerClient()
@@ -167,6 +168,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
               {/* Main content — pb-16 on mobile to clear fixed BottomTabBar */}
               <main className="flex-1 min-w-0 overflow-y-auto pb-16 lg:pb-0 dashboard-main">
+                {/* Phase 1 — admin client switcher (self-gates on flag + admin role) */}
+                <ClientSwitcher />
                 <AdminCommandStrip />
                 {/* Activity sub-nav — only visible on Activity routes */}
                 <ActivitySubNav isTrialing={isTrialing} niche={clientNiche} />
