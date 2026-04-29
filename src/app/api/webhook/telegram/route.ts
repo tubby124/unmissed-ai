@@ -103,6 +103,12 @@ async function handleAssistantRequest(
   client: TelegramClientRow,
   text: string
 ): Promise<void> {
+  // Single-fire only. Telegram's typing indicator persists ~5s; a Haiku
+  // turn averages 12-14s so the dot fades mid-wait — accepted trade-off
+  // (B.3 from Tier 3 followups). The reply still arrives with the inline
+  // keyboard, which is the actual completion signal users care about.
+  // Re-firing on a 4s interval was the alternative; not worth the
+  // bookkeeping for a sub-second UX win.
   await sendChatAction(chatId, 'typing')
   const result = await answerForClient(client, text, {
     supa,
