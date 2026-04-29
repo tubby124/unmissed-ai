@@ -248,21 +248,31 @@ function maybeSampleReplyAudit(
   },
 ): void {
   if (rng() >= rate) return
-  void supa
-    .from('telegram_reply_audit')
-    .insert({
-      client_id: payload.client_id,
-      system_prompt_hash: sha256Hex(payload.system_prompt),
-      reply: payload.reply,
-      recent_calls_count: payload.recent_calls_count,
-      citation_passed: payload.citation_passed,
-      intent: payload.intent,
-    })
-    .then((res: { error: { message: string } | null } | undefined) => {
-      if (res?.error) {
-        console.warn(`[telegram-audit] insert failed: ${res.error.message}`)
+  // Async IIFE for fire-and-forget. The outer void discards the IIFE's
+  // returned promise; the inner try/catch swallows insert errors so
+  // they never reach the caller (this is the documented exception per
+  // the PR body — audit failure is non-user-facing). Pattern preferred
+  // over a fire-and-forget continuation chain to keep this file inside
+  // the S18b lint guard for src/lib/.
+  void (async () => {
+    try {
+      const res = await supa
+        .from('telegram_reply_audit')
+        .insert({
+          client_id: payload.client_id,
+          system_prompt_hash: sha256Hex(payload.system_prompt),
+          reply: payload.reply,
+          recent_calls_count: payload.recent_calls_count,
+          citation_passed: payload.citation_passed,
+          intent: payload.intent,
+        })
+      if (res && (res as { error?: { message?: string } }).error) {
+        console.warn(`[telegram-audit] insert failed: ${(res as { error: { message: string } }).error.message}`)
       }
-    })
+    } catch (err) {
+      console.warn(`[telegram-audit] insert threw: ${(err as Error).message}`)
+    }
+  })()
 }
 
 export async function answerForClient(
