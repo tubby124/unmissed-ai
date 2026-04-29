@@ -284,6 +284,28 @@ function SetupForm({
           </AnimatePresence>
         </button>
 
+        <details className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+          <summary className="cursor-pointer text-xs font-medium text-amber-900 select-none list-none flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Test went to voicemail instead?
+          </summary>
+          <div className="mt-2 text-[11px] text-amber-900/85 leading-relaxed space-y-2">
+            <p>
+              Your carrier voicemail is grabbing the call before the forward fires. You need to <strong>fully remove voicemail</strong> from this line at the carrier level — toggling Visual Voicemail off in iOS settings is not enough.
+            </p>
+            <p>
+              <strong>Call your carrier and say:</strong> <em>&ldquo;Please fully remove voicemail from my line. I&apos;m using a third-party answering service and it&apos;s blocking my call forwarding.&rdquo;</em> Takes 5 min, free on postpaid. Once they confirm removal, your forward starts firing automatically — no need to re-dial the code.
+            </p>
+            <p className="font-mono text-[10px] text-amber-900/70">
+              Rogers 1-800-764-3771 · Bell 1-800-668-6878 · Telus 1-866-558-2273 · Fido 1-888-481-3436 · SaskTel 1-800-727-5835
+            </p>
+          </div>
+        </details>
+
         <StatusPill tone={statusPill.tone} text={statusPill.text} />
       </div>
     </div>
