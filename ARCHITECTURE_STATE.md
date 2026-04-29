@@ -248,7 +248,7 @@ CALLING AGENTs/
 | POST | `/api/stripe/create-checkout` | Admin only. Create Stripe Checkout session ($20 setup fee). Body: { intakeId, clientId }. Returns { url } |
 | POST | `/api/webhook/stripe` | Stripe checkout.session.completed. Full activation chain: (1) buy Twilio number, (1.5) send onboarding SMS from new number to callbackPhone with Telegram link, (2) status→active + telegram_registration_token, (3-5) create auth user + client_users row + password email, (6) intake.progress_status→activated, (7) Telegram alert to admin with client deep link + SMS status, (8) write activation_log JSONB to clients row |
 | POST | `/api/webhook/telegram` | Telegram bot webhook. Handles /start {token} → captures client chat_id → writes telegram_chat_id + telegram_bot_token → sends "Connected!" reply. No secret check (UUID token is security). 500 on DB failure so Telegram retries. |
-| POST | `/api/admin/setup-telegram-webhook` | Admin only. One-time: registers /api/webhook/telegram as hassitant_1bot webhook URL with Telegram. Idempotent. No secret_token — UUID token provides security. |
+| POST | `/api/admin/setup-telegram-webhook` | Admin only. One-time: registers /api/webhook/telegram as the configured bot's webhook URL with Telegram (bot identified by `TELEGRAM_BOT_TOKEN`; @username via `TELEGRAM_BOT_USERNAME`). Idempotent. No secret_token — UUID token provides security. |
 | POST | `/api/admin/generate-telegram-token` | Admin only. Generate (or regenerate) a registration token for any client. Returns { token, deepLink }. Use for testing or re-inviting a client. |
 | POST | `/api/webhook/[slug]/fallback` | TwiML fallback — "system unavailable" message. Set as VoiceFallbackUrl on every Twilio number |
 | GET | `/api/health` | Health check |

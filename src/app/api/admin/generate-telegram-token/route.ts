@@ -3,7 +3,7 @@
  *
  * Generates (or regenerates) a Telegram registration token for any client.
  * Returns a deep link the admin can forward to the client.
- * Client clicks link → opens @hassitant_1bot → sends /start {token}
+ * Client clicks link → opens the bot (TELEGRAM_BOT_USERNAME) → sends /start {token}
  * → /api/webhook/telegram captures their chat_id automatically.
  *
  * Admin only.
