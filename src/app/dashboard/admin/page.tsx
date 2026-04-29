@@ -1,67 +1,37 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import SystemPulse from '@/components/dashboard/SystemPulse'
 import ActionItems from '@/components/dashboard/ActionItems'
 import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
-import ClientHomeV2 from '@/components/dashboard/ClientHomeV2'
 import PageHeader from '@/components/dashboard/PageHeader'
 import SectionLabel from '@/components/dashboard/SectionLabel'
 import { isAdminRedesignEnabled } from '@/lib/feature-flags'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const params = await searchParams
+// Phase 2 — admin Command Center, pure relocation from /dashboard.
+// When the feature flag is off, this route 404-redirects so admins keep seeing
+// the legacy /dashboard Command Center until rollout day.
+export default async function AdminDashboardPage() {
+  if (!isAdminRedesignEnabled()) {
+    redirect('/dashboard')
+  }
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) redirect('/login')
 
   const { data: cu } = await supabase
     .from('client_users')
-    .select('role, client_id')
+    .select('role')
     .eq('user_id', user.id)
     .order('role').limit(1).maybeSingle()
 
-  const isAdmin = cu?.role === 'admin'
-
-  if (!isAdmin) {
-    return <ClientHomeV2 />
+  if (cu?.role !== 'admin') {
+    redirect('/dashboard')
   }
 
-  // Admin in legacy preview mode (still supported until Phase 7 cleanup): show client's dashboard.
-  const isPreview = params.preview === 'true' && typeof params.client_id === 'string'
-  if (isPreview) return <ClientHomeV2 />
-
-  // Phase 2 — when redesign is on, admins land on their *client's* Overview view
-  // scoped via the switcher (URL ?client_id=). Command Center moved to /dashboard/admin.
-  if (isAdminRedesignEnabled()) {
-    const scopedClientId = typeof params.client_id === 'string' ? params.client_id : null
-    if (scopedClientId) {
-      // Re-uses the existing client home component; ClientHomeV2 already reads
-      // ?client_id= and routes /api/dashboard/home through that scope.
-      return <ClientHomeV2 />
-    }
-    return (
-      <div className="p-3 sm:p-6 space-y-6">
-        <PageHeader title="Pick a client" subtitle="Use the switcher above to inspect a client's Overview, or open the Command Center." />
-        <div className="rounded-xl border p-6 text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-2)' }}>
-          <p className="mb-3">No client scope is selected.</p>
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-widest"
-            style={{ backgroundColor: 'var(--color-cta)', color: 'white' }}
-          >
-            Open Admin Command Center →
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // Flag OFF — legacy admin Command Center remains exactly as before.
   const { data: allClients } = await supabase
     .from('clients')
     .select('id, slug, business_name, niche, status, twilio_number, seconds_used_this_month, monthly_minute_limit, bonus_minutes')
@@ -106,19 +76,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <div className="p-3 sm:p-6 space-y-6">
       <PageHeader title="Command Center" subtitle="What needs attention right now" />
 
-      {/* System health */}
       <SystemPulse />
 
-      {/* Action items — the core of this page */}
       <div>
         <SectionLabel className="mb-2">Action Items</SectionLabel>
         <ActionItems />
       </div>
 
-      {/* Live calls */}
       <LiveCallBanner calls={liveCallsForBanner} />
 
-      {/* Client health */}
       <ClientHealthBar
         adminClients={adminClients}
         hotLeads={(hotLeads ?? []).map(h => ({ client_id: h.client_id, started_at: h.started_at }))}
