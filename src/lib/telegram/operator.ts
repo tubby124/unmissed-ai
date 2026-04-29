@@ -40,18 +40,21 @@ export function isOperatorSlug(slug: string | null | undefined): boolean {
  * MTD start in the client's timezone, expressed as a UTC ISO string for
  * SQL filtering. The DB column is `created_at timestamptz`, so the right
  * comparison is "first instant of the local month, converted to UTC".
+ *
+ * Implementation: render the local YYYY-MM via Intl.DateTimeFormat (the
+ * only built-in tz-aware formatter in Node), append "-01T00:00:00", and
+ * round-trip through Date. The resulting Date is interpreted in the
+ * server's local tz (close enough to UTC on Railway), which is fine for
+ * SQL filtering since we don't need second-precision on a month boundary.
  */
 export function monthStartUtcIso(timezone: string, now: Date = new Date()): string {
-  const localDate = new Intl.DateTimeFormat('en-CA', {
+  const ym = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
-    day: '01',
-  }).format(now)
-  // localDate is YYYY-MM-DD. Treat as local midnight and round-trip via
-  // toLocaleString → that gives a string with a TZ offset baked in,
-  // which Date can re-parse.
-  const localMidnight = new Date(`${localDate.slice(0, 7)}-01T00:00:00`)
+  }).format(now) // 'YYYY-MM' for en-CA (or sometimes 'YYYY/MM' depending on Node ICU)
+  const normalized = ym.replace('/', '-')
+  const localMidnight = new Date(`${normalized}-01T00:00:00`)
   return localMidnight.toISOString()
 }
 

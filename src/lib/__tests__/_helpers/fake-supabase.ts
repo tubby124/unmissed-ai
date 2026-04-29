@@ -36,6 +36,7 @@ export interface FakeAssistantLogRow {
   output_tokens: number
   latency_ms: number
   outcome: 'ok' | 'timeout' | 'fallback' | 'error'
+  created_at?: string
 }
 
 export interface FakeState {
@@ -99,7 +100,22 @@ export function makeFakeSupa(state: FakeState): SupaForRouter {
         }
       }
       if (table === 'telegram_assistant_log') {
+        // The select chain is used by fetchMtdSpendUsd (Tier 3 spend cap)
+        // and renderHealth (operator p95 + error count). The chain ends
+        // at gte() for the spend path; the helper returns rows filtered
+        // by the captured client_id. Other filters are accepted as no-ops.
+        const filters: Record<string, unknown> = {}
         return {
+          select() { return this },
+          eq(col: string, val: unknown) { filters[col] = val; return this },
+          in() { return this },
+          order() { return this },
+          gte() {
+            const cid = filters.client_id as string | undefined
+            const log = state.assistantLog ?? []
+            const matched = cid ? log.filter((r) => r.client_id === cid) : log
+            return Promise.resolve({ data: matched, error: null })
+          },
           insert(row: FakeAssistantLogRow) {
             if (!state.assistantLog) state.assistantLog = []
             state.assistantLog.push(row)

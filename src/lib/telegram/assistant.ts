@@ -3,6 +3,7 @@ import type { CallRow } from './queries'
 import { fetchLastNCalls, type TelegramClientRow } from './queries'
 import type { AssistantIntent } from './types'
 import type { TopUrgent } from './menu'
+import { fetchMtdSpendUsd } from './operator'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-haiku-4-5'
@@ -236,6 +237,29 @@ export async function answerForClient(
     recentCalls = await fetchLastNCalls(opts.supa, client.id, RECENT_CALLS_N)
   } catch {
     recentCalls = []
+  }
+
+  // ── Tier 3: spend-cap throttle ────────────────────────────────────────
+  // BEFORE the OpenRouter fetch — a runaway loop must not be able to
+  // bankrupt the account. Tier 1 commands (/calls, /missed, /minutes, …)
+  // bypass this code path entirely; only NL Q&A passes through here.
+  // cap === 0 disables the throttle.
+  const cap = Number(client.telegram_assistant_cap_usd ?? 5.0)
+  if (cap > 0) {
+    const { spendUsd } = await fetchMtdSpendUsd(opts.supa, client.id, opts.timezone)
+    if (spendUsd >= cap) {
+      const topUrgent = intent === 'urgent' ? pickTopUrgent(recentCalls) : undefined
+      return {
+        reply: `You've hit this month's assistant cap ($${cap.toFixed(2)}). Tier 1 commands like /calls, /missed, and /minutes still work.`,
+        outcome: 'fallback',
+        intent,
+        model: MODEL,
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: Date.now() - start,
+        topUrgent,
+      }
+    }
   }
 
   const systemPrompt = buildSystemPrompt(client, recentCalls, opts.timezone)
