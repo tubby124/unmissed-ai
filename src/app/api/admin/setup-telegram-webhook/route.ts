@@ -2,7 +2,7 @@
  * POST /api/admin/setup-telegram-webhook
  *
  * One-time setup (idempotent):
- *   1. setWebhook        — points @hassitant_1bot at /api/webhook/telegram
+ *   1. setWebhook        — points the configured bot at /api/webhook/telegram
  *   2. setMyCommands     — populates the bot's slash-command menu (the "Menu"
  *                          button next to the input + "/" autocomplete)
  *   3. setChatMenuButton — sets the persistent menu icon to "commands"

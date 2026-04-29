@@ -1,7 +1,9 @@
 /**
  * POST /api/webhook/telegram
  *
- * Telegram bot webhook handler — receives all updates sent to @hassitant_1bot.
+ * Telegram bot webhook handler — receives all updates sent to the configured bot
+ * (`TELEGRAM_BOT_USERNAME` env var; the bot's identity is the token, not the
+ * @username — renaming via @BotFather doesn't break this handler).
  * Handles:
  *   - /start <token> registration deep link
  *   - Tier 1 slash commands (/calls, /today, /missed, /lastcall, /minutes, /help)
