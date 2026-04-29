@@ -226,6 +226,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // Group-chat data leak guard (B.6 — Tier 3 followups). The /start
+  // registration path writes telegram_chat_id to the matched client. In a
+  // group chat, the bot would happily register the group's chat_id, and
+  // every owner notification would then leak to every group member. The
+  // router already blocks non-/start group messages (returns 'noop'); the
+  // /start branch needs the same guard explicitly.
+  if (chatType !== 'private') {
+    console.log(`[telegram-webhook] /start ignored — non-private chat type=${chatType} chatId=${chatId}`)
+    return new NextResponse('OK', { status: 200 })
+  }
+
   const token = text.slice(6).trim() // "/start TOKEN"
 
   if (!token) {
