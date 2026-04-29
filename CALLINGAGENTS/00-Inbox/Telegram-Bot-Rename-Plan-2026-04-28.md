@@ -1,6 +1,8 @@
 ---
 type: ops-plan
-status: ready-when-username-picked
+status: done
+executed: 2026-04-28
+new_username: AIReceptionist_bot
 related:
   - "[[Features/Telegram-Two-Way-Assistant]]"
   - "[[Decisions/2026-04-28-Telegram-Tier1-Slash-Router]]"
@@ -9,7 +11,13 @@ related:
 updated: 2026-04-28
 ---
 
-# Telegram Bot Rename Plan — `@hassitant_1bot` → `<new_username>`
+# Telegram Bot Rename Plan — `@hassitant_1bot` → `@AIReceptionist_bot` ✅ DONE 2026-04-28
+
+> **Status: shipped end-to-end 2026-04-28.** New @username live in @BotFather,
+> Railway env vars `TELEGRAM_BOT_USERNAME` + `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`
+> set to `AIReceptionist_bot`, all 7 code fallback defaults flipped (PR #52
+> sha `034ba35`), all 6 registered clients confirmed working. Plan retained
+> as the canonical "how to rename a Telegram bot in unmissed.ai" reference.
 
 > **TL;DR:** Renaming the bot in @BotFather is safe. The token is the bot's
 > identity, not the @username. All registered clients keep working with zero

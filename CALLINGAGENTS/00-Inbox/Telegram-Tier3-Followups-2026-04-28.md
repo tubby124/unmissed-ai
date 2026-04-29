@@ -51,7 +51,8 @@ v2 guard. Add a "reply audit" cron in Tier 3+ that samples
 ### A.4 Bot token is shared across all clients
 `platformBotToken = process.env.TELEGRAM_BOT_TOKEN` is written to
 EVERY client's `clients.telegram_bot_token` on connect. So
-`@hassitant_1bot` is the single pipe for all clients today. Future
+`@AIReceptionist_bot` (renamed from `@hassitant_1bot` 2026-04-28) is the
+single pipe for all clients today. Future
 white-label clients ("@yourcompany_bot") will need:
 - Per-client bot token storage (already supported by the column)
 - Per-client `setMyCommands` / `setChatMenuButton` calls during
