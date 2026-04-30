@@ -182,3 +182,21 @@ Same 3-step format for next ~9 manually-onboarded clients. Per-client swaps: nam
 **Rule:** leave false until real (non-test) inbound `call_logs` rows arrive from Brian's actual customer phone numbers. That's the only ground-truth proof the `**004*` forward landed. Pre-flipping is pointless — Stripe payment overwrites it back to false anyway.
 
 Payment (Stripe → `subscription_status` + `stripe_*_id`) and setup (Brian → `setup_complete`) are independent. He could pay and never forward, or forward and never pay. Tracked separately by design.
+
+## 2026-04-30 — Voicemail removal call + individual conditional codes handed to Brian
+
+Brian called Rogers to fully remove voicemail from his line (per the [[Decisions/2026-04-29-voicemail-removal-required-for-cf]] non-skippable step). After that call he was instructed to dial these three individual conditional-forwarding codes — combo `**004*16397393885#` was set aside in favor of the explicit per-condition codes:
+
+```
+*67*16397393885#   ← busy (CFB)
+*62*16397393885#   ← unreachable / phone off (CFNRc)
+*61*16397393885#   ← no answer (CFNRy)
+```
+
+All three set destination DID `+16397393885` (Eric / Brian's AI). Same end behavior as the combo — owner phone rings first, AI catches anything unanswered. Order doesn't matter to the carrier; this is the order Hasan handed Brian.
+
+**Why individual instead of combo:** combo `**004*` can fail on some Rogers postpaid plans with "Error performing request" or accept the activation but not actually fire on unanswered calls. Splitting into the three conditional codes is the audited fallback — same outcome, sometimes accepted where combo isn't. Validated 2026-04-29 on Hasan's own Rogers Business 403 line.
+
+**Verification expected:** once voicemail removal completes + all three codes accepted, have a friend call `+1 (587) 825-9408` (Brian's number) and let it ring. Eric on `+1 (639) 739-3885` should pick up after a few rings. If it still goes to Rogers voicemail, voicemail wasn't actually removed — call Rogers Business `1-866-727-2141` again.
+
+**Memory updated:** `~/.claude/projects/-Users-owner/memory/unmissed-canadian-forwarding-codes.md` — Brian's worked example logged with timestamps + the combo-vs-individual fallback rule. Reusable for any future client.
