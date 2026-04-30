@@ -76,7 +76,8 @@ async function main() {
 
   console.log('[4/5] Writing pre-migration snapshot...')
   const preMigrationPath = path.join(OUT_DIR, 'urban-vibe-snowflake-pre-migration.json')
-  fs.writeFileSync(preMigrationPath, JSON.stringify({ ...client, _approved_chunk_count: chunkCount }, null, 2))
+  const snapshot = { ...(client as unknown as Record<string, unknown>), _approved_chunk_count: chunkCount }
+  fs.writeFileSync(preMigrationPath, JSON.stringify(snapshot, null, 2))
   console.log(`  wrote ${preMigrationPath}`)
 
   console.log('[5/5] Running recomposePrompt(dryRun=true, forceRecompose=true)...')
