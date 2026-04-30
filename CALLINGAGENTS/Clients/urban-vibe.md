@@ -57,11 +57,21 @@ updated: 2026-04-30
 
 ## Open Issues
 - ⚠️ Snowflake migration target — see [[Tracker/D445]]
-- ⚠️ Pre-migration blockers documented in [[Projects/unmissed/2026-04-30-d445-hasan-dryrun-no-go-pivot-to-urban-vibe]] — investigate before dryrun:
-  1. "gotcha" word ban vs slot pipeline conflict
-  2. Stale "PENDING DEPLOY for buildVoicemailPrompt()" item — still relevant?
-  3. `selected_plan=pro` + `subscription_status=none` billing inconsistency
-  4. forwarding_number + callback-only stance — keep transfer disabled or activate it?
+- ✅ Dry-run + investigation complete (2026-04-30 PM) — see [[../00-Inbox/urban-vibe-migration-decision.md]] (TWEAK FIRST → GO)
+- 🟡 5 open questions for Ray before deploy:
+  1. Billing reality: paying / free / concierge? (`subscription_status=none` ambiguity)
+  2. SMS auto-follow-up: keep `sms_enabled=true` (new prompt sends SMS after every call) or disable?
+  3. Transfer for true P1 emergencies: strict callback-only or P1-only transfer?
+  4. Greeting capability list ("log maintenance requests / get Ray to call you back / rental inquiries"): worth re-adding?
+  5. VIP_PROTOCOL slot: dormant for now (no VIP contacts), accept as-is?
+- 🔴 Slot-pipeline hours-rendering bug surfaced by this dryrun (`8:30am` → `8:30 AMam`) — affects ANY client with no-space am/pm. File as separate D-item before any migration ships.
+
+## Pre-deploy Phase A (gated on Ray's GO)
+1. `voice_style_preset` → `professional_warm`
+2. `niche_custom_variables` → `{CLOSE_PERSON: "Ray", FORBIDDEN_EXTRA: <gotcha+AI-assistant+Atco rules>}`
+3. `business_facts` → Calgary/Atco/Ray identity context
+4. `business_hours_*` → reformat with proper spaces (sidesteps hours bug until fixed)
+5. Resolve `subscription_status` ambiguity (Hasan/Ray decision)
 
 ## Connections
 - → [[Tracker/D445]] (snowflake migration master)
