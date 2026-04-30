@@ -121,6 +121,13 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: `Unknown variable: ${variableKey}` }, { status: 400 })
   }
 
+  if (!varDef.editable) {
+    return NextResponse.json(
+      { error: `Variable ${variableKey} is read-only`, code: 'VARIABLE_READONLY' },
+      { status: 400 }
+    )
+  }
+
   // 4 — Write to correct storage location
   const svc = createServiceClient()
   let affectedSlots: SlotId[] = []

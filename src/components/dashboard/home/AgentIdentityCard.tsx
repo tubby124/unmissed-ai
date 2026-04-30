@@ -108,6 +108,7 @@ export default function AgentIdentityCard({
     CLOSE_PERSON: '',
     GREETING_LINE: '',
   })
+  const [editableMap, setEditableMap] = useState<Record<string, boolean>>({})
   const [variablesLoaded, setVariablesLoaded] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -125,7 +126,12 @@ export default function AgentIdentityCard({
         CLOSE_PERSON: data.variables.CLOSE_PERSON?.value ?? '',
         GREETING_LINE: data.variables.GREETING_LINE?.value ?? '',
       }
+      const editable: Record<string, boolean> = {}
+      for (const key of Object.keys(next)) {
+        editable[key] = data.variables[key]?.meta?.editable ?? true
+      }
       setVariables(next)
+      setEditableMap(editable)
       setVariablesLoaded(true)
     } catch {
       setVariablesLoaded(true)
@@ -402,7 +408,7 @@ export default function AgentIdentityCard({
             <p className="text-[10px] t3">{opts.description}</p>
           )}
         </div>
-        {!isEditing(key) && variablesLoaded && (
+        {!isEditing(key) && variablesLoaded && (editableMap[key] ?? true) && (
           <button
             type="button"
             onClick={() => startEdit(key)}
