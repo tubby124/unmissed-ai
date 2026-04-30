@@ -91,7 +91,8 @@ Warm/concierge. After-hours: same greeting — never says "we're closed."
 - [ ] Set `monthly_minute_limit = 100`
 - [ ] Admin → "Activate" → returns Stripe checkout URL with FOUNDING29 coupon → send to Kausar
 - [ ] Kausar pays → activation chain auto-buys 306 Twilio number, sets webhook, creates Supabase auth user, sends password setup email
-- [ ] Send welcome email mirroring [[Clients/calgary-property-leasing|Brian]]'s template: dashboard URL, Twilio number, carrier forwarding instructions for 306-241-6312, Telegram setup link, "call to test" line
+- [x] Welcome email drafted at [clients/velly-remodeling/welcome-email-kausar.html](clients/velly-remodeling/welcome-email-kausar.html) + .txt version. Mirrors Brian's pattern. **Includes voicemail-removal callout per [[Decisions/2026-04-29-voicemail-removal-required-for-cf]].** Before sending: replace `VELLY_TOKEN_PLACEHOLDER` with actual Telegram registration token from `clients.telegram_registration_token`.
+- [ ] Send the welcome email once Twilio + Stripe activation chain completes
 - [ ] Browser test call — confirm Eric greets correctly, asks for project type, transfers when test caller insists on Kausar
 - [ ] Live PSTN test — call new Twilio number from a different phone, run scenarios: (a) generic quote, (b) returning customer asking for Kausar, (c) "I paid a deposit and need to talk to him"
 

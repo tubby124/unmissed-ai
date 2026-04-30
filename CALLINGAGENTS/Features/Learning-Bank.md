@@ -1,11 +1,14 @@
 ---
 type: feature
-status: scaffolded
+status: live
 tags: [feature, learning-bank, prompt-improvement, observability]
 mutation-class: DB_ONLY
 plan-gate: admin-only
 related: [Clients/unmissed-demo, Decisions/2026-04-29-Learning-Bank, Decisions/2026-04-29-Zara-Rewrite]
 updated: 2026-04-29
+shipped: 2026-04-29
+pr: 55
+commit: eb7c42e
 ---
 
 # Feature: Learning Bank
@@ -72,15 +75,18 @@ Triggered in `/completed` `after()` block via `src/lib/lesson-generator.ts`:
 - **On promotion:** `/learn promote-pattern` interactive flow OR admin UI button.
 - **Pattern injection:** flip `LEARNING_BANK_INJECT=true` per-niche after manual validation; pattern_application_log records before/after metrics.
 
-## Status (2026-04-29)
-- ✅ Migrations written (3 files), DB drift fix applied (Aria→Zara)
-- ✅ Webhook integrated — auto-lesson generation wired
-- ✅ Admin UI scaffolded
-- ✅ /learn skill registered
-- ✅ Backfill script written (NOT yet run — Hasan to execute)
-- ⏳ Migrations NOT applied to remote yet (`supabase db push` pending)
-- ⏳ Seed has not run yet (waits for migration apply)
-- ⏳ Pattern injection gated OFF until validated (W3+ work)
+## Status (2026-04-29 — SHIPPED via PR #55, commit `eb7c42e`)
+- ✅ All 4 migrations applied to remote `qwhvblomlgeapzhnuwlb` via `supabase db push`
+- ✅ DB drift fix applied (Aria → Zara)
+- ✅ Webhook integrated — auto-lesson generation wired into `/completed`
+- ✅ Admin UI live at `/dashboard/admin/learning-bank`
+- ✅ `/learn` skill registered
+- ✅ Backfill ran — **93 transcripts in `call_transcripts`**
+- ✅ **24 prompt patterns seeded** (14 cross-niche + 10 niche one-liners, all `status='promoted'`)
+- ✅ Build clean, TypeScript clean, GitGuardian pass
+- ✅ Railway auto-deployed from main
+- ⏳ `prompt_lessons` table empty (populates as new calls land)
+- ⏳ Pattern injection still gated OFF — flip `LEARNING_BANK_INJECT=true` per-niche after validation (W3+ work)
 
 ## Known Gaps
 - `call_insights.loop_rate` does NOT exist as a column — substituted `repeated_questions >= 3 OR agent_confused_moments >= 2` as proxy throughout. Swap once a `loop_rate` column lands.

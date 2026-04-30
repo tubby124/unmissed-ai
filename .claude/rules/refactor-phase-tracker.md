@@ -88,7 +88,9 @@
 - Tab naming decision: `CALLINGAGENTS/Decisions/Dashboard-Tab-Naming.md`
 
 **Also Phase 6:** D287 (niche-adaptive onboarding), D289 (services chips), D301 (locked vars)
-**Deferred to post-Phase 6:** D304 (old-client migration) — do AFTER Phase 6 proven on new clients.
+**Deferred to post-Phase 6:** D304 (old-client migration) — do AFTER Phase 6 proven on new clients. Superseded by D445 per D442 Phase 1 audit findings.
+
+**D442 Phase 1 ✅ DONE 2026-04-30** (read-only drift audit of all 5 active clients). New: D443 (Fix 1.5: registry-readonly enforcement), D444 (hangUp Section 7 violation investigation), D445 (snowflake migration deep plan). Audit report: `CALLINGAGENTS/00-Inbox/overview-drift-audit-2026-04-30.md`. Snapshots: `docs/refactor-baseline/snapshots/2026-04-30-pre-d442/`.
 
 ### Onboarding UX Overhaul (2026-04-01 audit)
 > Full audit: `CALLINGAGENTS/Product/Onboarding Audit 2026-04-01.md`
@@ -161,7 +163,7 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH |
 | D242 | **Haiku intent inference for niche='other'** — auto-suggest closest niche + PRIMARY GOAL | MEDIUM |
 | D185 | **Mode-first onboarding** — skip irrelevant steps per mode (voicemail vs receptionist vs booking) | MEDIUM |
-| D304 | **Old-client prompt migration** — add section markers to 4 live clients. Do after Phase 6 proven. | MEDIUM |
+| D304 | **Old-client prompt migration** — add section markers to 4 live clients. Do after Phase 6 proven. Superseded by D445 per D442 Phase 1 audit findings (2026-04-30). | MEDIUM |
 
 ---
 
@@ -239,7 +241,7 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D180 | **message_only TRIAGE override** — ✅ 2026-04-03 — guard in `buildConversationFlow()` skips TRIAGE entirely for message_only/voicemail_replacement modes | HIGH |
 | D373 | **Onboarding quality floor** — new agents don't sound like Windshield Hub/Hasan/Urban Vibe. NICHE_DEFAULTS need to be bootstrapped from real working-agent patterns, not Haiku guesses | CRITICAL |
 | D374 | **Calendar connect → auto-upgrade prompt** — connecting Google Calendar should trigger recomposePrompt() with appointment_booking mode automatically | HIGH |
-| D369 | **Legacy prompt banner on dashboard** — amber warning for old-style prompts without section markers. Banner added in SettingsView.tsx (2026-04-01). Full migration = D304. | HIGH |
+| D369 | **Legacy prompt banner on dashboard** — amber warning for old-style prompts without section markers. Banner added in SettingsView.tsx (2026-04-01). Full migration = D304 (superseded by D445). D442 Phase 1 audit (2026-04-30) confirmed this banner is the ONLY signal owners get for the legacy-prompt failure mode AND it's page-level, not per-field. **Recommend D369 stay as-is** until D442 Fix 2 (per-field "Saved, but not live yet" warning chip) ships — at that point D369 may be redundant or downgraded. | HIGH |
 | D225 | `/api/dashboard/telegram-link` → Telegram setup card | MEDIUM |
 | D226 | `/api/onboard/parse-services` → onboarding service input | MEDIUM |
 | D227 | `knowledge/conflicts` + `docs` + `preview-question` → Knowledge page | MEDIUM |

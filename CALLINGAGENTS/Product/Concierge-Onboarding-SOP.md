@@ -111,16 +111,53 @@ Note: "Smart Voicemail — AI Receptionist — Founding Rate (locks in forever)"
 
 ## Step 6 — Forward Calls (10 min)
 
-**Instructions to give client:**
+### 6a — MANDATORY: Client removes carrier voicemail FIRST
 
-Bell / Rogers / Telus:
-- Conditional forward (rings 4× then forwards): `*67*+1XXXXXXXXXX#`
-- Or call carrier and ask to set conditional call forward to the Twilio number
+**This is non-skippable.** Carrier voicemail and conditional call forwarding share the same GSM supplementary service slot — voicemail wins the slot, the forward never fires. The client will see "Setting Activation Succeeded" on the codes below but unanswered calls will still go to carrier voicemail. Validated 2026-04-29 on Hasan's Rogers Business 403-808-9705 line.
 
-**Verify:**
-- Call the client's business phone, let it ring 4 times
-- Should connect to their AI agent
-- Confirm with client
+**Tell client to call their carrier and say, word-for-word:**
+
+> "Please **fully remove** voicemail from this line. Not reset — delete the voicemail box from my line profile. I'm using a third-party answering service and the carrier voicemail is blocking my conditional call forwarding."
+
+Wait for verbal confirmation: *"Voicemail has been removed."* Free on postpaid plans, takes ~5 min on the call.
+
+**Carrier numbers:**
+- Rogers Consumer: `1-800-764-3771` (or `*611` from cell)
+- Rogers Business: `1-866-727-2141`
+- Bell: `1-800-668-6878`
+- Telus: `1-866-558-2273`
+- Fido: `1-888-481-3436`
+- SaskTel: `1-800-727-5835`
+
+**Things that DO NOT work** (don't waste time on these):
+- Toggling iOS Settings → Phone → Visual Voicemail off (iOS layer only)
+- "Resetting" voicemail (clears messages, doesn't release slot)
+- Ring-time race trick `*61*NUMBER**5#` (voicemail still wins; also frequently rejected with "Error performing request")
+- `*98` voicemail-deactivate code (only mutes notifications)
+- MyRogers consumer app voicemail toggle (UI layer only)
+
+### 6b — Client dials forwarding codes (after voicemail removal confirmed)
+
+**Best UX — combo unconditional code (no answer + busy + unreachable in one):**
+```
+**004*1XXXXXXXXXX#
+```
+
+Or three separate conditional codes (one at a time, press call after each):
+```
+*61*1XXXXXXXXXX#     ← no answer
+*67*1XXXXXXXXXX#     ← busy
+*62*1XXXXXXXXXX#     ← unreachable
+```
+
+Each should show "Setting Activation Succeeded".
+
+### 6c — Verify
+
+- Call the client's business phone from another phone, let it ring out unanswered
+- Agent should pick up after ~5–6 rings
+- If carrier voicemail picks up instead → voicemail wasn't fully removed, client must call carrier back and push harder ("delete the voicemail box from my line profile")
+- Confirm with client they hear the agent
 
 ---
 

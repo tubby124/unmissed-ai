@@ -59,3 +59,6 @@ scripts/nlm-watch.log
 # Local test artifacts (call scenario reports)
 .test-artifacts/
 .mcp.json
+
+# Supabase CLI cache (transient, not source)
+supabase/.temp/
