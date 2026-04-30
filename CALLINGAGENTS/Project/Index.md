@@ -10,10 +10,51 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-29 — Learning Bank platform + Zara rewrite)
-- **D440 Learning Bank scaffolded** — 3 migrations (`prompt_patterns`, `prompt_lessons`, `pattern_application_log`, `call_transcripts`, `v_active_patterns_by_niche` view + 24-row seed), `/completed` webhook auto-generates lessons from `call_insights` thresholds, admin UI at `/dashboard/admin/learning-bank`, gated pattern injection in `slot-regenerator.ts` behind `LEARNING_BANK_INJECT=true` (default OFF), backfill script `scripts/backfill-transcripts.ts`, `/learn` skill (audit | promote-pattern | weekly-digest | seed) registered.
-- **D441 Zara rewrite** — `clients/unmissed-demo/SYSTEM_PROMPT.txt` rewritten 11,991 → 10,844 chars; 14 NEVER rules → 5; cut EMERGENCY/RETURNING/<25w-rule/casual-forcing-function; ported 10 universal Learning Bank patterns from windshield-hub/urban-vibe/hasan-sharif. Identity drift fixed: `clients.agent_name` Aria → Zara (applied live).
-- **Pending manual ops:** `supabase db push` (3 migrations not yet applied to remote `qwhvblomlgeapzhnuwlb`), `/prompt-deploy unmissed-demo` (Zara prompt not yet deployed), `npx tsx scripts/backfill-transcripts.ts --limit 200` (transcript backfill not yet run).
+## Latest Session (2026-04-30 PM — D448 mutation contract resolved + audit-script bug surfaced)
+- **D448 RESOLVED** — mutation contract `clients.tools` runtime-authority claim is CORRECT. Two parallel sub-agent dispatches (code-reading + empirical Supabase diff) confirmed: H1 (synthesized at call site) FALSE, H2 (`removeAll: true` doesn't strip) FALSE, H3 (stale clients.tools) refuted on stated symptom. The "universal hangUp gap on all 5 clients" was a D442 audit script extractor bug — script scanned only `modelToolName` and missed built-in tools using `toolName` key. `hangUp` IS in `clients.tools` for `windshield-hub` (zero drift) and `hasan-sharif` (only `pageOwner` missing). Other 3 clients pending re-verification with corrected scan.
+- **Recurring bug pattern surfaced** — [[Tracker/D444]] closed this exact bug class as "false-alarm" but the fix was never applied; D442 re-bit. Concept: [[concepts/unmissed/unmissed-tool-extractor-bug]]. Durable rule: never close as "false alarm" if the underlying script still has the bug — leave open with `status: known-fix-deferred`.
+- **`syncClientTools()` is pure DB write** — no `updateAgent()` call, no Ultravox API call, no prompt rebuild ([src/lib/sync-client-tools.ts:1-53](../../src/lib/sync-client-tools.ts) header explicit). Standing no-redeploy rule does NOT apply to standalone calls. The D448 spec was wrong about this — claimed it rebuilds the prompt.
+- **No code changed this session.** Vault-only updates.
+  - [[Tracker/D448]] resolved with full findings
+  - [[Tracker/D449]] new spec — per-field "Saved, but not live yet" warning chip
+  - [[Tracker/D450]] new spec — `twilio_number` → `needsAgentSync` one-liner
+  - [[00-Inbox/NEXT-CHAT-D442-Followup]] rev 3 with corrected priorities
+  - Master vault: [[2026-04-30-d448-mutation-contract-resolved]] session log + [[concepts/unmissed/unmissed-tool-extractor-bug]] durable concept + index 107→108 + memory.md appended
+- **D447 (runtime-truth Overview chip) recommendation: defer indefinitely.** With the universal symptom refuted, D443 (shipped) + D449 + D450 close the addressable trust gap. D447's exclusive value (`partial_failure` + novel-drift detection) is latent.
+- **Architectural risk surfaced (D452 candidate):** any new tool added to `buildAgentTools()` produces latent universal drift across all clients without a recent `needsAgentSync` PATCH. Mitigation needed — either PR discipline (one-shot migration script per tool addition) or weekly cron sweep on `last_synced_at < 30 days`.
+- **Next:**
+  - File D451 (audit script extractor fix — verify [[Tracker/D446]] doesn't already cover it)
+  - Re-verify `exp-realty` + `urban-vibe` + `calgary-property-leasing` with corrected scan
+  - Targeted `syncClientTools()` add for `hasan-sharif` (pure DB, safe) — and others if step 2 finds drift
+  - Velly test + send still pending from earlier session
+
+## Previous Session (2026-04-29 PM — Voicemail removal SOP + Admin Redesign Wave B SHIPPED)
+- **PR [#56](https://github.com/tubby124/unmissed-ai/pull/56)** squash-merged → `main` (commit `c0a781b`). Railway deployment `13333cb7` SUCCESS.
+  - Carrier voicemail must be FULLY REMOVED before conditional CF works. Validated 2026-04-29 on Hasan's Rogers Business 403-808-9705 line. Voicemail and `*61/*67/*62` share the same GSM supplementary service slot — voicemail wins, forward never fires.
+  - Go Live page: collapsible amber "Test went to voicemail instead?" disclosure with Rogers/Bell/Telus/Fido/SaskTel numbers + script
+  - Brian welcome email (HTML+TXT): voicemail-removal callout under Step 1
+  - Velly welcome email (HTML+TXT): created from Brian's pattern (DID `**004*13069887699#`, $29/mo, Kausar). `VELLY_TOKEN_PLACEHOLDER` to swap before send.
+  - Concierge Onboarding SOP Step 6 split into 6a (mandatory voicemail removal) → 6b (forwarding codes) → 6c (verify)
+  - ADR: [[Decisions/2026-04-29-voicemail-removal-required-for-cf]]
+- **PR [#57](https://github.com/tubby124/unmissed-ai/pull/57)** squash-merged → `main` (commit `42265f7`). Initial deploy `d99c85e4` FAILED on TS error (squash dropped `isAdmin` from `GoLiveView` destructure even though Props declared it and JSX used it).
+  - Admin Redesign Phase 0.5 → 3 Wave B: feature flag, audit log table, `useClientScope()` hook, `<ClientSwitcher>` pill, Command Center moved to `/dashboard/admin`, `admin-scope-helpers.ts` + 25 routes guarded for cross-client writes
+  - Behind `ADMIN_REDESIGN_ENABLED=false` → zero user impact at merge time
+- **PR [#58](https://github.com/tubby124/unmissed-ai/pull/58)** hotfix squash-merged → `main` (commit `b421c4d`). Railway deployment `1865f782` SUCCESS.
+  - One-line forward-fix: add `isAdmin` to `GoLiveView({ client, isAdmin }: Props)` destructure
+  - All three commits ([`c0a781b`, `42265f7`, `b421c4d`]) now LIVE in production
+- **Next:**
+  - Velly: swap `VELLY_TOKEN_PLACEHOLDER` and send Kausar's welcome email (still unblocked from earlier session)
+  - D437 concierge provisioning gate (P0 study) — 6-gate state derivation per client, free-50-min vs card-required pricing decision
+  - When ready: flip `ADMIN_REDESIGN_ENABLED=true` in Railway env to activate Wave B for users
+- Decisions: [[Decisions/2026-04-29-voicemail-removal-required-for-cf]]
+- Memory: `~/.claude/projects/-Users-owner/memory/unmissed-carrier-voicemail-removal.md`
+
+## Previous Session (2026-04-29 AM — Learning Bank platform + Zara rewrite SHIPPED)
+- **PR [#55](https://github.com/tubby124/unmissed-ai/pull/55)** squash-merged to `main` (commit `eb7c42e`). Railway auto-deployed.
+- **D440 Learning Bank LIVE** — 4 migrations applied to `qwhvblomlgeapzhnuwlb` via `supabase db push` (also caught up the queued `admin_audit_log` migration). New tables: `prompt_patterns` (24 rows seeded), `prompt_lessons` (will populate as new calls land), `pattern_application_log`, `call_transcripts` (93 rows backfilled). View `v_active_patterns_by_niche` live. `/completed` webhook auto-generates lessons from `call_insights` thresholds. Admin UI at `/dashboard/admin/learning-bank`. Gated pattern injection in `slot-regenerator.ts` behind `LEARNING_BANK_INJECT=true` (default OFF — flip per-niche after manual validation). Backfill `scripts/backfill-transcripts.ts` working (slug join fixed, type fix on `CallLogRow`). `/learn` skill registered.
+- **D441 Zara rewrite LIVE** — v13 deployed to Supabase + Ultravox (revision `d5325717-a53a-4bd7-9aa7-8a636f36df24`). 11,991 → 10,708 chars; 14 NEVER rules → 5; cut EMERGENCY/RETURNING/<25w-rule/casual-forcing-function; ported capability-triage (windshield-hub) + energy-match + confirm-back (urban-vibe) + skip-step (hasan-sharif). Identity drift fixed: `clients.agent_name` Aria → Zara.
+- **Pre-existing migration drift fixed** — `20260428210000_create_telegram_pending_actions.sql` and `20260428300000_create_admin_audit_log.sql` both now in sync remote↔local.
+- **Next:** test call to Zara to verify warmer voice; review first auto-generated `prompt_lessons` after a few new production calls land; flip `LEARNING_BANK_INJECT=true` for one niche when ready to validate pattern injection.
 - Decisions: [[Decisions/2026-04-29-Learning-Bank]] · [[Decisions/2026-04-29-Zara-Rewrite]]
 - Feature: [[Features/Learning-Bank]]
 - Tracker: [[Tracker/D440]] · [[Tracker/D441]]
@@ -72,6 +113,10 @@ last-tracker-cleanup: 2026-04-01
 ### NOW: Ship-Blocking Bugs & Gaps (fix before next client)
 | # | Title | Priority |
 |---|-------|----------|
+| [[Tracker/D442]] | Overview drift audit + fix — Phase 1 ✅ 2026-04-30; Fixes 1/1.5/2/3/4 next | CRITICAL |
+| [[Tracker/D443]] | Fix 1.5: Registry-readonly enforcement (universal Greeting fake-control) — in-progress | HIGH |
+| [[Tracker/D444]] | Investigate `clients.tools.hangUp` Section 7 contract violation — in-progress | HIGH |
+| [[Tracker/D445]] | Snowflake migration deep plan (replaces D442 Fix 5; supersedes D304) — owner-gated | MEDIUM |
 | [[Tracker/D340]] | Menu/knowledge upload → pgvector → agent answers | CRITICAL |
 | [[Tracker/D350]] | Knowledge source drawers don't expand (click = nothing) | HIGH |
 | [[Tracker/D353]] | WebRTC test calls not logged — no call history | HIGH |
