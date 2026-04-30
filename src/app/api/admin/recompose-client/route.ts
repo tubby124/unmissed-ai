@@ -8,12 +8,17 @@
  * or any NICHE_DEFAULTS change — existing clients need a Recompose to
  * pick up template improvements.
  *
- * Body: { client_id: string }
+ * Body: { client_id: string, force_recompose?: boolean }
  * Returns: { ok, promptChanged, charCount, error? }
  *
  * Admin only. Idempotent — no-op if prompt hasn't changed.
- * Guard: only works on slot-format prompts (old-format clients must
- * migrate to slots first via D304 before this will run).
+ * Guard: only works on slot-format prompts. Legacy-monolithic clients
+ * (hasan-sharif, exp-realty, urban-vibe, windshield-hub) must pass
+ * `force_recompose: true` to bypass the slot-marker guard. This is the
+ * D445 snowflake migration path. **WARNING:** force_recompose discards
+ * any hand-edits that live ONLY in `clients.system_prompt` text and not
+ * in DB columns / `niche_custom_variables`. Pre-stage owner phrasing
+ * into `niche_custom_variables` before running with force_recompose.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -38,7 +43,8 @@ export async function POST(req: NextRequest) {
   const clientId = body.client_id as string | undefined
   if (!clientId) return NextResponse.json({ error: 'client_id required' }, { status: 400 })
 
-  const result = await recomposePrompt(clientId, user.id)
+  const forceRecompose = body.force_recompose === true
+  const result = await recomposePrompt(clientId, user.id, false, forceRecompose)
 
   if (!result.success) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 422 })
@@ -48,5 +54,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     promptChanged: result.promptChanged,
     charCount: result.charCount ?? null,
+    forceRecompose,
   })
 }
