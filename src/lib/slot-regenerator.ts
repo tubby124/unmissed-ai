@@ -522,11 +522,16 @@ export interface RecomposeResult {
  * @param clientId - The client UUID
  * @param triggeredByUserId - Who triggered this (null for system)
  * @param dryRun - If true, return the recomposed prompt without saving or syncing
+ * @param forceRecompose - If true, skip the slot-marker guard and recompose
+ *   even on legacy-monolithic prompts. **Migration-only.** This intentionally
+ *   discards any hand-edits that live ONLY in `clients.system_prompt` text and
+ *   not in DB columns / `niche_custom_variables`. Default false. (D445)
  */
 export async function recomposePrompt(
   clientId: string,
   triggeredByUserId: string | null = null,
   dryRun = false,
+  forceRecompose = false,
 ): Promise<RecomposeResult> {
   const loaded = await loadClientContext(clientId)
   if (!loaded.ok) {
@@ -535,8 +540,10 @@ export async function recomposePrompt(
   const { client, knowledgeChunkCount, ctx } = loaded.data
 
   // Guard: only recompose slot-composed prompts.
-  // Old-format prompts (4 live clients) must be migrated first (D304).
-  if (!hasSlotMarkers(client.system_prompt as string)) {
+  // Old-format prompts (4 live clients) must be migrated first (D304/D445).
+  // forceRecompose bypasses this for one-time migration runs only.
+  const isLegacyMonolithic = !hasSlotMarkers(client.system_prompt as string)
+  if (isLegacyMonolithic && !forceRecompose) {
     return { success: false, promptChanged: false, error: 'Old-format prompt without section markers — migrate to slot format first (D304)' }
   }
 
@@ -591,9 +598,12 @@ export async function recomposePrompt(
   }
 
   // Save + sync
+  const changeDescription = isLegacyMonolithic
+    ? 'Snowflake migration to slot format (D445 forceRecompose)'
+    : 'Full prompt recomposition'
   const saveResult = await savePromptAndSync(
     clientId, newPrompt, client, knowledgeChunkCount,
-    'Full prompt recomposition', triggeredByUserId,
+    changeDescription, triggeredByUserId,
   )
   if (saveResult.error) {
     return { success: false, promptChanged: false, error: saveResult.error }
