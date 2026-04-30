@@ -329,13 +329,14 @@ export default function CapabilitiesCard({
     {
       id: 'ivr',
       label: 'Voicemail menu / IVR',
-      enabledDesc: 'Greets callers with a key-press menu',
+      enabledDesc: 'Greets callers with a key-press menu — phone calls only',
       disabledDesc: 'Requires a live phone number',
       enabled: hasIvr && hasPhoneNumber,
       dotType: 'always',
       link: '/dashboard/settings?tab=general',
       goliveLocked: !hasPhoneNumber,
       lockReason: 'Needs a live phone number — upgrade to go live',
+      tooltip: 'IVR digit-press menu works on live phone calls only. Browser test calls cannot use IVR.',
     },
   ]
 

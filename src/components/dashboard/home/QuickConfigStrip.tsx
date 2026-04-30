@@ -640,6 +640,7 @@ export default function QuickConfigStrip({
                 <div>
                   <p className="text-[12px] font-medium t1">Pre-call IVR Menu</p>
                   <p className="text-[11px] t3">Callers hear this before connecting to your agent</p>
+                  <p className="text-[10px] t3 mt-0.5">Phone calls only</p>
                 </div>
                 <button
                   onClick={toggleIvr}
@@ -828,6 +829,7 @@ export default function QuickConfigStrip({
               <div>
                 <p className="text-[12px] font-medium t1">Live Transfer</p>
                 <p className="text-[11px] t3">Transfer callers to a live person when needed</p>
+                <p className="text-[10px] t3 mt-0.5">Phone calls only</p>
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-medium t2">Forwarding number</label>
