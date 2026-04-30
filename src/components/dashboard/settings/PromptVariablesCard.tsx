@@ -1,10 +1,48 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { PromptVariable } from '@/lib/prompt-variable-registry'
 import PromptDiffPreview from './PromptDiffPreview'
+import SyncStatusChip from './SyncStatusChip'
+import {
+  getFieldSyncStatus,
+  recordFieldSyncStatus,
+} from './usePatchSettings'
+
+// D449: legacy-prompt no-op marker — same string the slot regenerator returns
+// when it can't find section markers in an old monolithic prompt. We map this
+// to the chip's `legacy_prompt_patcher_noop` reason.
+const LEGACY_NOOP_MARKER =
+  'Old-format prompt without section markers — use patchers instead of regeneration'
+
+// D449: Phase 1 — only one card is wired right now. This list scopes which
+// rows render the chip so we don't accidentally surface stale state on rows
+// whose PATCH paths haven't been audited for field-level sync semantics yet.
+// Expand in follow-up commits per the batch rollout plan in D449.md.
+const D449_PHASE1_WIRED_KEYS = new Set(['GREETING_LINE'])
+
+const MAX_FIELD_RETRIES = 3
+
+/**
+ * Minimal per-field retry counter scoped to this card's lifetime.
+ *
+ * Lives in a ref so it survives unrelated state changes within the card but
+ * resets on full page reload — matches the page-load-scoped retry budget the
+ * D449 spec requires.
+ */
+function useFieldRetryCounter() {
+  const counts = useRef<Map<string, number>>(new Map())
+  return {
+    canRetry(key: string): boolean {
+      return (counts.current.get(key) ?? 0) < MAX_FIELD_RETRIES
+    },
+    bump(key: string): void {
+      counts.current.set(key, (counts.current.get(key) ?? 0) + 1)
+    },
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -86,12 +124,23 @@ function VariableRow({
   isAdmin,
   clientId,
   onSave,
+  /**
+   * D449: when present, an amber "Saved, but not yet live" chip renders below
+   * the row's display value if the most recent PATCH for this field returned
+   * a propagation failure (e.g. legacy-prompt-noop on the GREETING_LINE row).
+   * Bumping this counter after each save forces the chip to re-read the
+   * shared cache without relying on parent re-renders.
+   */
+  syncStatusVersion,
+  onRetrySync,
 }: {
   varKey: string
   resolved: ResolvedVar | undefined
   isAdmin: boolean
   clientId: string
   onSave: (key: string, value: string) => Promise<boolean>
+  syncStatusVersion?: number
+  onRetrySync?: (key: string, value: string) => Promise<void>
 }) {
   const meta = resolved?.meta
   const currentValue = resolved?.value ?? ''
@@ -289,6 +338,25 @@ function VariableRow({
               Not set — click Edit to add
             </p>
           )}
+          {/* D449: per-field sync chip (Phase 1: GREETING_LINE only). */}
+          {D449_PHASE1_WIRED_KEYS.has(varKey) && (() => {
+            // syncStatusVersion is just a re-render trigger; the actual entry
+            // is read from the shared module-level cache.
+            void syncStatusVersion
+            const entry = getFieldSyncStatus(clientId, varKey)
+            if (!entry || entry.status === 'success') return null
+            return (
+              <SyncStatusChip
+                status={entry.status}
+                reason={entry.reason as never}
+                onRetry={
+                  onRetrySync && currentValue
+                    ? () => onRetrySync(varKey, currentValue)
+                    : undefined
+                }
+              />
+            )
+          })()}
         </div>
       )}
     </div>
@@ -312,6 +380,10 @@ export default function PromptVariablesCard({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedGroup, setExpandedGroup] = useState<string | null>('identity')
+  // D449: bumped after each save so VariableRow re-reads the shared sync cache.
+  // Plain counter — module-level Map mutations don't trigger React re-renders
+  // on their own.
+  const [syncStatusVersion, setSyncStatusVersion] = useState(0)
 
   const fetchVars = useCallback(async () => {
     try {
@@ -351,6 +423,25 @@ export default function PromptVariablesCard({
         } : prev)
       }
 
+      // D449: surface propagation failures via the shared sync cache. The
+      // variables PATCH route returns `warning: <error string>` and
+      // `promptRegenerated: false` when the legacy-prompt no-op path triggers
+      // (the most common Brian-style failure). We map that to the chip's
+      // legacy_prompt_patcher_noop reason so the GREETING_LINE row lights up.
+      if (D449_PHASE1_WIRED_KEYS.has(key)) {
+        if (data.promptRegenerated === false && typeof data.warning === 'string') {
+          recordFieldSyncStatus(client.id, key, {
+            status: 'error',
+            reason: data.warning === LEGACY_NOOP_MARKER
+              ? 'legacy_prompt_patcher_noop'
+              : 'unknown',
+          })
+        } else if (data.ok) {
+          recordFieldSyncStatus(client.id, key, { status: 'success' })
+        }
+        setSyncStatusVersion(v => v + 1)
+      }
+
       // Notify parent if prompt changed
       if (data.promptChanged && data.newPrompt && onPromptChange) {
         onPromptChange(data.newPrompt)
@@ -360,6 +451,21 @@ export default function PromptVariablesCard({
     } catch {
       return false
     }
+  }
+
+  // D449: Retry handler — re-issues the same variable PATCH. Caps to
+  // 3 retries per page-load per field; on exhaustion, the cache entry is
+  // flipped to `unknown` and the chip will render in its disabled-retry state
+  // on the next render (the next syncStatusVersion bump).
+  const fieldRetryCountsLocal = useFieldRetryCounter()
+  async function handleRetrySync(key: string, value: string): Promise<void> {
+    if (!fieldRetryCountsLocal.canRetry(key)) {
+      recordFieldSyncStatus(client.id, key, { status: 'error', reason: 'unknown' })
+      setSyncStatusVersion(v => v + 1)
+      return
+    }
+    fieldRetryCountsLocal.bump(key)
+    await handleSave(key, value)
   }
 
   if (loading) {
@@ -446,6 +552,8 @@ export default function PromptVariablesCard({
                           isAdmin={isAdmin}
                           clientId={client.id}
                           onSave={handleSave}
+                          syncStatusVersion={syncStatusVersion}
+                          onRetrySync={handleRetrySync}
                         />
                       ))}
                     </div>
