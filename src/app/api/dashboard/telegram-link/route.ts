@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { randomUUID } from 'crypto'
+import { buildTelegramDeepLink } from '@/lib/telegram-link'
 import {
   resolveAdminScope,
   rejectIfEditModeRequired,
@@ -114,8 +115,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     })
   }
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
-  const deepLink = `https://t.me/${botUsername}?start=${token}`
+  const deepLink = buildTelegramDeepLink(token)
 
   return NextResponse.json({ deepLink, token })
 }

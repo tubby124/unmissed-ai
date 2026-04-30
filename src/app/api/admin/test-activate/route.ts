@@ -22,6 +22,7 @@ import { slugify } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { randomUUID } from 'crypto'
+import { buildTelegramDeepLink } from '@/lib/telegram-link'
 import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
@@ -360,10 +361,9 @@ export async function POST(req: NextRequest) {
 
   // ── Generate Telegram token ────────────────────────────────────────────────
   const telegramRegToken = randomUUID()
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
   await svc.from('clients').update({ telegram_registration_token: telegramRegToken }).eq('id', clientId)
 
-  const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
+  const telegramLink = buildTelegramDeepLink(telegramRegToken)
 
   // ── Step 1.5: Onboarding SMS (non-blocking) ─────────────────────────────────
   let smsSent = false

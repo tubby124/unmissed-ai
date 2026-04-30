@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { usePatchSettings } from './usePatchSettings'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
+import { buildTelegramDeepLink } from '@/lib/telegram-link'
 
 interface AlertsTabProps {
   client: ClientConfig
@@ -24,7 +25,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   const [tgLinkLoading, setTgLinkLoading] = useState(false)
   const [tgDeepLink, setTgDeepLink] = useState<string | null>(
     client.telegram_registration_token
-      ? `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'AIReceptionist_bot'}?start=${client.telegram_registration_token}`
+      ? buildTelegramDeepLink(client.telegram_registration_token)
       : null
   )
   const [tgCopied, setTgCopied] = useState(false)
