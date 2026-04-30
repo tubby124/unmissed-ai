@@ -5,6 +5,7 @@ import { buildClientAgentConfig } from '@/lib/build-client-agent-config'
 import { buildTrialWelcomeViewModel } from '@/lib/build-trial-welcome-view-model'
 import { buildCapabilityFlags } from '@/lib/capability-flags'
 import { deriveActivationState } from '@/lib/derive-activation-state'
+import { buildTelegramBotUrl } from '@/lib/telegram-link'
 
 
 export const dynamic = 'force-dynamic'
@@ -364,7 +365,7 @@ export async function GET(request: Request) {
       hasAgent: !!client.ultravox_agent_id,
       telegramConnected: !!(client.telegram_bot_token && client.telegram_chat_id),
       telegramBotUrl: (client.telegram_bot_token && client.telegram_chat_id)
-        ? `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'}`
+        ? buildTelegramBotUrl()
         : null,
       emailNotificationsEnabled: (c.email_notifications_enabled as boolean | null) ?? true,
       telegramNotificationsEnabled: (c.telegram_notifications_enabled as boolean | null) ?? true,

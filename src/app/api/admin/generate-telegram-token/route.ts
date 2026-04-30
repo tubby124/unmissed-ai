@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { randomUUID } from 'crypto'
+import { buildTelegramDeepLink } from '@/lib/telegram-link'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -34,8 +35,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const clientId = body.clientId?.trim()
   if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
-
   // ── Generate token ─────────────────────────────────────────────────────────
   const token = randomUUID()
 
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // Telegram deep link: opens bot and auto-sends /start {token}
-  const deepLink = `https://t.me/${botUsername}?start=${token}`
+  const deepLink = buildTelegramDeepLink(token)
 
   console.log(`[generate-telegram-token] Token generated for ${client.slug} (${clientId})`)
 

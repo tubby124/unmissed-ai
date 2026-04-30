@@ -2,6 +2,7 @@
 
 import { ActivationProgressDark } from "./ActivationProgress";
 import { SUPPORT_EMAIL } from "@/lib/brand";
+import { buildTelegramBotUrl } from "@/lib/telegram-link";
 
 export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string | null; intakeId: string | null }) {
   return (
@@ -116,7 +117,7 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
 
         {/* Download Telegram CTA */}
         <a
-          href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'AIReceptionist_bot'}`}
+          href={buildTelegramBotUrl()}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-full font-semibold text-sm transition-opacity hover:opacity-90"

@@ -15,6 +15,7 @@ import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { runActivationGuards, hasCriticalFailure, summarizeSteps, type ClientRowForGuard, type StepResult } from '@/lib/provisioning-guards'
 import { syncClientTools } from '@/lib/sync-client-tools'
 import { ensureTwilioProvisioned } from '@/lib/ensure-twilio-provisioned'
+import { buildTelegramDeepLink } from '@/lib/telegram-link'
 import { APP_URL } from '@/lib/app-url'
 import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
@@ -104,11 +105,10 @@ export async function activateClient(params: {
   const intakeState = (intakeJson.state as string | null) || null
 
   const appUrl = APP_URL
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'AIReceptionist_bot'
 
   // Generate Telegram registration token upfront (needed in SMS + Step 2)
   const telegramRegToken = randomUUID()
-  const telegramLink = `https://t.me/${botUsername}?start=${telegramRegToken}`
+  const telegramLink = buildTelegramDeepLink(telegramRegToken)
 
   let twilioNumber: string | null = null
 
