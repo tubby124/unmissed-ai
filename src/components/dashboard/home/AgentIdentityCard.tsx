@@ -26,6 +26,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
+import RuntimeDriftChip from './RuntimeDriftChip'
+import type { DivergenceEntry } from '@/lib/agent-runtime-state'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,6 +46,30 @@ interface VariableEntry {
 
 interface VariablesResponse {
   variables: Record<string, VariableEntry>
+}
+
+/**
+ * Shape of /api/dashboard/agent/runtime-state. We only consume the slice
+ * of fields needed for the Greeting tile in Phase 1; the route returns
+ * more (voice + tools + systemPrompt) for future surfaces.
+ */
+interface RuntimeStateResponse {
+  deployed: {
+    greeting: string | null
+    voiceId: string | null
+    tools: string[]
+    systemPromptCharCount: number
+    lastSyncedAt: string | null
+  }
+  db: {
+    greeting: string | null
+    voiceId: string | null
+    tools: string[]
+    systemPromptCharCount: number
+  }
+  syncStatus: 'success' | 'error' | 'unknown'
+  syncError: string | null
+  divergence: DivergenceEntry[]
 }
 
 interface Props {
@@ -139,6 +165,41 @@ export default function AgentIdentityCard({
   }, [clientId, isAdmin, agentName, businessName])
   useEffect(() => { fetchVariables() }, [fetchVariables])
 
+  // ── Runtime truth (D447 Phase 1) ──────────────────────────────────────────
+  // Fetched from /api/dashboard/agent/runtime-state. When the
+  // OVERVIEW_RUNTIME_TRUTH_ENABLED feature flag is OFF on the server, the
+  // route returns DB values + syncStatus='unknown' + empty divergence —
+  // which renders identically to the legacy DB-only path below.
+  // Default-off behavior is byte-identical to current Overview render.
+  const [runtimeState, setRuntimeState] = useState<RuntimeStateResponse | null>(null)
+  const fetchRuntimeState = useCallback(async (bypassCache = false) => {
+    try {
+      const base = isAdmin
+        ? `/api/dashboard/agent/runtime-state?client_id=${clientId}`
+        : '/api/dashboard/agent/runtime-state'
+      const url = bypassCache ? `${base}${base.includes('?') ? '&' : '?'}fresh=1` : base
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) return
+      const data = (await res.json()) as RuntimeStateResponse
+      setRuntimeState(data)
+    } catch {
+      // Swallow — Overview must render even when runtime fetch fails.
+    }
+  }, [clientId, isAdmin])
+  useEffect(() => { fetchRuntimeState() }, [fetchRuntimeState])
+
+  // Greeting drift entry (the only field we surface in Phase 1).
+  const greetingDrift = runtimeState?.divergence.find(d => d.field === 'greeting') ?? null
+
+  // Should we render the runtime greeting in place of the DB one?
+  // Only when the route returned a non-null deployed greeting AND the sync
+  // status proves the value is meaningful (i.e., the route actually hit
+  // Ultravox — not a feature-flag-off fast path).
+  const useRuntimeGreeting =
+    runtimeState !== null
+    && runtimeState.syncStatus !== 'unknown'
+    && runtimeState.deployed.greeting !== null
+
   async function saveVariable(key: string, value: string) {
     if (value === variables[key]) {
       setEditingKey(null)
@@ -162,6 +223,10 @@ export default function AgentIdentityCard({
       setEditingKey(null)
       toast.success('Saved')
       onChanged?.()
+      // D447: GREETING_LINE save triggers a downstream prompt patch + Ultravox
+      // sync. Bypass cache so the runtime greeting reflects the new value
+      // (or chip shows propagation_failure if sync failed).
+      if (key === 'GREETING_LINE') void fetchRuntimeState(true)
     } finally {
       setSavingKey(null)
     }
@@ -719,13 +784,51 @@ export default function AgentIdentityCard({
         )}
       </AnimatePresence>
 
-      {/* ── Greeting — full-width (needs the room) ───────────────────────── */}
+      {/* ── Greeting — full-width (needs the room) ─────────────────────────
+          D447 Phase 1: when the runtime-truth feature flag is ON and the
+          route returned a non-null deployed greeting, the read-mode display
+          binds to `runtimeState.deployed.greeting` instead of the DB
+          variable. Editing still operates on GREETING_LINE (the DB var) —
+          the runtime display refreshes via fetchRuntimeState() after save.
+          When the flag is OFF or the runtime fetch failed, this collapses
+          to the existing renderField() path (zero behavior change).
+       */}
       <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
-        {renderField('GREETING_LINE', 'Greeting', '', {
-          multiline: true,
-          description: 'First thing your agent says when answering.',
-          emptyHint: 'Not set — click Edit to add a greeting',
-        })}
+        {useRuntimeGreeting && !isEditing('GREETING_LINE') ? (
+          <>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div>
+                <p className="text-[11px] font-semibold t1">Greeting</p>
+                <p className="text-[10px] t3">First thing your agent says when answering.</p>
+              </div>
+              {variablesLoaded && (editableMap['GREETING_LINE'] ?? true) && (
+                <button
+                  type="button"
+                  onClick={() => startEdit('GREETING_LINE')}
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md cursor-pointer shrink-0"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            <p className="text-[12px] t2 bg-hover rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
+              {runtimeState!.deployed.greeting}
+            </p>
+            {greetingDrift && (
+              <RuntimeDriftChip
+                divergence={greetingDrift}
+                onRefresh={() => fetchRuntimeState(true)}
+              />
+            )}
+          </>
+        ) : (
+          renderField('GREETING_LINE', 'Greeting', '', {
+            multiline: true,
+            description: 'First thing your agent says when answering.',
+            emptyHint: 'Not set — click Edit to add a greeting',
+          })
+        )}
       </div>
 
       {/* ── After-call SMS row ────────────────────────────────────────────── */}

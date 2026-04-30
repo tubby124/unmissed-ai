@@ -14,6 +14,7 @@ import {
 } from '@/lib/settings-schema'
 import { applyPromptPatches } from '@/lib/settings-patchers'
 import { regenerateSlots, type RegenerateSlotResult } from '@/lib/slot-regenerator'
+import { buildFieldSyncStatus } from '@/lib/settings-field-sync-status'
 import { SLOT_IDS, type SlotId } from '@/lib/prompt-sections'
 import { scheduleAutoRegen } from '@/lib/auto-regen'
 import { evaluateAdminScopeGuard, EDIT_MODE_REQUIRED_RESPONSE } from '@/lib/admin-scope-guard'
@@ -442,10 +443,24 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // D449: Build per-field sync status overlay. Pure additive — existing keys
+  // (`ok`, `ultravox_synced`, `ultravox_error`, etc.) stay untouched. Surfaces
+  // the silent legacy-prompt-noop case where the parent PATCH looks "synced"
+  // but a specific variable (e.g. GREETING_LINE) didn't propagate.
+  const field_sync_status = buildFieldSyncStatus({
+    updates,
+    regenAlreadySynced,
+    ultravox_synced,
+    ultravox_error,
+    slotRegenError: slotRegenResult?.error,
+    nicheCustomVariablesUpdate: body.niche_custom_variables,
+  })
+
   // 11 — Response
   return NextResponse.json({
     ok: true,
     ultravox_synced,
+    field_sync_status,
     ...(promptRebuilt ? { prompt_rebuilt: true } : {}),
     ...(ultravox_synced ? { last_sync_at: new Date().toISOString() } : {}),
     ...(ultravox_error ? { ultravox_error } : {}),

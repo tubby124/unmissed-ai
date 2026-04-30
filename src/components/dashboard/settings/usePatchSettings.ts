@@ -3,12 +3,82 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import type {
+  FieldSyncEntry,
+  FieldSyncStatus,
+  FieldSyncReason,
+} from '@/lib/settings-field-sync-status'
 
 /** Card display mode — settings (full) vs onboarding (simplified copy/fields). */
 export type CardMode = 'settings' | 'onboarding'
 
 /** Sync status from the API response. */
 export type SyncStatus = 'synced' | 'not-needed' | 'skipped' | 'failed' | null
+
+// ── D449: Per-field sync status cache ───────────────────────────────────────────
+// Module-level so it survives card unmount/remount within a single page load
+// and so callers from other PATCH paths (e.g. /api/dashboard/variables in
+// PromptVariablesCard) can populate the same cache that consumes it.
+//
+// Keyed by `${clientId}::${fieldKey}`. Lifetime = page load. Not persisted.
+type FieldKey = string
+type CacheKey = `${string}::${FieldKey}`
+
+const fieldSyncCache = new Map<CacheKey, FieldSyncEntry>()
+const fieldRetryCounts = new Map<CacheKey, number>()
+const MAX_RETRIES_PER_FIELD = 3
+
+function makeCacheKey(clientId: string, fieldKey: FieldKey): CacheKey {
+  return `${clientId}::${fieldKey}` as CacheKey
+}
+
+/**
+ * Read the most recent per-field sync status seen for `(clientId, fieldKey)`.
+ * Returns `null` when no PATCH has covered that field yet on this page load.
+ *
+ * Exported as a module-level function so non-`usePatchSettings` callers (e.g.
+ * PromptVariablesCard, which writes through /api/dashboard/variables) can
+ * read the same shared state without standing up a parallel cache.
+ */
+export function getFieldSyncStatus(
+  clientId: string,
+  fieldKey: FieldKey,
+): FieldSyncEntry | null {
+  return fieldSyncCache.get(makeCacheKey(clientId, fieldKey)) ?? null
+}
+
+/**
+ * Imperatively record a per-field sync entry. Used by:
+ *   - `usePatchSettings.patch` after the settings PATCH response includes
+ *     `field_sync_status`
+ *   - external PATCH paths (e.g. PromptVariablesCard) that want the same chip
+ *     visibility for fields they own
+ */
+export function recordFieldSyncStatus(
+  clientId: string,
+  fieldKey: FieldKey,
+  entry: FieldSyncEntry,
+): void {
+  fieldSyncCache.set(makeCacheKey(clientId, fieldKey), entry)
+}
+
+/** Bulk-record helper for the per-PATCH `field_sync_status` map from the route. */
+function recordFieldSyncStatusMap(
+  clientId: string,
+  map: Record<string, FieldSyncEntry>,
+): void {
+  for (const [fieldKey, entry] of Object.entries(map)) {
+    recordFieldSyncStatus(clientId, fieldKey, entry)
+  }
+}
+
+/** Test-only reset hook — not exported in production builds. */
+export function _resetFieldSyncCache(): void {
+  fieldSyncCache.clear()
+  fieldRetryCounts.clear()
+}
+
+export type { FieldSyncEntry, FieldSyncStatus, FieldSyncReason }
 
 export interface UsePatchSettingsOptions {
   onSave?: () => void
@@ -90,6 +160,10 @@ export function usePatchSettings(
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
       setSaved(true)
+      // D449: Cache per-field sync status for chip rendering
+      if (data.field_sync_status && typeof data.field_sync_status === 'object') {
+        recordFieldSyncStatusMap(clientId, data.field_sync_status as Record<string, FieldSyncEntry>)
+      }
       // Surface sync details from the API response
       if (data.ultravox_synced === true) {
         setSyncStatus('synced')
@@ -152,7 +226,53 @@ export function usePatchSettings(
     return patch(payload)
   }, [patch])
 
+  // D449: Read the most recent per-field sync entry for this client.
+  // Returns null when no PATCH has touched the field yet on this page load.
+  const getFieldSyncStatusForClient = useCallback(
+    (fieldKey: string): FieldSyncEntry | null => getFieldSyncStatus(clientId, fieldKey),
+    [clientId],
+  )
+
+  // D449: Retry sync for a specific field by re-issuing a no-op PATCH with the
+  // current value. Caller passes the value because cards already have it in
+  // local state — saves us from re-reading. Caps at 3 retries per page-load
+  // per field; after that, returns without firing and the chip should render
+  // with reason='unknown' + retryDisabled.
+  const retryFieldSync = useCallback(
+    async (fieldKey: string, value: unknown): Promise<void> => {
+      const cacheKey = `${clientId}::${fieldKey}` as `${string}::${string}`
+      const used = fieldRetryCounts.get(cacheKey) ?? 0
+      if (used >= MAX_RETRIES_PER_FIELD) {
+        // Budget exhausted — flip the cached entry to a hard `unknown` so the
+        // chip renders disabled. UI is responsible for reading this on next
+        // render via getFieldSyncStatus.
+        recordFieldSyncStatus(clientId, fieldKey, {
+          status: 'error',
+          reason: 'unknown',
+        })
+        return
+      }
+      fieldRetryCounts.set(cacheKey, used + 1)
+      await patch({ [fieldKey]: value })
+    },
+    [clientId, patch],
+  )
+
   const clearError = useCallback(() => setError(null), [])
 
-  return { saving, saved, error, syncStatus, syncError, warnings, knowledgeReseeded, patch, clearError, retrySyncFailed }
+  return {
+    saving,
+    saved,
+    error,
+    syncStatus,
+    syncError,
+    warnings,
+    knowledgeReseeded,
+    patch,
+    clearError,
+    retrySyncFailed,
+    // D449
+    getFieldSyncStatus: getFieldSyncStatusForClient,
+    retryFieldSync,
+  }
 }
