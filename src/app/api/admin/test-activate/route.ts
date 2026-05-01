@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
         bonus_minutes: 50,
         monthly_minute_limit: getEffectiveMinuteLimit(null, 'active', niche),
         contact_email: contactEmail,
+        agent_name: (intakeData.agent_name as string) || (intakeData.agentName as string) || null,
       })
       .select('id')
       .single()

@@ -279,6 +279,7 @@ export async function POST(req: NextRequest) {
         agent_voice_id: voiceId,
         classification_rules: classificationRules,
         timezone,
+        agent_name: (intakeData.db_agent_name as string) || (intakeData.agent_name as string) || (intakeData.agentName as string) || null,
       })
       .select('id')
       .single()
