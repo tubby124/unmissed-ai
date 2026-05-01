@@ -667,8 +667,8 @@ export function buildPromptFromSlots(ctx: SlotContext): string {
 // Exported for Phase E.5 Wave 7 regression tests.
 
 export function normalize24hHours(raw: string): string {
-  // Skip if input already contains AM/PM indicators (already in 12h format)
-  if (/\b[AP]M\b/i.test(raw)) return raw
+  // Already-12h check: detect AM/PM with or without leading space (e.g. "8:30am" or "5 PM")
+  if (/\d\s?[AP]M\b/i.test(raw)) return raw
   return raw.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => {
     const hour = parseInt(h, 10)
     if (hour === 0) return `12:${m} AM`
