@@ -1190,6 +1190,14 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     variables.GREETING_LINE = customVars.GREETING_LINE
   }
 
+  // D445 Phase B.0.2 — GREETING_OVERRIDE: human-edited override that wins over both
+  // niche defaults AND AI-generated greetings. Use case: a client wants their existing
+  // greeting (with custom capability list) preserved verbatim during snowflake migration,
+  // and not be silently rewritten if/when the AI intelligence pipeline reseeds.
+  if (customVars.GREETING_OVERRIDE?.trim()) {
+    variables.GREETING_LINE = customVars.GREETING_OVERRIDE
+  }
+
   // Completion fields
   const completionFields = intake.completion_fields as string | undefined
   if (completionFields?.trim()) variables.COMPLETION_FIELDS = completionFields

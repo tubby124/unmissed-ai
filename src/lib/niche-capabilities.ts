@@ -298,7 +298,7 @@ export const NICHE_DELTAS: Record<string, NicheDelta> = {
   },
   property_management: {
     family: 'shared_heavy',
-    overrideKeys: ['TRIAGE_DEEP', 'INFO_FLOW_OVERRIDE', 'CLOSING_OVERRIDE', 'FILTER_EXTRA', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
+    overrideKeys: ['TRIAGE_DEEP', 'INFO_FLOW_OVERRIDE', 'CLOSING_OVERRIDE', 'FILTER_EXTRA', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA', 'GREETING_OVERRIDE'],
     buildtimeSpecialCases: [],
     runtimeSpecialCases: [],
   },
