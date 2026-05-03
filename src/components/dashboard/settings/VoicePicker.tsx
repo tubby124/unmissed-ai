@@ -114,8 +114,17 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
       </div>
 
       {/* Trigger button — shows current voice */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => { setVoicePickerOpen(o => !o); setVoiceSearch('') }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setVoicePickerOpen(o => !o)
+            setVoiceSearch('')
+          }
+        }}
         className="w-full flex items-center gap-2 text-xs t1 bg-hover px-2.5 py-2 rounded-lg border b-theme hover:border-blue-500/30 transition-colors text-left"
       >
         {/* Play preview for current voice */}
@@ -151,7 +160,7 @@ export default function VoicePicker({ client, isAdmin }: VoicePickerProps) {
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0 t3">
           <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-      </button>
+      </div>
 
       {/* Description hint below trigger */}
       {currentVoice?.description && !voicePickerOpen && (

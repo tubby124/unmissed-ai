@@ -1,7 +1,7 @@
 ---
 type: moc
 tags: [index, project]
-updated: 2026-04-29
+updated: 2026-05-03
 cleaned: 2026-04-01
 last-tracker-cleanup: 2026-04-01
 ---
@@ -10,7 +10,17 @@ last-tracker-cleanup: 2026-04-01
 
 > Voice agent SaaS. Railway + Ultravox + Twilio + Supabase + Next.js 15.
 
-## Latest Session (2026-04-30 PM — D448 mutation contract resolved + audit-script bug surfaced)
+## Latest Session (2026-05-03 — Dashboard Trust-Core Sprint)
+- **Dashboard trust-core shipped locally** — Overview capability truth now prefers runtime/deployed tool state for Knowledge, Booking, SMS, and Transfer, with DB/home fallback when runtime state is unavailable or unknown. `QuickConfigStrip` and `CapabilitiesCard` now show `Not live` / `Saved, but not live yet` when stored config says enabled but runtime tools are missing.
+- **New helper + tests** — `src/lib/runtime-tool-truth.ts`, `runtime-tool-truth.test.ts`, and `tests/dashboard-trust-core.spec.ts`. D450 received an explicit `twilio_number` sync-trigger regression assertion.
+- **Real runtime warning fixed** — authenticated Playwright caught invalid nested buttons in `VoicePicker` on `/dashboard/agent`; fixed by making the outer voice dropdown trigger an accessible `role="button"` container.
+- **E2E account ready** — `e2etest@unmissed.ai` password rotated to the requested temporary test value. Do not store the plaintext in vault notes; run e2e with `TEST_PASSWORD=...`.
+- **Verification** — `npm run build` passed; `npm run test:all` passed (1826 pass, 2 skipped); local authenticated dashboard group passed serially against `http://localhost:3002` (16 passed, 5 skipped). Skips are Phase 4 settings e2e cases gated by admin/service env.
+- **Tracker updates** — [[Tracker/D447]] marked `phase-2-capabilities-done`; [[Tracker/D450]] resolved; session note at [[Dashboard/2026-05-03-dashboard-trust-core-sprint]].
+- **D446 resolved after sprint note** — shared tool extractor now normalizes all three Ultravox wire shapes (`toolName`, `nameOverride`, `temporaryTool.modelToolName`) and preserves/logs unknown shapes. D442 fixture rerun shows no `hangUp` divergence across the 5 audited clients; remaining tool cleanup is separate (`hasan-sharif` stage/tool mismatch review, `urban-vibe` DB-only `pageOwner` sweep decision).
+- **Still next** — [[Tracker/D449]] remaining SyncStatusChip rollout, trial auto-disable policy, domain purchase/verified sending domain, carrier-aware Go Live wizard, and snowflake migrations only on explicit owner need.
+
+## Previous Session (2026-04-30 PM — D448 mutation contract resolved + audit-script bug surfaced)
 - **D448 RESOLVED** — mutation contract `clients.tools` runtime-authority claim is CORRECT. Two parallel sub-agent dispatches (code-reading + empirical Supabase diff) confirmed: H1 (synthesized at call site) FALSE, H2 (`removeAll: true` doesn't strip) FALSE, H3 (stale clients.tools) refuted on stated symptom. The "universal hangUp gap on all 5 clients" was a D442 audit script extractor bug — script scanned only `modelToolName` and missed built-in tools using `toolName` key. `hangUp` IS in `clients.tools` for `windshield-hub` (zero drift) and `hasan-sharif` (only `pageOwner` missing). Other 3 clients pending re-verification with corrected scan.
 - **Recurring bug pattern surfaced** — [[Tracker/D444]] closed this exact bug class as "false-alarm" but the fix was never applied; D442 re-bit. Concept: [[concepts/unmissed/unmissed-tool-extractor-bug]]. Durable rule: never close as "false alarm" if the underlying script still has the bug — leave open with `status: known-fix-deferred`.
 - **`syncClientTools()` is pure DB write** — no `updateAgent()` call, no Ultravox API call, no prompt rebuild ([src/lib/sync-client-tools.ts:1-53](../../src/lib/sync-client-tools.ts) header explicit). Standing no-redeploy rule does NOT apply to standalone calls. The D448 spec was wrong about this — claimed it rebuilds the prompt.
@@ -113,10 +123,11 @@ last-tracker-cleanup: 2026-04-01
 ### NOW: Ship-Blocking Bugs & Gaps (fix before next client)
 | # | Title | Priority |
 |---|-------|----------|
-| [[Tracker/D442]] | Overview drift audit + fix — Phase 1 ✅ 2026-04-30; Fixes 1/1.5/2/3/4 next | CRITICAL |
-| [[Tracker/D443]] | Fix 1.5: Registry-readonly enforcement (universal Greeting fake-control) — in-progress | HIGH |
-| [[Tracker/D444]] | Investigate `clients.tools.hangUp` Section 7 contract violation — in-progress | HIGH |
-| [[Tracker/D445]] | Snowflake migration deep plan (replaces D442 Fix 5; supersedes D304) — owner-gated | MEDIUM |
+| [[Tracker/D447]] | Runtime truth on Overview — capability surfaces done 2026-05-03; cache test + rollout still open | HIGH |
+| [[Tracker/D449]] | Per-field "Saved, but not live yet" chip — Phase 2 remaining settings-card rollout | HIGH |
+| [[Tracker/D445]] | Snowflake migration deep plan — owner-gated, only if runtime/warning UX is not enough | MEDIUM |
+| [[Tracker/D-NEW-trial-auto-disable]] | Trial auto-disable policy — owner-gated but needed before scalable trials | HIGH |
+| [[Tracker/D-NEW-carrier-aware-go-live-wizard]] | Carrier-aware Go Live wizard — next launch UX item after domain/email | HIGH |
 | [[Tracker/D340]] | Menu/knowledge upload → pgvector → agent answers | CRITICAL |
 | [[Tracker/D350]] | Knowledge source drawers don't expand (click = nothing) | HIGH |
 | [[Tracker/D353]] | WebRTC test calls not logged — no call history | HIGH |

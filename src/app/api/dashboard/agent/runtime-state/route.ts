@@ -37,6 +37,7 @@ import {
 } from '@/lib/agent-runtime-state'
 import { buildAgentTools } from '@/lib/ultravox'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import { normalizeToolNames } from '@/lib/tool-name-extractor'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,30 +69,6 @@ interface RuntimeStateResponse {
 
 function isFlagEnabled(): boolean {
   return process.env.OVERVIEW_RUNTIME_TRUTH_ENABLED === 'true'
-}
-
-function toolNamesFromOverrideArray(tools: unknown[]): string[] {
-  // `clients.tools` is an array of UltravoxTool-shaped objects (built by
-  // buildAgentTools). Each has either `toolName` (built-in) or
-  // `temporaryTool.modelToolName` (HTTP tool). Sort for stable comparison.
-  // NOTE: per memory/unmissed-tool-extractor-recurring-bug, BOTH paths must
-  // be checked or built-ins like hangUp get phantom-flagged as "missing".
-  const names: string[] = []
-  for (const t of tools) {
-    if (!t || typeof t !== 'object') continue
-    const obj = t as { toolName?: unknown; temporaryTool?: { modelToolName?: unknown } }
-    if (typeof obj.toolName === 'string') names.push(obj.toolName)
-    else if (typeof obj.temporaryTool?.modelToolName === 'string') {
-      names.push(obj.temporaryTool.modelToolName)
-    }
-  }
-  return names.sort()
-}
-
-function toolNamesFromUltravoxResponse(selectedTools: unknown[]): string[] {
-  // Same shape as DB tools — the Ultravox PATCH `selectedTools` array uses
-  // identical structure since both feed `buildAgentTools()` output.
-  return toolNamesFromOverrideArray(selectedTools)
 }
 
 interface UltravoxAgentResponse {
@@ -212,7 +189,9 @@ export async function GET(req: NextRequest) {
   const dbPrompt = row.system_prompt ?? ''
   const dbGreeting = extractGreetingFromPrompt(dbPrompt)
   const dbToolsRaw = Array.isArray(row.tools) ? row.tools : []
-  const dbTools = toolNamesFromOverrideArray(dbToolsRaw)
+  const dbTools = normalizeToolNames(dbToolsRaw, {
+    source: `runtime-state db clients.tools slug=${row.slug ?? targetClientId}`,
+  })
 
   const dbSyncStatusRaw = row.last_agent_sync_status
   const syncStatus: SyncStatus =
@@ -303,7 +282,9 @@ export async function GET(req: NextRequest) {
   const runtimeGreeting = extractGreetingFromPrompt(runtimePrompt)
   const runtimeVoice = ct.voice ?? null
   const runtimeToolsRaw = Array.isArray(ct.selectedTools) ? ct.selectedTools : []
-  const runtimeTools = toolNamesFromUltravoxResponse(runtimeToolsRaw)
+  const runtimeTools = normalizeToolNames(runtimeToolsRaw, {
+    source: `runtime-state ultravox selectedTools slug=${row.slug ?? targetClientId}`,
+  })
 
   // ── Build divergence list ────────────────────────────────────────────────
   const divergence: DivergenceEntry[] = []
@@ -352,7 +333,7 @@ export async function GET(req: NextRequest) {
     )
     // What `buildAgentTools()` would produce given the current plan — used
     // to detect "DB has flag but plan-gated" vs "DB has flag and plan allows".
-    const expectedTools = toolNamesFromOverrideArray(
+    const expectedTools = normalizeToolNames(
       buildAgentTools({
         slug: row.slug ?? undefined,
         booking_enabled: row.booking_enabled ?? false,
@@ -366,6 +347,7 @@ export async function GET(req: NextRequest) {
         subscriptionStatus: row.subscription_status ?? undefined,
         niche: row.niche ?? undefined,
       }),
+      { source: `runtime-state generated tools slug=${row.slug ?? targetClientId}` },
     )
     // If the DB has a capability flag set but `expectedTools` (plan-gated)
     // doesn't include it, that's plan_gated rather than partial_failure.

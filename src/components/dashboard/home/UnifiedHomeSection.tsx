@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
@@ -26,6 +26,10 @@ import OverviewCallLog from './OverviewCallLog'
 import KnowledgeQuickAddCard from './KnowledgeQuickAddCard'
 import type { HomeData } from '../ClientHome'
 import type { useHomeSheet } from '@/hooks/useHomeSheet'
+import {
+  resolveRuntimeToolTruth,
+  type RuntimeToolState,
+} from '@/lib/runtime-tool-truth'
 
 // ── Inline helpers ───────────────────────────────────────────────
 // Phone formatter retained — still used by the "Share your number" + call-me panels.
@@ -79,6 +83,34 @@ export default function UnifiedHomeSection({
   // D363 — Share number inline expand + copy
   const [shareExpanded, setShareExpanded] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [runtimeToolState, setRuntimeToolState] = useState<RuntimeToolState | null>(null)
+
+  useEffect(() => {
+    if (!data.clientId || !onboarding.hasAgent) {
+      setRuntimeToolState(null)
+      return
+    }
+
+    const controller = new AbortController()
+    async function fetchRuntimeTools() {
+      try {
+        const base = data.admin
+          ? `/api/dashboard/agent/runtime-state?client_id=${data.clientId}`
+          : '/api/dashboard/agent/runtime-state'
+        const res = await fetch(base, {
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!res.ok) return
+        const json = (await res.json()) as RuntimeToolState
+        if (!controller.signal.aborted) setRuntimeToolState(json)
+      } catch {
+        if (!controller.signal.aborted) setRuntimeToolState(null)
+      }
+    }
+
+    void fetchRuntimeTools()
+    return () => controller.abort()
+  }, [data.admin, data.clientId, onboarding.hasAgent])
 
   // D143 — scroll target for test call nudge
   const testCallRef = useRef<HTMLDivElement>(null)
@@ -120,6 +152,22 @@ export default function UnifiedHomeSection({
   const pendingKnowledgeCount = data.knowledge?.pending_review_count ?? 0
   const openGapsCount = data.insights?.openGaps ?? 0
   const callHandlingMode = data.callHandlingMode
+  const runtimeToolTruth = resolveRuntimeToolTruth(
+    {
+      hasKnowledge: capabilities.hasKnowledge,
+      hasBooking: capabilities.hasBooking,
+      hasSms: capabilities.hasSms,
+      hasTransfer: capabilities.hasTransfer,
+    },
+    runtimeToolState,
+  )
+  const displayedCapabilities = {
+    ...capabilities,
+    hasKnowledge: runtimeToolTruth.effective.hasKnowledge,
+    hasBooking: runtimeToolTruth.effective.hasBooking,
+    hasSms: runtimeToolTruth.effective.hasSms,
+    hasTransfer: runtimeToolTruth.effective.hasTransfer,
+  }
   // Show calendar CTA when plan includes booking (Core+, or trial which unlocks all) but calendar not connected
   const planSupportsBooking = isTrial || data.selectedPlan === 'core' || data.selectedPlan === 'pro'
   const showCalendarConnect = planSupportsBooking && !calendarConnected
@@ -666,6 +714,8 @@ export default function UnifiedHomeSection({
             bookingEnabled={capabilities.hasBooking}
             calendarConnected={calendarConnected}
             hasTransfer={capabilities.hasTransfer}
+            runtimeCapabilities={runtimeToolTruth.usingRuntime ? runtimeToolTruth.effective : undefined}
+            runtimeNotLive={runtimeToolTruth.notLive}
             forwardingNumber={data.editableFields.forwardingNumber}
             twilioNumber={data.twilioNumber}
             hasTriage={data.hasTriage ?? false}
@@ -749,7 +799,7 @@ export default function UnifiedHomeSection({
             ════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
           <CapabilitiesCard
-            capabilities={capabilities}
+            capabilities={displayedCapabilities}
             agentName={agent.name}
             voiceStylePreset={data.agent.voiceStylePreset}
             isTrial={isTrial}
@@ -759,6 +809,7 @@ export default function UnifiedHomeSection({
             hasContextData={data.editableFields.hasContextData}
             selectedPlan={data.selectedPlan}
             hasTelegramAlerts={onboarding.telegramConnected}
+            runtimeNotLive={runtimeToolTruth.notLive}
           />
 
           <div className="space-y-3">

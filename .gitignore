@@ -42,6 +42,11 @@ archive/
 # Claude Code local config (contains hardcoded API keys in allow-list)
 .claude/
 
+# Codex CLI local config (parallels .claude/ — scratch, not source)
+.codex/
+.agents/
+AGENTS.md
+
 # macOS
 .DS_Store
 

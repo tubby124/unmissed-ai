@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
 import { trackEvent } from '@/lib/analytics'
+import type { ToolBackedCapabilities } from '@/lib/runtime-tool-truth'
 
 interface Props {
   clientId: string
@@ -30,6 +31,8 @@ interface Props {
   hasTransfer?: boolean
   forwardingNumber?: string | null
   transferConditions?: string | null
+  runtimeCapabilities?: ToolBackedCapabilities
+  runtimeNotLive?: ToolBackedCapabilities
   // Go Live (forward existing line → agent number)
   twilioNumber?: string | null
   // Call routing
@@ -158,6 +161,8 @@ export default function QuickConfigStrip({
   hasTransfer = false,
   forwardingNumber = null,
   transferConditions = null,
+  runtimeCapabilities,
+  runtimeNotLive,
   twilioNumber = null,
   hasTriage = false,
   niche = null,
@@ -178,6 +183,12 @@ export default function QuickConfigStrip({
   const [fwdNumber, setFwdNumber] = useState(forwardingNumber ?? '')
   const [xferConditions, setXferConditions] = useState(transferConditions ?? '')
   const [transferDirty, setTransferDirty] = useState(false)
+  const liveSms = runtimeCapabilities?.hasSms ?? hasSms
+  const liveBooking = runtimeCapabilities?.hasBooking ?? (booking && calendarConnected)
+  const liveTransfer = runtimeCapabilities?.hasTransfer ?? (hasTransfer && !!forwardingNumber)
+  const smsNotLive = runtimeNotLive?.hasSms ?? false
+  const bookingNotLive = runtimeNotLive?.hasBooking ?? false
+  const transferNotLive = runtimeNotLive?.hasTransfer ?? false
 
   // Go Live — surface a prominent forwarding-codes pill until forwarding is set.
   // Track local "savedForwarding" so the pill hides the moment a save succeeds,
@@ -425,25 +436,25 @@ export default function QuickConfigStrip({
       id: 'sms',
       icon: <SmsIcon />,
       label: 'Auto-text',
-      active: smsOn && hasSms,
-      statusText: !hasSms ? 'Upgrade' : smsOn ? 'On' : 'Off',
-      hasExpand: hasSms,
+      active: liveSms,
+      statusText: smsNotLive ? 'Not live' : !hasSms && !liveSms ? 'Upgrade' : liveSms ? 'On' : 'Off',
+      hasExpand: hasSms || liveSms,
       onPillClick: !hasSms ? undefined : undefined,
     },
     {
       id: 'booking',
       icon: <BookingIcon />,
       label: 'Booking',
-      active: booking && calendarConnected,
-      statusText: !booking ? 'Off' : calendarConnected ? 'Connected' : 'Set up',
+      active: liveBooking,
+      statusText: bookingNotLive ? 'Not live' : !booking && !liveBooking ? 'Off' : liveBooking ? 'Connected' : 'Set up',
       hasExpand: true,
     },
     {
       id: 'transfer',
       icon: <TransferIcon />,
       label: 'Transfer',
-      active: hasTransfer && !!forwardingNumber,
-      statusText: forwardingNumber ? 'Active' : 'Set up',
+      active: liveTransfer,
+      statusText: transferNotLive ? 'Not live' : liveTransfer ? 'Active' : 'Set up',
       hasExpand: true,
     },
     {
@@ -483,7 +494,7 @@ export default function QuickConfigStrip({
             ? 'bg-emerald-500/15 text-emerald-400'
             : isPulse
               ? 'bg-amber-500/20 text-amber-300'
-              : pill.statusText === 'Set up' || pill.statusText === 'Upgrade'
+              : pill.statusText === 'Set up' || pill.statusText === 'Upgrade' || pill.statusText === 'Not live'
                 ? 'bg-amber-500/15 text-amber-400'
                 : 'bg-white/5 t3'
 

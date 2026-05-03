@@ -9,6 +9,17 @@ async function login(page: Page) {
   await page.locator('input[type="password"]').fill(PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForURL('**/dashboard**', { timeout: 15_000 });
+  await acknowledgeRecordingConsent(page);
+}
+
+async function acknowledgeRecordingConsent(page: Page) {
+  const dialog = page.getByRole('dialog').filter({ hasText: /recording authorization|one-time confirmation needed/i });
+  await dialog.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => null);
+  if (!(await dialog.isVisible().catch(() => false))) return;
+
+  await dialog.getByRole('checkbox').check();
+  await dialog.getByRole('button', { name: /acknowledge and continue/i }).click();
+  await expect(dialog).toBeHidden({ timeout: 5_000 });
 }
 
 test.describe('Dashboard features', () => {
@@ -34,6 +45,7 @@ test.describe('Dashboard features', () => {
     await login(page);
     await page.goto('/dashboard/settings');
     await page.waitForLoadState('networkidle');
+    await acknowledgeRecordingConsent(page);
 
     // Should see the settings page with at least one card/section
     await expect(page.locator('body')).toBeVisible();
@@ -49,6 +61,7 @@ test.describe('Dashboard features', () => {
     await login(page);
     await page.goto('/dashboard/settings');
     await page.waitForLoadState('networkidle');
+    await acknowledgeRecordingConsent(page);
 
     // Intercept the PATCH request
     const patchPromise = page.waitForRequest(

@@ -208,6 +208,10 @@ describe('computeNeedsSync', () => {
     assert.ok(computeNeedsSync({ forwarding_number: null }, false))
   })
 
+  test('returns true when twilio_number is in updates (D450)', () => {
+    assert.ok(computeNeedsSync({ twilio_number: '+13065551234' }, false))
+  })
+
   test('returns true when knowledgeReseeded is true', () => {
     assert.ok(computeNeedsSync({ agent_name: 'Bob' }, true))
   })
