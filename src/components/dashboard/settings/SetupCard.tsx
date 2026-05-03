@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { fmtPhone } from '@/lib/settings-utils'
 import { CopyButton } from './shared'
 import { usePatchSettings } from './usePatchSettings'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 interface SetupCardProps {
   clientId: string
@@ -33,7 +34,7 @@ export default function SetupCard({
   const [transferConditions, setTransferConditions] = useState(initialTransferConditions)
   const [setupComplete, setSetupComplete] = useState(initialSetupComplete)
 
-  const { saving, saved, patch } = usePatchSettings(clientId, isAdmin)
+  const { saving, saved, patch, retryFieldSync } = usePatchSettings(clientId, isAdmin)
 
   async function saveSetup() {
     await patch({
@@ -88,15 +89,29 @@ export default function SetupCard({
   // Setup complete — compact display
   if (setupComplete && !editing) {
     return (
-      <div className="rounded-2xl border b-theme bg-surface px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          <span className="text-xs t2">Setup complete</span>
-          {twilioNumber && (
-            <span className="text-xs font-mono t3">{fmtPhone(twilioNumber)}</span>
-          )}
+      <div className="rounded-2xl border b-theme bg-surface px-5 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="text-xs t2">Setup complete</span>
+            {twilioNumber && (
+              <span className="text-xs font-mono t3">{fmtPhone(twilioNumber)}</span>
+            )}
+          </div>
+          <button onClick={() => setEditing(true)} className="text-xs t3 hover:t1 transition-colors">Edit</button>
         </div>
-        <button onClick={() => setEditing(true)} className="text-xs t3 hover:t1 transition-colors">Edit</button>
+        <FieldSyncStatusChip
+          clientId={clientId}
+          fieldKey="forwarding_number"
+          currentValue={forwardingNumber}
+          onRetry={retryFieldSync}
+        />
+        <FieldSyncStatusChip
+          clientId={clientId}
+          fieldKey="transfer_conditions"
+          currentValue={transferConditions}
+          onRetry={retryFieldSync}
+        />
       </div>
     )
   }
@@ -154,6 +169,12 @@ export default function SetupCard({
                   className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20"
                 />
                 <p className="text-[11px] t3 mt-1">Your personal number. When a live transfer is triggered, the caller is connected here immediately.</p>
+                <FieldSyncStatusChip
+                  clientId={clientId}
+                  fieldKey="forwarding_number"
+                  currentValue={forwardingNumber}
+                  onRetry={retryFieldSync}
+                />
               </div>
 
               {/* Transfer conditions */}
@@ -167,6 +188,12 @@ export default function SetupCard({
                   className="w-full bg-hover border b-theme rounded-lg px-3 py-2 text-sm t1 placeholder:t3 focus:outline-none focus:border-white/20 resize-none"
                 />
                 <p className="text-[11px] t3 mt-1">Describe when your agent should offer a live transfer. Leave blank to use the default (emergency or explicit human request only).</p>
+                <FieldSyncStatusChip
+                  clientId={clientId}
+                  fieldKey="transfer_conditions"
+                  currentValue={transferConditions}
+                  onRetry={retryFieldSync}
+                />
               </div>
 
               {/* Checklist */}

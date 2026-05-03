@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
 import { useDirtyGuard } from './useDirtyGuard'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 interface BookingCardProps {
   clientId: string
@@ -36,7 +37,7 @@ export default function BookingCard({
   const [buffer, setBuffer] = useState(initialBuffer)
   const [enabled, setEnabled] = useState(initialBookingEnabled)
 
-  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onSave, onPromptChange })
+  const { saving, saved, error, patch, retryFieldSync } = usePatchSettings(clientId, isAdmin, { onSave, onPromptChange })
   const { markDirty, markClean } = useDirtyGuard('booking-' + clientId)
 
   const isConnected = calendarAuthStatus === 'connected'
@@ -75,6 +76,12 @@ export default function BookingCard({
           disabled={saving || previewMode || !isConnected}
         />
       </div>
+      <FieldSyncStatusChip
+        clientId={clientId}
+        fieldKey="booking_enabled"
+        currentValue={enabled}
+        onRetry={retryFieldSync}
+      />
 
       {/* Connection status */}
       {calendarAuthStatus === 'connected' ? (

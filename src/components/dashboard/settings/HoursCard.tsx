@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { usePatchSettings, type CardMode } from './usePatchSettings'
 import { useDirtyGuard } from './useDirtyGuard'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 // ── D132 — Inline preview of what the agent is told after hours ───────────────
 function buildAfterHoursPreview(behavior: string, emergencyPhone: string): string {
@@ -60,7 +61,7 @@ export default function HoursCard({
   const [phone, setPhone] = useState(initialPhone)
   const [previewOpen, setPreviewOpen] = useState(false)
 
-  const { saving, saved, error, patch, clearError } = usePatchSettings(clientId, isAdmin, { onSave })
+  const { saving, saved, error, patch, retryFieldSync } = usePatchSettings(clientId, isAdmin, { onSave })
   const { markDirty, markClean } = useDirtyGuard('hours-' + clientId)
 
   async function save() {
@@ -135,6 +136,12 @@ export default function HoursCard({
                   <option value="route_emergency">Route emergencies to a phone number</option>
                   <option value="custom_message">Custom message only</option>
                 </select>
+                <FieldSyncStatusChip
+                  clientId={clientId}
+                  fieldKey="after_hours_behavior"
+                  currentValue={behavior}
+                  onRetry={retryFieldSync}
+                />
                 {behavior === 'route_emergency' && !phone && (
                   <p className="text-amber-400/80 text-xs mt-2 leading-relaxed">
                     Emergency routing requires a phone number — add one below or after-hours calls will fail to route.
@@ -150,6 +157,12 @@ export default function HoursCard({
                     onChange={e => { setPhone(e.target.value); markDirty() }}
                     className="w-full bg-black/20 border b-theme rounded-xl px-3 py-2 text-sm t1 focus:outline-none focus:border-blue-500/40 transition-colors"
                     placeholder="e.g. +13065550101"
+                  />
+                  <FieldSyncStatusChip
+                    clientId={clientId}
+                    fieldKey="after_hours_emergency_phone"
+                    currentValue={phone}
+                    onRetry={retryFieldSync}
                   />
                 </div>
               )}
