@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
+import type { ToolBackedCapabilities } from '@/lib/runtime-tool-truth'
 
 interface Capabilities {
   hasKnowledge: boolean
@@ -25,6 +26,7 @@ interface CapabilitiesCardProps {
   hasContextData: boolean
   selectedPlan?: string | null
   hasTelegramAlerts?: boolean
+  runtimeNotLive?: ToolBackedCapabilities
 }
 
 type DotType = 'always' | 'search'
@@ -41,6 +43,7 @@ interface CapabilityItem {
   goliveLocked?: boolean
   lockReason?: string
   tooltip?: string
+  syncIssue?: boolean
 }
 
 const VOICE_LABELS: Record<string, string> = {
@@ -146,13 +149,13 @@ function CapabilityRow({
         {/* D190 — action CTA for inactive items */}
         {!item.enabled && !isGoliveLocked && (item.link || item.upgradeRequired) && (
           <p className="text-[11px] mt-1 font-semibold" style={{ color: 'var(--color-primary)', opacity: 0.75 }}>
-            {item.upgradeRequired ? 'Upgrade →' : 'Set up →'}
+            {item.syncIssue ? 'Review →' : item.upgradeRequired ? 'Upgrade →' : 'Set up →'}
           </p>
         )}
       </div>
 
       {isGoliveLocked ? <GoliveLockIcon /> : item.link ? <ChevronRight /> : null}
-      {!item.enabled && !isGoliveLocked && item.upgradeRequired && isTrial && (
+      {!item.enabled && !isGoliveLocked && item.upgradeRequired && isTrial && !item.syncIssue && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0 ml-auto" style={{ color: 'var(--color-text-3)' }}>
           <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -174,7 +177,7 @@ function CapabilityRow({
   }
 
   // Upgrade-gated items for trial users
-  if (!item.enabled && item.upgradeRequired && isTrial) {
+  if (!item.enabled && item.upgradeRequired && isTrial && !item.syncIssue) {
     return (
       <button
         onClick={onUpgradeClick}
@@ -224,6 +227,7 @@ export default function CapabilitiesCard({
   hasContextData,
   selectedPlan,
   hasTelegramAlerts = false,
+  runtimeNotLive,
 }: CapabilitiesCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
 
@@ -252,20 +256,22 @@ export default function CapabilitiesCard({
       id: 'knowledge',
       label: 'Search knowledge base',
       enabledDesc: 'Searches uploaded docs during calls',
-      disabledDesc: 'Upload documents to enable',
+      disabledDesc: runtimeNotLive?.hasKnowledge ? 'Saved, but not live yet' : 'Upload documents to enable',
       enabled: capabilities.hasKnowledge,
       dotType: 'search',
       link: '/dashboard/knowledge',
+      syncIssue: runtimeNotLive?.hasKnowledge,
     },
     {
       id: 'transfer',
       label: 'Transfer calls',
       enabledDesc: 'Configured — phone calls only',
-      disabledDesc: 'Set a forwarding number to enable',
+      disabledDesc: runtimeNotLive?.hasTransfer ? 'Saved, but not live yet' : 'Set a forwarding number to enable',
       enabled: capabilities.hasTransfer,
       dotType: 'always',
       link: '/dashboard/settings?tab=general',
       tooltip: 'Transfer works on live phone calls only. Browser test calls cannot transfer.',
+      syncIssue: runtimeNotLive?.hasTransfer,
     },
     {
       id: 'hours',
@@ -280,12 +286,13 @@ export default function CapabilitiesCard({
       id: 'sms',
       label: 'SMS follow-up',
       enabledDesc: 'Sends follow-up texts — phone calls only',
-      disabledDesc: 'Requires a phone number on your plan',
+      disabledDesc: runtimeNotLive?.hasSms ? 'Saved, but not live yet' : 'Requires a phone number on your plan',
       enabled: capabilities.hasSms,
       dotType: 'always',
       link: '/dashboard/settings?tab=sms',
       upgradeRequired: true,
       tooltip: 'SMS requires a Twilio phone number. Available on paid plans.',
+      syncIssue: runtimeNotLive?.hasSms,
     },
     {
       id: 'voicemail',
@@ -302,11 +309,12 @@ export default function CapabilitiesCard({
       id: 'booking',
       label: 'Book appointments',
       enabledDesc: 'Books directly into your calendar',
-      disabledDesc: 'Connect your calendar to enable',
+      disabledDesc: runtimeNotLive?.hasBooking ? 'Saved, but not live yet' : 'Connect your calendar to enable',
       enabled: capabilities.hasBooking,
       dotType: 'always',
       link: '/dashboard/settings?tab=general',
       upgradeRequired: true,
+      syncIssue: runtimeNotLive?.hasBooking,
     },
     {
       id: 'telegram',

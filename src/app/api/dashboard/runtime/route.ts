@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { normalizeToolNames } from '@/lib/tool-name-extractor'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
     const agent = await res.json() as {
       systemPrompt?: string
       callTemplate?: {
-        selectedTools?: Array<{ temporaryTool?: { modelToolName?: string }; toolName?: string }>
+        selectedTools?: unknown[]
         maxDuration?: string
         vadSettings?: Record<string, unknown>
         inactivityMessages?: Array<Record<string, unknown>>
@@ -91,11 +92,8 @@ export async function GET(req: NextRequest) {
 
     const ct = agent.callTemplate ?? {}
     const selectedTools = ct.selectedTools ?? []
-
-    const toolNames = selectedTools.map(t => {
-      if (t.temporaryTool?.modelToolName) return t.temporaryTool.modelToolName
-      if (t.toolName) return t.toolName
-      return 'unknown'
+    const toolNames = normalizeToolNames(selectedTools, {
+      source: `dashboard-runtime selectedTools clientId=${targetClientId}`,
     })
 
     const runtime: RuntimeResponse = {

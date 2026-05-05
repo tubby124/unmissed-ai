@@ -2,7 +2,7 @@
 type: dashboard
 tags: [dashboard, frontend, architecture]
 related: [Dashboard/Settings Cards, Product/Onboarding Flow, Dashboard/Phase6-Wave2-Layout-Refactor]
-updated: 2026-04-01
+updated: 2026-05-03
 ---
 
 # Dashboard Architecture
@@ -69,6 +69,8 @@ ADMIN:
 ## QuickConfigStrip — 8 Inline Config Pills
 Each pill shows status and optionally expands to an inline editor.
 
+As of 2026-05-03, SMS / Booking / Transfer capability status on Overview prefers runtime tool truth from `/api/dashboard/agent/runtime-state` when available. If runtime state is unavailable or `syncStatus='unknown'`, it falls back to the DB/home API state. If DB says a capability is configured but runtime tools do not include it, the pill shows `Not live` instead of an active-looking false state.
+
 | Pill | Status values | Expandable | Saves via |
 |------|--------------|------------|-----------|
 | Telegram | Connected / Set up | No (opens sheet) | — |
@@ -81,6 +83,24 @@ Each pill shows status and optionally expands to an inline editor.
 | Routing | Set up / Active | Yes (3 caller reasons + AI generate) | `niche_custom_variables`, `section_id: 'triage'` |
 
 All saves go through `usePatchSettings` → `PATCH /api/dashboard/settings` → `needsAgentSync` → Ultravox.
+
+## Capability Truth Surfaces
+
+`CapabilitiesCard` and the capability subset of `QuickConfigStrip` now share runtime/tool truth logic through `src/lib/runtime-tool-truth.ts`.
+
+Truth order:
+1. Runtime deployed tools when `/api/dashboard/agent/runtime-state` returns known state.
+2. DB/home API state when runtime state is unavailable or unknown.
+
+Runtime tool mapping:
+- `queryKnowledge` → Knowledge
+- `transitionToBookingStage`, `checkCalendarAvailability`, or `bookAppointment` → Booking
+- `sendTextMessage` → SMS
+- `transferCall` → Transfer
+
+Not-live behavior:
+- DB configured + runtime missing = `Not live` / `Saved, but not live yet`
+- CTA should deep-link to the relevant settings/config surface and say `Review`, not `Upgrade`, unless the issue is truly plan-gated.
 
 ## TestCallCard (Orb) — Present on 4 Pages
 - **Overview** — hero center column
@@ -100,6 +120,9 @@ Uses PiP architecture (CallContext + FloatingCallOrb) — call persists across p
 - D227 — knowledge/conflicts, docs, preview-question routes not connected to UI
 - D189 — Unify trial/paid dashboard (locked features show preview, not blank)
 - D286 — Dashboard settings reorganization
+- D447 — route-level runtime-state cache test + rollout/default-on plan remain
+- D449 — SyncStatusChip still needs wiring across remaining settings cards
+- D446 — drift-detector tool extractor still needs hardening before future audits
 
 ## Connections
 - → [[Dashboard/Settings Cards]] (settings tab)
