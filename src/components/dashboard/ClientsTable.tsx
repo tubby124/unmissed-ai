@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { getNicheConfig } from '@/lib/niche-config'
 import { hasCapability } from '@/lib/niche-capabilities'
 
+interface DriftSnapshot {
+  chars_dropped: number | null
+  status: string
+  biggest_drop_section: string | null
+  checked_at: string
+}
+
 interface Client {
   id: string
   slug: string
@@ -13,6 +20,7 @@ interface Client {
   niche?: string | null
   status?: string | null
   last_sign_in_at?: string | null
+  drift?: DriftSnapshot | null
 }
 
 const PROTECTED_SLUGS = ['hasan-sharif', 'windshield-hub', 'urban-vibe', 'manzil-isa']
@@ -36,6 +44,130 @@ function StatusDot({ status }: { status: string | null | undefined }) {
     s === 'churned' ? 'bg-red-500' :
     'bg-zinc-500'
   return <span className={`inline-block w-2 h-2 rounded-full ${color}`} title={s} />
+}
+
+function DriftChip({ drift }: { drift: DriftSnapshot | null | undefined }) {
+  if (!drift) return null
+
+  const checkedAt = new Date(drift.checked_at)
+  const daysAgo = Math.floor((Date.now() - checkedAt.getTime()) / (1000 * 60 * 60 * 24))
+  const stale = daysAgo > 14
+
+  if (drift.status === 'legacy_monolithic') {
+    return (
+      <span
+        title={`Snowflake — recompose blocked (D445 migration). Checked ${daysAgo}d ago.`}
+        className="text-[10px] font-medium border rounded-full px-2 py-0.5"
+        style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
+      >
+        Snowflake
+      </span>
+    )
+  }
+
+  if (drift.status === 'error') {
+    return (
+      <span
+        title={`Drift check errored. Checked ${daysAgo}d ago.`}
+        className="text-[10px] font-medium border rounded-full px-2 py-0.5 border-red-500/20 bg-red-500/10 text-red-400"
+      >
+        Drift: error
+      </span>
+    )
+  }
+
+  const dropped = drift.chars_dropped ?? 0
+  const formatted = dropped >= 1000 ? `${(dropped / 1000).toFixed(1)}K` : String(dropped)
+  const titleSuffix = drift.biggest_drop_section ? ` — biggest drop: ${drift.biggest_drop_section}` : ''
+  const baseTitle = `${dropped.toLocaleString()} chars would be dropped on recompose${titleSuffix}. Checked ${daysAgo}d ago.`
+
+  if (dropped > 500) {
+    return (
+      <span
+        title={baseTitle}
+        className="text-[10px] font-medium border rounded-full px-2 py-0.5 border-red-500/20 bg-red-500/10 text-red-400"
+      >
+        Drift: {formatted}
+      </span>
+    )
+  }
+  if (dropped > 100) {
+    return (
+      <span
+        title={baseTitle}
+        className="text-[10px] font-medium border rounded-full px-2 py-0.5 border-amber-500/20 bg-amber-500/10 text-amber-400"
+      >
+        Drift: {formatted}
+      </span>
+    )
+  }
+  if (stale) {
+    return (
+      <span
+        title={`No recent drift check (${daysAgo}d ago).`}
+        className="text-[10px] font-medium border rounded-full px-2 py-0.5"
+        style={{ color: "var(--color-text-3)", borderColor: "var(--color-border)" }}
+      >
+        Drift: stale
+      </span>
+    )
+  }
+  // Clean (≤100 chars dropped, recent) — no chip needed.
+  return null
+}
+
+function DriftWatchSummary({ clients }: { clients: Client[] }) {
+  const withDrift = clients.filter(c => c.drift && c.drift.status === 'ok' && (c.drift.chars_dropped ?? 0) > 100)
+  const high = withDrift.filter(c => (c.drift!.chars_dropped ?? 0) > 500)
+  const med = withDrift.filter(c => (c.drift!.chars_dropped ?? 0) > 100 && (c.drift!.chars_dropped ?? 0) <= 500)
+  const snowflakes = clients.filter(c => c.drift?.status === 'legacy_monolithic')
+  const checked = clients.filter(c => c.drift !== null && c.drift !== undefined)
+
+  if (checked.length === 0) {
+    return (
+      <div
+        className="rounded-xl border b-theme bg-surface px-4 py-3 mb-4 text-xs"
+        style={{ color: "var(--color-text-3)" }}
+      >
+        <span className="font-medium" style={{ color: "var(--color-text-2)" }}>Drift watch:</span>
+        {' '}no checks yet — run <code className="font-mono">npx tsx scripts/drift-check-all.ts</code> to populate.
+      </div>
+    )
+  }
+
+  if (high.length === 0 && med.length === 0) {
+    return (
+      <div
+        className="rounded-xl border b-theme bg-surface px-4 py-3 mb-4 text-xs"
+        style={{ color: "var(--color-text-3)" }}
+      >
+        <span className="font-medium" style={{ color: "var(--color-text-2)" }}>Drift watch:</span>
+        {' '}all slot-pipeline clients clean ({checked.length} checked, {snowflakes.length} snowflake{snowflakes.length === 1 ? '' : 's'} excluded).
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 mb-4 text-xs">
+      <div className="font-medium text-red-400 mb-1">
+        Drift watch: {high.length} high · {med.length} medium · {snowflakes.length} snowflake
+      </div>
+      {high.length > 0 && (
+        <div style={{ color: "var(--color-text-2)" }}>
+          High-risk (chars dropped on recompose):{' '}
+          {high.slice(0, 5).map((c, i) => (
+            <span key={c.id}>
+              {i > 0 && ', '}
+              <span className="font-medium">{c.business_name}</span>
+              {' '}
+              <span className="text-red-400">({(c.drift!.chars_dropped ?? 0).toLocaleString()})</span>
+            </span>
+          ))}
+          {high.length > 5 && <span style={{ color: "var(--color-text-3)" }}> + {high.length - 5} more</span>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function CapabilityIcons({ niche }: { niche: string | null | undefined }) {
@@ -152,6 +284,7 @@ function ActiveClientCard({ client, onDeleted }: { client: Client; onDeleted: ()
                 {nicheConfig.label}
               </span>
             )}
+            <DriftChip drift={client.drift} />
             <CapabilityIcons niche={client.niche} />
           </div>
         </div>
@@ -243,6 +376,8 @@ export default function ClientsTable({ clients }: {
 
   return (
     <>
+      <DriftWatchSummary clients={clients} />
+
       {/* Filter tabs */}
       <div className="flex items-center gap-1 mb-4">
         {tabs.map(tab => (
