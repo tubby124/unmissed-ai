@@ -17,10 +17,30 @@ interface RecomposeConfirmDialogProps {
   onConfirmed: (result: { promptChanged: boolean; charCount: number | null }) => void
 }
 
+interface RecomposeDeltaPayload {
+  storedChars: number
+  recomposedChars: number
+  charsDropped: number
+  charsAdded: number
+  percentChange: number
+  biggestDropSection: string | null
+  topDropSections: { sectionId: string; storedChars: number; newChars: number; delta: number }[]
+  thresholdChars: number
+  thresholdPct: number
+  exceedsThreshold: boolean
+}
+
 type PreviewState =
   | { status: 'loading' }
   | { status: 'error'; error: string }
-  | { status: 'ready'; promptChanged: boolean; charCount: number; preview: string; currentPrompt: string }
+  | {
+      status: 'ready'
+      promptChanged: boolean
+      charCount: number
+      preview: string
+      currentPrompt: string
+      delta: RecomposeDeltaPayload | null
+    }
 
 function splitBySection(prompt: string): { heading: string; body: string }[] {
   const lines = prompt.split('\n')
@@ -68,12 +88,14 @@ export default function RecomposeConfirmDialog({
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [view, setView] = useState<'summary' | 'before' | 'after'>('summary')
+  const [acceptedContentLoss, setAcceptedContentLoss] = useState(false)
 
   useEffect(() => {
     if (!open) {
       setPreview(null)
       setView('summary')
       setConfirming(false)
+      setAcceptedContentLoss(false)
       return
     }
     let cancelled = false
@@ -97,6 +119,7 @@ export default function RecomposeConfirmDialog({
           charCount: Number(data.charCount ?? 0),
           preview: String(data.preview ?? ''),
           currentPrompt: String(data.currentPrompt ?? ''),
+          delta: (data.delta ?? null) as RecomposeDeltaPayload | null,
         })
       } catch (err) {
         if (!cancelled) setPreview({ status: 'error', error: String(err instanceof Error ? err.message : err) })
@@ -155,6 +178,45 @@ export default function RecomposeConfirmDialog({
 
         {preview?.status === 'ready' && sectionDiff && (
           <div className="space-y-3">
+            {preview.delta?.exceedsThreshold && (
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-300 text-base leading-none mt-0.5">⚠</span>
+                  <div className="flex-1">
+                    <p className="text-[12px] font-semibold text-red-200">
+                      This recompose will permanently remove {preview.delta.charsDropped.toLocaleString()} characters of stored prompt content
+                      {preview.delta.percentChange > 0 ? ` (${preview.delta.percentChange.toFixed(1)}% of the current prompt)` : ''}.
+                    </p>
+                    <p className="text-[11px] text-red-300/80 mt-1">
+                      Custom edits not backed by DB columns or settings cards will be lost. Cancel and migrate them to settings first if you need to keep them.
+                    </p>
+                    {preview.delta.topDropSections.length > 0 && (
+                      <div className="mt-2 text-[11px] text-red-200/90">
+                        Largest drops:
+                        <ul className="mt-0.5 ml-4 list-disc space-y-0.5">
+                          {preview.delta.topDropSections.map((s) => (
+                            <li key={s.sectionId} className="font-mono text-[10px]">
+                              {s.sectionId} <span className="text-red-300/70">({s.delta.toLocaleString()} chars)</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <label className="flex items-start gap-2 text-[11px] text-red-100 cursor-pointer pt-1 border-t border-red-500/20">
+                  <input
+                    type="checkbox"
+                    checked={acceptedContentLoss}
+                    onChange={(e) => setAcceptedContentLoss(e.target.checked)}
+                    disabled={confirming}
+                    className="mt-0.5 cursor-pointer accent-red-500"
+                  />
+                  <span>I accept content loss — proceed with recompose</span>
+                </label>
+              </div>
+            )}
+
             <div className="flex items-center gap-3 text-[11px]">
               <span className={`px-2 py-1 rounded-lg font-medium ${preview.promptChanged ? 'bg-amber-500/15 text-amber-300' : 'bg-white/5 t3'}`}>
                 {preview.promptChanged ? 'Prompt will change' : 'No changes — safe no-op'}
@@ -162,6 +224,11 @@ export default function RecomposeConfirmDialog({
               <span className="t3">
                 {preview.currentPrompt.length.toLocaleString()} → {preview.charCount.toLocaleString()} chars
               </span>
+              {preview.delta && preview.delta.charsDropped > 0 && (
+                <span className="t3 font-mono">
+                  −{preview.delta.charsDropped.toLocaleString()} / +{preview.delta.charsAdded.toLocaleString()}
+                </span>
+              )}
               {preview.charCount > 12000 && (
                 <span className="px-2 py-1 rounded-lg font-medium bg-red-500/15 text-red-300">
                   Over 12K limit
@@ -235,7 +302,8 @@ export default function RecomposeConfirmDialog({
               confirming ||
               preview?.status !== 'ready' ||
               !preview.promptChanged ||
-              preview.charCount > 12000
+              preview.charCount > 12000 ||
+              (preview.delta?.exceedsThreshold === true && !acceptedContentLoss)
             }
             className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
