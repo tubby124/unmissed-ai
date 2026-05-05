@@ -32,12 +32,15 @@ SET niche_custom_variables = '{
 WHERE slug = 'urban-vibe';
 
 -- A.3 — business_facts: Calgary/Atco/Ray identity (per-call template injection)
+-- NOTE: clients.business_facts is text[] (each entry becomes its own KB chunk via
+-- reseedKnowledgeFromSettings() when knowledge_backend='pgvector').
 UPDATE clients
-SET business_facts = 'Urban Vibe Properties is a Calgary, Alberta property management company.
-The property manager is Ray Kassam.
-For natural-gas leaks or CO alarms: callers should phone Atco Emergency or 9-1-1 immediately and evacuate. Atco is the Alberta natural gas utility — Calgary tenants know the brand.
-Property type: residential rentals only (no commercial). Service area: Calgary AB.
-'
+SET business_facts = ARRAY[
+  'Urban Vibe Properties is a Calgary, Alberta property management company.',
+  'The property manager is Ray Kassam.',
+  'For natural-gas leaks or CO alarms: callers should phone Atco Emergency or 9-1-1 immediately and evacuate. Atco is the Alberta natural gas utility — Calgary tenants know the brand.',
+  'Property type: residential rentals only (no commercial). Service area: Calgary AB.'
+]::text[]
 WHERE slug = 'urban-vibe';
 
 -- A.4 — Reformat hours to belt-and-suspenders the regex fix from B.0.1
