@@ -14,6 +14,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { getVariable } from '@/lib/prompt-variable-registry'
 import { clientRowToIntake, recomposePrompt } from '@/lib/slot-regenerator'
 import { buildSlotContext, buildPromptFromSlots } from '@/lib/prompt-slots'
+import { computeRecomposeDelta } from '@/lib/recompose-delta'
 
 export async function POST(req: NextRequest) {
   // 1 — Auth
@@ -42,6 +43,11 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
+    // D451: char-delta gate. When promptChanged=false, both prompts are equal,
+    // so delta is all zeros. When promptChanged=true, currentPrompt + preview are populated.
+    const stored = result.currentPrompt ?? ''
+    const recomposed = result.preview ?? stored
+    const delta = computeRecomposeDelta(stored, recomposed)
     return NextResponse.json({
       ok: true,
       mode: 'recompose',
@@ -49,6 +55,7 @@ export async function POST(req: NextRequest) {
       charCount: result.charCount,
       preview: result.preview,
       currentPrompt: result.currentPrompt,
+      delta,
     })
   }
 
