@@ -13,6 +13,7 @@ import ContextDataCard from './ContextDataCard'
 import type { CardMode } from './usePatchSettings'
 import { usePatchSettings } from './usePatchSettings'
 import { useDirtyGuard } from './useDirtyGuard'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 interface AgentOverviewCardProps {
   client: ClientConfig
@@ -40,7 +41,7 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
     else markClean()
   }, [nameDirty, markDirty, markClean])
 
-  const { saving: footerSaving, saved: footerSaved, error: footerError, warnings, patch } = usePatchSettings(client.id, isAdmin, { onSave, onPromptChange })
+  const { saving: footerSaving, saved: footerSaved, error: footerError, warnings, patch, retryFieldSync } = usePatchSettings(client.id, isAdmin, { onSave, onPromptChange })
 
   // SMS chip
   const [localSmsEnabled, setLocalSmsEnabled] = useState(client.sms_enabled ?? false)
@@ -249,6 +250,12 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               Transfer {client.forwarding_number ? fmtPhone(client.forwarding_number) : 'off'}
             </div>
           </div>
+          <FieldSyncStatusChip
+            clientId={client.id}
+            fieldKey="sms_enabled"
+            currentValue={localSmsEnabled}
+            onRetry={retryFieldSync}
+          />
         </div>}
 
         {/* ── D423: Agent sync status (settings only) ──────────────────────────── */}

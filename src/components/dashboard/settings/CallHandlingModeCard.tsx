@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AGENT_MODES, type AgentMode } from '@/lib/capabilities'
 import { usePatchSettings } from './usePatchSettings'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 interface CallHandlingModeCardProps {
   clientId: string
@@ -24,7 +25,7 @@ export default function CallHandlingModeCard({
   onPromptChange,
 }: CallHandlingModeCardProps) {
   const [mode, setMode] = useState<AgentMode>(initialMode)
-  const { saving, saved, error, patch } = usePatchSettings(clientId, isAdmin, { onPromptChange })
+  const { saving, saved, error, patch, retryFieldSync } = usePatchSettings(clientId, isAdmin, { onPromptChange })
 
   // Trial and null plans get full access (same gate as step3-capabilities)
   const isTrial = subscriptionStatus === 'trialing' || !subscriptionStatus
@@ -81,6 +82,13 @@ export default function CallHandlingModeCard({
           )
         })}
       </div>
+
+      <FieldSyncStatusChip
+        clientId={clientId}
+        fieldKey="call_handling_mode"
+        currentValue={mode}
+        onRetry={retryFieldSync}
+      />
 
       {/* Plan gate message for full_service on non-Pro */}
       {mode === 'full_service' && !canSelectFullService && (

@@ -9,6 +9,8 @@ import ChunkBrowserSection from './knowledge/ChunkBrowserSection'
 import GapAnswerSection from './knowledge/GapAnswerSection'
 import TestQuerySection from './knowledge/TestQuerySection'
 import { sourceLabel } from './knowledge/ChunkBrowserSection'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
+import { recordFieldSyncStatus, type FieldSyncEntry } from './usePatchSettings'
 
 interface KnowledgeEngineCardProps {
   client: ClientConfig
@@ -106,6 +108,8 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       })
       if (!res.ok) throw new Error('Failed to save')
       const data = await res.json().catch(() => ({}))
+      const entry = (data.field_sync_status as Record<string, FieldSyncEntry> | undefined)?.knowledge_backend
+      if (entry) recordFieldSyncStatus(client.id, 'knowledge_backend', entry)
       setLocalEnabled(newVal)
       setToggleSaved(true)
       setToggleSyncStatus(data.ultravox_synced === true ? 'synced' : data.ultravox_synced === false ? 'failed' : null)
@@ -113,6 +117,28 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
       setTimeout(() => { setToggleSaved(false); setToggleSyncStatus(null) }, 5000)
     } catch {
       toast.error('Failed to update knowledge setting')
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  async function retryKnowledgeSync(_fieldKey: string, currentValue: unknown) {
+    const value = currentValue === 'pgvector' ? 'pgvector' : null
+    setToggling(true)
+    try {
+      const res = await fetch('/api/dashboard/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: client.id, knowledge_backend: value }),
+      })
+      if (!res.ok) throw new Error('Failed to retry')
+      const data = await res.json().catch(() => ({}))
+      const entry = (data.field_sync_status as Record<string, FieldSyncEntry> | undefined)?.knowledge_backend
+      if (entry) recordFieldSyncStatus(client.id, 'knowledge_backend', entry)
+      setToggleSaved(true)
+      setToggleSyncStatus(data.ultravox_synced === true ? 'synced' : data.ultravox_synced === false ? 'failed' : null)
+    } catch {
+      toast.error('Failed to retry knowledge sync')
     } finally {
       setToggling(false)
     }
@@ -206,6 +232,14 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
           Saved to DB but agent sync failed — tool change may not take effect until next deploy
         </p>
       )}
+      <div className="ml-5">
+        <FieldSyncStatusChip
+          clientId={client.id}
+          fieldKey="knowledge_backend"
+          currentValue={localEnabled ? 'pgvector' : null}
+          onRetry={retryKnowledgeSync}
+        />
+      </div>
 
       {/* Knowledge layer explainer */}
       {localEnabled && (

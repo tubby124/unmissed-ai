@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { PremiumToggle } from '@/components/ui/bouncy-toggle'
 import { usePatchSettings } from './usePatchSettings'
+import FieldSyncStatusChip from './FieldSyncStatusChip'
 
 const SMS_MODE_HINTS: Record<string, { title: string; description: string }> = {
   voicemail_replacement: {
@@ -46,7 +47,7 @@ export default function SmsTab({
   setSmsTemplate,
   agentMode,
 }: SmsTabProps) {
-  const { saving: smsSaving, saved: smsSaved, patch } = usePatchSettings(client.id, isAdmin)
+  const { saving: smsSaving, saved: smsSaved, patch, retryFieldSync } = usePatchSettings(client.id, isAdmin)
   const [testSmsPhone, setTestSmsPhone] = useState('')
   const [testSmsState, setTestSmsState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [testSmsError, setTestSmsError] = useState('')
@@ -146,6 +147,12 @@ export default function SmsTab({
             : smsEnabled ? 'Auto-send SMS after each call' : 'SMS disabled — callers will not receive a follow-up text'}
         </span>
       </div>
+      <FieldSyncStatusChip
+        clientId={client.id}
+        fieldKey="sms_enabled"
+        currentValue={smsEnabled}
+        onRetry={retryFieldSync}
+      />
 
       {/* Mode-aware hint: what the agent will actually do */}
       {smsEnabled && client.twilio_number && (() => {
