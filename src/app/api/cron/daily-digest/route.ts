@@ -7,7 +7,8 @@
  * Reports:
  *   - New intakes today
  *   - Provisioned but not yet activated clients
- *   - Call counts last 24h per active client
+ *   - Trial health: expiring next 7 days, past expiry without conversion
+ *   - Call counts last 24h per active client (HOT/WARM/MISSED/JUNK + min usage)
  *   - Credit/balance health: Twilio + OpenRouter
  *
  * Auth: Bearer CRON_SECRET only (no ADMIN_PASSWORD fallback — S13a).
@@ -110,9 +111,9 @@ export async function POST(req: NextRequest) {
       .select('client_id, call_status, clients(business_name, slug)')
       .gte('started_at', yesterday.toISOString()),
 
-    // Active clients for reference
+    // Active clients for reference (with trial + usage fields for digest sections)
     svc.from('clients')
-      .select('id, business_name, slug')
+      .select('id, business_name, slug, subscription_status, trial_converted, trial_expires_at, monthly_minute_limit, seconds_used_this_month, stripe_customer_id')
       .eq('status', 'active'),
 
     // Admin Telegram credentials
@@ -137,9 +138,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Aggregate calls per active client ───────────────────────────────────────
-  const callsByClient = new Map<string, { total: number; hot: number; warm: number; missed: number }>()
+  const callsByClient = new Map<string, { total: number; hot: number; warm: number; missed: number; junk: number }>()
   for (const client of activeClients) {
-    callsByClient.set(client.id, { total: 0, hot: 0, warm: 0, missed: 0 })
+    callsByClient.set(client.id, { total: 0, hot: 0, warm: 0, missed: 0, junk: 0 })
   }
   for (const call of recentCalls) {
     const clientId = call.client_id as string
@@ -150,7 +151,37 @@ export async function POST(req: NextRequest) {
     if (status === 'HOT') entry.hot++
     else if (status === 'WARM') entry.warm++
     else if (status === 'MISSED') entry.missed++
+    else if (status === 'JUNK') entry.junk++
   }
+
+  // ── Trial health buckets ────────────────────────────────────────────────────
+  const nowMs = now.getTime()
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+  type TrialRow = { business_name: string; slug: string; trial_expires_at: string; days: number; hasCard: boolean }
+  const trialsExpiringSoon: TrialRow[] = []
+  const trialsPastExpiry: TrialRow[] = []
+  for (const c of activeClients) {
+    if (c.subscription_status !== 'trialing' || c.trial_converted) continue
+    if (!c.trial_expires_at) continue
+    const expMs = new Date(c.trial_expires_at as string).getTime()
+    const diffDays = Math.round((expMs - nowMs) / (24 * 60 * 60 * 1000))
+    const row: TrialRow = {
+      business_name: c.business_name as string,
+      slug: c.slug as string,
+      trial_expires_at: c.trial_expires_at as string,
+      days: diffDays,
+      hasCard: !!c.stripe_customer_id,
+    }
+    if (expMs < nowMs) {
+      // Only surface past-expiry within the last 7 days — anything older is
+      // stale/test-niche noise that's already been seen and chosen to be ignored.
+      if (nowMs - expMs <= sevenDaysMs) trialsPastExpiry.push(row)
+    } else if (expMs - nowMs <= sevenDaysMs) {
+      trialsExpiringSoon.push(row)
+    }
+  }
+  trialsPastExpiry.sort((a, b) => b.days - a.days) // freshest expiry first (closest to 0)
+  trialsExpiringSoon.sort((a, b) => a.days - b.days) // soonest first
 
   // ── Build message ───────────────────────────────────────────────────────────
   const dateStr = now.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -174,18 +205,68 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Calls section
+  // Trial health section
+  if (trialsPastExpiry.length > 0 || trialsExpiringSoon.length > 0) {
+    lines.push('\n<b>Trial Health</b>')
+    if (trialsPastExpiry.length > 0) {
+      lines.push(`⚠️ Past expiry, no conversion (${trialsPastExpiry.length})`)
+      for (const t of trialsPastExpiry) {
+        const card = t.hasCard ? '' : ' · no card'
+        lines.push(`  • ${t.business_name} — expired ${Math.abs(t.days)}d ago${card}`)
+      }
+    }
+    if (trialsExpiringSoon.length > 0) {
+      lines.push(`🔜 Expiring next 7d (${trialsExpiringSoon.length})`)
+      for (const t of trialsExpiringSoon) {
+        const when = t.days === 0 ? 'today' : t.days === 1 ? 'tomorrow' : `in ${t.days}d`
+        const card = t.hasCard ? '' : ' · no card'
+        lines.push(`  • ${t.business_name} — expires ${when}${card}`)
+      }
+    }
+  }
+
+  // Calls section — only show clients with activity (calls in 24h OR minutes used this month)
+  // Idle/test clients collapse to a count line so the message stays scannable.
   lines.push('\n<b>Calls Last 24h</b>')
   if (activeClients.length === 0) {
     lines.push('No active clients')
   } else {
-    for (const client of activeClients) {
-      const stats = callsByClient.get(client.id) ?? { total: 0, hot: 0, warm: 0, missed: 0 }
-      const parts = [`${stats.total} calls`]
-      if (stats.hot > 0) parts.push(`${stats.hot} HOT`)
-      if (stats.warm > 0) parts.push(`${stats.warm} WARM`)
-      if (stats.missed > 0) parts.push(`${stats.missed} missed`)
-      lines.push(`• ${client.business_name}: ${parts.join(', ')}`)
+    const activeRows = activeClients
+      .map(client => {
+        const stats = callsByClient.get(client.id) ?? { total: 0, hot: 0, warm: 0, missed: 0, junk: 0 }
+        const minUsed = Math.floor(((client.seconds_used_this_month as number | null) ?? 0) / 60)
+        return { client, stats, minUsed }
+      })
+      .filter(({ stats, minUsed }) => stats.total > 0 || minUsed > 0)
+
+    const idleCount = activeClients.length - activeRows.length
+
+    activeRows.sort((a, b) => {
+      if (b.stats.total !== a.stats.total) return b.stats.total - a.stats.total
+      if (b.minUsed !== a.minUsed) return b.minUsed - a.minUsed
+      return (a.client.business_name as string).localeCompare(b.client.business_name as string)
+    })
+
+    if (activeRows.length === 0) {
+      lines.push('No activity across any client')
+    } else {
+      for (const { client, stats, minUsed } of activeRows) {
+        const breakdown: string[] = []
+        if (stats.hot > 0) breakdown.push(`${stats.hot} HOT`)
+        if (stats.warm > 0) breakdown.push(`${stats.warm} WARM`)
+        if (stats.missed > 0) breakdown.push(`${stats.missed} MISSED`)
+        if (stats.junk > 0) breakdown.push(`${stats.junk} JUNK`)
+        const callPart = stats.total === 0
+          ? '0 calls today'
+          : `${stats.total} call${stats.total === 1 ? '' : 's'}${breakdown.length > 0 ? ` (${breakdown.join(' · ')})` : ''}`
+        const minLimit = (client.monthly_minute_limit as number | null) ?? 0
+        const usagePart = minLimit > 0 ? ` · ${minUsed}/${minLimit} min` : ''
+        lines.push(`• ${client.business_name}: ${callPart}${usagePart}`)
+      }
+    }
+
+    if (idleCount > 0) {
+      lines.push(`<i>+ ${idleCount} idle client${idleCount === 1 ? '' : 's'} (no calls, 0 min used)</i>`)
     }
   }
 
@@ -215,13 +296,18 @@ export async function POST(req: NextRequest) {
     message
   )
 
-  console.log(`[daily-digest] Sent=${sent} intakes=${newIntakes.length} calls=${recentCalls.length}`)
+  console.log(
+    `[daily-digest] Sent=${sent} intakes=${newIntakes.length} calls=${recentCalls.length} ` +
+    `trials_past=${trialsPastExpiry.length} trials_soon=${trialsExpiringSoon.length}`
+  )
 
   return NextResponse.json({
     ok: sent,
     newIntakes: newIntakes.length,
     pendingActivation: pendingActivation.length,
     recentCalls: recentCalls.length,
+    trialsPastExpiry: trialsPastExpiry.length,
+    trialsExpiringSoon: trialsExpiringSoon.length,
     warnings: warnings.length,
   })
 }
