@@ -160,9 +160,11 @@ describe('Phase 1 — PM hero niche', () => {
       niche: 'property_management',
       callerType: 'tenant',
       intentSummary: 'Furnace stopped in winter',
+      // After D-NEW-niche-template-trim (2026-05-05): NICHE_EXAMPLES deleted; the
+      // "no heat" → URGENT contract now lives in TRIAGE_DEEP's EMERGENCY-signals branch.
       expectedContains: [
-        'No heat = always URGENT',
-        'flag [URGENT]',
+        'no heat',
+        'flag [P1 URGENT]',
       ],
     },
     {
@@ -170,10 +172,12 @@ describe('Phase 1 — PM hero niche', () => {
       niche: 'property_management',
       callerType: 'emergency',
       intentSummary: 'Tenant smells gas in apartment',
+      // After D-NEW-niche-template-trim: gas-smell behavior moved from NICHE_EXAMPLES
+      // Example E into TRIAGE_DEEP EMERGENCY signals. "9-1-1" + P1 flag still present.
       expectedContains: [
         '9-1-1 right now',
-        'gas company emergency line',
-        'flag [URGENT]',
+        'gas smell',
+        'flag [P1 URGENT]',
       ],
     },
     {

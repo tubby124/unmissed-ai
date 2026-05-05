@@ -242,10 +242,16 @@ describe('Phase D total prompt ceilings', () => {
       `plumbing baseline prompt is ${prompt.length} chars, exceeds Phase D ceiling ${TOTAL_PROMPT_CEILING}`)
   })
 
-  // Note: property_management has its own higher ceiling (18K) tracked separately
-  // due to 14-branch TRIAGE_DEEP + closingOverride + FHA compliance rules in FORBIDDEN_EXTRA.
-  // PM_CEILING in prompt-builder-golden.test.ts caps at 28K.
-  test('property_management baseline under 18,500 chars (niche-specific higher ceiling)', () => {
+  // Property_management ceiling tightened 18,500 → 16,000 by D-NEW-niche-template-trim
+  // (2026-05-05). Trim removed: NICHE_EXAMPLES (-3,378), FORBIDDEN_EXTRA bloat
+  // (11 rules → 6 grouped, ~-1,200 — safety-fingerprint phrases preserved verbatim for
+  // call-scenarios regression tests), TRIAGE_DEEP SHORT/1-WORD block (-240). PM still
+  // keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
+  // bedbug/closure-anti-hallucination guardrails. Numbered TRIAGE flow carries the behavior
+  // the deleted transcript examples used to demonstrate. D-item targeted 14,500 — actual
+  // post-trim is ~15.7k because preserving exact safety-fingerprint wording (per
+  // call-scenarios.test.ts contracts) costs ~1.2k vs the D-item's terser projection.
+  test('property_management baseline under 16,000 chars (post niche-template-trim)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'property_management',
       business_name: 'Urban Vibe Properties',
@@ -256,7 +262,7 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       owner_name: 'Ray',
     })
-    assert.ok(prompt.length <= 18_500,
-      `property_management baseline is ${prompt.length} chars, exceeds PM niche ceiling 18,500`)
+    assert.ok(prompt.length <= 16_000,
+      `property_management baseline is ${prompt.length} chars, exceeds post-trim ceiling 16,000`)
   })
 })

@@ -482,6 +482,10 @@ If callerContext includes RETURNING CALLER or CALLER NAME:
 // ── Slot 12: INLINE_EXAMPLES ───────────────────────────────────────────────
 
 export function buildInlineExamples(ctx: SlotContext): string {
+  // SKIP sentinel — niche explicitly opts out of BOTH niche-specific and generic examples.
+  // Used by property_management (TRIAGE_DEEP carries the same behavior in numbered form).
+  if (ctx.nicheExamples === '__SKIP__') return ''
+
   if (ctx.nicheExamples) {
     // P0.4: Cut niche examples from 5 (A-E) to 2 (A-B). Two examples are enough
     // to steer the model; the extra 3 were ~1.5K chars of demonstrative redundancy.

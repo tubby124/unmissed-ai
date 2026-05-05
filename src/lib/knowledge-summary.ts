@@ -9,7 +9,7 @@
  * - KnowledgeSummary is the ONLY knowledge injected into the runtime prompt by default
  * - contextData (tenant tables, lookup data) is NOT knowledge — it stays full (handled separately)
  * - Long-form content (website scrape, knowledge docs, full businessFacts) stored but not injected
- * - Prompt length is measured and enforced: target 15K chars, warn 15K, hard max 25K chars
+ * - Prompt length is measured and enforced: target 15K chars, hard max 20K chars (BLOCK, not warn)
  *
  * Sources:
  * - businessFacts: free-text business facts from client dashboard
@@ -30,11 +30,21 @@ export const MAX_FACT_CHARS = 100
 /** Maximum total characters for the entire summary block */
 export const SUMMARY_CHAR_LIMIT = 1200
 
-/** Call-time prompt length target — warn above this (niche-heavy prompts are ~19K stored + ~2K injected) */
+/** Call-time prompt length target — warn above this */
 export const PROMPT_CHAR_TARGET = 15000
 
-/** Call-time prompt length hard max — error-log above this, but never drop content (GLM-4.6 handles it) */
-export const PROMPT_CHAR_HARD_MAX = 25000
+/**
+ * Call-time prompt length HARD MAX — block at validation (validatePrompt errors).
+ * Lowered 25k → 20k (D-NEW-niche-template-trim, 2026-05-05) after Brian's PM template
+ * audit showed niche FORBIDDEN_EXTRA + NICHE_EXAMPLES were emitting 24,768-char prompts.
+ * Spec is 12k (.claude/rules/prompt-edit-safety.md). Compromise floor was 18k, but
+ * real_estate baseline composes at ~19k due to its 10-branch TRIAGE_DEEP and would
+ * silently fail provisioning at 18k. 20k is the safe block: still blocks Brian-level
+ * (24k+) bloat, leaves headroom for real_estate + future small intake additions, and
+ * surfaces real-estate trim as a follow-up D-item rather than blocking active onboarding.
+ * Tightening to 12-15k deferred to post-Phase-9 (after promotion loop reduces FAQ pressure).
+ */
+export const PROMPT_CHAR_HARD_MAX = 20000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
