@@ -603,6 +603,7 @@ export default function AgentTab({
                 initialDuration={bookingDuration[client.id] ?? 60}
                 initialBuffer={bookingBuffer[client.id] ?? 15}
                 initialBookingEnabled={client.booking_enabled ?? false}
+                initialBookingProvider={(client.booking_provider as 'google' | 'gettimely' | null | undefined) ?? 'google'}
                 previewMode={previewMode}
                 onPromptChange={handlePromptChange}
               />
