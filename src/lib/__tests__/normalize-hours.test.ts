@@ -46,4 +46,18 @@ describe('Phase E.5 Wave 7 — normalize24hHours', () => {
       '8:00 AM-12:00 PM, 1:00 PM-5:00 PM',
     )
   })
+
+  // D445 Phase B.0.1 — regex guard previously required word boundary on both
+  // sides of [AP]M, which fails when the 12h marker is attached to a digit
+  // (e.g. "8:30am"). Result was "8:30am" → "8:30 AMam" double-rendering.
+  test('passes through space-less 12h format unchanged ("8:30am to 5pm")', () => {
+    assert.equal(
+      normalize24hHours('Monday to Friday, 8:30am to 5pm'),
+      'Monday to Friday, 8:30am to 5pm',
+    )
+  })
+
+  test('passes through standalone "8:30am" unchanged', () => {
+    assert.equal(normalize24hHours('8:30am'), '8:30am')
+  })
 })

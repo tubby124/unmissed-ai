@@ -672,8 +672,8 @@ export function buildPromptFromSlots(ctx: SlotContext): string {
 // Exported for Phase E.5 Wave 7 regression tests.
 
 export function normalize24hHours(raw: string): string {
-  // Skip if input already contains AM/PM indicators (already in 12h format)
-  if (/\b[AP]M\b/i.test(raw)) return raw
+  // Already-12h check: detect AM/PM with or without leading space (e.g. "8:30am" or "5 PM")
+  if (/\d\s?[AP]M\b/i.test(raw)) return raw
   return raw.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => {
     const hour = parseInt(h, 10)
     if (hour === 0) return `12:${m} AM`
@@ -1193,6 +1193,14 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   // customVars.GREETING_LINE is set when the intelligence seed produced a business-specific greeting.
   if (customVars.GREETING_LINE?.trim()) {
     variables.GREETING_LINE = customVars.GREETING_LINE
+  }
+
+  // D445 Phase B.0.2 — GREETING_OVERRIDE: human-edited override that wins over both
+  // niche defaults AND AI-generated greetings. Use case: a client wants their existing
+  // greeting (with custom capability list) preserved verbatim during snowflake migration,
+  // and not be silently rewritten if/when the AI intelligence pipeline reseeds.
+  if (customVars.GREETING_OVERRIDE?.trim()) {
+    variables.GREETING_LINE = customVars.GREETING_OVERRIDE
   }
 
   // Completion fields
