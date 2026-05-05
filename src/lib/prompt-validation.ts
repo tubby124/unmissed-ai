@@ -46,13 +46,15 @@ export function validatePrompt(prompt: string): PromptValidationResult {
     warnings.push('PRODUCT KNOWLEDGE BASE placeholder was not replaced with client-specific content')
   }
 
-  // Phase 3: GLM-4.6 prompt length enforcement
-  // S12-V18-BUG7: Changed hard max from error to warning — auto-generated prompts
-  // for data-rich niches (real estate with multiple service areas, specialties, custom
-  // notes, website scrape) legitimately exceed 8K. Blocking provisioning is worse than
-  // marginal GLM-4.6 performance at ~9K chars.
+  // Prompt length enforcement.
+  // D-NEW-niche-template-trim (2026-05-05) flipped hard max from warning to error after
+  // Brian's PM template emitted 24,768-char prompts that drifted past instruction-window
+  // budgets. Hard max lowered 25k → 20k in same change. Soft target stays at 15k (warn).
+  // S12-V18-BUG7 history: original cap was a warning to unblock data-rich niches; that
+  // need is now served by the 20k headroom (real_estate baseline ~19k passes). Anything
+  // above 20k = real bloat — fix the niche template or promote content to KB.
   if (prompt.length > PROMPT_CHAR_HARD_MAX) {
-    warnings.push(`Prompt exceeds target max: ${prompt.length} chars (limit ${PROMPT_CHAR_HARD_MAX}) — consider trimming for optimal GLM-4.6 performance`)
+    errors.push(`Prompt exceeds hard max: ${prompt.length} chars (limit ${PROMPT_CHAR_HARD_MAX}) — promote content to KB or trim niche template`)
   } else if (prompt.length > PROMPT_CHAR_TARGET) {
     warnings.push(`Prompt exceeds target: ${prompt.length} chars (target ${PROMPT_CHAR_TARGET}, hard max ${PROMPT_CHAR_HARD_MAX})`)
   }

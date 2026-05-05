@@ -88,9 +88,18 @@ export async function POST(req: NextRequest) {
     if (businessName && city) {
       const sonarResult = await enrichWithSonar(businessName, city, niche, websiteUrl)
       if (sonarResult) {
+        // Cap Sonar output at 800 chars before inlining into caller_faq.
+        // D-NEW-niche-template-trim (2026-05-05): unbounded Sonar output was a regen bloat
+        // vector — Sonar Pro can return 3k+ char essays which then land in the FAQ slot on
+        // every recompose. 800 chars preserves the seed without flooding the prompt; richer
+        // Sonar content belongs in knowledge_chunks, not the static prompt.
+        const SONAR_FAQ_CAP = 800
+        const cappedSonar = sonarResult.length > SONAR_FAQ_CAP
+          ? sonarResult.slice(0, SONAR_FAQ_CAP).trimEnd() + '…'
+          : sonarResult
         const existingFaq = (intakeData.caller_faq as string) || ''
-        intakeData.caller_faq = `LOCAL BUSINESS FACTS (researched):\n${sonarResult}\n\nCLIENT-PROVIDED FAQ:\n${existingFaq}`
-        console.log(`[generate-prompt] Sonar enrichment: ${sonarResult.length} chars added for "${businessName}"`)
+        intakeData.caller_faq = `LOCAL BUSINESS FACTS (researched):\n${cappedSonar}\n\nCLIENT-PROVIDED FAQ:\n${existingFaq}`
+        console.log(`[generate-prompt] Sonar enrichment: ${cappedSonar.length} chars added (capped from ${sonarResult.length}) for "${businessName}"`)
       }
     } else {
       console.warn('[generate-prompt] Sonar enrichment requested but business_name or city missing — skipping')
