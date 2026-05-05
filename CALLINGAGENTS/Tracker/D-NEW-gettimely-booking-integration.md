@@ -1,20 +1,44 @@
 ---
 type: tracker
-status: in-progress
-priority: P1
+status: deferred-no-api-path
+priority: P3
 phase: Phase-7-Onboarding
 related:
   - Architecture/Control-Plane-Mutation-Contract
   - Features/Booking
+  - Decisions/2026-05-05-timely-no-integration-path
   - Tracker/D374
 opened: 2026-05-05
+deferred: 2026-05-05
 owner: Hasan
 ---
 
 # D-NEW — Gettimely booking provider integration (extends Booking → multi-provider)
 
 ## Status
-**IN-PROGRESS** — Phase 1A scaffolding shipped on `feat/booking-provider-abstraction`. No production redeploys until Phase 1B test call passes on Nofal's account.
+**DEFERRED-NO-API-PATH** as of 2026-05-05. See [[Decisions/2026-05-05-timely-no-integration-path]] for the full rationale + sources.
+
+### TL;DR — why deferred
+Phase 1A scaffolding (PR #74, branch `feat/booking-provider-abstraction`) is technically clean, but Phase 1B (real Gettimely OAuth + REST API) **cannot be built** — Timely (gettimely.com) does not expose a public REST API, and their partner program (Referrer / Certified Reseller) does not grant API access at any tier. Validated 2026-05-05 via 5 web searches + 3 Sonar Pro queries + direct WebFetch of the partner Terms of Service.
+
+Earlier "2-6 weeks for partner API approval" estimate in this same session was wrong — the assistant assumed a Technology Partner tier exists. It doesn't. Corrected estimate: indefinite, with near-zero probability from a cold-email standing start.
+
+### What stays
+- Phase 1A PR #74 stays open as draft.
+- The provider abstraction layer (`src/lib/booking-providers/`) is correct work — Vagaro, Acuity, Square Appointments, and Booksy all have public REST APIs and plug into the same dispatcher.
+- Before merging PR #74: replace the Gettimely stub with the first real adapter (Vagaro most likely), strip `'gettimely'` from the `booking_provider` CHECK constraint and the BookingCard dropdown, delete `/api/auth/gettimely/{,callback}` routes.
+
+### What's unblocked
+- Nofal Barber: migrate to Google Calendar same-week (existing Phase 1A Google adapter handles him today).
+- Future barbershop/salon clients on Vagaro / Acuity / Square / Booksy: build the matching adapter when first lead lands.
+- Future barbershop/salon leads on Timely: route to Google Calendar migration in onboarding intake. Add `existing_booking_system` field with the routing logic from the ADR.
+
+### What re-opens this D-item
+- Timely publishes a developer API.
+- Timely creates a Technology Partner tier and approves us.
+- Volume justifies a serious partner-pitch (50+ Timely-using salon leads in pipeline) where leverage exists.
+
+### Original plan (preserved for context — do not execute)
 
 ## Why this exists
 First barbershop client (Nofal Barber, Saskatoon) uses **Gettimely** (`bookings.gettimely.com/nofalbarber`) as their booking system, not Google Calendar. Today the booking pipeline only supports Google Calendar OAuth — `clients.google_refresh_token` is the single auth path. Voice agent currently has no way to read Nofal's availability or write a confirmed booking.
