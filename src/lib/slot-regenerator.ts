@@ -64,6 +64,35 @@ function hasSlotMarkers(prompt: string): boolean {
   return prompt.includes('<!-- unmissed:identity -->')
 }
 
+// ── Guard: refuse to overwrite hand-tuned prompts (D-NEW-recompose-respects-hand-tuned) ──
+
+/**
+ * Refuses any automated prompt regeneration when `clients.hand_tuned = true`,
+ * unless the caller passes an explicit override. The flag is set during manual
+ * concierge provisioning (Steps 9 & 10 of the bypass SOP) and on any client
+ * whose prompt is hand-edited and must NOT be touched by the slot pipeline.
+ *
+ * Returns null when recompose may proceed, or an error string when blocked.
+ *
+ * Exported for unit testing — callers should instead use the guard helpers
+ * applied inside `recomposePrompt`, `regenerateSlot`, and `regenerateSlots`.
+ *
+ * Surfaced 2026-05-05 by velly-remodeling audit. See
+ * `CALLINGAGENTS/Tracker/D-NEW-recompose-respects-hand-tuned.md`.
+ */
+export function checkHandTunedGuard(
+  client: { hand_tuned?: boolean | null; slug?: string | null },
+  forceOverride: boolean,
+): string | null {
+  if (client.hand_tuned === true && !forceOverride) {
+    const slug = client.slug ?? '<unknown>'
+    return `Refusing to regenerate prompt for hand_tuned=true client "${slug}". ` +
+      `Either flip clients.hand_tuned=false (loses hand-edit protection), or pass ` +
+      `forceRecompose=true on recomposePrompt() to override (will overwrite hand-edited prompt).`
+  }
+  return null
+}
+
 // ── Slot function dispatch ──────────────────────────────────────────────────────
 
 type SlotFn = (ctx: SlotContext) => string
@@ -366,6 +395,15 @@ export async function regenerateSlot(
   }
   const { client, knowledgeChunkCount, ctx } = loaded.data
 
+  // Guard: hand-tuned clients are never touched by automated regeneration.
+  // No escape hatch on single-slot regen — flip clients.hand_tuned=false manually
+  // if intentional, then regenerate, then flip it back. Force flag lives only on
+  // recomposePrompt() because the snowflake-migration use case needs it there.
+  const handTunedError = checkHandTunedGuard(client, false)
+  if (handTunedError) {
+    return { success: false, promptChanged: false, error: handTunedError }
+  }
+
   // Guard: only works on slot-composed prompts (have section markers).
   if (!hasSlotMarkers(client.system_prompt as string)) {
     return { success: false, promptChanged: false, error: 'Old-format prompt without section markers — use patchers instead of regeneration' }
@@ -435,6 +473,12 @@ export async function regenerateSlots(
     return { success: false, promptChanged: false, error: loaded.error }
   }
   const { client, knowledgeChunkCount, ctx } = loaded.data
+
+  // Guard: hand-tuned clients are never touched by automated regeneration.
+  const handTunedError = checkHandTunedGuard(client, false)
+  if (handTunedError) {
+    return { success: false, promptChanged: false, error: handTunedError }
+  }
 
   // Guard: slot-composed prompts only
   if (!hasSlotMarkers(client.system_prompt as string)) {
@@ -538,6 +582,16 @@ export async function recomposePrompt(
     return { success: false, promptChanged: false, error: loaded.error }
   }
   const { client, knowledgeChunkCount, ctx } = loaded.data
+
+  // Guard: hand-tuned clients require explicit forceRecompose to overwrite.
+  // The flag is set during manual concierge provisioning (Steps 9 & 10 of the
+  // bypass SOP) on any client whose prompt was hand-edited and must NOT be
+  // wiped by a stray "Recompose" click. forceRecompose bypasses for migrations
+  // (e.g. snowflake D445) where overwriting hand-edits is the explicit intent.
+  const handTunedError = checkHandTunedGuard(client, forceRecompose)
+  if (handTunedError) {
+    return { success: false, promptChanged: false, error: handTunedError }
+  }
 
   // Guard: only recompose slot-composed prompts.
   // Old-format prompts (4 live clients) must be migrated first (D304/D445).
