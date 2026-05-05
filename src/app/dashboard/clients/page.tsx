@@ -39,9 +39,30 @@ export default async function ClientsPage() {
     }
   }
 
+  // D452: latest drift snapshot per client (newest row wins).
+  const driftMap = new Map<string, { chars_dropped: number | null; status: string; biggest_drop_section: string | null; checked_at: string }>()
+  if (clientIds.length > 0) {
+    const { data: driftRows } = await svc
+      .from('client_drift_log')
+      .select('client_id, chars_dropped, status, biggest_drop_section, checked_at')
+      .in('client_id', clientIds)
+      .order('checked_at', { ascending: false })
+    for (const row of driftRows ?? []) {
+      const cid = row.client_id as string
+      if (driftMap.has(cid)) continue
+      driftMap.set(cid, {
+        chars_dropped: row.chars_dropped as number | null,
+        status: row.status as string,
+        biggest_drop_section: row.biggest_drop_section as string | null,
+        checked_at: row.checked_at as string,
+      })
+    }
+  }
+
   const clientsWithLogin = (clients ?? []).map(c => ({
     ...c,
     last_sign_in_at: lastLoginMap.get(c.id) ?? null,
+    drift: driftMap.get(c.id) ?? null,
   }))
 
   return (
