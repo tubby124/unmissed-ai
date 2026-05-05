@@ -120,10 +120,12 @@ export async function POST(
   const topSimilarity = sorted.length > 0 ? sorted[0].similarity : null
 
   // ── Log query for observability ────────────────────────────────────────────
+  const matchedChunkIds = sorted.length > 0 ? sorted.map(m => m.id) : null
   const queryLogId = await logQuery(
     supabase, client.id, slug, queryText,
     sorted.length, topSimilarity, RRF_MIN_SCORE, latency,
     embedding,
+    matchedChunkIds,
   )
 
   // K8: Increment hit_count for matched chunks
@@ -207,6 +209,7 @@ async function logQuery(
   threshold: number,
   latencyMs: number,
   queryEmbedding?: number[] | null,
+  matchedChunkIds?: string[] | null,
 ): Promise<string | null> {
   const row: Record<string, unknown> = {
     client_id: clientId,
@@ -220,6 +223,10 @@ async function logQuery(
   // Store embedding for zero-result queries (gaps) — enables auto-cascade resolution
   if (resultCount === 0 && queryEmbedding) {
     row.query_embedding = JSON.stringify(queryEmbedding)
+  }
+  // Per-chunk attribution for D270 promotion logic + analytics
+  if (matchedChunkIds && matchedChunkIds.length > 0) {
+    row.matched_chunk_ids = matchedChunkIds
   }
   const { data, error } = await supabase
     .from('knowledge_query_log')

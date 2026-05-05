@@ -49,6 +49,10 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   forwarding_number:    { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
   transfer_conditions:  { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
   booking_enabled:      { mutationClass: 'DB_PLUS_PROMPT_PLUS_TOOLS', triggersSync: true, triggersPatch: 'calendar' },
+  // booking_provider — DB_ONLY: tool URLs are unchanged (/api/calendar/[slug]/{slots,book}).
+  // The route dispatches to the matching provider adapter at call time. No prompt impact,
+  // no agent sync needed. Adding a value to the check constraint is the only schema work.
+  booking_provider:     { mutationClass: 'DB_ONLY', triggersSync: false },
   call_handling_mode:   { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true, triggersPatch: 'call_handling_mode' },
   agent_mode:           { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true, triggersPatch: 'agent_mode' },
   agent_voice_id:       { mutationClass: 'DB_PLUS_TOOLS', triggersSync: true },
@@ -202,6 +206,7 @@ export const settingsBodySchema = z.object({
   booking_service_duration_minutes: z.number().positive().optional(),
   booking_buffer_minutes: z.number().nonnegative().optional(),
   booking_enabled: z.boolean().optional(),
+  booking_provider: z.enum(['google', 'gettimely']).optional(),
   calendar_beta_enabled: z.boolean().optional(),
 
   // Voice / identity
@@ -389,7 +394,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   const directFields: (keyof SettingsBody)[] = [
     'status', 'sms_template', 'voice_style_preset', 'agent_voice_id',
     'telegram_style', 'timezone', 'after_hours_behavior', 'call_handling_mode', 'agent_mode',
-    'business_facts',
+    'business_facts', 'booking_provider',
   ]
 
   // Process trim + nullable strings
