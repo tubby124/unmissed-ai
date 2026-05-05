@@ -13,6 +13,40 @@ interface FactSuggestion {
 
 type ExtractState = 'idle' | 'loading' | 'done' | 'saving'
 
+interface SmsOutboundEntry {
+  id: string
+  direction: string
+  to_number: string | null
+  body: string | null
+  status: string | null
+  delivery_status: string | null
+  error_message: string | null
+  error_code: string | null
+  created_at: string
+  offset_seconds_after_call: number
+}
+
+interface SmsInboundEntry {
+  id: string
+  direction: 'inbound'
+  from_number: string | null
+  body: string | null
+  created_at: string
+  offset_seconds_after_call: number
+}
+
+interface SmsHistory {
+  outbound: SmsOutboundEntry[]
+  inbound_replies: SmsInboundEntry[]
+}
+
+function formatOffset(seconds: number): string {
+  if (seconds < 60) return `${seconds}s after call`
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m after call`
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h after call`
+  return `${Math.round(seconds / 86400)}d after call`
+}
+
 export interface CallLog {
   id: string
   ultravox_call_id: string
@@ -78,6 +112,7 @@ export default function CallRowExpanded({
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const [smsOptOut, setSmsOptOut] = useState<{ opted_out: boolean; opted_out_at: string | null } | null>(null)
+  const [smsHistory, setSmsHistory] = useState<SmsHistory | null>(null)
   const [extractState, setExtractState] = useState<ExtractState>('idle')
   const [suggestions, setSuggestions] = useState<FactSuggestion[]>([])
   const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set())
@@ -91,6 +126,19 @@ export default function CallRowExpanded({
         .catch(() => {})
     }
   }, [expanded, call.sms_outcome, call.ultravox_call_id, smsOptOut])
+
+  // D-NEW-sms-history-surface — lazy-fetch outbound SMS body + inbound replies on row expand.
+  // Only fires when sms_outcome is set OR caller has known phone (inbound replies could exist
+  // even on calls where the agent didn't auto-text).
+  useEffect(() => {
+    if (!expanded) return
+    if (smsHistory !== null) return
+    if (call.sms_outcome == null && !call.caller_phone) return
+    fetch(`/api/dashboard/calls/${call.ultravox_call_id}/sms-history`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: SmsHistory | null) => d && setSmsHistory(d))
+      .catch(() => {})
+  }, [expanded, call.sms_outcome, call.caller_phone, call.ultravox_call_id, smsHistory])
 
   function copyText(text: string, key: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -208,19 +256,75 @@ export default function CallRowExpanded({
                   </div>
                 )}
 
-                {/* SMS status */}
-                {call.sms_outcome != null && (() => {
-                  const badge = SMS_OUTCOME_BADGE[call.sms_outcome!] ?? { label: 'Unknown', color: 'zinc' }
+                {/* SMS status + history */}
+                {(call.sms_outcome != null || (smsHistory && (smsHistory.outbound.length > 0 || smsHistory.inbound_replies.length > 0))) && (() => {
+                  const badge = call.sms_outcome ? (SMS_OUTCOME_BADGE[call.sms_outcome] ?? { label: 'Unknown', color: 'zinc' }) : null
+                  const outbound = smsHistory?.outbound ?? []
+                  const inboundReplies = smsHistory?.inbound_replies ?? []
                   return (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>SMS</span>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${COLOR_MAP[badge.color] ?? COLOR_MAP.zinc}`}>
-                        {badge.label}
-                      </span>
-                      {smsOptOut?.opted_out && (
-                        <span className="text-[10px] text-amber-400/70">
-                          opted out{smsOptOut.opted_out_at ? ` ${new Date(smsOptOut.opted_out_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}` : ''}
-                        </span>
+                    <div className="px-3 py-2.5 rounded-xl bg-[var(--color-hover)] border b-theme space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>📱 SMS Follow-up</span>
+                        {badge && (
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${COLOR_MAP[badge.color] ?? COLOR_MAP.zinc}`}>
+                            {badge.label}
+                          </span>
+                        )}
+                        {smsOptOut?.opted_out && (
+                          <span className="text-[10px] text-amber-400/70">
+                            opted out{smsOptOut.opted_out_at ? ` ${new Date(smsOptOut.opted_out_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}` : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {outbound.map((sms) => (
+                        <div key={sms.id} className="space-y-1">
+                          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--color-text-3)' }}>
+                            <span>To <span className="font-mono t2">{sms.to_number ?? '—'}</span></span>
+                            <span>·</span>
+                            <span>{formatOffset(sms.offset_seconds_after_call)}</span>
+                            {sms.delivery_status === 'delivered' || sms.status === 'delivered' ? (
+                              <span className="text-emerald-400">✓ delivered</span>
+                            ) : sms.delivery_status === 'failed' || sms.status === 'failed' ? (
+                              <span className="text-red-400">✗ failed{sms.error_code ? ` (${sms.error_code})` : ''}</span>
+                            ) : (
+                              <span className="text-amber-400/80">{sms.status ?? sms.delivery_status ?? 'pending'}</span>
+                            )}
+                          </div>
+                          {sms.body && (
+                            <p className="text-[11px] leading-relaxed pl-2 border-l-2 border-[var(--color-border)] whitespace-pre-line" style={{ color: 'var(--color-text-1)' }}>
+                              {sms.body}
+                            </p>
+                          )}
+                          {sms.error_message && (
+                            <p className="text-[10px] text-red-400/80 pl-2">{sms.error_message}</p>
+                          )}
+                        </div>
+                      ))}
+
+                      {inboundReplies.length > 0 && (
+                        <div className="pt-2 border-t b-theme space-y-1.5">
+                          {inboundReplies.map((reply) => (
+                            <div key={reply.id} className="space-y-0.5">
+                              <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--color-text-3)' }}>
+                                <span>📩 Reply from <span className="font-mono t2">{reply.from_number ?? '—'}</span></span>
+                                <span>·</span>
+                                <span>{formatOffset(reply.offset_seconds_after_call)}</span>
+                              </div>
+                              {reply.body && (
+                                <p className="text-[11px] leading-relaxed pl-2 border-l-2 border-blue-500/40 whitespace-pre-line" style={{ color: 'var(--color-text-1)' }}>
+                                  {reply.body}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {smsHistory !== null && outbound.length === 0 && call.sms_outcome === 'sent' && (
+                        <p className="text-[10px] italic" style={{ color: 'var(--color-text-3)' }}>
+                          Sent — body not in log (older record).
+                        </p>
                       )}
                     </div>
                   )
