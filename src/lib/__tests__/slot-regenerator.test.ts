@@ -16,7 +16,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { buildSlotContext, buildPromptFromSlots } from '../prompt-slots.js'
-import { clientRowToIntake as exportedClientRowToIntake } from '../slot-regenerator.js'
+import { clientRowToIntake as exportedClientRowToIntake, checkHandTunedGuard } from '../slot-regenerator.js'
 
 // clientRowToIntake is now exported, so we can test it directly
 // AND via the full round-trip path for extra safety.
@@ -787,5 +787,50 @@ describe('D280: clientRowToIntake exported', () => {
     assert.strictEqual(result.hours_weekday, 'Mon-Fri 8am-5pm')
     assert.strictEqual(result.owner_phone, '+14035559999')
     assert.strictEqual(result.forwarding_number, '+14035559999')
+  })
+})
+
+// ── D-NEW-recompose-respects-hand-tuned: hand_tuned guard tests ─────────────────
+
+describe('checkHandTunedGuard (D-NEW-recompose-respects-hand-tuned)', () => {
+  test('hand_tuned=true blocks without forceOverride', () => {
+    const result = checkHandTunedGuard({ hand_tuned: true, slug: 'velly-remodeling' }, false)
+    assert.notEqual(result, null, 'Should refuse hand_tuned=true client')
+    assert.match(result!, /velly-remodeling/, 'Error message should name the client')
+    assert.match(result!, /forceRecompose/, 'Error message should mention the override flag')
+  })
+
+  test('hand_tuned=true allows when forceOverride=true', () => {
+    const result = checkHandTunedGuard({ hand_tuned: true, slug: 'velly-remodeling' }, true)
+    assert.strictEqual(result, null, 'forceOverride=true must bypass the guard')
+  })
+
+  test('hand_tuned=false allows without forceOverride', () => {
+    const result = checkHandTunedGuard({ hand_tuned: false, slug: 'calgary-property-leasing' }, false)
+    assert.strictEqual(result, null, 'hand_tuned=false should pass the guard')
+  })
+
+  test('hand_tuned=null/undefined treated as not-hand-tuned', () => {
+    assert.strictEqual(
+      checkHandTunedGuard({ hand_tuned: null, slug: 'x' }, false),
+      null,
+      'null hand_tuned should pass',
+    )
+    assert.strictEqual(
+      checkHandTunedGuard({ hand_tuned: undefined, slug: 'x' }, false),
+      null,
+      'undefined hand_tuned should pass',
+    )
+    assert.strictEqual(
+      checkHandTunedGuard({ slug: 'x' }, false),
+      null,
+      'missing hand_tuned key should pass',
+    )
+  })
+
+  test('missing slug renders <unknown> in the error', () => {
+    const result = checkHandTunedGuard({ hand_tuned: true }, false)
+    assert.notEqual(result, null)
+    assert.match(result!, /<unknown>/, 'Should fallback to <unknown> when slug missing')
   })
 })
