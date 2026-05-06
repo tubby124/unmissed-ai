@@ -245,3 +245,9 @@ test('real_estate FORBIDDEN_EXTRA preserves mortgage + cold-caller absolutes', (
   // Cold-caller deflection — absolute
   assert.match(fe, /cold-calling|recruiting agents|pitching/i)
 })
+
+test('real_estate FORBIDDEN_EXTRA commission rule has anti-chunk guard', () => {
+  const fe = NICHE_DEFAULTS.real_estate.FORBIDDEN_EXTRA
+  assert.match(fe, /queryKnowledge results referencing.*listings.*negotiated splits.*must be ignored/i,
+    'commission rule must instruct ignoring KB chunks about specific listings/splits')
+})
