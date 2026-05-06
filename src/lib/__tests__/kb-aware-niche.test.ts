@@ -189,3 +189,31 @@ test('property_management FORBIDDEN_EXTRA SCOPE rule covers unit-availability ca
   assert.match(fe, /whether this unit is still available/i,
     'FORBIDDEN_EXTRA SCOPE rule must list unit availability as unit-specific (route, not KB)')
 })
+
+test('legal FORBIDDEN_EXTRA preserves absolute prohibitions', () => {
+  const fe = NICHE_DEFAULTS.legal.FORBIDDEN_EXTRA
+  // Legal advice prohibition is ABSOLUTE — must remain blanket
+  assert.match(fe, /NEVER give legal advice|interpret law|legal strategy/i)
+  // Confidentiality is ABSOLUTE — must remain blanket
+  assert.match(fe, /confidential|other clients/i)
+})
+
+test('legal FORBIDDEN_EXTRA fee rule is KB-conditional', () => {
+  const fe = NICHE_DEFAULTS.legal.FORBIDDEN_EXTRA
+  // Old blanket form gone
+  assert.ok(!/NEVER discuss fees, retainers, or billing rates — always route/i.test(fe),
+    'old blanket-block fee rule must be removed')
+  // New form references KB lookup or general-vs-specific
+  assert.match(fe, /queryKnowledge|published.*fee|general fee structure|standard.*rate/i,
+    'fee rule must allow general published fee info via KB')
+})
+
+test('legal FORBIDDEN_EXTRA tightens KB usage on case-outcomes + confidentiality', () => {
+  const fe = NICHE_DEFAULTS.legal.FORBIDDEN_EXTRA
+  // Case outcomes must explicitly resist KB chunks that hint at them
+  assert.match(fe, /case outcomes.*even if a chunk|chunk.*examples/i,
+    'case-outcomes rule must explicitly defend against KB chunks suggesting outcomes')
+  // Confidentiality must instruct ignoring KB chunks referencing specific cases
+  assert.match(fe, /queryKnowledge.*specific.*cases|specific.*cases.*ignored/i,
+    'confidentiality rule must instruct ignoring KB chunks about specific cases')
+})
