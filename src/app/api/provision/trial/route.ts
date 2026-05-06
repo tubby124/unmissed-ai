@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { OnboardingData } from "@/types/onboarding";
-import { toIntakePayload, slugify } from "@/lib/intake-transform";
+import { toIntakePayload, slugify, buildSlotInsertFields } from "@/lib/intake-transform";
 import { createServiceClient } from "@/lib/supabase/server";
 import { activateClient } from "@/lib/activate-client";
 import { buildPromptFromIntake, validatePrompt, NICHE_CLASSIFICATION_RULES } from "@/lib/prompt-builder";
@@ -194,6 +194,10 @@ export async function POST(req: NextRequest) {
   const { data: clientRow, error: clientErr } = await supa
     .from("clients")
     .insert({
+      // D-NEW-provision-slot-coverage-gate — write slot-framework fields from intake.
+      // Spread FIRST so explicit fields below win on collision (e.g., this route
+      // resolves after_hours_behavior from data.afterHoursBehavior which is more specific).
+      ...buildSlotInsertFields(intakePayload),
       slug: clientSlug,
       business_name: displayName,
       niche: data.niche || "other",

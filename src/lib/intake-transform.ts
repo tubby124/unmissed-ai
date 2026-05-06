@@ -329,3 +329,79 @@ export function toIntakePayload(data: OnboardingData) {
     ),
   };
 }
+
+// ── Slot-framework provisioning helper (D-NEW-provision-slot-coverage-gate) ─────
+
+/**
+ * Build the slot-framework portion of a `clients.insert()` payload from intake JSON.
+ *
+ * Every provision path MUST spread this into its insert call so the slot pipeline
+ * has data to compose from. Without it, the row is recompose-empty (`business_facts`,
+ * `extra_qa`, `fields_to_collect` all null) — exactly the landmine state Velly
+ * sat in for 7 days post-2026-04-28.
+ *
+ * Surfaced 2026-05-05 by audit. See `CALLINGAGENTS/Tracker/D-NEW-provision-slot-coverage-gate.md`.
+ *
+ * Defaults:
+ * - `after_hours_behavior` → 'always_answer' (we never tell callers we're closed)
+ * - `knowledge_backend` → 'pgvector' (KB tool fires the moment chunks land)
+ * - `hand_tuned` → false (slot pipeline manages by default; concierge bypass
+ *   manually flips to true via SOP Step 9)
+ *
+ * Caller responsibilities:
+ * - Pass `{ handTuned: true }` for concierge bypass clients (overrides default)
+ * - Spread BEFORE explicit fields in the insert object so route-specific values win
+ *
+ * Accepts both `intakePayload` (snake_case from `toIntakePayload`) and raw
+ * `intakeData` (snake_case from `intake_submissions.intake_json`).
+ */
+export function buildSlotInsertFields(
+  intake: Record<string, unknown>,
+  options?: { handTuned?: boolean },
+): Record<string, unknown> {
+  const faqPairs = (() => {
+    const raw = intake.niche_faq_pairs ?? intake.extra_qa
+    if (!raw) return null
+    if (typeof raw === 'string') {
+      try { const parsed = JSON.parse(raw); return Array.isArray(parsed) && parsed.length > 0 ? parsed : null } catch { return null }
+    }
+    if (Array.isArray(raw)) return raw.length > 0 ? raw : null
+    return null
+  })()
+
+  const businessFacts = (() => {
+    const raw = intake.business_facts
+    if (Array.isArray(raw) && raw.length > 0) return raw
+    return null
+  })()
+
+  const fieldsToCollect = (() => {
+    const raw = intake.fields_to_collect ?? intake.completion_fields
+    if (Array.isArray(raw) && raw.length > 0) return raw
+    return null
+  })()
+
+  return {
+    business_facts: businessFacts,
+    extra_qa: faqPairs,
+    services_offered:
+      (intake.services_offered as string) ||
+      (intake.services as string) ||
+      null,
+    business_hours_weekday:
+      (intake.hours_weekday as string) ||
+      (intake.business_hours_weekday as string) ||
+      null,
+    business_hours_weekend:
+      (intake.hours_weekend as string) ||
+      (intake.business_hours_weekend as string) ||
+      null,
+    fields_to_collect: fieldsToCollect,
+    transfer_conditions: (intake.transfer_conditions as string) || null,
+    after_hours_behavior:
+      (intake.after_hours_behavior as string) || 'always_answer',
+    knowledge_backend:
+      (intake.knowledge_backend as string) || 'pgvector',
+    hand_tuned: options?.handTuned ?? false,
+  }
+}
