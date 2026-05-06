@@ -128,7 +128,7 @@ You: "thanks, not interested. have a good day." [use hangUp immediately — do n
     WEEKEND_POLICY: 'we handle emergency calls on weekends',
     FORBIDDEN_EXTRA: [
       "NEVER diagnose over the phone — collect the symptoms and route to technician callback.",
-      "NEVER quote specific repair or install prices — always route to {{CLOSE_PERSON}} callback.",
+      "PRICING: For general published service rates (diagnostic fee, standard call-out fee, typical price ranges from website/KB): call queryKnowledge first; share approved answers naturally. For job-specific quotes (this repair, this install, this scope): always route to {{CLOSE_PERSON}} callback for an estimate.",
       "If caller says no heat in winter, ALWAYS flag as [URGENT] — do not ask if it's an emergency.",
     ].join('\n'),
     TRIAGE_DEEP: `[SAFETY CHECK — RUNS FIRST ON EVERY CALL]
@@ -208,7 +208,7 @@ You: "okay — call your gas company emergency line right now and get everyone o
     WEEKEND_POLICY: 'we handle emergency calls on weekends',
     FORBIDDEN_EXTRA: [
       "NEVER diagnose plumbing problems over the phone — collect the symptoms and route to plumber callback.",
-      "NEVER quote specific prices — always route to {{CLOSE_PERSON}} callback for estimates.",
+      "PRICING: For general published service rates (diagnostic fee, standard call-out fee, typical price ranges from website/KB): call queryKnowledge first; share approved answers naturally. For job-specific quotes (this repair, this install, this scope): always route to {{CLOSE_PERSON}} callback for an estimate.",
       "If caller reports active flooding or water leak, ALWAYS flag as [URGENT] — do not ask follow-up questions about severity.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
@@ -394,8 +394,8 @@ You: "{{CLOSE_PERSON}}'ll go over fees with you when they call — the first cha
     INSURANCE_DETAIL: "we keep it simple — pay when the service is done",
     WEEKEND_POLICY: 'yeah we do weekend appointments — usually book up fast though',
     FORBIDDEN_EXTRA: [
-      "NEVER confirm or deny appointment availability — always route to {{CLOSE_PERSON}} to check the schedule.",
-      "NEVER quote specific service prices — always route to {{CLOSE_PERSON}} callback for pricing.",
+      "AVAILABILITY: For general booking policy (typical lead time, walk-ins welcome y/n, hours, days off — from KB): call queryKnowledge first; share approved answers naturally. For specific appointment confirmations or schedule lookups: route to {{CLOSE_PERSON}} to check the schedule.",
+      "SERVICE PRICING: For general menu prices on standard services (haircut, cut+style, color, etc. — published rates from KB): call queryKnowledge first; share approved answers naturally. For complex/custom work (specific scope, hair length addons, product cost): route to {{CLOSE_PERSON}} for an exact quote.",
       "NEVER recommend specific hair products, treatments, or styles — route to stylist callback.",
       "Never promise a specific time WITHOUT first calling checkCalendarAvailability.",
       "If checkCalendarAvailability returns fallback=true or an error: say \"Let me have {{CLOSE_PERSON}} give you a call to sort out a time — can I get your name?\" then route to standard callback flow.",
@@ -879,10 +879,10 @@ ASKING FOR STAFF BY NAME:
     PRICE_RANGE: 'contact us for pricing',
     WALK_IN_POLICY: 'walk-ins are welcome',
     FORBIDDEN_EXTRA: [
-      "NEVER promise appointment availability or confirm a time without using checkCalendarAvailability or routing to {{CLOSE_PERSON}}.",
-      "NEVER guarantee a specific barber will be available.",
-      "NEVER quote walk-in wait times — only the owner knows the current queue.",
-      "NEVER give hair care advice, styling recommendations, or color treatment guidance.",
+      "AVAILABILITY: For general booking policy (typical lead time, walk-ins welcome y/n, hours, days off — from KB): call queryKnowledge first; share approved answers naturally. For confirming a specific time: use checkCalendarAvailability or route to {{CLOSE_PERSON}}.",
+      "WAIT TIMES: For published typical wait time guidance (from KB): call queryKnowledge first. For real-time walk-in wait estimates: route to {{CLOSE_PERSON}} (only the owner knows the current queue).",
+      "NEVER guarantee a specific barber will be available — schedule-specific, route to {{CLOSE_PERSON}}.",
+      "NEVER give hair care advice, styling recommendations, or color treatment guidance — that's expert advice, route to a stylist.",
       "GROUP BOOKING (3+ people, wedding party, sports team): do NOT use calendar tool. Route to owner directly — collect name and phone only.",
       "If checkCalendarAvailability returns fallback=true: switch to message-taking mode — 'let me take your info and have {{CLOSE_PERSON}} call ya back to confirm the timing.'",
       "If bookAppointment returns booked=false with reason slot_taken: 'that one just got taken — the next opening's at [nextAvailable]. want me to grab that one?'",
@@ -979,9 +979,9 @@ You: "thanks, we're all set." [use hangUp immediately — do not engage]`,
     INSURANCE_DETAIL: "we keep it simple — pay when you pick up or dine in",
     WEEKEND_POLICY: "yeah we're open weekends — hours may vary so call ahead if you're not sure",
     FORBIDDEN_EXTRA: [
-      "NEVER confirm reservation availability — always route to team callback for confirmation.",
-      "NEVER quote wait times or guarantee a table — always route to team callback.",
-      "NEVER discuss catering pricing in detail — route to team callback.",
+      "RESERVATIONS: For general reservation policy (reservation required y/n, walk-ins welcome, hours, party-size limits — from KB): call queryKnowledge first; share approved answers naturally. For specific reservation confirmations or table holds: route to team callback.",
+      "WAIT TIMES: For typical wait time guidance (e.g. 'usually 15-20 mins on Friday nights' — from KB if published): call queryKnowledge first; share approved answers if returned. For a specific guarantee of a table or precise wait estimate right now: route to team callback.",
+      "CATERING PRICING: For general catering ranges (per-person rates, package tiers from KB): call queryKnowledge first; share approved answers naturally. For specific catering quotes (this guest count, this menu, this date): route to team callback.",
       "NEVER quote prices for items NOT listed in your knowledge base. For items with known prices, you may state them.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
@@ -1090,7 +1090,7 @@ SPAM / ROBOCALL:
     WEEKEND_POLICY: "we're open saturdays, closed sundays",
     FORBIDDEN_EXTRA: [
       "NEVER diagnose mechanical problems over the phone — collect the symptoms and route to {{CLOSE_PERSON}} callback.",
-      "NEVER quote specific repair prices without vehicle year/make/model — always get the vehicle info first.",
+      "PRICING: For general published service rates (diagnostic fee, standard inspection rate, typical repair ranges by category from KB): call queryKnowledge first; share approved answers naturally. For job-specific quotes: always get vehicle year/make/model first, then route to {{CLOSE_PERSON}} for the exact estimate.",
       "If car is stranded or won't start, ALWAYS flag as [URGENT] — ask for location before asking anything else.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
@@ -1158,7 +1158,7 @@ You: "good — {{CLOSE_PERSON}}'ll call you back with a solid number. what's you
     WEEKEND_POLICY: 'we handle urgent calls on weekends',
     FORBIDDEN_EXTRA: [
       "NEVER guarantee pest elimination outcomes over the phone — route to {{CLOSE_PERSON}} for treatment plans.",
-      "NEVER quote specific treatment prices over the phone — always route to {{CLOSE_PERSON}} callback.",
+      "TREATMENT PRICING: For general published treatment rates (inspection fee, standard service ranges from KB): call queryKnowledge first; share approved answers naturally. For job-specific quotes (this property, this pest, this scope): route to {{CLOSE_PERSON}} callback for an estimate.",
       "If caller reports wasps, hornets, bed bugs, or active rodents in living space, ALWAYS flag as [URGENT].",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
@@ -1226,7 +1226,7 @@ You: "perfect — what's your name and address, and what day works for you?"`,
     WEEKEND_POLICY: 'we handle emergency electrical calls on weekends',
     FORBIDDEN_EXTRA: [
       "NEVER diagnose electrical faults over the phone — collect symptoms and route to {{CLOSE_PERSON}} callback.",
-      "NEVER quote specific prices without knowing the full scope — always route to {{CLOSE_PERSON}} for estimates.",
+      "PRICING: For general published service rates (diagnostic fee, standard call-out fee, typical price ranges from website/KB): call queryKnowledge first; share approved answers naturally. For job-specific quotes (this install, this repair, this scope): always route to {{CLOSE_PERSON}} for an estimate.",
       "If caller reports sparking, burning smell, or no power to the whole home, ALWAYS flag [URGENT] and ask if the main breaker is off.",
       "If caller reports a burning smell or visible sparks: tell them to turn off the main breaker and call 911 if there's any smoke or fire — then still collect name and address for follow-up.",
     ].join('\n'),
@@ -1298,7 +1298,7 @@ You: "no problem, we can work with that timeline. what's your name and address?"
     FORBIDDEN_EXTRA: [
       "NEVER promise a specific arrival time — use 'as soon as possible' or 'our locksmith will call you with an ETA.'",
       "For lockouts: get address first, everything else second. Speed is the product.",
-      "NEVER quote specific prices for complex jobs without assessing — give a general range only for standard lockouts.",
+      "PRICING: For general published service rates (call-out fee, standard lockout range from KB): call queryKnowledge first; share approved answers naturally. For complex jobs (commercial, automotive, rekey, lock replacement): route to {{CLOSE_PERSON}} for an estimate after getting the scope.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
 LOCKOUT — HOME OR BUSINESS (highest priority, dispatch immediately):
