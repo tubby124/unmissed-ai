@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { NICHE_REGISTRY, getKbStance } from '../niche-registry'
+import { buildSlotContext } from '../prompt-slots'
 
 test('strict niches get kbStance=strict', () => {
   assert.equal(getKbStance('property_management'), 'strict')
@@ -38,4 +39,35 @@ test('hyphenated DB slugs route through norm() to underscored keys', () => {
 test('null/undefined niche values default to permissive', () => {
   assert.equal(getKbStance(null), 'permissive')
   assert.equal(getKbStance(undefined), 'permissive')
+})
+
+test('buildSlotContext sets kbStance=strict for property_management', () => {
+  const ctx = buildSlotContext({
+    niche: 'property_management',
+    business_name: 'Test Properties',
+    agent_name: 'Test',
+    timezone: 'America/Edmonton',
+    knowledge_backend: 'pgvector',
+  } as never)
+  assert.equal(ctx.kbStance, 'strict')
+})
+
+test('buildSlotContext sets kbStance=permissive for auto_glass', () => {
+  const ctx = buildSlotContext({
+    niche: 'auto_glass',
+    business_name: 'Test Glass',
+    agent_name: 'Test',
+    timezone: 'America/Edmonton',
+  } as never)
+  assert.equal(ctx.kbStance, 'permissive')
+})
+
+test('buildSlotContext handles hyphenated niche slugs', () => {
+  const ctx = buildSlotContext({
+    niche: 'real-estate',
+    business_name: 'Test Realty',
+    agent_name: 'Test',
+    timezone: 'America/Edmonton',
+  } as never)
+  assert.equal(ctx.kbStance, 'strict')
 })

@@ -16,6 +16,7 @@
  */
 
 import { getCapabilities } from '@/lib/niche-capabilities'
+import { getKbStance } from './niche-registry'
 import type { CustomNicheConfig } from '@/lib/niche-generator'
 import { VOICE_PRESETS } from './voice-presets'
 import { VOICE_TONE_PRESETS } from './prompt-config/voice-tone-presets'
@@ -129,6 +130,9 @@ export interface SlotContext {
 
   // Pricing policy — controls rule 3 in FORBIDDEN_ACTIONS
   pricingPolicy: string // '' | 'never_quote' | 'quote_from_kb' | 'quote_ranges'
+
+  // KB stance — controls whether FORBIDDEN_ACTIONS enforces strict KB-only answers
+  kbStance: 'strict' | 'permissive'
 
   // Full variables dict for second-pass resolution
   variables: Record<string, string>
@@ -1478,6 +1482,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     filterExtra: resolveVars(variables.FILTER_EXTRA || ''),
     forbiddenExtraRules,
     pricingPolicy: pricingPolicy,
+    kbStance: getKbStance((intake.niche as string | null | undefined) ?? null),
     faqPairs: variables.FAQ_PAIRS || 'No FAQ pairs configured yet.',
     knowledgeBaseContent,
     knowledgeBackend: (intake.knowledge_backend as string) || '',
