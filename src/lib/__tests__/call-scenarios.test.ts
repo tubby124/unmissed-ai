@@ -198,7 +198,7 @@ describe('Phase 1 — PM hero niche', () => {
       expectedContains: [
         'SHOWING REQUEST',
         'RENTAL INQUIRY',
-        'NEVER answer questions about availability, pricing',
+        'GENERAL questions',
       ],
     },
     {
@@ -207,7 +207,8 @@ describe('Phase 1 — PM hero niche', () => {
       callerType: 'prospect',
       intentSummary: 'Caller asks how much the rent is',
       expectedContains: [
-        'NEVER confirm or deny rent amounts, unit availability, pet policy',
+        'unit-specific facts',
+        'NEVER quote unit-specific rent amounts',
       ],
     },
     {
@@ -216,7 +217,8 @@ describe('Phase 1 — PM hero niche', () => {
       callerType: 'prospect',
       intentSummary: 'Caller asks if pets are allowed',
       expectedContains: [
-        'NEVER confirm or deny rent amounts, unit availability, pet policy',
+        'general building policies',
+        'queryKnowledge first',
       ],
     },
     {
@@ -329,7 +331,8 @@ describe('Phase 2 — PM field-empty variants', () => {
       intentSummary: 'Pet policy question — client never filled in deposit amount',
       intakeOverrides: { niche_petPolicy: 'cats_dogs', niche_petDepositAmount: undefined },
       expectedContains: [
-        'NEVER confirm or deny rent amounts, unit availability, pet policy',
+        'general building policies',
+        'queryKnowledge first',
       ],
       mustNotContain: [
         'Pet deposit:',   // no deposit amount → not injected

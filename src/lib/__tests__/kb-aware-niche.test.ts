@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { NICHE_REGISTRY, getKbStance } from '../niche-registry'
 import { buildSlotContext, buildForbiddenActions } from '../prompt-slots'
+import { NICHE_DEFAULTS } from '../prompt-config/niche-defaults'
 
 test('strict niches get kbStance=strict', () => {
   assert.equal(getKbStance('property_management'), 'strict')
@@ -135,4 +136,49 @@ test('FORBIDDEN_ACTIONS KB priming includes booking/emergency exclusion', () => 
   } as never)
   assert.match(out, /Do NOT call queryKnowledge for greetings, emergencies, or booking/i,
     'KB priming must exclude greetings/emergencies/booking from queryKnowledge calls')
+})
+
+test('property_management FORBIDDEN_EXTRA preserves FHA + ESA carve-outs', () => {
+  const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
+  assert.match(fe, /Fair Housing Act/i)
+  assert.match(fe, /service animal|ESA/)
+  assert.match(fe, /demographic/i)
+})
+
+test('property_management FORBIDDEN_EXTRA preserves P1 / pest carve-outs', () => {
+  const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
+  assert.match(fe, /9-1-1|emergency|burst pipe|gas/i)
+  assert.match(fe, /bedbug|pest/i)
+})
+
+test('property_management FORBIDDEN_EXTRA SCOPE rule is KB-conditional, not blanket', () => {
+  const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
+  // Old blanket form must be gone
+  assert.ok(!/NEVER confirm or deny rent amounts.*always route/i.test(fe),
+    'old blanket-block SCOPE rule must be removed')
+  // New form must distinguish general policy from unit specifics
+  assert.match(fe, /queryKnowledge|general (building )?polic/i)
+  assert.match(fe, /unit-specific|specific unit|this unit/i)
+})
+
+test('property_management FORBIDDEN_EXTRA preserves legal-advice prohibition', () => {
+  const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
+  assert.match(fe, /NEVER give legal advice/i)
+  assert.match(fe, /RTA|eviction|landlord-rights/i)
+})
+
+test('property_management TRIAGE_DEEP RENTAL INQUIRY is KB-conditional', () => {
+  const td = NICHE_DEFAULTS.property_management.TRIAGE_DEEP
+  // Old blanket form gone
+  assert.ok(!/NEVER answer questions about availability, pricing, pets, parking, or utilities/i.test(td),
+    'old RENTAL INQUIRY blanket-block must be removed')
+  // New form must mention queryKnowledge OR distinguish general from specific
+  assert.match(td, /queryKnowledge|GENERAL questions/i)
+  assert.match(td, /SPECIFIC unit|this listing|this unit/i)
+})
+
+test('property_management TRIAGE_DEEP preserves $-amount prohibition', () => {
+  const td = NICHE_DEFAULTS.property_management.TRIAGE_DEEP
+  // Should still prohibit quoting dollar amounts even from KB chunks
+  assert.match(td, /(never|don't) quote a dollar amount|exact numbers/i)
 })

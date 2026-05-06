@@ -114,10 +114,12 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
     } as never)
     const out = buildForbiddenActions(kbCtx)
     // PM has larger FORBIDDEN_EXTRA (~6 grouped rules) vs auto_glass baseline.
-    // Measured post-Fix1: 3,709 chars. Ceiling = measured + ~8% headroom.
-    // If this trips, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
-    assert.ok(out.length <= 4_000,
-      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4000: ${out.length}`)
+    // Measured post-Fix1: 3,709 chars. Ceiling raised to 4,200 by KB-aware niche templates
+    // Phase 1 Task 4 (2026-05-05): SCOPE rule reframed to KB-conditional (+330 chars).
+    // Reframe is intentional — restores Brian's 16 approved KB chunks pre-empted since 2026-04-27.
+    // If this trips again, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
+    assert.ok(out.length <= 4_200,
+      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4200: ${out.length}`)
   })
 
   test('VOICE_NATURALNESS under ceiling', () => {
@@ -258,15 +260,13 @@ describe('Phase D total prompt ceilings', () => {
   })
 
   // Property_management ceiling tightened 18,500 → 16,000 by D-NEW-niche-template-trim
-  // (2026-05-05). Trim removed: NICHE_EXAMPLES (-3,378), FORBIDDEN_EXTRA bloat
-  // (11 rules → 6 grouped, ~-1,200 — safety-fingerprint phrases preserved verbatim for
-  // call-scenarios regression tests), TRIAGE_DEEP SHORT/1-WORD block (-240). PM still
-  // keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
-  // bedbug/closure-anti-hallucination guardrails. Numbered TRIAGE flow carries the behavior
-  // the deleted transcript examples used to demonstrate. D-item targeted 14,500 — actual
-  // post-trim is ~15.7k because preserving exact safety-fingerprint wording (per
-  // call-scenarios.test.ts contracts) costs ~1.2k vs the D-item's terser projection.
-  test('property_management baseline under 16,000 chars (post niche-template-trim)', () => {
+  // (2026-05-05). Raised to 17,000 by KB-aware niche templates Phase 1 Task 4 (2026-05-05):
+  // SCOPE rule + RENTAL INQUIRY block reframed from blanket-block to KB-conditional logic
+  // (+~490 chars). Reframe is intentional — conditional logic is more verbose than blanket
+  // blocks but restores Brian's 16 approved KB chunks that were pre-empted since 2026-04-27.
+  // PM still keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
+  // bedbug/closure-anti-hallucination guardrails.
+  test('property_management baseline under 17,000 chars (post KB-aware reframe)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'property_management',
       business_name: 'Urban Vibe Properties',
@@ -277,7 +277,7 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       owner_name: 'Ray',
     })
-    assert.ok(prompt.length <= 16_000,
-      `property_management baseline is ${prompt.length} chars, exceeds post-trim ceiling 16,000`)
+    assert.ok(prompt.length <= 17_000,
+      `property_management baseline is ${prompt.length} chars, exceeds post-KB-aware-reframe ceiling 17,000`)
   })
 })
