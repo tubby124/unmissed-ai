@@ -647,6 +647,9 @@ describe('Layer 4B — Feature edge cases', () => {
   // P0.1: pgvector-with-0-chunks used to silently inject ~1.8K of default niche FAQ
   // as a fallback. That was the generator bloat bug. Now the slot returns empty
   // unless caller_faq, pricing_policy, unknown_answer_behavior, or real pgvector chunks exist.
+  // Note: niche FORBIDDEN_EXTRA may still reference queryKnowledge as guidance text;
+  // the actual queryKnowledge tool is only registered when chunks > 0 (gated in
+  // buildAgentTools). So agent mentions of the tool are inert when KB is empty.
   test('knowledge_backend=pgvector + 0 chunks: emits no knowledge slot when no FAQ/policies', () => {
     const p = buildPromptFromIntake(intake('hvac', undefined, {
       knowledge_backend: 'pgvector',
@@ -654,10 +657,14 @@ describe('Layer 4B — Feature edge cases', () => {
     }))
     assert.ok(!p.includes('PRODUCT KNOWLEDGE BASE'),
       'empty pgvector + no caller_faq should NOT emit inline FAQ header')
-    assert.ok(!p.includes('queryKnowledge'),
-      'empty pgvector should NOT reference queryKnowledge')
     assert.ok(!p.includes('<!-- unmissed:knowledge -->'),
       'knowledge slot should be empty when nothing to emit')
+    // FORBIDDEN_ACTIONS slot's dynamic KB-priming block should NOT emit when KB empty.
+    // (Niche FORBIDDEN_EXTRA may still mention queryKnowledge as static guidance — that's fine.)
+    assert.ok(!p.includes('BEFORE deflecting any factual question'),
+      'FORBIDDEN_ACTIONS strict-niche KB-priming should NOT emit when KB empty')
+    assert.ok(!p.includes('For any factual question about the business'),
+      'FORBIDDEN_ACTIONS permissive-niche KB-priming should NOT emit when KB empty')
   })
 
   test('no knowledge_backend + no caller_faq: emits no knowledge slot', () => {

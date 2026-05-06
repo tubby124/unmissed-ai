@@ -291,3 +291,76 @@ test('dental FORBIDDEN_EXTRA scheduling is KB-conditional', () => {
   assert.match(fe, /specific.*slot|check the schedule/i,
     'scheduling rule must route specific slot availability queries')
 })
+
+// ─── Future-niche regression guards ─────────────────────────────────────────
+// These tests enforce the kb-aware pattern across the entire NICHE_REGISTRY
+// so any future niche added must follow the same shape.
+
+const ABSOLUTE_CARVE_OUT_KEYWORDS = [
+  // Expert/clinical/legal carve-outs that SHOULD remain blanket-route:
+  /legal advice|interpret law|legal strategy/i,
+  /clinical advice|medical advice|diagnose/i,
+  /recommend specific (hair|product|treatment|style)/i,
+  /guarantee.*outcome/i,
+  /pest elimination outcomes/i,
+  /unit-specific|tenant-specific|file-specific|case-specific/i,
+  /transfer the call|put.*on hold|personal phone number/i,
+  /confirm dates.*key arrangements|deposit amounts|inspection outcomes/i,
+  /specific renewal terms|rent increases|notice periods/i,
+  /specific financial figures|vacancy rates|maintenance history/i,
+  /commission|fee|listing fee|negotiated split/i,
+  /property prices|home valuation|market estimate|price-per-square-foot/i,
+  /promise a showing time|listing availability/i,
+  /quote prices for items NOT listed/i,
+  // Agent persona / pronunciation / dispatch rules — not KB-related:
+  /apologize for being AI|act uncertain about your role/i,
+  /spell it out|never\s+["']/i,
+  /promise a specific arrival time|locksmith will call.*ETA/i,
+  /guarantee a specific barber/i,
+]
+
+function isAbsoluteCarveOut(line: string): boolean {
+  return ABSOLUTE_CARVE_OUT_KEYWORDS.some(rx => rx.test(line))
+}
+
+test('regression: every niche with blanket-route rules also has KB-first priming OR absolute carve-outs', () => {
+  const violations: string[] = []
+  for (const [niche, defaults] of Object.entries(NICHE_DEFAULTS)) {
+    const fe = (defaults as { FORBIDDEN_EXTRA?: string }).FORBIDDEN_EXTRA ?? ''
+    if (!fe) continue
+    const lines = fe.split('\n')
+    const blanketLines = lines.filter(l => /NEVER[^\n]*(always route|— route\b)/i.test(l))
+    if (blanketLines.length === 0) continue
+    const hasKbFirst = /queryKnowledge first/i.test(fe)
+    // For each blanket line, it must EITHER be an absolute carve-out OR be paired with a KB-first rule
+    for (const line of blanketLines) {
+      if (isAbsoluteCarveOut(line)) continue
+      if (!hasKbFirst) {
+        violations.push(`${niche}: blanket-route without kb-first companion: "${line.trim().slice(0,120)}"`)
+      }
+    }
+  }
+  assert.equal(violations.length, 0,
+    `Future-niche kb-aware regression — these niches need kb-first priming added:\n  - ${violations.join('\n  - ')}`)
+})
+
+test('regression: every niche FORBIDDEN_EXTRA references queryKnowledge OR has only absolute carve-outs', () => {
+  // Soft check: warn on niches with NEVER rules but no queryKnowledge mention at all.
+  // Skip niches with empty/no FORBIDDEN_EXTRA.
+  const warnings: string[] = []
+  for (const [niche, defaults] of Object.entries(NICHE_DEFAULTS)) {
+    const fe = (defaults as { FORBIDDEN_EXTRA?: string }).FORBIDDEN_EXTRA ?? ''
+    if (!fe) continue
+    const hasNever = /NEVER /i.test(fe)
+    const hasQK = /queryKnowledge/i.test(fe)
+    if (hasNever && !hasQK) {
+      const allLines = fe.split('\n').filter(l => /NEVER /i.test(l))
+      const allAbsolute = allLines.every(isAbsoluteCarveOut)
+      if (!allAbsolute) {
+        warnings.push(niche)
+      }
+    }
+  }
+  assert.equal(warnings.length, 0,
+    `Niches with NEVER rules but no queryKnowledge reference (review whether they need kb-aware update): ${warnings.join(', ')}`)
+})
