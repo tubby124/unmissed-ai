@@ -99,10 +99,15 @@ const baseForbiddenCtx = {
   kbStance: 'permissive' as const,
 }
 
+// Note: rules 9 (ANSWER-FIRST) and 10 (TOOL-LATENCY BRIDGE) are universal and mention
+// queryKnowledge by name. The KB-priming block is a separate paragraph appended after
+// the numbered rules — these tests assert that *paragraph* is absent, not the word.
+const KB_PRIMING_PHRASE = /call queryKnowledge first/i
+
 test('FORBIDDEN_ACTIONS has no KB priming when KB empty', () => {
   const out = buildForbiddenActions(baseForbiddenCtx as never)
-  assert.ok(!out.includes('queryKnowledge'),
-    'KB priming must NOT emit when knowledgeChunkCount=0')
+  assert.ok(!KB_PRIMING_PHRASE.test(out),
+    'KB priming paragraph must NOT emit when knowledgeChunkCount=0')
 })
 
 test('FORBIDDEN_ACTIONS has no KB priming when backend != pgvector', () => {
@@ -111,8 +116,8 @@ test('FORBIDDEN_ACTIONS has no KB priming when backend != pgvector', () => {
     knowledgeBackend: 'inline',
     knowledgeChunkCount: 6,
   } as never)
-  assert.ok(!out.includes('queryKnowledge'),
-    'KB priming must NOT emit when backend is not pgvector')
+  assert.ok(!KB_PRIMING_PHRASE.test(out),
+    'KB priming paragraph must NOT emit when backend is not pgvector')
 })
 
 test('FORBIDDEN_ACTIONS emits KB-first priming when populated (permissive)', () => {

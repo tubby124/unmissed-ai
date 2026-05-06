@@ -60,7 +60,7 @@ const AUTO_GLASS_INTAKE = {
 const SLOT_CEILINGS = {
   PERSONA_ANCHOR: 900,        // Phase D: 722
   SAFETY_PREAMBLE: 600,       // Phase D: 465
-  FORBIDDEN_ACTIONS: 2_100,   // Phase D: 1,661 (niche FORBIDDEN_EXTRA adds up to ~500 more)
+  FORBIDDEN_ACTIONS: 2_400,   // Phase D: 1,661; +540 (2026-05-06) for universal rules 9 (ANSWER-FIRST) + 10 (TOOL-LATENCY BRIDGE) promoted from PM-only
   VOICE_NATURALNESS: 700,     // Phase D: 523
   GRAMMAR: 500,               // Phase D: 342
   IDENTITY: 400,              // Phase D: 278
@@ -231,7 +231,9 @@ describe('Phase D total prompt ceilings', () => {
   // Wave 4 (2026-04-28) — real_estate niche rebuilt to property_management parity:
   // 10-branch TRIAGE_DEEP (Buy / Sell / Eval / Rent + 6 edge intents) + INFO_FLOW_OVERRIDE
   // + CLOSING_OVERRIDE + 7 NICHE_EXAMPLES. Same complexity tier as PM, same higher ceiling.
-  test('real_estate baseline under 19,500 chars (niche-specific higher ceiling — Wave 4)', () => {
+  // Raised 19,500 → 20,500 (2026-05-06) for universal FORBIDDEN rules 9 (ANSWER-FIRST) +
+  // 10 (TOOL-LATENCY BRIDGE) promoted from PM-only into buildForbiddenActions baseRules.
+  test('real_estate baseline under 20,500 chars (niche-specific higher ceiling — Wave 4 + universal rules)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'real_estate',
       business_name: 'Sharif Realty',
@@ -242,8 +244,8 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       callback_phone: '+17805550000',
     })
-    assert.ok(prompt.length <= 19_500,
-      `real_estate baseline is ${prompt.length} chars, exceeds Wave 4 ceiling 19,500`)
+    assert.ok(prompt.length <= 20_500,
+      `real_estate baseline is ${prompt.length} chars, exceeds Wave 4 ceiling 20,500`)
   })
 
   test('plumbing baseline total under 13,500 chars', () => {

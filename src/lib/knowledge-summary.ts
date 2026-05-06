@@ -39,12 +39,14 @@ export const PROMPT_CHAR_TARGET = 15000
  * audit showed niche FORBIDDEN_EXTRA + NICHE_EXAMPLES were emitting 24,768-char prompts.
  * Spec is 12k (.claude/rules/prompt-edit-safety.md). Compromise floor was 18k, but
  * real_estate baseline composes at ~19k due to its 10-branch TRIAGE_DEEP and would
- * silently fail provisioning at 18k. 20k is the safe block: still blocks Brian-level
- * (24k+) bloat, leaves headroom for real_estate + future small intake additions, and
- * surfaces real-estate trim as a follow-up D-item rather than blocking active onboarding.
+ * silently fail provisioning at 18k. 20k was the safe block; raised to 21k on
+ * 2026-05-06 when ANSWER-FIRST + TOOL-LATENCY BRIDGE (~530 chars combined) were
+ * promoted from PM-only into universal FORBIDDEN rules 9 + 10 — every niche pays
+ * the cost, and real_estate now lands at ~20,040. 21k still blocks Brian-level
+ * (24k+) bloat and leaves ~500 chars of headroom.
  * Tightening to 12-15k deferred to post-Phase-9 (after promotion loop reduces FAQ pressure).
  */
-export const PROMPT_CHAR_HARD_MAX = 20000
+export const PROMPT_CHAR_HARD_MAX = 21000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
