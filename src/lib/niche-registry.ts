@@ -225,7 +225,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
-    kbStance:           'permissive',
+    kbStance:           'permissive', // ISA is outbound lead qualification, not legal/financial advice risk
   },
   restaurant: {
     label:              'Restaurant / Food Service',
@@ -466,7 +466,9 @@ export function getNicheMinuteLimit(niche: string | null | undefined): number {
   return entry(niche).minuteLimit
 }
 
-export function getKbStance(niche: string): 'strict' | 'permissive' {
-  const e = (NICHE_REGISTRY as Record<string, NicheRegistryEntry>)[niche]
-  return e?.kbStance ?? 'permissive'
+/** Returns the KB routing stance for a niche — consulted by KB-aware niche templates (Phase 1+).
+ *  'strict' = route property/case/patient specifics; 'permissive' = KB-first, route on miss.
+ *  Defaults to 'permissive' for unknown or null niches. */
+export function getKbStance(niche: string | null | undefined): 'strict' | 'permissive' {
+  return entry(niche).kbStance
 }

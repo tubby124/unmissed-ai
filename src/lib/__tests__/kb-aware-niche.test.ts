@@ -22,9 +22,20 @@ test('unknown niches default to permissive', () => {
 })
 
 test('every NICHE_REGISTRY entry has a kbStance', () => {
-  for (const [key, entry] of Object.entries(NICHE_REGISTRY)) {
-    const stance = (entry as { kbStance?: string }).kbStance
+  for (const key of Object.keys(NICHE_REGISTRY)) {
+    const stance = getKbStance(key)
     assert.ok(stance === 'strict' || stance === 'permissive',
       `${key} missing or invalid kbStance: ${stance}`)
   }
+})
+
+test('hyphenated DB slugs route through norm() to underscored keys', () => {
+  assert.equal(getKbStance('property-management'), 'strict')
+  assert.equal(getKbStance('real-estate'), 'strict')
+  assert.equal(getKbStance('auto-glass'), 'permissive')
+})
+
+test('null/undefined niche values default to permissive', () => {
+  assert.equal(getKbStance(null), 'permissive')
+  assert.equal(getKbStance(undefined), 'permissive')
 })
