@@ -195,3 +195,117 @@ describe('agent_name — path-completeness (regression guard)', () => {
     })
   }
 })
+
+// ── D-NEW-provision-slot-coverage-gate: spread of buildSlotInsertFields ─────────
+//
+// Sibling regression guard. Every `clients.insert()` provisioning path MUST spread
+// `buildSlotInsertFields(intake...)` (or contain its return as a literal subset) so
+// that business_facts / extra_qa / services_offered / hours / fields_to_collect /
+// transfer_conditions / after_hours_behavior / knowledge_backend / hand_tuned all
+// land at insert time. Without this, the row is recompose-empty and any future
+// "Recompose" click would compose from nothing.
+//
+// Surfaced 2026-05-05 by velly-remodeling audit. Closes
+// CALLINGAGENTS/Tracker/D-NEW-provision-slot-coverage-gate.md (Layer 1 — static).
+
+describe('slot-framework — path-completeness (regression guard)', () => {
+  for (const relPath of PROVISION_INSERT_PATHS) {
+    test(`${relPath} spreads buildSlotInsertFields() in clients.insert()`, () => {
+      const fullPath = resolve(REPO_ROOT, relPath)
+      const src = readFileSync(fullPath, 'utf8')
+
+      // 1. Must import buildSlotInsertFields.
+      assert.match(
+        src,
+        /import\s*\{[^}]*\bbuildSlotInsertFields\b[^}]*\}\s*from\s*['"]@\/lib\/intake-transform['"]/,
+        `${relPath} must import buildSlotInsertFields from @/lib/intake-transform`,
+      )
+
+      // 2. Each clients.insert({...}) block must contain a spread of buildSlotInsertFields(...).
+      const insertRegex = /from\(\s*['"]clients['"]\s*\)\s*\.insert\s*\(\s*\{([\s\S]*?)\}\s*\)/g
+      const matches = [...src.matchAll(insertRegex)]
+      assert.ok(matches.length > 0, `No clients.insert({...}) found in ${relPath}`)
+
+      for (const [i, match] of matches.entries()) {
+        const body = match[1]
+        assert.match(
+          body,
+          /\.\.\.buildSlotInsertFields\s*\(/,
+          `${relPath} clients.insert() block #${i + 1} does not spread buildSlotInsertFields(). ` +
+          `This is the bug from velly-remodeling 2026-05-05 — every provisioning path must spread ` +
+          `slot fields from intake or future provisions land in a recompose-empty landmine state.\n\n` +
+          `Insert body:\n${body}`,
+        )
+      }
+    })
+  }
+})
+
+// ── buildSlotInsertFields — unit tests ──────────────────────────────────────────
+
+import { buildSlotInsertFields } from '../intake-transform.js'
+
+describe('buildSlotInsertFields', () => {
+  test('empty intake yields safe defaults', () => {
+    const out = buildSlotInsertFields({})
+    assert.strictEqual(out.business_facts, null)
+    assert.strictEqual(out.extra_qa, null)
+    assert.strictEqual(out.services_offered, null)
+    assert.strictEqual(out.business_hours_weekday, null)
+    assert.strictEqual(out.business_hours_weekend, null)
+    assert.strictEqual(out.fields_to_collect, null)
+    assert.strictEqual(out.transfer_conditions, null)
+    assert.strictEqual(out.after_hours_behavior, 'always_answer')
+    assert.strictEqual(out.knowledge_backend, 'pgvector')
+    assert.strictEqual(out.hand_tuned, false)
+  })
+
+  test('parses niche_faq_pairs JSON string into extra_qa array', () => {
+    const out = buildSlotInsertFields({
+      niche_faq_pairs: JSON.stringify([{ q: 'Hours?', a: 'Mon-Fri 9-5' }]),
+    })
+    assert.deepStrictEqual(out.extra_qa, [{ q: 'Hours?', a: 'Mon-Fri 9-5' }])
+  })
+
+  test('accepts extra_qa array directly', () => {
+    const out = buildSlotInsertFields({
+      extra_qa: [{ q: 'A?', a: 'B' }, { q: 'C?', a: 'D' }],
+    })
+    assert.deepStrictEqual(out.extra_qa, [{ q: 'A?', a: 'B' }, { q: 'C?', a: 'D' }])
+  })
+
+  test('empty FAQ array → null (not empty array)', () => {
+    assert.strictEqual(buildSlotInsertFields({ niche_faq_pairs: '[]' }).extra_qa, null)
+    assert.strictEqual(buildSlotInsertFields({ extra_qa: [] }).extra_qa, null)
+  })
+
+  test('hours_weekday wins over business_hours_weekday', () => {
+    const out = buildSlotInsertFields({ hours_weekday: '8-5', business_hours_weekday: 'should-not-win' })
+    assert.strictEqual(out.business_hours_weekday, '8-5')
+  })
+
+  test('handTuned option overrides default', () => {
+    const out = buildSlotInsertFields({}, { handTuned: true })
+    assert.strictEqual(out.hand_tuned, true)
+  })
+
+  test('after_hours_behavior from intake overrides default', () => {
+    const out = buildSlotInsertFields({ after_hours_behavior: 'voicemail_only' })
+    assert.strictEqual(out.after_hours_behavior, 'voicemail_only')
+  })
+
+  test('knowledge_backend from intake overrides default', () => {
+    const out = buildSlotInsertFields({ knowledge_backend: 'none' })
+    assert.strictEqual(out.knowledge_backend, 'none')
+  })
+
+  test('completion_fields aliased to fields_to_collect', () => {
+    const out = buildSlotInsertFields({ completion_fields: ['name', 'phone'] })
+    assert.deepStrictEqual(out.fields_to_collect, ['name', 'phone'])
+  })
+
+  test('malformed niche_faq_pairs JSON falls back to null', () => {
+    const out = buildSlotInsertFields({ niche_faq_pairs: '{not-valid-json' })
+    assert.strictEqual(out.extra_qa, null)
+  })
+})

@@ -22,6 +22,7 @@ import { scrapeWebsite } from '@/lib/website-scraper'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
+import { buildSlotInsertFields } from '@/lib/intake-transform'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -279,6 +280,12 @@ export async function POST(req: NextRequest) {
     const { data: newClient, error: insertErr } = await svc
       .from('clients')
       .insert({
+        // D-NEW-provision-slot-coverage-gate — slot-framework fields from intake.
+        // This is the path concierge bypass clients flow through (per
+        // unmissed-concierge-provisioning-bypass SOP Step 3). Without these
+        // fields the row lands in a recompose-empty state — exactly the bug
+        // velly-remodeling exposed 2026-04-28→2026-05-05.
+        ...buildSlotInsertFields(intakeData),
         slug: clientSlug,
         business_name: businessName,
         niche,

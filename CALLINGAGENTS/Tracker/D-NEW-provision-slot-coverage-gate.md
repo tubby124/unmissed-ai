@@ -1,6 +1,6 @@
 ---
 type: tracker
-status: open
+status: partial
 priority: P1
 phase: TBD-prompt-safety
 related:
@@ -16,7 +16,11 @@ opened: 2026-05-05
 # D-NEW — Provision-time slot-coverage gate (no client goes live with empty slots AND hand_tuned=false)
 
 ## Status
-**OPEN — P1** — surfaced 2026-05-05 during Velly audit. Manual SOP update applied (Steps 9 & 10 in `unmissed-concierge-provisioning-bypass.md`), but no test or runtime gate enforces it.
+**PARTIAL — Layer 1 SHIPPED 2026-05-05** in PR `feat/provision-slot-coverage`. New `buildSlotInsertFields()` helper in `src/lib/intake-transform.ts` returns `{business_facts, extra_qa, services_offered, business_hours_weekday, business_hours_weekend, fields_to_collect, transfer_conditions, after_hours_behavior, knowledge_backend, hand_tuned}` from intake. Spread into all 4 known `clients.insert()` paths (`provision/trial`, `stripe/create-public-checkout`, `dashboard/generate-prompt`, `admin/test-activate`). New static path-completeness regression guard in `agent-name-provision.test.ts` asserts every path imports the helper AND every `clients.insert()` block spreads it. 10 unit tests on the helper itself (defaults, FAQ parsing, override precedence, malformed input fallback). All 1872 tests pass.
+
+**Remaining (separate PRs):**
+- Layer 2 — provision-route gate: each `.insert()` validates non-null slot coverage at runtime, throws on empty (with `hand_tuned=true` allowlist for concierge bypass)
+- Layer 3 — admin UI badge: "⚠️ Recompose Risk" warning on client detail when `hand_tuned=false` AND slot coverage low; one-click "Mark as hand-tuned" or "Run intake-to-slot backfill" actions
 
 ## Problem
 The 4 known `clients.insert()` provision routes (per memory `unmissed-provision-path-parity-audit.md`) can leave a row in a "schrodinger's prompt" state:

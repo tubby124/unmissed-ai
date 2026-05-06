@@ -18,7 +18,7 @@ import {
   NICHE_CLASSIFICATION_RULES,
 } from '@/lib/prompt-builder'
 import { createAgent, updateAgent, resolveVoiceId, buildAgentTools } from '@/lib/ultravox'
-import { slugify } from '@/lib/intake-transform'
+import { slugify, buildSlotInsertFields } from '@/lib/intake-transform'
 import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { randomUUID } from 'crypto'
@@ -189,6 +189,11 @@ export async function POST(req: NextRequest) {
     const { data: newClient, error: insertErr } = await svc
       .from('clients')
       .insert({
+        // D-NEW-provision-slot-coverage-gate — slot-framework fields from intake.
+        // test-activate is the admin path that bypasses Stripe — concierge-style
+        // provisioning leans on this. Without these fields the row lands in a
+        // recompose-empty state.
+        ...buildSlotInsertFields(intakeData),
         slug: clientSlug,
         business_name: businessName,
         niche,

@@ -21,6 +21,7 @@ import { seedKnowledgeFromScrape, upsertOnboardingWebsiteSource } from '@/lib/se
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import { buildSlotInsertFields } from '@/lib/intake-transform'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
@@ -295,6 +296,9 @@ export async function POST(req: NextRequest) {
     const { data: newClient, error: insertErr } = await svc
       .from('clients')
       .insert({
+        // D-NEW-provision-slot-coverage-gate — slot-framework fields from intake.
+        // Spread FIRST so route-specific values below override on collision.
+        ...buildSlotInsertFields(intakeData),
         slug: clientSlug,
         business_name: businessName,
         niche,
