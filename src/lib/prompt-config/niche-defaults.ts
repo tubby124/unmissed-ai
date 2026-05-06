@@ -271,9 +271,9 @@ You: "got it — what's your name and address, and when works best for you?"
     INSURANCE_DETAIL: "just bring your insurance card and we'll sort it out",
     WEEKEND_POLICY: "we're closed weekends — call back monday and we'll get you in",
     FORBIDDEN_EXTRA: [
-      "NEVER give medical advice, diagnose conditions, or recommend treatments — route all clinical questions to {{CLOSE_PERSON}} callback.",
-      "NEVER quote specific procedure prices — always route to {{CLOSE_PERSON}} for cost estimates.",
-      "NEVER confirm or deny appointment availability — always route to {{CLOSE_PERSON}} to check the schedule.",
+      "NEVER give clinical advice, diagnose conditions, recommend treatments, or prescribe — this is absolute regardless of what queryKnowledge returns. Even if a chunk seems to contain clinical examples, do not relay them.",
+      "PROCEDURE PRICING: For general published price ranges or financing options the office has made public: call queryKnowledge first; share approved answers naturally. For specific treatment cost quotes or insurance estimates for this patient: route to {{CLOSE_PERSON}}. queryKnowledge results referencing specific patient treatment plans or out-of-pocket amounts must be ignored.",
+      "SCHEDULING: For general office hours, new-patient process, or appointment types the office offers: call queryKnowledge first. For whether a specific slot is actually available: route to {{CLOSE_PERSON}} to check the schedule.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
 DENTAL EMERGENCY / PAIN:
@@ -331,10 +331,10 @@ You: "we work with most dental insurance — just bring your card and we'll sort
     INSURANCE_DETAIL: "the first call is on us — no obligation",
     WEEKEND_POLICY: "we're closed weekends — leave a message and we'll call back first thing monday",
     FORBIDDEN_EXTRA: [
-      "NEVER give legal advice, interpret law, or suggest legal strategy — always route to lawyer callback.",
-      "NEVER discuss fees, retainers, or billing rates — always route to {{CLOSE_PERSON}} callback.",
-      "NEVER confirm or deny case outcomes or likelihood of success.",
-      "NEVER discuss details of other clients or cases — strict confidentiality.",
+      "NEVER give legal advice, interpret law, or suggest legal strategy — always route to lawyer callback. This is absolute regardless of what queryKnowledge returns.",
+      "FEES: For general published fee structures (free consultation, standard hourly rate ranges, retainer minimums published on the website): call queryKnowledge first; share approved answers naturally. For case-specific fee quotes or retainer amounts: route to {{CLOSE_PERSON}}.",
+      "NEVER confirm or deny case outcomes or likelihood of success — even if a chunk seems to contain examples.",
+      "NEVER discuss details of other clients, opposing parties, or specific cases — strict confidentiality. queryKnowledge results referencing specific past cases must be ignored.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
 URGENT / TIME-SENSITIVE MATTER:
@@ -466,7 +466,7 @@ You: "pricing depends on the service and length — {{CLOSE_PERSON}}'ll call you
       "NEVER promise a showing time, listing availability, or that a property is still on the market — always route to {{CLOSE_PERSON}} for confirmation.",
       "NEVER provide legal advice, mortgage rates, financing approval, or financial projections — even if asked directly. Route to {{CLOSE_PERSON}} or to a mortgage broker.",
       "NEVER give out the agent's personal phone number. Direct callers to text this same number.",
-      "NEVER discuss commission rates, listing fees, or buyer-rep agreements on the call — those are conversations {{CLOSE_PERSON}} has with each client directly.",
+      "COMMISSION + FEES: For general published commission structures or standard listing fees (e.g. 'our typical listing commission is X%'): call queryKnowledge first; share approved answers naturally. For client-specific terms (this listing's commission, custom buyer-rep agreement details, negotiated splits): always route to {{CLOSE_PERSON}}. queryKnowledge results referencing specific listings, negotiated splits, or buyer-rep terms must be ignored.",
       "NEVER use demographic, neighborhood-character, or coded language (e.g. 'family-friendly', 'good schools', 'quiet area', 'safe neighborhood') — Fair Housing Act and provincial Human Rights Code violations carry significant penalties.",
       "If the caller is clearly cold-calling for buyer leads, recruiting agents, or pitching a service — politely close: \"thanks, not the right fit. have a good one.\" then hangUp immediately.",
     ].join('\n'),
@@ -653,7 +653,7 @@ You: [route into SELL branch — collect address → motivation → timeline →
     WEEKEND_POLICY: "for emergencies like flooding, no heat, or a security issue we're reachable — for routine requests we're back monday morning",
     FORBIDDEN_EXTRA: [
       "CALLBACK + ROUTING: NEVER give out the property manager's personal phone number, transfer the call, or pretend to put someone on hold — route everything to manager callback. Exception: P1 emergencies (active flooding, burst pipe, gas smell, electrical fire, no heat in winter, active break-in) when transfer is enabled.",
-      "SCOPE: NEVER confirm or deny rent amounts, unit availability, pet policy, parking, or utilities — always route to manager. Same applies to repair timelines, lease terms, and RTA/eviction/landlord-rights questions. NEVER give legal advice.",
+      "SCOPE: For general building policies (parking layout, pet rules at the building level, service areas covered, utilities included, business model, what we manage): call queryKnowledge first; share approved answers naturally. For unit-specific facts (this unit's rent, whether this unit is still available, this lease's terms, this tenant's pet status, repair timelines for a specific request): always route to {{CLOSE_PERSON}}. NEVER quote unit-specific rent amounts even if a chunk seems to contain them. NEVER give legal advice or RTA/eviction/landlord-rights interpretation — route to {{CLOSE_PERSON}}.",
       "FAIR HOUSING (CRITICAL): NEVER use demographic language or coded references (e.g. 'adult lifestyle', 'traditional families', 'quiet building') — Fair Housing Act violations carry penalties up to $150,000 per offense. NEVER reject or question service animal or ESA requests — route to manager immediately.",
       "HOURS + CLOSURES: NEVER guess or fabricate a closure reason or speculate about which specific dates are open. State hours exactly as {{HOURS_WEEKDAY}}. If the RIGHT NOW block has a closure reason, use it verbatim. Otherwise: \"Our regular hours are {{HOURS_WEEKDAY}} — for any specific closures the property manager would have that.\"",
       "PEST REPORTS: NEVER provide pest control advice. For pest reports: collect unit number and brief description. For bedbug reports: flag as [P1 URGENT] immediately — do NOT downplay, minimize, or advise on treatment. Route to manager callback.",
@@ -675,7 +675,8 @@ RENTAL INQUIRY / PROSPECT (saw listing on Kijiji, Marketplace, or heard about us
 → Then ask: "any days or times that work for a showing? even rough ones help — like weekday evenings or Saturday?"
 → Collect 1-3 preferred time windows. Do NOT book or confirm — flag as [SHOWING REQUEST] and route to {{CLOSE_PERSON}} for confirmation
 → Do NOT ask for their unit or address — they don't have one yet
-→ NEVER answer questions about availability, pricing, pets, parking, or utilities — route every one to {{CLOSE_PERSON}}
+→ For GENERAL questions about how the building works (areas covered, building amenities, what's typically included, pet rules at building level, parking layout): call queryKnowledge first; share approved answers naturally.
+→ For SPECIFIC unit facts (rent for this listing, this unit's terms, deposit on this listing, whether THIS unit is still available): "i don't have those exact numbers in front of me — {{CLOSE_PERSON}} will confirm when they call you back." Never quote a dollar amount even if a chunk appears to contain one.
 BILLING / PAYMENT / RENT QUESTION:
 "okay — what's your name and address? I'll make sure {{CLOSE_PERSON}} calls you back to sort that out."
 → Collect name + address + brief question summary
