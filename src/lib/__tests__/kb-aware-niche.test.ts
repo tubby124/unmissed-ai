@@ -217,3 +217,31 @@ test('legal FORBIDDEN_EXTRA tightens KB usage on case-outcomes + confidentiality
   assert.match(fe, /queryKnowledge.*specific.*cases|specific.*cases.*ignored/i,
     'confidentiality rule must instruct ignoring KB chunks about specific cases')
 })
+
+test('real_estate FORBIDDEN_EXTRA preserves FHA + valuation absolutes', () => {
+  const fe = NICHE_DEFAULTS.real_estate.FORBIDDEN_EXTRA
+  assert.match(fe, /Fair Housing Act|Human Rights/i)
+  assert.match(fe, /demographic|coded language/i)
+  assert.match(fe, /home valuation|price-per-square-foot|comp values?/i)
+  assert.match(fe, /agent's personal phone/i)
+})
+
+test('real_estate FORBIDDEN_EXTRA commission rule is KB-conditional', () => {
+  const fe = NICHE_DEFAULTS.real_estate.FORBIDDEN_EXTRA
+  // Old blanket form gone
+  assert.ok(!/NEVER discuss commission rates.*on the call/i.test(fe),
+    'old blanket-block commission rule must be removed')
+  // New form distinguishes general published rates from client-specific terms
+  assert.match(fe, /queryKnowledge|general.*commission|published.*commission|listing commission/i,
+    'commission rule must allow general published structures via KB')
+  assert.match(fe, /client-specific|this listing|negotiated splits/i,
+    'commission rule must explicitly route client-specific terms')
+})
+
+test('real_estate FORBIDDEN_EXTRA preserves mortgage + cold-caller absolutes', () => {
+  const fe = NICHE_DEFAULTS.real_estate.FORBIDDEN_EXTRA
+  // Mortgage rates / financing — absolute
+  assert.match(fe, /mortgage rates|financing approval/i)
+  // Cold-caller deflection — absolute
+  assert.match(fe, /cold-calling|recruiting agents|pitching/i)
+})
