@@ -31,7 +31,7 @@ updated: 2026-04-28
 | City | Saskatoon, SK |
 | Address | 4-216 33rd Street West, Saskatoon, SK |
 | Website | https://www.vellyremodeling.com/ |
-| Niche | `other` (no `renovation` niche scaffolded yet — D-NEW candidate) |
+| Niche | `other` — **migration to `home_renovation` planned**, see [[Tracker/D-NEW-velly-kb-niche-migration]] (PR #87 shipped the home_renovation niche 2026-05-06) |
 | Agent name | Eric |
 | Plan | $29/mo, Core feature gates, 100-minute cap (custom combo — see "Plan combo" section) |
 | Monthly minute limit | 100 |
