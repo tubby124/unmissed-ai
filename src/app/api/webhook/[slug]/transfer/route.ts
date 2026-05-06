@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { redirectCall, sendSms } from '@/lib/twilio'
 import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { APP_URL } from '@/lib/app-url'
+import { recordToolInvocation } from '@/lib/tool-invocations'
 
 export const maxDuration = 10
 
@@ -10,6 +11,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const startedAt = Date.now()
   const { slug } = await params
 
   // Verify shared secret — Ultravox sends this as a static header
@@ -23,9 +25,11 @@ export async function POST(
   let callState = parseCallState(req)
 
   let call_id: string | undefined
+  let reason: string | undefined
   try {
     const body = await req.json()
     call_id = body.call_id
+    reason = typeof body.reason === 'string' ? body.reason : undefined
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -33,6 +37,7 @@ export async function POST(
   if (!call_id) {
     return NextResponse.json({ error: 'call_id required' }, { status: 400 })
   }
+  const transferQueryText = reason ?? ''
 
   const supabase = createServiceClient()
 
@@ -46,6 +51,13 @@ export async function POST(
 
   if (!client?.forwarding_number) {
     console.error(`[transfer] No forwarding_number for slug=${slug}`)
+    if (client?.id) {
+      void recordToolInvocation({
+        clientId: client.id, callLogId: null, toolName: 'transferCall',
+        queryText: transferQueryText, chunkIdsHit: null,
+        success: false, latencyMs: Date.now() - startedAt,
+      })
+    }
     return NextResponse.json({ error: 'No forwarding number configured' }, { status: 404 })
   }
 
@@ -55,7 +67,7 @@ export async function POST(
   // Look up Twilio callSid from call_logs
   const { data: log } = await supabase
     .from('call_logs')
-    .select('twilio_call_sid, caller_phone')
+    .select('id, twilio_call_sid, caller_phone')
     .eq('ultravox_call_id', call_id)
     .eq('client_id', client.id)
     .limit(1)
@@ -63,8 +75,14 @@ export async function POST(
 
   if (!log?.twilio_call_sid) {
     console.error(`[transfer] No twilio_call_sid for call_id=${call_id} slug=${slug}`)
+    void recordToolInvocation({
+      clientId: client.id, callLogId: (log?.id as string | undefined) ?? null, toolName: 'transferCall',
+      queryText: transferQueryText, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return NextResponse.json({ error: 'Call SID not found' }, { status: 404 })
   }
+  const callLogId = log.id as string
 
   try {
     const callerPhone = (log.caller_phone as string | null) ?? 'unknown'
@@ -105,6 +123,11 @@ export async function POST(
     const okResponse = NextResponse.json({ result: 'Transfer initiated' })
     if (callState) setStateUpdate(okResponse, { escalationFlag: true, lastToolOutcome: 'transferred' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { escalationFlag: true, lastToolOutcome: 'transferred' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId, toolName: 'transferCall',
+      queryText: transferQueryText, chunkIdsHit: null,
+      success: true, latencyMs: Date.now() - startedAt,
+    })
     return okResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -112,6 +135,11 @@ export async function POST(
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'transfer_error' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'transfer_error' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId, toolName: 'transferCall',
+      queryText: transferQueryText, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return errResponse
   }
 }

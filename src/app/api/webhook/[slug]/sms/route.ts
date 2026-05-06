@@ -3,10 +3,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendSmsTracked } from '@/lib/twilio'
 import { parseCallState, setStateUpdate, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { APP_URL } from '@/lib/app-url'
+import { recordToolInvocation } from '@/lib/tool-invocations'
 
 export const maxDuration = 10
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const startedAt = Date.now()
   const { slug } = await params
 
   // Auth — same shared secret pattern as transfer route
@@ -122,6 +124,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const blockedResponse = NextResponse.json({ result: 'SMS blocked — recipient opted out' })
     if (callState) setStateUpdate(blockedResponse, { lastToolOutcome: 'sms_blocked' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_blocked' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId: relatedCallId, toolName: 'sendTextMessage',
+      queryText: message, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return blockedResponse
   }
 
@@ -189,6 +196,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const sentResponse = NextResponse.json({ result: 'SMS sent' })
     if (callState) setStateUpdate(sentResponse, { lastToolOutcome: 'sms_sent' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_sent' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId: relatedCallId, toolName: 'sendTextMessage',
+      queryText: message, chunkIdsHit: null,
+      success: true, latencyMs: Date.now() - startedAt,
+    })
     return sentResponse
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -211,6 +223,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const errResponse = NextResponse.json({ error: msg }, { status: 500 })
     if (callState) setStateUpdate(errResponse, { lastToolOutcome: 'sms_error' })
     if (call_id) await persistCallStateToDb(supabase, call_id, callState, { lastToolOutcome: 'sms_error' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId: relatedCallId, toolName: 'sendTextMessage',
+      queryText: message, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return errResponse
   }
 }

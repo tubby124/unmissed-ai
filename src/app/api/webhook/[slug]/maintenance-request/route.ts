@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { recordToolInvocation } from '@/lib/tool-invocations'
 
 export const maxDuration = 10
 
@@ -8,6 +9,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const startedAt = Date.now()
   const { slug } = await params
 
   // Verify shared secret — Ultravox sends this as a static header
@@ -93,8 +95,19 @@ export async function POST(
     .select('id, status')
     .single()
 
+  const intakeSummary = JSON.stringify({
+    category: category as string,
+    urgency: urgency_tier as string,
+    unit: unit_number as string,
+  })
+
   if (error) {
     console.error(`[maintenance-request] Insert failed for slug=${slug}: ${error.message}`)
+    void recordToolInvocation({
+      clientId: client.id, callLogId: call_log_id, toolName: 'submitMaintenanceRequest',
+      queryText: intakeSummary, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -119,6 +132,12 @@ export async function POST(
     description: description as string,
     urgency_tier: urgency_tier as string,
     maintenance_request_id: inserted.id,
+  })
+
+  void recordToolInvocation({
+    clientId: client.id, callLogId: call_log_id, toolName: 'submitMaintenanceRequest',
+    queryText: intakeSummary, chunkIdsHit: null,
+    success: true, latencyMs: Date.now() - startedAt,
   })
 
   return NextResponse.json({ id: inserted.id, status: inserted.status })

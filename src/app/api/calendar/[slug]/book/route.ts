@@ -5,11 +5,14 @@ import { parseCallState, setStateUpdate, bookingInstruction, readCallStateFromDb
 import { normalizeTime, toPreferredTime } from '@/lib/calendar-time'
 import { BRAND_NAME } from '@/lib/brand'
 import { sendSmsTracked } from '@/lib/twilio'
+import { recordToolInvocation } from '@/lib/tool-invocations'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const startedAt = Date.now()
+
   // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
   const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
   const providedSecret = req.headers.get('X-Tool-Secret')
@@ -37,6 +40,7 @@ export async function POST(
     return NextResponse.json({ booked: false, reason: 'missing_fields' }, { status: 400 })
   }
   const resolvedCallerName = callerName || 'Caller'
+  const argsSummary = JSON.stringify({ date, time, service, callerName: resolvedCallerName })
 
   const supabase = createServiceClient()
   const { data: client } = await supabase
@@ -86,6 +90,11 @@ export async function POST(
       })
       if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
       if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'slot_taken' })
+      void recordToolInvocation({
+        clientId: client.id, callLogId: null, toolName: 'bookAppointment',
+        queryText: argsSummary, chunkIdsHit: null,
+        success: false, latencyMs: Date.now() - startedAt,
+      })
       return response
     }
 
@@ -186,6 +195,11 @@ export async function POST(
     response.headers.set('X-Ultravox-Agent-Reaction', 'speaks')
     if (callState) setStateUpdate(response, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
     if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: newAttempts, lastToolOutcome: 'booked' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId: bookingCallLogId, toolName: 'bookAppointment',
+      queryText: argsSummary, chunkIdsHit: null,
+      success: true, latencyMs: Date.now() - startedAt,
+    })
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -203,6 +217,11 @@ export async function POST(
     })
     if (callState) setStateUpdate(errResponse, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
     if (callId) await persistCallStateToDb(supabase, callId, callState, { bookingAttempts: errNewAttempts, lastToolOutcome: 'booking_error' })
+    void recordToolInvocation({
+      clientId: client.id, callLogId: null, toolName: 'bookAppointment',
+      queryText: argsSummary, chunkIdsHit: null,
+      success: false, latencyMs: Date.now() - startedAt,
+    })
     return errResponse
   }
 }

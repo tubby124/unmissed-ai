@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 import { parseCallState, setStateUpdate, knowledgeInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
+import { recordToolInvocation } from '@/lib/tool-invocations'
 
 const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
@@ -61,6 +62,10 @@ export async function POST(
     const latency = Date.now() - start
     await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency)
     console.log(`[knowledge-query] slug=${slug} EMBEDDING_FAILED query="${queryText.slice(0, 80)}" latency=${latency}ms`)
+    void recordToolInvocation({
+      clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+      queryText, chunkIdsHit: null, success: false, latencyMs: latency,
+    })
     return NextResponse.json({ results: [], count: 0, error: 'embedding_failed' })
   }
 
@@ -94,6 +99,10 @@ export async function POST(
   if (rpcErr) {
     console.error(`[knowledge-query] slug=${slug} RPC error: ${rpcErr.message}`)
     await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency, embedding)
+    void recordToolInvocation({
+      clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+      queryText, chunkIdsHit: null, success: false, latencyMs: latency,
+    })
     return NextResponse.json({ results: [], count: 0, error: 'search_failed' })
   }
 
@@ -192,6 +201,11 @@ export async function POST(
   const stateUpdates = { knowledgeQueries: newQueries, lastToolOutcome: found ? 'knowledge_found' as const : 'knowledge_empty' as const }
   if (callState) setStateUpdate(response, stateUpdates)
   if (callId) await persistCallStateToDb(supabase, callId, callState, stateUpdates)
+  void recordToolInvocation({
+    clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+    queryText, chunkIdsHit: sorted.map(m => m.id),
+    success: true, latencyMs: Date.now() - start,
+  })
   return response
 }
 
