@@ -1385,8 +1385,8 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
       }
       const triggers = triggerRaw.split(',').map(t => t.trim()).filter(Boolean)
       const triggerList = triggers.map(t => TRIGGER_LABELS[t] || t).join(', ')
-      triageDeep += `\nP1 EMERGENCY TRIGGERS FOR THIS CLIENT: ${triggerList}. Only these situations warrant immediate escalation / live transfer — everything else is P2/P3.`
-      triageDeep += `\nP1 TRANSFER FALLBACK: If transferCall fails or the owner does not answer, do NOT give up. Say: "hey, looks like they're not reachable right now — but i'm logging this as a P1 emergency right now so they see it the moment they're back. what's your unit number?" Then collect unit_number (if not already known), confirm tenant_name, and one clear description of the issue. Call submitMaintenanceRequest with urgency_tier='urgent' before closing. After submitting say: "ok — i've logged this as P1 urgent, they'll be notified right away. if this is life-threatening right now please call 9-1-1." Then hang up.`
+      triageDeep += `\nINTERNAL — P1 EMERGENCY TRIGGERS FOR THIS CLIENT: ${triggerList}. Only these situations warrant immediate escalation / live transfer — everything else is routine. Never say the codes "P1," "P2," "P3" out loud or in any SMS body — those are internal routing labels only.`
+      triageDeep += `\nINTERNAL — EMERGENCY TRANSFER FALLBACK: If transferCall fails or the owner does not answer, do NOT give up. Say: "hey, looks like they're not reachable right now — but i'm logging this as urgent right now so they see it the moment they're back. what's your unit number?" Then collect unit_number (if not already known), confirm tenant_name, and one clear description of the issue. Call submitMaintenanceRequest with urgency_tier='urgent' before closing. After submitting say: "ok — i've logged this as urgent, they'll be notified right away. if this is life-threatening right now please call 9-1-1." Then hang up.`
     }
 
     // Unit count context — affects how agent frames scale/urgency

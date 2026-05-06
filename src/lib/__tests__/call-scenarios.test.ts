@@ -150,7 +150,7 @@ describe('Phase 1 — PM hero niche', () => {
       callerType: 'tenant',
       intentSummary: 'Tenant reports burst pipe / active flooding',
       expectedContains: [
-        'flag [P1 URGENT]',
+        "urgency_tier='urgent' (internally P1)",
         '9-1-1 right now',
         'name and unit',
       ],
@@ -164,7 +164,7 @@ describe('Phase 1 — PM hero niche', () => {
       // "no heat" → URGENT contract now lives in TRIAGE_DEEP's EMERGENCY-signals branch.
       expectedContains: [
         'no heat',
-        'flag [P1 URGENT]',
+        "urgency_tier='urgent' (internally P1)",
       ],
     },
     {
@@ -177,7 +177,7 @@ describe('Phase 1 — PM hero niche', () => {
       expectedContains: [
         '9-1-1 right now',
         'gas smell',
-        'flag [P1 URGENT]',
+        "urgency_tier='urgent' (internally P1)",
       ],
     },
     {
@@ -186,7 +186,7 @@ describe('Phase 1 — PM hero niche', () => {
       callerType: 'tenant',
       intentSummary: 'Kitchen faucet has been dripping — routine repair',
       expectedContains: [
-        'flag [P3 ROUTINE]',
+        "urgency_tier='routine' (internally P3)",
         'ROUTINE',
       ],
     },
@@ -247,7 +247,7 @@ describe('Phase 1 — PM hero niche', () => {
       intentSummary: 'Tenant reports bedbugs in unit',
       expectedContains: [
         'do NOT downplay',
-        'flag as [P1 URGENT] immediately',
+        "treat as urgent immediately and call submitMaintenanceRequest with urgency_tier='urgent'",
       ],
     },
     {
@@ -317,7 +317,7 @@ describe('Phase 2 — PM field-empty variants', () => {
       intentSummary: 'Burst pipe — client never filled in shut-off valve location',
       intakeOverrides: { niche_shutOffValveLocation: undefined },
       expectedContains: [
-        'flag [P1 URGENT]',   // routing must still work
+        "urgency_tier='urgent' (internally P1)",   // routing must still work
         '9-1-1 right now',
       ],
       mustNotContain: [
@@ -345,7 +345,7 @@ describe('Phase 2 — PM field-empty variants', () => {
       intentSummary: 'Emergency call — client left maintenance contacts blank',
       intakeOverrides: { niche_maintenanceContacts: undefined },
       expectedContains: [
-        'flag [P1 URGENT]',
+        "urgency_tier='urgent' (internally P1)",
         'name and unit',
       ],
     },
@@ -372,7 +372,7 @@ describe('Phase 2 — PM field-empty variants', () => {
         'LIFE SAFETY EMERGENCY OVERRIDE',
       ],
       mustNotContain: [
-        'flag [P1 URGENT]',    // TRIAGE_DEEP not present in voicemail prompt
+        "urgency_tier='urgent' (internally P1)",    // TRIAGE_DEEP not present in voicemail prompt
         'SHOWING REQUEST',
         'RENTAL INQUIRY',
       ],
@@ -393,7 +393,7 @@ describe('Phase 3 — Cross-mode tests', () => {
       intentSummary: 'PM client on triage mode — TRIAGE_DEEP must be present',
       intakeOverrides: { call_handling_mode: 'triage' },
       expectedContains: [
-        'flag [P1 URGENT]',
+        "urgency_tier='urgent' (internally P1)",
         'SHOWING REQUEST',
         'Fair Housing Act violations carry penalties up to $150,000',
       ],

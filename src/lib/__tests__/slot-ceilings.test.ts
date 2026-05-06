@@ -113,15 +113,14 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
       knowledge_chunk_count: 5,
     } as never)
     const out = buildForbiddenActions(kbCtx)
-    // PM has larger FORBIDDEN_EXTRA (~8 grouped rules) vs auto_glass baseline.
-    // Measured post-Fix1: 3,709 → 4,200 (Phase 1 KB-aware) → 4,700 (QUESTION_INTAKE 2026-05-06).
-    // QUESTION_INTAKE rollout adds ANSWER-FIRST RULE (~210 chars) + TOOL-LATENCY BRIDGE (~290
-    // chars) to FORBIDDEN_EXTRA. Both rules are universal (apply across all branches), not
-    // RENTAL_INQUIRY-scoped — fixes Brian's defer-anyway behavior where queryKnowledge fired
-    // but agent still mumbled preamble + offered callback.
+    // PM has larger FORBIDDEN_EXTRA (~9 grouped rules) vs auto_glass baseline.
+    // Measured post-Fix1: 3,709 → 4,200 (Phase 1 KB-aware) → 4,700 (QUESTION_INTAKE
+    // 2026-05-06) → 5,300 (INTERNAL TAGS rule 2026-05-06 PM). The INTERNAL TAGS rule
+    // (~470 chars) bans speaking the routing labels P1/P2/P3 etc. — fixes the customer
+    // -facing bracket-tag leak that was sending "P1 URGENT" into both speech and SMS.
     // If this trips again, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
-    assert.ok(out.length <= 4_700,
-      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4700: ${out.length}`)
+    assert.ok(out.length <= 5_300,
+      `FORBIDDEN_ACTIONS with strict KB priming exceeds 5300: ${out.length}`)
   })
 
   test('VOICE_NATURALNESS under ceiling', () => {
@@ -263,14 +262,13 @@ describe('Phase D total prompt ceilings', () => {
 
   // Property_management ceiling tightened 18,500 → 16,000 by D-NEW-niche-template-trim
   // (2026-05-05). Raised to 17,000 by KB-aware niche templates Phase 1 Task 4 (2026-05-05).
-  // Raised again to 19,000 by QUESTION_INTAKE top-level branch + ANSWER-FIRST RULE +
-  // TOOL-LATENCY BRIDGE rules (2026-05-06). Brian dryrun showed agent calls queryKnowledge
-  // then mumbles preamble + defers anyway because KB-conditional rule lived inside
-  // RENTAL_INQUIRY only. Adding QUESTION_INTAKE as first top-level TRIAGE_DEEP branch
-  // (~1110 chars) + 2 universal FORBIDDEN rules (~490 chars) lifts baseline to ~18,125.
+  // Raised to 19,000 by QUESTION_INTAKE rollout (2026-05-06).
+  // Raised to 19,500 by INTERNAL TAGS bracket-leak fix (2026-05-06 PM): added universal
+  // FORBIDDEN rule banning P1/P2/P3/[TAG] strings in speech + SMS, after Hasan's test call
+  // showed the agent reading "[P1 URGENT]" out loud + putting it in the SMS confirmation.
   // PM still keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
   // bedbug/closure-anti-hallucination guardrails.
-  test('property_management baseline under 19,000 chars (post QUESTION_INTAKE)', () => {
+  test('property_management baseline under 19,500 chars (post INTERNAL TAGS)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'property_management',
       business_name: 'Urban Vibe Properties',
@@ -281,7 +279,7 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       owner_name: 'Ray',
     })
-    assert.ok(prompt.length <= 19_000,
-      `property_management baseline is ${prompt.length} chars, exceeds post-QUESTION_INTAKE ceiling 19,000`)
+    assert.ok(prompt.length <= 19_500,
+      `property_management baseline is ${prompt.length} chars, exceeds post-INTERNAL-TAGS ceiling 19,500`)
   })
 })
