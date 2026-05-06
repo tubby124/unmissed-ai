@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { NICHE_REGISTRY, getKbStance } from '../niche-registry'
-import { buildSlotContext } from '../prompt-slots'
+import { buildSlotContext, buildForbiddenActions } from '../prompt-slots'
 
 test('strict niches get kbStance=strict', () => {
   assert.equal(getKbStance('property_management'), 'strict')
@@ -70,4 +70,59 @@ test('buildSlotContext handles hyphenated niche slugs', () => {
     timezone: 'America/Edmonton',
   } as never)
   assert.equal(ctx.kbStance, 'strict')
+})
+
+const baseForbiddenCtx = {
+  agentName: 'Brian',
+  businessName: 'Calgary Property Leasing',
+  closePerson: 'Brian',
+  completionFields: 'name and reason',
+  pricingPolicy: 'no_quotes' as const,
+  transferEnabled: false,
+  forbiddenExtraRules: [],
+  industry: 'property management company',
+  knowledgeBackend: '',
+  knowledgeChunkCount: 0,
+  kbStance: 'permissive' as const,
+}
+
+test('FORBIDDEN_ACTIONS has no KB priming when KB empty', () => {
+  const out = buildForbiddenActions(baseForbiddenCtx as never)
+  assert.ok(!out.includes('queryKnowledge'),
+    'KB priming must NOT emit when knowledgeChunkCount=0')
+})
+
+test('FORBIDDEN_ACTIONS has no KB priming when backend != pgvector', () => {
+  const out = buildForbiddenActions({
+    ...baseForbiddenCtx,
+    knowledgeBackend: 'inline',
+    knowledgeChunkCount: 6,
+  } as never)
+  assert.ok(!out.includes('queryKnowledge'),
+    'KB priming must NOT emit when backend is not pgvector')
+})
+
+test('FORBIDDEN_ACTIONS emits KB-first priming when populated (permissive)', () => {
+  const out = buildForbiddenActions({
+    ...baseForbiddenCtx,
+    knowledgeBackend: 'pgvector',
+    knowledgeChunkCount: 6,
+  } as never)
+  assert.ok(out.includes('queryKnowledge'),
+    'KB priming must emit when chunks > 0')
+  assert.ok(/queryKnowledge first/i.test(out),
+    'permissive stance: should include "queryKnowledge first" phrasing')
+})
+
+test('FORBIDDEN_ACTIONS emits KB-conditional priming when populated (strict)', () => {
+  const out = buildForbiddenActions({
+    ...baseForbiddenCtx,
+    kbStance: 'strict',
+    knowledgeBackend: 'pgvector',
+    knowledgeChunkCount: 6,
+  } as never)
+  assert.ok(out.includes('queryKnowledge'),
+    'KB priming must emit when chunks > 0')
+  assert.ok(/general polic|policy question/i.test(out),
+    'strict stance: must mention "general policies" or similar to distinguish from specifics')
 })
