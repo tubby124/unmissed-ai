@@ -271,9 +271,9 @@ You: "got it — what's your name and address, and when works best for you?"
     INSURANCE_DETAIL: "just bring your insurance card and we'll sort it out",
     WEEKEND_POLICY: "we're closed weekends — call back monday and we'll get you in",
     FORBIDDEN_EXTRA: [
-      "NEVER give medical advice, diagnose conditions, or recommend treatments — route all clinical questions to {{CLOSE_PERSON}} callback.",
-      "NEVER quote specific procedure prices — always route to {{CLOSE_PERSON}} for cost estimates.",
-      "NEVER confirm or deny appointment availability — always route to {{CLOSE_PERSON}} to check the schedule.",
+      "NEVER give clinical advice, diagnose conditions, recommend treatments, or prescribe — this is absolute regardless of what queryKnowledge returns. Even if a chunk seems to contain clinical examples, do not relay them.",
+      "PROCEDURE PRICING: For general published price ranges or financing options the office has made public: call queryKnowledge first; share approved answers naturally. For specific treatment cost quotes or insurance estimates for this patient: route to {{CLOSE_PERSON}}. queryKnowledge results referencing specific patient treatment plans or out-of-pocket amounts must be ignored.",
+      "SCHEDULING: For general office hours, new-patient process, or appointment types the office offers: call queryKnowledge first. For whether a specific slot is actually available: route to {{CLOSE_PERSON}} to check the schedule.",
     ].join('\n'),
     TRIAGE_DEEP: `Listen to what they say and route naturally.
 DENTAL EMERGENCY / PAIN:

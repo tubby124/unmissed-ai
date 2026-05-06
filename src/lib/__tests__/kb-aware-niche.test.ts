@@ -251,3 +251,43 @@ test('real_estate FORBIDDEN_EXTRA commission rule has anti-chunk guard', () => {
   assert.match(fe, /queryKnowledge results referencing.*listings.*negotiated splits.*must be ignored/i,
     'commission rule must instruct ignoring KB chunks about specific listings/splits')
 })
+
+test('dental FORBIDDEN_EXTRA preserves clinical-advice absolute', () => {
+  const fe = NICHE_DEFAULTS.dental.FORBIDDEN_EXTRA
+  // Clinical advice is ABSOLUTE — patient safety
+  assert.match(fe, /NEVER give clinical advice|diagnose conditions|recommend treatments/i)
+  // Must resist KB chunks even if they contain clinical examples
+  assert.match(fe, /even if a chunk.*clinical examples|regardless of what queryKnowledge/i)
+})
+
+test('dental FORBIDDEN_EXTRA procedure pricing is KB-conditional', () => {
+  const fe = NICHE_DEFAULTS.dental.FORBIDDEN_EXTRA
+  // Old blanket form gone
+  assert.ok(!/NEVER quote specific procedure prices — always route/i.test(fe),
+    'old blanket-block procedure-pricing rule must be removed')
+  // New form allows general published ranges via KB
+  assert.match(fe, /queryKnowledge|published.*price|general.*price|financing/i,
+    'procedure pricing must allow general published ranges via KB')
+  // Specific patient quotes still route
+  assert.match(fe, /specific.*patient|this patient|out-of-pocket/i,
+    'pricing rule must route patient-specific cost quotes')
+})
+
+test('dental FORBIDDEN_EXTRA procedure pricing has anti-chunk guard', () => {
+  const fe = NICHE_DEFAULTS.dental.FORBIDDEN_EXTRA
+  assert.match(fe, /queryKnowledge results referencing.*patient.*treatment|treatment plans.*must be ignored/i,
+    'pricing rule must instruct ignoring KB chunks about specific patient treatment plans')
+})
+
+test('dental FORBIDDEN_EXTRA scheduling is KB-conditional', () => {
+  const fe = NICHE_DEFAULTS.dental.FORBIDDEN_EXTRA
+  // Old blanket form gone
+  assert.ok(!/NEVER confirm or deny appointment availability — always route/i.test(fe),
+    'old blanket-block availability rule must be removed')
+  // General hours/process can come from KB
+  assert.match(fe, /queryKnowledge|general.*office hours|appointment types|new-patient/i,
+    'scheduling rule must allow general hours/process via KB')
+  // Specific slot availability still routes
+  assert.match(fe, /specific.*slot|check the schedule/i,
+    'scheduling rule must route specific slot availability queries')
+})
