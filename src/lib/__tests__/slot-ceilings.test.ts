@@ -105,6 +105,21 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
       `FORBIDDEN_ACTIONS is ${len} chars, exceeds ceiling ${SLOT_CEILINGS.FORBIDDEN_ACTIONS}`)
   })
 
+  test('FORBIDDEN_ACTIONS — strict niche with pgvector KB stays under ceiling', () => {
+    const kbCtx = buildSlotContext({
+      ...AUTO_GLASS_INTAKE,
+      niche: 'property_management',
+      knowledge_backend: 'pgvector',
+      knowledge_chunk_count: 5,
+    } as never)
+    const out = buildForbiddenActions(kbCtx)
+    // PM has larger FORBIDDEN_EXTRA (~6 grouped rules) vs auto_glass baseline.
+    // Measured post-Fix1: 3,709 chars. Ceiling = measured + ~8% headroom.
+    // If this trips, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
+    assert.ok(out.length <= 4_000,
+      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4000: ${out.length}`)
+  })
+
   test('VOICE_NATURALNESS under ceiling', () => {
     const len = buildVoiceNaturalness(ctx).length
     assert.ok(len <= SLOT_CEILINGS.VOICE_NATURALNESS,

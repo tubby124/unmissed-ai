@@ -126,3 +126,13 @@ test('FORBIDDEN_ACTIONS emits KB-conditional priming when populated (strict)', (
   assert.ok(/general polic|policy question/i.test(out),
     'strict stance: must mention "general policies" or similar to distinguish from specifics')
 })
+
+test('FORBIDDEN_ACTIONS KB priming includes booking/emergency exclusion', () => {
+  const out = buildForbiddenActions({
+    ...baseForbiddenCtx,
+    knowledgeBackend: 'pgvector',
+    knowledgeChunkCount: 6,
+  } as never)
+  assert.match(out, /Do NOT call queryKnowledge for greetings, emergencies, or booking/i,
+    'KB priming must exclude greetings/emergencies/booking from queryKnowledge calls')
+})

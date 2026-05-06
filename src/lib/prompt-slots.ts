@@ -253,8 +253,8 @@ export function buildForbiddenActions(ctx: SlotContext): string {
   const kbPriming = !kbAvailable
     ? ''
     : ctx.kbStance === 'strict'
-      ? `\n\nBEFORE deflecting any factual question (services, hours, general policies, areas covered, business model), call queryKnowledge first. If the tool returns an approved answer, share it naturally. ONLY route to ${ctx.closePerson} when (a) queryKnowledge returns no results, OR (b) the question is about a specific case / property / patient / file (not a general policy).`
-      : `\n\nFor any factual question about the business (services, hours, pricing, policies, procedures), call queryKnowledge first. If the tool returns an approved answer, share it naturally. Only route to ${ctx.closePerson} when queryKnowledge returns no results.`
+      ? `\n\nBEFORE deflecting any factual question (services, hours, general policies, areas covered, business model), call queryKnowledge first. If the tool returns an approved answer, share it naturally. ONLY route to ${ctx.closePerson} when (a) queryKnowledge returns no results, OR (b) the question is about a specific case / unit / tenant situation / property / patient / file (not a general policy). Do NOT call queryKnowledge for greetings, emergencies, or booking confirmations.`
+      : `\n\nFor any factual question about the business (services, hours, pricing, policies, procedures), call queryKnowledge first. If the tool returns an approved answer, share it naturally. Only route to ${ctx.closePerson} when queryKnowledge returns no results. Do NOT call queryKnowledge for greetings, emergencies, or booking confirmations.`
 
   const baseRules = `## ABSOLUTE FORBIDDEN ACTIONS — READ THESE FIRST
 
