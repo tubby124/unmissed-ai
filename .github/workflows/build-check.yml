@@ -1,0 +1,39 @@
+name: Build Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: next build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Module-level SDK init guard
+        run: |
+          MATCHES=$(grep -rn '^\(export \)\{0,1\}const .* = new Stripe\|^\(export \)\{0,1\}const .* = createClient(\|^\(export \)\{0,1\}const .* = createServiceClient(\|^\(export \)\{0,1\}const .* = createBrowserClient(' src/app/ src/lib/ 2>/dev/null || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Module-level SDK initialization detected (matches pre-push hook S18m/S18p)"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
