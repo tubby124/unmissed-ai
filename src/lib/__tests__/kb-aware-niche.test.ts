@@ -182,3 +182,10 @@ test('property_management TRIAGE_DEEP preserves $-amount prohibition', () => {
   // Should still prohibit quoting dollar amounts even from KB chunks
   assert.match(td, /(never|don't) quote a dollar amount|exact numbers/i)
 })
+
+test('property_management FORBIDDEN_EXTRA SCOPE rule covers unit-availability case', () => {
+  const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
+  // Prospect asking "is unit X still available" must route, not query KB
+  assert.match(fe, /whether this unit is still available/i,
+    'FORBIDDEN_EXTRA SCOPE rule must list unit availability as unit-specific (route, not KB)')
+})
