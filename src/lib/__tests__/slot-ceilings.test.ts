@@ -113,13 +113,15 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
       knowledge_chunk_count: 5,
     } as never)
     const out = buildForbiddenActions(kbCtx)
-    // PM has larger FORBIDDEN_EXTRA (~6 grouped rules) vs auto_glass baseline.
-    // Measured post-Fix1: 3,709 chars. Ceiling raised to 4,200 by KB-aware niche templates
-    // Phase 1 Task 4 (2026-05-05): SCOPE rule reframed to KB-conditional (+330 chars).
-    // Reframe is intentional — restores Brian's 16 approved KB chunks pre-empted since 2026-04-27.
+    // PM has larger FORBIDDEN_EXTRA (~8 grouped rules) vs auto_glass baseline.
+    // Measured post-Fix1: 3,709 → 4,200 (Phase 1 KB-aware) → 4,700 (QUESTION_INTAKE 2026-05-06).
+    // QUESTION_INTAKE rollout adds ANSWER-FIRST RULE (~210 chars) + TOOL-LATENCY BRIDGE (~290
+    // chars) to FORBIDDEN_EXTRA. Both rules are universal (apply across all branches), not
+    // RENTAL_INQUIRY-scoped — fixes Brian's defer-anyway behavior where queryKnowledge fired
+    // but agent still mumbled preamble + offered callback.
     // If this trips again, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
-    assert.ok(out.length <= 4_200,
-      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4200: ${out.length}`)
+    assert.ok(out.length <= 4_700,
+      `FORBIDDEN_ACTIONS with strict KB priming exceeds 4700: ${out.length}`)
   })
 
   test('VOICE_NATURALNESS under ceiling', () => {
@@ -260,13 +262,15 @@ describe('Phase D total prompt ceilings', () => {
   })
 
   // Property_management ceiling tightened 18,500 → 16,000 by D-NEW-niche-template-trim
-  // (2026-05-05). Raised to 17,000 by KB-aware niche templates Phase 1 Task 4 (2026-05-05):
-  // SCOPE rule + RENTAL INQUIRY block reframed from blanket-block to KB-conditional logic
-  // (+~490 chars). Reframe is intentional — conditional logic is more verbose than blanket
-  // blocks but restores Brian's 16 approved KB chunks that were pre-empted since 2026-04-27.
+  // (2026-05-05). Raised to 17,000 by KB-aware niche templates Phase 1 Task 4 (2026-05-05).
+  // Raised again to 19,000 by QUESTION_INTAKE top-level branch + ANSWER-FIRST RULE +
+  // TOOL-LATENCY BRIDGE rules (2026-05-06). Brian dryrun showed agent calls queryKnowledge
+  // then mumbles preamble + defers anyway because KB-conditional rule lived inside
+  // RENTAL_INQUIRY only. Adding QUESTION_INTAKE as first top-level TRIAGE_DEEP branch
+  // (~1110 chars) + 2 universal FORBIDDEN rules (~490 chars) lifts baseline to ~18,125.
   // PM still keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
   // bedbug/closure-anti-hallucination guardrails.
-  test('property_management baseline under 17,000 chars (post KB-aware reframe)', () => {
+  test('property_management baseline under 19,000 chars (post QUESTION_INTAKE)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'property_management',
       business_name: 'Urban Vibe Properties',
@@ -277,7 +281,7 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       owner_name: 'Ray',
     })
-    assert.ok(prompt.length <= 17_000,
-      `property_management baseline is ${prompt.length} chars, exceeds post-KB-aware-reframe ceiling 17,000`)
+    assert.ok(prompt.length <= 19_000,
+      `property_management baseline is ${prompt.length} chars, exceeds post-QUESTION_INTAKE ceiling 19,000`)
   })
 })
