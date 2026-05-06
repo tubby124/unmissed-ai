@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Car, Flame, Wrench, Stethoscope, Scale, Scissors,
   Home, Building2, PhoneCall, Voicemail, HelpCircle,
-  UtensilsCrossed, Printer, Settings, Bug, Zap, KeyRound, type LucideIcon,
+  UtensilsCrossed, Printer, Settings, Bug, Zap, KeyRound, Hammer, type LucideIcon,
 } from "lucide-react";
 import { OnboardingData } from "@/types/onboarding";
 import { type Niche, nicheLabels, defaultAgentNames, getNicheHexColor, nicheShortLabels } from "@/lib/niche-registry";
@@ -27,6 +27,7 @@ const nicheIcons: Record<Niche, LucideIcon> = {
   electrician: Zap,
   locksmith: KeyRound,
   barbershop: Scissors,
+  home_renovation: Hammer,
   other: HelpCircle,
 };
 
