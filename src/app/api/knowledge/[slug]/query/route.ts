@@ -52,6 +52,20 @@ export async function POST(
   // DB fallback: Agents API doesn't inject X-Call-State (no initialState support)
   if (!callState && callId) callState = await readCallStateFromDb(supabase, callId)
 
+  // Resolve call_log_id from ultravox_call_id (non-blocking lookup) — same pattern as
+  // calendar/book and webhook/maintenance-request. Without this, every queryKnowledge fire
+  // logs to tool_invocations with NULL call_log_id and per-call analytics break.
+  let callLogId: string | null = null
+  if (callId) {
+    const { data: log } = await supabase
+      .from('call_logs')
+      .select('id')
+      .eq('ultravox_call_id', callId)
+      .limit(1)
+      .maybeSingle()
+    callLogId = (log?.id as string | undefined) ?? null
+  }
+
   if (client.knowledge_backend !== 'pgvector') {
     return NextResponse.json({ error: 'pgvector not enabled for this client' }, { status: 400 })
   }
@@ -63,7 +77,7 @@ export async function POST(
     await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency)
     console.log(`[knowledge-query] slug=${slug} EMBEDDING_FAILED query="${queryText.slice(0, 80)}" latency=${latency}ms`)
     void recordToolInvocation({
-      clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+      clientId: client.id, callLogId, toolName: 'queryKnowledge',
       queryText, chunkIdsHit: null, success: false, latencyMs: latency,
     })
     return NextResponse.json({ results: [], count: 0, error: 'embedding_failed' })
@@ -100,7 +114,7 @@ export async function POST(
     console.error(`[knowledge-query] slug=${slug} RPC error: ${rpcErr.message}`)
     await logQuery(supabase, client.id, slug, queryText, 0, null, 0, latency, embedding)
     void recordToolInvocation({
-      clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+      clientId: client.id, callLogId, toolName: 'queryKnowledge',
       queryText, chunkIdsHit: null, success: false, latencyMs: latency,
     })
     return NextResponse.json({ results: [], count: 0, error: 'search_failed' })
@@ -202,7 +216,7 @@ export async function POST(
   if (callState) setStateUpdate(response, stateUpdates)
   if (callId) await persistCallStateToDb(supabase, callId, callState, stateUpdates)
   void recordToolInvocation({
-    clientId: client.id, callLogId: null, toolName: 'queryKnowledge',
+    clientId: client.id, callLogId, toolName: 'queryKnowledge',
     queryText, chunkIdsHit: sorted.map(m => m.id),
     success: true, latencyMs: Date.now() - start,
   })

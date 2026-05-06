@@ -1,6 +1,6 @@
 # KB-Aware Rollout Dry-Run
 
-Generated: 2026-05-06T22:09:09.378Z
+Generated: 2026-05-06T22:40:15.773Z
 Method: `recomposePrompt(clientId, userId, dryRun=true, forceRecompose=true)`
 
 READ-ONLY. No DB writes. No Ultravox calls. Per-client previewPrompt + currentPrompt JSON in this folder.
@@ -9,9 +9,9 @@ READ-ONLY. No DB writes. No Ultravox calls. Per-client previewPrompt + currentPr
 
 | Slug | Niche | Tuned | KB chunks | Chars (cur→new, Δ) | New kb-aware lines | Old blanket lines stripped | Safety guards (cur/new) | Status |
 |---|---|---|---|---|---|---|---|---|
-| calgary-property-leasing | property_management | false | 16 | 20216→21840 (+1624) | 5 | 0/0 | 2/2 | ✅ kb-aware |
-| hasan-sharif | real_estate | true | 29 | 8342→24455 (+16113) | 2 | 0/0 | 1/2 | ✅ kb-aware |
-| urban-vibe | property-management | true | 34 | 18878→21712 (+2834) | 5 | 1/1 | 2/2 | ✅ kb-aware |
+| calgary-property-leasing | property_management | false | 16 | 21840→22842 (+1002) | 5 | 0/0 | 2/2 | ✅ kb-aware |
+| hasan-sharif | real_estate | true | 29 | 8342→24959 (+16617) | 2 | 0/0 | 1/2 | ✅ kb-aware |
+| urban-vibe | property-management | true | 34 | 21712→22587 (+875) | 5 | 0/0 | 2/2 | ✅ kb-aware |
 | velly-remodeling | other | true | 0 | 7775→14231 (+6456) | 0 | 0/0 | 0/1 | 🟡 review |
 | windshield-hub | auto-glass | false | 83 | 14526→14852 (+326) | 1 | 0/0 | 1/1 | ✅ kb-aware |
 
@@ -20,7 +20,7 @@ READ-ONLY. No DB writes. No Ultravox calls. Per-client previewPrompt + currentPr
 ### calgary-property-leasing
 - business: Calgary Edmonton Property Leasing
 - niche: `property_management` | hand_tuned: `false` | kb_backend: `pgvector` | chunks: 16
-- prompt size: **20216 → 21840** (+1624 chars)
+- prompt size: **21840 → 22842** (+1002 chars)
 - new kb-aware fragments added (5):
   - `queryKnowledge first`
   - `For general building policies`
@@ -33,7 +33,7 @@ READ-ONLY. No DB writes. No Ultravox calls. Per-client previewPrompt + currentPr
 ### hasan-sharif
 - business: Hasan Sharif
 - niche: `real_estate` | hand_tuned: `true` | kb_backend: `pgvector` | chunks: 29
-- prompt size: **8342 → 24455** (+16113 chars)
+- prompt size: **8342 → 24959** (+16617 chars)
 - new kb-aware fragments added (2):
   - `queryKnowledge first`
   - `COMMISSION + FEES: For general published commission`
@@ -43,15 +43,14 @@ READ-ONLY. No DB writes. No Ultravox calls. Per-client previewPrompt + currentPr
 ### urban-vibe
 - business: Urban Vibe Properties
 - niche: `property-management` | hand_tuned: `true` | kb_backend: `pgvector` | chunks: 34
-- prompt size: **18878 → 21712** (+2834 chars)
+- prompt size: **21712 → 22587** (+875 chars)
 - new kb-aware fragments added (5):
   - `queryKnowledge first`
   - `For general building policies`
   - `GENERAL questions about how the building works`
   - `QUESTION INTAKE — caller's first move is a GENERAL POLICY question`
   - `ANSWER-FIRST RULE: When queryKnowledge returns content`
-- old blanket-route fragments stripped from current → preview (1/1):
-  - ✅ `NEVER answer questions about availability, pricing, pets, parking, or utilities ...`
+- old blanket-route fragments stripped from current → preview (0/0):
 - safety-guard pattern count: 2 (current) → 2 (preview), drift: +0
 
 ### velly-remodeling

@@ -33,4 +33,10 @@ write('plumbing-appointment-booking', buildPromptFromIntake({
   agent_mode: 'appointment_booking',
 }))
 
+write('real-estate-baseline', buildPromptFromIntake({
+  business_name: 'Sharif Realty', agent_name: 'Aisha', niche: 'real_estate',
+  city: 'Edmonton', province: 'AB', timezone: 'America/Edmonton', call_handling_mode: 'triage',
+  callback_phone: '+17805550000',
+}))
+
 console.log('All snapshots updated.')
