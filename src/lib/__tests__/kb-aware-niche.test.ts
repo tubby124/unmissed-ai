@@ -17,6 +17,18 @@ test('permissive niches get kbStance=permissive', () => {
   assert.equal(getKbStance('restaurant'), 'permissive')
   assert.equal(getKbStance('salon'), 'permissive')
   assert.equal(getKbStance('barbershop'), 'permissive')
+  assert.equal(getKbStance('home_renovation'), 'permissive')
+})
+
+test('home_renovation niche has kb-aware FORBIDDEN_EXTRA from day one', () => {
+  const fe = NICHE_DEFAULTS.home_renovation?.FORBIDDEN_EXTRA ?? ''
+  assert.ok(fe.length > 0, 'home_renovation must define FORBIDDEN_EXTRA')
+  assert.match(fe, /queryKnowledge first/i,
+    'home_renovation FORBIDDEN_EXTRA must include queryKnowledge first priming')
+  assert.match(fe, /site visit/i,
+    'home_renovation must route specific quotes to a site visit')
+  assert.match(fe, /flag \[URGENT\]/i,
+    'home_renovation must flag urgent damage (water leak, structural, fire)')
 })
 
 test('unknown niches default to permissive', () => {

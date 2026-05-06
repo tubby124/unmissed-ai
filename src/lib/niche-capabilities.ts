@@ -216,6 +216,16 @@ export const NICHE_CAPABILITIES: Record<string, AgentCapabilities> = {
     updateTenantRequests: false,
     emergencyRouting: true,  // Locked out → [URGENT] same-day dispatch
   },
+  home_renovation: {
+    takeMessages: true,
+    bookAppointments: false, // Site-visit consultations are scheduled via callback
+    transferCalls: true,
+    useKnowledgeLookup: true, // General price ranges, timelines, service area
+    usePropertyLookup: false,
+    useTenantLookup: false,
+    updateTenantRequests: false,
+    emergencyRouting: true,  // Active water leak / structural / fire damage → [URGENT]
+  },
   other: {
     takeMessages: true,
     bookAppointments: false, // Generic niche — no booking assumed
@@ -375,6 +385,12 @@ export const NICHE_DELTAS: Record<string, NicheDelta> = {
     runtimeSpecialCases: [],
   },
   locksmith: {
+    family: 'shared_standard',
+    overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
+    buildtimeSpecialCases: [],
+    runtimeSpecialCases: [],
+  },
+  home_renovation: {
     family: 'shared_standard',
     overrideKeys: ['TRIAGE_DEEP', 'NICHE_EXAMPLES', 'FORBIDDEN_EXTRA'],
     buildtimeSpecialCases: [],

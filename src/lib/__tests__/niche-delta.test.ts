@@ -107,7 +107,7 @@ describe('Niche family classification', () => {
 
   test('all remaining niches are shared_standard', () => {
     const standard = getNichesByFamily('shared_standard')
-    const expected = ['hvac', 'plumbing', 'dental', 'legal', 'salon', 'restaurant', 'outbound_isa_realtor', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith', 'other']
+    const expected = ['hvac', 'plumbing', 'dental', 'legal', 'salon', 'restaurant', 'outbound_isa_realtor', 'mechanic_shop', 'pest_control', 'electrician', 'locksmith', 'home_renovation', 'other']
     for (const n of expected) {
       assert.ok(standard.includes(n), `Expected ${n} in shared_standard but not found`)
     }

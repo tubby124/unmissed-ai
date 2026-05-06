@@ -32,6 +32,7 @@ const NICHE_HINTS: Record<string, string> = {
   pest_control:        'pest control, exterminator, bug control, rodent removal, bed bugs, wasp nest',
   electrician:         'electrician, electrical contractor, wiring, panel upgrade, EV charger install, electrical repair',
   locksmith:           'locksmith, lockout service, lock replacement, key cutting, car lockout, security locks',
+  home_renovation:     'home renovation, general contractor, kitchen/bathroom remodel, basement finishing, additions, handyman, drywall, framing, builder',
   other:               'none of the above — use this if the business is a unique type',
 }
 
