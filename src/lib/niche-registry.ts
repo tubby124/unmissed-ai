@@ -50,6 +50,12 @@ export type NicheRegistryEntry = {
    * prompt-slots should NOT overwrite it with AI-generated TRIAGE_DEEP.
    */
   hasBuiltinTriage: boolean
+  /**
+   * KB-aware tier-1 stance.
+   * - 'strict' (PM/legal/real_estate/dental): KB allowed for general policies; route property/case/patient specifics.
+   * - 'permissive' (default): KB-first for most factual questions; route only on KB miss.
+   */
+  kbStance: 'strict' | 'permissive'
 }
 
 // ── Voice IDs ────────────────────────────────────────────────────────────────
@@ -75,6 +81,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'intake',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'permissive',
   },
   hvac: {
     label:              'HVAC / Heating & Cooling',
@@ -92,6 +99,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'permissive',
   },
   plumbing: {
     label:              'Plumbing',
@@ -109,6 +117,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'permissive',
   },
   dental: {
     label:              'Dental Office',
@@ -126,6 +135,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'strict',
   },
   legal: {
     label:              'Law Firm',
@@ -143,6 +153,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'strict',
   },
   salon: {
     label:              'Salon / Barbershop',
@@ -160,6 +171,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   real_estate: {
     label:              'Real Estate Agent',
@@ -177,6 +189,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'triage',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'strict',
   },
   property_management: {
     label:              'Property Management',
@@ -194,6 +207,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'strict',
   },
   outbound_isa_realtor: {
     label:              'Realtor ISA (Outbound)',
@@ -211,6 +225,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   true,
+    kbStance:           'permissive',
   },
   restaurant: {
     label:              'Restaurant / Food Service',
@@ -228,6 +243,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   voicemail: {
     label:              'Voicemail / Message Taking',
@@ -245,6 +261,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        50, // lower tier
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   print_shop: {
     label:              'Print Shop',
@@ -262,6 +279,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   mechanic_shop: {
     label:              'Auto Mechanic Shop',
@@ -279,6 +297,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   pest_control: {
     label:              'Pest Control',
@@ -296,6 +315,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   electrician: {
     label:              'Electrician',
@@ -313,6 +333,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   locksmith: {
     label:              'Locksmith',
@@ -330,6 +351,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   barbershop: {
     label:              'Barbershop',
@@ -347,6 +369,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
   other: {
     label:              'Other Business',
@@ -364,6 +387,7 @@ export const NICHE_REGISTRY = {
     workflowType:       'support',
     minuteLimit:        100,
     hasBuiltinTriage:   false,
+    kbStance:           'permissive',
   },
 } as const satisfies Record<string, NicheRegistryEntry>
 
@@ -440,4 +464,9 @@ export function getNicheServiceType(niche: string | null | undefined): string {
 /** Returns the monthly minute cap for a niche. */
 export function getNicheMinuteLimit(niche: string | null | undefined): number {
   return entry(niche).minuteLimit
+}
+
+export function getKbStance(niche: string): 'strict' | 'permissive' {
+  const e = (NICHE_REGISTRY as Record<string, NicheRegistryEntry>)[niche]
+  return e?.kbStance ?? 'permissive'
 }
