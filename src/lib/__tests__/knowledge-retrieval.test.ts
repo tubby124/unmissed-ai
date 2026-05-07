@@ -58,6 +58,7 @@ function makeBusiness(overrides: Partial<BusinessConfig> = {}): BusinessConfig {
     extraQa: [],
     contextData: null,
     contextDataLabel: 'Reference Data',
+    serviceAreas: [],
     ...overrides,
   }
 }
