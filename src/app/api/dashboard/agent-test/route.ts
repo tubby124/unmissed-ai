@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('id, slug, niche, business_name, agent_name, status, ultravox_agent_id, tools, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
+    .select('id, slug, niche, business_name, agent_name, status, ultravox_agent_id, tools, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note, service_areas')
     .eq('id', targetClientId)
     .single()
 

@@ -6,7 +6,12 @@ type AnchorPack = Record<string, string[] | { _meta?: unknown }> & {
 
 const PACK = anchorTerms as AnchorPack
 
-const MAX_TERMS_PER_CITY = 80
+// Cap is defensive against future runaway data, not a curation tool.
+// Raised 80 → 300 after the test for "Nolan Hill" failed: the entry that triggered
+// this whole change sits at Calgary index 124 (alphabetical), past the 80 cap.
+// Calgary list is currently 213, Edmonton 252. 300 covers all current cities with headroom.
+// Char budget at 300/city is ~3.5K per city (well under the 21K hard cap on injected prompt).
+const MAX_TERMS_PER_CITY = 300
 
 export function buildKnownVocabularyBlock(serviceAreas: string[] | null | undefined): string {
   if (!serviceAreas || serviceAreas.length === 0) return ''

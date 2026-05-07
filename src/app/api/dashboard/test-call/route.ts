@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — same columns buildAgentContext() needs + Twilio fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
+    .select('id, slug, niche, business_name, system_prompt, agent_voice_id, ultravox_agent_id, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note, service_areas')
     .eq('id', clientId)
     .single()
 

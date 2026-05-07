@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas')
     .eq('id', clientId)
     .single()
 
@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
     context_data_label: (client.context_data_label as string | null) ?? undefined,
     knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
     injected_note: (client.injected_note as string | null) ?? undefined,
+    service_areas: (client.service_areas as string[] | null) ?? undefined,
   }
   const corpusAvailable = client.knowledge_backend === 'pgvector'
   const ctx = buildAgentContext(clientRow, toPhone, [], new Date(), corpusAvailable)
