@@ -258,6 +258,11 @@ export const settingsBodySchema = z.object({
   city: z.string().optional(),
   website_url: z.string().optional(),
 
+  // Service areas — array of city names matching anchor-terms-canada.json keys.
+  // PER_CALL_CONTEXT_ONLY — injected as KNOWN VOCABULARY block in businessFacts at call time.
+  // No agent redeploy required when this changes.
+  service_areas: z.array(z.string().min(1).max(80)).max(20).optional(),
+
   // Section editor (B1)
   section_id: z.string().optional(),
   section_content: z.string().optional(),
@@ -428,6 +433,13 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     if (body[key] !== undefined) {
       updates[key] = body[key]
     }
+  }
+
+  // service_areas — array, deduplicated + trimmed
+  if (body.service_areas !== undefined) {
+    const arr = Array.isArray(body.service_areas) ? body.service_areas : []
+    const cleaned = Array.from(new Set(arr.map(s => s.trim()).filter(s => s.length > 0)))
+    updates.service_areas = cleaned
   }
 
   // outbound_prompt — separate from inbound; nullable to clear

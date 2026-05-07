@@ -21,6 +21,7 @@ import { getCapabilities, type AgentCapabilities } from '@/lib/niche-capabilitie
 import { buildKnowledgeSummary, type KnowledgeSummary } from '@/lib/knowledge-summary'
 import { buildRetrievalConfig, type RetrievalConfig, type RetrievalBackend } from '@/lib/knowledge-retrieval'
 import { parseStaffRoster, formatStaffRoster } from '@/lib/staff-roster'
+import { buildKnownVocabularyBlock } from '@/lib/known-vocabulary'
 
 // ── Input type: subset of Supabase clients row ────────────────────────────────
 // All fields except id/slug are optional — avoids breaking callers that SELECT fewer columns.
@@ -41,6 +42,7 @@ export type ClientRow = {
   knowledge_backend?: string | null
   injected_note?: string | null
   staff_roster?: unknown | null
+  service_areas?: string[] | null
 }
 
 // ── Input type: persistent contact profile from client_contacts ──────────────
@@ -97,6 +99,8 @@ export type BusinessConfig = {
   extraQa: { q: string; a: string }[]
   /** Arbitrary reference data (e.g. tenant table) */
   contextData: string | null
+  /** Cities the client services — used to inject KNOWN VOCABULARY anchor pack at call time */
+  serviceAreas: string[]
   /** Label for contextData block — defaults to 'Reference Data' */
   contextDataLabel: string
 }
@@ -274,6 +278,7 @@ export function buildAgentContext(
     ),
     contextData: (client.context_data as string | null) ?? null,
     contextDataLabel: (client.context_data_label as string | null) || 'Reference Data',
+    serviceAreas: Array.isArray(client.service_areas) ? (client.service_areas as string[]) : [],
   }
 
   // ── Capability flags (Phase 1A) ──────────────────────────────────────────
@@ -414,11 +419,16 @@ export function buildAgentContext(
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')
 
+  const vocabularyBlock = buildKnownVocabularyBlock(business.serviceAreas)
+  const businessFactsRendered = business.businessFacts && business.businessFacts.length > 0
+    ? buildContextBlock('Business Facts', business.businessFacts.join('\n'))
+    : ''
+
   const assembled: AssembledContextBlocks = {
     callerContextBlock: `[${callerContextStr}]`,
-    businessFactsBlock: business.businessFacts && business.businessFacts.length > 0
-      ? buildContextBlock('Business Facts', business.businessFacts.join('\n'))
-      : '',
+    businessFactsBlock: vocabularyBlock
+      ? (businessFactsRendered ? `${businessFactsRendered}\n\n${vocabularyBlock}` : vocabularyBlock)
+      : businessFactsRendered,
     extraQaBlock: extraQaFormatted ? buildContextBlock('Q&A', extraQaFormatted) : '',
     contextDataBlock: business.contextData
       ? buildContextBlock(business.contextDataLabel, business.contextData)
