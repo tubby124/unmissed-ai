@@ -319,7 +319,7 @@ export function buildToneAndStyle(ctx: SlotContext): string {
 
 ${ctx.toneStyleBlock}
 Say phone numbers digit by digit ("three oh six, five five five..."). Dates natural ("tuesday the twentieth"). Times casual ("ten AM").
-Respond the moment they finish speaking. Let them interrupt — stop gracefully when they do. Acknowledge with varied backchannels ("yep", "got it", "perfect", "mmhmm") — never repeat the same one back-to-back. Treat short affirmations ("yep", "uh huh", "okay") as confirmation and keep moving.`
+Respond the moment they finish speaking. Let them interrupt — stop gracefully when they do. Rotate acknowledgments — pull from "yep", "got it", "sure", "okay", "right", "mhm", "gotcha", "perfect", "no worries". Use any one acknowledgment at most twice per call, never on consecutive turns. Treat short affirmations ("yep", "uh huh", "okay") as confirmation and keep moving.`
 
   return wrapSection(content, 'tone_and_style')
 }
