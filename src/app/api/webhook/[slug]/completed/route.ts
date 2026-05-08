@@ -232,6 +232,13 @@ export async function POST(
           next_steps: classification.next_steps || null,
           quality_score: classification.quality_score || null,
           caller_name: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
+          // Seed lead_status='new' for actionable rows so LeadQueue + dashboard
+          // counters reflect callback work the moment the call ends. Other
+          // statuses (COLD/JUNK) stay NULL — they aren't lead-queue actionable.
+          lead_status: ['HOT', 'WARM'].includes(classification.status) ? 'new' : null,
+          // Caller's stated time-of-day preference for callback. Distinct from
+          // appointment_time (booked slot). NULL when caller didn't say.
+          callback_preference: classification.caller_data?.callback_preference ?? null,
           ...(finalCallState ? { call_state: finalCallState } : {}),
         })
         .eq('ultravox_call_id', callId)

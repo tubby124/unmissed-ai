@@ -13,6 +13,13 @@ export interface CallerData {
   booked: boolean
   appointment_time: string | null
   service_requested: string | null
+  /**
+   * Time-of-day preference the caller asked for a callback in.
+   * Distinct from `appointment_time` (a specific booked slot) — this is the
+   * looser intent signal ("call me in the morning"). Maps directly to
+   * `call_logs.callback_preference` and `client_contacts.preferences.callback_preference`.
+   */
+  callback_preference: 'morning' | 'afternoon' | 'evening' | null
 }
 
 export interface AutoGlassNicheData {
@@ -40,7 +47,7 @@ interface CallClassification {
 }
 
 const AUTO_GLASS_SCHEMA = `{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"1-2 sentences, no PII beyond first name","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100,"niche_data":{"vehicle_year":"YYYY or null","vehicle_make":"brand or null","vehicle_model":"model name or null","adas":true/false/null,"vin":"VIN string or null","caller_name":"first name or null","urgency":"HIGH"|"MEDIUM"|"LOW"|null,"requested_service":"e.g. Windshield Replacement, Chip Repair, Callback, or null"}}`
-const BASE_SCHEMA = `{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"2-3 sentences including caller name, what they wanted, and outcome. Be specific — include property addresses, service details, dates/times mentioned.","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100,"caller_data":{"caller_name":"first name or null","booked":true/false,"appointment_time":"e.g. Monday March 17 at 2:00 PM or null","service_requested":"e.g. Home showing at 123 Main St, Quote for deck repair, or null"}}`
+const BASE_SCHEMA = `{"status":"HOT"|"WARM"|"COLD"|"JUNK","summary":"2-3 sentences including caller name, what they wanted, and outcome. Be specific — include property addresses, service details, dates/times mentioned.","serviceType":"appointment"|"quote_request"|"emergency"|"complaint"|"follow_up"|"wrong_number"|"spam"|"other","confidence":0-100,"sentiment":"positive"|"neutral"|"negative"|"frustrated"|"indifferent","key_topics":["max 4 strings"],"next_steps":"one specific imperative sentence","quality_score":0-100,"caller_data":{"caller_name":"first name or null","booked":true/false,"appointment_time":"e.g. Monday March 17 at 2:00 PM or null","service_requested":"e.g. Home showing at 123 Main St, Quote for deck repair, or null","callback_preference":"morning"|"afternoon"|"evening"|null}}`
 
 function buildSystemPrompt(businessContext?: string, classificationHints?: string, niche?: string) {
   const business = businessContext || 'a service business'
@@ -63,25 +70,26 @@ RULES:
 SENTIMENT: positive=eager|neutral=matter-of-fact|negative=unhappy|frustrated=complaining|indifferent=flat/disconnected
 QUALITY: 60 base +20 if call >90s +10 if intent is clear +10 if name/address/issue captured. JUNK=0-10.
 NEXT STEPS: always a specific imperative — "Call back within 2 hours", "Block this number", "Send quote via SMS"
+CALLBACK_PREFERENCE: only set when caller explicitly says when to reach them ("call me in the morning", "afternoon works best", "after 5"). morning=before noon, afternoon=12-5pm, evening=after 5pm. null when caller didn't specify or already booked a specific slot.
 
 <examples>
 [HOT-booked] Caller: Hi my name is Jacob, I'd like to book a showing for 742 Evergreen Terrace tomorrow afternoon. Agent: I have 2 PM available. Caller: Perfect, book it. Agent: Done!
-→ {"status":"HOT","summary":"Jacob called to book a showing at 742 Evergreen Terrace. Appointment confirmed for Tuesday March 18 at 2:00 PM.","serviceType":"appointment","confidence":97,"sentiment":"positive","key_topics":["showing","742 Evergreen Terrace","booking"],"next_steps":"Confirm showing with listing agent and send Jacob a reminder.","quality_score":92,"caller_data":{"caller_name":"Jacob","booked":true,"appointment_time":"Tuesday March 18 at 2:00 PM","service_requested":"Showing at 742 Evergreen Terrace"}}
+→ {"status":"HOT","summary":"Jacob called to book a showing at 742 Evergreen Terrace. Appointment confirmed for Tuesday March 18 at 2:00 PM.","serviceType":"appointment","confidence":97,"sentiment":"positive","key_topics":["showing","742 Evergreen Terrace","booking"],"next_steps":"Confirm showing with listing agent and send Jacob a reminder.","quality_score":92,"caller_data":{"caller_name":"Jacob","booked":true,"appointment_time":"Tuesday March 18 at 2:00 PM","service_requested":"Showing at 742 Evergreen Terrace","callback_preference":null}}
 
 [HOT-emergency] Caller: My windshield shattered on the highway, need emergency replacement. Agent: We can do same-day.
-→ {"status":"HOT","summary":"Caller needs emergency same-day windshield replacement after highway shattering. No name provided.","serviceType":"emergency","confidence":95,"sentiment":"positive","key_topics":["windshield","emergency","same-day"],"next_steps":"Dispatch tech immediately and collect address.","quality_score":82,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":"Emergency windshield replacement"}}
+→ {"status":"HOT","summary":"Caller needs emergency same-day windshield replacement after highway shattering. No name provided.","serviceType":"emergency","confidence":95,"sentiment":"positive","key_topics":["windshield","emergency","same-day"],"next_steps":"Dispatch tech immediately and collect address.","quality_score":82,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":"Emergency windshield replacement","callback_preference":null}}
 
-[WARM-callback] Caller: Hey it's Sarah. I'm looking at selling my house on Preston Ave, can someone call me back? Agent: Absolutely, we'll have someone reach out.
-→ {"status":"WARM","summary":"Sarah called about selling her property on Preston Ave. Wants a callback to discuss listing. No appointment booked.","serviceType":"quote_request","confidence":70,"sentiment":"neutral","key_topics":["listing","Preston Ave","seller inquiry","callback"],"next_steps":"Call Sarah back within 2 hours to discuss listing and schedule a market evaluation.","quality_score":58,"caller_data":{"caller_name":"Sarah","booked":false,"appointment_time":null,"service_requested":"Home listing consultation for Preston Ave property"}}
+[WARM-callback] Caller: Hey it's Sarah. I'm looking at selling my house on Preston Ave, can someone call me back in the afternoon? Agent: Absolutely, we'll have someone reach out.
+→ {"status":"WARM","summary":"Sarah called about selling her property on Preston Ave. Wants an afternoon callback to discuss listing. No appointment booked.","serviceType":"quote_request","confidence":70,"sentiment":"neutral","key_topics":["listing","Preston Ave","seller inquiry","callback"],"next_steps":"Call Sarah back this afternoon to discuss listing and schedule a market evaluation.","quality_score":58,"caller_data":{"caller_name":"Sarah","booked":false,"appointment_time":null,"service_requested":"Home listing consultation for Preston Ave property","callback_preference":"afternoon"}}
 
 [COLD-info] Caller: Do you work on fleet vehicles? Agent: Yes we do.
-→ {"status":"COLD","summary":"Brief inquiry about fleet service with no further intent shown. No name given.","serviceType":"other","confidence":30,"sentiment":"neutral","key_topics":["fleet vehicles"],"next_steps":"Email fleet services overview and follow up in 5 days.","quality_score":28,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null}}
+→ {"status":"COLD","summary":"Brief inquiry about fleet service with no further intent shown. No name given.","serviceType":"other","confidence":30,"sentiment":"neutral","key_topics":["fleet vehicles"],"next_steps":"Email fleet services overview and follow up in 5 days.","quality_score":28,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null,"callback_preference":null}}
 
 [JUNK-spam] Caller: This is an automated message about your vehicle's extended warranty...
-→ {"status":"JUNK","summary":"Automated warranty spam robocall, no real caller.","serviceType":"spam","confidence":99,"sentiment":"indifferent","key_topics":["spam","robocall"],"next_steps":"Block this number.","quality_score":0,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null}}
+→ {"status":"JUNK","summary":"Automated warranty spam robocall, no real caller.","serviceType":"spam","confidence":99,"sentiment":"indifferent","key_topics":["spam","robocall"],"next_steps":"Block this number.","quality_score":0,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null,"callback_preference":null}}
 
 [JUNK-wrong] Caller: Hi is this Tony's Pizza? Agent: No, this is an auto glass company.
-→ {"status":"JUNK","summary":"Wrong number, caller looking for a restaurant.","serviceType":"wrong_number","confidence":99,"sentiment":"neutral","key_topics":["wrong number"],"next_steps":"No action required.","quality_score":5,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null}}
+→ {"status":"JUNK","summary":"Wrong number, caller looking for a restaurant.","serviceType":"wrong_number","confidence":99,"sentiment":"neutral","key_topics":["wrong number"],"next_steps":"No action required.","quality_score":5,"caller_data":{"caller_name":null,"booked":false,"appointment_time":null,"service_requested":null,"callback_preference":null}}
 </examples>
 
 Now classify this call for ${business}:`
@@ -214,12 +222,16 @@ export async function classifyCall(
     }
 
     const cd = parsed.caller_data as Record<string, unknown> | undefined
+    const callbackPref = (cd?.callback_preference === 'morning' || cd?.callback_preference === 'afternoon' || cd?.callback_preference === 'evening')
+      ? cd.callback_preference
+      : null
     const callerData: CallerData | undefined = cd
       ? {
           caller_name: typeof cd.caller_name === 'string' ? cd.caller_name : null,
           booked: cd.booked === true,
           appointment_time: typeof cd.appointment_time === 'string' ? cd.appointment_time : null,
           service_requested: typeof cd.service_requested === 'string' ? cd.service_requested : null,
+          callback_preference: callbackPref,
         }
       : undefined
 
