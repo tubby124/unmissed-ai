@@ -6,9 +6,24 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CLIENT="${1:-all}"
 PASS=0
 FAIL=0
+
+# Regenerate vocab anchor pack fixture so the test always reflects the live JSON.
+# Cheap (~500ms) and prevents silent staleness if anchor-terms-canada.json changes
+# but the fixture isn't manually refreshed.
+if [ "$CLIENT" = "all" ] || [ "$CLIENT" = "vocab-anchor" ]; then
+  mkdir -p "$SCRIPT_DIR/fixtures"
+  (cd "$REPO_ROOT" && npx --no-install tsx -e "
+    import { buildKnownVocabularyBlock } from './src/lib/known-vocabulary.js';
+    require('fs').writeFileSync(
+      'tests/promptfoo/fixtures/vocab-calgary.txt',
+      buildKnownVocabularyBlock(['Calgary'])
+    );
+  " 2>/dev/null) || echo "warn: vocab fixture regeneration skipped"
+fi
 
 run_test() {
   local slug="$1"

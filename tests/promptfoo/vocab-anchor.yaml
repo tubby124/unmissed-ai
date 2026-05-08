@@ -1,0 +1,149 @@
+# Promptfoo test suite — KNOWN VOCABULARY anchor pack
+# Run: promptfoo eval -c tests/promptfoo/vocab-anchor.yaml
+# Requires: ANTHROPIC_API_KEY env var
+#
+# WHAT THIS TESTS
+# The vocab anchor pack injects a "Known Vocabulary" block into the assembled
+# prompt at call time for property_management + real_estate clients with
+# `service_areas` set (see src/lib/agent-context.ts + src/lib/known-vocabulary.ts).
+# The block lists Calgary/Edmonton/etc neighborhoods so the agent prefers
+# correct spellings when audio is ambiguous.
+#
+# Production trigger that drove this: Eric (Brian's PM agent) was hearing
+# "Nolan Hill" as "Lorn Hill" three turns in a row and writing the wrong
+# neighborhood to call_logs. Yesterday's vocab pack rollout (commits 3b1628f,
+# f061fa9, a72a7a4) added the soft-bias block. This suite is the regression
+# guard so that fix doesn't silently regress.
+#
+# LIMITATION: promptfoo runs text only — there's no actual ASR audio.
+# The vocab block's job is to anchor uncertain transcription, which can't
+# be perfectly simulated in text. So these tests assert the SAFETY NET behavior
+# (does the agent confirm the address in the recap?) and the BLOCK STRUCTURE
+# (vocab text doesn't break the prompt). Real-call validation on +1 639-739-3885
+# is the definitive test — see handoff-2026-05-07-vocab-anchor-pack.md.
+#
+# Fixture refresh: regenerate vocab-calgary.txt when the JSON pack changes:
+#   npx tsx -e "import {buildKnownVocabularyBlock} from './src/lib/known-vocabulary.js'; \
+#     require('fs').writeFileSync('tests/promptfoo/fixtures/vocab-calgary.txt', \
+#     buildKnownVocabularyBlock(['Calgary']))"
+
+description: KNOWN VOCABULARY anchor pack — soft-bias regression guard
+
+providers:
+  - id: openrouter:anthropic/claude-haiku-4.5
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://prompts/chat-context.json
+
+defaultTest:
+  vars:
+    # Urban Vibe is the canonical property_management prompt — same niche as
+    # Brian's calgary-property-leasing where the bug was first observed.
+    system_prompt: file://../../clients/urban-vibe/SYSTEM_PROMPT.txt
+    context_data: file://fixtures/vocab-calgary.txt
+  assert:
+    # Block must not leak into spoken response — vocab is a model hint, never spoken
+    - type: not-icontains
+      value: "Known Vocabulary"
+    - type: not-icontains
+      value: "service-area neighborhoods"
+    # No markdown formatting bleed-through (the block uses ## and bullets internally)
+    - type: javascript
+      value: "!/\\*\\*|\\n##\\s|\\n-\\s/.test(output)"
+      threshold: 1
+
+tests:
+  # ── Test 1: Crisp Nolan Hill mention — agent doesn't substitute ───────────
+  # The original bug. Caller gives a Calgary neighborhood crisply. Agent should
+  # NOT silently change the neighborhood name to a different one. Saying
+  # nothing about the address is fine (Urban Vibe prompt doesn't force echo);
+  # what's not fine is rewriting "Nolan Hill" as something else.
+  - description: "Crisp Nolan Hill mention — agent doesn't substitute a different neighborhood"
+    vars:
+      caller_message: "Hi, my name is Fred, I'm at 940 Nolan Hill Boulevard, my furnace stopped working."
+    assert:
+      # If the agent mentions a Calgary neighborhood at all, it must be Nolan Hill —
+      # not Lorn Hill, not Country Hills, etc. (Common substitutions ASR
+      # would have produced for similar audio.)
+      - type: not-icontains
+        value: "Lorn Hill"
+      - type: not-icontains
+        value: "Country Hills"
+      - type: not-icontains
+        value: "Northern Hill"
+      # Agent acknowledges the caller — name, issue, OR address. Not silent.
+      - type: icontains-any
+        value:
+          - "Fred"
+          - "furnace"
+          - "heat"
+          - "Nolan Hill"
+
+  # ── Test 2: Phonetic mishears — Lorn Hill → Nolan Hill ────────────────────
+  # Simulates the actual ASR mishears Eric produced. The vocab pack's purpose
+  # is to bias the model toward the correct spelling when given ambiguous text.
+  # Soft assertion: agent should at minimum seek confirmation rather than blindly
+  # echoing "Lorn Hill" (which is NOT in the vocab list).
+  - description: "Mistranscribed neighborhood — agent doesn't blindly echo unknown name"
+    vars:
+      caller_message: "Hey, this is Fred at 940 Lorn Hill, my heat is out."
+    assert:
+      - type: llm-rubric
+        value: |
+          The response handles the address gracefully — it either (a) confirms
+          the address back to the caller asking them to verify, (b) collects
+          the caller's name and unit details before closing, or (c) references
+          a similar Calgary neighborhood name from common spellings (e.g. Nolan
+          Hill). The response does NOT close the call without acknowledging
+          the address. The response is a normal property-management triage,
+          not confused or off-topic.
+        provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 3: Tuscany — common Calgary neighborhood ─────────────────────────
+  # Tuscany is in the vocab pack and a real Calgary community. The agent should
+  # acknowledge the caller's name + issue and run normal property-mgmt triage.
+  # Mid-conversation diagnostic Qs are valid — we're not requiring full collect-
+  # and-close in one turn.
+  - description: "Different Calgary neighborhood (Tuscany) — normal triage proceeds"
+    vars:
+      caller_message: "My name is Maria, I live in Tuscany at the corner unit. My kitchen sink is leaking."
+    assert:
+      # Acknowledges caller name OR issue
+      - type: icontains-any
+        value:
+          - "Maria"
+          - "leak"
+          - "sink"
+          - "kitchen"
+          - "water"
+      # Doesn't mistranscribe Tuscany as something else from the vocab list
+      - type: not-icontains
+        value: "Tuxedo"
+      - type: not-icontains
+        value: "Tucson"
+
+  # ── Test 4: Block size sanity — vocab doesn't blow the budget ─────────────
+  # The pack caps each city at 300 terms (~3.5K chars/city). Calgary alone is
+  # ~213 entries. This test just runs a vanilla call to confirm the prompt
+  # still works end-to-end with the block injected — no hangs, no truncation,
+  # response stays under the 300 token cap.
+  - description: "Vocab block doesn't break baseline prompt behavior"
+    vars:
+      caller_message: "Hi, can someone call me back about a rental I saw online?"
+    assert:
+      # Response generates (provider didn't truncate or fail)
+      - type: javascript
+        value: "output.length > 20 && output.length < 1500"
+        threshold: 1
+      # Standard Urban Vibe behavior still applies — no rent quotes
+      - type: javascript
+        value: "!/\\$\\d{2,}|\\d+\\s*%/.test(output)"
+        threshold: 1
+      # Agent collects info, doesn't dump the vocab list
+      - type: not-icontains
+        value: "Abbeydale"
+      - type: not-icontains
+        value: "Mahogany"

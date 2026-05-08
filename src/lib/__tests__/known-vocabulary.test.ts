@@ -56,3 +56,31 @@ test('skips unknown cities when intermixed with known cities', () => {
   assert.match(block, /Saskatoon:/)
   assert.doesNotMatch(block, /Atlantis/)
 })
+
+test('logs unmapped cities so unmapped Canadian cities surface in Railway logs', () => {
+  const warnings: string[] = []
+  const orig = console.warn
+  console.warn = (msg: string) => { warnings.push(String(msg)) }
+  try {
+    buildKnownVocabularyBlock(['Calgary', 'Lethbridge', 'Red Deer'])
+  } finally {
+    console.warn = orig
+  }
+  assert.equal(warnings.length, 1, 'one consolidated warning per call')
+  assert.match(warnings[0], /\[anchor-pack\] unmapped/)
+  assert.match(warnings[0], /Lethbridge/)
+  assert.match(warnings[0], /Red Deer/)
+  assert.doesNotMatch(warnings[0], /Calgary/, 'mapped cities must not appear in unmapped warning')
+})
+
+test('does NOT log when all cities are mapped', () => {
+  const warnings: string[] = []
+  const orig = console.warn
+  console.warn = (msg: string) => { warnings.push(String(msg)) }
+  try {
+    buildKnownVocabularyBlock(['Calgary', 'Edmonton'])
+  } finally {
+    console.warn = orig
+  }
+  assert.equal(warnings.length, 0, 'no warning when every city is mapped')
+})

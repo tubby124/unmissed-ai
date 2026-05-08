@@ -308,4 +308,45 @@ describe('buildSlotInsertFields', () => {
     const out = buildSlotInsertFields({ niche_faq_pairs: '{not-valid-json' })
     assert.strictEqual(out.extra_qa, null)
   })
+
+  // ── service_areas auto-populate ───────────────────────────────────────────
+  // Niche-gated to property_management + real_estate. Other niches keep the
+  // DB default (`'{}'`) so the field is omitted from the insert payload.
+
+  test('non-vocab niche → service_areas omitted from insert', () => {
+    const out = buildSlotInsertFields({ niche: 'auto_glass', city: 'Calgary' })
+    assert.ok(!('service_areas' in out), 'auto_glass must not get service_areas')
+  })
+
+  test('property_management with city → service_areas defaults to [city]', () => {
+    const out = buildSlotInsertFields({ niche: 'property_management', city: 'Calgary' })
+    assert.deepStrictEqual(out.service_areas, ['Calgary'])
+  })
+
+  test('real_estate intake with niche_serviceAreas string → split by comma', () => {
+    const out = buildSlotInsertFields({
+      niche: 'real_estate',
+      city: 'Calgary',
+      niche_serviceAreas: 'Calgary, Airdrie, Cochrane',
+    })
+    assert.deepStrictEqual(out.service_areas, ['Calgary', 'Airdrie', 'Cochrane'])
+  })
+
+  test('real_estate intake with serviceAreas array → preserved', () => {
+    const out = buildSlotInsertFields({
+      niche: 'real_estate',
+      serviceAreas: ['Saskatoon', 'Warman'],
+    })
+    assert.deepStrictEqual(out.service_areas, ['Saskatoon', 'Warman'])
+  })
+
+  test('vocab niche with no city or serviceAreas → service_areas omitted', () => {
+    const out = buildSlotInsertFields({ niche: 'property_management' })
+    assert.ok(!('service_areas' in out), 'no city/areas → omit (preserve DB default)')
+  })
+
+  test('city of "N/A" treated as missing', () => {
+    const out = buildSlotInsertFields({ niche: 'property_management', city: 'N/A' })
+    assert.ok(!('service_areas' in out), 'N/A city must not become a service area')
+  })
 })

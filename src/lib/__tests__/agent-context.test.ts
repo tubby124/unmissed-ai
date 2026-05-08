@@ -411,4 +411,53 @@ describe('buildAgentContext() — assembled blocks', () => {
     }, 'unknown')
     assert.ok(ctx4.assembled.contextDataBlock.includes('Tenant List'))
   })
+
+  // ── Vocabulary anchor pack — niche-gated ──────────────────────────────────
+  // The KNOWN VOCABULARY block (Calgary/Edmonton/etc neighborhoods) anchors
+  // ASR mishears like "Nolan Hill" → "Lorn Hill". It only fires for niches
+  // where neighborhood names show up — property_management + real_estate.
+  // Other niches (auto_glass, restaurant, etc.) shouldn't pay the char budget.
+
+  test('vocabulary block injected for real_estate niche when service_areas set', () => {
+    const ctx5 = buildAgentContext({
+      ...BASE_CLIENT,
+      niche: 'real_estate',
+      service_areas: ['Calgary'],
+    }, 'unknown')
+    assert.ok(
+      ctx5.assembled.businessFactsBlock.includes('Known Vocabulary'),
+      'real_estate with service_areas must get vocab block',
+    )
+    assert.ok(ctx5.assembled.businessFactsBlock.includes('Nolan Hill'))
+  })
+
+  test('vocabulary block injected for property_management niche', () => {
+    const ctx6 = buildAgentContext({
+      ...BASE_CLIENT,
+      niche: 'property_management',
+      service_areas: ['Calgary'],
+    }, 'unknown')
+    assert.ok(ctx6.assembled.businessFactsBlock.includes('Known Vocabulary'))
+  })
+
+  test('vocabulary block OMITTED for non-vocab niche even with service_areas', () => {
+    const ctx7 = buildAgentContext({
+      ...BASE_CLIENT,
+      niche: 'auto_glass',
+      service_areas: ['Calgary'],
+    }, 'unknown')
+    assert.ok(
+      !ctx7.assembled.businessFactsBlock.includes('Known Vocabulary'),
+      'auto_glass must not get neighborhood vocab — wrong niche for that data',
+    )
+  })
+
+  test('vocabulary block omitted when niche matches but service_areas empty', () => {
+    const ctx8 = buildAgentContext({
+      ...BASE_CLIENT,
+      niche: 'real_estate',
+      service_areas: [],
+    }, 'unknown')
+    assert.ok(!ctx8.assembled.businessFactsBlock.includes('Known Vocabulary'))
+  })
 })

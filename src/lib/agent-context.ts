@@ -21,7 +21,7 @@ import { getCapabilities, type AgentCapabilities } from '@/lib/niche-capabilitie
 import { buildKnowledgeSummary, type KnowledgeSummary } from '@/lib/knowledge-summary'
 import { buildRetrievalConfig, type RetrievalConfig, type RetrievalBackend } from '@/lib/knowledge-retrieval'
 import { parseStaffRoster, formatStaffRoster } from '@/lib/staff-roster'
-import { buildKnownVocabularyBlock } from '@/lib/known-vocabulary'
+import { buildKnownVocabularyBlock, isVocabNiche } from '@/lib/known-vocabulary'
 
 // ── Input type: subset of Supabase clients row ────────────────────────────────
 // All fields except id/slug are optional — avoids breaking callers that SELECT fewer columns.
@@ -419,7 +419,9 @@ export function buildAgentContext(
 
   const extraQaFormatted = business.extraQa.map((p) => `"${p.q}" → "${p.a}"`).join('\n')
 
-  const vocabularyBlock = buildKnownVocabularyBlock(business.serviceAreas)
+  const vocabularyBlock = isVocabNiche(business.niche)
+    ? buildKnownVocabularyBlock(business.serviceAreas)
+    : ''
   const businessFactsRendered = business.businessFacts && business.businessFacts.length > 0
     ? buildContextBlock('Business Facts', business.businessFacts.join('\n'))
     : ''

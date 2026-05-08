@@ -1,5 +1,6 @@
 import { OnboardingData, Niche, defaultAgentNames } from "@/types/onboarding";
 import { planToMode } from "@/lib/plan-entitlements";
+import { VOCAB_NICHES } from "@/lib/known-vocabulary";
 
 // Map province/state abbreviations to timezone
 export const TIMEZONE_MAP: Record<string, string> = {
@@ -381,6 +382,36 @@ export function buildSlotInsertFields(
     return null
   })()
 
+  // service_areas — niche-gated auto-populate for the ASR vocabulary anchor pack.
+  // Property mgmt + real_estate agents benefit from neighborhood spelling lists
+  // (Brian/Eric mishearing "Nolan Hill" as "Lorn Hill" was the trigger). Other
+  // niches keep the DB default (`'{}'`) — no manual SQL backfill needed for them.
+  // Sources, in priority order:
+  //   1. real_estate intake collects `nicheAnswers.serviceAreas` (array) →
+  //      `niche_serviceAreas` (comma-separated) in the snake_case payload
+  //   2. property_management intake doesn't ask for areas — fall back to
+  //      `[intake.city]` so at minimum the home city's neighborhoods load
+  // Snake_case keys are checked first; camelCase fallbacks cover raw intakeData.
+  const serviceAreas = (() => {
+    const niche = (intake.niche as string | undefined) || undefined
+    if (!niche || !VOCAB_NICHES.has(niche)) return null
+
+    const fromList = intake.niche_serviceAreas ?? intake.serviceAreas
+    if (typeof fromList === 'string' && fromList.trim()) {
+      const parts = fromList.split(',').map(s => s.trim()).filter(Boolean)
+      if (parts.length > 0) return parts
+    }
+    if (Array.isArray(fromList) && fromList.length > 0) {
+      const parts = (fromList as unknown[])
+        .map(v => (typeof v === 'string' ? v.trim() : ''))
+        .filter(Boolean)
+      if (parts.length > 0) return parts
+    }
+    const city = (intake.city as string | undefined)?.trim()
+    if (city && city.toLowerCase() !== 'n/a') return [city]
+    return null
+  })()
+
   return {
     business_facts: businessFacts,
     extra_qa: faqPairs,
@@ -403,5 +434,6 @@ export function buildSlotInsertFields(
     knowledge_backend:
       (intake.knowledge_backend as string) || 'pgvector',
     hand_tuned: options?.handTuned ?? false,
+    ...(serviceAreas ? { service_areas: serviceAreas } : {}),
   }
 }
