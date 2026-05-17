@@ -8,7 +8,6 @@
  */
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { randomUUID } from 'crypto'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
@@ -17,7 +16,8 @@ import { syncClientTools } from '@/lib/sync-client-tools'
 import { ensureTwilioProvisioned } from '@/lib/ensure-twilio-provisioned'
 import { buildTelegramDeepLink } from '@/lib/telegram-link'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
 
 async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
@@ -214,49 +214,41 @@ export async function activateClient(params: {
         // Send welcome + password setup email via Resend (if key is configured)
         const resendKey = process.env.RESEND_API_KEY
         if (resendKey) {
-          try {
-            // Reuse setupUrl already generated above — a second generateLink() call would
-            // invalidate the first token (Supabase recovery tokens are single-use).
-            const emailSetupUrl = setupUrl || `${appUrl}/login`
+          // Reuse setupUrl already generated above — a second generateLink() call would
+          // invalidate the first token (Supabase recovery tokens are single-use).
+          const emailSetupUrl = setupUrl || `${appUrl}/login`
 
-            const resend = new Resend(resendKey)
-            const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
+          const isTrial = mode === 'trial'
+          const subjectLine = isTrial
+            ? `${businessName} — your AI agent trial is live`
+            : `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`
 
-            const isTrial = mode === 'trial'
-            const subjectLine = isTrial
-              ? `${businessName} — your AI agent trial is live`
-              : `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`
+          const result = await sendBrandedEmail({
+            to: contactEmail,
+            clientId,
+            purpose: 'marketing',
+            tag: isTrial ? 'welcome_trial' : 'welcome_activation',
+            reason: `You just signed up for ${BRAND_NAME}.`,
+            subject: subjectLine,
+            html: `<h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
+<p style="color:#555;margin-top:0">${isTrial ? 'Your 7-day free trial has started.' : 'Your AI receptionist is now live.'}</p>
 
-            await resend.emails.send({
-              from: fromAddress,
-              to: contactEmail,
-              subject: subjectLine,
-              html: `
-<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
-  <p style="color:#555;margin-top:0">${isTrial ? 'Your 7-day free trial has started.' : 'Your AI receptionist is now live.'}</p>
+${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
+${isTrial ? '<p>Try your agent from the dashboard using WebRTC demo calls. Upgrade anytime to get a dedicated phone number.</p>' : ''}
 
-  ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
-  ${isTrial ? '<p>Try your agent from the dashboard using WebRTC demo calls. Upgrade anytime to get a dedicated phone number.</p>' : ''}
+<p><strong>Log in to your dashboard</strong></p>
+<a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Log in to my dashboard →</a>
+<p style="font-size:13px;color:#555;margin-top:8px">Your temporary password is: <strong>QWERTY123</strong></p>
+<p style="font-size:12px;color:#888;margin-top:4px">You can change it from your dashboard settings after logging in.</p>
 
-  <p><strong>Log in to your dashboard</strong></p>
-  <a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">
-    Log in to my dashboard →
-  </a>
-  <p style="font-size:13px;color:#555;margin-top:8px">Your temporary password is: <strong>QWERTY123</strong></p>
-  <p style="font-size:12px;color:#888;margin-top:4px">You can change it from your dashboard settings after logging in.</p>
-
-  ${!isTrial && telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
-
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
-</div>`,
-            })
+${!isTrial && telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}`,
+          })
+          if (result.ok) {
             emailActuallySent = true
-            console.log(`${logPrefix} Welcome email sent via Resend to ${contactEmail}`)
-          } catch (emailErr) {
-            emailFailReason = String(emailErr)
-            console.error(`${logPrefix} Resend email failed for ${contactEmail}: ${emailErr}`)
+            console.log(`${logPrefix} Welcome email sent via Resend to ${contactEmail} (id=${result.id})`)
+          } else {
+            emailFailReason = result.error ?? 'unknown'
+            console.error(`${logPrefix} Resend email failed for ${contactEmail}: ${result.error}`)
           }
         } else {
           // Fallback: Supabase default email (no custom branding)

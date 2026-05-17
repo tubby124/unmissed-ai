@@ -183,6 +183,42 @@ Same 3-step format for next ~9 manually-onboarded clients. Per-client swaps: nam
 
 Payment (Stripe → `subscription_status` + `stripe_*_id`) and setup (Brian → `setup_complete`) are independent. He could pay and never forward, or forward and never pay. Tracked separately by design.
 
+## 2026-05-16 PM — Second trial extension (still no payment)
+
+Hasan extended Brian's trial by 30 days. Brian still has not tapped the Stripe Payment Link from the 2026-04-26 welcome email. Original trial was set to expire 2026-05-12; he silently lapsed for 4 days before this extension.
+
+### DB writes (Supabase prod `qwhvblomlgeapzhnuwlb`, service-role PATCH)
+| Field | Before | After | Why |
+|-------|--------|-------|-----|
+| `trial_expires_at` | 2026-05-12T00:14:59Z (expired) | **2026-06-15T23:59:59Z** | Give him another 30 days from today |
+| `seconds_used_this_month` | 1623 (~27 min) | **0** | Fresh minute pool for the new window |
+| `minutes_used_this_month` | 28 | **0** | Same |
+| `monthly_minute_limit` | 250 | 250 (unchanged) | 200 plan + 50 bonus from original deal stays |
+| `subscription_status` | `trialing` | `trialing` (unchanged) | No Stripe activity to update |
+| `stripe_customer_id` | NULL | NULL (unchanged) | Brian has never created a customer record — never tapped the Payment Link |
+| `stripe_subscription_id` | NULL | NULL (unchanged) | Same |
+| `setup_complete` | false | false (unchanged) | Phone forwarding ground-truth still not verified via real inbound `call_logs` from his customers |
+
+### Usage during trial month 1 (2026-04-25 → 2026-05-12)
+- ~27 minutes of calls over 17-21 days = modest but real (not zero)
+- 11 knowledge chunks seeded, but `hit_count` was 0 across all of them until the 2026-04-25 mid-tier-knowledge fix (SIMILARITY_FLOOR 0.60 → 0.45, hybrid-match phrasing rewrites)
+- Forwarding codes (`*67`, `*62`, `*61`) handed to Brian 2026-04-30 — never confirmed they activated via a real inbound from his customer phone
+- 21 days of silence on Stripe side. He's likely (a) still testing, (b) waiting for a customer call to validate before paying, or (c) ghosted
+
+### Why this is the SECOND extension, not the first
+The original deal was: trial Apr 25 → forwarding setup → Stripe charge May 1 → ongoing. Brian got the welcome email 2026-04-26 PM (Gmail msg `19dcca67408e3c0c`). May 1 came and went. The webhook never fired. He silently rolled into an unsanctioned extra week before `trial_expires_at` hit. **Tonight's PATCH is courtesy extension #2.**
+
+### Pattern this exposes — sales-side, not technical
+- Technical product works (calls are landing, knowledge is answering, voicemail removed, codes set)
+- **Conversion is the bottleneck.** Brian needs to be told the deadline is real and asked to tap the link, OR a different commercial frame needs to be tried (free month, lower price, or honest off-ramp).
+- The auto-trial-to-paid flow assumed engagement that didn't happen. Future snowflake clients need a **human Day-3 / Day-7 / Day-14 check-in** before deadline hits, not just a one-shot welcome email.
+
+### Followups (decisions pending, Hasan-only)
+- [ ] Nudge Brian directly (text/call/email) — let him know the trial was extended + soft ask to tap the Stripe link. Without it, this same scenario repeats June 15.
+- [ ] Calendar reminder ~2026-06-10 (5 days pre-expiry) for the next check-in before this trial lapses
+- [ ] Decide: continue extending indefinitely, or set a hard "by date X tap the link or we shut down" deadline
+- [ ] Marketing copy: if `endvoicemail.ai` rebrand goes live before June 15, decide whether Brian sees the new brand on his dashboard or is grandfathered
+
 ## 2026-04-30 — Voicemail removal call + individual conditional codes handed to Brian
 
 Brian called Rogers to fully remove voicemail from his line (per the [[Decisions/2026-04-29-voicemail-removal-required-for-cf]] non-skippable step). After that call he was instructed to dial these three individual conditional-forwarding codes — combo `**004*16397393885#` was set aside in favor of the explicit per-condition codes:

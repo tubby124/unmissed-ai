@@ -10,7 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 
 function esc(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -101,7 +102,6 @@ export async function POST(req: NextRequest) {
     callsByClient.set(c.client_id, arr)
   }
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
   let sent = 0
   let skipped = 0
   const details: { slug: string; sent: boolean; reason?: string }[] = []
@@ -185,30 +185,26 @@ export async function POST(req: NextRequest) {
   <a href="${dashboardUrl}" style="display:block;text-align:center;background:#4f46e5;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:24px">
     View Full Dashboard
   </a>
-
-  <hr style="border:none;border-top:1px solid #27272a;margin:24px 0">
-  <p style="font-size:11px;color:#52525b;text-align:center">
-    ${BRAND_NAME} — ${BRAND_TAGLINE}<br>
-    <a href="${dashboardUrl}/settings" style="color:#52525b">Manage email preferences</a>
-  </p>
 </div>`
 
-    try {
-      const { Resend } = await import('resend')
-      const resend = new Resend(resendKey)
-      await resend.emails.send({
-        from: fromAddress,
-        to: client.contact_email!,
-        subject,
-        html,
-      })
+    const result = await sendBrandedEmail({
+      to: client.contact_email!,
+      clientId: client.id,
+      clientSlug: client.slug,
+      purpose: 'marketing',
+      tag: 'weekly_digest',
+      reason: `Weekly performance report for your ${BRAND_NAME} agent.`,
+      subject,
+      html,
+    })
+    if (result.ok) {
       sent++
       details.push({ slug: client.slug, sent: true })
-      console.log(`[weekly-digest] Sent to ${client.contact_email} for ${client.slug}`)
-    } catch (err) {
+      console.log(`[weekly-digest] Sent to ${client.contact_email} for ${client.slug} (id=${result.id})`)
+    } else {
       skipped++
-      details.push({ slug: client.slug, sent: false, reason: String(err) })
-      console.error(`[weekly-digest] Email failed for ${client.slug}:`, err)
+      details.push({ slug: client.slug, sent: false, reason: result.error })
+      console.error(`[weekly-digest] Email failed for ${client.slug}: ${result.error}`)
     }
   }
 

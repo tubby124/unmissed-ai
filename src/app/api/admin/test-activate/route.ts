@@ -23,11 +23,11 @@ import { PROVINCE_AREA_CODES } from '@/lib/phone'
 import { getEffectiveMinuteLimit } from '@/lib/plan-entitlements'
 import { randomUUID } from 'crypto'
 import { buildTelegramDeepLink } from '@/lib/telegram-link'
-import { Resend } from 'resend'
 import { sendAlert } from '@/lib/telegram'
 import { insertPromptVersion } from '@/lib/prompt-version-utils'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 
 export async function POST(req: NextRequest) {
   // ── Auth — admin only ──────────────────────────────────────────────────────
@@ -415,40 +415,38 @@ export async function POST(req: NextRequest) {
   if (contactEmail && authUserId) {
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
-      try {
-        const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
-        const actionLink = linkData?.properties?.action_link ?? ''
-        let setupUrl = `${APP_URL}/dashboard`
-        if (actionLink) {
-          try {
-            const parsed = new URL(actionLink)
-            const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-            if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
-          } catch { setupUrl = `${APP_URL}/login` }
-        }
-        const resend = new Resend(resendKey)
-        const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
-        await resend.emails.send({
-          from: fromAddress,
-          to: contactEmail,
-          subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
-          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
-  <p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
-  ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
-  <p><strong>Set up your dashboard password</strong></p>
-  <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Create my password &rarr;</a>
-  <p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
-  ${telegramLink ? `<p><strong>Connect Telegram:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
-</div>`,
-        })
+      const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
+      const actionLink = linkData?.properties?.action_link ?? ''
+      let setupUrl = `${APP_URL}/dashboard`
+      if (actionLink) {
+        try {
+          const parsed = new URL(actionLink)
+          const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
+          if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+        } catch { setupUrl = `${APP_URL}/login` }
+      }
+      const result = await sendBrandedEmail({
+        to: contactEmail,
+        clientId,
+        clientSlug,
+        purpose: 'marketing',
+        tag: 'test_activate_welcome',
+        reason: `You just signed up for ${BRAND_NAME}.`,
+        subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
+        html: `<h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
+<p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
+${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
+<p><strong>Set up your dashboard password</strong></p>
+<a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Create my password &rarr;</a>
+<p style="font-size:12px;color:#888;margin-top:4px">This link expires in 24 hours.</p>
+${telegramLink ? `<p><strong>Connect Telegram:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}`,
+      })
+      if (result.ok) {
         emailSent = true
-        console.log(`[test-activate] Welcome email sent to ${contactEmail}`)
-      } catch (err) {
-        emailSkipReason = String(err)
-        console.error(`[test-activate] Email failed: ${err}`)
+        console.log(`[test-activate] Welcome email sent to ${contactEmail} (id=${result.id})`)
+      } else {
+        emailSkipReason = result.error ?? 'unknown'
+        console.error(`[test-activate] Email failed: ${result.error}`)
       }
     } else {
       emailSkipReason = 'RESEND_API_KEY not set'

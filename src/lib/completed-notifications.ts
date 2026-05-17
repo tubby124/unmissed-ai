@@ -11,7 +11,8 @@ import { getSmsTemplate } from '@/lib/sms-templates'
 import twilio from 'twilio'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -497,10 +498,6 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) return
 
-    const { Resend } = await import('resend')
-    const resend = new Resend(resendKey)
-    const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
-
     const transcriptText = transcript
       .map((m) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
       .join('\n')
@@ -513,24 +510,26 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
     const emailSubject = `Voicemail from ${callerName} — ${client.business_name || slug}`
-    const emailHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-        <h2 style="margin:0 0 16px">New voicemail message</h2>
-        <p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
-        <p><strong>Duration:</strong> ${mins}m ${secs}s</p>
-        <p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
-        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <h3 style="margin:0 0 8px">Transcript</h3>
-        <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>
-        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <p style="font-size:12px;color:#888">${BRAND_NAME} — AI voicemail for your business</p>
-      </div>`
-    const emailResult = await resend.emails.send({
-      from: fromAddress,
+    const emailHtml = `<h2 style="margin:0 0 16px">New voicemail message</h2>
+<p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
+<p><strong>Duration:</strong> ${mins}m ${secs}s</p>
+<p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
+<hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+<h3 style="margin:0 0 8px">Transcript</h3>
+<pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>`
+
+    const emailResult = await sendBrandedEmail({
       to: client.contact_email,
+      clientId: client.id,
+      clientSlug: slug,
+      purpose: 'system',
+      tag: 'voicemail_alert',
+      reason: `New voicemail message captured by your ${BRAND_NAME} agent.`,
       subject: emailSubject,
       html: emailHtml,
     })
-    console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId}`)
+    if (!emailResult.ok) throw new Error(emailResult.error)
+    console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId} (id=${emailResult.id})`)
 
     // Log to notification_logs
     const { error: nlErr } = await supabase.from('notification_logs').insert({
@@ -540,7 +539,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
       recipient: client.contact_email,
       content: `Subject: ${emailSubject}\n\n${transcriptText.slice(0, 9000)}`,
       status: 'sent',
-      external_id: emailResult?.data?.id || null,
+      external_id: emailResult.id || null,
     })
     if (nlErr) console.error(`[completed] notification_logs insert failed (email): ${nlErr.message}`)
   } catch (emailErr) {

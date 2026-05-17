@@ -17,7 +17,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, BRAND_TAGLINE, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 
 interface ExpiredClient {
   id: string
@@ -90,10 +91,6 @@ export async function POST(req: NextRequest) {
     const remindersSent: { slug: string; day: string }[] = []
 
     if (resendKey) {
-      const { Resend: ResendReminder } = await import('resend')
-      const resendReminder = new ResendReminder(resendKey)
-      const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
-
       const now = new Date()
       const day3Window = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
       const day1Window = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000)
@@ -110,32 +107,29 @@ export async function POST(req: NextRequest) {
       for (const c of (day3Clients ?? []) as ReminderClient[]) {
         if (!c.contact_email) continue
         if (c.trial_reminder_sent?.day3) continue // already sent
-        try {
-          await resendReminder.emails.send({
-            from: fromAddress,
-            to: c.contact_email,
-            subject: `Your ${BRAND_NAME} agent has 3 days left`,
-            html: `
-<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">3 days remaining on your trial</h2>
-  <p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
-  <p>Your ${BRAND_NAME} voice agent trial ends in 3 days. After that, your agent will be paused and you'll stop catching missed calls.</p>
-  <a href="${upgradeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
-    Keep my agent active
-  </a>
-  <p style="font-size:14px;color:#555">Your call history and configuration are safe — activating takes 30 seconds.</p>
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
-</div>`,
-          })
+        const result = await sendBrandedEmail({
+          to: c.contact_email,
+          clientId: c.id,
+          clientSlug: c.slug,
+          purpose: 'marketing',
+          tag: 'trial_day3_reminder',
+          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          subject: `Your ${BRAND_NAME} agent has 3 days left`,
+          html: `<h2 style="margin-bottom:4px">3 days remaining on your trial</h2>
+<p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
+<p>Your ${BRAND_NAME} voice agent trial ends in 3 days. After that, your agent will be paused and you'll stop catching missed calls.</p>
+<a href="${upgradeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Keep my agent active</a>
+<p style="font-size:14px;color:#555">Your call history and configuration are safe — activating takes 30 seconds.</p>`,
+        })
+        if (result.ok) {
           await adminSupa
             .from('clients')
             .update({ trial_reminder_sent: { ...(c.trial_reminder_sent ?? {}), day3: now.toISOString() } })
             .eq('id', c.id)
           remindersSent.push({ slug: c.slug, day: 'day3' })
           console.log(`[trial-expiry] Day-3 reminder sent to ${c.contact_email} (${c.slug})`)
-        } catch (err) {
-          console.error(`[trial-expiry] Day-3 reminder failed for ${c.slug}:`, err)
+        } else {
+          console.error(`[trial-expiry] Day-3 reminder failed for ${c.slug}: ${result.error}`)
         }
       }
 
@@ -151,32 +145,29 @@ export async function POST(req: NextRequest) {
       for (const c of (day1Clients ?? []) as ReminderClient[]) {
         if (!c.contact_email) continue
         if (c.trial_reminder_sent?.day1) continue // already sent
-        try {
-          await resendReminder.emails.send({
-            from: fromAddress,
-            to: c.contact_email,
-            subject: `Tomorrow your ${BRAND_NAME} agent pauses`,
-            html: `
-<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Last day of your trial</h2>
-  <p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
-  <p>Tomorrow your ${BRAND_NAME} voice agent trial ends. Your agent will pause and missed calls won't be caught.</p>
-  <a href="${upgradeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
-    Activate now — keep answering calls
-  </a>
-  <p style="font-size:14px;color:#555">Takes 30 seconds. Your agent picks back up immediately.</p>
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
-</div>`,
-          })
+        const result = await sendBrandedEmail({
+          to: c.contact_email,
+          clientId: c.id,
+          clientSlug: c.slug,
+          purpose: 'marketing',
+          tag: 'trial_day1_reminder',
+          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          subject: `Tomorrow your ${BRAND_NAME} agent pauses`,
+          html: `<h2 style="margin-bottom:4px">Last day of your trial</h2>
+<p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
+<p>Tomorrow your ${BRAND_NAME} voice agent trial ends. Your agent will pause and missed calls won't be caught.</p>
+<a href="${upgradeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Activate now — keep answering calls</a>
+<p style="font-size:14px;color:#555">Takes 30 seconds. Your agent picks back up immediately.</p>`,
+        })
+        if (result.ok) {
           await adminSupa
             .from('clients')
             .update({ trial_reminder_sent: { ...(c.trial_reminder_sent ?? {}), day1: now.toISOString() } })
             .eq('id', c.id)
           remindersSent.push({ slug: c.slug, day: 'day1' })
           console.log(`[trial-expiry] Day-1 reminder sent to ${c.contact_email} (${c.slug})`)
-        } catch (err) {
-          console.error(`[trial-expiry] Day-1 reminder failed for ${c.slug}:`, err)
+        } else {
+          console.error(`[trial-expiry] Day-1 reminder failed for ${c.slug}: ${result.error}`)
         }
       }
     }
@@ -204,34 +195,26 @@ export async function POST(req: NextRequest) {
 
       // 2. Send conversion email via Resend
       if (resendKey && client.contact_email) {
-        try {
-          const { Resend } = await import('resend')
-          const resend = new Resend(resendKey)
-          const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
-          const convertUrl = upgradeUrl
-
-          await resend.emails.send({
-            from: fromAddress,
-            to: client.contact_email,
-            subject: `Your ${BRAND_NAME} trial has ended — activate to keep your agent`,
-            html: `
-<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-  <h2 style="margin-bottom:4px">Your trial has ended</h2>
-  <p>Hi${client.business_name ? ` ${client.business_name}` : ''},</p>
-  <p>Your ${BRAND_NAME} voice agent trial has expired and your agent has been paused.</p>
-  <p>To keep your AI receptionist active and never miss another call, activate your subscription now:</p>
-  <a href="${convertUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">
-    Activate my agent
-  </a>
-  <p style="font-size:14px;color:#555">Your agent configuration and call history are preserved. Activating will resume service immediately.</p>
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-  <p style="font-size:12px;color:#888">${BRAND_NAME} — ${BRAND_TAGLINE}</p>
-</div>`,
-          })
+        const result = await sendBrandedEmail({
+          to: client.contact_email,
+          clientId: client.id,
+          clientSlug: client.slug,
+          purpose: 'marketing',
+          tag: 'trial_expired_conversion',
+          reason: `Your free trial of ${BRAND_NAME} just ended.`,
+          subject: `Your ${BRAND_NAME} trial has ended — activate to keep your agent`,
+          html: `<h2 style="margin-bottom:4px">Your trial has ended</h2>
+<p>Hi${client.business_name ? ` ${client.business_name}` : ''},</p>
+<p>Your ${BRAND_NAME} voice agent trial has expired and your agent has been paused.</p>
+<p>To keep your AI receptionist active and never miss another call, activate your subscription now:</p>
+<a href="${upgradeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Activate my agent</a>
+<p style="font-size:14px;color:#555">Your agent configuration and call history are preserved. Activating will resume service immediately.</p>`,
+        })
+        if (result.ok) {
           emailSent = true
-          console.log(`[trial-expiry] Conversion email sent to ${client.contact_email} for ${client.slug}`)
-        } catch (emailErr) {
-          console.error(`[trial-expiry] Email failed for ${client.slug}:`, emailErr)
+          console.log(`[trial-expiry] Conversion email sent to ${client.contact_email} for ${client.slug} (id=${result.id})`)
+        } else {
+          console.error(`[trial-expiry] Email failed for ${client.slug}: ${result.error}`)
         }
       } else if (!client.contact_email) {
         console.warn(`[trial-expiry] No contact email for ${client.slug} — skipping email`)

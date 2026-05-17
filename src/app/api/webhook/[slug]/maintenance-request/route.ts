@@ -3,7 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { recordToolInvocation } from '@/lib/tool-invocations'
 import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME, NOTIFICATIONS_EMAIL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
+import { sendBrandedEmail } from '@/lib/email/send'
 
 export const maxDuration = 10
 
@@ -227,33 +228,30 @@ async function notifyPm(p: NotifyPmParams): Promise<void> {
       const resendKey = process.env.RESEND_API_KEY
       if (!resendKey) return
 
-      const { Resend } = await import('resend')
-      const resend = new Resend(resendKey)
-      const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
-
       const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
       const subject = `[P1 URGENT] Unit ${p.unit_number} — ${p.tenant_name} — ${biz}`
-      const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-        <h2 style="margin:0 0 16px;color:#dc2626">🚨 P1 Urgent Maintenance Request</h2>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-          <tr><td style="padding:8px 0;font-weight:bold;width:140px">Unit</td><td>${escHtml(p.unit_number)}</td></tr>
-          <tr><td style="padding:8px 0;font-weight:bold">Tenant</td><td>${escHtml(p.tenant_name)}</td></tr>
-          <tr><td style="padding:8px 0;font-weight:bold">Category</td><td>${escHtml(categoryLabel)}</td></tr>
-          <tr><td style="padding:8px 0;font-weight:bold">Description</td><td>${escHtml(p.description)}</td></tr>
-          ${p.caller_phone ? `<tr><td style="padding:8px 0;font-weight:bold">Phone</td><td>${escHtml(phoneStr)}</td></tr>` : ''}
-        </table>
-        <p><a href="${APP_URL}/dashboard/maintenance" style="background:#dc2626;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">View in Dashboard →</a></p>
-        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <p style="font-size:12px;color:#888">${BRAND_NAME} — AI receptionist for property managers</p>
-      </div>`
+      const html = `<h2 style="margin:0 0 16px;color:#dc2626">🚨 P1 Urgent Maintenance Request</h2>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+  <tr><td style="padding:8px 0;font-weight:bold;width:140px">Unit</td><td>${escHtml(p.unit_number)}</td></tr>
+  <tr><td style="padding:8px 0;font-weight:bold">Tenant</td><td>${escHtml(p.tenant_name)}</td></tr>
+  <tr><td style="padding:8px 0;font-weight:bold">Category</td><td>${escHtml(categoryLabel)}</td></tr>
+  <tr><td style="padding:8px 0;font-weight:bold">Description</td><td>${escHtml(p.description)}</td></tr>
+  ${p.caller_phone ? `<tr><td style="padding:8px 0;font-weight:bold">Phone</td><td>${escHtml(phoneStr)}</td></tr>` : ''}
+</table>
+<p><a href="${APP_URL}/dashboard/maintenance" style="background:#dc2626;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">View in Dashboard →</a></p>`
 
-      const emailResult = await resend.emails.send({
-        from: fromAddress,
+      const emailResult = await sendBrandedEmail({
         to: p.client.contact_email,
+        clientId: p.client.id,
+        clientSlug: p.slug,
+        purpose: 'system',
+        tag: 'maintenance_p1',
+        reason: `Urgent maintenance alert from your ${BRAND_NAME} agent.`,
         subject,
         html,
       })
+      if (!emailResult.ok) throw new Error(emailResult.error)
 
       const { error: nlErr } = await p.supabase.from('notification_logs').insert({
         call_id: p.call_log_id,
@@ -262,7 +260,7 @@ async function notifyPm(p: NotifyPmParams): Promise<void> {
         recipient: p.client.contact_email,
         content: `Subject: ${subject}`,
         status: 'sent',
-        external_id: emailResult?.data?.id || null,
+        external_id: emailResult.id || null,
       })
       if (nlErr) console.error(`[maintenance-request] notification_logs insert failed (email): ${nlErr.message}`)
     } catch (emailErr) {
