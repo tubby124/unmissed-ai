@@ -1,6 +1,6 @@
 /**
  * Platform Knowledge Base — injected into advisor system prompt
- * so the AI can answer questions about the unmissed.ai dashboard,
+ * so the AI can answer questions about the End Voicemail dashboard,
  * call forwarding setup, settings, and troubleshooting.
  */
 

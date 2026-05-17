@@ -1,5 +1,5 @@
 /**
- * SINGLE SOURCE OF TRUTH — unmissed.ai Pricing
+ * SINGLE SOURCE OF TRUTH — End Voicemail Pricing
  *
  * Edit THIS file to change pricing across the entire website.
  * After editing: rebuild + push to Railway.

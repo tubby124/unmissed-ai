@@ -1,5 +1,5 @@
 /**
- * plan-entitlements.ts — Canonical plan entitlements for unmissed.ai
+ * plan-entitlements.ts — Canonical plan entitlements for End Voicemail
  *
  * SINGLE SOURCE OF TRUTH for what each plan includes.
  * Consumed by: activate-client, stripe webhook, runtime gating, dashboard.

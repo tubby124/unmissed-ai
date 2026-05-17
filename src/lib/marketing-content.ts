@@ -1,5 +1,5 @@
 /**
- * MARKETING CONTENT — unmissed.ai
+ * MARKETING CONTENT — End Voicemail
  *
  * Single source of truth for all homepage and marketing copy.
  * Edit this file to change text across the site without hunting through components.
@@ -27,7 +27,7 @@ export const HERO = {
   subtitle:
     "85% of callers who reach voicemail don't call back. That's a $400 job — gone to whoever picked up. We make sure you're whoever picked up.",
   ctaLabel: "Get a live call from Zara in seconds.",
-  proofLine: "Hear exactly how Unmissed answers, qualifies, and follows up with callers.",
+  proofLine: "Hear exactly how End Voicemail answers, qualifies, and follows up with callers.",
 }
 
 // ─── Call Me Now Widget Copy ──────────────────────────────────────────
@@ -39,7 +39,7 @@ export const CALL_ME_WIDGET_COPY = {
   /** Expanded helper text in non-compact mode */
   helperTextFull:     "We'll call your phone and connect you live. No app needed.",
   /** Proof line — shows under input in hero compact mode */
-  proofLine:          "Hear exactly how Unmissed answers, qualifies, and follows up with callers.",
+  proofLine:          "Hear exactly how End Voicemail answers, qualifies, and follows up with callers.",
   /** Success heading — urgency, not celebration */
   successHeading:     "Pick up now — Zara is calling from an unknown number.",
   /** Success body — sets expectation + reinforces value */

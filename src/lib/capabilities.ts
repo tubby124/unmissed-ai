@@ -1,5 +1,5 @@
 /**
- * Central capability registry for unmissed.ai.
+ * Central capability registry for End Voicemail.
  *
  * This is the single source of truth for all agent capabilities:
  *   - What modes exist (message_only / triage / full_service)
