@@ -4,6 +4,8 @@ import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
+import { websiteSchema, localBusinessSchema } from "@/lib/schema";
+import { PLANS, CURRENCY } from "@/lib/pricing";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -24,18 +26,30 @@ export const metadata: Metadata = {
   keywords: [
     "AI receptionist",
     "AI answering service",
+    "AI phone agent",
+    "AI voice agent",
+    "virtual receptionist",
     "missed call solution",
-    "auto glass AI receptionist",
-    "HVAC call answering",
-    "plumber AI receptionist",
+    "voicemail alternative",
+    "24/7 phone answering",
+    "AI receptionist Canada",
+    "AI receptionist for plumbers",
+    "AI receptionist for HVAC",
+    "AI receptionist for dental",
+    "AI receptionist for realtors",
+    "AI receptionist for law firms",
+    "AI receptionist for auto glass",
     "never miss a customer call",
     "done for you AI receptionist",
     "small business call answering",
+    "End Voicemail",
+    "Saskatoon AI receptionist",
+    "Calgary AI receptionist",
   ],
   authors: [{ name: BRAND_NAME }],
   creator: BRAND_NAME,
   other: {
-    "theme-color": "#F9FAFB",
+    "theme-color": "#8B5CF6",
   },
   openGraph: {
     type: "website",
@@ -86,7 +100,9 @@ export const metadata: Metadata = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${siteUrl}/#organization`,
   name: BRAND_NAME,
+  alternateName: ["EndVoicemail", "EndVoicemail.ai", "End Voicemail AI"],
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
   description:
@@ -95,9 +111,18 @@ const organizationSchema = {
     "@type": "ContactPoint",
     contactType: "customer service",
     availableLanguage: "English",
+    areaServed: ["CA", "US"],
   },
   areaServed: ["US", "CA"],
-  serviceType: "AI Receptionist Service",
+  foundingLocation: {
+    "@type": "Place",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Saskatoon",
+      addressRegion: "SK",
+      addressCountry: "CA",
+    },
+  },
 };
 
 const softwareApplicationSchema = {
@@ -105,11 +130,13 @@ const softwareApplicationSchema = {
   "@type": "SoftwareApplication",
   name: BRAND_NAME,
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
+  operatingSystem: "Web, iOS, Android",
   offers: {
-    "@type": "Offer",
-    price: "297",
-    priceCurrency: "CAD",
+    "@type": "AggregateOffer",
+    lowPrice: String(PLANS[0].monthly),
+    highPrice: String(PLANS[PLANS.length - 1].monthly),
+    priceCurrency: CURRENCY === "CAD" ? "CAD" : "USD",
+    offerCount: PLANS.length,
   },
 };
 
@@ -133,6 +160,14 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
         />
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>

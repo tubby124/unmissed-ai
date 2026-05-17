@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import Logo from "./Logo";
+import TrustPills from "./TrustPills";
 import { BRAND_NAME } from "@/lib/brand";
 import { NAV_NICHES } from "@/lib/niches";
 
@@ -100,6 +101,11 @@ export default function Footer() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Trust + compliance */}
+        <div className="border-t pt-6 pb-6 flex justify-center" style={{ borderColor: "var(--color-border)" }}>
+          <TrustPills variant="compact" />
         </div>
 
         {/* Data privacy + legal */}

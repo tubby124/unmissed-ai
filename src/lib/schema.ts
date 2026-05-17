@@ -95,3 +95,81 @@ export function nicheSchema(niche: string, description: string) {
     },
   };
 }
+
+export const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: BRAND_NAME,
+  url: siteUrl,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${siteUrl}/?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
+export const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "@id": `${siteUrl}/#localbusiness`,
+  name: BRAND_NAME,
+  url: siteUrl,
+  description:
+    "AI receptionist service for small businesses. Answers every call 24/7, qualifies leads, and sends instant notifications to the owner.",
+  image: `${siteUrl}/brand/logo-dark.png`,
+  priceRange: "$$",
+  telephone: "",
+  address: [
+    {
+      "@type": "PostalAddress",
+      addressLocality: "Saskatoon",
+      addressRegion: "SK",
+      addressCountry: "CA",
+    },
+    {
+      "@type": "PostalAddress",
+      addressLocality: "Calgary",
+      addressRegion: "AB",
+      addressCountry: "CA",
+    },
+  ],
+  areaServed: [
+    { "@type": "City", name: "Saskatoon" },
+    { "@type": "City", name: "Calgary" },
+    { "@type": "AdministrativeArea", name: "Saskatchewan" },
+    { "@type": "AdministrativeArea", name: "Alberta" },
+    { "@type": "Country", name: "Canada" },
+    { "@type": "Country", name: "United States" },
+  ],
+  openingHoursSpecification: {
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ],
+    opens: "00:00",
+    closes: "23:59",
+    description: "24/7 — AI receptionist always answering",
+  },
+};
+
+export function breadcrumbSchema(items: Array<{ name: string; url: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}

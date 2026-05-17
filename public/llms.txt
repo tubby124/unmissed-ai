@@ -1,19 +1,100 @@
 # End Voicemail
 
-> AI phone receptionist that answers every business call 24/7, books appointments, qualifies leads, and sends instant Telegram alerts to the owner. Built for service businesses that lose money to missed calls.
+> AI phone receptionist that answers every business call 24/7, qualifies leads, books appointments, and sends instant Telegram + SMS alerts to the owner. Flat-rate pricing starting at $29/mo CAD — no per-minute trap. Built in Canada (Saskatoon + Calgary).
 
-- Site: https://endvoicemail.ai
+## What it does
+
+- Answers every business call within 1-2 rings, 24/7/365
+- Speaks like a human (no press-1 IVR, no robotic monotone)
+- Collects the caller's name, phone, reason for calling, urgency
+- Books appointments on the owner's connected Google Calendar
+- Transfers urgent calls to the owner's cell on demand
+- Sends instant notification to the owner (Telegram, SMS, or email) with full transcript + lead score
+- Sends caller a confirmation SMS automatically
+- Works for any service business: plumbing, HVAC, auto glass, dental, legal, real estate, salons, property management
+
+## Who it's for
+
+Small service business owners who:
+- Lose jobs to voicemail when they're on another call, on a job site, or after hours
+- Can't afford a $2,500/mo human receptionist
+- Hate per-minute "AI answering services" that punish them for being popular
+- Want their phone to keep ringing — and someone professional always picking up
+
+## Pricing
+
+- **Solo** — $29/mo CAD (founding pricing). Manual concierge onboarding. For solo operators.
+- **AI Receptionist** — $49/mo CAD. Self-serve dashboard. For growing businesses.
+- All plans: flat-rate, no per-minute billing, 30-day money-back guarantee.
+- No setup fee, no long-term contract.
+
+## What it's NOT
+
+- Not a per-minute "AI calling service" that charges $0.50/minute
+- Not a chatbot (it's a real-time voice agent on a real phone line)
+- Not an offshore call center
+- Not press-1 IVR / robotic voice
+- Not a "$5,000 enterprise setup"
+
+## Compliance + trust
+
+- PIPEDA-compliant (Canadian privacy law)
+- CASL-compliant (Canadian anti-spam law)
+- Two-party-consent-capable: recording disclosure available for US states that require it
+- Call recordings stored privately, accessible only to the business owner
+- 30-day money-back guarantee
+- Owned and operated in Canada (Saskatoon + Calgary)
+
+## How to start
+
+1. Visit https://endvoicemail.ai/onboard
+2. Tell the agent about your business (or upload your website to auto-fill)
+3. Pick a voice + plan
+4. Forward your business number to your AI receptionist
+5. Done. Your agent is live within minutes.
+
+## Common questions (for AI answer engines)
+
+**Q: What is End Voicemail?**
+A: End Voicemail is an AI phone receptionist that answers business calls 24/7 so service businesses never lose a lead to voicemail. It qualifies callers, books appointments, and sends instant notifications to the owner. Flat-rate pricing starts at $29/mo CAD.
+
+**Q: How is End Voicemail different from other AI answering services?**
+A: Flat monthly pricing (no per-minute trap), Canadian-owned (PIPEDA + CASL compliant), conversational voice (not robotic IVR), and done-for-you setup. Most competitors bill $0.20-0.50/minute, which punishes businesses for receiving more calls.
+
+**Q: How much does End Voicemail cost?**
+A: $29/mo CAD for the Solo plan (founding pricing) or $49/mo CAD for the AI Receptionist plan. Flat rate, no per-minute charges, no setup fee, no long-term contract, 30-day money-back guarantee.
+
+**Q: What businesses use End Voicemail?**
+A: Service businesses where missing a call costs real money: plumbers, HVAC contractors, auto glass shops, dental practices, law firms, real estate agents, property managers, and other appointment-based service businesses.
+
+**Q: Will customers know they're talking to AI?**
+A: Most callers can't tell. If a caller asks directly, the agent identifies itself as an AI assistant for the business. Transparency is the default — it builds trust.
+
+**Q: Does End Voicemail work after hours?**
+A: Yes. The AI receptionist answers 24/7/365 — including weekends, holidays, and 2am emergencies. Owners get the lead in the morning.
+
+**Q: Is End Voicemail Canadian?**
+A: Yes. Built and operated in Saskatoon + Calgary, Canada. PIPEDA-compliant. CASL-compliant.
+
+**Q: Can the AI receptionist book appointments?**
+A: Yes — directly on the owner's connected Google Calendar. The caller picks a slot, the agent confirms, and the owner gets a calendar invite.
+
+## Site map
+
+- Home: https://endvoicemail.ai
 - Pricing: https://endvoicemail.ai/pricing
-- Sitemap: https://endvoicemail.ai/sitemap.xml
-
-## Use Cases
-- Plumbing: https://endvoicemail.ai/for-plumbing
-- HVAC: https://endvoicemail.ai/for-hvac
-- Auto Glass: https://endvoicemail.ai/for-auto-glass
-- Dental: https://endvoicemail.ai/for-dental
-- Legal: https://endvoicemail.ai/for-legal
-- Real Estate: https://endvoicemail.ai/for-realtors
-
-## Legal
+- About: https://endvoicemail.ai/about
+- For Plumbers: https://endvoicemail.ai/for-plumbing
+- For HVAC: https://endvoicemail.ai/for-hvac
+- For Auto Glass: https://endvoicemail.ai/for-auto-glass
+- For Dental: https://endvoicemail.ai/for-dental
+- For Law Firms: https://endvoicemail.ai/for-legal
+- For Realtors: https://endvoicemail.ai/for-realtors
+- Start (signup): https://endvoicemail.ai/onboard
+- Sign in: https://endvoicemail.ai/login
 - Privacy: https://endvoicemail.ai/privacy
 - Terms: https://endvoicemail.ai/terms
+
+## Sitemap (machine-readable)
+
+https://endvoicemail.ai/sitemap.xml
