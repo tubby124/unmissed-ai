@@ -1,11 +1,11 @@
 {
-  "name": "unmissed.ai",
-  "short_name": "unmissed",
-  "description": "AI receptionist for service businesses",
+  "name": "End Voicemail",
+  "short_name": "EndVoicemail",
+  "description": "AI receptionist that answers every call so you never lose a lead to voicemail.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F9FAFB",
-  "theme_color": "#4F46E5",
+  "background_color": "#0A0A0A",
+  "theme_color": "#8B5CF6",
   "icons": [
     {
       "src": "/favicon.ico",

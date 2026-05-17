@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import { BRAND_NAME } from "@/lib/brand";
+import Logo from "./Logo";
 import { NAV_NICHES } from "@/lib/niches";
 
 export default function Navbar() {
@@ -45,17 +45,8 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            U
-          </div>
-          <span className="font-semibold text-lg tracking-tight" style={{ color: "var(--color-text-1)" }}>
-            {BRAND_NAME.replace('.ai', '')}<span style={{ color: "var(--color-primary)" }}>.ai</span>
-          </span>
-        </Link>
+        <Logo href="/" height={28} priority />
+
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">

@@ -15,14 +15,15 @@ export default function Icon() {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '8px',
-          background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+          background: 'radial-gradient(circle at 30% 30%, #A78BFA, #6366F1 50%, #4338CA)',
           fontSize: '18px',
           fontWeight: 800,
           color: '#FFFFFF',
           fontFamily: 'system-ui, sans-serif',
+          boxShadow: 'inset 0 0 6px rgba(255,255,255,0.3)',
         }}
       >
-        U
+        E
       </div>
     ),
     { ...size }

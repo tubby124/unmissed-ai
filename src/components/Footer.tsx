@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import Logo from "./Logo";
 import { BRAND_NAME } from "@/lib/brand";
 import { NAV_NICHES } from "@/lib/niches";
 
@@ -26,16 +27,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                U
-              </div>
-              <span className="font-semibold text-lg" style={{ color: "var(--color-text-1)" }}>
-                {BRAND_NAME.replace('.ai', '')}<span style={{ color: "var(--color-primary)" }}>.ai</span>
-              </span>
+            <div className="mb-3">
+              <Logo href="/" height={32} />
             </div>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "var(--color-text-2)" }}>
               Done-for-you AI receptionist for service businesses. Your agent

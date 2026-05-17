@@ -36,24 +36,21 @@ export default function Image() {
           }}
         />
 
-        {/* Logo mark */}
+        {/* Logo orb mark */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '80px',
-            height: '80px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+            width: '96px',
+            height: '96px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 30%, #A78BFA, #6366F1 55%, #312E81)',
             marginBottom: '32px',
-            fontSize: '40px',
-            fontWeight: 700,
-            color: '#FFFFFF',
+            boxShadow: '0 0 40px rgba(139, 92, 246, 0.5), inset 0 0 30px rgba(255,255,255,0.15)',
           }}
-        >
-          U
-        </div>
+        />
+
 
         {/* Brand name */}
         <div
