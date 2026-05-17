@@ -5,6 +5,7 @@ import { fetchLastNCalls, type TelegramClientRow } from './queries'
 import type { AssistantIntent } from './types'
 import type { TopUrgent } from './menu'
 import { fetchMtdSpendUsd } from './operator'
+import { BRAND_NAME } from '../brand'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-haiku-4-5'
@@ -123,7 +124,7 @@ export function buildSystemPrompt(
   const qa = formatExtraQa(client.extra_qa)
 
   return [
-    `You are the unmissed.ai assistant texting ${businessName} the owner via Telegram.`,
+    `You are the ${BRAND_NAME} assistant texting ${businessName} the owner via Telegram.`,
     `You answer ONLY from the data blocks below. Never invent a caller, time, phone,`,
     `call ID, balance, or limit. If the data does not contain the answer, reply`,
     `"I don't have that yet — try /calls or /missed" and stop.`,

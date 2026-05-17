@@ -9,6 +9,7 @@ import DemoCall from "./DemoCall"
 import { loadVisitor, saveVisitor, normalizePhoneNA, type VisitorInfo } from "@/lib/demo-visitor"
 import { TALK_TO_ZARA_COPY } from "@/lib/marketing-content"
 import { trackEvent } from "@/lib/analytics"
+import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand"
 
 type WidgetStep = "closed" | "form" | "call"
 
@@ -181,7 +182,7 @@ export default function TalkToAgentWidget() {
                       className="text-[10px] font-mono"
                       style={{ color: "var(--color-text-3)" }}
                     >
-                      unmissed.ai demo agent
+                      {BRAND_DOMAIN} demo agent
                     </p>
                   </div>
                 </div>
@@ -252,7 +253,7 @@ export default function TalkToAgentWidget() {
                     demoId="unmissed_demo"
                     callerName={visitorInfo?.name || "Visitor"}
                     agentName="Zara"
-                    companyName="unmissed.ai"
+                    companyName={BRAND_NAME}
                     extraBody={{
                       ...(visitorInfo?.phone ? { callerPhone: visitorInfo.phone } : {}),
                       ...(visitorInfo?.email ? { callerEmail: visitorInfo.email } : {}),

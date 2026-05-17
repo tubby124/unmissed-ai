@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
 import { recordToolInvocation } from '@/lib/tool-invocations'
+import { APP_URL } from '@/lib/app-url'
+import { BRAND_NAME, NOTIFICATIONS_EMAIL } from '@/lib/brand'
 
 export const maxDuration = 10
 
@@ -197,7 +199,7 @@ async function notifyPm(p: NotifyPmParams): Promise<void> {
     lines.push(`🛠 Issue: ${categoryLabel} — ${p.description}`)
     if (p.caller_phone) lines.push(`📞 ${phoneStr}`)
     lines.push(DIVIDER)
-    lines.push(`<a href="https://app.unmissed.ai/dashboard/maintenance">View in dashboard →</a>`)
+    lines.push(`<a href="${APP_URL}/dashboard/maintenance">View in dashboard →</a>`)
 
     const message = lines.join('\n')
     const sent = await sendAlert(
@@ -227,7 +229,7 @@ async function notifyPm(p: NotifyPmParams): Promise<void> {
 
       const { Resend } = await import('resend')
       const resend = new Resend(resendKey)
-      const fromAddress = process.env.RESEND_FROM_EMAIL ?? 'notifications@unmissed.ai'
+      const fromAddress = process.env.RESEND_FROM_EMAIL ?? NOTIFICATIONS_EMAIL
 
       const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -241,9 +243,9 @@ async function notifyPm(p: NotifyPmParams): Promise<void> {
           <tr><td style="padding:8px 0;font-weight:bold">Description</td><td>${escHtml(p.description)}</td></tr>
           ${p.caller_phone ? `<tr><td style="padding:8px 0;font-weight:bold">Phone</td><td>${escHtml(phoneStr)}</td></tr>` : ''}
         </table>
-        <p><a href="https://app.unmissed.ai/dashboard/maintenance" style="background:#dc2626;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">View in Dashboard →</a></p>
+        <p><a href="${APP_URL}/dashboard/maintenance" style="background:#dc2626;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">View in Dashboard →</a></p>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <p style="font-size:12px;color:#888">unmissed.ai — AI receptionist for property managers</p>
+        <p style="font-size:12px;color:#888">${BRAND_NAME} — AI receptionist for property managers</p>
       </div>`
 
       const emailResult = await resend.emails.send({

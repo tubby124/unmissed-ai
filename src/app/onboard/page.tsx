@@ -301,7 +301,7 @@ function OnboardPageInner() {
           {/* Desktop: full vertical sidebar */}
           <div className="hidden lg:flex flex-col w-[260px] shrink-0 justify-center px-8 py-12 border-r border-border gap-6 bg-indigo-950 dark:bg-indigo-950">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">unmissed.ai</p>
+              <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">{BRAND_NAME}</p>
               <h3 className="text-lg font-bold text-white leading-snug">
                 Your AI receptionist,<br />live in minutes
               </h3>

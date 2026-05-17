@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { SUPPORT_EMAIL } from '@/lib/brand'
+import { SUPPORT_EMAIL, BRAND_NAME } from '@/lib/brand'
 import { routeTelegramMessage, dispatchCommand } from '@/lib/telegram/router'
 import { fetchClientByChatId, type TelegramClientRow } from '@/lib/telegram/queries'
 import {
@@ -409,7 +409,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (!client) {
         await sendTelegramMessage(
           chatId,
-          "This bot only responds to clients of unmissed.ai.\n\nIf you're a client, use the link from your welcome email to connect."
+          `This bot only responds to clients of ${BRAND_NAME}.\n\nIf you're a client, use the link from your welcome email to connect.`
         )
         return new NextResponse('OK', { status: 200 })
       }

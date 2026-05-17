@@ -1,6 +1,7 @@
 import type { CallRow } from './queries'
 import type { InlineKeyboardMarkup } from './types'
 import { buildQuickActionsKeyboard } from './menu'
+import { BRAND_NAME } from '../brand'
 
 export interface FormattedReply {
   text: string
@@ -107,7 +108,7 @@ export function renderRateLimited(retryAfterSec: number): string {
 }
 
 export function renderUnregistered(): string {
-  return 'This bot only responds to clients of unmissed.ai.\n\nIf you\'re a client, use the link from your welcome email to connect.'
+  return `This bot only responds to clients of ${BRAND_NAME}.\n\nIf you're a client, use the link from your welcome email to connect.`
 }
 
 export function renderUnknown(): string {

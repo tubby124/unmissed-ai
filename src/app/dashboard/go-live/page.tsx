@@ -4,11 +4,12 @@ import { createServerClient } from '@/lib/supabase/server'
 import { CLIENT_CONFIG_SELECT } from '@/lib/clients/select-columns'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import GoLiveView from './GoLiveView'
+import { BRAND_NAME } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Go Live · unmissed.ai',
+  title: `Go Live · ${BRAND_NAME}`,
   description: 'Set up your agent and take your first real call.',
 }
 

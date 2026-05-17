@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { OnboardingData, nicheLabels } from "@/types/onboarding";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 
 // ── Message copy ─────────────────────────────────────────────────────────────
 // Edit this function to change what users see during provisioning.
@@ -116,7 +117,7 @@ export function ProvisioningOverlay({ data, visible, error, onRetry }: Provision
                   </button>
                 )}
                 <a
-                  href="mailto:support@unmissed.ai"
+                  href={`mailto:${SUPPORT_EMAIL}`}
                   className="px-4 py-2.5 rounded-xl border border-indigo-400/30 text-indigo-200 text-sm hover:bg-indigo-900/50 transition-colors"
                 >
                   Contact us

@@ -1,0 +1,19 @@
+# End Voicemail
+
+> AI phone receptionist that answers every business call 24/7, books appointments, qualifies leads, and sends instant Telegram alerts to the owner. Built for service businesses that lose money to missed calls.
+
+- Site: https://endvoicemail.ai
+- Pricing: https://endvoicemail.ai/pricing
+- Sitemap: https://endvoicemail.ai/sitemap.xml
+
+## Use Cases
+- Plumbing: https://endvoicemail.ai/for-plumbing
+- HVAC: https://endvoicemail.ai/for-hvac
+- Auto Glass: https://endvoicemail.ai/for-auto-glass
+- Dental: https://endvoicemail.ai/for-dental
+- Legal: https://endvoicemail.ai/for-legal
+- Real Estate: https://endvoicemail.ai/for-realtors
+
+## Legal
+- Privacy: https://endvoicemail.ai/privacy
+- Terms: https://endvoicemail.ai/terms

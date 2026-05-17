@@ -68,7 +68,7 @@ describe('routeTelegramMessage — Tier 1 slash router', () => {
     )
     assert.equal(result.kind, 'reply')
     if (result.kind !== 'reply') return
-    assert.match(result.text, /clients of unmissed/i)
+    assert.match(result.text, /clients of end voicemail/i)
   })
 
   it('responds to /help', async () => {
