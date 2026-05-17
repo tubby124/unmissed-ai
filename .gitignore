@@ -35,6 +35,7 @@ screens/
 *.png
 !public/og-image.png
 !public/apple-touch-icon.png
+!public/brand/*.png
 
 # Archive (legacy/dead files)
 archive/
