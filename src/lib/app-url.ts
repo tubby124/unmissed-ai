@@ -19,5 +19,5 @@ export const AGENT_WEBHOOK_BASE = (
 ).replace(/\/$/, '')
 
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://unmissed.ai'
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://endvoicemail.ai'
 ).replace(/\/$/, '')
