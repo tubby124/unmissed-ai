@@ -12,28 +12,27 @@
  *   - lib/niche-pages.ts → per-industry landing page content
  */
 
-import { Phone, Users, Zap, Clock } from 'lucide-react'
+import { Phone, Zap, Clock } from 'lucide-react'
 import { PhoneIncoming, Bot, BellRing, CircleCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PLANS, SETUP, MINUTE_RELOAD, POLICIES } from './pricing'
-import { BRAND_NAME } from './brand'
 
 // ─── Hero ────────────────────────────────────────────────────────────
 export const HERO = {
-  eyebrow: '$29/mo · Built for service businesses that can\'t afford to miss calls',
-  headline: ['They called.', 'You didn\'t answer.', 'We fix that.'],
+  eyebrow: 'Missed-call AI for service businesses',
+  headline: ['End voicemail', 'with an AI that', 'answers missed calls.'],
   /** Highlighted portion of the last headline line (rendered in primary color) */
-  headlineAccent: 'We fix that.',
+  headlineAccent: 'answers missed calls.',
   subtitle:
-    "85% of callers who reach voicemail don't call back. That's a $400 job — gone to whoever picked up. We make sure you're whoever picked up.",
-  ctaLabel: "Get a live call from Zara in seconds.",
-  proofLine: "Hear exactly how End Voicemail answers, qualifies, and follows up with callers.",
+    "Forward unanswered calls to your AI number. It answers in your business name, qualifies the lead, and sends you the summary so you can call back ready.",
+  ctaLabel: "Hear the demo before you activate.",
+  proofLine: "Want to hear it first? Get a demo call from Zara below.",
 }
 
 // ─── Call Me Now Widget Copy ──────────────────────────────────────────
 export const CALL_ME_WIDGET_COPY = {
   /** Hero/compact mode helper text under the input row */
-  helperTextCompact:  "Zara will call you in seconds. No app. No sign-up.",
+  helperTextCompact:  "Demo call only. No app. No sign-up.",
   /** Standard (non-compact) label above the input */
   standardLabel:      "Get a live call from Zara in seconds.",
   /** Expanded helper text in non-compact mode */
@@ -91,12 +90,12 @@ export const HERO_MOCKUP = {
 
 // ─── Trust Bar ───────────────────────────────────────────────────────
 export const TRUST_BAR = {
-  label: 'Trusted by service businesses across Canada',
+  label: 'The real activation path',
   stats: [
-    { icon: Phone as LucideIcon, value: '8,400+', label: 'Calls answered', delay: 0 },
-    { icon: Users as LucideIcon, value: '2,100+', label: 'Jobs captured', delay: 0.1 },
-    { icon: Zap as LucideIcon, value: '<1s', label: 'Answer time', delay: 0.2 },
-    { icon: Clock as LucideIcon, value: '24/7', label: 'Always on', delay: 0.3 },
+    { icon: Phone as LucideIcon, value: 'AI number', label: 'Assigned after checkout', delay: 0 },
+    { icon: Bot as LucideIcon, value: 'Business-trained', label: 'GBP + website', delay: 0.1 },
+    { icon: Zap as LucideIcon, value: 'Email alerts', label: 'Telegram optional', delay: 0.2 },
+    { icon: Clock as LucideIcon, value: '24/7', label: 'Missed-call coverage', delay: 0.3 },
   ],
 }
 
@@ -107,37 +106,37 @@ export const DEMO_SECTION = {
   subheadline: 'Real calls your AI agent handles — every caller greeted, every job captured.',
   ctaLabel: 'Talk to an AI Agent Live',
   ctaHref: '/try',
-  ctaSubtext: 'Free · No sign-up · Browser-based demo',
+  ctaSubtext: 'No sign-up · Browser demo',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────
 export const HOW_IT_WORKS = {
   eyebrow: 'How It Works',
-  headline: 'Four steps. No setup work on your end.',
-  subheadline: 'Your agent is built during signup. You just forward your calls.',
+  headline: 'Four steps from checkout to replacing voicemail.',
+  subheadline: 'Your agent is built during signup. Then you forward missed calls and run a real test.',
   /** Shown below the steps grid */
-  proofLine: '8,400+ calls answered · 24/7 coverage · Built from your business info during signup',
+  proofLine: '50 activation minutes included · Real forwarded-call test · Email alerts first, Telegram optional',
   steps: [
     {
       number: '01',
       icon: PhoneIncoming as LucideIcon,
-      title: 'Your number forwards to your agent',
+      title: 'Forward missed calls to your AI number',
       description:
-        'Your existing business number forwards to your AI agent. Takes two minutes. No downtime, no new number required.',
+        'After checkout, you get a real AI number. Forward unanswered calls from your existing business line so callers reach your agent instead of voicemail.',
     },
     {
       number: '02',
       icon: Bot as LucideIcon,
       title: 'Agent answers — every time',
       description:
-        'Your agent knows your trade, your services, your hours. It speaks naturally, captures the caller\'s info, and understands what they need.',
+        'Your agent learns from your Google Business Profile, website, and setup answers. It speaks naturally, captures caller info, and understands what they need.',
     },
     {
       number: '03',
       icon: BellRing as LucideIcon,
-      title: 'You get the message instantly',
+      title: 'You get the lead summary instantly',
       description:
-        'A full call summary hits your Telegram or SMS within seconds: caller name, number, what they need, and who to call back first.',
+        'A full call summary goes to your email by default, with Telegram available for faster alerts: caller name, number, what they need, and who to call back first.',
     },
     {
       number: '04',
@@ -152,8 +151,8 @@ export const HOW_IT_WORKS = {
 // ─── Pricing Section (homepage inline) ───────────────────────────────
 export const PRICING_SECTION = {
   eyebrow: 'Pricing',
-  headline: '$29/mo. Agent live before your first call.',
-  subheadline: 'Flat monthly plans with generous included minutes. No surprise per-minute billing — optional reload packs available when you need more.',
+  headline: 'Activate a real AI number, then test it with 50 included minutes.',
+  subheadline: 'Solo starts at $29/mo. AI Receptionist is $119/mo with 250 included minutes for businesses that want booking, business knowledge, and lead ranking.',
   fullPricingLinkText: 'See full pricing details and feature comparison →',
 }
 
@@ -161,7 +160,7 @@ export const PRICING_SECTION = {
 export const FINAL_CTA = {
   headline: 'The next missed call is a job you won\'t get back.',
   subheadline: 'Every unanswered call goes to whoever picked up. Make sure that\'s you.',
-  signupLinkText: 'Or sign up and get your agent live →',
+  signupLinkText: 'Get your AI number →',
 }
 
 // ─── FAQ ─────────────────────────────────────────────────────────────
@@ -196,7 +195,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Does it work after hours and on weekends?',
     answer:
-      "That's the whole point. Your agent answers every call, 24/7/365 — including 2am emergencies, Christmas Day, and while you're elbow-deep in a job. You'll get an instant Telegram or SMS notification so you can decide whether to call back immediately or in the morning.",
+      "That's the whole point. Your agent answers every call, 24/7/365 — including 2am emergencies, Christmas Day, and while you're elbow-deep in a job. You'll get an email summary by default, with Telegram available for faster alerts, so you can decide whether to call back immediately or in the morning.",
   },
   {
     question: 'How do I update what my agent knows?',

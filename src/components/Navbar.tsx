@@ -156,7 +156,7 @@ export default function Navbar() {
               ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary)")
             }
           >
-            Sign Up Free
+            Get Your AI Number
           </Link>
         </div>
 
@@ -234,7 +234,7 @@ export default function Navbar() {
               style={{ backgroundColor: "var(--color-primary)" }}
               onClick={() => setOpen(false)}
             >
-              Sign Up Free
+              Get Your AI Number
             </Link>
             <Link
               href="/login"

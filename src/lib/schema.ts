@@ -1,4 +1,4 @@
-import { PLANS, CURRENCY, TRIAL, POLICIES } from "@/lib/pricing";
+import { PUBLIC_PLANS, CURRENCY, POLICIES, getPlanDisplayMonthly } from "@/lib/pricing";
 
 import { SITE_URL } from "@/lib/app-url";
 import { BRAND_NAME, BRAND_PRODUCT } from "@/lib/brand";
@@ -65,10 +65,10 @@ export const pricingSchema = {
   },
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: String(PLANS[0].monthly),
-    highPrice: String(PLANS[PLANS.length - 1].monthly),
+    lowPrice: String(Math.min(...PUBLIC_PLANS.map(getPlanDisplayMonthly))),
+    highPrice: String(Math.max(...PUBLIC_PLANS.map(getPlanDisplayMonthly))),
     priceCurrency: CURRENCY === "CAD" ? "CAD" : "USD",
-    offerCount: PLANS.length,
+    offerCount: PUBLIC_PLANS.length,
   },
 };
 

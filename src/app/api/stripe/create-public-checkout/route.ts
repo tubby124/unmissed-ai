@@ -2,9 +2,9 @@
  * POST /api/stripe/create-public-checkout
  *
  * Public (no auth required). Creates a Stripe Checkout session for the setup fee + subscription.
- * 3-tier pricing: Lite $49/Core $119/Pro $229 per mo CAD. Promo codes available at checkout.
+ * 3-tier pricing: Lite/Core/Pro monthly CAD plans. Promo codes available at checkout.
  * Fresh number: $25 CAD setup. Inventory number: $20 CAD setup.
- * 7-day free trial included.
+ * 50 activation minutes included after checkout.
  * Auto-provisions the clients row + Ultravox agent if not already done by admin.
  *
  * Body: { intakeId: string; selectedNumber?: string }

@@ -114,10 +114,10 @@ export default function KeepYourNumberPage() {
                 className="inline-block px-8 py-4 rounded-xl text-white font-semibold transition-opacity hover:opacity-90"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                Start your free trial →
+                Get Your AI Number →
               </Link>
               <p className="text-xs mt-3" style={{ color: 'var(--color-text-3)' }}>
-                7-day free trial · No credit card to start · Cancel anytime
+                50 activation minutes included · Card required to activate your number · Cancel anytime
               </p>
             </div>
           </div>

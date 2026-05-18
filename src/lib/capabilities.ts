@@ -79,7 +79,7 @@ export interface CapabilityConfig {
   label: string
   description: string
   /** Plan required. null = available on all plans */
-  requiresPlan: 'pro' | null
+  requiresPlan: 'core' | 'pro' | null
   /** Whether enabling this triggers needsAgentSync → updateAgent() */
   needsAgentSync: boolean
   /** DB field on `clients` table (if top-level, not in intake_json) */
@@ -94,12 +94,12 @@ export const CAPABILITIES: CapabilityConfig[] = [
   {
     id: 'forwarding',
     label: 'Call Forwarding',
-    description: 'Transfer urgent callers live to your phone — phone calls only, Pro plan required.',
-    requiresPlan: 'pro',
+    description: 'Transfer urgent callers live to your phone — phone calls only, AI Receptionist plan required.',
+    requiresPlan: 'core',
     needsAgentSync: true,
     dbField: 'forwarding_number',
     onboardingField: 'callForwardingEnabled',
-    planBadge: 'Pro plan',
+    planBadge: 'AI Receptionist plan',
   },
   {
     id: 'ivr',
@@ -148,6 +148,7 @@ export function getCapability(id: CapabilityId): CapabilityConfig {
 /** Returns true if the given plan unlocks the given capability */
 export function isPlanUnlocked(cap: CapabilityConfig, plan: string | null): boolean {
   if (!cap.requiresPlan) return true
+  if (cap.requiresPlan === 'core') return plan === 'core' || plan === 'pro'
   return plan === cap.requiresPlan
 }
 

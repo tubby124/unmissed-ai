@@ -36,7 +36,7 @@ export default function StickyMobileCta() {
           className="flex-1 text-center py-2.5 rounded-lg text-white text-sm font-semibold transition-colors"
           style={{ backgroundColor: "var(--color-primary)" }}
         >
-          Get Started
+          Get AI Number
         </Link>
       </div>
     </div>

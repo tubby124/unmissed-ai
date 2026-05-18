@@ -85,7 +85,7 @@ const PRO: PlanEntitlements = {
   minutes: 1000,
   defaultMode: 'appointment_booking',
   bookingEnabled: true,
-  transferEnabled: true,      // Pro-only: IVR + transfer for high-volume businesses
+  transferEnabled: true,      // Pro includes IVR + transfer for high-volume businesses
   smsEnabled: true,
   knowledgeEnabled: true,
   learningLoopEnabled: true,

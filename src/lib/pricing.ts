@@ -88,7 +88,7 @@ export const PLANS = [
       "Daily morning summary of all your calls",
       "Weekly review — your agent gets smarter from real call patterns",
     ],
-    notIncluded: ["Live call transfer", "IVR pre-filter"],
+    notIncluded: ["IVR pre-filter"],
     cta: "Get Your AI Number",
     href: "/onboard",
   },
@@ -219,16 +219,16 @@ export const COMPETITORS = [
 // ─── Feature Comparison (for detailed table) ────────────────────────
 export const FEATURE_COMPARISON = [
   { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate per plan" },
-  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].monthly}/mo CAD` },
+  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].foundingMonthly ?? PLANS[0].monthly}/mo CAD founding` },
   { feature: "Predictable monthly cost", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes — flat base rate, no surprise overage fees" },
   { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you — live during signup" },
   { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Books appointments automatically", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[1].name} — $${PLANS[1].monthly}/mo)` },
-  { feature: "Transfers to you when it matters", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[2].name} — $${PLANS[2].monthly}/mo)` },
+  { feature: "Books appointments automatically", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[1].name} — $${PLANS[1].foundingMonthly ?? PLANS[1].monthly}/mo)` },
+  { feature: "Transfers to you when it matters", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[1].name} — $${PLANS[1].foundingMonthly ?? PLANS[1].monthly}/mo)` },
   { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", askbenny: "EN/FR", unmissed: "English (more coming)" },
   { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (weekly review)" },
   { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", askbenny: "Vendor-locked", unmissed: "Dashboard (yours)" },
-  { feature: "Instant call alerts to owner", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Telegram + SMS" },
+  { feature: "Instant call alerts to owner", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Email + Telegram" },
   { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", askbenny: "Monthly", unmissed: "None — cancel anytime" },
 ];
 
@@ -346,9 +346,13 @@ export const ALL_FEATURES = [...PLANS[1].features];
 
 // ─── Helpers ────────────────────────────────────────────────────────
 export function getEffectiveMonthly(): number {
-  return PLANS[0].monthly; // Lite plan — "starting at" price
+  return PLANS[0].foundingMonthly ?? PLANS[0].monthly; // Lite plan — "starting at" price
 }
 
 export function getPricingSummary(): string {
-  return `from $${PLANS[0].monthly}/mo CAD`;
+  return `from $${getEffectiveMonthly()}/mo CAD`;
+}
+
+export function getPlanDisplayMonthly(plan: (typeof PLANS)[number]): number {
+  return plan.foundingMonthly ?? plan.monthly;
 }

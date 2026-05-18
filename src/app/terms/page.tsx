@@ -74,7 +74,7 @@ export default function TermsPage() {
                 <p className="mt-3">
                   The Service includes agent configuration, telephony integration (phone number
                   provisioning and call routing), workflow automation, lead capture to Google
-                  Sheets, notification delivery via Telegram or SMS, and ongoing agent
+                  Sheets, notification delivery via email, Telegram, or SMS where enabled, and ongoing agent
                   optimization.
                 </p>
               </div>

@@ -3,9 +3,9 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import TalkToAgentWidget from "@/components/TalkToAgentWidget";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
+import { BRAND_NAME } from "@/lib/brand";
 import { websiteSchema, localBusinessSchema } from "@/lib/schema";
-import { PLANS, CURRENCY } from "@/lib/pricing";
+import { PUBLIC_PLANS, CURRENCY, getPlanDisplayMonthly } from "@/lib/pricing";
 import "./globals.css";
 
 const geistSans = GeistSans;
@@ -133,10 +133,10 @@ const softwareApplicationSchema = {
   operatingSystem: "Web, iOS, Android",
   offers: {
     "@type": "AggregateOffer",
-    lowPrice: String(PLANS[0].monthly),
-    highPrice: String(PLANS[PLANS.length - 1].monthly),
+    lowPrice: String(Math.min(...PUBLIC_PLANS.map(getPlanDisplayMonthly))),
+    highPrice: String(Math.max(...PUBLIC_PLANS.map(getPlanDisplayMonthly))),
     priceCurrency: CURRENCY === "CAD" ? "CAD" : "USD",
-    offerCount: PLANS.length,
+    offerCount: PUBLIC_PLANS.length,
   },
 };
 

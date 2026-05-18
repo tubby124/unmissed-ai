@@ -1,7 +1,9 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { motion } from 'motion/react'
+import { ArrowRight, PhoneCall } from 'lucide-react'
 import CallMeNowWidget from './CallMeNowWidget'
 import { TRIAL, FOUNDING_PROMO, BASE_PLAN } from '@/lib/pricing'
 import { HERO } from '@/lib/marketing-content'
@@ -73,10 +75,32 @@ export default function HeroContent() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 24, delay: 0.35 }}
-        className="max-w-md mx-auto lg:mx-0"
+        className="max-w-md mx-auto lg:mx-0 space-y-5"
       >
+        <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+          <Link
+            href="/onboard"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-white font-semibold text-sm transition-colors"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            Get Your AI Number
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <a
+            href="#demo"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border transition-colors"
+            style={{
+              color: 'var(--color-text-1)',
+              borderColor: 'var(--color-border)',
+              backgroundColor: 'var(--color-bg)',
+            }}
+          >
+            <PhoneCall className="w-4 h-4" />
+            Hear a Demo Call
+          </a>
+        </div>
         <p
-          className="text-sm font-semibold mb-3"
+          className="text-sm font-semibold"
           style={{ color: 'var(--color-text-1)' }}
         >
           {HERO.ctaLabel}
@@ -92,7 +116,7 @@ export default function HeroContent() {
         className="mt-5"
       >
         <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-          {TRIAL.label} · {FOUNDING_PROMO.enabled ? `$${FOUNDING_PROMO.foundingMonthly}/mo` : `$${BASE_PLAN.monthly}/mo`} after · No contracts · Cancel anytime
+          Plans from {FOUNDING_PROMO.enabled ? `$${FOUNDING_PROMO.foundingMonthly}/mo` : `$${BASE_PLAN.monthly}/mo`} · {TRIAL.label} · No contracts · Cancel anytime
         </p>
       </motion.div>
     </div>

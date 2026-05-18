@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
@@ -28,7 +28,7 @@ const testimonials = [
 
 /* ── Stats for the showcase panel ──────────────────────────────────── */
 const stats = [
-  { value: "8,400+", label: "Calls handled" },
+  { value: "AI", label: "Answers missed calls" },
   { value: "24/7", label: "Availability" },
   { value: "<3s", label: "Avg. pickup" },
 ]
@@ -212,36 +212,25 @@ function ShowcasePanel() {
    LOGIN FORM — right side
    ══════════════════════════════════════════════════════════════════════ */
 function LoginContent() {
-  const [email, setEmail] = useState('')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlError = searchParams.get('error')
+  const urlEmail = searchParams.get('email')
+  const initialError =
+    urlError === 'invalid_link'
+      ? 'This link has expired or was already used.'
+      : urlError === 'auth_callback_failed'
+        ? 'Sign-in failed. Please try again or use a different method.'
+        : ''
+  const [email, setEmail] = useState(() => urlEmail ? decodeURIComponent(urlEmail) : '')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [showRecoveryHint, setShowRecoveryHint] = useState(false)
-  const [isNewAccount, setIsNewAccount] = useState(false)
+  const [error, setError] = useState(initialError)
+  const [showRecoveryHint] = useState(urlError === 'invalid_link')
+  const [isNewAccount] = useState(Boolean(urlEmail))
   const [loading, setLoading] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [magicLinkLoading, setMagicLinkLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
-  if (!supabaseRef.current) {
-    supabaseRef.current = createBrowserClient()
-  }
-  const supabase = supabaseRef.current
-
-  useEffect(() => {
-    const urlError = searchParams.get('error')
-    if (urlError === 'invalid_link') {
-      setError('This link has expired or was already used.')
-      setShowRecoveryHint(true)
-    } else if (urlError === 'auth_callback_failed') {
-      setError('Sign-in failed. Please try again or use a different method.')
-    }
-    const urlEmail = searchParams.get('email')
-    if (urlEmail) {
-      setEmail(decodeURIComponent(urlEmail))
-      setIsNewAccount(true)
-    }
-  }, [searchParams])
+  const [supabase] = useState(() => createBrowserClient())
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

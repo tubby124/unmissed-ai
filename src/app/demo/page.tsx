@@ -55,7 +55,7 @@ export default function DemoPage() {
                 After every call, you receive this.
               </h2>
               <p style={{ color: "var(--color-text-2)" }}>
-                Instant Telegram or SMS notification with a structured lead card.
+                Instant email summary, with Telegram available for faster lead alerts.
               </p>
             </div>
             <ErrorBoundary>

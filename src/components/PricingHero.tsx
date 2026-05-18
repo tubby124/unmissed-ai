@@ -44,7 +44,7 @@ export default function PricingHero() {
           transition={{ ...spring, delay: 0.1 }}
         >
           {FOUNDING_PROMO.enabled
-            ? `$${FOUNDING_PROMO.foundingMonthly}/mo. Never miss a call. Agent live before you hang up.`
+            ? `Plans from $${FOUNDING_PROMO.foundingMonthly}/mo. Activate a real AI number.`
             : `From $${PLANS[0].monthly}/mo. Your agent answers every call, 24/7.`}
         </motion.h1>
         <motion.p
@@ -53,8 +53,8 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          Other AI receptionists charge per minute — the busier you get, the more you pay.
-          We charge a flat rate per plan so you can grow without watching the meter.
+          Start with Solo, or use AI Receptionist at $119/mo with 250 included minutes
+          when you want business knowledge, booking, and lead ranking.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"
@@ -62,7 +62,7 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          {TRIAL.label}. No credit card required. Cancel anytime.
+          {TRIAL.label}. Card required to activate your number. Cancel anytime.
         </motion.p>
       </div>
     </section>
