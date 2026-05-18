@@ -344,6 +344,7 @@ export async function POST(req: NextRequest) {
       data.gbpDescription || '',
       websiteContent,
       data.city || '',
+      data.manualDescription || '',
     )
     if (customNicheConfig) {
       intakeData.custom_niche_config = customNicheConfig

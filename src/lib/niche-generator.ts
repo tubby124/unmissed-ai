@@ -37,10 +37,12 @@ const USER_PROMPT = (
   gbpSummary: string,
   websiteScrape: string,
   city: string,
+  manualDescription = '',
 ) => `Business: ${businessName}${city ? ` in ${city}` : ''}
 Google Business Category: ${gbpCategory || 'not provided'}
 Business Description: ${gbpSummary || 'not provided'}
 Website Content: ${websiteScrape ? websiteScrape.slice(0, 2000) : 'not provided'}
+Manual Business Description: ${manualDescription || 'not provided'}
 
 Generate a JSON config with EXACTLY these fields:
 {
@@ -60,6 +62,7 @@ export async function generateNicheConfig(
   gbpSummary: string,
   websiteScrape: string,
   city: string,
+  manualDescription = '',
 ): Promise<CustomNicheConfig | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
@@ -88,7 +91,7 @@ export async function generateNicheConfig(
           model: 'anthropic/claude-haiku-4.5',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: USER_PROMPT(businessName, gbpCategory, gbpSummary, websiteScrape, city) },
+            { role: 'user', content: USER_PROMPT(businessName, gbpCategory, gbpSummary, websiteScrape, city, manualDescription) },
           ],
           max_tokens: 800,
           temperature: 0.2,
