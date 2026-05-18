@@ -10,7 +10,7 @@
 ### 1a. Step 1 — Niche + Business Name + Location
 - **Pre:** Fresh browser, no account
 - **Steps:** Go to `/onboard`. Pick a niche (e.g. `plumbing`). Enter business name, city. Places autocomplete should fire.
-- **Expected:** Niche grid renders all production-ready niches (`NICHE_PRODUCTION_READY` in `lib/niche-config.ts`). Agent name auto-populates from `defaultAgentNames`. Location autocomplete works.
+- **Expected:** Niche grid renders all production-ready niches (`NICHE_PRODUCTION_READY` in `lib/niche-config.ts`). Agent name auto-populates from `defaultAgentNames`. Location autocomplete works. If Google/AI detects a production niche, the user can continue. If the flow remains `other`, Continue stays disabled until the signup has at least one usable custom-context source: Google place, website URL, GBP description, AI custom variables, or a 20+ character manual business description.
 - **Debug:** Browser console for Google Maps API errors. Check `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` env var.
 - **Pass/Fail:** [ ]
 

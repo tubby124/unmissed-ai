@@ -58,6 +58,16 @@ export interface StepDef {
   activationProps?: true
 }
 
+function hasOtherBusinessContext(data: OnboardingData): boolean {
+  if (data.niche !== 'other') return true
+  if (data.placeId) return true
+  if (data.websiteUrl?.trim()) return true
+  if (data.gbpDescription?.trim()) return true
+  if ((data.manualDescription || '').trim().length >= 20) return true
+  if (data.nicheCustomVariables && Object.keys(data.nicheCustomVariables).length > 0) return true
+  return false
+}
+
 // ── Step Registry ──────────────────────────────────────────────────────────
 //
 // Import step components here. Add/remove/reorder entries to change the flow.
@@ -77,6 +87,7 @@ export const STEP_DEFS: StepDef[] = [
     component: Step1GBP,
     canAdvance: (d) => {
       if (!d.businessName || !d.agentName?.trim()) return false;
+      if (!hasOtherBusinessContext(d)) return false;
       // Property management requires an explicit callback contact (owner_name → CLOSE_PERSON
       // in the prompt). Other niches can fall back to a generic "us" if blank.
       if (d.niche === 'property_management' && !d.ownerName?.trim()) return false;

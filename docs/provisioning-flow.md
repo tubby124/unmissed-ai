@@ -187,6 +187,9 @@ Client clicks "Start Free Trial"
        v
 1. Rate limit check (in-memory Map, 3/hr/IP)
 2. Validate: businessName + niche required, email format validated
+   - Onboarding gate: `niche='other'` is allowed, but only when the draft has custom context:
+     Google place, website URL, GBP description, AI custom variables, or a 20+ character manual description.
+     This preserves the strong known-niche path while preventing empty generic `other` agents.
 3. Email uniqueness: intake_submissions query (progress_status != 'abandoned')
 4. Insert intake_submissions row (status='pending', progress_status='pending')
 5. Insert clients row (status='setup')
