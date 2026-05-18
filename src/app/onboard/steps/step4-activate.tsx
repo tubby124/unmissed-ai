@@ -128,7 +128,7 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   // Calendar booking is active when mode is full_service OR agent picked the booking mode
   const bookingActive = mode === 'full_service' || data.agentMode === 'appointment_booking'
   // Warn when booking is expected but the selected plan won't include it after activation
-  const bookingPlanMismatch = bookingActive && !!data.selectedPlan && data.selectedPlan !== 'pro'
+  const bookingPlanMismatch = bookingActive && data.selectedPlan === 'lite'
 
   // Capability status
   const caps = [
@@ -193,7 +193,7 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
         <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
           <span className="text-amber-500 text-sm shrink-0">⚡</span>
           <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-            Calendar booking requires <strong>Pro plan</strong> after activation — your current selection won&apos;t include it.
+            Calendar booking requires <strong>AI Receptionist</strong> or higher after activation — your current selection won&apos;t include it.
           </p>
         </div>
       )}
