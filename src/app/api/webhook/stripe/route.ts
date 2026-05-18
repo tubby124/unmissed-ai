@@ -217,6 +217,40 @@ export async function POST(req: NextRequest) {
 
         console.log(`[stripe-webhook] Payment failed for ${cl.slug} — grace period until ${graceEnd}`)
 
+        // ── Customer-facing payment-failed email (grace period notice) ────────
+        const { data: clEmail } = await adminSupa
+          .from('clients')
+          .select('contact_email')
+          .eq('id', cl.id)
+          .single()
+        if (clEmail?.contact_email) {
+          const { sendBrandedEmail } = await import('@/lib/email/send')
+          const { APP_URL } = await import('@/lib/app-url')
+          const { BRAND_NAME } = await import('@/lib/brand')
+          const graceDate = new Date(graceEnd).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })
+          const billingUrl = `${APP_URL}/dashboard/billing`
+          const result = await sendBrandedEmail({
+            to: clEmail.contact_email as string,
+            clientId: cl.id,
+            clientSlug: cl.slug as string,
+            purpose: 'system',
+            tag: 'payment_failed_grace',
+            reason: `Your ${BRAND_NAME} subscription payment didn't go through.`,
+            subject: `Action needed — your ${BRAND_NAME} payment failed`,
+            html: `<h2 style="margin-bottom:4px">Your payment didn't go through</h2>
+<p>Hi${cl.business_name ? ` ${cl.business_name}` : ''},</p>
+<p>We tried to process your ${BRAND_NAME} subscription renewal and the card was declined.</p>
+<p><strong>Your agent will keep answering calls until ${graceDate}</strong> (7-day grace period). After that, your agent pauses and you'll start missing calls again.</p>
+<a href="${billingUrl}" style="display:inline-block;background:#dc2626;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Update payment method</a>
+<p style="font-size:14px;color:#555">Common fixes: card expired, new billing address, or your bank flagged the charge. Updating takes 30 seconds.</p>`,
+          })
+          if (result.ok) {
+            console.log(`[stripe-webhook] Payment-failed email sent to ${clEmail.contact_email} (id=${result.id})`)
+          } else {
+            console.error(`[stripe-webhook] Payment-failed email failed: ${result.error}`)
+          }
+        }
+
         try {
           const { data: adminCl } = await adminSupa
             .from('clients')

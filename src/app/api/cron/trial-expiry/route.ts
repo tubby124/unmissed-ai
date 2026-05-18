@@ -94,6 +94,59 @@ export async function POST(req: NextRequest) {
       const now = new Date()
       const day3Window = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
       const day1Window = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000)
+      const midpointWindow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000)
+      const dashboardUrl = `${APP_URL}/dashboard`
+
+      // Midpoint engagement nudge — trial expires in 4–5 days AND zero real calls
+      // Goal: catch stuck users before they hit the "3 days left" panic email.
+      const { data: midpointClients } = await adminSupa
+        .from('clients')
+        .select('id, slug, business_name, contact_email, trial_reminder_sent')
+        .gt('trial_expires_at', midpointWindow.toISOString())
+        .lt('trial_expires_at', new Date(midpointWindow.getTime() + 24 * 60 * 60 * 1000).toISOString())
+        .eq('trial_converted', false)
+        .eq('status', 'active')
+
+      for (const c of (midpointClients ?? []) as ReminderClient[]) {
+        if (!c.contact_email) continue
+        if (c.trial_reminder_sent?.midpoint) continue
+        // Engagement check — only nudge clients with zero real calls
+        const { count: realCallCount } = await adminSupa
+          .from('call_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', c.id)
+          .neq('call_status', 'test')
+        if ((realCallCount ?? 0) > 0) continue // skip — they're engaged
+        const result = await sendBrandedEmail({
+          to: c.contact_email,
+          clientId: c.id,
+          clientSlug: c.slug,
+          purpose: 'marketing',
+          tag: 'trial_midpoint_nudge',
+          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          subject: `Stuck setting up your ${BRAND_NAME} agent?`,
+          html: `<h2 style="margin-bottom:4px">Need a hand getting your agent live?</h2>
+<p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
+<p>You signed up for ${BRAND_NAME} a few days ago but your agent hasn't taken a real call yet. Most owners get there in 10 minutes — if you're stuck, here's the 1-minute fix:</p>
+<ol style="line-height:1.7">
+  <li><strong>Forward your business line</strong> to your agent's number (instructions in your dashboard)</li>
+  <li>Send a test call to make sure it picks up</li>
+  <li>Pin Telegram alerts so you see every caller in real time</li>
+</ol>
+<a href="${dashboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Open my dashboard</a>
+<p style="font-size:14px;color:#555">Reply to this email if you want help — Hasan personally answers.</p>`,
+        })
+        if (result.ok) {
+          await adminSupa
+            .from('clients')
+            .update({ trial_reminder_sent: { ...(c.trial_reminder_sent ?? {}), midpoint: now.toISOString() } })
+            .eq('id', c.id)
+          remindersSent.push({ slug: c.slug, day: 'midpoint' })
+          console.log(`[trial-expiry] Midpoint nudge sent to ${c.contact_email} (${c.slug}) — zero calls yet`)
+        } else {
+          console.error(`[trial-expiry] Midpoint nudge failed for ${c.slug}: ${result.error}`)
+        }
+      }
 
       // Day-3 window: trial expires in 3–4 days
       const { data: day3Clients } = await adminSupa

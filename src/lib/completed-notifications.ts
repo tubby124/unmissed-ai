@@ -480,18 +480,27 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
   }
 }
 
-// ── Email (Voicemail) ────────────────────────────────────────────────────────
+// ── Email (per-call alert) ──────────────────────────────────────────────────
 
 export async function sendEmailNotification(ctx: NotificationContext): Promise<void> {
   const { supabase, client, slug, callId, callLogId, callerPhone, classification,
     durationSeconds, transcript } = ctx
 
-  if (client.niche !== 'voicemail' || !client.contact_email || classification.status === 'JUNK') return
+  if (!client.contact_email || classification.status === 'JUNK') return
 
-  // S9b: Respect client notification preferences
-  if (client.email_notifications_enabled === false) {
-    console.log(`[completed] Email SKIPPED for slug=${slug}: notifications disabled by client preference`)
-    return
+  // Voicemail niche always sends (per-call alert IS the product) unless explicitly opted out.
+  // Other niches require explicit opt-in via email_notifications_enabled === true.
+  // Default (null) = no per-call emails — clients toggle on from dashboard if they want them.
+  if (client.niche === 'voicemail') {
+    if (client.email_notifications_enabled === false) {
+      console.log(`[completed] Email SKIPPED for slug=${slug}: voicemail niche but opted out`)
+      return
+    }
+  } else {
+    if (client.email_notifications_enabled !== true) {
+      console.log(`[completed] Email SKIPPED for slug=${slug}: niche=${client.niche} requires explicit opt-in`)
+      return
+    }
   }
 
   try {
