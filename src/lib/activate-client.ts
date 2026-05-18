@@ -230,18 +230,31 @@ export async function activateClient(params: {
             tag: isTrial ? 'welcome_trial' : 'welcome_activation',
             reason: `You just signed up for ${BRAND_NAME}.`,
             subject: subjectLine,
-            html: `<h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
-<p style="color:#555;margin-top:0">${isTrial ? 'Your 7-day free trial has started.' : 'Your AI receptionist is now live.'}</p>
+            html: `<h2 style="margin-bottom:4px;font-size:24px">${isTrial ? `Your trial is on. Voicemail is over.` : `Your agent is on duty. Voicemail is over.`}</h2>
+<p style="color:#555;margin-top:0">${isTrial ? `7 days. No card. ${BRAND_NAME} answers every call so you don't have to.` : `${BRAND_NAME} is now picking up every call to your business.`}</p>
 
-${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
-${isTrial ? '<p>Try your agent from the dashboard using WebRTC demo calls. Upgrade anytime to get a dedicated phone number.</p>' : ''}
+${twilioNumber ? `<table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0">
+  <tr><td style="padding:16px">
+    <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Your agent's phone number</div>
+    <div style="font-size:20px;font-weight:600;color:#111">${twilioNumber}</div>
+    <div style="font-size:13px;color:#6b7280;margin-top:6px">Forward your business line to this number to start catching missed calls.</div>
+  </td></tr>
+</table>` : ''}
+${isTrial && !twilioNumber ? '<p style="margin:16px 0">Test your agent right now from the dashboard — no phone number setup needed. Upgrade anytime to forward your real business line.</p>' : ''}
 
-<p><strong>Log in to your dashboard</strong></p>
-<a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Log in to my dashboard →</a>
-<p style="font-size:13px;color:#555;margin-top:8px">Your temporary password is: <strong>QWERTY123</strong></p>
-<p style="font-size:12px;color:#888;margin-top:4px">You can change it from your dashboard settings after logging in.</p>
+<h3 style="margin:24px 0 8px;font-size:16px">Set up takes 3 minutes</h3>
+<ol style="line-height:1.7;padding-left:20px">
+  <li><strong>Log in</strong> using the button below (temp password: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">QWERTY123</code> — change it after)</li>
+  ${twilioNumber ? '<li><strong>Forward your business line</strong> — your phone carrier app has the option, dashboard has step-by-step</li>' : ''}
+  ${telegramLink ? '<li><strong>Connect Telegram</strong> for real-time call alerts</li>' : '<li><strong>Run a test call</strong> from the dashboard to hear your agent</li>'}
+</ol>
 
-${!isTrial && telegramLink ? `<p><strong>Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}">${telegramLink}</a></p>` : ''}`,
+<a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px">Open my dashboard →</a>
+<p style="font-size:13px;color:#888;margin-top:4px">Login link expires in 24h. If it does, hit "forgot password" on the login page.</p>
+
+${!isTrial && telegramLink ? `<hr style="border:none;border-top:1px solid #eee;margin:24px 0"><p><strong>📱 Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}" style="color:#4f46e5">${telegramLink}</a></p>` : ''}
+
+<p style="font-size:14px;color:#555;margin-top:24px">Reply to this email if anything's broken or confusing — Hasan answers personally.</p>`,
           })
           if (result.ok) {
             emailActuallySent = true
