@@ -167,8 +167,30 @@ export async function POST(
       }
       console.log(`[completed] Client: slug=${slug} id=${client.id} business="${client.business_name}" hasTelegram=${!!(client.telegram_bot_token && client.telegram_chat_id)}`)
 
-      // Fetch transcript
-      const transcript = await getTranscript(callId)
+      // Fetch transcript — with retry+backoff when we expect a real conversation
+      // Ultravox occasionally indexes the transcript slightly after call.ended fires
+      // (race condition — rare but real: hit once in 60 days for urban-vibe, cost us
+      // a HOT fire-emergency call that got JUNK'd because transcript was empty).
+      // Only retry when call metadata suggests real content existed (duration ≥ 20s
+      // AND the call actually joined). Short calls and unjoined calls skip retries
+      // to avoid adding latency to genuine robocall/hangup paths.
+      let transcript = await getTranscript(callId)
+      const expectMessages = durationSeconds >= 20 && endReason !== 'unjoined'
+      if (expectMessages && transcript.length < 2) {
+        const retryDelays = [2000, 5000, 10000] // 2s, 5s, 10s (total worst-case +17s)
+        for (const delay of retryDelays) {
+          console.log(`[completed] Transcript empty but expectMessages=true (dur=${durationSeconds}s, endReason=${endReason}) — retrying in ${delay}ms`)
+          await new Promise(r => setTimeout(r, delay))
+          transcript = await getTranscript(callId)
+          if (transcript.length >= 2) {
+            console.log(`[completed] Transcript retry succeeded after ${delay}ms — ${transcript.length} messages`)
+            break
+          }
+        }
+        if (transcript.length < 2) {
+          console.warn(`[completed] Transcript still empty after retries for callId=${callId} dur=${durationSeconds}s endReason=${endReason} — will fall through to JUNK fallback`)
+        }
+      }
       console.log(`[completed] Transcript: callId=${callId} messages=${transcript.length}`)
 
       // ── Canary token leak detection ────────────────────────────────────────
