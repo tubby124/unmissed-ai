@@ -22,13 +22,13 @@ export const SETUP = {
   description: "Your agent is built from your business info as you onboard. Live before you forward your first call.",
 };
 
-// ─── Free Trial ─────────────────────────────────────────────────────
+// ─── Activation Minutes ─────────────────────────────────────────────
 export const TRIAL = {
   days: 7,
   minutes: 50,
   allFeaturesIncluded: true,
-  label: "7-day free trial",
-  description: "Full access to your plan. No credit card required to start.",
+  label: "50 activation minutes included",
+  description: "Activate your AI number with a card and use your first 50 minutes to test real forwarded calls.",
 };
 
 // ─── Plans (3-tier public + 1 hidden tester tier) ──────────────────
@@ -62,7 +62,7 @@ export const PLANS = [
       "Full call history in your dashboard",
     ],
     notIncluded: ["Calendar booking", "Live call transfer", "Website & Google Business knowledge", "Caller priority ranking"],
-    cta: "Start Free Trial",
+    cta: "Get Your AI Number",
     href: "/onboard",
   },
   {
@@ -73,14 +73,14 @@ export const PLANS = [
     foundingMonthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
-    minutes: 200,
+    minutes: 250,
     description: "Your agent knows your business and never forgets it. Answers caller questions, books appointments, ranks every lead, and tells you who's worth calling back.",
     isPopular: true,
     stripeMonthlyPriceId: "price_1TQdWK0tFbm4ZBYUz7JyvVpe", // $119/mo CAD founding (Core Monthly v2). Standard price $189 is display-only \u2014 no $189 Stripe price exists; founding promo is the charged amount.
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
-      "200 minutes/month included",
+      "250 minutes/month included",
       "Everything in Solo",
       "Answers from your own business info — website, hours, services",
       "Books appointments into your Google Calendar",
@@ -89,7 +89,7 @@ export const PLANS = [
       "Weekly review — your agent gets smarter from real call patterns",
     ],
     notIncluded: ["Live call transfer", "IVR pre-filter"],
-    cta: "Start Free Trial",
+    cta: "Get Your AI Number",
     href: "/onboard",
   },
   {
@@ -116,7 +116,7 @@ export const PLANS = [
       "Customizable follow-up messages",
     ],
     notIncluded: [],
-    cta: "Start Free Trial",
+    cta: "Get Your AI Number",
     href: "/onboard",
   },
   {
@@ -153,7 +153,7 @@ export const PUBLIC_PLANS = PLANS.filter((p) => !("hidden" in p) || !p.hidden);
 
 // ─── Guarantee & Policies ───────────────────────────────────────────
 export const POLICIES = {
-  guarantee: "7-day free trial + 30-day money-back guarantee",
+  guarantee: "50 activation minutes + 30-day money-back guarantee",
   moneyBackDays: 30,
   moneyBack: "30-day money-back guarantee. If it's not working for your business in your first 30 paid days, full refund — no questions, no forms.",
   moneyBackFineprint: "One refund per customer, on first paid subscription only. Refund policy detail at /terms.",

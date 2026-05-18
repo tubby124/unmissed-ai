@@ -39,10 +39,10 @@ const SIDEBAR_BENEFITS: { icon: React.ReactNode; text: string }[] = [
 ];
 
 const SIDEBAR_PRICING = {
-  label: "Free trial",
-  price: "$0",
-  period: "today",
-  footnote: "No card required to try",
+  label: "Activation minutes",
+  price: "50",
+  period: "included",
+  footnote: "Card required to activate number",
 };
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -205,7 +205,6 @@ function OnboardPageInner() {
 
   const canGoNext = stepDef?.canAdvance(data) ?? true;
   const isLastStep = step === TOTAL_STEPS;
-  const progressValue = Math.max(8, Math.round((stepIndex / (TOTAL_STEPS - 1)) * 100));
 
   // Props for the activation step
   const activationCtx: ActivationContext = {

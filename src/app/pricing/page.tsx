@@ -245,7 +245,7 @@ export default function PricingPage() {
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Start {TRIAL.days}-Day Free Trial
+              Get Your AI Number
             </Link>
           </div>
         </section>
@@ -261,7 +261,7 @@ export default function PricingPage() {
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Start Free Trial →
+              Get Your AI Number →
             </Link>
             <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
               {POLICIES.setupTime} · {POLICIES.contracts}

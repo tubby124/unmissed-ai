@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -143,7 +143,7 @@ function StatusContent() {
 
   // ── Success state ──────────────────────────────────────────────────────────
   if (success) {
-    return <SuccessView twilioNumber={twilioNumber} intakeId={intakeId} />;
+    return <SuccessView twilioNumber={twilioNumber} />;
   }
 
   // ── Payment state ──────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ function StatusContent() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-emerald-500 mt-0.5">&#10003;</span>
-              <span><strong>First month free</strong> — no recurring charge today</span>
+              <span><strong>50 activation minutes included</strong> — test with real forwarded calls</span>
             </li>
           </ul>
         </div>
@@ -286,7 +286,7 @@ function StatusContent() {
         </p>
 
         <p className="text-xs text-muted-foreground/70">
-          One-time setup fee + monthly subscription. 30-day free trial included. Secure checkout powered by Stripe.
+          One-time setup fee + monthly subscription. Your first 50 activation minutes are included. Secure checkout powered by Stripe.
         </p>
       </div>
     );

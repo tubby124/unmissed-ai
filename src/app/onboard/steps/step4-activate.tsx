@@ -7,7 +7,7 @@ import { PLANS } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAgentMode } from "@/lib/capabilities";
-import { Shield, CalendarOff, X, Check, Rocket, Brain, ChevronDown, Phone } from "lucide-react";
+import { Shield, X, Check, Rocket, Brain, ChevronDown, Phone } from "lucide-react";
 import { normalize24hHours } from "@/lib/prompt-slots";
 
 interface Props {
@@ -124,11 +124,10 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
   const qaCount = (data.faqPairs || []).filter(p => p.question?.trim() && p.answer?.trim()).length + scrapedQaCount
   const hasHours = !!(data.businessHoursText?.trim())
   const hasWebsite = !!(data.websiteUrl?.trim())
-  const totalKnowledge = factsCount + qaCount
 
   // Calendar booking is active when mode is full_service OR agent picked the booking mode
   const bookingActive = mode === 'full_service' || data.agentMode === 'appointment_booking'
-  // Warn when booking is expected but the selected plan won't include it after trial
+  // Warn when booking is expected but the selected plan won't include it after activation
   const bookingPlanMismatch = bookingActive && !!data.selectedPlan && data.selectedPlan !== 'pro'
 
   // Capability status
@@ -189,12 +188,12 @@ function KnowledgeSummary({ data, agentName }: { data: OnboardingData; agentName
         ))}
       </div>
 
-      {/* Plan mismatch warning — booking mode selected but plan won't include it post-trial */}
+      {/* Plan mismatch warning — booking mode selected but plan won't include it post-activation */}
       {bookingPlanMismatch && (
         <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
           <span className="text-amber-500 text-sm shrink-0">⚡</span>
           <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-            Calendar booking is active during your 7-day trial. After trial, it requires <strong>Pro plan</strong> — your current selection won&apos;t include it.
+            Calendar booking requires <strong>Pro plan</strong> after activation — your current selection won&apos;t include it.
           </p>
         </div>
       )}
@@ -354,7 +353,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
       <div className="flex flex-wrap gap-2">
         {[
           { icon: <Shield className="w-3.5 h-3.5" />, text: "Secure" },
-          { icon: <CalendarOff className="w-3.5 h-3.5" />, text: "$0 today" },
+          { icon: <Phone className="w-3.5 h-3.5" />, text: "50 minutes included" },
           { icon: <X className="w-3.5 h-3.5" />, text: "Cancel anytime" },
         ].map(({ icon, text }) => (
           <span
@@ -505,7 +504,9 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             {modeConfig.label}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">7-day free trial · No credit card required</p>
+        <p className="text-xs text-muted-foreground">
+          Real AI number after checkout · 50 activation minutes included
+        </p>
       </div>
 
       {/* Wave 1.5 — Recording consent acknowledgment.
@@ -548,7 +549,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
       {/* Activate button */}
       <motion.button
         type="button"
-        onClick={() => onActivate("trial")}
+        onClick={() => onActivate("paid")}
         disabled={isSubmitting || !canActivate || !data.recordingConsentAcknowledged}
         whileTap={{ scale: 0.97 }}
         whileHover={{ scale: canActivate ? 1.01 : 1 }}
@@ -560,12 +561,12 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Setting up your agent...
+            Saving your setup...
           </>
         ) : (
           <>
             <Rocket className="w-4 h-4" />
-            Launch {agentName}
+            Continue to checkout
           </>
         )}
       </motion.button>

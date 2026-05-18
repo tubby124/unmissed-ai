@@ -4,7 +4,7 @@ import { ActivationProgressDark } from "./ActivationProgress";
 import { SUPPORT_EMAIL } from "@/lib/brand";
 import { buildTelegramBotUrl } from "@/lib/telegram-link";
 
-export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string | null; intakeId: string | null }) {
+export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
   return (
     <div
       className="fixed inset-0 flex items-center justify-center px-4 overflow-y-auto py-8 z-10"
@@ -42,8 +42,8 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
 
         {/* Headline */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white">You&apos;re live.</h1>
-          <p className="text-slate-400 text-sm">Your AI receptionist is answering calls.</p>
+          <h1 className="text-4xl font-bold text-white">Your number is ready.</h1>
+          <p className="text-slate-400 text-sm">Forward your calls to start catching missed leads.</p>
         </div>
 
         {/* Phone number card */}
@@ -61,6 +61,7 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
               </button>
             </div>
             <p className="text-xs text-emerald-400/60">Call this number to test your agent</p>
+            <p className="text-[11px] text-emerald-400/50">50 activation minutes included</p>
           </div>
         ) : (
           <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -86,7 +87,7 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
               Step-by-step instructions are in your dashboard.
             </p>
             <a
-              href="/dashboard/setup"
+              href="/dashboard/go-live"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
             >
               View setup instructions
@@ -100,9 +101,9 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
         {/* 3 next steps */}
         <div className="space-y-3">
           {([
-            { d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z", text: "Call your number to test it" },
-             { d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z", text: "Download Telegram, then tap the link in your SMS" },
-             { d: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Log in to see your call log" },
+            { d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z", text: "Open Go Live and forward your business line" },
+             { d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z", text: "Connect email or Telegram for call summaries" },
+             { d: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Make one real missed-call test with your 50 included minutes" },
           ] as { d: string; text: string }[]).map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.22)" }}>
@@ -131,11 +132,11 @@ export function SuccessView({ twilioNumber, intakeId }: { twilioNumber: string |
 
         {/* CTA */}
         <a
-          href="/login"
+          href="/dashboard/go-live"
           className="block w-full text-center py-3 px-6 rounded-full text-white font-semibold text-sm transition-opacity hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
         >
-          Set up my dashboard &rarr;
+          Go Live &rarr;
         </a>
 
         {/* Footer */}
