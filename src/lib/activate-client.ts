@@ -162,13 +162,10 @@ export async function activateClient(params: {
     try {
       let resolvedUserId: string | null = null
 
-      // Temporary auth setup (until custom domain + Resend are configured):
-      // Create user with a default password so login always works even if the welcome
-      // email fails to deliver (Hotmail/live.com rejects emails from non-custom domains).
-      // Users can change their password from the dashboard at any time.
+      // Domain + branded email are live, so new users should enter through the
+      // one-click recovery/setup link instead of a shared fallback password.
       const { data: newUserData, error: createErr } = await adminSupa.auth.admin.createUser({
         email: contactEmail,
-        password: 'QWERTY123',
         email_confirm: true,
       })
 
@@ -183,7 +180,7 @@ export async function activateClient(params: {
       }
 
       // Generate a one-click recovery link so the user is auto-authenticated on click.
-      // Fallback: login with email pre-filled + QWERTY123 hint.
+      // Fallback: login with email pre-filled so they can request a magic link.
       setupUrl = `${appUrl}/login?email=${encodeURIComponent(contactEmail)}`
       try {
         const { data: linkData } = await adminSupa.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
@@ -244,7 +241,7 @@ ${isTrial && !twilioNumber ? '<p style="margin:16px 0">Test your agent right now
 
 <h3 style="margin:24px 0 8px;font-size:16px">Set up takes 3 minutes</h3>
 <ol style="line-height:1.7;padding-left:20px">
-  <li><strong>Log in</strong> using the button below (temp password: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">QWERTY123</code> — change it after)</li>
+  <li><strong>Open your secure dashboard link</strong> using the button below</li>
   ${twilioNumber ? '<li><strong>Forward your business line</strong> — your phone carrier app has the option, dashboard has step-by-step</li>' : ''}
   ${telegramLink ? '<li><strong>Connect Telegram</strong> for real-time call alerts</li>' : '<li><strong>Run a test call</strong> from the dashboard to hear your agent</li>'}
 </ol>

@@ -362,7 +362,7 @@ function LoginContent() {
 
             {isNewAccount && (
               <div className="mb-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-300">
-                Welcome! Your temporary password is <strong>QWERTY123</strong> — you can change it after logging in.
+                Welcome! Use your setup email or request a magic link below to open your dashboard.
               </div>
             )}
 

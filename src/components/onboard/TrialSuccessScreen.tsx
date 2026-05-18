@@ -592,7 +592,7 @@ export function TrialSuccessScreen({
             </button>
             {callError && <p className="text-sm text-red-500 text-center">{callError}</p>}
             <a
-              href={email ? `/login?email=${encodeURIComponent(email)}` : (setupUrl || "/login")}
+              href={setupUrl || (email ? `/login?email=${encodeURIComponent(email)}` : "/login")}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
               Log in to your dashboard →
@@ -610,7 +610,7 @@ export function TrialSuccessScreen({
               />
             </CallProvider>
             <a
-              href={email ? `/login?email=${encodeURIComponent(email)}` : (setupUrl || "/login")}
+              href={setupUrl || (email ? `/login?email=${encodeURIComponent(email)}` : "/login")}
               className="block w-full border border-border hover:border-indigo-400 text-muted-foreground hover:text-indigo-400 font-medium py-2.5 px-6 rounded-xl transition-colors text-sm text-center"
             >
               Log in to your dashboard →
@@ -663,15 +663,9 @@ export function TrialSuccessScreen({
         >
           Sign in with email →
         </a>
-        {/* Temporary password hint — until email delivery is fixed (GATE-1) */}
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 space-y-0.5">
-          <p className="text-xs text-amber-300/90 font-medium">
-            Your temporary password: <span className="font-mono font-bold tracking-wide select-all">QWERTY123</span>
-          </p>
-          <p className="text-[11px] text-amber-300/50">
-            Change it from your dashboard after signing in.
-          </p>
-        </div>
+        <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
+          We sent a secure setup link to your email. If it expires, use magic link or forgot password on the login page.
+        </p>
       </div>
 
       {/* Footer */}
