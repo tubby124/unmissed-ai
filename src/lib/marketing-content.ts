@@ -231,6 +231,6 @@ export const FAQ_ITEMS = [
   {
     question: `What if I subscribe and hate it?`,
     answer:
-      `${POLICIES.moneyBack} Email Hasan directly (hasan@endvoicemail.ai), full refund processed within 48 hours. After day 7 of paid use, you can still cancel anytime from your dashboard — no notice period, no fees.`,
+      `${POLICIES.moneyBack} Email Hasan directly (hasan@endvoicemail.ai), full refund processed within 48 hours. ${POLICIES.moneyBackFineprint} After day 30 of paid use, you can still cancel anytime from your dashboard — no notice period, no fees — but the 30-day guarantee window has passed.`,
   },
 ]

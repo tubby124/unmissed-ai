@@ -34,7 +34,7 @@ export default function TermsPage() {
               Terms of Service
             </h1>
             <p className="text-gray-400 text-lg">
-              Last updated: March 1, 2026
+              Last updated: May 17, 2026
             </p>
           </div>
         </section>
@@ -97,8 +97,23 @@ export default function TermsPage() {
                   <li>Failed payments may result in temporary suspension of your agent until payment is resolved</li>
                 </ul>
                 <p className="mt-3 text-gray-400">
-                  We offer a 30-day money-back guarantee for new clients. If you are not
-                  satisfied within the first 30 days, contact us for a full refund.
+                  <span className="text-white font-medium">30-day money-back guarantee.</span> If End Voicemail
+                  isn&apos;t working for your business in your first 30 days as a paid customer, email{" "}
+                  <a href="mailto:support@endvoicemail.ai" className="text-blue-400 hover:underline">support@endvoicemail.ai</a>{" "}
+                  for a full refund — no questions, no forms.
+                </p>
+                <p className="mt-3 text-gray-400">
+                  <span className="text-white font-medium">Fair-use limits on refunds.</span> The 30-day guarantee applies
+                  to the first paid subscription per customer only, and is limited to one refund per customer
+                  lifetime. Refund requests after 30 days are reviewed on a case-by-case basis for service-impacting
+                  issues only (e.g., agent did not function, billing error). Refunds are not issued retroactively
+                  for unused service time after a customer has been on the platform 30+ days — cancellation stops
+                  future billing only.
+                </p>
+                <p className="mt-3 text-gray-400">
+                  <span className="text-white font-medium">Cancel anytime.</span> Cancel from your dashboard in one click
+                  via the Stripe Customer Portal. Your agent stays active through the end of the current paid period.
+                  No notice required, no cancellation fees, no contracts.
                 </p>
               </div>
 
@@ -159,14 +174,14 @@ export default function TermsPage() {
                   <li>
                     <span className="text-white font-medium">Your property:</span> Your
                     business information, caller data captured during agent interactions, call
-                    logs stored in your Google Sheet, and any business-specific content you
-                    provide for agent configuration remain your property
+                    logs stored in your End Voicemail dashboard, and any business-specific
+                    content you provide for agent configuration remain your property.
                   </li>
                   <li>
                     <span className="text-white font-medium">Call data:</span> Lead data
-                    captured by your agent is written to your designated Google Sheet. You
-                    retain full ownership and access to this data at all times, including after
-                    cancellation
+                    captured by your agent is stored in your dashboard with full call history,
+                    transcripts, and AI summaries. You retain full ownership and CSV-export access
+                    at all times, including for 30 days after cancellation.
                   </li>
                 </ul>
               </div>
@@ -251,20 +266,23 @@ export default function TermsPage() {
                 <ul className="list-disc list-inside space-y-1 text-gray-400">
                   <li>
                     <span className="text-white font-medium">You</span> may cancel your
-                    subscription at any time with 30 days&apos; written notice. Your agent will
-                    remain active through the end of the current billing period
+                    subscription at any time via the Stripe Customer Portal accessible
+                    from your dashboard. No notice required, no cancellation fees. Your
+                    agent remains active through the end of the current paid billing period,
+                    then deactivates automatically.
                   </li>
                   <li>
                     <span className="text-white font-medium">We</span> may terminate your
                     account immediately if you violate these Terms, fail to pay fees after
                     reasonable notice, or engage in conduct that harms our platform or
-                    reputation
+                    reputation.
                   </li>
                 </ul>
                 <p className="mt-3">
                   Upon termination, we will deactivate your AI agent and release the
-                  associated phone number. Your call log data in your Google Sheet remains
-                  yours — we do not delete or restrict access to it.
+                  associated phone number. Your call log data in your dashboard remains
+                  exportable for 30 days post-cancellation, after which it may be deleted
+                  per our data retention policy (see Privacy Policy).
                 </p>
               </div>
 

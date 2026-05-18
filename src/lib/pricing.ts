@@ -153,11 +153,12 @@ export const PUBLIC_PLANS = PLANS.filter((p) => !("hidden" in p) || !p.hidden);
 
 // ─── Guarantee & Policies ───────────────────────────────────────────
 export const POLICIES = {
-  guarantee: "7-day free trial — cancel anytime, no questions asked",
-  moneyBackDays: 7,
-  moneyBack: "If you don't love it in your first 7 days as a paid customer, full refund — no questions, no forms.",
+  guarantee: "7-day free trial + 30-day money-back guarantee",
+  moneyBackDays: 30,
+  moneyBack: "30-day money-back guarantee. If it's not working for your business in your first 30 paid days, full refund — no questions, no forms.",
+  moneyBackFineprint: "One refund per customer, on first paid subscription only. Refund policy detail at /terms.",
   contracts: "No contracts. Cancel anytime.",
-  cancellation: "Cancel anytime — no notice period, no fees.",
+  cancellation: "Cancel anytime — no notice period, no fees. Billing stops at end of current period.",
   dataOwnership: "Your call log data lives in your dashboard — you own it.",
   dataNeverTrains: "Your call recordings and transcripts are never used to train AI models, sold, or shared.",
   setupTime: "Live before your first call — built during setup",
