@@ -404,7 +404,7 @@ tests/
 npx tsx tests/retrieval-eval/run-eval.ts --slug windshield-hub
 
 # Run against production
-EVAL_BASE_URL=https://unmissed-ai-production.up.railway.app \
+EVAL_BASE_URL=https://endvoicemail.ai \
   npx tsx tests/retrieval-eval/run-eval.ts --slug windshield-hub
 
 # Run with verbose output (per-question details)

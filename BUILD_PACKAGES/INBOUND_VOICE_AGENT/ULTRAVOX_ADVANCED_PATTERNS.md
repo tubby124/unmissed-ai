@@ -310,7 +310,7 @@ hangUp ends call
 ```typescript
 // Add to buildCalendarTools() in ultravox.ts:
 function buildStageTransitionTool(slug: string): UltravoxTool {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://endvoicemail.ai'
   return {
     temporaryTool: {
       modelToolName: 'transitionToBookingStage',
@@ -359,7 +359,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     return NextResponse.json({ error: 'Booking not enabled for this client' }, { status: 400 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://endvoicemail.ai'
 
   // Return new stage configuration
   return new NextResponse(

@@ -47,9 +47,9 @@
     "Ray Telegram bot: create UrbanVibeAgent bot, get Ray's chat_id, update workflow + add second Telegram node to CC Hasan permanently"
   ],
 
-  "webhook_inbound":      "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/inbound",
-  "webhook_completed":    "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/completed",
-  "webhook_fallback":     "https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/fallback",
+  "webhook_inbound":      "https://endvoicemail.ai/api/webhook/urban-vibe/inbound",
+  "webhook_completed":    "https://endvoicemail.ai/api/webhook/urban-vibe/completed",
+  "webhook_fallback":     "https://endvoicemail.ai/api/webhook/urban-vibe/fallback",
   "voice_id_alisha":      "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",
   "voice_name":           "Jacqueline",
 

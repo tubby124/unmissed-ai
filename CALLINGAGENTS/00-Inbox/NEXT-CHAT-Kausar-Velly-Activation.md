@@ -47,7 +47,7 @@ related:
 
 ### Step 1 — Submit intake (Path A unchanged)
 ```bash
-curl -X POST "https://unmissed-ai-production.up.railway.app/api/provision" \
+curl -X POST "https://endvoicemail.ai/api/provision" \
   -H "Content-Type: application/json" \
   --data-binary @"/Users/owner/Downloads/CALLING AGENTs/CALLINGAGENTS/Clients/velly-intake-payload.json" \
   -w "\n---HTTP:%{http_code}\n"

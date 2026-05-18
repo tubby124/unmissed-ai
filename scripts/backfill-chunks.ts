@@ -246,7 +246,7 @@ async function main() {
     console.log('  Done.')
   }
 
-  const evalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  const evalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://endvoicemail.ai'
   console.log(`\nNext: run eval to measure impact:`)
   console.log(`  source ~/.secrets && cd "/Users/owner/Downloads/CALLING AGENTs" && EVAL_BASE_URL=${evalUrl} npx tsx tests/retrieval-eval/run-eval.ts --slug ${slug} --verbose`)
 }

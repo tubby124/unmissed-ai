@@ -29,7 +29,7 @@ TIER 1 IS LIVE — DO NOT REBUILD ANY OF THIS
 PR #41 squash-merged 2026-04-28T23:01:52Z, sha 03ad11c0. Railway has
 auto-deployed. Migration 20260428100000_create_telegram_updates_seen
 applied to prod. Smoke-tested:
-  - GET https://unmissed-ai-production.up.railway.app/ → 200
+  - GET https://endvoicemail.ai/ → 200
   - POST /api/webhook/telegram with synthetic /help → 200
 
 Live commands: /help /calls /today /missed /lastcall /minutes

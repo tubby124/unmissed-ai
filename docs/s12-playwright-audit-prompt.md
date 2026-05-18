@@ -8,7 +8,7 @@ Paste this into a new Claude Code chat. It will spawn parallel agents to audit e
 
 This audit has **6 independent tracks** that should run as **parallel agents** (use Agent tool with run_in_background where possible). After all 6 complete, synthesize findings into a single report.
 
-**Production URL:** https://unmissed-ai-production.up.railway.app
+**Production URL:** https://endvoicemail.ai
 **Codebase:** `/Users/owner/Downloads/CALLING AGENTs/agent-app`
 **Supabase project:** `dczbgraekmzirxknjvwe` (use mcp__supabase__ tools)
 
@@ -195,7 +195,7 @@ curl -s -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" \
   | jq '.incoming_phone_numbers[] | {phone: .phone_number, voiceUrl: .voice_url, friendlyName: .friendly_name}'
 ```
 
-Expected: each client's number should point to `https://unmissed-ai-production.up.railway.app/api/webhook/{slug}/inbound`
+Expected: each client's number should point to `https://endvoicemail.ai/api/webhook/{slug}/inbound`
 
 ### C2 — Telegram Bot Health
 For each client with Telegram configured, verify:

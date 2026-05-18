@@ -6,7 +6,7 @@
  * BUG-A: SMS chip not active for trial user with no Twilio number
  *
  * Run:
- *   BASE_URL=https://unmissed-ai-production.up.railway.app npx playwright test smoke-trial-flow --reporter=line
+ *   BASE_URL=https://endvoicemail.ai npx playwright test smoke-trial-flow --reporter=line
  */
 
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';

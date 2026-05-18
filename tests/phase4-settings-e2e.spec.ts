@@ -57,7 +57,7 @@ async function findTestClient(request: APIRequestContext) {
 // Location header, extract tokens, build the @supabase/ssr session cookie, and
 // inject it into the browser context so the Next.js middleware sees it.
 
-const BASE_URL = process.env.BASE_URL || 'https://unmissed-ai-production.up.railway.app';
+const BASE_URL = process.env.BASE_URL || 'https://endvoicemail.ai';
 const SUPABASE_PROJECT_REF = new URL(SUPABASE_URL).hostname.split('.')[0];
 
 /** GET a URL without following redirects; returns the Location header value */

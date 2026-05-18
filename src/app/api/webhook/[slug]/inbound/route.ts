@@ -5,7 +5,7 @@ import { defaultCallState } from '@/lib/call-state'
 import { validateSignature, buildStreamTwiml, buildVoicemailTwiml, buildIvrGatherTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
-import { measurePromptLength } from '@/lib/knowledge-summary'
+import { measurePromptLength, PROMPT_CHAR_HARD_MAX, PROMPT_CHAR_TARGET } from '@/lib/knowledge-summary'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
 import { APP_URL } from '@/lib/app-url'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
@@ -311,9 +311,9 @@ export async function POST(
     contextDataStr,
   )
   if (promptReport.overHardMax) {
-    console.error(`[inbound] PROMPT OVER HARD MAX for slug=${slug}: ${promptReport.totalChars} chars (max 25000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
+    console.error(`[inbound] PROMPT OVER HARD MAX for slug=${slug}: ${promptReport.totalChars} chars (limit ${PROMPT_CHAR_HARD_MAX}). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
   } else if (promptReport.overTarget) {
-    console.warn(`[inbound] Prompt over target for slug=${slug}: ${promptReport.totalChars} chars (target 6000). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
+    console.warn(`[inbound] Prompt over target for slug=${slug}: ${promptReport.totalChars} chars (target ${PROMPT_CHAR_TARGET}, hard max ${PROMPT_CHAR_HARD_MAX}). Breakdown: base=${promptReport.breakdown.basePrompt}, knowledge=${promptReport.breakdown.knowledgeSummary}, caller=${promptReport.breakdown.callerContext}, contextData=${promptReport.breakdown.contextData}`)
   }
 
   // Sign callback URL with slug — pre-computable before callId is known, no async PATCH needed

@@ -8,14 +8,14 @@
  * SITE_URL — SEO canonicals, sitemap, robots.txt, OG tags (public-facing domain)
  */
 export const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL || 'https://unmissed-ai-production.up.railway.app'
+  process.env.NEXT_PUBLIC_APP_URL || 'https://endvoicemail.ai'
 ).replace(/\/$/, '')
 
 // Used for Ultravox agent tool baseUrlPattern values — must be a publicly reachable https URL.
 // Falls back to the Railway URL so that creating agents locally still registers working webhooks.
 // Set AGENT_WEBHOOK_BASE on Railway if the primary hostname ever changes (domain migration).
 export const AGENT_WEBHOOK_BASE = (
-  process.env.AGENT_WEBHOOK_BASE || 'https://unmissed-ai-production.up.railway.app'
+  process.env.AGENT_WEBHOOK_BASE || 'https://endvoicemail.ai'
 ).replace(/\/$/, '')
 
 export const SITE_URL = (

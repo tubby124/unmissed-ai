@@ -39,6 +39,6 @@ Never commit `.env` or `.env.local` files.
 | Config | Local (`.env.local`) | Railway (Production) |
 |--------|---------------------|---------------------|
 | Stripe key | `sk_test_...` | `sk_live_...` |
-| Webhook base URL | `http://localhost:3000` | `https://unmissed-ai-production.up.railway.app` |
+| Webhook base URL | `http://localhost:3000` | `https://endvoicemail.ai` |
 | Supabase URL | same | same (shared DB) |
 | CRON_SECRET | `983d6f36...` | must be set manually in Railway |

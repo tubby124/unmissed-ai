@@ -129,11 +129,11 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS calendar_auth_status TEXT;
 ```json
 {
   "modelToolName": "checkCalendarAvailability",
-  "http": { "baseUrlPattern": "https://unmissed-ai-production.up.railway.app/api/calendar/{slug}/slots" }
+  "http": { "baseUrlPattern": "https://endvoicemail.ai/api/calendar/{slug}/slots" }
 },
 {
   "modelToolName": "bookAppointment",
-  "http": { "baseUrlPattern": "https://unmissed-ai-production.up.railway.app/api/calendar/{slug}/book" }
+  "http": { "baseUrlPattern": "https://endvoicemail.ai/api/calendar/{slug}/book" }
 }
 ```
 
@@ -148,7 +148,7 @@ If refresh token fails: `calendar_auth_status` set to `'expired'` in DB, endpoin
 ## Before Calendar Booking Goes Live (manual steps)
 
 1. **Google Cloud Console** — create OAuth 2.0 credentials
-   - Redirect URI: `https://unmissed-ai-production.up.railway.app/api/auth/google/callback`
+   - Redirect URI: `https://endvoicemail.ai/api/auth/google/callback`
    - Scopes: `https://www.googleapis.com/auth/calendar`
 
 2. **Railway env vars** — add:

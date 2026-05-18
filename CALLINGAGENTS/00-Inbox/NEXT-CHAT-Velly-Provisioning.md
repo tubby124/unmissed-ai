@@ -25,7 +25,7 @@ related:
 ## Pre-provisioning (do FIRST in next chat)
 1. **Review PR #39** — branch had 3 unrelated commits stacked (telegram + settings + handoff doc). Confirm those were meant to ship along with the transfer feature.
 2. **Merge PR #39** to main (squash recommended — clean single commit on main).
-3. **Wait for Railway redeploy** — verify `https://unmissed-ai-production.up.railway.app/api/dashboard/calls/test/transfer-now` returns 401 (route exists). If 404, redeploy didn't pick up.
+3. **Wait for Railway redeploy** — verify `https://endvoicemail.ai/api/dashboard/calls/test/transfer-now` returns 401 (route exists). If 404, redeploy didn't pick up.
 
 ## Provisioning steps (in order)
 
@@ -33,7 +33,7 @@ related:
 **Sandbox-blocked last time. To unblock, run from a permitted shell:**
 
 ```bash
-curl -X POST "https://unmissed-ai-production.up.railway.app/api/provision" \
+curl -X POST "https://endvoicemail.ai/api/provision" \
   -H "Content-Type: application/json" \
   --data-binary @"/Users/owner/Downloads/CALLING AGENTs/CALLINGAGENTS/Clients/velly-intake-payload.json" \
   -w "\n---HTTP:%{http_code}\n"
@@ -42,7 +42,7 @@ curl -X POST "https://unmissed-ai-production.up.railway.app/api/provision" \
 Expected: `202 Accepted` with `{ "jobId": "<uuid>" }`. Telegram alert pings Hasan.
 
 ### Step 2 — Admin: Generate Prompt
-1. Open `https://unmissed-ai-production.up.railway.app/dashboard/clients`
+1. Open `https://endvoicemail.ai/dashboard/clients`
 2. Find Velly Remodeling row → click **Generate Prompt**
 3. ✅ **Tick "Enrich with Sonar Pro"** — niche=other has no template, Sonar fills FAQ + local context for renovation in Saskatoon
 4. Wait for prompt generation (creates Ultravox agent, inserts `clients` row with `status='pending'`)

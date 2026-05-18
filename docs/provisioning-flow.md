@@ -599,7 +599,7 @@ curl -X POST "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Mes
   --data-urlencode "Body=Your AI agent is live!
 
 Set up your dashboard:
-https://unmissed-ai-production.up.railway.app/login
+https://endvoicemail.ai/login
 
 Your AI number: {TWILIO_NUMBER}
 
@@ -627,8 +627,8 @@ curl "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/IncomingPho
 Expected output:
 ```json
 {
-  "voice_url": "https://unmissed-ai-production.up.railway.app/api/webhook/{SLUG}/inbound",
-  "voice_fallback_url": "https://unmissed-ai-production.up.railway.app/api/webhook/{SLUG}/fallback"
+  "voice_url": "https://endvoicemail.ai/api/webhook/{SLUG}/inbound",
+  "voice_fallback_url": "https://endvoicemail.ai/api/webhook/{SLUG}/fallback"
 }
 ```
 
@@ -641,9 +641,9 @@ SID=$(curl -s "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/In
 # PATCH the webhooks
 curl -X POST "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/IncomingPhoneNumbers/$SID.json" \
   -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" \
-  --data-urlencode "VoiceUrl=https://unmissed-ai-production.up.railway.app/api/webhook/{SLUG}/inbound" \
+  --data-urlencode "VoiceUrl=https://endvoicemail.ai/api/webhook/{SLUG}/inbound" \
   --data-urlencode "VoiceMethod=POST" \
-  --data-urlencode "VoiceFallbackUrl=https://unmissed-ai-production.up.railway.app/api/webhook/{SLUG}/fallback" \
+  --data-urlencode "VoiceFallbackUrl=https://endvoicemail.ai/api/webhook/{SLUG}/fallback" \
   --data-urlencode "VoiceFallbackMethod=POST"
 ```
 

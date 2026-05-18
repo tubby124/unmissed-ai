@@ -70,7 +70,7 @@ const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '
 Run all with:
 ```bash
 PASS=COOLboyAdmin2026
-BASE=https://unmissed-ai-production.up.railway.app/api/debug/simulate-call
+BASE=https://endvoicemail.ai/api/debug/simulate-call
 ```
 
 ### HOT — Urgent offer callback

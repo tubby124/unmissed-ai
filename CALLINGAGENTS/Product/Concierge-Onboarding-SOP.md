@@ -51,7 +51,7 @@ Optional but valuable:
 ### 3a — Provision via admin API
 
 ```bash
-curl -X POST https://unmissed-ai-production.up.railway.app/api/admin/provision \
+curl -X POST https://endvoicemail.ai/api/admin/provision \
   -H "Content-Type: application/json" \
   -d '{
     "businessName": "...",
@@ -71,7 +71,7 @@ UPDATE clients SET twilio_number = '+1XXXXXXXXXX' WHERE slug = '...';
 ```
 
 Twilio Console → Phone Number → Configure:
-- Voice URL: `https://unmissed-ai-production.up.railway.app/api/webhook/{slug}/inbound`
+- Voice URL: `https://endvoicemail.ai/api/webhook/{slug}/inbound`
 - Method: HTTP POST
 
 ---
@@ -98,7 +98,7 @@ Dashboard → "Talk to Your Agent" (browser WebRTC test). Confirm:
 
 ### Option A — Stripe (preferred)
 
-Send client to: `https://unmissed-ai-production.up.railway.app/pricing`
+Send client to: `https://endvoicemail.ai/pricing`
 Promo code: **FOUNDING29** → $20/mo off (Solo $49 → **$29/mo forever**)
 Stripe Coupon ID: `i0s7bCCd`
 

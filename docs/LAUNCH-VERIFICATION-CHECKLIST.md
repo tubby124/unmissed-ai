@@ -377,5 +377,5 @@
 | Stripe mode | `sk_test_` vs `sk_live_` — know which you're testing |
 | Twilio webhooks | Twilio console URLs match Railway URL |
 | Ultravox agents | `clients.agent_id` matches Ultravox dashboard |
-| Supabase auth redirect | `https://unmissed-ai-production.up.railway.app/**` in Supabase auth config |
+| Supabase auth redirect | `https://endvoicemail.ai/**` in Supabase auth config |
 | Test accounts | `e2etest@unmissed.ai` (trial), paid client account, `admin@unmissed.ai` (admin) |

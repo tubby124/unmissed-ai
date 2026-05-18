@@ -70,7 +70,7 @@ describe('S13b — webhook signing', () => {
     it('keeps URL under 200 chars for production-length base URLs', async () => {
       const { signCallbackUrl } = await loadModule()
       // Simulate longest production URL: railway domain + longest slug
-      const base = 'https://unmissed-ai-production.up.railway.app/api/webhook/windshield-hub/completed'
+      const base = 'https://endvoicemail.ai/api/webhook/windshield-hub/completed'
       const url = signCallbackUrl(base, 'windshield-hub')
       assert.ok(url.length <= 200, `URL too long: ${url.length} chars (max 200). URL: ${url}`)
     })

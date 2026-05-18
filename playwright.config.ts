@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://unmissed-ai-production.up.railway.app';
+const BASE_URL = process.env.BASE_URL || 'https://endvoicemail.ai';
 
 export default defineConfig({
   testDir: './tests',

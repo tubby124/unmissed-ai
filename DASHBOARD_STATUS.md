@@ -71,8 +71,8 @@ Core infrastructure, auth, multi-client dashboard, production UI polish
 - [x] Agents created for all 3 clients, `ultravox_agent_id` stored in Supabase ✅
 - [x] `inbound/route.ts` — uses `callViaAgent()` if `ultravox_agent_id` exists, else fallback to `createCall()`
 - [ ] **Phase 4e — PENDING USER CONFIRMATION:** Switch Twilio Voice URLs for WH + UV → Railway
-  - WH `+15873551834`: set Voice URL → `https://unmissed-ai-production.up.railway.app/api/webhook/windshield-hub/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/inbound-call-o`
-  - UV `+15873296845`: set Voice URL → `https://unmissed-ai-production.up.railway.app/api/webhook/urban-vibe/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/urban-vibe-inbound`
+  - WH `+15873551834`: set Voice URL → `https://endvoicemail.ai/api/webhook/windshield-hub/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/inbound-call-o`
+  - UV `+15873296845`: set Voice URL → `https://endvoicemail.ai/api/webhook/urban-vibe/inbound` | VoiceFallbackUrl → `https://n8n.srv728397.hstgr.cloud/webhook/urban-vibe-inbound`
 - [ ] WH + UV tool configs (calendar booking) — deferred until booking n8n webhook confirmed
 
 ---
@@ -122,4 +122,4 @@ Core infrastructure, auth, multi-client dashboard, production UI polish
 | `TELEGRAM_CHAT_ID` | `7278536150` | ✅ |
 | `WEBHOOK_SIGNING_SECRET` | any 32-char random string | ❌ ADD THIS — enables HMAC webhook verification |
 | `ADMIN_PASSWORD` | anything | ❌ ADD THIS — required for `/api/admin/*` routes |
-| `NEXT_PUBLIC_APP_URL` | `https://unmissed-ai-production.up.railway.app` | ✅ |
+| `NEXT_PUBLIC_APP_URL` | `https://endvoicemail.ai` | ✅ |
