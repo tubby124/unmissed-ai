@@ -2,7 +2,44 @@
 
 > Completed phases + full DONE history: `docs/refactor-completed-phases.md`
 > Master operator prompt: `docs/unmissed-master-operator-prompt.md`
-> Last cleaned: 2026-03-31
+> Last cleaned: **2026-05-17** (audit subagent counted 157 unique D-items: 52 DONE, 72 NOT_STARTED, 14 PARTIAL, 11 DEFERRED, 8 REMOVED)
+
+---
+
+## 🎉 CLOSED 2026-05-17 (domain migration + email infrastructure unblocked everything)
+
+These were ALL marked NOT STARTED / BLOCKED in prior versions of this tracker. Domain purchase (endvoicemail.ai) + Resend + Cloudflare Email Routing shipped 2026-05-17, which unblocked the entire P0-LAUNCH-GATE backlog. Mass-closing here:
+
+| Item | Resolution |
+|------|------------|
+| **GATE-1 PASS** | Domain + auth + email deliverability all live. See `Projects/unmissed/Operations/2026-05-17-email-system.md` |
+| S15-PRE1-7 | ✅ DONE — Porkbun → Cloudflare migration; DKIM/SPF/DMARC live |
+| S15-ENV1-4 | ✅ DONE — Railway env vars set (STRIPE_SUBSCRIPTION_PRICE_ID, NEXT_PUBLIC_APP_URL, AGENT_WEBHOOK_BASE, NEXT_PUBLIC_SITE_URL) |
+| S15-CODE1-11 | ✅ DONE — brand sweep commits `289a86b`, `8dfe013`, `c7a06c4`, `0b46d09`, `6d4d463` |
+| S12-V15 | ✅ DONE — email deliverability E2E live (List-Unsubscribe, RFC 8058, footer, Svix webhook archive) |
+| S12-LOGIN1 | ✅ DONE — Supabase SMTP via Resend; auth subjects branded |
+| S12-V22 | 🟠 PARTIAL — subjects branded; body HTML still default → Hasan UI task (see hasan-todo-checklist) |
+| D40 | ✅ DONE — demo follow-up cron shipped (commit `074b427`) |
+| D174 | ✅ DONE — email notifications via `sendBrandedEmail` helper (commit `c28eede`) |
+| D208 | 🟠 NOT_STARTED — copy still needed (pricing page + billing card) but no longer blocked |
+| D212 | 🟠 NOT_STARTED — upgrade CTA copy still needed but no longer blocked |
+| D218 | ✅ DONE — minute usage warning cron shipped at 75%/90% thresholds (commit `074b427`) |
+| D222 | ✅ DONE — trial midpoint nudge cron shipped (commit `01e7e7d`) |
+| D124 | 🟠 NOT_STARTED — branded password reset live, but `QWERTY123` default password code still exists in `provision/trial/route.ts`. Replace with magic-link signup. |
+| STRIPE-PORTAL | 🟠 BLOCKED ON HASAN — route + UI both wired; needs Stripe dashboard configuration (5-min Hasan task, see `2026-05-17-hasan-todo-checklist.md`) |
+
+### Also shipped 2026-05-17 (conversion hot-path)
+| Item | What |
+|------|------|
+| (new) CarrierCompatibilityCheck | ✅ DONE — gates dial codes in `MobileSetup.tsx` behind voicemail-removal confirmation. Eliminates the #1 support ticket pattern. Wires `Projects/unmissed/Product/carrier-compatibility-checker-spec.md`. **Partially closes D292 + D172.** |
+| (new) /keep-your-number page | ✅ DONE — defuses "won't customers see your number?" objection |
+| (new) /guardrails page | ✅ DONE — defuses "what if AI screws up" objection (8 bounded promises) |
+| (new) TrialUrgencyBanner | ✅ DONE — persistent dashboard banner in final 3 trial days. Partial close of **D189**. |
+| (new) Money-back guarantee + 6 objection FAQs | ✅ DONE — pricing page + FAQs |
+| (new) ReviewBadges wired to real testimonials source | ✅ DONE — empty until Hasan collects 4 quotes |
+| (new) Privacy: no-AI-training pledge + PIPEDA data residency | ✅ DONE |
+
+---
 
 ## Cross-Phase Gates (apply to EVERY phase)
 - **Sonar Pro Fact-Check:** Run 2-3 Perplexity Sonar Pro queries before and after implementation.
@@ -114,23 +151,17 @@
 
 ## P0-LAUNCH-GATE (remaining items only)
 
-### GATE-1 — Auth + Email Deliverability (BLOCKED on domain purchase)
+> **GATE-1: ✅ PASS** as of 2026-05-17 (domain + email infrastructure shipped).
+> **GATE-2: ✅ MECHANISM PASS** — S16a recording disclosure mechanism shipped 2026-04-22, not yet enabled on the 4 live clients (standing no-redeploy rule).
+> **GATE-3, 4, 5: PASS**
+
+### Remaining nice-to-haves (no longer blocking launch)
 | Item | Status |
 |------|--------|
-| S15-PRE1-7 | NOT STARTED — domain purchase + DNS + external configs |
-| S15-ENV1-4 | NOT STARTED — Railway env var updates after domain |
-| S15-CODE1-11 | NOT STARTED — brand text + legal pages + SEO metadata |
-| S12-V15 | NOT STARTED — email deliverability E2E |
-| S12-LOGIN1 | BLOCKED on S15-PRE3 |
-| S12-V22 | NOT STARTED — Supabase email template branding |
-
-### GATE-2 — Remaining Items
-| Item | Status |
-|------|--------|
-| S13-REC2 | NOT STARTED — backfill recording_url from full URLs to paths |
-| S16a | ✅ 2026-04-22 mechanism shipped (opt-in, default empty) — `SlotContext.recordingDisclosure` renders after greeting when set via `niche_custom_variables.RECORDING_DISCLOSURE`. See `CALLINGAGENTS/Tracker/S16a.md` for turn-on SQL + jurisdiction notes. Not yet enabled on live clients (standing no-redeploy rule). |
-
-> GATE-3: PASS | GATE-4: PASS | GATE-5: PASS
+| S12-V22 | 🟠 Hasan UI task — brand Supabase auth email body HTML (subjects already branded) |
+| S13-REC2 | NOT STARTED — backfill recording_url from full URLs to paths (only matters for old recordings; new ones already use paths) |
+| S16a enablement | Owner decision — flip `niche_custom_variables.RECORDING_DISCLOSURE` per-client when jurisdiction requires |
+| D124 | 🟠 Replace `QWERTY123` default password in `provision/trial/route.ts` with magic-link signup (auth emails now branded so this can finally ship) |
 
 ---
 
@@ -160,7 +191,7 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D273 | **Pre-populate from best source** — GBP, website scrape, or manual entry → variable system | HIGH |
 | D255 | **Guided context data entry** — fallback form when no website. Prices, policies, urgency words. | HIGH |
 | D294 | **Post-activation summary** — "Your Agent Is Live" page. Capabilities, knowledge, test CTA. | HIGH |
-| D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | HIGH |
+| D292 | **Guided call forwarding wizard** — carrier-specific steps + test button. #1 friction point. | 🟠 PARTIAL 2026-05-17 — `CarrierCompatibilityCheck.tsx` ships the pre-flight gate (carrier picker, VVM detection, voicemail probe, tailored support number + script, confirmation gate). Test-call diagnostic (`ForwardingDiagnostic.tsx`) scaffolded but stubbed — needs `forwarding_diagnostics` table + 3 Twilio webhooks before enabling. |
 | D242 | **Haiku intent inference for niche='other'** — auto-suggest closest niche + PRIMARY GOAL | MEDIUM |
 | D185 | **Mode-first onboarding** — skip irrelevant steps per mode (voicemail vs receptionist vs booking) | MEDIUM |
 | D304 | **Old-client prompt migration** — add section markers to 4 live clients. Do after Phase 6 proven. Superseded by D445 per D442 Phase 1 audit findings (2026-04-30). | MEDIUM |
@@ -178,7 +209,7 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D219 | **Missed call auto-SMS** — short call + no info → "we missed you" text. 1/phone/24h | HIGH |
 | D220 | **Lead queue / callback tracking** — HOT/WARM sorted, "Mark called back", count badge | HIGH |
 | D229 | **"Call back now" button** — HOT/WARM row → owner's phone rings → agent bridge | HIGH |
-| D189 | **Unify trial/paid dashboard** — locked features show preview, not blank | HIGH |
+| D189 | **Unify trial/paid dashboard** — locked features show preview, not blank | 🟠 PARTIAL 2026-05-17 — `TrialUrgencyBanner` lives in dashboard layout for final-3-day urgency. Still pending: locked tiles with preview state + UpgradeModal wiring on tile click. |
 | D190 | **Feature unlock CTAs** — click → modal with configure/upgrade action | HIGH |
 | D218 | **Minutes usage warning** — banner at 75%/90% of limit | HIGH |
 | D213 | **Per-section prompt editor UI** — full multi-section (D251 shipped triage only) | HIGH |
@@ -247,16 +278,13 @@ See `memory/project_purpose_driven_agents.md` and `memory/working-agent-patterns
 | D227 | `knowledge/conflicts` + `docs` + `preview-question` → Knowledge page | MEDIUM |
 | D171 | Wow-first template update — OPENING + TRIAGE still passive | MEDIUM |
 | D170 | Inbound SMS reply visibility — replies silently dropped | MEDIUM |
-| D172 | Forwarding confirmation — no in-app signal it worked | MEDIUM |
+| D172 | Forwarding confirmation — no in-app signal it worked | 🟠 PARTIAL 2026-05-17 — `CarrierCompatibilityCheck` now confirms voicemail removal before codes appear, and the `ConfirmActivation` flow already exists. Live test-call diagnostic (`ForwardingDiagnostic`) still scaffolded only. |
 | D175 | Calls page empty state — CTA to forwarding guide | LOW |
 
-### BLOCKED on domain purchase (GATE-1)
+### Copy work (no longer blocked — domain shipped)
 
 | # | Summary |
 |---|---------|
-| D174 | Email notifications — wire after domain |
-| D124 | QWERTY123 default password — needs email platform |
-| D40 | Demo follow-up email |
 | D208 | Feature-to-tier messaging — pricing page, billing card |
 | D212 | Upgrade CTA copy — product tier names |
 

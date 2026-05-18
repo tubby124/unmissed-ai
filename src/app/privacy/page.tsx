@@ -118,6 +118,11 @@ export default function PrivacyPage() {
                   We do not sell, rent, or trade caller information or business client data to
                   third parties for marketing purposes.
                 </p>
+                <p className="mt-3 text-gray-300 font-medium">
+                  Your call recordings and transcripts are never used to train AI models —
+                  not ours, not our vendors&apos;, not anyone&apos;s. Recordings stay in your
+                  dashboard and are used only to deliver the service to you.
+                </p>
               </div>
 
               {/* 3 */}
@@ -151,12 +156,23 @@ export default function PrivacyPage() {
                   we process:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-gray-400 mt-3">
-                  <li>All data is transmitted over encrypted connections (TLS/SSL)</li>
-                  <li>Call recordings and transcripts are stored on secure, access-controlled infrastructure</li>
-                  <li>Lead data captured during calls is written directly to your Google Sheet or designated system — we do not maintain a separate long-term database of your caller information</li>
-                  <li>Access to production systems is restricted to authorized personnel only</li>
+                  <li>All data is transmitted over encrypted connections (TLS, HTTPS)</li>
+                  <li>Call recordings and transcripts are encrypted at rest (AES-256) on Supabase storage</li>
+                  <li>Lead and call data is stored in our dashboard database (Supabase, US East) — you can export or delete it from your account at any time</li>
+                  <li>Access to production systems is restricted to the {BRAND_NAME} founder. No third-party humans listen to your recordings.</li>
                   <li>We use API key authentication and environment-level secrets management for all service integrations</li>
                 </ul>
+
+                <p className="mt-4 text-white font-medium">Data residency</p>
+                <p className="text-gray-400 mt-1">
+                  Your data flows through US-based infrastructure: Twilio (telephony, US),
+                  Ultravox (voice AI processing, US), Supabase (call logs and recordings, US-East),
+                  Resend (transactional email, US), Stripe (billing, US). PIPEDA-compliant
+                  cross-border disclosure: your customers&apos; call recordings and transcripts
+                  may be processed and stored outside Canada. If this is a hard requirement for
+                  your business, contact us before subscribing — we can discuss Canadian-resident
+                  alternatives on Pro+ plans.
+                </p>
               </div>
 
               {/* 5 */}

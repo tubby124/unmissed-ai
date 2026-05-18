@@ -206,6 +206,31 @@ export const FAQ_ITEMS = [
   {
     question: 'What if I want to cancel?',
     answer:
-      `${POLICIES.cancellation} No contracts, no cancellation fees. Your call logs stay in your dashboard — you keep your data either way. We're confident you won't want to cancel once you see the jobs you were missing.`,
+      `${POLICIES.cancellation} No contracts, no cancellation fees. Your call logs stay in your dashboard — you keep your data either way. ${POLICIES.moneyBack}`,
+  },
+  {
+    question: 'Will my customers see your phone number when they call?',
+    answer:
+      `No. Your customers still dial YOUR business number. Conditional call forwarding routes the call to us only when you don't pick up — they never see our number, and they never know the call was forwarded. The agent introduces itself with your business name, not ours.`,
+  },
+  {
+    question: 'Will it work with my Rogers / Bell / Telus / Fido plan?',
+    answer:
+      `Yes — Canadian conditional call forwarding (star-61, star-67, star-62 codes) works on all major carriers and most sub-brands. One catch: your carrier voicemail must be fully removed first (not just toggled off). We walk you through this during setup — for most carriers it's a 5-minute call to support. iPhone users with Visual Voicemail need it removed too.`,
+  },
+  {
+    question: 'What if I have a voicemail box on my plan right now?',
+    answer:
+      `Carrier voicemail and conditional call forwarding share the same network slot — whichever was activated last wins. You'll need to call your carrier (Rogers, Bell, Telus, Fido) and ask them to fully remove voicemail from your line profile. Not reset — removed. Then the forwarding codes work immediately. We give you the script and the carrier support number during setup.`,
+  },
+  {
+    question: 'Where do my call recordings go? Is my data safe?',
+    answer:
+      `Recordings live in your dashboard, encrypted at rest (AES-256) and in transit (TLS). Only the End Voicemail founder has human access — no third parties listen, and ${POLICIES.dataNeverTrains.toLowerCase()} If you cancel, you can export everything or request deletion (PIPEDA right-to-erasure).`,
+  },
+  {
+    question: `What if I subscribe and hate it?`,
+    answer:
+      `${POLICIES.moneyBack} Email Hasan directly (hasan@endvoicemail.ai), full refund processed within 48 hours. After day 7 of paid use, you can still cancel anytime from your dashboard — no notice period, no fees.`,
   },
 ]

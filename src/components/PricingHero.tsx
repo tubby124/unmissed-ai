@@ -17,6 +17,9 @@ export function GuaranteeBar() {
       <p className="text-green-400 font-semibold text-sm">
         {TRIAL.label} · {POLICIES.contracts} · {POLICIES.dataOwnership}
       </p>
+      <p className="text-green-300/80 text-xs mt-2">
+        {POLICIES.moneyBack}
+      </p>
     </motion.div>
   )
 }

@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import ActivityFeed from '@/components/dashboard/ActivityFeed'
 import ForwardingBanner from '@/components/dashboard/ForwardingBanner'
+import TrialUrgencyBanner from '@/components/dashboard/TrialUrgencyBanner'
 import AdminCommandStrip from '@/components/dashboard/AdminCommandStrip'
 import TabBar from '@/components/dashboard/TabBar'
 import BottomTabBar from '@/components/dashboard/BottomTabBar'
@@ -146,6 +147,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             {/* Forwarding banner — below TabBar so TabBar y-position stays constant */}
             {!isAdmin && !setupComplete && clientStatus === 'active' && subscriptionStatus !== 'trialing' && (
               <ForwardingBanner twilioNumber={twilioNumber} />
+            )}
+
+            {/* Trial urgency banner — final-3-day conversion gate, persistent across all pages */}
+            {!isAdmin && (
+              <TrialUrgencyBanner subscriptionStatus={subscriptionStatus} trialExpiresAt={trialExpiresAt} />
             )}
 
             <div className="flex flex-1 min-h-0 relative overflow-hidden">

@@ -1,8 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CARRIER_NOTES, FIDO_DISABLE } from './constants'
 import { CopyButton, CodeRow, StarCard, InlineNotes, ActiveBadge, ConfirmActivation } from './shared'
+import CarrierCompatibilityCheck from './CarrierCompatibilityCheck'
+import type { CompatCheckState } from '@/types/carrier-compat'
 
 interface MobileSetupProps {
   rawNumber: string
@@ -18,10 +21,19 @@ interface MobileSetupProps {
 export default function MobileSetup({
   rawNumber, displayNumber, carrier, onCarrierChange, device, onDeviceChange, isActive, onActivated,
 }: MobileSetupProps) {
-  const showMobileCodes = !!carrier && !!rawNumber
+  const [compatPassed, setCompatPassed] = useState(false)
+  const [compatSkipped, setCompatSkipped] = useState(false)
+  // Codes unlock only after pre-flight passes OR the user explicitly skips.
+  // Skipping is allowed (don't block experts) but the default is "check first."
+  const gateUnlocked = compatPassed || compatSkipped
+  const showMobileCodes = !!carrier && !!rawNumber && gateUnlocked
   const carrierNotes = carrier ? (CARRIER_NOTES[carrier] ?? []) : []
   const useDoubleHash = FIDO_DISABLE.has(carrier)
   const disablePrefix = useDoubleHash ? '##' : '#'
+
+  function handleCompatComplete(_state: CompatCheckState) {
+    setCompatPassed(true)
+  }
 
   return (
     <motion.div
@@ -117,6 +129,16 @@ export default function MobileSetup({
       )}
 
       {carrier && carrierNotes.length > 0 && <InlineNotes notes={carrierNotes} />}
+
+      {/* Pre-flight compatibility check — gates the dial codes until the user
+          confirms voicemail removal (or explicitly skips). Reduces "I dialed
+          the codes but calls still go to voicemail" support tickets. */}
+      {carrier && rawNumber && !gateUnlocked && (
+        <CarrierCompatibilityCheck
+          onComplete={handleCompatComplete}
+          onSkip={() => setCompatSkipped(true)}
+        />
+      )}
 
 
       <AnimatePresence mode="wait">

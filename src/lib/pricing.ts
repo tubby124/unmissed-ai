@@ -69,13 +69,14 @@ export const PLANS = [
     id: "core" as const,
     name: "AI Receptionist",
     tagline: "Answers questions, books appointments, and handles callers like a trained receptionist \u2014 24/7.",
-    monthly: 119,
+    monthly: 189,
+    foundingMonthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
     minutes: 200,
     description: "Your agent knows your business and never forgets it. Answers caller questions, books appointments, ranks every lead, and tells you who's worth calling back.",
     isPopular: true,
-    stripeMonthlyPriceId: "price_1TQdWK0tFbm4ZBYUz7JyvVpe", // $119/mo CAD (Core Monthly v2)
+    stripeMonthlyPriceId: "price_1TQdWK0tFbm4ZBYUz7JyvVpe", // $119/mo CAD founding (Core Monthly v2). Standard price $189 is display-only \u2014 no $189 Stripe price exists; founding promo is the charged amount.
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
@@ -95,13 +96,14 @@ export const PLANS = [
     id: "pro" as const,
     name: "Front Desk Pro",
     tagline: "The full AI front desk \u2014 built for volume.",
-    monthly: 229,
+    monthly: 189,
     annual: 149, // annual pricing TBD
     annualBilledTotal: 1788, // annual pricing TBD
     minutes: 1000,
+    hidden: true, // Hidden from public surfaces (homepage cards already slice(0,2); this prevents any other surface from leaking it). Re-enable when ready to launch Pro tier publicly.
     description: "For businesses with real call volume. IVR call routing, live transfer to your phone, and 1,000 minutes of intelligent call handling.",
     isPopular: false,
-    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // $229/mo CAD
+    stripeMonthlyPriceId: "price_1TELcs0tFbm4ZBYUcHGVoofT", // $189/mo CAD \u2014 aligned with Stripe live price 2026-05-17 (was code-only $229 mismatch causing $40 silent underpricing if Pro had been sold)
     stripeAnnualPriceId: "price_1TELcs0tFbm4ZBYUTl9M87FL",
     stripeProductId: "prod_UCl8d1JTMthpf7",
     features: [
@@ -128,9 +130,9 @@ export const PLANS = [
     description: "At-cost tier for testers and feedback partners. Same features as AI Receptionist, lower minute cap.",
     isPopular: false,
     hidden: true,
-    stripeMonthlyPriceId: "TODO_TESTER_MONTHLY_PRICE_ID", // Hasan: create $10/mo CAD recurring price in Stripe dashboard, paste here
+    stripeMonthlyPriceId: "price_1TYHT60tFbm4ZBYUIp2v5an9", // $10/mo CAD recurring — created 2026-05-17 via Stripe API
     stripeAnnualPriceId: "",
-    stripeProductId: "TODO_TESTER_PRODUCT_ID",
+    stripeProductId: "prod_UXMBm6yGwfCa3f", // End Voicemail Tester (Friends & Family) — created 2026-05-17
     features: [
       "100 minutes/month included",
       "All AI Receptionist features",
@@ -152,9 +154,12 @@ export const PUBLIC_PLANS = PLANS.filter((p) => !("hidden" in p) || !p.hidden);
 // ─── Guarantee & Policies ───────────────────────────────────────────
 export const POLICIES = {
   guarantee: "7-day free trial — cancel anytime, no questions asked",
+  moneyBackDays: 7,
+  moneyBack: "If you don't love it in your first 7 days as a paid customer, full refund — no questions, no forms.",
   contracts: "No contracts. Cancel anytime.",
   cancellation: "Cancel anytime — no notice period, no fees.",
   dataOwnership: "Your call log data lives in your dashboard — you own it.",
+  dataNeverTrains: "Your call recordings and transcripts are never used to train AI models, sold, or shared.",
   setupTime: "Live before your first call — built during setup",
 };
 
@@ -277,8 +282,8 @@ export const STRIPE_IDS = {
   setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
   setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)
   minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
-  minuteReload15: "TODO_RELOAD_15_PRICE_ID",          // $15 one-time (100 min reload) — Hasan: create in Stripe dashboard
-  minuteReload30: "TODO_RELOAD_30_PRICE_ID",          // $30 one-time (200 min reload) — Hasan: create in Stripe dashboard (replaces broken qty-multiplier path)
+  minuteReload15: "price_1TYHSu0tFbm4ZBYUUyn2LhOe",   // $15 one-time (100 min reload) — created 2026-05-17 via Stripe API
+  minuteReload30: "price_1TYHSu0tFbm4ZBYUCh3giVb1",   // $30 one-time (200 min reload) — created 2026-05-17 via Stripe API
 
   // Custom Founding Concierge Prices (LIVE) — manual concierge clients on bespoke combos
   // First created 2026-04-28 for Velly Remodeling (Kausar) per
