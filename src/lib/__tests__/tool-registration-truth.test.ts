@@ -231,3 +231,19 @@ describe('Flag isolation: forwarding_number only', () => {
     assert.ok(!names.includes('queryKnowledge'))
   })
 })
+
+describe('Property management tool registration', () => {
+  test('registers maintenance tool for canonical property_management niche', () => {
+    const tools = buildAgentTools({ slug: 'pm-client', niche: 'property_management' })
+    const names = toolNames(tools)
+    assert.ok(names.includes('submitMaintenanceRequest'),
+      `submitMaintenanceRequest must be registered for property_management, got: ${names.join(', ')}`)
+  })
+
+  test('registers maintenance tool for legacy property-management niche', () => {
+    const tools = buildAgentTools({ slug: 'pm-client', niche: 'property-management' })
+    const names = toolNames(tools)
+    assert.ok(names.includes('submitMaintenanceRequest'),
+      `submitMaintenanceRequest must be registered for property-management, got: ${names.join(', ')}`)
+  })
+})

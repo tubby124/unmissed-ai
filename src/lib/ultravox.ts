@@ -798,7 +798,8 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   // pageOwner: alerts owner via SMS when a VIP caller tried to reach them — same gate as transfer
   const pageOwnerTools: object[] = (opts.forwarding_number && plan.transferEnabled && opts.slug) ? [buildPageOwnerTool(opts.slug)] : []
   // maintenanceRequest: PM niche only — lets voice agent write maintenance requests during live calls
-  const maintenanceTools: object[] = opts.niche === 'property_management' && opts.slug ? [buildMaintenanceRequestTool(opts.slug)] : []
+  const isPropertyManagement = opts.niche === 'property_management' || opts.niche === 'property-management'
+  const maintenanceTools: object[] = isPropertyManagement && opts.slug ? [buildMaintenanceRequestTool(opts.slug)] : []
 
   // Phase 4.5 GAP-I: Log plan-gated tools for observability
   if (opts.slug) {
@@ -814,6 +815,41 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   }
 
   return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools, ...maintenanceTools]
+}
+
+async function fetchExistingAgentSystemPrompt(agentId: string): Promise<string | undefined> {
+  const res = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}`, {
+    headers: ultravoxHeaders(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Ultravox getAgent failed before updateAgent prompt preservation: ${res.status} ${err}`)
+  }
+
+  const data = await res.json()
+  const prompt = data?.callTemplate?.systemPrompt
+  return typeof prompt === 'string' && prompt.trim().length > 0 ? prompt : undefined
+}
+
+function prepareAgentSystemPrompt(systemPrompt: string): string {
+  // Strip section markers before sending to Ultravox — they are storage metadata only.
+  // Preserve all templateContext placeholders — appended after validation,
+  // these resolve at call time via templateContext and must always be present.
+  const INJECTED_DATA_BLOCK = '## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
+  let sp = stripPromptMarkers(systemPrompt)
+  // Remove legacy {{extraQa}} placeholder — QA data is folded into KnowledgeSummary
+  // which goes through {{businessFacts}}. The placeholder always resolved to empty string.
+  sp = sp.replace(/\n\n\{\{extraQa\}\}/g, '')
+  if (!sp.includes('{{callerContext}}')) {
+    // Brand new prompt — append all placeholders in order
+    sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n${INJECTED_DATA_BLOCK}`
+  } else {
+    // callerContext present — ensure newer placeholders are also present
+    if (!sp.includes('{{businessFacts}}')) sp = sp + '\n\n{{businessFacts}}'
+    if (!sp.includes('{{contextData}}'))   sp = sp + `\n\n${INJECTED_DATA_BLOCK}`
+  }
+  return sp
 }
 
 /** Update an existing agent's config (call after saving a new system prompt). */
@@ -840,26 +876,14 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     firstSpeakerSettings: { agent: { uninterruptible: true, delay: '1s' } },
   }
 
-  // Client-specific overrides
-  if (updates.systemPrompt !== undefined) {
-    // Strip section markers before sending to Ultravox — they are storage metadata only
-    // Preserve all templateContext placeholders — appended after validation,
-    // these resolve at call time via templateContext and must always be present.
-    const INJECTED_DATA_BLOCK = '## INJECTED REFERENCE DATA\nThe following data is provided for this call. If it is non-empty, use it to look up information about the caller (by name, unit number, phone, or other identifier). Cross-reference naturally — if the caller mentions their name or unit, silently verify against this data before responding.\n\n{{contextData}}'
-    let sp = stripPromptMarkers(updates.systemPrompt)
-    // Remove legacy {{extraQa}} placeholder — QA data is folded into KnowledgeSummary
-    // which goes through {{businessFacts}}. The placeholder always resolved to empty string.
-    sp = sp.replace(/\n\n\{\{extraQa\}\}/g, '')
-    if (!sp.includes('{{callerContext}}')) {
-      // Brand new prompt — append all placeholders in order
-      sp = sp + `\n\n{{callerContext}}\n\n{{businessFacts}}\n\n${INJECTED_DATA_BLOCK}`
-    } else {
-      // callerContext present — ensure newer placeholders are also present
-      if (!sp.includes('{{businessFacts}}')) sp = sp + '\n\n{{businessFacts}}'
-      if (!sp.includes('{{contextData}}'))   sp = sp + `\n\n${INJECTED_DATA_BLOCK}`
-    }
-    callTemplate.systemPrompt = sp
+  // Client-specific overrides. Ultravox PATCH replaces the entire callTemplate,
+  // so even voice/tool-only syncs must carry forward the existing systemPrompt.
+  const systemPrompt = updates.systemPrompt ?? await fetchExistingAgentSystemPrompt(agentId)
+  if (!systemPrompt) {
+    throw new Error('updateAgent requires systemPrompt when the live Ultravox agent has no systemPrompt; refusing to wipe prompt')
   }
+  callTemplate.systemPrompt = prepareAgentSystemPrompt(systemPrompt)
+
   if (updates.voice !== undefined) callTemplate.voice = updates.voice || DEFAULT_VOICE
   callTemplate.selectedTools = buildAgentTools(updates)
 
