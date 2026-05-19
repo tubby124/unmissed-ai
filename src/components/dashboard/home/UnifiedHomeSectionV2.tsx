@@ -287,6 +287,8 @@ export default function UnifiedHomeSectionV2({
           sourceCounts={data.knowledge.source_counts}
           businessName={data.onboarding.businessName}
           agentName={data.agent.name}
+          hasHours={!!data.editableFields.hoursWeekday}
+          hoursSummary={data.editableFields.hoursWeekday}
         />
 
         {/* ════════════════════════════════════════════════════════════

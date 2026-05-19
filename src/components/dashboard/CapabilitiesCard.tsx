@@ -433,6 +433,37 @@ export default function CapabilitiesCard({
           </div>
         </div>
 
+        <div className="px-4 pb-3">
+          <div
+            className="rounded-xl px-3 py-3 space-y-2"
+            style={{
+              backgroundColor: 'var(--color-hover)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <p className="text-[12px] font-semibold leading-snug" style={{ color: 'var(--color-text-1)' }}>
+              Voicemail replacement core
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <TruthChip
+                label="Captures"
+                text="Name, phone, reason, urgency, service type, and preferred callback time."
+              />
+              <TruthChip
+                label="Answers"
+                text="Approved business facts and FAQs only; uploads search when enabled."
+              />
+              <TruthChip
+                label="Alerts"
+                text="Email summaries are the default. Telegram is optional for faster pings."
+              />
+            </div>
+            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
+              Booking, SMS, and live transfer stay gated until the plan, phone path, and required integrations are ready.
+            </p>
+          </div>
+        </div>
+
         {/* Progress bar */}
         <div className="px-4 pb-3">
           <div
@@ -515,6 +546,25 @@ export default function CapabilitiesCard({
           Edit
         </Link>
       </div>
+    </div>
+  )
+}
+
+function TruthChip({ label, text }: { label: string; text: string }) {
+  return (
+    <div
+      className="rounded-lg px-2.5 py-2"
+      style={{
+        backgroundColor: 'var(--color-bg-raised, var(--color-surface))',
+        border: '1px solid var(--color-border)',
+      }}
+    >
+      <p className="text-[9px] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--color-text-3)' }}>
+        {label}
+      </p>
+      <p className="text-[11px] leading-snug mt-1" style={{ color: 'var(--color-text-2)' }}>
+        {text}
+      </p>
     </div>
   )
 }

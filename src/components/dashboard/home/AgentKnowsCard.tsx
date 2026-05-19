@@ -21,6 +21,8 @@ interface AgentKnowsCardProps {
   sourceCounts?: Record<string, number>
   businessName?: string | null
   agentName?: string | null
+  hasHours?: boolean
+  hoursSummary?: string | null
   /** If true, keep the empty-state copy out; still render summary line. */
   alwaysExpanded?: boolean
 }
@@ -45,6 +47,8 @@ export default function AgentKnowsCard({
   sourceCounts = {},
   businessName = null,
   agentName = null,
+  hasHours = false,
+  hoursSummary = null,
   alwaysExpanded = false,
 }: AgentKnowsCardProps) {
   const [gaps, setGaps] = useState<Gap[]>([])
@@ -57,7 +61,7 @@ export default function AgentKnowsCard({
     .filter(Boolean)
     .length
 
-  const hasAnything = factCount > 0 || faqCount > 0 || servicesCount > 0 || approvedChunkCount > 0 || hasGoogleProfile
+  const hasAnything = factCount > 0 || faqCount > 0 || servicesCount > 0 || approvedChunkCount > 0 || hasGoogleProfile || hasHours
   const websiteChunks = sourceCounts.website_scrape ?? 0
   const docChunks = sourceCounts.knowledge_doc ?? 0
   const manualChunks = (sourceCounts.manual_text ?? 0) + (sourceCounts.compiled_import ?? 0) + (sourceCounts.call_snippet ?? 0)
@@ -94,7 +98,7 @@ export default function AgentKnowsCard({
           </p>
         </div>
         <p className="text-[13px] t2 leading-relaxed">
-          Add your Google Business Profile, website, or business facts so your agent can answer questions.
+          Add your Google Business Profile, website, hours, or business facts so your agent can answer questions.
         </p>
         <Link
           href="/dashboard/knowledge"
@@ -129,15 +133,16 @@ export default function AgentKnowsCard({
       </div>
 
       {/* Count pills */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
         <CountPill label="Google" count={hasGoogleProfile ? 1 : 0} href="/dashboard/knowledge?source=gbp" />
         <CountPill label="Facts" count={factCount} href="/dashboard/knowledge?tab=add&source=manual" />
         <CountPill label="FAQ" count={faqCount} href="/dashboard/knowledge?tab=add&source=manual" />
         <CountPill label="Services" count={servicesCount} href="/dashboard/settings?tab=services" />
+        <CountPill label="Hours" count={hasHours ? 1 : 0} href="/dashboard/settings?tab=general" />
         <CountPill label="KB" count={approvedChunkCount} unit="chunk" href="/dashboard/knowledge" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
           <p className="text-[10px] font-semibold tracking-[0.14em] uppercase t3 mb-1">Business identity</p>
           <p className="text-[12px] t2 leading-relaxed">
@@ -155,6 +160,15 @@ export default function AgentKnowsCard({
           <Link href="/dashboard/knowledge" className="inline-flex mt-1 text-[11px] font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>
             Review answers →
           </Link>
+        </div>
+        <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase t3 mb-1">Answer boundary</p>
+          <p className="text-[12px] t2 leading-relaxed">
+            Uses Google Business Profile, website facts, FAQs, services, and hours. If it is not supported, it will not guess; it says the question should be answered by a person.
+          </p>
+          {hoursSummary?.trim() && (
+            <p className="mt-1 text-[11px] t3 line-clamp-1">Hours: {hoursSummary.trim()}</p>
+          )}
         </div>
       </div>
 
