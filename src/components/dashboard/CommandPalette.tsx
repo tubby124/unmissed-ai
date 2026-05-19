@@ -21,7 +21,7 @@ const NAV_ITEMS: PaletteItem[] = [
   { label: 'Knowledge Base', href: '/dashboard/knowledge', group: 'Navigate', keywords: 'knowledge faq facts' },
   { label: 'Settings', href: '/dashboard/settings', group: 'Navigate', keywords: 'settings configure general' },
   { label: 'Notifications', href: '/dashboard/notifications', group: 'Navigate', keywords: 'notifications alerts telegram' },
-  { label: 'Go Live Setup', href: '/dashboard/setup', group: 'Navigate', keywords: 'setup forwarding live' },
+  { label: 'Go Live Setup', href: '/dashboard/go-live', group: 'Navigate', keywords: 'setup forwarding live' },
   { label: 'Advisor', href: '/dashboard/advisor', group: 'Navigate', keywords: 'advisor ai chat' },
 ]
 

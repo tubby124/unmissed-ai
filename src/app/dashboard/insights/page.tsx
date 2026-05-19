@@ -38,7 +38,7 @@ export default async function InsightsPage() {
       clientId = cu?.client_id ?? null
       const clientData = cu?.clients as { status?: string } | null
       if (clientData?.status === 'setup') {
-        redirect('/dashboard/setup')
+        redirect('/dashboard/go-live')
       }
     }
   }

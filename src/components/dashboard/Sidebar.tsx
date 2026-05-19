@@ -210,7 +210,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
           const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
           const isCalls = item.href === '/dashboard/calls'
           const isLive = item.href === '/dashboard/live'
-          const isSetup = item.href === '/dashboard/setup'
+          const isGoLive = item.href === '/dashboard/go-live'
           const isLocked = isTrialing && !!item.trialLocked
 
           // ── Agent accordion ───────────────────────────────────────────────
@@ -335,7 +335,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                 openUpgradeModal('locked_nav', clientId, daysRemaining)
               } : undefined}
               {...(item.href === '/dashboard/calls' ? { 'data-tour': 'nav-calls' } : {})}
-              {...(item.href === '/dashboard/setup' ? { 'data-tour': 'nav-agent' } : {})}
+              {...(isGoLive ? { 'data-tour': 'nav-agent' } : {})}
               {...(item.href === '/dashboard/settings' ? { 'data-tour': 'nav-settings' } : {})}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors min-w-0 ${
                 isLocked
@@ -346,7 +346,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
               }`}
               style={active && !isLocked
                 ? { backgroundColor: 'var(--color-accent-tint)', borderLeftColor: 'var(--color-primary)', color: 'var(--color-primary)' }
-                : isSetup && setupIncomplete && !active && !isTrialing
+                : isGoLive && setupIncomplete && !active && !isTrialing
                 ? { color: 'var(--color-text-2)', boxShadow: 'inset 0 0 0 1px var(--color-warning)' }
                 : { color: "var(--color-text-2)" }}
             >
@@ -373,7 +373,7 @@ export default function Sidebar({ businessName, isAdmin = false, clientId = null
                   </span>
                 )}
                 {/* Pulsing amber dot when setup is incomplete — suppressed for trial users */}
-                {isSetup && setupIncomplete && !active && !isTrialing && (
+                {isGoLive && setupIncomplete && !active && !isTrialing && (
                   <span className="absolute -top-1 -right-1 flex w-2 h-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />

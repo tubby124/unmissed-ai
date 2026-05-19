@@ -105,12 +105,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }
   }
 
-  // Auto-redirect setup-status clients to /dashboard/setup unless they're already there
+  // Auto-redirect setup-status clients to Go Live unless they're already there.
   if (!isAdmin && clientStatus === 'setup') {
     const headersList = await headers()
     const currentPath = headersList.get('x-pathname')
-    if (currentPath && !currentPath.startsWith('/dashboard/setup')) {
-      redirect('/dashboard/setup')
+    if (currentPath && !currentPath.startsWith('/dashboard/go-live')) {
+      redirect('/dashboard/go-live')
     }
   }
 

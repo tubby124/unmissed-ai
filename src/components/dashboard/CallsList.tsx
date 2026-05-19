@@ -380,10 +380,10 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
               Your AI agent isn&apos;t live yet — complete setup to start receiving calls
             </p>
             <a
-              href="/dashboard/setup"
+              href="/dashboard/go-live"
               className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 hover:border-amber-500/50 hover:text-amber-200 transition-all"
             >
-              Complete Setup
+              Open Go Live
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>

@@ -468,7 +468,7 @@ function GbpModal(p: CommonProps) {
             Connect your Google Business Profile to auto-populate your agent with your business name, phone, hours, and reviews.
           </p>
           <Link
-            href="/dashboard/setup#gbp"
+            href="/dashboard/knowledge?source=gbp"
             className="block mt-4 text-center px-5 py-3 rounded-lg text-[13px] font-semibold text-white"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >

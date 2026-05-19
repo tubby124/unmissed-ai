@@ -11,16 +11,16 @@ export default function ForwardingBanner({ twilioNumber }: { twilioNumber?: stri
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-amber-300">Set up call forwarding to start receiving calls</p>
+        <p className="text-sm font-medium text-amber-300">Open Go Live to forward missed calls and test the real path</p>
         {twilioNumber && (
           <p className="text-xs text-amber-400/60 mt-0.5">Forward your business line to {twilioNumber}</p>
         )}
       </div>
       <Link
-        href="/dashboard/setup"
+        href="/dashboard/go-live"
         className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition-colors"
       >
-        Set up now
+        Open Go Live
       </Link>
     </div>
   )

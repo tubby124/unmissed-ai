@@ -72,7 +72,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       bonusMinutes = clientData?.bonus_minutes ?? 0
 
       if (clientStatus === 'setup') {
-        redirect('/dashboard/setup')
+        redirect('/dashboard/go-live')
       }
     }
   }

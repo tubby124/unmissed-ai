@@ -393,9 +393,9 @@ export default function ClientHomeV2() {
             </svg>
             <div>
               <p className="text-sm font-semibold t1">You&apos;re upgraded — welcome to the team</p>
-              <p className="text-xs t3 mt-0.5 leading-relaxed">Your account is now active. Complete your phone setup to start receiving real calls.</p>
-              <a href="/dashboard/setup" className="text-xs font-semibold mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
-                Finish setup →
+              <p className="text-xs t3 mt-0.5 leading-relaxed">Your account is now active. Open Go Live to forward missed calls and test the real path.</p>
+              <a href="/dashboard/go-live" className="text-xs font-semibold mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
+                Open Go Live →
               </a>
             </div>
           </div>

@@ -28,7 +28,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/notifications', label: 'Notifications', adminOnly: false, group: 1, iconName: 'bell' },
   { href: '/dashboard/voices', label: 'Voices', adminOnly: false, group: 1, iconName: 'microphone' },
   // ── Group 2 — OPS ─────────────────────────────────────────────────────────
-  { href: '/dashboard/setup', label: 'Setup', adminOnly: false, group: 2, iconName: 'wrench' },
   { href: '/dashboard/maintenance', label: 'Maintenance', adminOnly: false, group: 2, iconName: 'clipboard-list' },
   // ── Group 3 — SECONDARY (trialLocked) ────────────────────────────────────
   { href: '/dashboard/live', label: 'Live', adminOnly: false, group: 3, iconName: 'broadcast', trialLocked: true },

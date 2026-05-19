@@ -4,7 +4,7 @@
  * ActivationTile — AC-3
  *
  * Diagnostic-only tile showing paid activation readiness.
- * DOES NOT provision Twilio numbers — links to /dashboard/setup for that.
+ * DOES NOT provision Twilio numbers — links to /dashboard/go-live for that.
  * ForwardingSheet is opened for forwarding_needed (config-edit only).
  */
 
@@ -125,7 +125,7 @@ export default function ActivationTile({
       {/* Primary CTA */}
       {state === 'awaiting_number' && (
         <Link
-          href="/dashboard/setup"
+          href="/dashboard/go-live"
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >

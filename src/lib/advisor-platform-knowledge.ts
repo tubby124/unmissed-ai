@@ -97,7 +97,7 @@ export const PLATFORM_KNOWLEDGE = `
 ### Dashboard Pages
 - **Calls** (/dashboard/calls): View all inbound calls handled by your AI agent. Filter by status (HOT, WARM, COLD, JUNK, MISSED). Click any call to see the full transcript, AI summary, duration, sentiment, and quality score.
 - **Leads** (/dashboard/leads): Quick view of high-priority leads (HOT and WARM). Shows caller phone, intent, next steps, and time since call. Drag leads between columns to update status.
-- **Setup** (/dashboard/setup): Step-by-step call forwarding instructions for your carrier. Shows your assigned Twilio number and guides you through enabling forwarding from your business line.
+- **Go Live** (/dashboard/go-live): Step-by-step missed-call forwarding instructions for your carrier. Shows your assigned Twilio number and guides you through forwarding your normal business line, testing from another phone, and confirming owner alerts.
 - **Test Lab** (/dashboard/lab): Fire test calls to your AI agent to verify behavior before going live. Great for testing after prompt changes or settings updates.
 - **Advisor** (/dashboard/advisor): This chat — ask questions about your calls, leads, trends, agent performance, or how to use the platform.
 - **Settings** (/dashboard/settings): Update your business details, agent name, voice, hours, services, and manage your subscription.

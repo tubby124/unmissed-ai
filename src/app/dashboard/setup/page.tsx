@@ -62,6 +62,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
 
   if (!client) redirect('/login')
 
+  if (!isAdmin) redirect('/dashboard/go-live')
+
   const isTrialing = (client as Record<string, unknown>).subscription_status === 'trialing'
 
   return (

@@ -557,7 +557,7 @@ export default function AgentTab({
             <p className="text-xs font-medium t1">Answering schedule</p>
             <p className="text-[11px] t3">Configure when your agent answers calls</p>
           </div>
-          <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Go Live →</a>
+          <a href="/dashboard/go-live" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Go Live →</a>
         </div>
       )}
 
@@ -798,8 +798,8 @@ export default function AgentTab({
                   : 'Configure your phone number and call routing'}
               </p>
             </div>
-            <a href="/dashboard/setup" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0 cursor-pointer">
-              Setup →
+            <a href="/dashboard/go-live" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0 cursor-pointer">
+              Go Live →
             </a>
           </div>
         </>

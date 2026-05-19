@@ -15,7 +15,7 @@ const TOUR_KEY = STORAGE_KEYS.TOUR_COMPLETED
  * Tour steps target elements with data-tour attributes:
  *   1. data-tour="agent-hero"   — hero card on ClientHome
  *   2. data-tour="nav-settings" — Settings link in sidebar
- *   3. data-tour="nav-agent"    — Agent setup link in sidebar
+ *   3. data-tour="nav-agent"    — Go Live link in sidebar
  *   4. data-tour="nav-calls"    — Overview (calls) link in sidebar
  */
 
